@@ -1,0 +1,8 @@
+.idea
+*.pyc
+datasets/*/
+output/
+examples/datasets/*/
+examples/output
+huggingface
+sentence_transformers.egg-info
