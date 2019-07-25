@@ -1,0 +1,6 @@
+pytorch-transformers==1.0.0
+tqdm
+torch>=1.0.1
+numpy
+scikit-learn
+scipy
