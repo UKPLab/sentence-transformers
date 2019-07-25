@@ -6,8 +6,7 @@ import numpy as np
 from .config import SentenceTransformerConfig
 from .models import TransformerModel
 from tqdm import tqdm
-
-
+import logging
 
 class SentenceEncoder:
     """
@@ -47,7 +46,11 @@ class SentenceEncoder:
 
         length_sorted_idx = np.argsort([len(sen) for sen in sentences])
 
-        for batch_idx in tqdm(range(0, len(sentences), batch_size), desc="Batches"):
+        iterator = range(0, len(sentences), batch_size)
+        if logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG:
+            iterator = tqdm(iterator, desc="Batches")
+
+        for batch_idx in iterator:
             batch_tokens = []
             batch_input_ids = []
             batch_segment_ids = []
