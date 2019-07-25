@@ -117,7 +117,7 @@ class SentenceTransformer:
             msg = 'Module "%s" does not define a "%s" attribute/class' % (module_path, class_name)
             raise ImportError(msg)
 
-    def encode(self, sentences: List[str], batch_size: int = 32) -> List[ndarray]:
+    def encode(self, sentences: List[str], batch_size: int = 32, show_progress_bar: bool = None) -> List[ndarray]:
         """
         Get the Sentence BERT embedding for a list of sentences
 
@@ -127,7 +127,10 @@ class SentenceTransformer:
             the batch size used for the encoding
         :return: a list of ndarrays with the embedding for each sentence
         """
-        return self.encoder.get_sentence_embeddings(sentences, batch_size)
+        if show_progress_bar is None:
+            show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
+
+        return self.encoder.get_sentence_embeddings(sentences, batch_size, show_progress_bar)
 
     def train(self, dataloader: DataLoader, train_config: TrainConfig):
         """

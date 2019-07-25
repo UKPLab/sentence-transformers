@@ -6,7 +6,7 @@ import numpy as np
 from .config import SentenceTransformerConfig
 from .models import TransformerModel
 from tqdm import tqdm
-import logging
+
 
 class SentenceEncoder:
     """
@@ -31,7 +31,7 @@ class SentenceEncoder:
 
         self.tokenizer = transformer_model.tokenizer_model
 
-    def get_sentence_embeddings(self, sentences: List[str], batch_size: int = 32) -> List[ndarray]:
+    def get_sentence_embeddings(self, sentences: List[str], batch_size: int = 32, show_progress_bar: bool = None) -> List[ndarray]:
         """
         Computes the Sentence BERT embeddings for the sentences
 
@@ -47,7 +47,7 @@ class SentenceEncoder:
         length_sorted_idx = np.argsort([len(sen) for sen in sentences])
 
         iterator = range(0, len(sentences), batch_size)
-        if logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG:
+        if show_progress_bar:
             iterator = tqdm(iterator, desc="Batches")
 
         for batch_idx in iterator:
