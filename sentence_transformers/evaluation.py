@@ -363,7 +363,7 @@ class TripletEvaluator(SentenceEvaluator):
     main_similarity: EmbeddingSimilarity
 
 
-    def __init__(self, dataloader: DataLoader, main_distance_function: EmbeddingSimilarity = EmbeddingSimilarity.EUCLIDEAN, name: str =''):
+    def __init__(self, dataloader: DataLoader, main_distance_function: EmbeddingSimilarity = None, name: str =''):
         """
         Constructs an evaluator based for the dataset
 
@@ -456,9 +456,12 @@ class TripletEvaluator(SentenceEvaluator):
                 with open(csv_path, mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow([epoch, steps, accuracy_cos, accuracy_manhatten, accuracy_euclidean])
+
         if self.main_distance_function == EmbeddingSimilarity.COSINE:
             return accuracy_cos
         if self.main_distance_function == EmbeddingSimilarity.MANHATTAN:
             return accuracy_manhatten
+        if self.main_distance_function == EmbeddingSimilarity.EUCLIDEAN:
+            return accuracy_euclidean
 
-        return accuracy_euclidean
+        return max(accuracy_cos, accuracy_manhatten, accuracy_euclidean)

@@ -1,3 +1,4 @@
+__version__ = "0.1.1"
 from .config import SentenceTransformerConfig, LossFunction, TripletMetric
 from .trainer import TrainConfig
 from .input_example import InputExample
