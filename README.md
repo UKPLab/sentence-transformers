@@ -229,7 +229,7 @@ Extensive evaluation is currently undergoing, but here we provide some prelimina
 | Universal Sentence Encoder        | 74.92  | 85.10  |
 |**Sentence Transformer Models**    ||
 | bert-base-nli-mean-tokens         | 77.12  | 86.37 |
-| bert-large-nli-mean-tokens        | 79.19  |    |
+| bert-large-nli-mean-tokens        | 79.19  | 87.78 |
 | bert-base-nli-stsb-mean-tokens    | 85.14  |    |
 | bert-large-nli-stsb-mean-tokens   | 85.29| |
 
