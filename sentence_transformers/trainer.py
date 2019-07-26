@@ -11,7 +11,7 @@ from .util import batch_to_device
 from .models import TransformerModel
 from .config import LossFunction
 import logging
-
+import json
 
 class TrainConfig:
     """
@@ -31,7 +31,8 @@ class TrainConfig:
     fp16_opt_level: str
     local_rank: int
     max_grad_norm: float
-    correct_bias:bool
+    correct_bias: bool
+
 
     def __init__(self,
                  epochs: int = 1,
@@ -103,6 +104,30 @@ class TrainConfig:
         self.max_grad_norm = max_grad_norm
         self.correct_bias = correct_bias
 
+    def to_json_file(self, path: str):
+        """
+        Serialize the config to a JSON file at the given path
+        :param path:
+            the path for the JSON file
+        """
+        with open(path, "w", encoding='utf-8') as f:
+            values = {}
+            for key, value in self.__dict__.items():
+                if self.is_jsonable(value):
+                    values[key] = value
+                else:
+                    values[key] = str(value)
+
+            json.dump(values, f, indent=2)
+
+    def is_jsonable(self, x):
+        try:
+            json.dumps(x)
+            return True
+        except:
+            return False
+
+
 
 class SentenceTrainer:
     """
@@ -135,10 +160,13 @@ class SentenceTrainer:
         output_model_file = os.path.join(path, WEIGHTS_NAME)
         output_model_config_file = os.path.join(path, CONFIG_NAME)
         output_sentence_transformer_config_file = os.path.join(path, 'sentence_transformer_config.json')
+        output_sentence_train_config_file = os.path.join(path, 'sentence_transformer_train_config.json')
 
         if save_config:
             self.model.model_config.to_json_file(output_model_config_file)
             self.model.sentence_transformer_config.to_json_file(output_sentence_transformer_config_file)
+            if self.train_config is not None:
+                self.train_config.to_json_file(output_sentence_train_config_file)
 
         if save_model:
             torch.save(self.model.state_dict(), output_model_file)
@@ -153,6 +181,7 @@ class SentenceTrainer:
         :param train_config:
             the configuration for the training
         """
+        self.train_config = train_config
         if train_config.output_path is not None:
             os.makedirs(train_config.output_path, exist_ok=True)
             if os.listdir(train_config.output_path):
