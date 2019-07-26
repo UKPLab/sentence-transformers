@@ -240,8 +240,8 @@ Extensive evaluation is currently undergoing, but here we provide some prelimina
 |**Sentence Transformer Models**    ||
 | bert-base-nli-mean-tokens         | 77.12  | 86.37 |
 | bert-large-nli-mean-tokens        | 79.19  | 87.78 |
-| bert-base-nli-stsb-mean-tokens    | 85.14  |    |
-| bert-large-nli-stsb-mean-tokens   | 85.29| |
+| bert-base-nli-stsb-mean-tokens    | 85.14  | 86.07 |
+| bert-large-nli-stsb-mean-tokens   | 85.29 | 86.66|
 
 
 ## Loss Functions
