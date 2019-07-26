@@ -31,11 +31,12 @@ class TrainConfig:
     fp16_opt_level: str
     local_rank: int
     max_grad_norm: float
+    correct_bias:bool
 
     def __init__(self,
                  epochs: int = 1,
                  learning_rate: float = 2e-5,
-                 adam_epsilon: float = 1e-8,
+                 adam_epsilon: float = 1e-6,
                  weight_decay: float = 0.01,
                  warmup_steps: int = 10000,
                  evaluator: SentenceEvaluator = None,
@@ -46,7 +47,8 @@ class TrainConfig:
                  fp16: bool = False,
                  fp16_opt_level: str = '01',
                  local_rank: int = -1,
-                 max_grad_norm: float = 1):
+                 max_grad_norm: float = 1,
+                 correct_bias: bool = False):
         """
         The configuration for the training of a Sentence BERT model
         :param epochs:
@@ -82,6 +84,8 @@ class TrainConfig:
             See details at https://nvidia.github.io/apex/amp.html"
         :param local_rank:
             the local rank when using distributed training
+        :param correct_bias
+            Set to false, to reproduce BertAdam specific behavior
         """
         self.epochs = epochs
         self.learning_rate = learning_rate
@@ -97,6 +101,7 @@ class TrainConfig:
         self.fp16_opt_level = fp16_opt_level
         self.local_rank = local_rank
         self.max_grad_norm = max_grad_norm
+        self.correct_bias = correct_bias
 
 
 class SentenceTrainer:
@@ -161,7 +166,7 @@ class SentenceTrainer:
 
         # Prepare optimizer
         param_optimizer = list(self.model.named_parameters())
-        no_decay = ['bias', 'LayerNorm.weight']
+        no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
         optimizer_grouped_parameters = [
             {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': train_config.weight_decay},
             {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
@@ -171,7 +176,7 @@ class SentenceTrainer:
             t_total = t_total // torch.distributed.get_world_size()
 
         optimizer = AdamW(optimizer_grouped_parameters, lr=train_config.learning_rate,
-                          eps=train_config.adam_epsilon)
+                          eps=train_config.adam_epsilon, correct_bias=train_config.correct_bias)
         scheduler = WarmupLinearSchedule(optimizer, warmup_steps=train_config.warmup_steps, t_total=t_total)
 
         if train_config.fp16:
