@@ -199,7 +199,8 @@ The list is increasing as soon was new models increasing.
 BERT Sentence Embeddings have been extensively tested and tuned. We released the following pre-trained model for your usage:
 
 **Trained on NLI data**
-These models were trained on SNLI and MultiNLI dataset to create universal sentence embeddings. For more details, see: [docs/pretrained-models/nli-models.md].
+
+These models were trained on SNLI and MultiNLI dataset to create universal sentence embeddings. For more details, see: [nli-models.md](docs/pretrained-models/nli-models.md).
 - **bert-base-nli-mean-tokens**: This model fine-tuned BERT-base on the AllNLI dataset. As pooling strategy, mean-tokens was used. Performance: STSbenchmark: 77.12
 - **bert-base-nli-max-tokens**: This model fine-tuned BERT-base on the AllNLI dataset. As pooling strategy, max-tokens was used. Performance: STSbenchmark: 77.18
 - **bert-base-nli-cls-token**: This model fine-tuned BERT-base on the AllNLI dataset. As pooling strategy, the CLS token was used. Performance: STSbenchmark: 76.30
@@ -208,12 +209,14 @@ These models were trained on SNLI and MultiNLI dataset to create universal sente
 - **bert-large-nli-cls-token**: This model fine-tuned BERT-large on the AllNLI dataset. As pooling strategy, the CLS token was used. Performance: STSbenchmark: 78.29
 
 **Trained on STS data**
-These models were fine-tuned on the training set of the STS benchmark. They are specifically well suited for semantic textual similarity. For more details, see: [docs/pretrained-models/sts-models.md].
+
+These models were fine-tuned on the training set of the STS benchmark. They are specifically well suited for semantic textual similarity. For more details, see: [sts-models.md](docs/pretrained-models/sts-models.md).
 - **bert-base-nli-stsb-mean-tokens**: First fine-tuned on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.14
 - **bert-large-nli-stsb-mean-tokens**: First fine-tuned on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.29
 
 **Trained on Wikipedia Sections Triplets**
-These models were fine-tuned on triplets generated from Wikipedia sections. These models work well if fine-grained clustering of sentences on a similar topic are required. For more details, see: [docs/pretrained-models/wikipedia-sections-models.md].
+
+These models were fine-tuned on triplets generated from Wikipedia sections. These models work well if fine-grained clustering of sentences on a similar topic are required. For more details, see: [wikipedia-sections-models.md](docs/pretrained-models/wikipedia-sections-models.md).
 - **bert-base-wikipedia-sections-mean-tokens**: 80.42% accuracy on Wikipedia sections test set.
 
 
