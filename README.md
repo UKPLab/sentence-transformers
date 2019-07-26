@@ -55,7 +55,7 @@ for sentence, embedding in zip(sentences, sentence_embeddings):
 ````
 
 ## Training
-This framework allows you to fine-tune your own sentence embedding methods, so that you get task-specific sentence embeddings. You have various options to choose from in order to get perfect sentence embeddings for your specific task. For more details, see [docs/training.md](docs/training.md).
+This framework allows you to fine-tune your own sentence embedding methods, so that you get task-specific sentence embeddings. You have various options to choose from in order to get perfect sentence embeddings for your specific task. 
 
 ### Dataset Download
 First, you should download some datasets. For this run the [examples/datasets/get_data.py](examples/datasets/get_data.py):
