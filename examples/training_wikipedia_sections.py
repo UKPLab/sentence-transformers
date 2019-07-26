@@ -41,7 +41,7 @@ embedder = SentenceTransformer(sentence_transformer_config=transformer_config)
 
 
 logging.info("Read Triplet train dataset")
-train_data = SentencesDataset(examples=triplet_reader.get_examples('train.csv', 100), model=embedder)
+train_data = SentencesDataset(examples=triplet_reader.get_examples('train.csv'), model=embedder)
 train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size, collate_fn=embedder.encoder.smart_batching_collate)
 
 
