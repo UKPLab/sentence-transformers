@@ -67,7 +67,7 @@ It will download some [datasets](examples/datasets) and store it on your disk.
 
 
 ### Model Training from Scratch
-[examples/basic_training_nli.py](examples/basic_training_nli.py) fine-tunes BERT from the pre-trained model as provided by Google. It tunes the model on Natural Language Inference (NLI) data. Given two sentences, the model should classify if these two sentence entail, contradict, or are neutral to each other. For this, the two sentences are passed to a transformer model to generate fixed-sized sentence embeddings. These sentence embeddings are than passed to a softmax classifier to derive the final label (entail, contradict, neutral). This generates sentence embeddings that are useful also for other tasks like clustering or semantic textual similarity.
+[examples/training_nli.py](examples/training_nli.py) fine-tunes BERT from the pre-trained model as provided by Google. It tunes the model on Natural Language Inference (NLI) data. Given two sentences, the model should classify if these two sentence entail, contradict, or are neutral to each other. For this, the two sentences are passed to a transformer model to generate fixed-sized sentence embeddings. These sentence embeddings are than passed to a softmax classifier to derive the final label (entail, contradict, neutral). This generates sentence embeddings that are useful also for other tasks like clustering or semantic textual similarity.
 
 
 
@@ -131,7 +131,7 @@ model.train(dataloader=train_dataloader, train_config=train_config)
  We create a TrainConfig-object, which specifies certain parameters like the number of epochs, after how many steps the evaluation should be performed (`evaluation_steps`), an output path for our model, if we want to store the model, and the dev-set evaluator.
 
 ### Continue Training on Other Data
-[examples/basic_training_stsbenchmark.py](examples/basic_training_stsbenchmark.py) shows an example, where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset, and then continue training on the training data from the STS benchmark.
+[examples/training_stsbenchmark.py](examples/training_stsbenchmark.py) shows an example, where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset, and then continue training on the training data from the STS benchmark.
 
 First, we instantiate the model:
 ```
