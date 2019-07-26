@@ -4,7 +4,7 @@ This is a simple application for sentence embeddings: clustering
 Sentences are mapped to sentence embeddings and then k-mean clustering is applied.
 """
 from sentence_transformers import SentenceTransformer
-import scipy.cluster
+from sklearn.cluster import AgglomerativeClustering
 
 embedder = SentenceTransformer('bert-base-nli-mean-tokens')
 
@@ -25,9 +25,9 @@ corpus_embeddings = embedder.encode(corpus)
 
 # Perform kmean clustering
 num_clusters = 5
-whitened_corpus = scipy.cluster.vq.whiten(corpus_embeddings)
-code_book, _ = scipy.cluster.vq.kmeans(whitened_corpus, num_clusters)
-cluster_assignment, _ = scipy.cluster.vq.vq(whitened_corpus, code_book)
+clustering_model = AgglomerativeClustering(n_clusters=num_clusters)
+clustering_model.fit(corpus_embeddings)
+cluster_assignment = clustering_model.labels_
 
 clustered_sentences = [[] for i in range(num_clusters)]
 for sentence_id, cluster_id in enumerate(cluster_assignment):
