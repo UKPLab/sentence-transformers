@@ -304,6 +304,10 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
         manhattan_distances = -paired_manhattan_distances(embeddings1, embeddings2)
         euclidean_distances = -paired_euclidean_distances(embeddings1, embeddings2)
 
+        #Ensure labels are just 0 or 1
+        for label in labels:
+            assert (label == 0 or label == 1)
+
         cosine_middle = np.median(cosine_scores)
         cosine_acc = 0
         for label, score in zip(labels, cosine_scores):

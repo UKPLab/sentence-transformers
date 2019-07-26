@@ -6,8 +6,9 @@ from numpy import ndarray
 from typing import List, Tuple, Callable
 from torch.utils.data import DataLoader
 import logging
-from tqdm import tqdm
 import importlib
+import sys
+import shutil
 
 from .util import http_get
 from .config import SentenceTransformerConfig, LossFunction
@@ -59,14 +60,13 @@ class SentenceTransformer:
                     if model_url[-1] is "/":
                         model_url = model_url[:-1]
                     logging.info("Downloading sentence transformer model from {} and saving it at {}".format(model_url, model_path))
-                    download_progress = tqdm(total=3, unit="files")
-                    http_get(model_url + "/" + WEIGHTS_NAME, os.path.join(model_path, WEIGHTS_NAME))
-                    download_progress.update(1)
-                    http_get(model_url + "/" + CONFIG_NAME, os.path.join(model_path, CONFIG_NAME))
-                    download_progress.update(1)
-                    http_get(model_url + "/" + 'sentence_transformer_config.json', os.path.join(model_path, 'sentence_transformer_config.json'))
-                    download_progress.update(1)
-                    download_progress.close()
+                    try:
+                        http_get(model_url + "/" + WEIGHTS_NAME, os.path.join(model_path, WEIGHTS_NAME))
+                        http_get(model_url + "/" + CONFIG_NAME, os.path.join(model_path, CONFIG_NAME))
+                        http_get(model_url + "/" + 'sentence_transformer_config.json', os.path.join(model_path, 'sentence_transformer_config.json'))
+                    except Exception as e:
+                        shutil.rmtree(model_path)
+                        raise e
             else:
                 model_path = model_name_or_path
 
@@ -76,6 +76,10 @@ class SentenceTransformer:
             output_model_file = os.path.join(model_path, WEIGHTS_NAME)
             output_transformer_config_file = os.path.join(model_path, CONFIG_NAME)
             output_sentence_transformer_config_file = os.path.join(model_path, 'sentence_transformer_config.json')
+
+            if not os.path.exists(output_model_file) or not os.path.exists(output_transformer_config_file) or not os.path.exists(output_sentence_transformer_config_file):
+                raise Exception("It appears that files are missing in {}. The sentence transformer model cannot be loaded".format(model_path))
+
 
             sentence_transformer_config = SentenceTransformerConfig.from_json_file(output_sentence_transformer_config_file)
             logging.info("Transformer Model config {}".format(sentence_transformer_config))
