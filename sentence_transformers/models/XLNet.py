@@ -1,18 +1,13 @@
-import torch
 from torch import Tensor
 from pytorch_transformers import XLNetConfig, XLNetModel, XLNetTokenizer
 from pytorch_transformers.modeling_xlnet import XLNetPreTrainedModel
-
-
 from typing import Union, Tuple, List
 from .. import LossFunction
 from .. import SentenceTransformerConfig
 from .TransformerModel import TransformerModel
-
-
 from torch import nn
-from torch.nn import functional as F
-from torch.nn import CrossEntropyLoss, MSELoss
+import os
+import json
 
 class XLNet(XLNetPreTrainedModel, TransformerModel):
     def __init__(self, config: XLNetConfig, sentence_transformer_config: SentenceTransformerConfig = None):
@@ -49,6 +44,15 @@ class XLNet(XLNetPreTrainedModel, TransformerModel):
         Sets the tokenizer for this model
         """
         self.tokenizer_model = XLNetTokenizer.from_pretrained(tokenizer_model, do_lower_case=do_lower_case)
+
+    def save_pretrained(self, save_directory: str):
+        """
+        Saves the model to disk
+        """
+        super(XLNetPreTrainedModel, self).save_pretrained(save_directory)
+        tokenizer_files = self.tokenizer_model.save_pretrained(save_directory)
+        return tokenizer_files
+
 
 
     def forward(self, input_ids: List[Tensor], token_type_ids: List[Tensor], attention_mask: List[Tensor],

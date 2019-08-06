@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm, trange
 import os
 from .evaluation import SentenceEvaluator
-from .util import batch_to_device
+from .util import batch_to_device, SENTENCE_TRANSFORMER_CONFIG_NAME, TOKENIZER_FILES_NAME
 from .models import TransformerModel
 from .config import LossFunction
 import logging
@@ -159,7 +159,7 @@ class SentenceTrainer:
         # If we save using the predefined names, we can load using `from_pretrained`
         output_model_file = os.path.join(path, WEIGHTS_NAME)
         output_model_config_file = os.path.join(path, CONFIG_NAME)
-        output_sentence_transformer_config_file = os.path.join(path, 'sentence_transformer_config.json')
+        output_sentence_transformer_config_file = os.path.join(path, SENTENCE_TRANSFORMER_CONFIG_NAME)
         output_sentence_train_config_file = os.path.join(path, 'sentence_transformer_train_config.json')
 
         if save_config:
@@ -169,7 +169,9 @@ class SentenceTrainer:
                 self.train_config.to_json_file(output_sentence_train_config_file)
 
         if save_model:
-            torch.save(self.model.state_dict(), output_model_file)
+            tokenizer_files = self.model.save_pretrained(path)
+            with open(os.path.join(path, TOKENIZER_FILES_NAME), 'w') as fOut:
+                json.dump([os.path.basename(filename) for filename in tokenizer_files], fOut)
 
 
     def train(self, dataloader: DataLoader, train_config: TrainConfig):
@@ -358,9 +360,3 @@ class SentenceTrainer:
             if score > self.best_score and train_config.save_best_model:
                 self.save(train_config.output_path, save_model=True, save_config=True)
                 self.best_score = score
-
-    @staticmethod
-    def warmup_linear(x: int, warmup: float = 0.002):
-        if x < warmup:
-            return x / warmup
-        return 1.0 - x

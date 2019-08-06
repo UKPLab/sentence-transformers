@@ -8,3 +8,4 @@ from .datasets import SentencesDataset, SentenceLabelDataset
 from .data_samplers import LabelSampler
 from .SentenceTransformer import SentenceTransformer
 from .LoggingHandler import LoggingHandler
+from .util import SENTENCE_TRANSFORMER_CONFIG_NAME, TOKENIZER_FILES_NAME

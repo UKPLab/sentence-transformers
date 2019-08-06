@@ -4,6 +4,9 @@ from typing import Tuple, List
 from tqdm import tqdm
 import sys
 
+SENTENCE_TRANSFORMER_CONFIG_NAME = 'sentence_transformer_config.json'
+TOKENIZER_FILES_NAME = 'tokenizer_files.json'
+
 def batch_to_device(batch: Tuple[List[Tensor], List[Tensor], List[Tensor], Tensor], target_device: device) \
         -> Tuple[List[Tensor], List[Tensor], List[Tensor], Tensor]:
     """

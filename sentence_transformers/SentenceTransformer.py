@@ -8,8 +8,9 @@ from torch.utils.data import DataLoader
 import logging
 import importlib
 import shutil
+import json
 
-from .util import http_get
+from .util import http_get, SENTENCE_TRANSFORMER_CONFIG_NAME, TOKENIZER_FILES_NAME
 from .config import SentenceTransformerConfig, LossFunction
 from .evaluation import SentenceEvaluator
 from .encoder import SentenceEncoder
@@ -62,7 +63,16 @@ class SentenceTransformer:
                     try:
                         http_get(model_url + "/" + WEIGHTS_NAME, os.path.join(model_path, WEIGHTS_NAME))
                         http_get(model_url + "/" + CONFIG_NAME, os.path.join(model_path, CONFIG_NAME))
-                        http_get(model_url + "/" + 'sentence_transformer_config.json', os.path.join(model_path, 'sentence_transformer_config.json'))
+                        http_get(model_url + "/" + SENTENCE_TRANSFORMER_CONFIG_NAME, os.path.join(model_path, SENTENCE_TRANSFORMER_CONFIG_NAME))
+
+                        http_get(model_url + "/" + TOKENIZER_FILES_NAME, os.path.join(model_path, TOKENIZER_FILES_NAME))
+
+                        #Download files for tokenizer
+                        with open(os.path.join(model_path, TOKENIZER_FILES_NAME)) as fIn:
+                            tokenizer_files = json.load(fIn)
+                            for tokenizer_file in tokenizer_files:
+                                http_get(model_url + "/" + tokenizer_file, os.path.join(model_path, tokenizer_file))
+
                     except Exception as e:
                         shutil.rmtree(model_path)
                         raise e
@@ -74,7 +84,7 @@ class SentenceTransformer:
             logging.info("Loading model from {}".format(model_path))
             output_model_file = os.path.join(model_path, WEIGHTS_NAME)
             output_transformer_config_file = os.path.join(model_path, CONFIG_NAME)
-            output_sentence_transformer_config_file = os.path.join(model_path, 'sentence_transformer_config.json')
+            output_sentence_transformer_config_file = os.path.join(model_path, SENTENCE_TRANSFORMER_CONFIG_NAME)
 
             if not os.path.exists(output_model_file) or not os.path.exists(output_transformer_config_file) or not os.path.exists(output_sentence_transformer_config_file):
                 raise Exception("It appears that files are missing in {}. The sentence transformer model cannot be loaded".format(model_path))
@@ -87,17 +97,21 @@ class SentenceTransformer:
             model_class = self.import_from_string(sentence_transformer_config.model)
             self.transformer_model = model_class(transformer_config, sentence_transformer_config=sentence_transformer_config)
             self.transformer_model.load_state_dict(torch.load(output_model_file, map_location='cuda' if torch.cuda.is_available() else 'cpu'))
-            
+
+            if not os.path.exists(os.path.join(model_path, TOKENIZER_FILES_NAME)):
+                logging.info("{} does not exist in {}. Use pre-defined tokenizer {}".format(TOKENIZER_FILES_NAME, model_path, sentence_transformer_config.tokenizer_model ))
+                model_path = sentence_transformer_config.tokenizer_model
+
+            self.transformer_model.set_tokenizer(model_path, sentence_transformer_config.do_lower_case)
         elif sentence_transformer_config is not None:
             logging.info("Creating a new {} model with config {}".format(sentence_transformer_config.model, sentence_transformer_config))
             model_class = self.import_from_string(sentence_transformer_config.model)
             self.transformer_model = model_class.from_pretrained(sentence_transformer_config.tokenizer_model)
             self.transformer_model.set_config(sentence_transformer_config)
-            
+            self.transformer_model.set_tokenizer(sentence_transformer_config.tokenizer_model, sentence_transformer_config.do_lower_case)
         else:
             raise ValueError("model_url, model_path and config can not be all None.")
 
-        self.transformer_model.set_tokenizer(sentence_transformer_config.tokenizer_model, sentence_transformer_config.do_lower_case)
         self.encoder = SentenceEncoder(self.transformer_model, sentence_transformer_config)
         self.trainer = SentenceTrainer(self.transformer_model)
 

@@ -1,14 +1,12 @@
-import torch
 from torch import Tensor
 from pytorch_transformers import BertConfig, BertModel, BertTokenizer
 from pytorch_transformers.modeling_bert import BertPreTrainedModel
-
-
 from typing import Union, Tuple, List
 from .. import LossFunction
 from .. import SentenceTransformerConfig
 from .TransformerModel import TransformerModel
-
+import os
+import json
 
 
 class BERT(BertPreTrainedModel, TransformerModel):
@@ -40,6 +38,15 @@ class BERT(BertPreTrainedModel, TransformerModel):
         Sets the tokenizer for this model
         """
         self.tokenizer_model = BertTokenizer.from_pretrained(tokenizer_model, do_lower_case=do_lower_case)
+
+    def save_pretrained(self, save_directory: str):
+        """
+        Saves the model to disk
+        """
+        super(BertPreTrainedModel, self).save_pretrained(save_directory)
+        tokenizer_files = self.tokenizer_model.save_pretrained(save_directory)
+        return tokenizer_files
+
 
 
     def forward(self, input_ids: List[Tensor], token_type_ids: List[Tensor], attention_mask: List[Tensor],
@@ -109,8 +116,8 @@ class BERT(BertPreTrainedModel, TransformerModel):
         segment_ids += padding
         input_mask += padding
 
-        assert len(input_ids)==pad_seq_length
-        assert len(input_mask)==pad_seq_length
-        assert len(segment_ids)==pad_seq_length
+        assert len(input_ids) == pad_seq_length
+        assert len(input_mask) == pad_seq_length
+        assert len(segment_ids) == pad_seq_length
 
         return input_ids, segment_ids, input_mask
