@@ -7,7 +7,6 @@ from typing import List, Tuple, Callable
 from torch.utils.data import DataLoader
 import logging
 import importlib
-import sys
 import shutil
 
 from .util import http_get
@@ -121,7 +120,7 @@ class SentenceTransformer:
             msg = 'Module "%s" does not define a "%s" attribute/class' % (module_path, class_name)
             raise ImportError(msg)
 
-    def encode(self, sentences: List[str], batch_size: int = 32, show_progress_bar: bool = None) -> List[ndarray]:
+    def encode(self, sentences: List[str], batch_size: int = 8, show_progress_bar: bool = None) -> List[ndarray]:
         """
         Get the Sentence BERT embedding for a list of sentences
 
