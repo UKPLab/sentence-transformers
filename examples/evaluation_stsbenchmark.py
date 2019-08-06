@@ -20,7 +20,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 
 # Load Sentence model (based on BERT) from URL
-model = SentenceTransformer('bert-base-nli-mean')
+model = SentenceTransformer('bert-base-nli-mean-tokens')
 
 
 sts_reader = STSDataReader('datasets/stsbenchmark')
