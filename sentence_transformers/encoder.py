@@ -31,7 +31,7 @@ class SentenceEncoder:
 
         self.tokenizer = transformer_model.tokenizer_model
 
-    def get_sentence_embeddings(self, sentences: List[str], batch_size: int = 32, show_progress_bar: bool = None) -> List[ndarray]:
+    def get_sentence_embeddings(self, sentences: List[str], batch_size: int = 8, show_progress_bar: bool = None) -> List[ndarray]:
         """
         Computes the Sentence BERT embeddings for the sentences
 
@@ -113,15 +113,14 @@ class SentenceEncoder:
             labels.append(label)
             for i in range(num_texts):
                 paired_texts[i].append(tokens[i])
-                max_seq_len[i] = min(max(max_seq_len[i], len(tokens[i])), self.max_seq_length)
-
+                max_seq_len[i] = max(max_seq_len[i], len(tokens[i]))
 
         inputs = [[] for _ in range(num_texts)]
         segments = [[] for _ in range(num_texts)]
         masks = [[] for _ in range(num_texts)]
 
         for texts in zip(*paired_texts):
-            features = [self.model.get_sentence_features(text, max_len) for text , max_len in zip(texts, max_seq_len)]
+            features = [self.model.get_sentence_features(text, max_len) for text, max_len in zip(texts, max_seq_len)]
             for i in range(num_texts):
                 inputs[i].append(features[i][0])
                 segments[i].append(features[i][1])

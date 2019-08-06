@@ -100,18 +100,18 @@ class XLNet(XLNetPreTrainedModel, TransformerModel):
 
         return output_tokens, cls_tokens
 
-    def get_sentence_features(self, tokens: List[str], max_seq_length: int) -> Tuple[List[int], List[int], List[int]]:
+    def get_sentence_features(self, tokens: List[str], pad_seq_length: int) -> Tuple[List[int], List[int], List[int]]:
         """
         Convert tokenized sentence in its embedding ids, segment ids and mask
 
         :param tokens:
             a tokenized sentence
-        :param max_seq_length:
-            the maximal length of the sequence.
-            If this is greater than self.max_seq_length, then self.max_seq_length is used.
-            If this is 0, then self.max_seq_length is used.
+        :param pad_seq_length:
+            the maximal length of the sequence. Cannot be greater than self.sentence_transformer_config.max_seq_length
         :return: embedding ids, segment ids and mask for the sentence
         """
+        pad_seq_length = min(pad_seq_length, self.sentence_transformer_config.max_seq_length)
+
         sep_token = self.tokenizer_model.sep_token
         cls_token = self.tokenizer_model.cls_token
         sequence_a_segment_id = 0
@@ -120,9 +120,9 @@ class XLNet(XLNetPreTrainedModel, TransformerModel):
         pad_token = 0
 
 
-        max_seq_length += 2 ##Add space for CLS + SEP token
+        pad_seq_length += 2 ##Add space for CLS + SEP token
 
-        tokens = tokens[:(max_seq_length - 2)] + [sep_token]
+        tokens = tokens[:(pad_seq_length - 2)] + [sep_token]
         segment_ids = [sequence_a_segment_id] * len(tokens)
 
         # XLNet CLS token at at
@@ -134,14 +134,14 @@ class XLNet(XLNetPreTrainedModel, TransformerModel):
         input_mask = [1] * len(input_ids)
 
         # Zero-pad up to the sequence length. XLNet: Pad to the left
-        padding_length = max_seq_length - len(input_ids)
+        padding_length = pad_seq_length - len(input_ids)
         input_ids = ([pad_token] * padding_length) + input_ids
         input_mask = ([0] * padding_length) + input_mask
         segment_ids = ([pad_token_segment_id] * padding_length) + segment_ids
 
-        assert len(input_ids)==max_seq_length
-        assert len(input_mask)==max_seq_length
-        assert len(segment_ids)==max_seq_length
+        assert len(input_ids)==pad_seq_length
+        assert len(input_mask)==pad_seq_length
+        assert len(segment_ids)==pad_seq_length
 
 
 

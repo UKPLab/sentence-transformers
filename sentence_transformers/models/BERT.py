@@ -82,37 +82,35 @@ class BERT(BertPreTrainedModel, TransformerModel):
         cls_tokens = output_tokens[:, 0, :]  # CLS token is first token
         return output_tokens, cls_tokens
 
-    def get_sentence_features(self, tokens: List[str], max_seq_length: int) \
+    def get_sentence_features(self, tokens: List[str], pad_seq_length: int) \
             -> Tuple[List[int], List[int], List[int]]:
         """
         Convert tokenized sentence in its embedding ids, segment ids and mask
 
         :param tokens:
             a tokenized sentence
-        :param max_seq_length:
-            the maximal length of the sequence.
-            If this is greater than self.max_seq_length, then self.max_seq_length is used.
-            If this is 0, then self.max_seq_length is used.
+        :param pad_seq_length:
+            the maximal length of the sequence. Cannot be greater than self.sentence_transformer_config.max_seq_length
         :return: embedding ids, segment ids and mask for the sentence
         """
-        max_seq_length += 2 ##Add Space for CLS + SEP token
+        pad_seq_length = min(pad_seq_length, self.sentence_transformer_config.max_seq_length)
 
-        tokens = tokens[:(max_seq_length - 2)]
+        pad_seq_length += 2 ##Add Space for CLS + SEP token
+
+        tokens = tokens[:(pad_seq_length - 2)]
         tokens = [self.tokenizer_model.cls_token] + tokens + [self.tokenizer_model.sep_token]
         input_ids = self.tokenizer_model.convert_tokens_to_ids(tokens)
         segment_ids = [0] * len(tokens)
         input_mask = [1] * len(input_ids)
 
         # Zero-pad up to the sequence length. BERT: Pad to the right
-        padding = [0] * (max_seq_length - len(input_ids))
+        padding = [0] * (pad_seq_length - len(input_ids))
         input_ids += padding
         segment_ids += padding
         input_mask += padding
 
-        assert len(input_ids)==max_seq_length
-        assert len(input_mask)==max_seq_length
-        assert len(segment_ids)==max_seq_length
+        assert len(input_ids)==pad_seq_length
+        assert len(input_mask)==pad_seq_length
+        assert len(segment_ids)==pad_seq_length
 
         return input_ids, segment_ids, input_mask
-
-
