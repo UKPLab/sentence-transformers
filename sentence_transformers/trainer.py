@@ -165,13 +165,16 @@ class SentenceTrainer:
         if save_config:
             self.model.model_config.to_json_file(output_model_config_file)
             self.model.sentence_transformer_config.to_json_file(output_sentence_transformer_config_file)
+
+            tokenizer_files = self.model.save_tokenizer(path)
+            with open(os.path.join(path, TOKENIZER_FILES_NAME), 'w') as fOut:
+                json.dump([os.path.basename(filename) for filename in tokenizer_files], fOut)
+
             if self.train_config is not None:
                 self.train_config.to_json_file(output_sentence_train_config_file)
 
         if save_model:
-            tokenizer_files = self.model.save_pretrained(path)
-            with open(os.path.join(path, TOKENIZER_FILES_NAME), 'w') as fOut:
-                json.dump([os.path.basename(filename) for filename in tokenizer_files], fOut)
+            self.model.save_pretrained(path)
 
 
     def train(self, dataloader: DataLoader, train_config: TrainConfig):
@@ -358,5 +361,5 @@ class SentenceTrainer:
         if train_config.evaluator is not None:
             score = train_config.evaluator(self.model, output_path=train_config.output_path, epoch=epoch, steps=steps)
             if score > self.best_score and train_config.save_best_model:
-                self.save(train_config.output_path, save_model=True, save_config=True)
+                self.save(train_config.output_path, save_model=True, save_config=False)
                 self.best_score = score

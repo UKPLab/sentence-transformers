@@ -45,11 +45,10 @@ class XLNet(XLNetPreTrainedModel, TransformerModel):
         """
         self.tokenizer_model = XLNetTokenizer.from_pretrained(tokenizer_model, do_lower_case=do_lower_case)
 
-    def save_pretrained(self, save_directory: str):
+    def save_tokenizer(self, save_directory: str):
         """
-        Saves the model to disk
+        Saves the tokenizer to disk
         """
-        super(XLNetPreTrainedModel, self).save_pretrained(save_directory)
         tokenizer_files = self.tokenizer_model.save_pretrained(save_directory)
         return tokenizer_files
 
