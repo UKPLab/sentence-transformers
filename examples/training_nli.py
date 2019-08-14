@@ -42,11 +42,9 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read AllNLI train dataset")
-nli_train_data = SentencesDataset(nli_reader.get_examples('train.gz'), model=model)
-nli_train_dataloader = DataLoader(nli_train_data, shuffle=True, batch_size=batch_size)
-nli_train_loss = losses.SoftmaxLoss(model=model,
-                                    sentence_embedding_dimension=model.get_sentence_embedding_dimension(),
-                                    num_labels=train_num_labels)
+train_data = SentencesDataset(nli_reader.get_examples('train.gz'), model=model)
+train_dataloader = DataLoader(train_data, shuffle=True, batch_size=batch_size)
+train_loss = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=train_num_labels)
 
 
 
@@ -58,13 +56,13 @@ evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
 # Configure the training
 num_epochs = 1
 
-warmup_steps = math.ceil(len(nli_train_data) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_data) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 
 
 # Train the model
-model.fit(train_objectives=[(nli_train_dataloader, nli_train_loss)],
+model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=evaluator,
           epochs=num_epochs,
           evaluation_steps=1000,

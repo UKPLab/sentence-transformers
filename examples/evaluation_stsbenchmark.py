@@ -1,8 +1,9 @@
 """
-This examples loads a pre-trained model
+This examples loads a pre-trained model and evaluates it on the STSbenchmark dataset
 """
 from torch.utils.data import DataLoader
-from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, EmbeddingSimilarityEvaluator, EmbeddingSimilarity
+from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import STSDataReader
 import numpy as np
 import logging
@@ -19,14 +20,14 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 
 
-# Load Sentence model (based on BERT) from URL
+# Load a named sentence model (based on BERT). This will download the model from our server.
+# Alternatively, you can also pass a filepath to SentenceTransformer()
 model = SentenceTransformer('bert-base-nli-mean-tokens')
-
 
 sts_reader = STSDataReader('datasets/stsbenchmark')
 
 test_data = SentencesDataset(examples=sts_reader.get_examples("sts-test.csv"), model=model)
 test_dataloader = DataLoader(test_data, shuffle=False, batch_size=8)
-evaluator = EmbeddingSimilarityEvaluator(test_dataloader, EmbeddingSimilarity.COSINE)
+evaluator = EmbeddingSimilarityEvaluator(test_dataloader)
 
 model.evaluate(evaluator)

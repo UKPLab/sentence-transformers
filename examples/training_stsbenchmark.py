@@ -27,7 +27,6 @@ sts_reader = STSDataReader('datasets/stsbenchmark', normalize_scores=True)
 # Load a pre-trained sentence transformer model
 model = SentenceTransformer('bert-base-nli-mean-tokens')
 
-
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read STSbenchmark train dataset")
 train_data = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model)
