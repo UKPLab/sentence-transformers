@@ -4,9 +4,11 @@ It then fine-tunes this model for some epochs on the STS benchmark dataset.
 """
 from torch.utils.data import DataLoader
 import math
-from sentence_transformers import  SentenceTransformer, LossFunction, TrainConfig, SentencesDataset, LoggingHandler, EmbeddingSimilarityEvaluator, EmbeddingSimilarity
-from sentence_transformers.dataset_readers import STSDataReader
+from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+from sentence_transformers.readers import STSDataReader
 import logging
+from datetime import datetime
 
 
 #### Just some code to print debug information to stdout
@@ -17,43 +19,40 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #### /print debug information to stdout
 
 # Read the dataset
-train_batch_size = 32
+train_batch_size = 16
+num_epochs = 4
+model_save_path = 'output/training_stsbenchmark-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
 sts_reader = STSDataReader('datasets/stsbenchmark', normalize_scores=True)
 
-
-# Load a pre-trained sentence transformer model and set the loss function to COSINE_SIMILARITY
+# Load a pre-trained sentence transformer model
 model = SentenceTransformer('bert-base-nli-mean-tokens')
-model.transformer_model.sentence_transformer_config.loss_function = LossFunction.COSINE_SIMILARITY
+
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read STSbenchmark train dataset")
 train_data = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model)
-train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size, collate_fn=model.smart_batching_collate())
+train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
+train_loss = losses.CosineSimilarityLoss(model=model)
+
 
 logging.info("Read STSbenchmark dev dataset")
 dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
-dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size, collate_fn=model.smart_batching_collate())
+dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
 evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
 
-# Configure the training. We skip evaluation in this example
-num_epochs = 4
-model_save_path = 'output/basic_training_stsbenchmark'
-warmup_steps = math.ceil(len(train_data)*num_epochs/train_batch_size/10) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
-train_config = TrainConfig(learning_rate=2e-5,
-                           weight_decay=0.01,
-                           epochs=num_epochs,
-                           output_path=model_save_path,
-                           save_best_model=True,
-                           evaluator=evaluator,
-                           warmup_steps=warmup_steps)
 
+# Configure the training. We skip evaluation in this example
+warmup_steps = math.ceil(len(train_data)*num_epochs/train_batch_size*0.1) #10% of train data for warm-up
+logging.info("Warmup-steps: {}".format(warmup_steps))
 
 
 # Train the model
-model.train(dataloader=train_dataloader, train_config=train_config)
-
-
+model.fit(train_objectives=[(train_dataloader, train_loss)],
+          evaluator=evaluator,
+          epochs=num_epochs,
+          evaluation_steps=1000,
+          warmup_steps=warmup_steps,
+          output_path=model_save_path)
 
 
 ##############################################################################
@@ -64,7 +63,6 @@ model.train(dataloader=train_dataloader, train_config=train_config)
 
 model = SentenceTransformer(model_save_path)
 test_data = SentencesDataset(examples=sts_reader.get_examples("sts-test.csv"), model=model)
-test_dataloader = DataLoader(test_data, shuffle=False, batch_size=train_batch_size, collate_fn=model.smart_batching_collate())
-evaluator = EmbeddingSimilarityEvaluator(test_dataloader, EmbeddingSimilarity.COSINE)
-
+test_dataloader = DataLoader(test_data, shuffle=False, batch_size=train_batch_size)
+evaluator = EmbeddingSimilarityEvaluator(test_dataloader)
 model.evaluate(evaluator)

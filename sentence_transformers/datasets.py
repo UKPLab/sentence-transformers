@@ -10,7 +10,8 @@ import torch
 import logging
 import numpy as np
 from tqdm import tqdm
-from . import SentenceTransformer, InputExample
+from . import SentenceTransformer
+from .readers.InputExample import InputExample
 
 
 class SentencesDataset(Dataset):
@@ -54,10 +55,10 @@ class SentencesDataset(Dataset):
                     label_type = torch.long
                 elif isinstance(example.label, float):
                     label_type = torch.float
-            tokenized_texts = [model.encoder.tokenizer.tokenize(text) for text in example.texts]
+            tokenized_texts = [model.tokenize(text) for text in example.texts]
 
             for i, token in enumerate(tokenized_texts):
-                if len(token) >= model.encoder.max_seq_length:
+                if hasattr(model, 'max_seq_length') and model.max_seq_length is not None and model.max_seq_length > 0 and len(token) >= model.max_seq_length:
                     too_long[i] += 1
 
             labels.append(example.label)
@@ -137,7 +138,7 @@ class SentenceLabelDataset(Dataset):
         :param examples:
             the input examples for the training
         :param model
-            the Sentence BERT model for the conversion
+            the Sentence Transformer model for the conversion
         """
         self.labels_right_border = []
         self.num_labels = 0
@@ -153,9 +154,9 @@ class SentenceLabelDataset(Dataset):
                     label_type = torch.long
                 elif isinstance(example.label, float):
                     label_type = torch.float
-            tokenized_text = model.encoder.tokenizer.tokenize(example.texts[0])
+            tokenized_text = model.tokenize(example.texts[0])
 
-            if len(tokenized_text) >= model.encoder.max_seq_length:
+            if hasattr(model, 'max_seq_length') and model.max_seq_length is not None and model.max_seq_length > 0 and len(tokenized_text) >= model.max_seq_length:
                 too_long += 1
             if example.label in label_sent_mapping:
                 label_sent_mapping[example.label].append(ex_index)

@@ -2,8 +2,8 @@
 This examples loads a pre-trained model
 """
 from torch.utils.data import DataLoader
-from sentence_transformers import  SentenceTransformer, LossFunction, TrainConfig, SentencesDataset, LoggingHandler, EmbeddingSimilarityEvaluator, EmbeddingSimilarity
-from sentence_transformers.dataset_readers import STSDataReader
+from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, EmbeddingSimilarityEvaluator, EmbeddingSimilarity
+from sentence_transformers.readers import STSDataReader
 import numpy as np
 import logging
 
@@ -26,7 +26,7 @@ model = SentenceTransformer('bert-base-nli-mean-tokens')
 sts_reader = STSDataReader('datasets/stsbenchmark')
 
 test_data = SentencesDataset(examples=sts_reader.get_examples("sts-test.csv"), model=model)
-test_dataloader = DataLoader(test_data, shuffle=False, batch_size=8, collate_fn=model.smart_batching_collate())
+test_dataloader = DataLoader(test_data, shuffle=False, batch_size=8)
 evaluator = EmbeddingSimilarityEvaluator(test_dataloader, EmbeddingSimilarity.COSINE)
 
 model.evaluate(evaluator)

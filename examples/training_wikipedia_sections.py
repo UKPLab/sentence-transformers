@@ -8,9 +8,11 @@ See docs/pretrained-models/wikipedia-sections-modesl.md for further details.
 You can get the dataset by running examples/datasets/get_data.py
 """
 
-from sentence_transformers import SentenceTransformer,  LossFunction, SentenceTransformerConfig, TrainConfig, TripletMetric, TripletEvaluator,  SentencesDataset, LoggingHandler
+from sentence_transformers import SentenceTransformer, SentencesDataset, LoggingHandler, losses, models
 from torch.utils.data import DataLoader
-from sentence_transformers.dataset_readers import TripletReader
+from sentence_transformers.readers import TripletReader
+from sentence_transformers.evaluation import TripletEvaluator
+from datetime import datetime
 
 import csv
 import logging
@@ -27,45 +29,44 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 ### Create a torch.DataLoader that passes training batch instances to our model
 train_batch_size = 16
 triplet_reader = TripletReader('datasets/wikipedia-sections-triplets', s1_col_idx=1, s2_col_idx=2, s3_col_idx=3, delimiter=',', quoting=csv.QUOTE_MINIMAL, has_header=True)
+output_path = "output/bert-base-wikipedia-sections-mean-tokens-"+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
+num_epochs = 1
+
 
 ### Configure sentence transformers for training and train on the provided dataset
-transformer_config = SentenceTransformerConfig(model='sentence_transformers.models.BERT',
-                                               tokenizer_model='bert-base-uncased',
-                                               do_lower_case=True,
-                                               max_seq_length=128,
-                                               loss_function=LossFunction.TRIPLET_LOSS,
-                                               triplet_margin=0.2,
-                                               triplet_metric=TripletMetric.EUCLIDEAN)
+# Use BERT for mapping tokens to embeddings
+word_embedding_model = models.BERT('bert-base-uncased')
 
-embedder = SentenceTransformer(sentence_transformer_config=transformer_config)
+# Apply mean pooling to get one fixed sized sentence vector
+pooling_model = models.Pooling(word_embedding_model.word_embedding_dimension(),
+                               pooling_mode_mean_tokens=True,
+                               pooling_mode_cls_token=False,
+                               pooling_mode_max_tokens=False)
+
+model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 
 logging.info("Read Triplet train dataset")
-train_data = SentencesDataset(examples=triplet_reader.get_examples('train.csv'), model=embedder)
-train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size, collate_fn=embedder.encoder.smart_batching_collate)
-
+train_data = SentencesDataset(examples=triplet_reader.get_examples('train.csv'), model=model)
+train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
+train_loss = losses.TripletLoss(model=model)
 
 logging.info("Read Wikipedia Triplet dev dataset")
-dev_data = SentencesDataset(examples=triplet_reader.get_examples('validation.csv', 1000), model=embedder)
-dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size, collate_fn=embedder.encoder.smart_batching_collate)
+dev_data = SentencesDataset(examples=triplet_reader.get_examples('validation.csv', 1000), model=model)
+dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
 evaluator = TripletEvaluator(dev_dataloader)
 
 
-output_path = "output/bert-base-wikipedia-sections-mean-tokens"
-
-num_epochs = 1
-warmup_steps = int(len(train_data)*num_epochs/train_batch_size/10) #10% of train data
-train_config = TrainConfig(learning_rate=2e-5,
-                           weight_decay=0.01,
-                           epochs=num_epochs,
-                           evaluation_steps=1000,
-                           output_path=output_path,
-                           save_best_model=True,
-                           evaluator=evaluator,
-                           warmup_steps=warmup_steps)
+warmup_steps = int(len(train_data)*num_epochs/train_batch_size*0.1) #10% of train data
 
 
-embedder.train(dataloader=train_dataloader, train_config=train_config)
+# Train the model
+model.fit(train_objectives=[(train_dataloader, train_loss)],
+          evaluator=evaluator,
+          epochs=num_epochs,
+          evaluation_steps=10,
+          warmup_steps=warmup_steps,
+          output_path=output_path)
 
 ##############################################################################
 #
@@ -73,10 +74,10 @@ embedder.train(dataloader=train_dataloader, train_config=train_config)
 #
 ##############################################################################
 
-embedder = SentenceTransformer(output_path)
-test_data =SentencesDataset(examples=triplet_reader.get_examples('test.csv'), model=embedder)
-test_dataloader = DataLoader(test_data, shuffle=False, batch_size=train_batch_size, collate_fn=embedder.encoder.smart_batching_collate)
+model = SentenceTransformer(output_path)
+test_data = SentencesDataset(examples=triplet_reader.get_examples('test.csv'), model=model)
+test_dataloader = DataLoader(test_data, shuffle=False, batch_size=train_batch_size)
 evaluator = TripletEvaluator(test_dataloader)
 
-embedder.evaluate(evaluator)
+model.evaluate(evaluator)
 

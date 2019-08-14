@@ -55,6 +55,6 @@ for sentence_id, cluster_id in enumerate(cluster_assignment):
 for i, cluster in enumerate(clustered_sentences):
     print("Cluster ", i+1)
     for row in cluster:
-        print(row[1]+":", row[0])
+        print("(Gold label: {}) - {}".format(row[1], row[0]))
     print("")
 

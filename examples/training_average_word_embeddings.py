@@ -1,8 +1,13 @@
 """
-This is a simple training example. The system trains on the SNLI + MultiNLI (AllNLI) dataset
-with softmax loss function. At every 1000 training steps, the model is evaluated on the
-STS benchmark dataset
+This example uses average word embeddings (for example from GloVe). It adds two fully-connected feed-forward layers (dense layers)
+to create a Deep Averaging Network (DAN).
+
+In order to run this example, you need an embeddings file in a .txt format. You can get for example the GloVe embeddings from here:
+https://nlp.stanford.edu/projects/glove/
+
+and unzip them so that embeddings/glove.6B.300d.txt.gz exists
 """
+import torch
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses
@@ -20,16 +25,14 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #### /print debug information to stdout
 
 # Read the dataset
-batch_size = 16
-nli_reader = NLIDataReader('datasets/AllNLI')
+batch_size = 32
 sts_reader = STSDataReader('datasets/stsbenchmark')
-train_num_labels = nli_reader.get_num_labels()
 model_save_path = 'output/training_average_word_embeddings-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
 
 
 
-# Use BERT for mapping tokens to embeddings
-word_embedding_model = models.BERT('bert-base-uncased')
+# Map tokens to traditional word embeddings like GloVe
+word_embedding_model = models.WordEmbeddings.from_text_file('embeddings/glove.6B.300d.txt')
 
 # Apply mean pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(word_embedding_model.word_embedding_dimension(),
@@ -37,18 +40,19 @@ pooling_model = models.Pooling(word_embedding_model.word_embedding_dimension(),
                                pooling_mode_cls_token=False,
                                pooling_mode_max_tokens=False)
 
-model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+# Add two trainable feed-forward networks (DAN)
+sent_embeddings_dimension = pooling_model.get_sentence_embedding_dimension()
+dan1 = models.Dense(in_features=sent_embeddings_dimension, out_features=sent_embeddings_dimension)
+dan2 = models.Dense(in_features=sent_embeddings_dimension, out_features=sent_embeddings_dimension)
+
+model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dan1, dan2])
 
 
 # Convert the dataset to a DataLoader ready for training
-logging.info("Read AllNLI train dataset")
-nli_train_data = SentencesDataset(nli_reader.get_examples('train.gz'), model=model)
-nli_train_dataloader = DataLoader(nli_train_data, shuffle=True, batch_size=batch_size)
-nli_train_loss = losses.SoftmaxLoss(model=model,
-                                    sentence_embedding_dimension=model.get_sentence_embedding_dimension(),
-                                    num_labels=train_num_labels)
-
-
+logging.info("Read STSbenchmark train dataset")
+train_data = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model=model)
+train_dataloader = DataLoader(train_data, shuffle=True, batch_size=batch_size)
+train_loss = losses.CosineSimilarityLoss(model=model)
 
 logging.info("Read STSbenchmark dev dataset")
 dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
@@ -56,18 +60,14 @@ dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=batch_size)
 evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
 
 # Configure the training
-num_epochs = 1
-
-warmup_steps = math.ceil(len(nli_train_data) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
+num_epochs = 10
+warmup_steps = math.ceil(len(train_data) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
-
-
 # Train the model
-model.fit(train_objectives=[(nli_train_dataloader, nli_train_loss)],
+model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=evaluator,
           epochs=num_epochs,
-          evaluation_steps=1000,
           warmup_steps=warmup_steps,
           output_path=model_save_path
           )

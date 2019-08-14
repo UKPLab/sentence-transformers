@@ -1,3 +1,4 @@
-from .TransformerModel import TransformerModel
 from .BERT import BERT
-from .XLNet import XLNet
+from .Pooling import Pooling
+from .WordEmbeddings import *
+from .Dense import Dense

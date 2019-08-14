@@ -1,9 +1,6 @@
 import numpy as np
 import torch
-
-#  Needs to be explicitly imported since it's prefixed with _ and that hides it from normal imports.
-from hard_triplet_loss import _pairwise_distances, _get_triplet_mask, _get_anchor_positive_triplet_mask, \
-    _get_anchor_negative_triplet_mask, batch_all_triplet_loss, batch_hard_triplet_loss
+from sentence_transformers.losses import BatchHardTripletLoss
 
 # Test-suite from https://github.com/omoindrot/tensorflow-triplet-loss/blob/master/model/tests/test_triplet_loss.py
 # Skipped the `test_gradients_pairwise_distances()` test since it's trivial to see if your model loss turns NaN
@@ -41,7 +38,7 @@ def test_pairwise_distances():
 
     for squared in [True, False]:
         res_np = pairwise_distance_np(embeddings, squared=squared)
-        res_pt = _pairwise_distances(torch.from_numpy(embeddings), squared=squared)
+        res_pt = BatchHardTripletLoss._pairwise_distances(torch.from_numpy(embeddings), squared=squared)
         assert np.allclose(res_np, res_pt)
 
 def test_pairwise_distances_are_positive():
@@ -57,7 +54,7 @@ def test_pairwise_distances_are_positive():
     embeddings[1] = embeddings[0]  # to get distance 0
 
     for squared in [True, False]:
-        res_tf = _pairwise_distances(torch.from_numpy(embeddings), squared=squared)
+        res_tf = BatchHardTripletLoss._pairwise_distances(torch.from_numpy(embeddings), squared=squared)
         assert res_tf[res_tf < 0].sum() == 0
 
 
@@ -76,7 +73,7 @@ def test_triplet_mask():
                 valid = (labels[i] == labels[j]) and (labels[i] != labels[k])
                 mask_np[i, j, k] = (distinct and valid)
 
-    mask_tf_val = _get_triplet_mask(torch.from_numpy(labels))
+    mask_tf_val = BatchHardTripletLoss._get_triplet_mask(torch.from_numpy(labels))
     assert np.allclose(mask_np, mask_tf_val)
 
 def test_anchor_positive_triplet_mask():
@@ -93,7 +90,7 @@ def test_anchor_positive_triplet_mask():
             valid = labels[i] == labels[j]
             mask_np[i, j] = (distinct and valid)
 
-    mask_tf_val = _get_anchor_positive_triplet_mask(torch.from_numpy(labels), 'cpu')
+    mask_tf_val = BatchHardTripletLoss._get_anchor_positive_triplet_mask(torch.from_numpy(labels))
 
     assert np.allclose(mask_np, mask_tf_val)
 
@@ -111,7 +108,7 @@ def test_anchor_negative_triplet_mask():
             valid = (labels[i] != labels[k])
             mask_np[i, k] = (distinct and valid)
 
-    mask_tf_val = _get_anchor_negative_triplet_mask(torch.from_numpy(labels))
+    mask_tf_val = BatchHardTripletLoss._get_anchor_negative_triplet_mask(torch.from_numpy(labels))
 
     assert np.allclose(mask_np, mask_tf_val)
 
@@ -133,7 +130,7 @@ def test_simple_batch_all_triplet_loss():
         loss_np = 0.0
 
         # Compute the loss in TF.
-        loss_tf_val, fraction_val = batch_all_triplet_loss(labels, embeddings, margin, squared=squared)
+        loss_tf_val, fraction_val = BatchHardTripletLoss.batch_all_triplet_loss(labels, embeddings, margin, squared=squared)
 
         assert np.allclose(loss_np, loss_tf_val)
         assert np.allclose(fraction_val, 0.0)
@@ -174,7 +171,7 @@ def test_batch_all_triplet_loss():
         loss_np /= num_positives
 
         # Compute the loss in TF.
-        loss_tf_val, fraction_val = batch_all_triplet_loss(torch.from_numpy(labels), torch.from_numpy(embeddings), margin, squared=squared)
+        loss_tf_val, fraction_val = BatchHardTripletLoss.batch_all_triplet_loss(torch.from_numpy(labels), torch.from_numpy(embeddings), margin, squared=squared)
         assert np.allclose(loss_np, loss_tf_val)
         assert np.allclose(num_positives / num_valid, fraction_val)
 
@@ -207,7 +204,7 @@ def test_batch_hard_triplet_loss():
         loss_np /= num_data
 
         # Compute the loss in TF.
-        loss_tf_val = batch_hard_triplet_loss(torch.from_numpy(labels), torch.from_numpy(embeddings), margin, squared=squared)
+        loss_tf_val = BatchHardTripletLoss.batch_hard_triplet_loss(torch.from_numpy(labels), torch.from_numpy(embeddings), margin, squared=squared)
         assert np.allclose(loss_np, loss_tf_val)
 
 if __name__ == '__main__':
