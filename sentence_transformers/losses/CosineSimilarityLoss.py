@@ -10,7 +10,7 @@ class CosineSimilarityLoss(nn.Module):
 
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-        reps = [self.model(sentence_feature) for sentence_feature in sentence_features]
+        reps = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
         rep_a, rep_b = reps
 
         output = torch.cosine_similarity(rep_a, rep_b)

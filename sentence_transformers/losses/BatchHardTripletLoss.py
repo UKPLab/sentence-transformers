@@ -10,9 +10,9 @@ class BatchHardTripletLoss(nn.Module):
         self.triplet_margin = triplet_margin
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-        reps = [self.sentence_embedder(sentence_feature) for sentence_feature in sentence_features]
+        reps = [self.sentence_embedder(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
 
-        BatchHardTripletLoss.batch_hard_triplet_loss(labels, reps[0], margin=self.triplet_margin)
+        return BatchHardTripletLoss.batch_hard_triplet_loss(labels, reps[0], margin=self.triplet_margin)
 
 
     # Hard Triplet Loss

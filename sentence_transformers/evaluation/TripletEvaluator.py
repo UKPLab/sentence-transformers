@@ -54,7 +54,7 @@ class TripletEvaluator(SentenceEvaluator):
         for step, batch in enumerate(tqdm(self.dataloader, desc="Evaluating")):
             features, label_ids = batch_to_device(batch, self.device)
             with torch.no_grad():
-                emb1, emb2, emb3 = [model(sent_features).to("cpu").numpy() for sent_features in features]
+                emb1, emb2, emb3 = [model(sent_features)['sentence_embedding'].to("cpu").numpy() for sent_features in features]
 
             #Cosine distance
             pos_cos_distance = paired_cosine_distances(emb1, emb2)

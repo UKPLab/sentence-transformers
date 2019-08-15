@@ -7,6 +7,7 @@ import os
 import json
 from ..util import fullname, import_from_string
 
+
 class Dense(nn.Module):
     def __init__(self, in_features, out_features, bias=True, activation_function = nn.Tanh()):
         super(Dense, self).__init__()
@@ -16,8 +17,9 @@ class Dense(nn.Module):
         self.activation_function = activation_function
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
-    def forward(self, input_vector):
-        return self.activation_function(self.linear(input_vector))
+    def forward(self, features: Dict[str, Tensor]):
+        features.update({'sentence_embedding': self.activation_function(self.linear(features['sentence_embedding']))})
+        return features
 
     def get_sentence_embedding_dimension(self) -> int:
         return self.out_features

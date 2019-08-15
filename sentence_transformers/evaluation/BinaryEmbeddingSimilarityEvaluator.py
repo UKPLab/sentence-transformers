@@ -64,7 +64,7 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
         for step, batch in enumerate(tqdm(self.dataloader, desc="Evaluating")):
             features, label_ids = batch_to_device(batch, self.device)
             with torch.no_grad():
-                emb1, emb2 = [model(sent_features).to("cpu").numpy() for sent_features in features]
+                emb1, emb2 = [model(sent_features)['sentence_embedding'].to("cpu").numpy() for sent_features in features]
 
             labels.extend(label_ids.to("cpu").numpy())
             embeddings1.extend(emb1)

@@ -79,6 +79,7 @@ class SentenceTransformer(nn.Sequential):
         super().__init__(modules)
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
+            logging.info("Use pytorch device: {}".format(device))
         self.device = torch.device(device)
         self.to(device)
 
@@ -133,7 +134,7 @@ class SentenceTransformer(nn.Sequential):
 
             with torch.no_grad():
                 embeddings = self.forward(features)
-                embeddings = embeddings.to('cpu').numpy()
+                embeddings = embeddings['sentence_embedding'].to('cpu').numpy()
                 all_embeddings.extend(embeddings)
 
         reverting_order = np.argsort(length_sorted_idx)
@@ -349,8 +350,8 @@ class SentenceTransformer(nn.Sequential):
 
                 training_steps += 1
                 if (step + 1) % gradient_accumulation_steps==0:
-                    scheduler.step()
                     optimizer.step()
+                    scheduler.step()
                     for loss_model in loss_models:
                         loss_model.zero_grad()
                     global_step += 1
