@@ -1,11 +1,12 @@
 """
-This example uses average word embeddings (for example from GloVe). It adds two fully-connected feed-forward layers (dense layers)
-to create a Deep Averaging Network (DAN).
+This example weights word embeddings (like GloVe) with IDF weights. The IDF weights can for example be computed on Wikipedia.
 
-In order to run this example, you need an embeddings file in a .txt format. You can get for example the GloVe embeddings from here:
-https://nlp.stanford.edu/projects/glove/
+If 'glove.6B.300d.txt.gz' does not exist, it tries to download it from our server.
 
-and unzip them so that embeddings/glove.6B.300d.txt.gz exists
+See https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/ for available word embeddings files
+
+You can get term-document frequencies from here:
+https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/wikipedia_doc_frequencies.txt
 """
 import torch
 from torch.utils.data import DataLoader
@@ -32,7 +33,25 @@ model_save_path = 'output/training_average_word_embeddings-'+datetime.now().strf
 
 
 # Map tokens to traditional word embeddings like GloVe
-word_embedding_model = models.WordEmbeddings.from_text_file('embeddings/glove.6B.300d.txt')
+word_embedding_model = models.WordEmbeddings.from_text_file('glove.6B.300d.txt.gz')
+
+# Weight word embeddings using Inverse-Document-Frequency (IDF) values.
+# For each word in the vocab ob the tokenizer, we must specify a weight value.
+# The word embedding is then multiplied by this value
+vocab = word_embedding_model.tokenizer.get_vocab()
+word_weights = {}
+lines = open('wikipedia_doc_frequencies.txt').readlines()
+num_docs = int(lines[0])
+for line in lines[1:]:
+    word, freq = line.strip().split("\t")
+    word_weights[word] = math.log(num_docs/int(freq))
+
+# Words in the vocab that are not in the doc_frequencies file get a frequency of 1
+unknown_word_weight = math.log(num_docs/1)
+
+# Initialize the WordWeights model. This model must be between the WordEmbeddings and the Pooling model
+word_weight = models.WordWeights(vocab=vocab, word_weights=word_weights, unknown_word_weight=unknown_word_weight)
+
 
 # Apply mean pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(word_embedding_model.word_embedding_dimension(),
@@ -45,7 +64,7 @@ sent_embeddings_dimension = pooling_model.get_sentence_embedding_dimension()
 dan1 = models.Dense(in_features=sent_embeddings_dimension, out_features=sent_embeddings_dimension)
 dan2 = models.Dense(in_features=sent_embeddings_dimension, out_features=sent_embeddings_dimension)
 
-model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dan1, dan2])
+model = SentenceTransformer(modules=[word_embedding_model, word_weight, pooling_model, dan1, dan2])
 
 
 # Convert the dataset to a DataLoader ready for training

@@ -7,7 +7,7 @@ from tqdm import tqdm
 import numpy as np
 import os
 import json
-from ..util import import_from_string, fullname
+from ..util import import_from_string, fullname, http_get
 from .tokenizer import WordTokenizer, WhitespaceTokenizer
 
 
@@ -82,10 +82,18 @@ class WordEmbeddings(nn.Module):
 
     @staticmethod
     def from_text_file(embeddings_file_path: str, update_embeddings: bool = False, item_separator: str = " ", tokenizer=WhitespaceTokenizer(), max_vocab_size: int = None):
-        logging.info("Read in embeddings file")
+        logging.info("Read in embeddings file {}".format(embeddings_file_path))
+
+        if not os.path.exists(embeddings_file_path):
+            logging.info("{} does not exist, try to download from server".format(embeddings_file_path))
+
+            if '/' in embeddings_file_path or '\\' in embeddings_file_path:
+                raise ValueError("Embeddings file not found: ".format(embeddings_file_path))
+
+            url = "https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/"+embeddings_file_path
+            http_get(url, embeddings_file_path)
 
         embeddings_dimension = None
-
         vocab = []
         embeddings = []
 

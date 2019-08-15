@@ -247,14 +247,20 @@ We implemented various loss-functions, that allow training of sentence embedding
 This framework implements various modules, that can be used sequentially to map a sentence to a sentence embedding. The different modules can be found in the package `sentence_transformers.models`. Each pipeline consists of the following modules.
 
 
-The first step of each pipeline is the mapping of the tokens to embeddings:
-- **[BERT](sentence_transformers/models/BERT.py)**: Uses pytorch-transformers BERT model to map tokens to vectors. For an example, see [examples/training_nli.py](examples/training_nli.py)
-- **[XLNet](sentence_transformers/models/XLNet.py)**: Uses pytorch-transformers XLNet model to map tokens to vectors.
-- **[WordEmbeddings](sentence_transformers/models/WordEmbeddings.py)**: Uses traditional word embeddings like word2vec or GloVe to map tokens to vectors. Example: [examples/training_average_word_embeddings.py](examples/training_average_word_embeddings.py)
+**Word Embeddings based**: The first set of models map tokens to token embeddings and then applies some pooling operation to create a fixed sized sentence embedding:
+- **[BERT](sentence_transformers/models/BERT.py)**: Uses pytorch-transformers BERT model to map tokens to vectors. Example:  [examples/training_nli.py](examples/training_nli.py)
+- **[XLNet](sentence_transformers/models/XLNet.py)**: Uses pytorch-transformers XLNet model to map tokens to vectors. Example: [examples/training_stsbenchmark_xlnet.py](examples/training_stsbenchmark_xlnet.py)
+- **[WordEmbeddings](sentence_transformers/models/WordEmbeddings.py)**: Uses traditional word embeddings like word2vec or GloVe to map tokens to vectors. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](examples/training_stsbenchmark_avg_word_embeddings.py)
+- **[WordWeights](sentence_transformers/models/WordWeights.py)**: This model can be used after WordEmbeddings and before Pooling to apply a weighting to the token embeddings, for example, a tf-idf weighting.
 - **[Pooling](sentence_transformers/models/Pooling.py)**: After tokens are mapped to embeddings, we apply the pooling, were you can compute a mean/max-pooling or use the CLS-token embedding (for BERT and XLNet). You can also combine multiple poolings.
-- **[Dense](sentence_transformers/models/Pooling.py)**: After the pooling layer, you can add fully-connected feed-forward networks to create a Deep Averging Network (DAN). You can stack multiple Dense models. 
 
-See [examples/training_average_word_embeddings.py](examples/training_average_word_embeddings.py) for an where tokens are first mapped to their GloVe embeddings, than we apply polling followed by two trainable dense layers. 
+**Sentence Embeddings Models:** These models map a sentence directly to a fixed size sentence embedding:
+- **[BoW](sentence_transformers/models/BoW.py)**: Computes a fixed size bag-of-words (BoW) representation of the input text. Can be initialized with IDF-values to create a tf-idf vector. Note, that this model is not trainable.
+
+
+**Sentence Embeddings Transformations:** These models can be added once we have a fixed size sentence embedding.
+- **[Dense](sentence_transformers/models/Pooling.py)**: A fully-connected feed-forward network to create a Deep Averging Network (DAN). You can stack multiple Dense models. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](examples/training_stsbenchmark_avg_word_embeddings.py)
+
 
 
 ## Multitask Training
