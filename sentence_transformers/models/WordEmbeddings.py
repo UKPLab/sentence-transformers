@@ -52,7 +52,11 @@ class WordEmbeddings(nn.Module):
 
         return {'input_ids': input_ids, 'input_mask': input_mask, 'sentence_lengths': sentence_length}
 
-    def word_embedding_dimension(self) -> int:
+        return {'input_ids': np.asarray(input_ids, dtype=np.int),
+                'input_mask': np.asarray(input_mask, dtype=np.int),
+                'sentence_lengths': np.asarray(sentence_length, dtype=np.int)}
+
+    def get_word_embedding_dimension(self) -> int:
         return self.embeddings_dimension
 
     def tokenize(self, text: str) -> List[str]:

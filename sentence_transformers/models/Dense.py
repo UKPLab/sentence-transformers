@@ -9,7 +9,11 @@ from ..util import fullname, import_from_string
 
 
 class Dense(nn.Module):
-    def __init__(self, in_features, out_features, bias=True, activation_function = nn.Tanh()):
+    """Feed-forward function with  activiation function.
+
+    This layer takes a fixed-sized sentence embedding and passes it through a feed-forward layer. Can be used to generate deep averaging networs (DAN).
+    """
+    def __init__(self, in_features, out_features, bias=True, activation_function=nn.Tanh()):
         super(Dense, self).__init__()
         self.in_features = in_features
         self.out_features = out_features

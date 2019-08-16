@@ -32,7 +32,7 @@ model_save_path = 'output/training_average_word_embeddings-'+datetime.now().strf
 word_embedding_model = models.BERT('bert-base-uncased')
 
 # Apply mean pooling to get one fixed sized sentence vector
-pooling_model = models.Pooling(word_embedding_model.word_embedding_dimension(),
+pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
                                pooling_mode_mean_tokens=True,
                                pooling_mode_cls_token=False,
                                pooling_mode_max_tokens=False)

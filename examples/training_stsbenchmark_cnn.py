@@ -1,10 +1,8 @@
 """
-This example uses average word embeddings (for example from GloVe). It adds two fully-connected feed-forward layers (dense layers) to create a Deep Averaging Network (DAN).
+This example runs a CNN after the word embedding lookup. The output of the CNN is than pooled,
+for example with mean-pooling.
 
-If 'glove.6B.300d.txt.gz' does not exist, it tries to download it from our server.
 
-See https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/
-for available word embeddings files
 """
 import torch
 from torch.utils.data import DataLoader
@@ -26,25 +24,23 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 # Read the dataset
 batch_size = 32
 sts_reader = STSDataReader('datasets/stsbenchmark')
-model_save_path = 'output/training_stsbenchmark_avg_word_embeddings-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
+model_save_path = 'output/training_stsbenchmark_bilstm-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
 
 
 
-# Map tokens to traditional word embeddings like GloVe
-word_embedding_model = models.WordEmbeddings.from_text_file('glove.6B.300d.txt.gz')
+# Map tokens to vectors using BERT
+word_embedding_model = models.BERT('bert-base-uncased')
+
+cnn = models.CNN(in_word_embedding_dimension=word_embedding_model.get_word_embedding_dimension(), out_channels=256, kernel_sizes=[1,3,5])
 
 # Apply mean pooling to get one fixed sized sentence vector
-pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
+pooling_model = models.Pooling(cnn.get_word_embedding_dimension(),
                                pooling_mode_mean_tokens=True,
                                pooling_mode_cls_token=False,
                                pooling_mode_max_tokens=False)
 
-# Add two trainable feed-forward networks (DAN)
-sent_embeddings_dimension = pooling_model.get_sentence_embedding_dimension()
-dan1 = models.Dense(in_features=sent_embeddings_dimension, out_features=sent_embeddings_dimension)
-dan2 = models.Dense(in_features=sent_embeddings_dimension, out_features=sent_embeddings_dimension)
 
-model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dan1, dan2])
+model = SentenceTransformer(modules=[word_embedding_model, cnn, pooling_model])
 
 
 # Convert the dataset to a DataLoader ready for training

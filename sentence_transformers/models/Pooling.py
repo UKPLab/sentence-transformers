@@ -7,6 +7,11 @@ import json
 
 
 class Pooling(nn.Module):
+    """Performs pooling (max or mean) on the token embeddings.
+
+    Using pooling, it generates from a variable sized sentence a fixed sized sentence embedding. This layer also allows to use the CLS token if it is returned by the underlying word embedding model.
+    You can concatenate multiple poolings together.
+    """
     def __init__(self,
                  word_embedding_dimension: int,
                  pooling_mode_cls_token: bool = False,

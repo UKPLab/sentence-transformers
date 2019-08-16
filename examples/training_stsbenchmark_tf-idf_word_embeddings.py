@@ -28,7 +28,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 # Read the dataset
 batch_size = 32
 sts_reader = STSDataReader('datasets/stsbenchmark')
-model_save_path = 'output/training_average_word_embeddings-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
+model_save_path = 'output/training_tf-idf_word_embeddings-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
 
 
 
@@ -50,11 +50,11 @@ for line in lines[1:]:
 unknown_word_weight = math.log(num_docs/1)
 
 # Initialize the WordWeights model. This model must be between the WordEmbeddings and the Pooling model
-word_weight = models.WordWeights(vocab=vocab, word_weights=word_weights, unknown_word_weight=unknown_word_weight)
+word_weights = models.WordWeights(vocab=vocab, word_weights=word_weights, unknown_word_weight=unknown_word_weight)
 
 
 # Apply mean pooling to get one fixed sized sentence vector
-pooling_model = models.Pooling(word_embedding_model.word_embedding_dimension(),
+pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
                                pooling_mode_mean_tokens=True,
                                pooling_mode_cls_token=False,
                                pooling_mode_max_tokens=False)
@@ -64,7 +64,7 @@ sent_embeddings_dimension = pooling_model.get_sentence_embedding_dimension()
 dan1 = models.Dense(in_features=sent_embeddings_dimension, out_features=sent_embeddings_dimension)
 dan2 = models.Dense(in_features=sent_embeddings_dimension, out_features=sent_embeddings_dimension)
 
-model = SentenceTransformer(modules=[word_embedding_model, word_weight, pooling_model, dan1, dan2])
+model = SentenceTransformer(modules=[word_embedding_model, word_weights, pooling_model, dan1, dan2])
 
 
 # Convert the dataset to a DataLoader ready for training

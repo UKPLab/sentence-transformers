@@ -1,10 +1,8 @@
 """
-This example uses average word embeddings (for example from GloVe). It adds two fully-connected feed-forward layers (dense layers) to create a Deep Averaging Network (DAN).
+This example uses a simple bag-of-words (BoW) approach. A sentence is mapped
+to a sparse vector with e.g. 25,000 dimensions. Optionally, you can also use tf-idf.
 
-If 'glove.6B.300d.txt.gz' does not exist, it tries to download it from our server.
-
-See https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/
-for available word embeddings files
+To make the model trainable, we add multiple dense layers to create a Deep Averaging Network (DAN).
 """
 import torch
 from torch.utils.data import DataLoader
@@ -13,6 +11,7 @@ from sentence_transformers import models, losses
 from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import *
+from sentence_transformers.models.tokenizer.WordTokenizer import ENGLISH_STOP_WORDS
 import logging
 from datetime import datetime
 
@@ -26,25 +25,41 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 # Read the dataset
 batch_size = 32
 sts_reader = STSDataReader('datasets/stsbenchmark')
-model_save_path = 'output/training_stsbenchmark_avg_word_embeddings-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
+model_save_path = 'output/training_tf-idf_word_embeddings-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
 
 
 
-# Map tokens to traditional word embeddings like GloVe
-word_embedding_model = models.WordEmbeddings.from_text_file('glove.6B.300d.txt.gz')
+# Create the vocab for the BoW model
+stop_words = ENGLISH_STOP_WORDS
+max_vocab_size = 25000 #This is also the size of the BoW sentence vector.
 
-# Apply mean pooling to get one fixed sized sentence vector
-pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
-                               pooling_mode_mean_tokens=True,
-                               pooling_mode_cls_token=False,
-                               pooling_mode_max_tokens=False)
 
-# Add two trainable feed-forward networks (DAN)
-sent_embeddings_dimension = pooling_model.get_sentence_embedding_dimension()
-dan1 = models.Dense(in_features=sent_embeddings_dimension, out_features=sent_embeddings_dimension)
-dan2 = models.Dense(in_features=sent_embeddings_dimension, out_features=sent_embeddings_dimension)
+#Read the most common max_vocab_size words. Skip stop-words
+vocab = set()
+weights = {}
+lines = open('wikipedia_doc_frequencies.txt').readlines()
+num_docs = int(lines[0])
+for line in lines[1:]:
+    word, freq = line.lower().strip().split("\t")
+    if word in stop_words:
+        continue
 
-model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dan1, dan2])
+    vocab.add(word)
+    weights[word] = math.log(num_docs/int(freq))
+
+    if len(vocab) >= max_vocab_size:
+        break
+
+#Create the BoW model. Because we set word_weights to the IDF values and cumulative_term_frequency=True, we
+#get tf-idf vectors. Set word_weights to an empty dict and cumulative_term_frequency=False to get a 1-hot sentence encoding
+bow = models.BoW(vocab=vocab, word_weights=weights, cumulative_term_frequency=True)
+
+# Add two trainable feed-forward networks (DAN) with max_vocab_size -> 768 -> 512 dimensions.
+sent_embeddings_dimension = max_vocab_size
+dan1 = models.Dense(in_features=sent_embeddings_dimension, out_features=768)
+dan2 = models.Dense(in_features=768, out_features=512)
+
+model = SentenceTransformer(modules=[bow, dan1, dan2])
 
 
 # Convert the dataset to a DataLoader ready for training

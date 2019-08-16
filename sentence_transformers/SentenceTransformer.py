@@ -130,7 +130,7 @@ class SentenceTransformer(nn.Sequential):
                     features[feature_name].append(sentence_features[feature_name])
 
             for feature_name in features:
-                features[feature_name] = torch.tensor(features[feature_name], dtype=torch.long).to(self.device)
+                features[feature_name] = torch.from_numpy(np.asarray(features[feature_name])).to(self.device)
 
             with torch.no_grad():
                 embeddings = self.forward(features)
@@ -212,7 +212,7 @@ class SentenceTransformer(nn.Sequential):
                     feature_lists[feature_name].append(sentence_features[feature_name])
 
             for feature_name in feature_lists:
-                feature_lists[feature_name] = torch.tensor(feature_lists[feature_name], dtype=torch.long)
+                feature_lists[feature_name] = torch.from_numpy(np.asarray(feature_lists[feature_name]))
 
             features.append(feature_lists)
 
@@ -267,9 +267,6 @@ class SentenceTransformer(nn.Sequential):
             if os.listdir(output_path):
                 raise ValueError("Output directory ({}) already exists and is not empty.".format(
                     output_path))
-
-            if save_best_model:
-                self.save(output_path)
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
 

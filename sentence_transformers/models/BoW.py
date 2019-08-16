@@ -9,8 +9,14 @@ import numpy as np
 from .tokenizer import WhitespaceTokenizer
 
 class BoW(nn.Module):
+    """Implements a Bag-of-Words (BoW) model to derive sentence embeddings.
+
+    A weighting can be added to allow the generation of tf-idf vectors. The output vector has the size of the vocab.
+    """
+
     def __init__(self, vocab: List[str], word_weights: Dict[str, float] = {}, unknown_word_weight: float = 1, cumulative_term_frequency: bool = True):
         super(BoW, self).__init__()
+        vocab = list(set(vocab)) #Ensure vocab is unique
         self.config_keys = ['vocab', 'word_weights', 'unknown_word_weight', 'cumulative_term_frequency']
         self.vocab = vocab
         self.word_weights = word_weights
@@ -37,7 +43,7 @@ class BoW(nn.Module):
 
 
     def forward(self, features: Dict[str, Tensor]):
-        # Nothing to do here, everything is done in get_sentence_features()
+        #Nothing to do, everything is done in get_sentence_features
         return features
 
     def tokenize(self, text: str) -> List[str]:
@@ -47,7 +53,8 @@ class BoW(nn.Module):
         return self.sentence_embedding_dimension
 
     def get_sentence_features(self, tokens: List[str], pad_seq_length: int):
-        vector = np.zeros(self.get_sentence_embedding_dimension(), dtype=float)
+        #return {'input_ids': tokens}
+        vector = np.zeros(self.get_sentence_embedding_dimension(), dtype=np.float32)
         for token in tokens:
             if self.cumulative_term_frequency:
                 vector[token] += self.weights[token]

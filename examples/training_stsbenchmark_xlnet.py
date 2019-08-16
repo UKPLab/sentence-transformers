@@ -21,14 +21,14 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 # Read the dataset
 train_batch_size = 16
 num_epochs = 4
-model_save_path = 'output/training_stsbenchmark-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
+model_save_path = 'output/training_stsbenchmark_xlnet-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
 sts_reader = STSDataReader('datasets/stsbenchmark', normalize_scores=True)
 
 # Use XLNet for mapping tokens to embeddings
 word_embedding_model = models.XLNet('xlnet-base-cased')
 
 # Apply mean pooling to get one fixed sized sentence vector
-pooling_model = models.Pooling(word_embedding_model.word_embedding_dimension(),
+pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
                                pooling_mode_mean_tokens=True,
                                pooling_mode_cls_token=False,
                                pooling_mode_max_tokens=False)

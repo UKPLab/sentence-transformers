@@ -7,9 +7,11 @@ import json
 import logging
 
 class WordWeights(nn.Module):
+    """This model can weight word embeddings, for example, with idf-values."""
+
     def __init__(self, vocab: List[str], word_weights: Dict[str, float], unknown_word_weight: float = 1):
         """
-        This model can weight word embeddings, for example, with idf-values.
+
         :param vocab:
             Vocabulary of the tokenizer
         :param word_weights:
@@ -35,7 +37,7 @@ class WordWeights(nn.Module):
                 num_unknown_words += 1
             weights.append(weight)
         
-        logging.info("Words without a weighting value: {}. Set weight to {}".format(num_unknown_words, unknown_word_weight))
+        logging.info("{} of {} words without a weighting value: {}. Set weight to {}".format(num_unknown_words, len(vocab), unknown_word_weight))
 
         self.emb_layer = nn.Embedding(len(vocab), 1)
         self.emb_layer.load_state_dict({'weight': torch.FloatTensor(weights).unsqueeze(1)})

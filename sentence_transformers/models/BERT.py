@@ -4,9 +4,13 @@ from pytorch_transformers import  BertModel, BertTokenizer
 import json
 from typing import Union, Tuple, List, Dict
 import os
-
+import numpy as np
 
 class BERT(nn.Module):
+    """BERT model to generate token embeddings.
+
+    Each token is mapped to an output vector from BERT.
+    """
     def __init__(self, model_name_or_path: str, max_seq_length: int = 128, do_lower_case: bool = True):
         super(BERT, self).__init__()
         self.config_keys = ['max_seq_length', 'do_lower_case']
@@ -25,7 +29,7 @@ class BERT(nn.Module):
         features.update({'token_embeddings': output_tokens, 'cls_token_embeddings': cls_tokens, 'input_mask': features['input_mask']})
         return features
 
-    def word_embedding_dimension(self) -> int:
+    def get_word_embedding_dimension(self) -> int:
         return self.bert.config.hidden_size
 
     def tokenize(self, text: str) -> List[str]:
@@ -65,7 +69,7 @@ class BERT(nn.Module):
         assert len(input_mask) == pad_seq_length
         assert len(token_type_ids) == pad_seq_length
 
-        return {'input_ids': input_ids, 'token_type_ids': token_type_ids, 'input_mask': input_mask, 'sentence_lengths': sentence_length}
+        return {'input_ids': np.asarray(input_ids, dtype=np.int), 'token_type_ids': np.asarray(token_type_ids, dtype=np.int), 'input_mask': np.asarray(input_mask, dtype=np.int), 'sentence_lengths': np.asarray(sentence_length, dtype=np.int)}
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}
