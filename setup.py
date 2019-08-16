@@ -1,11 +1,11 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md", mode="r", encoding="utf-8") as readme_file:
     readme = readme_file.read()
 
 setup(
     name="sentence-transformers",
-    version="0.2.1",
+    version="0.2.2",
     author="Nils Reimers, Gregor Geigle",
     author_email="Rnils@web.de",
     description="Sentence Embeddings using BERT / XLNet",
@@ -13,8 +13,8 @@ setup(
     long_description_content_type="text/markdown",
     license="Apache License 2.0",
     url="https://github.com/UKPLab/sentence-transformers",
-    download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.2.1.zip",
-    packages=["sentence_transformers", "sentence_transformers.models"],
+    download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.2.2.zip",
+    packages=find_packages(),
     install_requires=[
         "pytorch-transformers==1.1.0",
         "tqdm",
