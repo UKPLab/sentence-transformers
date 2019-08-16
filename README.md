@@ -17,14 +17,14 @@ The code does **not** work with Python 2.7.
 
 Install the model with `pip`:
 ```
-pip install sentence-transformers
+pip install -U sentence-transformers
 ```
 
 **From source**
 
 Clone this repository and install it with `pip`:
 ````
-pip install .
+pip install -e .
 ```` 
 
 
