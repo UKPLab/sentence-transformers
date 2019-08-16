@@ -37,7 +37,7 @@ class WordWeights(nn.Module):
                 num_unknown_words += 1
             weights.append(weight)
         
-        logging.info("{} of {} words without a weighting value: {}. Set weight to {}".format(num_unknown_words, len(vocab), unknown_word_weight))
+        logging.info("{} of {} words without a weighting value. Set weight to {}".format(num_unknown_words, len(vocab), unknown_word_weight))
 
         self.emb_layer = nn.Embedding(len(vocab), 1)
         self.emb_layer.load_state_dict({'weight': torch.FloatTensor(weights).unsqueeze(1)})

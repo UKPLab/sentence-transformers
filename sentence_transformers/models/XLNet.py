@@ -67,6 +67,7 @@ class XLNet(nn.Module):
 
         input_ids = tokens
         input_mask = [1] * len(input_ids)
+        sentence_length = len(input_ids)
 
         # Zero-pad up to the sequence length. XLNet: Pad to the left
         padding_length = pad_seq_length - len(input_ids)
