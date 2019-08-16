@@ -5,7 +5,7 @@ with open("README.md", mode="r", encoding="utf-8") as readme_file:
 
 setup(
     name="sentence-transformers",
-    version="0.2.0",
+    version="0.2.1",
     author="Nils Reimers, Gregor Geigle",
     author_email="Rnils@web.de",
     description="Sentence Embeddings using BERT / XLNet",
@@ -13,10 +13,10 @@ setup(
     long_description_content_type="text/markdown",
     license="Apache License 2.0",
     url="https://github.com/UKPLab/sentence-transformers",
-    download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.1.0.tar.gz",
+    download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.2.0.zip",
     packages=["sentence_transformers", "sentence_transformers.models"],
     install_requires=[
-        "pytorch-transformers==1.0.0",
+        "pytorch-transformers==1.1.0",
         "tqdm",
         "torch>=1.0.1",
         "numpy",

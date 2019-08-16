@@ -10,7 +10,7 @@ You can use this code to easily **train your own sentence embeddings**, that are
 
 
 ## Setup
-We recommend Python 3.6 or higher. The model is implemented with PyTorch (at least 1.0.1) using [pytorch-transformers v1.0.0](https://github.com/huggingface/pytorch-transformers).
+We recommend Python 3.6 or higher. The model is implemented with PyTorch (at least 1.0.1) using [pytorch-transformers v1.1.0](https://github.com/huggingface/pytorch-transformers).
 The code does **not** work with Python 2.7.
 
 **With pip**
