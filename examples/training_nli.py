@@ -24,7 +24,7 @@ batch_size = 16
 nli_reader = NLIDataReader('datasets/AllNLI')
 sts_reader = STSDataReader('datasets/stsbenchmark')
 train_num_labels = nli_reader.get_num_labels()
-model_save_path = 'output/training_average_word_embeddings-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
+model_save_path = 'output/training_nli_bert-'+datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 
 
 
@@ -56,7 +56,7 @@ evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
 # Configure the training
 num_epochs = 1
 
-warmup_steps = math.ceil(len(train_data) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 

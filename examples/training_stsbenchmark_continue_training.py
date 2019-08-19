@@ -1,5 +1,5 @@
 """
-This is a simple training example. The system loads the pre-trained bert-base-nli-mean-tokens models from the server.
+This example loads the pre-trained bert-base-nli-mean-tokens models from the server.
 It then fine-tunes this model for some epochs on the STS benchmark dataset.
 """
 from torch.utils.data import DataLoader
@@ -21,7 +21,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 # Read the dataset
 train_batch_size = 16
 num_epochs = 4
-model_save_path = 'output/training_stsbenchmark-'+datetime.now().strftime("%Y-%m-%d_%H:%I:%S")
+model_save_path = 'output/training_stsbenchmark-'+datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 sts_reader = STSDataReader('datasets/stsbenchmark', normalize_scores=True)
 
 # Load a pre-trained sentence transformer model
