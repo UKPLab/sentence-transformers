@@ -1,5 +1,5 @@
 """
-This is a simple training example. The system trains on the SNLI + MultiNLI (AllNLI) dataset
+The system RoBERTa trains on the SNLI + MultiNLI (AllNLI) dataset
 with softmax loss function. At every 1000 training steps, the model is evaluated on the
 STS benchmark dataset
 """
