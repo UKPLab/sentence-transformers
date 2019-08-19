@@ -179,7 +179,7 @@ class SentenceTransformer(nn.Sequential):
         with open(os.path.join(path, 'config.json'), 'w') as fOut:
             json.dump({'__version__': __version__}, fOut, indent=2)
 
-    def smart_batching_collate(self, batch: List[Tuple[List[List[str]], Tensor]]) -> Tuple[List[Tensor], List[Tensor], List[Tensor], Tensor]:
+    def smart_batching_collate(self, batch):
         """
         Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
 
@@ -232,7 +232,6 @@ class SentenceTransformer(nn.Sequential):
             evaluation_steps: int = 0,
             output_path: str = None,
             save_best_model: bool = True,
-            gradient_accumulation_steps: int = 1,
             max_grad_norm: float = 1,
             fp16: bool = False,
             fp16_opt_level: str = '01',
@@ -252,7 +251,6 @@ class SentenceTransformer(nn.Sequential):
         :param evaluation_steps:
         :param output_path:
         :param save_best_model:
-        :param gradient_accumulation_steps:
         :param max_grad_norm:
         :param fp16:
         :param fp16_opt_level:
@@ -281,36 +279,44 @@ class SentenceTransformer(nn.Sequential):
 
         self.best_score = -9999
 
-        min_batches = min([len(dataloader) for dataloader in dataloaders])
-        num_train_objectives = len(train_objectives)
-        num_train_steps = int(num_train_objectives * min_batches / gradient_accumulation_steps * epochs)
+        min_batch_size = min([len(dataloader) for dataloader in dataloaders])
+        num_train_steps = int(min_batch_size * epochs)
 
-        # Prepare optimizer
-        param_optimizer = list(self.named_parameters())
-        no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-        optimizer_grouped_parameters = [
-            {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': weight_decay},
-            {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-        ]
-        t_total = num_train_steps
-        if local_rank!=-1:
-            t_total = t_total // torch.distributed.get_world_size()
+        # Prepare optimizers
+        optimizers = []
+        schedulers = []
+        for loss_model in loss_models:
+            param_optimizer = list(loss_model.named_parameters())
+            no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+            optimizer_grouped_parameters = [
+                {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': weight_decay},
+                {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+            ]
+            t_total = num_train_steps
+            if local_rank != -1:
+                t_total = t_total // torch.distributed.get_world_size()
 
+            optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
+            scheduler = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=t_total)
 
-        optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
-        scheduler = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=t_total)
+            optimizers.append(optimizer)
+            schedulers.append(scheduler)
 
         if fp16:
             try:
                 from apex import amp
             except ImportError:
                 raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use fp16 training.")
-            model, optimizer = amp.initialize(self, optimizer, opt_level=fp16_opt_level)
+
+            for idx in range(len(loss_models)):
+                model, optimizer = amp.initialize(loss_models[idx], optimizers[idx], opt_level=fp16_opt_level)
+                loss_models[idx] = model
+                optimizers[idx] = optimizer
 
         global_step = 0
-
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
 
+        num_train_objectives = len(train_objectives)
         for epoch in trange(epochs, desc="Epoch"):
             training_steps = 0
 
@@ -318,24 +324,24 @@ class SentenceTransformer(nn.Sequential):
                 loss_model.zero_grad()
                 loss_model.train()
 
-            for step in trange(num_train_objectives * min_batches, desc="Iteration"):
+            for step in trange(num_train_objectives * min_batch_size, desc="Iteration"):
                 idx = step % num_train_objectives
+
+                loss_model = loss_models[idx]
+                optimizer = optimizers[idx]
+                scheduler = schedulers[idx]
                 data_iterator = data_iterators[idx]
 
                 try:
                     data = next(data_iterator)
                 except StopIteration:
+                    logging.info("Restart data_iterator")
                     data_iterator = iter(dataloaders[idx])
                     data_iterators[idx] = data_iterator
                     data = next(data_iterator)
 
-                loss_model = loss_models[idx]
-
                 features, labels = batch_to_device(data, self.device)
                 loss_value = loss_model(features, labels)
-
-                if gradient_accumulation_steps > 1:
-                    loss_value = loss_value / gradient_accumulation_steps
 
                 if fp16:
                     with amp.scale_loss(loss_value, optimizer) as scaled_loss:
@@ -346,16 +352,16 @@ class SentenceTransformer(nn.Sequential):
                     torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
 
                 training_steps += 1
-                if (step + 1) % gradient_accumulation_steps==0:
-                    optimizer.step()
-                    scheduler.step()
-                    for loss_model in loss_models:
-                        loss_model.zero_grad()
-                    global_step += 1
 
-                if evaluation_steps > 0 and training_steps % evaluation_steps==0:
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+                global_step += 1
+
+                if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps)
                     for loss_model in loss_models:
+                        loss_model.zero_grad()
                         loss_model.train()
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1)
