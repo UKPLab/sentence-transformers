@@ -2,7 +2,7 @@ import torch
 from torch import nn, Tensor
 from typing import Union, Tuple, List, Iterable, Dict
 from ..SentenceTransformer import SentenceTransformer
-
+import logging
 
 class SoftmaxLoss(nn.Module):
     def __init__(self,
@@ -15,9 +15,9 @@ class SoftmaxLoss(nn.Module):
         super(SoftmaxLoss, self).__init__()
         self.model = model
         self.num_labels = num_labels
+        self.concatenation_sent_rep = concatenation_sent_rep
         self.concatenation_sent_difference = concatenation_sent_difference
         self.concatenation_sent_multiplication = concatenation_sent_multiplication
-        self.concatenation_sent_rep = concatenation_sent_rep
 
         num_vectors_concatenated = 0
         if concatenation_sent_rep:
@@ -26,7 +26,7 @@ class SoftmaxLoss(nn.Module):
             num_vectors_concatenated += 1
         if concatenation_sent_multiplication:
             num_vectors_concatenated += 1
-
+        logging.info("Softmax loss: #Vectors concatenated: {}".format(num_vectors_concatenated))
         self.classifier = nn.Linear(num_vectors_concatenated * sentence_embedding_dimension, num_labels)
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):

@@ -14,7 +14,7 @@ class BERT(nn.Module):
     def __init__(self, model_name_or_path: str, max_seq_length: int = 128, do_lower_case: bool = True):
         super(BERT, self).__init__()
         self.config_keys = ['max_seq_length', 'do_lower_case']
-        self.max_seq_length = max_seq_length
+        self.max_seq_length = min(max_seq_length, 510) #Only lengths up to 510 are possible
         self.do_lower_case = do_lower_case
 
         self.bert = BertModel.from_pretrained(model_name_or_path)

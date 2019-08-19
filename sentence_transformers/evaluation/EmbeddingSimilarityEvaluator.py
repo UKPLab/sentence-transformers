@@ -9,7 +9,7 @@ import os
 import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 from scipy.stats import pearsonr, spearmanr
-
+import numpy as np
 
 class EmbeddingSimilarityEvaluator(SentenceEvaluator):
     """
@@ -41,7 +41,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             name = "_"+name
 
         self.csv_file: str = "similarity_evaluation"+name+"_results.csv"
-        self.csv_headers = ["epoch", "steps", "cosine_pearson", "cosine_spearman", "euclidean_pearson", "euclidean_spearman", "manhattan_pearson", "manhattan_spearman"]
+        self.csv_headers = ["epoch", "steps", "cosine_pearson", "cosine_spearman", "euclidean_pearson", "euclidean_spearman", "manhattan_pearson", "manhattan_spearman", "dot_pearson", "dot_spearman"]
 
     def __call__(self, model: 'SequentialSentenceEmbedder', output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         model.eval()
@@ -78,6 +78,8 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
         manhattan_distances = -paired_manhattan_distances(embeddings1, embeddings2)
         euclidean_distances = -paired_euclidean_distances(embeddings1, embeddings2)
+        dot_products = [np.dot(emb1, emb2) for emb1, emb2 in zip(embeddings1, embeddings2)]
+
 
         eval_pearson_cosine, _ = pearsonr(labels, cosine_scores)
         eval_spearman_cosine, _ = spearmanr(labels, cosine_scores)
@@ -88,26 +90,29 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         eval_pearson_euclidean, _ = pearsonr(labels, euclidean_distances)
         eval_spearman_euclidean, _ = spearmanr(labels, euclidean_distances)
 
-        logging.info("Cosine-Similarity :\tPearson: {:.4f}\tSpearman: {:4f}".format(
+        eval_pearson_dot, _ = pearsonr(labels, dot_products)
+        eval_spearman_dot, _ = spearmanr(labels, dot_products)
+
+        logging.info("Cosine-Similarity :\tPearson: {:.4f}\tSpearman: {:.4f}".format(
             eval_pearson_cosine, eval_spearman_cosine))
-        logging.info("Manhattan-Distance:\tPearson: {:.4f}\tSpearman: {:4f}".format(
+        logging.info("Manhattan-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
             eval_pearson_manhattan, eval_spearman_manhattan))
-        logging.info("Euclidean-Distance:\tPearson: {:.4f}\tSpearman: {:4f}".format(
+        logging.info("Euclidean-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
             eval_pearson_euclidean, eval_spearman_euclidean))
+        logging.info("Dot-Product-Similarity:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+            eval_pearson_dot, eval_spearman_dot))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)
-            if not os.path.isfile(csv_path):
-                with open(csv_path, mode="w", encoding="utf-8") as f:
-                    writer = csv.writer(f)
+            output_file_exists = os.path.isfile(csv_path)
+            with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:
+                writer = csv.writer(f)
+                if not output_file_exists:
                     writer.writerow(self.csv_headers)
-                    writer.writerow([epoch, steps, eval_pearson_cosine, eval_spearman_cosine, eval_pearson_euclidean,
-                                     eval_spearman_euclidean, eval_pearson_manhattan, eval_spearman_manhattan])
-            else:
-                with open(csv_path, mode="a", encoding="utf-8") as f:
-                    writer = csv.writer(f)
-                    writer.writerow([epoch, steps, eval_pearson_cosine, eval_spearman_cosine, eval_pearson_euclidean,
-                                     eval_spearman_euclidean, eval_pearson_manhattan, eval_spearman_manhattan])
+
+                writer.writerow([epoch, steps, eval_pearson_cosine, eval_spearman_cosine, eval_pearson_euclidean,
+                                 eval_spearman_euclidean, eval_pearson_manhattan, eval_spearman_manhattan, eval_pearson_dot, eval_spearman_dot])
+
 
         if self.main_similarity == SimilarityFunction.COSINE:
             return eval_spearman_cosine
