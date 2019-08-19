@@ -1,4 +1,4 @@
-# Sentence Transformers: Sentence Embeddings using BERT / XLNet with PyTorch
+# Sentence Transformers: Sentence Embeddings using BERT / RoBERTa / XLNet with PyTorch
 BERT / XLNet produces out-of-the-box rather bad sentence embeddings. This repository fine-tunes BERT / XLNet with a siamese or triplet network structure to produce semantically meaningful sentence embeddings that can be used in unsupervised scenarios: Semantic textual similarity via cosine-similarity, clustering, semantic search.
 
 
