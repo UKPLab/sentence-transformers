@@ -67,7 +67,7 @@ It will download some [datasets](examples/datasets) and store it on your disk.
 
 
 ### Model Training from Scratch
-[examples/training_nli.py](examples/training_nli.py) fine-tunes BERT from the pre-trained model as provided by Google. It tunes the model on Natural Language Inference (NLI) data. Given two sentences, the model should classify if these two sentence entail, contradict, or are neutral to each other. For this, the two sentences are passed to a transformer model to generate fixed-sized sentence embeddings. These sentence embeddings are then passed to a softmax classifier to derive the final label (entail, contradict, neutral). This generates sentence embeddings that are useful also for other tasks like clustering or semantic textual similarity.
+[examples/training_nli_bert.py](examples/training_nli_bert.py) fine-tunes BERT from the pre-trained model as provided by Google. It tunes the model on Natural Language Inference (NLI) data. Given two sentences, the model should classify if these two sentence entail, contradict, or are neutral to each other. For this, the two sentences are passed to a transformer model to generate fixed-sized sentence embeddings. These sentence embeddings are then passed to a softmax classifier to derive the final label (entail, contradict, neutral). This generates sentence embeddings that are useful also for other tasks like clustering or semantic textual similarity.
 
 
 First, we define a sequential model how a sentence is mapped to a fixed size sentence embedding:
@@ -210,8 +210,14 @@ These models were fine-tuned on triplets generated from Wikipedia sections. Thes
 - **bert-base-wikipedia-sections-mean-tokens**: 80.42% accuracy on Wikipedia sections test set.
 
 
+### Sentence Embeddings using RoBERTa
+RoBERTa is ready to be used for training sentence embeddings. See [training_nli_roberta.py](examples/training_nli_roberta.py) and [training_stsbenchmark_roberta.py](examples/training_stsbenchmark_roberta.py) for examples how to train RoBERTa to yield sentence embeddings.
+
+Pre-trained models are currently trained and will be uploaded soon.
+
+
 ### Sentence Embeddings using XLNet
-Currently the XLNet model is under development. It produces Sentence Transformer Models that perform a little bit worse than the BERT models, hence, we not yet release pre-trained models for XLNet.
+Currently the XLNet model is under development. Currently, it produces worse results than the BERT models, hence, we not yet release pre-trained models for XLNet.
 
 As soon we have fine-tuned the hyperparameters of XLNet to generate well working sentence embeddings, new pre-trained models will be released.
 
@@ -248,7 +254,8 @@ This framework implements various modules, that can be used sequentially to map 
 
 
 **Word Embeddings:** These models map tokens to token embeddings.
-- **[BERT](sentence_transformers/models/BERT.py)**: Uses pytorch-transformers BERT model to map tokens to vectors. Example:  [examples/training_nli.py](examples/training_nli.py)
+- **[BERT](sentence_transformers/models/BERT.py)**: Uses pytorch-transformers BERT model to map tokens to vectors. Example:  [examples/training_nli_bert.py](examples/training_nli_bert.py) / [examples/training_stsbenchmark_bert.py](examples/training_stsbenchmark_bert.py)
+- **[RoBERTa](sentence_transformers/models/RoBERTa.py)**: Uses pytorch-transformers RoBERTa model to map tokens to vectors. Example:  [examples/training_nli_roberta.py](examples/training_nli_roberta.py) / [examples/training_stsbenchmark_roberta.py](examples/training_stsbenchmark_roberta.py)
 - **[XLNet](sentence_transformers/models/XLNet.py)**: Uses pytorch-transformers XLNet model to map tokens to vectors. Example: [examples/training_stsbenchmark_xlnet.py](examples/training_stsbenchmark_xlnet.py)
 - **[WordEmbeddings](sentence_transformers/models/WordEmbeddings.py)**: Uses traditional word embeddings like word2vec or GloVe to map tokens to vectors. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](examples/training_stsbenchmark_avg_word_embeddings.py)
 
