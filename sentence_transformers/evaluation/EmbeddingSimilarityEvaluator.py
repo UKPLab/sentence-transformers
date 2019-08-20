@@ -22,7 +22,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
     """
 
 
-    def __init__(self, dataloader: DataLoader, main_similarity: SimilarityFunction = None, name:str =''):
+    def __init__(self, dataloader: DataLoader, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = None):
         """
         Constructs an evaluator based for the dataset
 
@@ -35,11 +35,15 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         """
         self.dataloader = dataloader
         self.main_similarity = main_similarity
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.name = name
         if name:
             name = "_"+name
 
+        if show_progress_bar is None:
+            show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
+        self.show_progress_bar = show_progress_bar
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.csv_file: str = "similarity_evaluation"+name+"_results.csv"
         self.csv_headers = ["epoch", "steps", "cosine_pearson", "cosine_spearman", "euclidean_pearson", "euclidean_spearman", "manhattan_pearson", "manhattan_spearman", "dot_pearson", "dot_spearman"]
 
@@ -60,7 +64,12 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         logging.info("Evaluation the model on "+self.name+" dataset"+out_txt)
 
         self.dataloader.collate_fn = model.smart_batching_collate
-        for step, batch in enumerate(tqdm(self.dataloader, desc="Evaluating")):
+
+        iterator = self.dataloader
+        if self.show_progress_bar:
+            iterator = tqdm(iterator, desc="Convert Evaluating")
+
+        for step, batch in enumerate(iterator):
             features, label_ids = batch_to_device(batch, self.device)
             with torch.no_grad():
                 emb1, emb2 = [model(sent_features)['sentence_embedding'].to("cpu").numpy() for sent_features in features]
@@ -120,7 +129,9 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             return eval_spearman_euclidean
         elif self.main_similarity == SimilarityFunction.MANHATTAN:
             return eval_spearman_manhattan
+        elif self.main_similarity == SimilarityFunction.DOT_PRODUCT:
+            return eval_spearman_dot
         elif self.main_similarity is None:
-            return max(eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean)
+            return max(eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot)
         else:
             raise ValueError("Unknown main_similarity value")

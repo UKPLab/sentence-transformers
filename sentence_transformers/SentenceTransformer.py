@@ -130,7 +130,7 @@ class SentenceTransformer(nn.Sequential):
                     features[feature_name].append(sentence_features[feature_name])
 
             for feature_name in features:
-                features[feature_name] = torch.from_numpy(np.asarray(features[feature_name])).to(self.device)
+                features[feature_name] = torch.tensor(np.asarray(features[feature_name])).to(self.device)
 
             with torch.no_grad():
                 embeddings = self.forward(features)
@@ -212,7 +212,7 @@ class SentenceTransformer(nn.Sequential):
                     feature_lists[feature_name].append(sentence_features[feature_name])
 
             for feature_name in feature_lists:
-                feature_lists[feature_name] = torch.from_numpy(np.asarray(feature_lists[feature_name]))
+                feature_lists[feature_name] = torch.tensor(np.asarray(feature_lists[feature_name]))
 
             features.append(feature_lists)
 
@@ -377,7 +377,7 @@ class SentenceTransformer(nn.Sequential):
         """
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
-        evaluator(self, output_path)
+        return evaluator(self, output_path)
 
     def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps):
         """Runs evaluation during the training"""

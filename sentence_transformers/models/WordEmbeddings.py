@@ -52,9 +52,9 @@ class WordEmbeddings(nn.Module):
 
         return {'input_ids': input_ids, 'input_mask': input_mask, 'sentence_lengths': sentence_length}
 
-        return {'input_ids': np.asarray(input_ids, dtype=np.int),
-                'input_mask': np.asarray(input_mask, dtype=np.int),
-                'sentence_lengths': np.asarray(sentence_length, dtype=np.int)}
+        return {'input_ids': np.asarray(input_ids, dtype=np.int64),
+                'input_mask': np.asarray(input_mask, dtype=np.int64),
+                'sentence_lengths': np.asarray(sentence_length, dtype=np.int64)}
 
     def get_word_embedding_dimension(self) -> int:
         return self.embeddings_dimension

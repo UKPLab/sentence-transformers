@@ -24,10 +24,14 @@ class SentencesDataset(Dataset):
     tokens: List[List[List[str]]]
     labels: Tensor
 
-    def __init__(self, examples: List[InputExample], model: SentenceTransformer):
+    def __init__(self, examples: List[InputExample], model: SentenceTransformer, show_progress_bar: bool = None):
         """
         Create a new SentencesDataset with the tokenized texts and the labels as Tensor
         """
+        if show_progress_bar is None:
+            show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
+        self.show_progress_bar = show_progress_bar
+
         self.convert_input_examples(examples, model)
 
     def convert_input_examples(self, examples: List[InputExample], model: SentenceTransformer):
@@ -49,7 +53,11 @@ class SentencesDataset(Dataset):
         labels = []
         too_long = [0] * num_texts
         label_type = None
-        for ex_index, example in enumerate(tqdm(examples, desc="Convert dataset")):
+        iterator = examples
+        if self.show_progress_bar:
+            iterator = tqdm(iterator, desc="Convert dataset")
+
+        for ex_index, example in enumerate(iterator):
             if label_type is None:
                 if isinstance(example.label, int):
                     label_type = torch.long

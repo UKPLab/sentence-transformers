@@ -75,7 +75,7 @@ class RoBERTa(nn.Module):
         assert len(input_mask) == pad_seq_length
 
 
-        return {'input_ids': np.asarray(input_ids, dtype=np.int), 'input_mask': np.asarray(input_mask, dtype=np.int), 'sentence_lengths': np.asarray(sentence_length, dtype=np.int)}
+        return {'input_ids': np.asarray(input_ids, dtype=np.int64), 'input_mask': np.asarray(input_mask, dtype=np.int64), 'sentence_lengths': np.asarray(sentence_length, dtype=np.int64)}
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}

@@ -80,10 +80,10 @@ class XLNet(nn.Module):
         assert len(token_type_ids) == pad_seq_length
 
 
-        return {'input_ids': np.asarray(input_ids, dtype=np.int),
-                'token_type_ids': np.asarray(token_type_ids, dtype=np.int),
-                'input_mask': np.asarray(input_mask, dtype=np.int),
-                'sentence_lengths': np.asarray(sentence_length, dtype=np.int)}
+        return {'input_ids': np.asarray(input_ids, dtype=np.int64),
+                'token_type_ids': np.asarray(token_type_ids, dtype=np.int64),
+                'input_mask': np.asarray(input_mask, dtype=np.int64),
+                'sentence_lengths': np.asarray(sentence_length, dtype=np.int64)}
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}
