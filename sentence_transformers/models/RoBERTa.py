@@ -5,6 +5,7 @@ import json
 from typing import Union, Tuple, List, Dict
 import os
 import numpy as np
+import logging
 
 class RoBERTa(nn.Module):
     """RoBERTa model to generate token embeddings.
@@ -14,8 +15,13 @@ class RoBERTa(nn.Module):
     def __init__(self, model_name_or_path: str, max_seq_length: int = 128, do_lower_case: bool = True):
         super(RoBERTa, self).__init__()
         self.config_keys = ['max_seq_length', 'do_lower_case']
-        self.max_seq_length = max_seq_length
         self.do_lower_case = do_lower_case
+
+        if max_seq_length > 510:
+            logging.warning("RoBERTa only allows a max_seq_length of 510 (512 with special tokens). Value will be set to 510")
+            max_seq_length = 510
+        self.max_seq_length = max_seq_length
+
 
         self.roberta = RobertaModel.from_pretrained(model_name_or_path)
         self.tokenizer = RobertaTokenizer.from_pretrained(model_name_or_path, do_lower_case=do_lower_case)
