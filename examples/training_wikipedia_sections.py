@@ -29,7 +29,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 ### Create a torch.DataLoader that passes training batch instances to our model
 train_batch_size = 16
 triplet_reader = TripletReader('datasets/wikipedia-sections-triplets', s1_col_idx=1, s2_col_idx=2, s3_col_idx=3, delimiter=',', quoting=csv.QUOTE_MINIMAL, has_header=True)
-output_path = "output/bert-base-wikipedia-sections-mean-tokens-"+datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+output_path = "output/bert-base-wikipedia-sections-mean-tokens-"+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 num_epochs = 1
 
 

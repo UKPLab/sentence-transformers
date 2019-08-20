@@ -24,7 +24,7 @@ batch_size = 16
 nli_reader = NLIDataReader('datasets/AllNLI')
 sts_reader = STSDataReader('datasets/stsbenchmark')
 train_num_labels = nli_reader.get_num_labels()
-model_save_path = 'output/training_nli_bert-'+datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+model_save_path = 'output/training_nli_bert-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 

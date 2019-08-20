@@ -24,7 +24,7 @@ batch_size = 16
 nli_reader = NLIDataReader('datasets/AllNLI')
 sts_reader = STSDataReader('datasets/stsbenchmark')
 train_num_labels = nli_reader.get_num_labels()
-model_save_path = 'output/training_nli_roberta-'+datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+model_save_path = 'output/training_nli_roberta-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 
@@ -49,7 +49,7 @@ train_loss = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.
 
 
 logging.info("Read STSbenchmark dev dataset")
-dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-train-dev.csv'), model=model)
+dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
 dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=batch_size)
 evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
 
@@ -58,7 +58,6 @@ num_epochs = 1
 
 warmup_steps = math.ceil(len(train_data) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
-
 
 
 # Train the model

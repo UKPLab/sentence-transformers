@@ -26,7 +26,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 # Read the dataset
 batch_size = 32
 sts_reader = STSDataReader('datasets/stsbenchmark')
-model_save_path = 'output/training_stsbenchmark_avg_word_embeddings-'+datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+model_save_path = 'output/training_stsbenchmark_avg_word_embeddings-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 
