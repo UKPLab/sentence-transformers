@@ -16,7 +16,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
     The results are written in a CSV. If a CSV already exists, then values are appended.
     """
 
-    def __init__(self, dataloader: DataLoader, name: str = ""):
+    def __init__(self, dataloader: DataLoader, name: str = "", softmax_model = None):
         """
         Constructs an evaluator for the given dataset
 
@@ -26,6 +26,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         self.dataloader = dataloader
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.name = name
+        self.softmax_model = softmax_model
         if name:
             name = "_"+name
 
@@ -50,7 +51,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         for step, batch in enumerate(tqdm(self.dataloader, desc="Evaluating")):
             features, label_ids = batch_to_device(batch, self.device)
             with torch.no_grad():
-                _, prediction = model(features[0])
+                _, prediction = self.softmax_model(features, labels=None)
 
             total += prediction.size(0)
             correct += torch.argmax(prediction, dim=1).eq(label_ids).sum().item()
