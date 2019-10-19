@@ -70,7 +70,7 @@ It will download some [datasets](examples/datasets) and store it on your disk.
 [examples/training_nli_bert.py](examples/training_nli_bert.py) fine-tunes BERT from the pre-trained model as provided by Google. It tunes the model on Natural Language Inference (NLI) data. Given two sentences, the model should classify if these two sentence entail, contradict, or are neutral to each other. For this, the two sentences are passed to a transformer model to generate fixed-sized sentence embeddings. These sentence embeddings are then passed to a softmax classifier to derive the final label (entail, contradict, neutral). This generates sentence embeddings that are useful also for other tasks like clustering or semantic textual similarity.
 
 
-First, we define a sequential model how a sentence is mapped to a fixed size sentence embedding:
+First, we define a sequential model of how a sentence is mapped to a fixed size sentence embedding:
 ```
 # Use BERT for mapping tokens to embeddings
 word_embedding_model = models.BERT('bert-base-uncased')
@@ -100,7 +100,7 @@ train_loss = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.
 
 The `NLIDataReader` reads the AllNLI dataset and we generate a dataload that is suitable for training the Sentence Transformer model. As training loss, we use a Softmax Classifier.
 
-Next, we also specify a dev-set. The dev-set is used, to evaluate the sentence embeddings model on some unseen data. Note, the dev-set can be any data, in this case, we evaluate on the dev-set of the STS benchmark dataset.  The `evaluator` computes the performance metric, in this case, the cosine-similarity between sentence embeddings are computed and the Spearman-correlation to the gold scores is computed.
+Next, we also specify a dev-set. The dev-set is used to evaluate the sentence embeddings model on some unseen data. Note, the dev-set can be any data, in this case, we evaluate on the dev-set of the STS benchmark dataset.  The `evaluator` computes the performance metric, in this case, the cosine-similarity between sentence embeddings are computed and the Spearman-correlation to the gold scores is computed.
 
 ```
 sts_reader = STSDataReader('datasets/stsbenchmark')
@@ -123,7 +123,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 
 
 ### Continue Training on Other Data
-[examples/training_stsbenchmark.py](examples/training_stsbenchmark.py) shows an example, where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset, and then continue training on the training data from the STS benchmark.
+[examples/training_stsbenchmark.py](examples/training_stsbenchmark.py) shows an example where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset and then continue training on the training data from the STS benchmark.
 
 First, we load a pre-trained model from the server:
 ```
@@ -217,7 +217,7 @@ Pre-trained models are currently trained and will be uploaded soon.
 
 
 ### Sentence Embeddings using XLNet
-Currently the XLNet model is under development. Currently, it produces worse results than the BERT models, hence, we not yet release pre-trained models for XLNet.
+Currently, the XLNet model is under development. Currently, it produces worse results than the BERT models, hence, we not yet release pre-trained models for XLNet.
 
 As soon we have fine-tuned the hyperparameters of XLNet to generate well working sentence embeddings, new pre-trained models will be released.
 
@@ -241,13 +241,13 @@ Extensive evaluation is currently undergoing, but here we provide some prelimina
 
 
 ## Loss Functions
-We implemented various loss-functions, that allow training of sentence embeddings from various datasets. These loss-functions are in the package `sentence_transformers.losses`.
+We implemented various loss-functions that allow training of sentence embeddings from various datasets. These loss-functions are in the package `sentence_transformers.losses`.
  
 - *SoftmaxLoss*: Given the sentence embeddings of two sentences, trains a softmax-classifier. Useful for training on datasets like NLI.
-- *CosineSimilarityLoss*: Given a sentence pair and a gold similarity score (either between -1 and 1 or between 0 and 1), computes the cosine-similarity between the sentence embeddings and minimizes the mean squared error loss.
+- *CosineSimilarityLoss*: Given a sentence pair and a gold similarity score (either between -1 and 1 or between 0 and 1), computes the cosine similarity between the sentence embeddings and minimizes the mean squared error loss.
 - *TripletLoss*: Given a triplet (anchor, positive example, negative example), minimizes the [triplet loss](https://en.wikipedia.org/wiki/Triplet_loss).
 - *BatchHardTripletLoss*: Implements the *batch hard triplet loss* from the paper [In Defense of the Triplet Loss for Person Re-Identification](https://arxiv.org/abs/1703.07737). Each batch must contain multiple examples from the same class. The loss optimizes then the distance between the most-distance positive pair and the closest negative-pair.
-- *MultipleNegativesRankingLoss*: Each batch has one positive pair, all other pairs are treated as negative examples. The loss was used in the papers [Efficient Natural Language Response Suggestionfor Smart Reply](https://arxiv.org/pdf/1705.00652.pdf) and [Learning Cross-Lingual Sentence Representations via a Multi-task Dual-Encoder Model](https://arxiv.org/pdf/1810.12836.pdf)
+- *MultipleNegativesRankingLoss*: Each batch has one positive pair, all other pairs are treated as negative examples. The loss was used in the papers [Efficient Natural Language Response Suggestion for Smart Reply](https://arxiv.org/pdf/1705.00652.pdf) and [Learning Cross-Lingual Sentence Representations via a Multi-task Dual-Encoder Model](https://arxiv.org/pdf/1810.12836.pdf).
 
 ## Models
 This framework implements various modules, that can be used sequentially to map a sentence to a sentence embedding. The different modules can be found in the package `sentence_transformers.models`. Each pipeline consists of the following modules.
@@ -263,14 +263,14 @@ This framework implements various modules, that can be used sequentially to map 
 - **[LSTM](sentence_transformers/models/LSTM.py)**: Runs a bidirectional LSTM. Example: [examples/training_stsbenchmark_bilstm.py](examples/training_stsbenchmark_bilstm.py).
 - **[CNN](sentence_transformers/models/CNN.py)**: Runs a CNN model with multiple kernel sizes. Example: [examples/training_stsbenchmark_cnn.py](examples/training_stsbenchmark_cnn.py).
 - **[WordWeights](sentence_transformers/models/WordWeights.py)**: This model can be used after WordEmbeddings and before Pooling to apply a weighting to the token embeddings, for example, a tf-idf weighting. Example: [examples/training_stsbenchmark_tf-idf_word_embeddings.py](examples/training_stsbenchmark_tf-idf_word_embeddings.py).
-- **[Pooling](sentence_transformers/models/Pooling.py)**: After tokens are mapped to embeddings, we apply the pooling, were you can compute a mean/max-pooling or use the CLS-token embedding (for BERT and XLNet). You can also combine multiple poolings.
+- **[Pooling](sentence_transformers/models/Pooling.py)**: After tokens are mapped to embeddings, we apply the pooling, where you can compute a mean/max-pooling or use the CLS-token embedding (for BERT and XLNet). You can also combine multiple poolings.
 
 **Sentence Embeddings Models:** These models map a sentence directly to a fixed size sentence embedding:
-- **[BoW](sentence_transformers/models/BoW.py)**: Computes a fixed size bag-of-words (BoW) representation of the input text. Can be initialized with IDF-values to create a tf-idf vector. Note, that this model is not trainable. Example
+- **[BoW](sentence_transformers/models/BoW.py)**: Computes a fixed size bag-of-words (BoW) representation of the input text. Can be initialized with IDF-values to create a tf-idf vector. Note that this model is not trainable. Example
 
 
 **Sentence Embeddings Transformations:** These models can be added once we have a fixed size sentence embedding.
-- **[Dense](sentence_transformers/models/Pooling.py)**: A fully-connected feed-forward network to create a Deep Averging Network (DAN). You can stack multiple Dense models. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](examples/training_stsbenchmark_avg_word_embeddings.py)
+- **[Dense](sentence_transformers/models/Pooling.py)**: A fully-connected feed-forward network to create a Deep Averaging Network (DAN). You can stack multiple Dense models. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](examples/training_stsbenchmark_avg_word_embeddings.py)
 
 
 
