@@ -63,7 +63,7 @@ First, you should download some datasets. For this run the [examples/datasets/ge
 python examples/datasets/get_data.py
 ```
 
-It will download some [datasets](examples/datasets) and store it on your disk.
+It will download some [datasets](examples/datasets) and store them on your disk.
 
 
 ### Model Training from Scratch
@@ -98,9 +98,9 @@ train_dataloader = DataLoader(train_data, shuffle=True, batch_size=batch_size)
 train_loss = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=train_num_labels)
 ```
 
-The `NLIDataReader` reads the AllNLI dataset and we generate a dataload that is suitable for training the Sentence Transformer model. As training loss, we use a Softmax Classifier.
+The `NLIDataReader` reads the AllNLI dataset and we generate a dataloader that is suitable for training the Sentence Transformer model. As training loss, we use a Softmax Classifier.
 
-Next, we also specify a dev-set. The dev-set is used to evaluate the sentence embeddings model on some unseen data. Note, the dev-set can be any data, in this case, we evaluate on the dev-set of the STS benchmark dataset.  The `evaluator` computes the performance metric, in this case, the cosine-similarity between sentence embeddings are computed and the Spearman-correlation to the gold scores is computed.
+Next, we also specify a dev-set. The dev-set is used to evaluate the sentence embedding model on some unseen data. Note, the dev-set can be any data, in this case, we evaluate on the dev-set of the STS benchmark dataset.  The `evaluator` computes the performance metric, in this case, the cosine-similarity between sentence embeddings are computed and the Spearman-correlation to the gold scores is computed.
 
 ```
 sts_reader = STSDataReader('datasets/stsbenchmark')
@@ -123,7 +123,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 
 
 ### Continue Training on Other Data
-[examples/training_stsbenchmark.py](examples/training_stsbenchmark.py) shows an example where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset and then continue training on the training data from the STS benchmark.
+[examples/training_stsbenchmark_continue_training.py](examples/training_stsbenchmark_continue_training.py) shows an example where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset and then continue training on the training data from the STS benchmark.
 
 First, we load a pre-trained model from the server:
 ```
@@ -161,7 +161,7 @@ Loading trained models is easy. You can specify a path:
 ```
 model = SentenceTransformer('./my/path/to/model/')
 ```
-Note: It is important that a / or \ is the path, otherwise, it is not recognize as a path.
+Note: It is important that a / or \ is the path, otherwise, it is not recognized as a path.
 
 You can also host the training output on a server and download it:
  ```
@@ -183,10 +183,10 @@ We provide the following models. You can use them in the following way:
 model = SentenceTransformer('name_of_model')
 ```
 
-The list is increasing as soon was new models increasing.
+The list is increasing as soon as new models increasing.
 
 ### Sentence Embeddings using BERT
-BERT Sentence Embeddings have been extensively tested and tuned. We released the following pre-trained model for your usage:
+BERT Sentence Embeddings have been extensively tested and tuned. We released the following pre-trained models for your usage:
 
 **Trained on NLI data**
 
@@ -206,7 +206,7 @@ These models were fine-tuned on the training set of the STS benchmark. They are 
 
 **Trained on Wikipedia Sections Triplets**
 
-These models were fine-tuned on triplets generated from Wikipedia sections. These models work well if fine-grained clustering of sentences on a similar topic are required. For more details, see: [wikipedia-sections-models.md](docs/pretrained-models/wikipedia-sections-models.md).
+These models were fine-tuned on triplets generated from Wikipedia sections. These models work well if fine-grained clustering of sentences on a similar topic is required. For more details, see: [wikipedia-sections-models.md](docs/pretrained-models/wikipedia-sections-models.md).
 - **bert-base-wikipedia-sections-mean-tokens**: 80.42% accuracy on Wikipedia sections test set.
 
 
@@ -219,7 +219,7 @@ Pre-trained models are currently trained and will be uploaded soon.
 ### Sentence Embeddings using XLNet
 Currently, the XLNet model is under development. Currently, it produces worse results than the BERT models, hence, we not yet release pre-trained models for XLNet.
 
-As soon we have fine-tuned the hyperparameters of XLNet to generate well working sentence embeddings, new pre-trained models will be released.
+As soon as we have fine-tuned the hyperparameters of XLNet to generate well working sentence embeddings, new pre-trained models will be released.
 
 
 ## Performance
@@ -259,14 +259,14 @@ This framework implements various modules, that can be used sequentially to map 
 - **[XLNet](sentence_transformers/models/XLNet.py)**: Uses pytorch-transformers XLNet model to map tokens to vectors. Example: [examples/training_stsbenchmark_xlnet.py](examples/training_stsbenchmark_xlnet.py)
 - **[WordEmbeddings](sentence_transformers/models/WordEmbeddings.py)**: Uses traditional word embeddings like word2vec or GloVe to map tokens to vectors. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](examples/training_stsbenchmark_avg_word_embeddings.py)
 
-**Embedding Transformations:** These model transform token embeddings in some way
+**Embedding Transformations:** These models transform token embeddings in some way
 - **[LSTM](sentence_transformers/models/LSTM.py)**: Runs a bidirectional LSTM. Example: [examples/training_stsbenchmark_bilstm.py](examples/training_stsbenchmark_bilstm.py).
 - **[CNN](sentence_transformers/models/CNN.py)**: Runs a CNN model with multiple kernel sizes. Example: [examples/training_stsbenchmark_cnn.py](examples/training_stsbenchmark_cnn.py).
 - **[WordWeights](sentence_transformers/models/WordWeights.py)**: This model can be used after WordEmbeddings and before Pooling to apply a weighting to the token embeddings, for example, a tf-idf weighting. Example: [examples/training_stsbenchmark_tf-idf_word_embeddings.py](examples/training_stsbenchmark_tf-idf_word_embeddings.py).
 - **[Pooling](sentence_transformers/models/Pooling.py)**: After tokens are mapped to embeddings, we apply the pooling, where you can compute a mean/max-pooling or use the CLS-token embedding (for BERT and XLNet). You can also combine multiple poolings.
 
 **Sentence Embeddings Models:** These models map a sentence directly to a fixed size sentence embedding:
-- **[BoW](sentence_transformers/models/BoW.py)**: Computes a fixed size bag-of-words (BoW) representation of the input text. Can be initialized with IDF-values to create a tf-idf vector. Note that this model is not trainable. Example
+- **[BoW](sentence_transformers/models/BoW.py)**: Computes a fixed size bag-of-words (BoW) representation of the input text. Can be initialized with IDF-values to create a tf-idf vector. Note that this model is not trainable. Example: [examples/training_stsbenchmark_bow.py](examples/training_stsbenchmark_bow.py)
 
 
 **Sentence Embeddings Transformations:** These models can be added once we have a fixed size sentence embedding.

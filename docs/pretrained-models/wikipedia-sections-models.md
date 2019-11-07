@@ -29,7 +29,7 @@ Performance (accuracy) reported by Dor et al.:
 
 
 # Applications
-The models achieve a rather low performance on the STS benchmark dataset. The reason for this is the training objective: An anchor , a positive and a negative example are presented. The network must only learn to differentiate what the positive and what the negative example is by ensuring that the negative example is further away from the anchor than the positive example.
+The models achieve a rather low performance on the STS benchmark dataset. The reason for this is the training objective: An anchor, a positive and a negative example are presented. The network must only learn to differentiate what the positive and what the negative example is by ensuring that the negative example is further away from the anchor than the positive example.
 
 However, it does not matter how far the negative example is away, it can be little or really far away. This makes this model rather bad for deciding if a pair is somewhat similar. It learns only to recognize similar pairs (high scores) and dissimilar pairs (low scores).
 

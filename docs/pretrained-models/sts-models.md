@@ -4,7 +4,7 @@ The models were first trained on [NLI data](nli-models.md), then we fine-tuned t
 # Datasets
 We use the training file from the  [STS benchmark dataset](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark).
 
-For a training example, see [examples/training_stsbenchmark.py](../../examples/training_stsbenchmark.py). 
+For a training example, see [examples/training_stsbenchmark.py](../../examples/training_stsbenchmark_bert.py). 
 
 # Pre-trained models
  We provide the following pre-trained models:
