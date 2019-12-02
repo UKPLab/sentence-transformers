@@ -46,13 +46,13 @@ class BoW(nn.Module):
         #Nothing to do, everything is done in get_sentence_features
         return features
 
-    def tokenize(self, text: str) -> List[str]:
+    def tokenize(self, text: str) -> List[int]:
         return self.tokenizer.tokenize(text)
 
     def get_sentence_embedding_dimension(self):
         return self.sentence_embedding_dimension
 
-    def get_sentence_features(self, tokens: List[str], pad_seq_length: int):
+    def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
         #return {'input_ids': tokens}
         vector = np.zeros(self.get_sentence_embedding_dimension(), dtype=np.float32)
         for token in tokens:
