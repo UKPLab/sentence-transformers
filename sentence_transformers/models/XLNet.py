@@ -1,6 +1,6 @@
 from torch import Tensor
 from torch import nn
-from pytorch_transformers import XLNetModel, XLNetTokenizer
+from transformers import XLNetModel, XLNetTokenizer
 import json
 from typing import Union, Tuple, List, Dict
 import os

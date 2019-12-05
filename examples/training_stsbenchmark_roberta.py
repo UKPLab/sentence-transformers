@@ -24,7 +24,7 @@ num_epochs = 4
 model_save_path = 'output/training_stsbenchmark_roberta-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 sts_reader = STSDataReader('datasets/stsbenchmark', normalize_scores=True)
 
-# Use XLNet for mapping tokens to embeddings
+# Use RoBERTa-base for mapping tokens to embeddings
 word_embedding_model = models.RoBERTa('roberta-base')
 
 # Apply mean pooling to get one fixed sized sentence vector

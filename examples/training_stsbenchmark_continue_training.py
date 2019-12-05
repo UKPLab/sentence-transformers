@@ -21,7 +21,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 # Read the dataset
 train_batch_size = 16
 num_epochs = 4
-model_save_path = 'output/training_stsbenchmark-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+model_save_path = 'output/training_stsbenchmark_continue_training-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 sts_reader = STSDataReader('datasets/stsbenchmark', normalize_scores=True)
 
 # Load a pre-trained sentence transformer model

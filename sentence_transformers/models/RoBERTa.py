@@ -1,6 +1,6 @@
 from torch import Tensor
 from torch import nn
-from pytorch_transformers import RobertaModel, RobertaTokenizer
+from transformers import RobertaModel, RobertaTokenizer
 import json
 from typing import Union, Tuple, List, Dict
 import os

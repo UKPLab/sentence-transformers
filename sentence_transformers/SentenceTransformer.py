@@ -7,7 +7,7 @@ from typing import List, Dict, Tuple, Iterable, Type
 from zipfile import ZipFile
 
 import numpy as np
-import pytorch_transformers
+import transformers
 import torch
 from numpy import ndarray
 from torch import nn, Tensor
@@ -226,7 +226,7 @@ class SentenceTransformer(nn.Sequential):
             epochs: int = 1,
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
-            optimizer_class: Type[Optimizer] = pytorch_transformers.AdamW,
+            optimizer_class: Type[Optimizer] = transformers.AdamW,
             optimizer_params : Dict[str, object ]= {'lr': 2e-5, 'eps': 1e-6, 'correct_bias': False},
             weight_decay: float = 0.01,
             evaluation_steps: int = 0,
@@ -394,14 +394,14 @@ class SentenceTransformer(nn.Sequential):
         """
         scheduler = scheduler.lower()
         if scheduler == 'constantlr':
-            return pytorch_transformers.ConstantLRSchedule(optimizer)
+            return transformers.get_constant_schedule(optimizer)
         elif scheduler == 'warmupconstant':
-            return pytorch_transformers.WarmupConstantSchedule(optimizer, warmup_steps=warmup_steps)
+            return transformers.get_constant_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps)
         elif scheduler == 'warmuplinear':
-            return pytorch_transformers.WarmupLinearSchedule(optimizer, warmup_steps=warmup_steps, t_total=t_total)
+            return transformers.get_linear_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total)
         elif scheduler == 'warmupcosine':
-            return pytorch_transformers.WarmupCosineSchedule(optimizer, warmup_steps=warmup_steps, t_total=t_total)
+            return transformers.get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total)
         elif scheduler == 'warmupcosinewithhardrestarts':
-            return pytorch_transformers.WarmupCosineWithHardRestartsSchedule(optimizer, warmup_steps=warmup_steps, t_total=t_total)
+            return transformers.get_cosine_with_hard_restarts_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total)
         else:
             raise ValueError("Unknown scheduler {}".format(scheduler))
