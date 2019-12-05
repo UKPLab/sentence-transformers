@@ -2,7 +2,7 @@
 BERT / XLNet produces out-of-the-box rather bad sentence embeddings. This repository fine-tunes BERT / XLNet with a siamese or triplet network structure to produce semantically meaningful sentence embeddings that can be used in unsupervised scenarios: Semantic textual similarity via cosine-similarity, clustering, semantic search.
 
 
-We provide an increasing number of **state-of-the-art pretrained models** that can be used to derive sentence embeddings. See [Pretrained Models](#pretrained-models).
+We provide an increasing number of **state-of-the-art pretrained models** that can be used to derive sentence embeddings. See [Pretrained Models](#pretrained-models). Details of the implemented approaches can be found in our publication: [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (published at EMNLP 2019).
 
 
 You can use this code to easily **train your own sentence embeddings**, that are tuned for your specific task. We provide various dataset readers and you can tune sentence embeddings with different loss function, depending on the structure of your dataset. For further details, see [Train your own Sentence Embeddings](#Training).
@@ -63,20 +63,20 @@ First, you should download some datasets. For this run the [examples/datasets/ge
 python examples/datasets/get_data.py
 ```
 
-It will download some [datasets](examples/datasets) and store it on your disk.
+It will download some [datasets](examples/datasets) and store them on your disk.
 
 
 ### Model Training from Scratch
 [examples/training_nli_bert.py](examples/training_nli_bert.py) fine-tunes BERT from the pre-trained model as provided by Google. It tunes the model on Natural Language Inference (NLI) data. Given two sentences, the model should classify if these two sentence entail, contradict, or are neutral to each other. For this, the two sentences are passed to a transformer model to generate fixed-sized sentence embeddings. These sentence embeddings are then passed to a softmax classifier to derive the final label (entail, contradict, neutral). This generates sentence embeddings that are useful also for other tasks like clustering or semantic textual similarity.
 
 
-First, we define a sequential model how a sentence is mapped to a fixed size sentence embedding:
+First, we define a sequential model of how a sentence is mapped to a fixed size sentence embedding:
 ```
 # Use BERT for mapping tokens to embeddings
 word_embedding_model = models.BERT('bert-base-uncased')
 
 # Apply mean pooling to get one fixed sized sentence vector
-pooling_model = models.Pooling(word_embedding_model.word_embedding_dimension(),
+pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
                                pooling_mode_mean_tokens=True,
                                pooling_mode_cls_token=False,
                                pooling_mode_max_tokens=False)
@@ -98,9 +98,9 @@ train_dataloader = DataLoader(train_data, shuffle=True, batch_size=batch_size)
 train_loss = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=train_num_labels)
 ```
 
-The `NLIDataReader` reads the AllNLI dataset and we generate a dataload that is suitable for training the Sentence Transformer model. As training loss, we use a Softmax Classifier.
+The `NLIDataReader` reads the AllNLI dataset and we generate a dataloader that is suitable for training the Sentence Transformer model. As training loss, we use a Softmax Classifier.
 
-Next, we also specify a dev-set. The dev-set is used, to evaluate the sentence embeddings model on some unseen data. Note, the dev-set can be any data, in this case, we evaluate on the dev-set of the STS benchmark dataset.  The `evaluator` computes the performance metric, in this case, the cosine-similarity between sentence embeddings are computed and the Spearman-correlation to the gold scores is computed.
+Next, we also specify a dev-set. The dev-set is used to evaluate the sentence embedding model on some unseen data. Note, the dev-set can be any data, in this case, we evaluate on the dev-set of the STS benchmark dataset.  The `evaluator` computes the performance metric, in this case, the cosine-similarity between sentence embeddings are computed and the Spearman-correlation to the gold scores is computed.
 
 ```
 sts_reader = STSDataReader('datasets/stsbenchmark')
@@ -123,7 +123,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 
 
 ### Continue Training on Other Data
-[examples/training_stsbenchmark.py](examples/training_stsbenchmark.py) shows an example, where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset, and then continue training on the training data from the STS benchmark.
+[examples/training_stsbenchmark_continue_training.py](examples/training_stsbenchmark_continue_training.py) shows an example where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset and then continue training on the training data from the STS benchmark.
 
 First, we load a pre-trained model from the server:
 ```
@@ -161,7 +161,7 @@ Loading trained models is easy. You can specify a path:
 ```
 model = SentenceTransformer('./my/path/to/model/')
 ```
-Note: It is important that a / or \ is the path, otherwise, it is not recognize as a path.
+Note: It is important that a / or \ is the path, otherwise, it is not recognized as a path.
 
 You can also host the training output on a server and download it:
  ```
@@ -183,10 +183,10 @@ We provide the following models. You can use them in the following way:
 model = SentenceTransformer('name_of_model')
 ```
 
-The list is increasing as soon was new models increasing.
+The list is increasing as soon as new models increasing.
 
 ### Sentence Embeddings using BERT
-BERT Sentence Embeddings have been extensively tested and tuned. We released the following pre-trained model for your usage:
+BERT Sentence Embeddings have been extensively tested and tuned. We released the following pre-trained models for your usage:
 
 **Trained on NLI data**
 
@@ -206,7 +206,7 @@ These models were fine-tuned on the training set of the STS benchmark. They are 
 
 **Trained on Wikipedia Sections Triplets**
 
-These models were fine-tuned on triplets generated from Wikipedia sections. These models work well if fine-grained clustering of sentences on a similar topic are required. For more details, see: [wikipedia-sections-models.md](docs/pretrained-models/wikipedia-sections-models.md).
+These models were fine-tuned on triplets generated from Wikipedia sections. These models work well if fine-grained clustering of sentences on a similar topic is required. For more details, see: [wikipedia-sections-models.md](docs/pretrained-models/wikipedia-sections-models.md).
 - **bert-base-wikipedia-sections-mean-tokens**: 80.42% accuracy on Wikipedia sections test set.
 
 
@@ -217,9 +217,9 @@ Pre-trained models are currently trained and will be uploaded soon.
 
 
 ### Sentence Embeddings using XLNet
-Currently the XLNet model is under development. Currently, it produces worse results than the BERT models, hence, we not yet release pre-trained models for XLNet.
+Currently, the XLNet model is under development. Currently, it produces worse results than the BERT models, hence, we not yet release pre-trained models for XLNet.
 
-As soon we have fine-tuned the hyperparameters of XLNet to generate well working sentence embeddings, new pre-trained models will be released.
+As soon as we have fine-tuned the hyperparameters of XLNet to generate well working sentence embeddings, new pre-trained models will be released.
 
 
 ## Performance
@@ -241,13 +241,13 @@ Extensive evaluation is currently undergoing, but here we provide some prelimina
 
 
 ## Loss Functions
-We implemented various loss-functions, that allow training of sentence embeddings from various datasets. These loss-functions are in the package `sentence_transformers.losses`.
+We implemented various loss-functions that allow training of sentence embeddings from various datasets. These loss-functions are in the package `sentence_transformers.losses`.
  
 - *SoftmaxLoss*: Given the sentence embeddings of two sentences, trains a softmax-classifier. Useful for training on datasets like NLI.
-- *CosineSimilarityLoss*: Given a sentence pair and a gold similarity score (either between -1 and -1 or between 0 and 1), computes the cosine-similarity between the sentence embeddings and minimizes the mean squared error loss.
+- *CosineSimilarityLoss*: Given a sentence pair and a gold similarity score (either between -1 and 1 or between 0 and 1), computes the cosine similarity between the sentence embeddings and minimizes the mean squared error loss.
 - *TripletLoss*: Given a triplet (anchor, positive example, negative example), minimizes the [triplet loss](https://en.wikipedia.org/wiki/Triplet_loss).
 - *BatchHardTripletLoss*: Implements the *batch hard triplet loss* from the paper [In Defense of the Triplet Loss for Person Re-Identification](https://arxiv.org/abs/1703.07737). Each batch must contain multiple examples from the same class. The loss optimizes then the distance between the most-distance positive pair and the closest negative-pair.
-- *MultipleNegativesRankingLoss*: Each batch has one positive pair, all other pairs are treated as negative examples. The loss was used in the papers [Efficient Natural Language Response Suggestionfor Smart Reply](https://arxiv.org/pdf/1705.00652.pdf) and [Learning Cross-Lingual Sentence Representations via a Multi-task Dual-Encoder Model](https://arxiv.org/pdf/1810.12836.pdf)
+- *MultipleNegativesRankingLoss*: Each batch has one positive pair, all other pairs are treated as negative examples. The loss was used in the papers [Efficient Natural Language Response Suggestion for Smart Reply](https://arxiv.org/pdf/1705.00652.pdf) and [Learning Cross-Lingual Sentence Representations via a Multi-task Dual-Encoder Model](https://arxiv.org/pdf/1810.12836.pdf).
 
 ## Models
 This framework implements various modules, that can be used sequentially to map a sentence to a sentence embedding. The different modules can be found in the package `sentence_transformers.models`. Each pipeline consists of the following modules.
@@ -259,18 +259,18 @@ This framework implements various modules, that can be used sequentially to map 
 - **[XLNet](sentence_transformers/models/XLNet.py)**: Uses pytorch-transformers XLNet model to map tokens to vectors. Example: [examples/training_stsbenchmark_xlnet.py](examples/training_stsbenchmark_xlnet.py)
 - **[WordEmbeddings](sentence_transformers/models/WordEmbeddings.py)**: Uses traditional word embeddings like word2vec or GloVe to map tokens to vectors. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](examples/training_stsbenchmark_avg_word_embeddings.py)
 
-**Embedding Transformations:** These model transform token embeddings in some way
+**Embedding Transformations:** These models transform token embeddings in some way
 - **[LSTM](sentence_transformers/models/LSTM.py)**: Runs a bidirectional LSTM. Example: [examples/training_stsbenchmark_bilstm.py](examples/training_stsbenchmark_bilstm.py).
 - **[CNN](sentence_transformers/models/CNN.py)**: Runs a CNN model with multiple kernel sizes. Example: [examples/training_stsbenchmark_cnn.py](examples/training_stsbenchmark_cnn.py).
 - **[WordWeights](sentence_transformers/models/WordWeights.py)**: This model can be used after WordEmbeddings and before Pooling to apply a weighting to the token embeddings, for example, a tf-idf weighting. Example: [examples/training_stsbenchmark_tf-idf_word_embeddings.py](examples/training_stsbenchmark_tf-idf_word_embeddings.py).
-- **[Pooling](sentence_transformers/models/Pooling.py)**: After tokens are mapped to embeddings, we apply the pooling, were you can compute a mean/max-pooling or use the CLS-token embedding (for BERT and XLNet). You can also combine multiple poolings.
+- **[Pooling](sentence_transformers/models/Pooling.py)**: After tokens are mapped to embeddings, we apply the pooling, where you can compute a mean/max-pooling or use the CLS-token embedding (for BERT and XLNet). You can also combine multiple poolings.
 
 **Sentence Embeddings Models:** These models map a sentence directly to a fixed size sentence embedding:
-- **[BoW](sentence_transformers/models/BoW.py)**: Computes a fixed size bag-of-words (BoW) representation of the input text. Can be initialized with IDF-values to create a tf-idf vector. Note, that this model is not trainable. Example
+- **[BoW](sentence_transformers/models/BoW.py)**: Computes a fixed size bag-of-words (BoW) representation of the input text. Can be initialized with IDF-values to create a tf-idf vector. Note that this model is not trainable. Example: [examples/training_stsbenchmark_bow.py](examples/training_stsbenchmark_bow.py)
 
 
 **Sentence Embeddings Transformations:** These models can be added once we have a fixed size sentence embedding.
-- **[Dense](sentence_transformers/models/Pooling.py)**: A fully-connected feed-forward network to create a Deep Averging Network (DAN). You can stack multiple Dense models. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](examples/training_stsbenchmark_avg_word_embeddings.py)
+- **[Dense](sentence_transformers/models/Pooling.py)**: A fully-connected feed-forward network to create a Deep Averaging Network (DAN). You can stack multiple Dense models. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](examples/training_stsbenchmark_avg_word_embeddings.py)
 
 
 
@@ -396,7 +396,19 @@ Cluster  5
 ```
 
 ## Citing & Authors
-A publication describing this framework will be released soon at EMNLP 2019.
+If you find this repository helpful, feel free to cite our publication [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084):
+``` 
+@inproceedings{reimers-2019-sentence-bert,
+    title = "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
+    author = "Reimers, Nils and Gurevych, Iryna",
+    booktitle = "Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing",
+    month = "11",
+    year = "2019",
+    publisher = "Association for Computational Linguistics",
+    url = "http://arxiv.org/abs/1908.10084",
+}
+```
+
 
 The main contributors of this repository are:
 - [Nils Reimers](https://github.com/nreimers)
