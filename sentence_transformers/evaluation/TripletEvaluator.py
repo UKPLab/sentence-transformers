@@ -39,9 +39,9 @@ class TripletEvaluator(SentenceEvaluator):
 
         if epoch != -1:
             if steps == -1:
-                out_txt = f" after epoch {epoch}:"
+                out_txt = " after epoch {}:".format(epoch)
             else:
-                out_txt = f" in epoch {epoch} after {steps} steps:"
+                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
         else:
             out_txt = ":"
 

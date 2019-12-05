@@ -17,9 +17,9 @@ class RoBERTa(nn.Module):
         self.config_keys = ['max_seq_length', 'do_lower_case']
         self.do_lower_case = do_lower_case
 
-        if max_seq_length > 510:
-            logging.warning("RoBERTa only allows a max_seq_length of 510 (512 with special tokens). Value will be set to 510")
-            max_seq_length = 510
+        if max_seq_length > 511:
+            logging.warning("RoBERTa only allows a max_seq_length of 511 (514 with special tokens). Value will be set to 511")
+            max_seq_length = 511
         self.max_seq_length = max_seq_length
 
 
