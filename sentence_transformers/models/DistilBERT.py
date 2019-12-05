@@ -22,6 +22,8 @@ class DistilBERT(nn.Module):
             max_seq_length = 510
         self.max_seq_length = max_seq_length
 
+
+
         self.bert = DistilBertModel.from_pretrained(model_name_or_path)
         self.tokenizer = DistilBertTokenizer.from_pretrained(model_name_or_path, do_lower_case=do_lower_case)
         self.cls_token_id = self.tokenizer.convert_tokens_to_ids([self.tokenizer.cls_token])[0]

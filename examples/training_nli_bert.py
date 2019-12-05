@@ -20,16 +20,17 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #### /print debug information to stdout
 
 # Read the dataset
+model_name = 'bert-base-uncased'
 batch_size = 16
 nli_reader = NLIDataReader('datasets/AllNLI')
 sts_reader = STSDataReader('datasets/stsbenchmark')
 train_num_labels = nli_reader.get_num_labels()
-model_save_path = 'output/training_nli_bert-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+model_save_path = 'output/training_nli_'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 
 # Use BERT for mapping tokens to embeddings
-word_embedding_model = models.BERT('bert-base-uncased')
+word_embedding_model = models.BERT(model_name)
 
 # Apply mean pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
