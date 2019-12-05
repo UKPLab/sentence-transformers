@@ -10,8 +10,15 @@ For a training example, see:
 
 # Pre-trained models
  We provide the following pre-trained models:
- - **bert-base-nli-stsb-mean-tokens**: First fine-tuned on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.14
-- **bert-large-nli-stsb-mean-tokens**: First fine-tuned on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.29
+ 
+### BERT models
+- **bert-base-nli-stsb-mean-tokens**: BERT-base trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.14
+- **bert-large-nli-stsb-mean-tokens**: BERT-large trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.29
+
+### RoBERTa models
+- **roberta-base-nli-stsb-mean-tokens**: RoBERTa-base trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.40
+- **roberta-large-nli-stsb-mean-tokens**: RoBERTa-large trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 86.31
+
 
 # Performance Comparison
 Here are the performances on the STS benchmark for other sentence embeddings methods. They were also computed by using cosine-similarity and Spearman rank correlation. Note, these models were not-fined on the STS benchmark.
