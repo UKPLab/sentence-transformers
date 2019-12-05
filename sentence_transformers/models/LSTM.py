@@ -38,7 +38,7 @@ class LSTM(nn.Module):
     def get_word_embedding_dimension(self) -> int:
         return self.embeddings_dimension
 
-    def tokenize(self, text: str) -> List[str]:
+    def tokenize(self, text: str) -> List[int]:
         raise NotImplementedError()
 
     def save(self, output_path: str):

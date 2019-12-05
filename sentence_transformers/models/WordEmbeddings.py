@@ -35,7 +35,7 @@ class WordEmbeddings(nn.Module):
         features.update({'token_embeddings': token_embeddings, 'cls_token_embeddings': cls_tokens, 'input_mask': features['input_mask']})
         return features
 
-    def get_sentence_features(self, tokens: List[str], pad_seq_length: int):
+    def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
         pad_seq_length = min(pad_seq_length, self.max_seq_length)
 
         tokens = tokens[0:pad_seq_length] #Truncate tokens if needed
@@ -59,7 +59,7 @@ class WordEmbeddings(nn.Module):
     def get_word_embedding_dimension(self) -> int:
         return self.embeddings_dimension
 
-    def tokenize(self, text: str) -> List[str]:
+    def tokenize(self, text: str) -> List[int]:
         return self.tokenizer.tokenize(text)
 
     def save(self, output_path: str):
