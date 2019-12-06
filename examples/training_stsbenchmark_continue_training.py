@@ -19,13 +19,14 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #### /print debug information to stdout
 
 # Read the dataset
+model_name = 'bert-base-nli-mean-tokens'
 train_batch_size = 16
 num_epochs = 4
-model_save_path = 'output/training_stsbenchmark_continue_training-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+model_save_path = 'output/training_stsbenchmark_continue_training-'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 sts_reader = STSDataReader('datasets/stsbenchmark', normalize_scores=True)
 
 # Load a pre-trained sentence transformer model
-model = SentenceTransformer('bert-base-nli-mean-tokens')
+model = SentenceTransformer(model_name)
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read STSbenchmark train dataset")

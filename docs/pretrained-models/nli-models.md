@@ -29,7 +29,7 @@ RoBERTa is an extension of BERT. [More Information](https://arxiv.org/abs/1907.1
 
 ### DistilBERT models
 DistilBERT is a small, fast, cheap and light Transformer model based on Bert architecture. [More Information](https://github.com/huggingface/transformers/tree/master/examples/distillation)
-- **distilbert-base-uncased-nli-mean-tokens**: DistilBERT-base with mean-tokens pooling. Performance: STSbenchmark: 76.97
+- **distilbert-base-nli-mean-tokens**: DistilBERT-base with mean-tokens pooling. Performance: STSbenchmark: 76.97
 
 # Performance Comparison
 Here are the performances on the STS benchmark for other sentence embeddings methods. They were also computed by using cosine-similarity and Spearman rank correlation:

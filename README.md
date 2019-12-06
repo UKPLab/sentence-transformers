@@ -199,17 +199,17 @@ These models were trained on SNLI and MultiNLI dataset to create universal sente
 - **bert-large-nli-cls-token**: BERT-large with CLS token pooling. Performance: STSbenchmark: 78.29
 - **roberta-base-nli-mean-tokens**: RoBERTa-base with mean-tokens pooling. Performance: STSbenchmark: 77.42
 - **roberta-large-nli-mean-tokens**: RoBERTa-base with mean-tokens pooling. Performance: STSbenchmark: 78.58
-- **distilbert-base-uncased-nli-mean-tokens**: DistilBERT-base with mean-tokens pooling. Performance: STSbenchmark: 76.97
+- **distilbert-base-nli-mean-tokens**: DistilBERT-base with mean-tokens pooling. Performance: STSbenchmark: 76.97
 
 
 **Trained on STS data**
 
-These models were fine-tuned on the training set of the STS benchmark. They are specifically well suited for semantic textual similarity. For more details, see: [sts-models.md](docs/pretrained-models/sts-models.md).
-- **bert-base-nli-stsb-mean-tokens**: BERT-base trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.14
-- **bert-large-nli-stsb-mean-tokens**: BERT-large trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.29
-- **roberta-base-nli-stsb-mean-tokens**: RoBERTa-base trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.40
-- **roberta-large-nli-stsb-mean-tokens**: RoBERTa-large trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 86.31
-
+These models were first fine-tuned on the AllNLI datasent, then on train set of STS benchmark. They are specifically well suited for semantic textual similarity. For more details, see: [sts-models.md](docs/pretrained-models/sts-models.md).
+- **bert-base-nli-stsb-mean-tokens**: Performance: STSbenchmark: 85.14
+- **bert-large-nli-stsb-mean-tokens**: Performance: STSbenchmark: 85.29
+- **roberta-base-nli-stsb-mean-tokens**: Performance: STSbenchmark: 85.40
+- **roberta-large-nli-stsb-mean-tokens**: Performance: STSbenchmark: 86.31
+- **distilbert-base-nli-stsb-mean-tokens**: Performance: STSbenchmark: 84.38
 
 
 **Trained on Wikipedia Sections Triplets**

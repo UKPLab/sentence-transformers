@@ -16,9 +16,13 @@ For a training example, see:
 - **bert-large-nli-stsb-mean-tokens**: BERT-large trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.29
 
 ### RoBERTa models
+RoBERTa is an extension of BERT. [More Information](https://arxiv.org/abs/1907.11692).
 - **roberta-base-nli-stsb-mean-tokens**: RoBERTa-base trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.40
 - **roberta-large-nli-stsb-mean-tokens**: RoBERTa-large trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 86.31
 
+### DistilBERT
+DistilBERT is a small, fast, cheap and light Transformer model based on Bert architecture. [More Information](https://github.com/huggingface/transformers/tree/master/examples/distillation)
+- **distilbert-base-nli-stsb-mean-tokens**: Performance: STSbenchmark: 84.38
 
 # Performance Comparison
 Here are the performances on the STS benchmark for other sentence embeddings methods. They were also computed by using cosine-similarity and Spearman rank correlation. Note, these models were not-fined on the STS benchmark.
