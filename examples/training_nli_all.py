@@ -18,10 +18,16 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
-model_names = ['bert-large-uncased-whole-word-masking', 'bert-large-cased-whole-word-masking', 'bert-large-uncased-whole-word-masking-finetuned-squad', 'bert-large-cased-whole-word-masking-finetuned-squad', 'bert-base-cased-finetuned-mrpc',
-               'roberta-large-mnli', 'roberta-base-openai-detector', 'roberta-large-openai-detector',
-               'distilbert-base-uncased-distilled-squad',
-               'albert-base-v2', 'albert-large-v2', 'albert-xlarge-v2', 'albert-xxlarge-v2']
+model_names = [
+    #'bert-large-uncased-whole-word-masking', 'bert-large-cased-whole-word-masking',
+    'bert-base-cased-finetuned-mrpc',
+    #'bert-large-uncased-whole-word-masking-finetuned-squad', 'bert-large-cased-whole-word-masking-finetuned-squad',
+    'roberta-large-mnli', 'roberta-base-openai-detector', 'roberta-large-openai-detector',
+    'distilbert-base-uncased-distilled-squad',
+    'albert-base-v2', 'albert-large-v2',
+    #'albert-xlarge-v2',
+    #'albert-xxlarge-v2'
+]
 
 def train_on_nli(model_name):
     model_type = model_name.split('-')[0]
@@ -97,6 +103,6 @@ def train_on_nli(model_name):
 
     model.evaluate(evaluator)
 
-for model_name in model_names:
+for model_name in reversed(model_names):
     print("\n\n\n\n\n:::::::", model_name, "::::::::::\n\n\n")
     train_on_nli(model_name)
