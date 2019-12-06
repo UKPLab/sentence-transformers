@@ -1,8 +1,8 @@
-# Sentence Transformers: Sentence Embeddings using BERT / RoBERTa / XLNet with PyTorch
-BERT / XLNet produces out-of-the-box rather bad sentence embeddings. This repository fine-tunes BERT / XLNet with a siamese or triplet network structure to produce semantically meaningful sentence embeddings that can be used in unsupervised scenarios: Semantic textual similarity via cosine-similarity, clustering, semantic search.
+# Sentence Transformers: Sentence Embeddings using BERT / RoBERTa / DistilBERT / ALBERT / XLNet with PyTorch
+BERT / XLNet produces out-of-the-box rather bad sentence embeddings. This repository fine-tunes BERT / RoBERTa / DistilBERT / ALBERT / XLNet with a siamese or triplet network structure to produce semantically meaningful sentence embeddings that can be used in unsupervised scenarios: Semantic textual similarity via cosine-similarity, clustering, semantic search.
 
 
-We provide an increasing number of **state-of-the-art pretrained models** that can be used to derive sentence embeddings. See [Pretrained Models](#pretrained-models). Details of the implemented approaches can be found in our publication: [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (published at EMNLP 2019).
+We provide an increasing number of **state-of-the-art pretrained models** that can be used to derive sentence embeddings. See [Pretrained Models](#pretrained-models). Details of the implemented approaches can be found in our publication: [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (EMNLP 2019).
 
 
 You can use this code to easily **train your own sentence embeddings**, that are tuned for your specific task. We provide various dataset readers and you can tune sentence embeddings with different loss function, depending on the structure of your dataset. For further details, see [Train your own Sentence Embeddings](#Training).
@@ -10,7 +10,7 @@ You can use this code to easily **train your own sentence embeddings**, that are
 
 
 ## Setup
-We recommend Python 3.6 or higher. The model is implemented with PyTorch (at least 1.0.1) using [pytorch-transformers v1.1.0](https://github.com/huggingface/pytorch-transformers).
+We recommend Python 3.6 or higher. The model is implemented with PyTorch (at least 1.0.1) using [transformers v2.2.1](https://github.com/huggingface/transformers).
 The code does **not** work with Python 2.7.
 
 **With pip**
