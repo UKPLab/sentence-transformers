@@ -24,7 +24,7 @@ num_epochs = 4
 model_save_path = 'output/training_stsbenchmark_distilbert-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 sts_reader = STSDataReader('datasets/stsbenchmark', normalize_scores=True)
 
-# Use RoBERTa-base for mapping tokens to embeddings
+# Use DistilBERT-base for mapping tokens to embeddings
 word_embedding_model = models.DistilBERT('distilbert-base-uncased')
 
 # Apply mean pooling to get one fixed sized sentence vector
