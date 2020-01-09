@@ -1,8 +1,7 @@
-from torch import Tensor
 from torch import nn
-from transformers import  BertModel, BertTokenizer
+from transformers import BertModel, BertTokenizer
 import json
-from typing import Union, Tuple, List, Dict
+from typing import List
 import os
 import numpy as np
 import logging
