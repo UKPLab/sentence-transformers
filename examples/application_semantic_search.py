@@ -12,7 +12,7 @@ import scipy.spatial
 embedder = SentenceTransformer('bert-base-nli-mean-tokens')
 
 # Corpus with example sentences
-corpus = ['A man is eating a food.',
+corpus = ['A man is eating food.',
           'A man is eating a piece of bread.',
           'The girl is carrying a baby.',
           'A man is riding a horse.',

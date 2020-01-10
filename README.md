@@ -218,17 +218,6 @@ These models were fine-tuned on triplets generated from Wikipedia sections. Thes
 - **bert-base-wikipedia-sections-mean-tokens**: 80.42% accuracy on Wikipedia sections test set.
 
 
-### Sentence Embeddings using RoBERTa
-RoBERTa is ready to be used for training sentence embeddings. See [training_nli_roberta.py](examples/training_nli_roberta.py) and [training_stsbenchmark_roberta.py](examples/training_stsbenchmark_roberta.py) for examples how to train RoBERTa to yield sentence embeddings.
-
-Pre-trained models are currently trained and will be uploaded soon.
-
-
-### Sentence Embeddings using XLNet
-Currently, the XLNet model is under development. Currently, it produces worse results than the BERT models, hence, we not yet release pre-trained models for XLNet.
-
-As soon as we have fine-tuned the hyperparameters of XLNet to generate well working sentence embeddings, new pre-trained models will be released.
-
 
 ## Performance
 
@@ -262,11 +251,14 @@ This framework implements various modules, that can be used sequentially to map 
 
 
 **Word Embeddings:** These models map tokens to token embeddings.
-- **[BERT](sentence_transformers/models/BERT.py)**: Uses pytorch-transformers BERT model to map tokens to vectors. Example:  [examples/training_nli_bert.py](examples/training_nli_bert.py) / [examples/training_stsbenchmark_bert.py](examples/training_stsbenchmark_bert.py)
-- **[RoBERTa](sentence_transformers/models/RoBERTa.py)**: Uses pytorch-transformers RoBERTa model to map tokens to vectors. Example:  [examples/training_nli_roberta.py](examples/training_nli_roberta.py) / [examples/training_stsbenchmark_roberta.py](examples/training_stsbenchmark_roberta.py)
+- **[BERT](sentence_transformers/models/BERT.py)**: Uses [BERT](https://arxiv.org/abs/1810.04805) to map tokens to vectors. Example:  [examples/training_nli_bert.py](examples/training_nli_bert.py) / [examples/training_stsbenchmark_bert.py](examples/training_stsbenchmark_bert.py)
+- **[RoBERTa](sentence_transformers/models/RoBERTa.py)**: Uses [RoBERTa](https://arxiv.org/abs/1907.11692) to map tokens to vectors. Example:  [examples/training_nli_roberta.py](examples/training_nli_roberta.py) / [examples/training_stsbenchmark_roberta.py](examples/training_stsbenchmark_roberta.py)
 - **[DistilBERT](sentence_transformers/models/DistilBERT.py)**: DistilBERT is a small, fast, cheap and light model based on BERT. Example:  [examples/training_nli_distilbert.py](examples/training_nli_distilbert.py) / [examples/training_stsbenchmark_distilbert.py](examples/training_stsbenchmark_distilbert.py)
-- **[ALBERT](sentence_transformers/models/ALBERT.py)**: Based on [ALBERT](https://arxiv.org/abs/1909.11942). Currently, ALBERT has some bugs in transformer==2.2.1, which should be fixed with the next version. Example:  [examples/training_nli_albert.py](examples/training_nli_albert.py) / [examples/training_stsbenchmark_albert.py](examples/training_stsbenchmark_albert.py)
-- **[XLNet](sentence_transformers/models/XLNet.py)**: Uses pytorch-transformers XLNet model to map tokens to vectors. Example: [examples/training_stsbenchmark_xlnet.py](examples/training_stsbenchmark_xlnet.py)
+- **[XLMRoBERTA](sentence_transformers/models/XLMRoBERTa.py)**: Based on [XLM-RoBERTa](https://arxiv.org/abs/1911.02116). Example:  [examples/training_nli_xlm-roberta.py](examples/training_nli_xlm-roberta.py) 
+- **[ALBERT](sentence_transformers/models/ALBERT.py)**: Based on [ALBERT](https://arxiv.org/abs/1909.11942). Example:  [examples/training_nli_albert.py](examples/training_nli_albert.py) / [examples/training_stsbenchmark_albert.py](examples/training_stsbenchmark_albert.py)
+- **[T5](sentence_transformers/models/T5.py)**: Based on [T5](https://arxiv.org/abs/1910.10683). Note, due to a bug in transformers==2.3.0, T5 does not work on the GPU. Example:  [examples/training_nli_T5.py](examples/training_nli_T5.py) 
+- **[XLNet](sentence_transformers/models/XLNet.py)**: Based on [XLNet](https://arxiv.org/abs/1906.08237). Example: [examples/training_stsbenchmark_xlnet.py](examples/training_stsbenchmark_xlnet.py)
+- **[CamemBERT](sentence_transformers/models/CamemBERT.py)**: Based on [CamemBERT](https://arxiv.org/abs/1911.03894).
 - **[WordEmbeddings](sentence_transformers/models/WordEmbeddings.py)**: Uses traditional word embeddings like word2vec or GloVe to map tokens to vectors. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](examples/training_stsbenchmark_avg_word_embeddings.py)
 
 **Embedding Transformations:** These models transform token embeddings in some way
@@ -299,7 +291,7 @@ We first generate an embedding for all sentences in a corpus:
 embedder = SentenceTransformer('bert-base-nli-mean-tokens')
 
 # Corpus with example sentences
-corpus = ['A man is eating a food.',
+corpus = ['A man is eating food.',
           'A man is eating a piece of bread.',
           'The girl is carrying a baby.',
           'A man is riding a horse.',
@@ -363,7 +355,7 @@ As before, we first compute an embedding for each sentence:
 embedder = SentenceTransformer('bert-base-nli-mean-tokens')
 
 # Corpus with example sentences
-corpus = ['A man is eating a food.',
+corpus = ['A man is eating food.',
           'A man is eating a piece of bread.',
           'A man is eating pasta.',
           'The girl is carrying a baby.',
@@ -378,31 +370,32 @@ corpus = ['A man is eating a food.',
 corpus_embeddings = embedder.encode(corpus)
 ```
 
-Then, we perform k-means clustering using scipy:
+Then, we perform k-means clustering using sklearn:
 ```
-# Perform kmean clustering
+from sklearn.cluster import KMeans
+
 num_clusters = 5
-whitened_corpus = scipy.cluster.vq.whiten(corpus_embeddings)
-code_book, _ = scipy.cluster.vq.kmeans(whitened_corpus, num_clusters)
-cluster_assignment, _ = scipy.cluster.vq.vq(whitened_corpus, code_book)
+clustering_model = KMeans(n_clusters=num_clusters)
+clustering_model.fit(corpus_embeddings)
+cluster_assignment = clustering_model.labels_
 ```
 
 The output looks like this:
 ```
 Cluster  1
-['A man is riding a horse.', 'A man is riding a white horse on an enclosed ground.']
+['The girl is carrying a baby.', 'The baby is carried by the woman']
 
 Cluster  2
-['A man is eating a food.', 'A man is eating a piece of bread.', 'A man is eating pasta.']
+['A cheetah is running behind its prey.', 'A cheetah chases prey on across a field.']
 
 Cluster  3
 ['A monkey is playing drums.', 'Someone in a gorilla costume is playing a set of drums.']
 
 Cluster  4
-['The girl is carrying a baby.', 'The baby is carried by the woman']
+['A man is eating food.', 'A man is eating a piece of bread.', 'A man is eating pasta.']
 
 Cluster  5
-['A cheetah is running behind its prey.', 'A cheetah chases prey on across a field.']
+['A man is riding a horse.', 'A man is riding a white horse on an enclosed ground.']
 ```
 
 ## Citing & Authors

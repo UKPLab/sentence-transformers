@@ -4,12 +4,12 @@ This is a simple application for sentence embeddings: clustering
 Sentences are mapped to sentence embeddings and then k-mean clustering is applied.
 """
 from sentence_transformers import SentenceTransformer
-from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import KMeans
 
 embedder = SentenceTransformer('bert-base-nli-mean-tokens')
 
 # Corpus with example sentences
-corpus = ['A man is eating a food.',
+corpus = ['A man is eating food.',
           'A man is eating a piece of bread.',
           'A man is eating pasta.',
           'The girl is carrying a baby.',
@@ -25,7 +25,7 @@ corpus_embeddings = embedder.encode(corpus)
 
 # Perform kmean clustering
 num_clusters = 5
-clustering_model = AgglomerativeClustering(n_clusters=num_clusters)
+clustering_model = KMeans(n_clusters=num_clusters)
 clustering_model.fit(corpus_embeddings)
 cluster_assignment = clustering_model.labels_
 
