@@ -149,6 +149,12 @@ class SentenceTransformer(nn.Sequential):
 
         return all_embeddings
 
+    def get_max_seq_length(self):
+        if hasattr(self._first_module(), 'max_seq_length'):
+            return self._first_module().max_seq_length
+
+        return None
+
     def tokenize(self, text):
         return self._first_module().tokenize(text)
 
@@ -170,6 +176,9 @@ class SentenceTransformer(nn.Sequential):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
         """
+        if path is None:
+            return
+
         logging.info("Save model to {}".format(path))
         contained_modules = []
 
@@ -231,7 +240,7 @@ class SentenceTransformer(nn.Sequential):
             train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
             evaluator: SentenceEvaluator,
             epochs: int = 1,
-            scheduler: str = 'WarmupLinear',
+            scheduler_str: str = 'WarmupLinear',
             warmup_steps: int = 10000,
             optimizer_class: Type[Optimizer] = transformers.AdamW,
             optimizer_params : Dict[str, object ]= {'lr': 2e-5, 'eps': 1e-6, 'correct_bias': False},
@@ -252,7 +261,7 @@ class SentenceTransformer(nn.Sequential):
         to make sure of equal training with each dataset.
 
         :param weight_decay:
-        :param scheduler:
+        :param scheduler_str:
         :param warmup_steps:
         :param optimizer:
         :param evaluation_steps:
@@ -304,7 +313,7 @@ class SentenceTransformer(nn.Sequential):
                 t_total = t_total // torch.distributed.get_world_size()
 
             optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
-            scheduler = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=t_total)
+            scheduler = self._get_scheduler(optimizer, scheduler=scheduler_str, warmup_steps=warmup_steps, t_total=t_total)
 
             optimizers.append(optimizer)
             schedulers.append(scheduler)

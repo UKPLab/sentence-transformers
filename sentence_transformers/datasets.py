@@ -21,9 +21,6 @@ class SentencesDataset(Dataset):
     The SentenceBertEncoder.smart_batching_collate is required for this to work.
     SmartBatchingDataset does *not* work without it.
     """
-    tokens: List[List[List[str]]]
-    labels: Tensor
-
     def __init__(self, examples: List[InputExample], model: SentenceTransformer, show_progress_bar: bool = None):
         """
         Create a new SentencesDataset with the tokenized texts and the labels as Tensor
@@ -54,6 +51,8 @@ class SentencesDataset(Dataset):
         too_long = [0] * num_texts
         label_type = None
         iterator = examples
+        max_seq_length = model.get_max_seq_length()
+
         if self.show_progress_bar:
             iterator = tqdm(iterator, desc="Convert dataset")
 
@@ -66,7 +65,7 @@ class SentencesDataset(Dataset):
             tokenized_texts = [model.tokenize(text) for text in example.texts]
 
             for i, token in enumerate(tokenized_texts):
-                if hasattr(model, 'max_seq_length') and model.max_seq_length is not None and model.max_seq_length > 0 and len(token) >= model.max_seq_length:
+                if max_seq_length != None and max_seq_length > 0 and len(token) >= max_seq_length:
                     too_long[i] += 1
 
             labels.append(example.label)
