@@ -183,10 +183,10 @@ We provide the following models. You can use them in the following way:
 model = SentenceTransformer('name_of_model')
 ```
 
-The list is increasing as soon as new models increasing.
 
-### Sentence Embeddings using BERT
-BERT Sentence Embeddings have been extensively tested and tuned. We released the following pre-trained models for your usage:
+
+### English Pre-Trained Models
+In the following you find models that were trained on English data only. See the next section for multi-lingual models.
 
 **Trained on NLI data**
 
@@ -216,6 +216,11 @@ These models were first fine-tuned on the AllNLI datasent, then on train set of 
 
 These models were fine-tuned on triplets generated from Wikipedia sections. These models work well if fine-grained clustering of sentences on a similar topic is required. For more details, see: [wikipedia-sections-models.md](docs/pretrained-models/wikipedia-sections-models.md).
 - **bert-base-wikipedia-sections-mean-tokens**: 80.42% accuracy on Wikipedia sections test set.
+
+### Multilingual Models
+The following models can be used for languages other than English. The vector spaces for the included languages are aligned, i.e., two sentences are mapped to the same point in vector space independent of the language. The models can be used for cross-lingual tasks. For more details see [multilingual-models.md](docs/pretrained-models/multilingual-models.md).
+
+- **distiluse-base-multilingual-cased**: Supported languages: Arabic, Chinese, Dutch, English, French, German,  Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. Performance on STS2017: 79.80
 
 
 
