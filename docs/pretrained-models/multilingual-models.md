@@ -75,7 +75,10 @@ We extended the STS2017 and added cross-lingual test data for English-German, Fr
     <td align="center">77.6</td>
     <td align="center">72.0</td>
     <td align="center">64.2</td>
-    
+    <td align="center">69.1</td>
+    <td align="center">70.8</td>
+    <td align="center">68.5</td>
+    <td align="center">69.5</td>
   </tr> 
   <tr>
     <td colspan="9"><b>Sentence Transformer Models</b></td>
