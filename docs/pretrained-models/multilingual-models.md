@@ -21,7 +21,7 @@ print(embeddings)
 ## Performance
 The performance was evaluated on the [Semantic Textual Similarity (STS) 2017 dataset](http://ixa2.si.ehu.es/stswiki/index.php/Main_Page). The task is to predict the semantic similarity (on a scale 0-5) of two given sentences. STS2017 has monolingual test data for English, Arabic, and Spanish, and cross-lingual test data for English-Arabic, -Spanish and -Turkish.
 
-We added cross-lingual test data for English-German ([STS2017.en-de.zip](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/STS2017.en-de.zip)). The performance is measured using Spearman correlation between the predicted similarity score and the gold score.
+We extended the STS2017 and added cross-lingual test data for English-German, French-English, Italian-English, and Dutch-English ([STS2017-extended.zip](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/STS2017-extended.zip)). The performance is measured using Spearman correlation between the predicted similarity score and the gold score.
 
 <table>
   <tr>
@@ -32,7 +32,10 @@ We added cross-lingual test data for English-German ([STS2017.en-de.zip](https:/
     <th>ES-EN</th>
     <th>EN-EN</th>
     <th>TR-EN</th>
-    <th>DE-EN</th>
+    <th>EN-DE</th>
+    <th>FR-EN</th>
+    <th>IT-EN</th>
+    <th>NL-EN</th>
     <th>Average</th>
   </tr>
   <tr>
@@ -44,7 +47,10 @@ We added cross-lingual test data for English-German ([STS2017.en-de.zip](https:/
     <td align="center">50.7</td>
     <td align="center">9.2</td>
     <td align="center">21.3</td>
-    <td align="center">26.7</td>
+    <td align="center">16.6</td>
+    <td align="center">22.9</td>
+    <td align="center">26.0</td>
+    <td align="center">25.2</td>
   </tr>
   <tr>
     <td>mBERT mean pooling </td>
@@ -55,7 +61,10 @@ We added cross-lingual test data for English-German ([STS2017.en-de.zip](https:/
     <td align="center">54.4</td>
     <td align="center">16.0</td>
     <td align="center">33.9</td>
-    <td align="center">35.7</td>
+    <td align="center">33.0</td>
+    <td align="center">34.0</td>
+    <td align="center">35.6</td>
+    <td align="center">35.3</td>
   </tr>
   <tr>
     <td>LASER</td>
@@ -66,7 +75,7 @@ We added cross-lingual test data for English-German ([STS2017.en-de.zip](https:/
     <td align="center">77.6</td>
     <td align="center">72.0</td>
     <td align="center">64.2</td>
-    <td align="center">69.5</td>
+    
   </tr> 
   <tr>
     <td colspan="9"><b>Sentence Transformer Models</b></td>
@@ -80,7 +89,10 @@ We added cross-lingual test data for English-German ([STS2017.en-de.zip](https:/
     <td align="center">85.4</td>
     <td align="center">75.5</td>
     <td align="center">80.3</td>
-    <td align="center">79.8</td>
+    <td align="center">80.2</td>
+    <td align="center">80.5</td>
+    <td align="center">81.7</td>
+    <td align="center">80.1</td>
     </tr>
 </table>
 
