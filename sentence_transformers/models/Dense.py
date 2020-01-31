@@ -41,5 +41,6 @@ class Dense(nn.Module):
 
         config['activation_function'] = import_from_string(config['activation_function'])()
         model = Dense(**config)
-        model.load_state_dict(torch.load(os.path.join(input_path, 'pytorch_model.bin')))
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model.load_state_dict(torch.load(os.path.join(input_path, 'pytorch_model.bin'), map_location=device))
         return model
