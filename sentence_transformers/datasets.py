@@ -4,7 +4,6 @@ data to the Transformer model
 """
 from torch.utils.data import Dataset
 from typing import List
-from torch import Tensor
 import bisect
 import torch
 import logging
@@ -100,10 +99,6 @@ class SentenceLabelDataset(Dataset):
 
     This also uses smart batching like SentenceDataset.
     """
-    tokens: List[List[str]]
-    labels: Tensor
-    num_labels: int
-    labels_right_border: List[int]
 
     def __init__(self, examples: List[InputExample], model: SentenceTransformer, provide_positive: bool = True,
                  provide_negative: bool = True):
