@@ -282,7 +282,7 @@ This framework implements various modules, that can be used sequentially to map 
 
 
 ## Multitask Training
-This code allows multi-task learning with training data from different datasets and with different loss-functions. More documentation will follow soon.
+This code allows multi-task learning with training data from different datasets and with different loss-functions. For an example, see [examples/training_multi-task.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_multi-task.py).
 
 
 ## Application Examples
