@@ -30,7 +30,7 @@ model_save_path = 'output/training_nli_'+model_name+'-'+datetime.now().strftime(
 
 
 
-# Use BERT for mapping tokens to embeddings
+# Use XLMRoBERTa for mapping tokens to embeddings
 word_embedding_model = models.XLMRoBERTa(model_name)
 
 # Apply mean pooling to get one fixed sized sentence vector
@@ -58,7 +58,7 @@ evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
 # Configure the training
 num_epochs = 1
 
-warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_dataloader) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 

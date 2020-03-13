@@ -29,7 +29,7 @@ class SentenceTransformer(nn.Sequential):
             logging.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
 
             if '/' not in model_name_or_path and '\\' not in model_name_or_path and not os.path.isdir(model_name_or_path):
-                logging.info("Did not find a / or \\ in the name. Assume to download model from server")
+                logging.info("Did not find a '/' or '\\' in the name. Assume to download model from server.")
                 model_name_or_path = __DOWNLOAD_SERVER__ + model_name_or_path + '.zip'
 
             if model_name_or_path.startswith('http://') or model_name_or_path.startswith('https://'):
@@ -292,6 +292,7 @@ class SentenceTransformer(nn.Sequential):
 
         loss_models = [loss for _, loss in train_objectives]
         device = self.device
+
         for loss_model in loss_models:
             loss_model.to(device)
 
