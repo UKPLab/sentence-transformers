@@ -23,8 +23,9 @@ class STSDataReader:
         """
         filename specified which data split to use (train.csv, dev.csv, test.csv).
         """
-        data = csv.reader(open(os.path.join(self.dataset_folder, filename), encoding="utf-8"),
-                          delimiter=self.delimiter, quoting=self.quoting)
+        filepath = os.path.join(self.dataset_folder, filename)
+        fIn = gzip.open(filepath, 'rt', encoding='utf8') if filename.endswith('.gz') else open(filepath, encoding="utf-8")
+        data = csv.reader(fIn, delimiter=self.delimiter, quoting=self.quoting)
         examples = []
         for id, row in enumerate(data):
             score = float(row[self.score_col_idx])
