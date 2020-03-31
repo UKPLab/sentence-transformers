@@ -256,7 +256,9 @@ This framework implements various modules, that can be used sequentially to map 
 
 
 **Word Embeddings:** These models map tokens to token embeddings.
-- **[BERT](sentence_transformers/models/BERT.py)**: Uses [BERT](https://arxiv.org/abs/1810.04805) to map tokens to vectors. Example:  [examples/training_nli_bert.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_nli_bert.py) / [examples/training_stsbenchmark_bert.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_stsbenchmark_bert.py)
+
+### Transformers
+- **[BERT](sentence_transformers/models/Transformers.py)**: Uses [BERT](https://arxiv.org/abs/1810.04805) to map tokens to vectors. Example:  [examples/training_nli_bert.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_nli_bert.py) / [examples/training_stsbenchmark_bert.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_stsbenchmark_bert.py)
 - **[RoBERTa](sentence_transformers/models/RoBERTa.py)**: Uses [RoBERTa](https://arxiv.org/abs/1907.11692) to map tokens to vectors. Example:  [examples/training_nli_roberta.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_nli_roberta.py) / [examples/training_stsbenchmark_roberta.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_stsbenchmark_roberta.py)
 - **[DistilBERT](sentence_transformers/models/DistilBERT.py)**: DistilBERT is a small, fast, cheap and light model based on BERT. Example:  [examples/training_nli_distilbert.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_nli_distilbert.py) / [examples/training_stsbenchmark_distilbert.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_stsbenchmark_distilbert.py)
 - **[XLMRoBERTA](sentence_transformers/models/XLMRoBERTa.py)**: Based on [XLM-RoBERTa](https://arxiv.org/abs/1911.02116). Example:  [examples/training_nli_xlm-roberta.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_nli_xlm-roberta.py) 
@@ -264,6 +266,8 @@ This framework implements various modules, that can be used sequentially to map 
 - **[T5](sentence_transformers/models/T5.py)**: Based on [T5](https://arxiv.org/abs/1910.10683). Note, due to a bug in transformers==2.3.0, T5 does not work on the GPU. Example:  [examples/training_nli_T5.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_nli_T5.py) 
 - **[XLNet](sentence_transformers/models/XLNet.py)**: Based on [XLNet](https://arxiv.org/abs/1906.08237). Example: [examples/training_stsbenchmark_xlnet.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_stsbenchmark_xlnet.py)
 - **[CamemBERT](sentence_transformers/models/CamemBERT.py)**: Based on [CamemBERT](https://arxiv.org/abs/1911.03894).
+
+### Embeddings
 - **[WordEmbeddings](sentence_transformers/models/WordEmbeddings.py)**: Uses traditional word embeddings like word2vec or GloVe to map tokens to vectors. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_stsbenchmark_avg_word_embeddings.py)
 
 **Embedding Transformations:** These models transform token embeddings in some way

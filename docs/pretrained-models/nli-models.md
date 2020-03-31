@@ -8,7 +8,7 @@ As shown, this produces sentence embeddings that can be used for various use cas
 # Datasets
 We train the models on the [SNLI](https://nlp.stanford.edu/projects/snli/) and on the [MultiNLI](https://www.nyu.edu/projects/bowman/multinli/) dataset. We call the combination of the two datasets AllNLI.
 
-For a training example, see [examples/training_nli_bert.py](../../examples/training_nli_bert.py). 
+For a training example, see [examples/training_nli_bert.py](../../examples/training_nli_transformers.py). 
 
 # Pre-trained models
 We provide the following pre-trained models. The performance was evaluated on the test set of the [STS benchmark dataset](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) using Spearman rank correlation.

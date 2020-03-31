@@ -7,14 +7,14 @@ import numpy as np
 import logging
 
 
-class BERT(nn.Module):
+class Transformers(nn.Module):
     """BERT model to generate token embeddings.
 
     Each token is mapped to an output vector from BERT.
     """
 
-    def __init__(self, model_name_or_path: str, max_seq_length: int = 128, do_lower_case: bool = True):
-        super(BERT, self).__init__()
+    def __init__(self, model_name_or_path: str, model_type: str, max_seq_length: int = 128, do_lower_case: bool = True):
+        super(Transformers, self).__init__()
         self.config_keys = ['max_seq_length', 'do_lower_case']
         self.do_lower_case = do_lower_case
 
@@ -30,6 +30,7 @@ class BERT(nn.Module):
                 "BERT only allows a max_seq_length of 510 (512 with special tokens). Value will be set to 510")
             max_seq_length = self.tokenizer.max_len_single_sentence
         self.max_seq_length = max_seq_length
+        self.model_type = model_type
 
     def forward(self, features):
         """Returns token_embeddings, cls_token"""
@@ -49,6 +50,19 @@ class BERT(nn.Module):
         """
         return self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(text))
 
+    def model_specific_token_ids(self):
+        cls_token_at_end, sep_token_extra, pad_left = False, False, False
+        cls_token_segment_id, pad_token_segment_id = 0, 0
+        if self.model_type in ["xlnet"]:
+            cls_token_at_end = True
+            pad_left = True
+            cls_token_segment_id = 2
+            pad_token_segment_id = 4
+        if self.model_type in ["roberta"]:
+            sep_token_extra = True
+        return cls_token_at_end, sep_token_extra, pad_left, \
+               cls_token_segment_id, pad_token_segment_id
+
     def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
         """
         Convert tokenized sentence in its embedding ids, segment ids and mask
@@ -60,12 +74,10 @@ class BERT(nn.Module):
         :return: embedding ids, segment ids and mask for the sentence
         """
         max_seq_length = min(pad_seq_length, self.max_seq_length)
-
+        cls_token_at_end, sep_token_extra, pad_left, cls_token_segment_id, pad_token_segment_id = self.model_specific_token_ids()
         sep_token = self.sep_token_id
         cls_token = self.cls_token_id
         sequence_a_segment_id = 0
-        cls_token_segment_id = 0  # 2 if using xlnet
-        pad_token_segment_id = 0  # 4 if using xlnet
         pad_token = 0
 
         # Account for [CLS] and [SEP] with "- 2" and with "- 3" for RoBERTa.
@@ -92,7 +104,7 @@ class BERT(nn.Module):
         input_mask = [1] * len(input_ids)
 
         padding_length = max_seq_length - len(input_ids)
-        if pad_on_left:
+        if pad_left:
             # Zero-pad up to the sequence length. XLNet: Pad to the left
             input_ids = ([pad_token] * padding_length) + input_ids
             input_mask = ([0] * padding_length) + input_mask
@@ -126,4 +138,4 @@ class BERT(nn.Module):
     def load(input_path: str):
         with open(os.path.join(input_path, 'sentence_bert_config.json')) as fIn:
             config = json.load(fIn)
-        return BERT(model_name_or_path=input_path, **config)
+        return Transformers(model_name_or_path=input_path, **config)

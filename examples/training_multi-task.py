@@ -21,6 +21,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 # Read the dataset
 model_name = 'bert-base-uncased'
+model_type = 'bert'
 batch_size = 16
 nli_reader = NLIDataReader('datasets/AllNLI')
 sts_reader = STSDataReader('datasets/stsbenchmark')
@@ -30,7 +31,8 @@ model_save_path = 'output/training_multi-task_'+model_name+'-'+datetime.now().st
 
 
 # Use BERT for mapping tokens to embeddings
-word_embedding_model = models.BERT(model_name)
+word_embedding_model = models.Transformers(model_name_or_path=model_name,
+                                           model_type=model_type)
 
 # Apply mean pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),

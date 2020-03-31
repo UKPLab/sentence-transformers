@@ -35,7 +35,8 @@ num_epochs = 1
 
 ### Configure sentence transformers for training and train on the provided dataset
 # Use BERT for mapping tokens to embeddings
-word_embedding_model = models.BERT('bert-base-uncased')
+word_embedding_model = models.Transformers(model_name_or_path='bert-base-uncased',
+                                           model_type='bert')
 
 # Apply mean pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
