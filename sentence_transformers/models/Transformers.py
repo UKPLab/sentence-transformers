@@ -115,9 +115,9 @@ class Transformers(nn.Module):
             input_mask = input_mask + ([0] * padding_length)
             token_type_ids = token_type_ids + ([pad_token_segment_id] * padding_length)
 
-        assert len(input_ids) == pad_seq_length
-        assert len(input_mask) == pad_seq_length
-        assert len(token_type_ids) == pad_seq_length
+        assert len(input_ids) == max_seq_length
+        assert len(input_mask) == max_seq_length
+        assert len(token_type_ids) == max_seq_length
 
         return {'input_ids': np.asarray(input_ids, dtype=np.int64),
                 'token_type_ids': np.asarray(token_type_ids, dtype=np.int64),
@@ -131,11 +131,11 @@ class Transformers(nn.Module):
         self.model.save_pretrained(output_path)
         self.tokenizer.save_pretrained(output_path)
 
-        with open(os.path.join(output_path, 'sentence_bert_config.json'), 'w') as fOut:
+        with open(os.path.join(output_path, 'sentence_transformer_config.json'), 'w') as fOut:
             json.dump(self.get_config_dict(), fOut, indent=2)
 
     @staticmethod
     def load(input_path: str):
-        with open(os.path.join(input_path, 'sentence_bert_config.json')) as fIn:
+        with open(os.path.join(input_path, 'sentence_transformer_config.json')) as fIn:
             config = json.load(fIn)
         return Transformers(model_name_or_path=input_path, **config)
