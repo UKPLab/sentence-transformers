@@ -17,7 +17,7 @@ from tqdm import tqdm, trange
 
 from . import __DOWNLOAD_SERVER__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, http_get
+from .util import import_from_string, batch_to_device, http_get, handle_backward_compat_bert
 from . import __version__
 
 class SentenceTransformer(nn.Sequential):
@@ -78,7 +78,9 @@ class SentenceTransformer(nn.Sequential):
 
                 modules = OrderedDict()
                 for module_config in contained_modules:
-                    module_class = import_from_string(module_config['type'])
+                    module_path = module_config['type']
+                    module_path = handle_backward_compat_bert(module_path)
+                    module_class = import_from_string(module_path)
                     module = module_class.load(os.path.join(model_path, module_config['path']))
                     modules[module_config['name']] = module
 

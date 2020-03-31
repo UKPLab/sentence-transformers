@@ -23,7 +23,6 @@ def batch_to_device(batch, target_device: device):
     return features, labels
 
 
-
 def http_get(url, path):
     file_binary = open(path, "wb")
     req = requests.get(url, stream=True)
@@ -35,25 +34,37 @@ def http_get(url, path):
     total = int(content_length) if content_length is not None else None
     progress = tqdm(unit="B", total=total, unit_scale=True)
     for chunk in req.iter_content(chunk_size=1024):
-        if chunk: # filter out keep-alive new chunks
+        if chunk:  # filter out keep-alive new chunks
             progress.update(len(chunk))
             file_binary.write(chunk)
     progress.close()
 
 
 def fullname(o):
-  # o.__module__ + "." + o.__class__.__qualname__ is an example in
-  # this context of H.L. Mencken's "neat, plausible, and wrong."
-  # Python makes no guarantees as to whether the __module__ special
-  # attribute is defined, so we take a more circumspect approach.
-  # Alas, the module name is explicitly excluded from __qualname__
-  # in Python 3.
+    # o.__module__ + "." + o.__class__.__qualname__ is an example in
+    # this context of H.L. Mencken's "neat, plausible, and wrong."
+    # Python makes no guarantees as to whether the __module__ special
+    # attribute is defined, so we take a more circumspect approach.
+    # Alas, the module name is explicitly excluded from __qualname__
+    # in Python 3.
 
-  module = o.__class__.__module__
-  if module is None or module == str.__class__.__module__:
-    return o.__class__.__name__  # Avoid reporting __builtin__
-  else:
-    return module + '.' + o.__class__.__name__
+    module = o.__class__.__module__
+    if module is None or module == str.__class__.__module__:
+        return o.__class__.__name__  # Avoid reporting __builtin__
+    else:
+        return module + '.' + o.__class__.__name__
+
+
+def handle_backward_compat_bert(dotted_path):
+    """
+    Modifies any BERT pre-trained model to point to the general Transformers class
+    :param dotted_path: Dotted Module path to be imported
+    :return: Compatible module path
+    """
+    for old_module in ['ALBERT', 'CamemBERT', 'DistilBERT', 'T5', 'XLMRoBERTa', 'XLNet', 'RoBERTa', 'BERT']:
+        dotted_path = dotted_path.replace(old_module, 'Transformers')
+    return dotted_path
+
 
 def import_from_string(dotted_path):
     """
