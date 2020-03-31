@@ -46,8 +46,8 @@ if __name__ == "__main__":
     nli_reader = NLIDataReader(args.nli_dataset_path)
     sts_reader = STSDataReader(args.sts_dataset_path)
     train_num_labels = nli_reader.get_num_labels()
-    model_save_path = args.model_output_dir + '/training_nli_' + args.model_name + '-' + datetime.now().strftime(
-        "%Y-%m-%d_%H-%M-%S")
+    model_save_path = args.model_output_dir + '/training_nli_' + args.model_name_or_path + '-' + \
+                      datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Use BERT for mapping tokens to embeddings
     word_embedding_model = models.Transformers(model_name_or_path=args.model_name_or_path,
