@@ -20,7 +20,7 @@ ALL_MODELS = tuple(ALL_PRETRAINED_MODEL_ARCHIVE_MAP)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_name', default="bert-base-uncased",
+    parser.add_argument('--model_name_or_path', default="bert-base-uncased",
                         help="Path to pre-trained model or shortcut name selected in the list: " + ", ".join(
                             ALL_MODELS))
     parser.add_argument('--model_type', default="bert",
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         "%Y-%m-%d_%H-%M-%S")
 
     # Use BERT for mapping tokens to embeddings
-    word_embedding_model = models.Transformers(model_name_or_path=args.model_name,
+    word_embedding_model = models.Transformers(model_name_or_path=args.model_name_or_path,
                                                model_type=args.model_type)
 
     # Apply mean pooling to get one fixed sized sentence vector
