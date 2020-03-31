@@ -16,7 +16,7 @@ setup(
     download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.2.5.zip",
     packages=find_packages(),
     install_requires=[
-        "transformers==2.3.0",
+        "transformers>=2.3.0",
         "tqdm",
         "torch>=1.0.1",
         "numpy",
