@@ -4,3 +4,5 @@ from .BatchHardTripletLoss import *
 from .MultipleNegativesRankingLoss import *
 from .TripletLoss import *
 from .MSELoss import *
+from .ContrastiveLoss import *
+
