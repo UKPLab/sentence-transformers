@@ -15,7 +15,7 @@ class Transformers(nn.Module):
 
     def __init__(self, model_name_or_path: str, model_type: str, max_seq_length: int = 128, do_lower_case: bool = True):
         super(Transformers, self).__init__()
-        self.config_keys = ['max_seq_length', 'do_lower_case']
+        self.config_keys = ['model_type', 'max_seq_length', 'do_lower_case']
         self.do_lower_case = do_lower_case
 
         self.model = AutoModel.from_pretrained(model_name_or_path)
@@ -80,10 +80,11 @@ class Transformers(nn.Module):
         sequence_a_segment_id = 0
         pad_token = 0
 
+        tokens = tokens[:max_seq_length]
+
         # Account for [CLS] and [SEP] with "- 2" and with "- 3" for RoBERTa.
         special_tokens_count = self.tokenizer.num_added_tokens()
-
-        tokens = tokens[:(max_seq_length - special_tokens_count)]
+        max_seq_length += special_tokens_count  # TODO this can go over the maximum seq length, needs to be fixed
 
         tokens += [sep_token]
         if sep_token_extra:
