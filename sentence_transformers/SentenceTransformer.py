@@ -143,7 +143,8 @@ class SentenceTransformer(nn.Sequential):
                     features[feature_name].append(sentence_features[feature_name])
 
             for feature_name in features:
-                features[feature_name] = torch.tensor(np.asarray(features[feature_name])).to(self.device)
+                #features[feature_name] = torch.tensor(np.asarray(features[feature_name])).to(self.device)
+                features[feature_name] = torch.cat(features[feature_name]).to(self.device)
 
             with torch.no_grad():
                 out_features = self.forward(features)
@@ -235,16 +236,20 @@ class SentenceTransformer(nn.Sequential):
         for idx in range(num_texts):
             max_len = max_seq_len[idx]
             feature_lists = {}
+
             for text in paired_texts[idx]:
                 sentence_features = self.get_sentence_features(text, max_len)
 
                 for feature_name in sentence_features:
                     if feature_name not in feature_lists:
                         feature_lists[feature_name] = []
+
                     feature_lists[feature_name].append(sentence_features[feature_name])
 
+
             for feature_name in feature_lists:
-                feature_lists[feature_name] = torch.tensor(np.asarray(feature_lists[feature_name]))
+                #feature_lists[feature_name] = torch.tensor(np.asarray(feature_lists[feature_name]))
+                feature_lists[feature_name] = torch.cat(feature_lists[feature_name])
 
             features.append(feature_lists)
 

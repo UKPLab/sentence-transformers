@@ -3,6 +3,10 @@ from setuptools import setup, find_packages
 with open("README.md", mode="r", encoding="utf-8") as readme_file:
     readme = readme_file.read()
 
+with open('requirements.txt', mode="r", encoding="utf-8") as req_file:
+    requirements = req_file.readlines()
+
+
 setup(
     name="sentence-transformers",
     version="0.2.6",
@@ -15,15 +19,7 @@ setup(
     url="https://github.com/UKPLab/sentence-transformers",
     download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.2.5.zip",
     packages=find_packages(),
-    install_requires=[
-        "transformers==2.3.0",
-        "tqdm",
-        "torch>=1.0.1",
-        "numpy",
-        "scikit-learn",
-        "scipy",
-        "nltk"
-    ],
+    install_requires=requirements,
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",

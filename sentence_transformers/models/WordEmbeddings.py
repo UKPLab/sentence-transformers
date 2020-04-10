@@ -32,7 +32,7 @@ class WordEmbeddings(nn.Module):
     def forward(self, features):
         token_embeddings = self.emb_layer(features['input_ids'])
         cls_tokens = None
-        features.update({'token_embeddings': token_embeddings, 'cls_token_embeddings': cls_tokens, 'input_mask': features['input_mask']})
+        features.update({'token_embeddings': token_embeddings, 'cls_token_embeddings': cls_tokens, 'attention_mask': features['attention_mask']})
         return features
 
     def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
@@ -42,19 +42,15 @@ class WordEmbeddings(nn.Module):
         input_ids = tokens
 
         sentence_length = len(input_ids)
-        input_mask = [1] * len(input_ids)
+        attention_mask = [1] * len(input_ids)
         padding = [0] * (pad_seq_length - len(input_ids))
         input_ids += padding
-        input_mask += padding
+        attention_mask += padding
 
         assert len(input_ids) == pad_seq_length
-        assert len(input_mask) == pad_seq_length
+        assert len(attention_mask) == pad_seq_length
 
-        return {'input_ids': input_ids, 'input_mask': input_mask, 'sentence_lengths': sentence_length}
-
-        return {'input_ids': np.asarray(input_ids, dtype=np.int64),
-                'input_mask': np.asarray(input_mask, dtype=np.int64),
-                'sentence_lengths': np.asarray(sentence_length, dtype=np.int64)}
+        return {'input_ids': input_ids, 'attention_mask': attention_mask, 'sentence_lengths': sentence_length}
 
     def get_word_embedding_dimension(self) -> int:
         return self.embeddings_dimension

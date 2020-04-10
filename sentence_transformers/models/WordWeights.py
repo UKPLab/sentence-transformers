@@ -44,12 +44,12 @@ class WordWeights(nn.Module):
 
 
     def forward(self, features: Dict[str, Tensor]):
-        input_mask = features['input_mask']
+        attention_mask = features['attention_mask']
         token_embeddings = features['token_embeddings']
 
         #Compute a weight value for each token
         token_weights_raw = self.emb_layer(features['input_ids']).squeeze(-1)
-        token_weights = token_weights_raw * input_mask.float()
+        token_weights = token_weights_raw * attention_mask.float()
         token_weights_sum = torch.sum(token_weights, 1)
 
         #Multiply embedding by token weight value

@@ -35,19 +35,19 @@ class Pooling(nn.Module):
     def forward(self, features: Dict[str, Tensor]):
         token_embeddings = features['token_embeddings']
         cls_token = features['cls_token_embeddings']
-        input_mask = features['input_mask']
+        attention_mask = features['attention_mask']
 
         ## Pooling strategy
         output_vectors = []
         if self.pooling_mode_cls_token:
             output_vectors.append(cls_token)
         if self.pooling_mode_max_tokens:
-            input_mask_expanded = input_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
             token_embeddings[input_mask_expanded == 0] = -1e9  # Set padding tokens to large negative value
             max_over_time = torch.max(token_embeddings, 1)[0]
             output_vectors.append(max_over_time)
         if self.pooling_mode_mean_tokens or self.pooling_mode_mean_sqrt_len_tokens:
-            input_mask_expanded = input_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
             sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
 
             #If tokens are weighted (by WordWeights layer), feature 'token_weights_sum' will be present
