@@ -47,7 +47,6 @@ class SentenceTransformer(nn.Sequential):
                 model_path = os.path.join(default_cache_path, folder_name)
                 os.makedirs(model_path, exist_ok=True)
 
-
                 if not os.listdir(model_path):
                     if model_url[-1] is "/":
                         model_url = model_url[:-1]
@@ -87,6 +86,7 @@ class SentenceTransformer(nn.Sequential):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
             logging.info("Use pytorch device: {}".format(device))
+
         self.device = torch.device(device)
         self.to(device)
 

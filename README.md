@@ -1,5 +1,5 @@
-# Sentence Transformers: Sentence Embeddings using BERT / RoBERTa / DistilBERT / ALBERT / XLNet with PyTorch
-BERT / RoBERTa / XLNet produces out-of-the-box rather bad sentence embeddings. This repository fine-tunes BERT / RoBERTa / DistilBERT / ALBERT / XLNet with a siamese or triplet network structure to produce semantically meaningful sentence embeddings that can be used in unsupervised scenarios: Semantic textual similarity via cosine-similarity, clustering, semantic search.
+# Sentence Transformers: Multilingual Sentence Embeddings using BERT / RoBERTa / XLM-RoBERTa & Co. with PyTorch
+BERT / RoBERTa / XLM-RoBERTa produces out-of-the-box rather bad sentence embeddings. This repository fine-tunes BERT / RoBERTa / DistilBERT / ALBERT / XLNet with a siamese or triplet network structure to produce semantically meaningful sentence embeddings that can be used in unsupervised scenarios: Semantic textual similarity via cosine-similarity, clustering, semantic search.
 
 
 We provide an increasing number of **state-of-the-art pretrained models** that can be used to derive sentence embeddings. See [Pretrained Models](#pretrained-models). Details of the implemented approaches can be found in our publication: [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (EMNLP 2019).
@@ -264,6 +264,8 @@ This framework implements various modules, that can be used sequentially to map 
 - **[CNN](sentence_transformers/models/CNN.py)**: Runs a CNN model with multiple kernel sizes. Example: [examples/training_stsbenchmark_cnn.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_cnn.py).
 - **[WordWeights](sentence_transformers/models/WordWeights.py)**: This model can be used after WordEmbeddings and before Pooling to apply a weighting to the token embeddings, for example, a tf-idf weighting. Example: [examples/training_stsbenchmark_tf-idf_word_embeddings.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_tf-idf_word_embeddings.py).
 - **[Pooling](sentence_transformers/models/Pooling.py)**: After tokens are mapped to embeddings, we apply the pooling, where you can compute a mean/max-pooling or use the CLS-token embedding (for BERT and XLNet). You can also combine multiple poolings.
+- **[WeightedLayerPooling](sentence_transformers/models/WeightedLayerPooling.py)**: Learns a weighted pooling of all hidden layer of transformer models like BERT. Requires that the model has set output_hidden_states to true.
+- **[WKPooling]()
 
 **Sentence Embeddings Models:** These models map a sentence directly to a fixed size sentence embedding:
 - **[BoW](sentence_transformers/models/BoW.py)**: Computes a fixed size bag-of-words (BoW) representation of the input text. Can be initialized with IDF-values to create a tf-idf vector. Note that this model is not trainable. Example: [examples/training_stsbenchmark_bow.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_bow.py)
