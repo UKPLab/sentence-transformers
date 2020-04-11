@@ -24,7 +24,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 # Alternatively, you can also pass a filepath to SentenceTransformer()
 model = SentenceTransformer('bert-base-nli-mean-tokens')
 
-sts_reader = STSDataReader('datasets/stsbenchmark')
+sts_reader = STSDataReader('../datasets/stsbenchmark')
 
 test_data = SentencesDataset(examples=sts_reader.get_examples("sts-test.csv"), model=model)
 test_dataloader = DataLoader(test_data, shuffle=False, batch_size=8)

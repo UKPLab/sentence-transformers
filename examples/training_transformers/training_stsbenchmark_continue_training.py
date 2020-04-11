@@ -1,6 +1,9 @@
 """
-This example loads the pre-trained bert-base-nli-mean-tokens models from the server.
+This example loads the pre-trained SentenceTransformer model 'bert-base-nli-mean-tokens' from the server.
 It then fine-tunes this model for some epochs on the STS benchmark dataset.
+
+Note: In this example, you must specify a SentenceTransformer model.
+If you want to fine-tune a huggingface/transformers model like bert-base-uncased, see training_nli.py and training_stsbenchmark.py
 """
 from torch.utils.data import DataLoader
 import math
@@ -23,7 +26,7 @@ model_name = 'bert-base-nli-mean-tokens'
 train_batch_size = 16
 num_epochs = 4
 model_save_path = 'output/training_stsbenchmark_continue_training-'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-sts_reader = STSDataReader('datasets/stsbenchmark', normalize_scores=True)
+sts_reader = STSDataReader('../datasets/stsbenchmark', normalize_scores=True)
 
 # Load a pre-trained sentence transformer model
 model = SentenceTransformer(model_name)

@@ -25,17 +25,20 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 
 
+#You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
+model_name = 'bert-base-uncased'
+
 
 ### Create a torch.DataLoader that passes training batch instances to our model
 train_batch_size = 16
-triplet_reader = TripletReader('datasets/wikipedia-sections-triplets', s1_col_idx=1, s2_col_idx=2, s3_col_idx=3, delimiter=',', quoting=csv.QUOTE_MINIMAL, has_header=True)
-output_path = "output/bert-base-wikipedia-sections-mean-tokens-"+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+triplet_reader = TripletReader('../datasets/wikipedia-sections-triplets', s1_col_idx=1, s2_col_idx=2, s3_col_idx=3, delimiter=',', quoting=csv.QUOTE_MINIMAL, has_header=True)
+output_path = "output/training-wikipedia-sections-"+model_name+"-"+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 num_epochs = 1
 
 
 ### Configure sentence transformers for training and train on the provided dataset
-# Use BERT for mapping tokens to embeddings
-word_embedding_model = models.BERT('bert-base-uncased')
+# Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
+word_embedding_model = models.Transformer(model_name)
 
 # Apply mean pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),

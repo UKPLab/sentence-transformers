@@ -30,6 +30,9 @@ import numpy as np
 train_files = sys.argv[1:]
 
 
+if len(train_files) == 0:
+    print("Please specify at least 1 training file: python training_multilingual.py path/to/trainfile.txt")
+
 logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
@@ -42,7 +45,7 @@ logging.info("Load teacher model")
 teacher_model = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
 
 logging.info("Create student model from scratch")
-word_embedding_model = models.XLMRoBERTa("xlm-roberta-base", do_lower_case=False)
+word_embedding_model = models.Transformer("xlm-roberta-base")
 
 # Apply mean pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
@@ -71,7 +74,7 @@ train_loss = losses.MSELoss(model=model)
 # Test on STS 2017.en-de dataset using Spearman rank correlation
 logging.info("Read STS2017.en-de dataset")
 evaluators = []
-sts_reader = readers.STSDataReader('datasets/', s1_col_idx=0, s2_col_idx=1, score_col_idx=2)
+sts_reader = readers.STSDataReader('../datasets/', s1_col_idx=0, s2_col_idx=1, score_col_idx=2)
 dev_data = SentencesDataset(examples=sts_reader.get_examples('STS2017.en-de.txt.gz'), model=model)
 dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
 evaluator_sts = evaluation.EmbeddingSimilarityEvaluator(dev_dataloader, name='STS2017.en-de')
@@ -81,7 +84,7 @@ evaluators.append(evaluator_sts)
 # Use XLNI.en-de dataset with MSE evaluation
 logging.info("Read XNLI.en-de dataset")
 xnli_reader = ParallelSentencesDataset(student_model=model, teacher_model=teacher_model)
-xnli_reader.load_data('datasets/xnli-en-de.txt.gz')
+xnli_reader.load_data('../datasets/xnli-en-de.txt.gz')
 
 xnli_dataloader = DataLoader(xnli_reader, shuffle=False, batch_size=train_batch_size)
 xnli_mse = evaluation.MSEEvaluator(xnli_dataloader, name='xnli-en-de')
@@ -93,7 +96,7 @@ evaluators.append(xnli_mse)
 model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=evaluation.SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[-1]),
           epochs=20,
-          evaluation_steps=5000,
+          evaluation_steps=1000,
           warmup_steps=10000,
           scheduler='warmupconstant',
           output_path=output_path,
