@@ -28,8 +28,6 @@ class CamemBERT(nn.Module):
 
         self.camembert = CamembertModel.from_pretrained(model_name_or_path, **model_args)
         self.tokenizer = CamembertTokenizer.from_pretrained(model_name_or_path, **tokenizer_args)
-        self.cls_token_id = self.tokenizer.convert_tokens_to_ids([self.tokenizer.cls_token])[0]
-        self.sep_token_id = self.tokenizer.convert_tokens_to_ids([self.tokenizer.sep_token])[0]
 
     def forward(self, features):
         """Returns token_embeddings, cls_token"""

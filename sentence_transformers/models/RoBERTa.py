@@ -17,9 +17,9 @@ class RoBERTa(nn.Module):
         self.config_keys = ['max_seq_length', 'do_lower_case']
         self.do_lower_case = do_lower_case
 
-        if max_seq_length > 511:
-            logging.warning("RoBERTa only allows a max_seq_length of 511 (514 with special tokens). Value will be set to 511")
-            max_seq_length = 511
+        if max_seq_length > 512:
+            logging.warning("RoBERTa only allows a max_seq_length of 512 (514 with special tokens). Value will be set to 512")
+            max_seq_length = 512
         self.max_seq_length = max_seq_length
 
         if self.do_lower_case is not None:
@@ -27,8 +27,7 @@ class RoBERTa(nn.Module):
 
         self.roberta = RobertaModel.from_pretrained(model_name_or_path, **model_args)
         self.tokenizer = RobertaTokenizer.from_pretrained(model_name_or_path, **tokenizer_args)
-        self.cls_token_id = self.tokenizer.convert_tokens_to_ids([self.tokenizer.cls_token])[0]
-        self.sep_token_id = self.tokenizer.convert_tokens_to_ids([self.tokenizer.sep_token])[0]
+
 
     def forward(self, features):
         """Returns token_embeddings, cls_token"""

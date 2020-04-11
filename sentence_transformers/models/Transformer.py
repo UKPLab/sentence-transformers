@@ -1,30 +1,30 @@
 from torch import nn
 from transformers import AutoModel, AutoTokenizer, AutoConfig
 import json
-from typing import List, Dict
+from typing import List, Dict, Optional
 import os
 import numpy as np
 import logging
 
-class Auto(nn.Module):
+class Transformer(nn.Module):
     """Huggingface AutoModel to generate token embeddings.
     Loads the correct class, e.g. BERT / RoBERTa etc.
     """
-    def __init__(self, model_name_or_path: str, max_seq_length: int = 128, model_args: Dict = {}):
-        super(Auto, self).__init__()
+    def __init__(self, model_name_or_path: str, max_seq_length: int = 128, model_args: Dict = {}, cache_dir: Optional[str] = None ):
+        super(Transformer, self).__init__()
         self.config_keys = ['max_seq_length']
         self.max_seq_length = max_seq_length
 
-        config = AutoConfig.from_pretrained(model_name_or_path, **model_args)
-        self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
-        self.cls_token_id = self.tokenizer.convert_tokens_to_ids([self.tokenizer.cls_token])[0]
-        self.sep_token_id = self.tokenizer.convert_tokens_to_ids([self.tokenizer.sep_token])[0]
+        config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
+        self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, cache_dir=cache_dir)
+
 
     def forward(self, features):
         """Returns token_embeddings, cls_token"""
         output_states = self.auto_model(**features)
         output_tokens = output_states[0]
+
         cls_tokens = output_tokens[:, 0, :]  # CLS token is first token
         features.update({'token_embeddings': output_tokens, 'cls_token_embeddings': cls_tokens, 'attention_mask': features['attention_mask']})
 
@@ -70,7 +70,7 @@ class Auto(nn.Module):
     def load(input_path: str):
         with open(os.path.join(input_path, 'sentence_bert_config.json')) as fIn:
             config = json.load(fIn)
-        return Auto(model_name_or_path=input_path, **config)
+        return Transformer(model_name_or_path=input_path, **config)
 
 
 

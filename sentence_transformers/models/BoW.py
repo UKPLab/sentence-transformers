@@ -60,7 +60,7 @@ class BoW(nn.Module):
             else:
                 vector[token] = self.weights[token]
 
-        return {'sentence_embedding': torch.tensor([vector])}
+        return {'sentence_embedding': torch.tensor([vector], dtype=torch.float)}
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}
