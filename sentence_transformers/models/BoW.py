@@ -53,7 +53,6 @@ class BoW(nn.Module):
         return self.sentence_embedding_dimension
 
     def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
-        #return {'input_ids': tokens}
         vector = np.zeros(self.get_sentence_embedding_dimension(), dtype=np.float32)
         for token in tokens:
             if self.cumulative_term_frequency:
@@ -61,7 +60,7 @@ class BoW(nn.Module):
             else:
                 vector[token] = self.weights[token]
 
-        return {'sentence_embedding': vector}
+        return {'sentence_embedding': torch.tensor([vector])}
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}

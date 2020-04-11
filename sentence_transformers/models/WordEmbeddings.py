@@ -50,7 +50,9 @@ class WordEmbeddings(nn.Module):
         assert len(input_ids) == pad_seq_length
         assert len(attention_mask) == pad_seq_length
 
-        return {'input_ids': input_ids, 'attention_mask': attention_mask, 'sentence_lengths': sentence_length}
+        return {'input_ids': torch.tensor([input_ids], dtype=torch.long),
+                'attention_mask': torch.tensor([attention_mask], dtype=torch.long),
+                'sentence_lengths': torch.tensor([sentence_length], dtype=torch.long)}
 
     def get_word_embedding_dimension(self) -> int:
         return self.embeddings_dimension
