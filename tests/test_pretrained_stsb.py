@@ -1,5 +1,5 @@
 """
-Tests that the pretrained models produce the correct scores on the STSb dataset
+Tests that the pretrained models produce the correct scores on the STSbenchmark dataset
 """
 from torch.utils.data import DataLoader
 from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler
