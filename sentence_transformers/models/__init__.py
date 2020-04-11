@@ -1,5 +1,5 @@
 from .ALBERT import ALBERT
-from .Auto import Auto
+from .Transformer import Transformer
 from .BERT import BERT
 from .BoW import BoW
 from .CNN import CNN

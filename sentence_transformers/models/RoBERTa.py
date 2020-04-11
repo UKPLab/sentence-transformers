@@ -2,7 +2,7 @@ from torch import Tensor
 from torch import nn
 from transformers import RobertaModel, RobertaTokenizer
 import json
-from typing import Union, Tuple, List, Dict
+from typing import Union, Tuple, List, Dict, Optional
 import os
 import numpy as np
 import logging
@@ -12,7 +12,7 @@ class RoBERTa(nn.Module):
 
     Each token is mapped to an output vector from RoBERTa.
     """
-    def __init__(self, model_name_or_path: str, max_seq_length: int = 128, do_lower_case: bool = None, model_args: Dict = {}, tokenizer_args: Dict = {}):
+    def __init__(self, model_name_or_path: str, max_seq_length: int = 128, do_lower_case: Optional[bool] = None, model_args: Dict = {}, tokenizer_args: Dict = {}):
         super(RoBERTa, self).__init__()
         self.config_keys = ['max_seq_length', 'do_lower_case']
         self.do_lower_case = do_lower_case
@@ -61,7 +61,6 @@ class RoBERTa(nn.Module):
         :return: embedding ids, segment ids and mask for the sentence
         """
         pad_seq_length = min(pad_seq_length, self.max_seq_length) + 2 ##Add Space for CLS + SEP token
-
         return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt')
 
     def get_config_dict(self):

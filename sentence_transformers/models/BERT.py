@@ -1,7 +1,7 @@
 from torch import nn
 from transformers import BertModel, BertTokenizer
 import json
-from typing import List, Dict
+from typing import List, Dict, Optional
 import os
 import numpy as np
 import logging
@@ -11,7 +11,7 @@ class BERT(nn.Module):
 
     Each token is mapped to an output vector from BERT.
     """
-    def __init__(self, model_name_or_path: str, max_seq_length: int = 128, do_lower_case: bool = None, model_args: Dict = {}, tokenizer_args: Dict = {}):
+    def __init__(self, model_name_or_path: str, max_seq_length: int = 128, do_lower_case: Optional[bool] = None, model_args: Dict = {}, tokenizer_args: Dict = {}):
         super(BERT, self).__init__()
         self.config_keys = ['max_seq_length', 'do_lower_case']
         self.do_lower_case = do_lower_case
