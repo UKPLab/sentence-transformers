@@ -67,7 +67,7 @@ It will download some [datasets](https://github.com/UKPLab/sentence-transformers
 
 
 ### Model Training from Scratch
-[examples/training_transformers/training_nli.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_nli.py) fine-tunes BERT (and other transformer models) from the pre-trained model as provided by Google & Co. It tunes the model on Natural Language Inference (NLI) data. Given two sentences, the model should classify if these two sentence entail, contradict, or are neutral to each other. For this, the two sentences are passed to a transformer model to generate fixed-sized sentence embeddings. These sentence embeddings are then passed to a softmax classifier to derive the final label (entail, contradict, neutral). This generates sentence embeddings that are useful also for other tasks like clustering or semantic textual similarity.
+[training_nli.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_nli.py) fine-tunes BERT (and other transformer models) from the pre-trained model as provided by Google & Co. It tunes the model on Natural Language Inference (NLI) data. Given two sentences, the model should classify if these two sentence entail, contradict, or are neutral to each other. For this, the two sentences are passed to a transformer model to generate fixed-sized sentence embeddings. These sentence embeddings are then passed to a softmax classifier to derive the final label (entail, contradict, neutral). This generates sentence embeddings that are useful also for other tasks like clustering or semantic textual similarity.
 
 
 First, we define a sequential model of how a sentence is mapped to a fixed size sentence embedding:
@@ -123,7 +123,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 
 
 ### Continue Training on Other Data
-[examples/training_transformers/training_stsbenchmark_continue_training.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_stsbenchmark_continue_training.py) shows an example where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset and then continue training on the training data from the STS benchmark.
+[training_stsbenchmark_continue_training.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_stsbenchmark_continue_training.py) shows an example where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset and then continue training on the training data from the STS benchmark.
 
 First, we load a pre-trained model from the server:
 ```
@@ -257,34 +257,34 @@ This framework implements various modules, that can be used sequentially to map 
 
 **Word Embeddings:** These models map tokens to token embeddings.
 - **[Transformer](sentence_transformers/models/Transformer.py)**: You can use any huggingface [pretrained models](https://huggingface.co/transformers/pretrained_models.html) including BERT, RoBERTa, DistilBERT, ALBERT, XLNet, XLM-RoBERTa, ELECTRA, FlauBERT, CamemBERT... 
-- **[WordEmbeddings](sentence_transformers/models/WordEmbeddings.py)**: Uses traditional word embeddings like word2vec or GloVe to map tokens to vectors. Example: [examples/training_basic_models/training_stsbenchmark_avg_word_embeddings.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_avg_word_embeddings.py)
+- **[WordEmbeddings](sentence_transformers/models/WordEmbeddings.py)**: Uses traditional word embeddings like word2vec or GloVe to map tokens to vectors. Example: [training_stsbenchmark_avg_word_embeddings.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_avg_word_embeddings.py)
 
 **Embedding Transformations:** These models transform token embeddings in some way
-- **[LSTM](sentence_transformers/models/LSTM.py)**: Runs a bidirectional LSTM. Example: [examples/training_basic_models/training_stsbenchmark_bilstm.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_bilstm.py).
-- **[CNN](sentence_transformers/models/CNN.py)**: Runs a CNN model with multiple kernel sizes. Example: [examples/training_stsbenchmark_cnn.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_cnn.py).
-- **[WordWeights](sentence_transformers/models/WordWeights.py)**: This model can be used after WordEmbeddings and before Pooling to apply a weighting to the token embeddings, for example, a tf-idf weighting. Example: [examples/training_stsbenchmark_tf-idf_word_embeddings.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_tf-idf_word_embeddings.py).
+- **[LSTM](sentence_transformers/models/LSTM.py)**: Runs a bidirectional LSTM. Example: [training_stsbenchmark_bilstm.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_bilstm.py).
+- **[CNN](sentence_transformers/models/CNN.py)**: Runs a CNN model with multiple kernel sizes. Example: [training_stsbenchmark_cnn.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_cnn.py).
+- **[WordWeights](sentence_transformers/models/WordWeights.py)**: This model can be used after WordEmbeddings and before Pooling to apply a weighting to the token embeddings, for example, a tf-idf weighting. Example: [training_stsbenchmark_tf-idf_word_embeddings.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_tf-idf_word_embeddings.py).
 - **[Pooling](sentence_transformers/models/Pooling.py)**: After tokens are mapped to embeddings, we apply the pooling, where you can compute a mean/max-pooling or use the CLS-token embedding (for BERT and XLNet). You can also combine multiple poolings.
 - **[WeightedLayerPooling](sentence_transformers/models/WeightedLayerPooling.py)**: Learns a weighted pooling of all hidden layer of transformer models like BERT. Requires that the model has set output_hidden_states to true.
-- **[WKPooling]()
+- **[WKPooling](sentence_transformers/models/WKPooling.py)**: Pooling based on the paper of *[SBERT-WK](https://arxiv.org/abs/2002.06652)*. Note, WKPooling uses QR decomposition which must run on the CPU. This makes the pooling rather slow. For some models, WKPooling leads to a performance improvement.
 
 **Sentence Embeddings Models:** These models map a sentence directly to a fixed size sentence embedding:
-- **[BoW](sentence_transformers/models/BoW.py)**: Computes a fixed size bag-of-words (BoW) representation of the input text. Can be initialized with IDF-values to create a tf-idf vector. Note that this model is not trainable. Example: [examples/training_stsbenchmark_bow.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_bow.py)
+- **[BoW](sentence_transformers/models/BoW.py)**: Computes a fixed size bag-of-words (BoW) representation of the input text. Can be initialized with IDF-values to create a tf-idf vector. Note that this model is not trainable. Example: [training_stsbenchmark_bow.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_bow.py)
 
 
 **Sentence Embeddings Transformations:** These models can be added once we have a fixed size sentence embedding.
-- **[Dense](sentence_transformers/models/Pooling.py)**: A fully-connected feed-forward network to create a Deep Averaging Network (DAN). You can stack multiple Dense models. Example: [examples/training_stsbenchmark_avg_word_embeddings.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_avg_word_embeddings.py)
+- **[Dense](sentence_transformers/models/Pooling.py)**: A fully-connected feed-forward network to create a Deep Averaging Network (DAN). You can stack multiple Dense models. Example: [training_stsbenchmark_avg_word_embeddings.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_basic_models/training_stsbenchmark_avg_word_embeddings.py)
 
 
 
 ## Multitask Training
-This code allows multi-task learning with training data from different datasets and with different loss-functions. For an example, see [examples/training_transformers/training_multi-task.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_multi-task.py).
+This code allows multi-task learning with training data from different datasets and with different loss-functions. For an example, see [training_multi-task.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_multi-task.py).
 
 
 ## Application Examples
 We present some examples, how the generated sentence embeddings can be used for downstream applications.
 
 ### Semantic Search
-Semantic search is the task of finding similar sentences to a given sentence. See [examples/applications/semantic_search.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic_search.py).
+Semantic search is the task of finding similar sentences to a given sentence. See [semantic_search.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic_search.py).
 
 We first generate an embedding for all sentences in a corpus:
 ```
@@ -348,7 +348,7 @@ A monkey is playing drums. (Score: 0.3435)
 
 
 ### Clustering
-[examples/applications/clustering.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/clustering.py) depicts an example to cluster similar sentences based on their sentence embedding similarity.
+[clustering.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/clustering.py) depicts an example to cluster similar sentences based on their sentence embedding similarity.
 
 As before, we first compute an embedding for each sentence:
 ```
