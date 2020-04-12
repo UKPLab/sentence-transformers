@@ -37,8 +37,8 @@ class DistilBERT(nn.Module):
         cls_tokens = output_tokens[:, 0, :]  # CLS token is first token
         features.update({'token_embeddings': output_tokens, 'cls_token_embeddings': cls_tokens, 'attention_mask': features['attention_mask']})
 
-        if len(output_states) > 2:
-            features.update({'all_layer_embeddings': output_states[2]})
+        if len(output_states) > 1:
+            features.update({'all_layer_embeddings': output_states[1]})
 
         return features
 

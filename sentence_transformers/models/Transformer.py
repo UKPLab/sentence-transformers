@@ -28,8 +28,12 @@ class Transformer(nn.Module):
         cls_tokens = output_tokens[:, 0, :]  # CLS token is first token
         features.update({'token_embeddings': output_tokens, 'cls_token_embeddings': cls_tokens, 'attention_mask': features['attention_mask']})
 
-        if len(output_states) > 2:
-            hidden_states = output_states[2]
+        if self.auto_model.config.output_hidden_states:
+            all_layer_idx = 2
+            if len(output_states) < 3: #Some models only output last_hidden_states and all_hidden_states
+                all_layer_idx = 1
+
+            hidden_states = output_states[all_layer_idx]
             features.update({'all_layer_embeddings': hidden_states})
 
         return features

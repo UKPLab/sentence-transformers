@@ -6,8 +6,10 @@ import os
 class STSDataReader:
     """
     Reads in the STS dataset. Each line contains two sentences (s1_col_idx, s2_col_idx) and one label (score_col_idx)
+
+    Default values expects a tab seperated file with the first & second column the sentence pair and third column the score (0...1). Default config normalizes scores from 0...5 to 0...1
     """
-    def __init__(self, dataset_folder, s1_col_idx=5, s2_col_idx=6, score_col_idx=4, delimiter="\t",
+    def __init__(self, dataset_folder, s1_col_idx=0, s2_col_idx=1, score_col_idx=2, delimiter="\t",
                  quoting=csv.QUOTE_NONE, normalize_scores=True, min_score=0, max_score=5):
         self.dataset_folder = dataset_folder
         self.score_col_idx = score_col_idx
@@ -40,3 +42,13 @@ class STSDataReader:
                     break
 
         return examples
+
+class STSBenchmarkDataReader(STSDataReader):
+    """
+    Reader especially for the STS benchmark dataset. There, the sentences are in column 5 and 6, the score is in column 4.
+    Scores are normalized from 0...5 to 0...1
+    """
+    def __init__(self, dataset_folder, s1_col_idx=5, s2_col_idx=6, score_col_idx=4, delimiter="\t",
+                 quoting=csv.QUOTE_NONE, normalize_scores=True, min_score=0, max_score=5):
+        super().__init__(dataset_folder=dataset_folder, s1_col_idx=s1_col_idx, s2_col_idx=s2_col_idx, score_col_idx=score_col_idx, delimiter="\t",
+                 quoting=quoting, normalize_scores=normalize_scores, min_score=min_score, max_score=max_score)

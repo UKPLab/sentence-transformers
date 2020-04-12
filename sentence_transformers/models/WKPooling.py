@@ -31,9 +31,8 @@ class WKPooling(nn.Module):
 
         # torch.qr is slow on GPU (see https://github.com/pytorch/pytorch/issues/22573). So compute it on CPU until issue is fixed
         all_layer_embedding = all_layer_embedding.cpu()
-        all_layer_embedding_np = all_layer_embedding.numpy()
 
-        attention_mask = features['attention_mask'].numpy()
+        attention_mask = features['attention_mask'].cpu().numpy()
         unmask_num = np.array([sum(mask) for mask in attention_mask]) - 1  # Not considering the last item
         embedding = []
 
