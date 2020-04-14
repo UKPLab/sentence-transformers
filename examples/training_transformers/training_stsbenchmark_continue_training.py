@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import math
 from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers.readers import STSDataReader
+from sentence_transformers.readers import STSBenchmarkDataReader
 import logging
 from datetime import datetime
 
@@ -26,7 +26,7 @@ model_name = 'bert-base-nli-mean-tokens'
 train_batch_size = 16
 num_epochs = 4
 model_save_path = 'output/training_stsbenchmark_continue_training-'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-sts_reader = STSDataReader('../datasets/stsbenchmark', normalize_scores=True)
+sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark', normalize_scores=True)
 
 # Load a pre-trained sentence transformer model
 model = SentenceTransformer(model_name)

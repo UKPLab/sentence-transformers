@@ -54,6 +54,7 @@ class WKPooling(nn.Module):
             embedding.append(sentence_embedding)
 
         output_vector = torch.stack(embedding).to(org_device)
+
         features.update({'sentence_embedding': output_vector})
 
         return features

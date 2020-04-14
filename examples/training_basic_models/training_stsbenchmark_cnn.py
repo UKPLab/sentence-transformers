@@ -23,7 +23,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 # Read the dataset
 batch_size = 32
-sts_reader = STSDataReader('../datasets/stsbenchmark')
+sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark')
 model_save_path = 'output/training_stsbenchmark_bilstm-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 

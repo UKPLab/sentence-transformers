@@ -2,6 +2,12 @@
 The system trains BERT (or any other transformer model like RoBERTa, DistilBERT etc.) on the SNLI + MultiNLI (AllNLI) dataset
 with softmax loss function. At every 1000 training steps, the model is evaluated on the
 STS benchmark dataset
+
+Usage:
+python training_nli.py
+
+OR
+python training_nli.py pretrained_transformer_model_name
 """
 from torch.utils.data import DataLoader
 import math
@@ -11,6 +17,7 @@ from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import *
 import logging
 from datetime import datetime
+import sys
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -20,12 +27,12 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #### /print debug information to stdout
 
 #You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
-model_name = 'bert-base-uncased'
+model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-uncased'
 
 # Read the dataset
 batch_size = 16
 nli_reader = NLIDataReader('../datasets/AllNLI')
-sts_reader = STSDataReader('../datasets/stsbenchmark')
+sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark')
 train_num_labels = nli_reader.get_num_labels()
 model_save_path = 'output/training_nli_'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 

@@ -103,7 +103,7 @@ The `NLIDataReader` reads the AllNLI dataset and we generate a dataloader that i
 Next, we also specify a dev-set. The dev-set is used to evaluate the sentence embedding model on some unseen data. Note, the dev-set can be any data, in this case, we evaluate on the dev-set of the STS benchmark dataset.  The `evaluator` computes the performance metric, in this case, the cosine-similarity between sentence embeddings are computed and the Spearman-correlation to the gold scores is computed.
 
 ```
-sts_reader = STSDataReader('datasets/stsbenchmark')
+sts_reader = STSBenchmarkDataReader('datasets/stsbenchmark')
 dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
 dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
 evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
@@ -133,7 +133,7 @@ model = SentenceTransformer('bert-base-nli-mean-tokens')
 
 The next steps are as before. We specify training and dev data:
 ```
-sts_reader = STSDataReader('datasets/stsbenchmark', normalize_scores=True)
+sts_reader = STSBenchmarkDataReader('datasets/stsbenchmark', normalize_scores=True)
 train_data = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model)
 train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)
@@ -186,17 +186,13 @@ model = SentenceTransformer('name_of_model')
 
 
 ### English Pre-Trained Models
-In the following you find models that were trained on English data only. See the next section for multi-lingual models.
+In the following you find selected models that were trained on English data only. For the full list of available models, see [SentenceTransformer Pretrained Models](https://docs.google.com/spreadsheets/d/14QplCdTCDwEmTqrn1LH4yrbKvdogK4oQvYO1K1aPR5M/edit?usp=sharing). See the next section for multi-lingual models.
 
 **Trained on NLI data**
 
 These models were trained on SNLI and MultiNLI dataset to create universal sentence embeddings. For more details, see: [nli-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/pretrained-models/nli-models.md).
 - **bert-base-nli-mean-tokens**: BERT-base model with mean-tokens pooling. Performance: STSbenchmark: 77.12
-- **bert-base-nli-max-tokens**: BERT-base with max-tokens pooling. Performance: STSbenchmark: 77.21
-- **bert-base-nli-cls-token**: BERT-base with cls token pooling. Performance: STSbenchmark: 76.30
 - **bert-large-nli-mean-tokens**: BERT-large with mean-tokens pooling. Performance: STSbenchmark: 79.19
-- **bert-large-nli-max-tokens**: BERT-large with max-tokens pooling. Performance: STSbenchmark: 78.41
-- **bert-large-nli-cls-token**: BERT-large with CLS token pooling. Performance: STSbenchmark: 78.29
 - **roberta-base-nli-mean-tokens**: RoBERTa-base with mean-tokens pooling. Performance: STSbenchmark: 77.49
 - **roberta-large-nli-mean-tokens**: RoBERTa-base with mean-tokens pooling. Performance: STSbenchmark: 78.69
 - **distilbert-base-nli-mean-tokens**: DistilBERT-base with mean-tokens pooling. Performance: STSbenchmark: 76.97
@@ -211,11 +207,6 @@ These models were first fine-tuned on the AllNLI datasent, then on train set of 
 - **roberta-large-nli-stsb-mean-tokens**: Performance: STSbenchmark: 86.39
 - **distilbert-base-nli-stsb-mean-tokens**: Performance: STSbenchmark: 84.38
 
-
-**Trained on Wikipedia Sections Triplets**
-
-These models were fine-tuned on triplets generated from Wikipedia sections. These models work well if fine-grained clustering of sentences on a similar topic is required. For more details, see: [wikipedia-sections-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/pretrained-models/wikipedia-sections-models.md).
-- **bert-base-wikipedia-sections-mean-tokens**: 80.42% accuracy on Wikipedia sections test set.
 
 ### Multilingual Models
 The following models can be used for languages other than English. The vector spaces for the included languages are aligned, i.e., two sentences are mapped to the same point in vector space independent of the language. The models can be used for cross-lingual tasks. For more details see [multilingual-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/pretrained-models/multilingual-models.md).

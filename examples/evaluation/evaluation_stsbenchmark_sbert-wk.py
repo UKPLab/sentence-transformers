@@ -9,7 +9,7 @@ Hence, WKPooling runs on the GPU, which makes it rather in-efficient.
 from torch.utils.data import DataLoader
 from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, models
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers.readers import STSDataReader
+from sentence_transformers.readers import STSBenchmarkDataReader
 import logging
 import torch
 
@@ -24,12 +24,16 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #### /print debug information to stdout
 
 
-
+#1) Point the transformer model to the BERT / RoBERTa etc. model you would like to use. Ensure that output_hidden_states is true
 word_embedding_model = models.Transformer('bert-base-uncased', model_args={'output_hidden_states': True})
+
+#2) Add WKPooling
 pooling_model = models.WKPooling(word_embedding_model.get_word_embedding_dimension())
+
+#3) Create a sentence transformer model to glue both models together
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
-sts_reader = STSDataReader('../datasets/stsbenchmark')
+sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark')
 
 test_data = SentencesDataset(examples=sts_reader.get_examples("sts-test.csv"), model=model)
 test_dataloader = DataLoader(test_data, shuffle=False, batch_size=8)

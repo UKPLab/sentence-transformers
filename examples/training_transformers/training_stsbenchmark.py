@@ -1,15 +1,21 @@
 """
 This examples trains BERT (or any other transformer model like RoBERTa, DistilBERT etc.) for the STSbenchmark from scratch. It generates sentence embeddings
 that can be compared using cosine-similarity to measure the similarity.
+
+Usage:
+python training_nli.py
+
+OR
+python training_nli.py pretrained_transformer_model_name
 """
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses, models
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers.readers import STSDataReader
+from sentence_transformers.readers import STSBenchmarkDataReader
 import logging
 from datetime import datetime
-
+import sys
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -19,13 +25,13 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #### /print debug information to stdout
 
 #You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
-model_name = 'bert-base-uncased'
+model_name = sys.argv[1] if len(sys.argv) > 1 else  'bert-base-uncased'
 
 # Read the dataset
 train_batch_size = 16
 num_epochs = 4
 model_save_path = 'output/training_stsbenchmark_'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-sts_reader = STSDataReader('../datasets/stsbenchmark', normalize_scores=True)
+sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark', normalize_scores=True)
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name)
