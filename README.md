@@ -156,7 +156,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 ```
 
 
-## Load Models
+## Loading SentenceTransformer Models
 Loading trained models is easy. You can specify a path:
 ```
 model = SentenceTransformer('./my/path/to/model/')
@@ -176,6 +176,22 @@ model = SentenceTransformer('bert-base-nli-mean-tokens')
 ```
 
 This downloads the `bert-base-nli-mean-tokens` from our server and stores it locally.
+
+## Loading custom BERT models
+If you have fine-tuned BERT (or similar models) and you want to use it to generate sentence embeddings, you must construct an appropriate sentence transformer model from it. This is possible by using this code:
+
+```
+# Use BERT for mapping tokens to embeddings
+word_embedding_model = models.BERT('path/to/your/BERT/model')
+
+# Apply mean pooling to get one fixed sized sentence vector
+pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
+                               pooling_mode_mean_tokens=True,
+                               pooling_mode_cls_token=False,
+                               pooling_mode_max_tokens=False)
+
+model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+```
 
 ## Pretrained Models
 We provide the following models. You can use them in the following way:

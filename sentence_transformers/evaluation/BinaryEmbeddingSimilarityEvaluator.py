@@ -42,7 +42,7 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
         if name:
             name = "_"+name
 
-        self.csv_file: str = "binary_similarity_evaluation"+name+"_results.csv"
+        self.csv_file = "binary_similarity_evaluation"+name+"_results.csv"
         self.csv_headers = ["epoch", "steps", "cosine_acc", "euclidean_acc", "manhattan_acc"]
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
@@ -53,9 +53,9 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
 
         if epoch != -1:
             if steps == -1:
-                out_txt = f" after epoch {epoch}:"
+                out_txt = " after epoch {}:".format(epoch)
             else:
-                out_txt = f" in epoch {epoch} after {steps} steps:"
+                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
         else:
             out_txt = ":"
 
