@@ -30,7 +30,7 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else  'bert-base-uncased'
 # Read the dataset
 train_batch_size = 16
 num_epochs = 4
-model_save_path = 'output/training_stsbenchmark_'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+model_save_path = 'output/training_stsbenchmark_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark', normalize_scores=True)
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings

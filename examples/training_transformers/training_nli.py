@@ -34,7 +34,7 @@ batch_size = 16
 nli_reader = NLIDataReader('../datasets/AllNLI')
 sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark')
 train_num_labels = nli_reader.get_num_labels()
-model_save_path = 'output/training_nli_'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+model_save_path = 'output/training_nli_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
