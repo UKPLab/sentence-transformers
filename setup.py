@@ -3,13 +3,11 @@ from setuptools import setup, find_packages
 with open("README.md", mode="r", encoding="utf-8") as readme_file:
     readme = readme_file.read()
 
-with open('requirements.txt', mode="r", encoding="utf-8") as req_file:
-    requirements = req_file.readlines()
 
 
 setup(
     name="sentence-transformers",
-    version="0.2.6",
+    version="0.2.6.1",
     author="Nils Reimers, Gregor Geigle",
     author_email="Rnils@web.de",
     description="Sentence Embeddings using BERT / RoBERTa / XLNet",
@@ -17,9 +15,17 @@ setup(
     long_description_content_type="text/markdown",
     license="Apache License 2.0",
     url="https://github.com/UKPLab/sentence-transformers",
-    download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.2.5.zip",
+    download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.2.6.zip",
     packages=find_packages(),
-    install_requires=requirements,
+    install_requires=[
+        'transformers>=2.8.0',
+        'tqdm',
+        'torch>=1.0.1',
+        'numpy',
+        'scikit-learn',
+        'scipy',
+        'nltk'
+    ],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
