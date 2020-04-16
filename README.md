@@ -182,7 +182,7 @@ If you have fine-tuned BERT (or similar models) and you want to use it to genera
 
 ```
 # Use BERT for mapping tokens to embeddings
-word_embedding_model = models.BERT('path/to/your/BERT/model')
+word_embedding_model = models.Transformer('path/to/your/BERT/model')
 
 # Apply mean pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
