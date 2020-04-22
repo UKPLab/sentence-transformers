@@ -177,7 +177,7 @@ model = SentenceTransformer('bert-base-nli-mean-tokens')
 
 This downloads the `bert-base-nli-mean-tokens` from our server and stores it locally.
 
-## Loading custom BERT models
+## Loading customn BERT models
 If you have fine-tuned BERT (or similar models) and you want to use it to generate sentence embeddings, you must construct an appropriate sentence transformer model from it. This is possible by using this code:
 
 ```
@@ -192,6 +192,9 @@ pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension
 
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 ```
+
+## Training Multilingual Sentence Embeddings Models
+We provide code and example to easily train sentence embedding models for various languages and also port existent sentence embedding models to new languages. For details, see [multilingual-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/pretrained-models/multilingual-models.md) and our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813).
 
 ## Pretrained Models
 We provide the following models. You can use them in the following way:
@@ -416,6 +419,19 @@ If you find this repository helpful, feel free to cite our publication [Sentence
     year = "2019",
     publisher = "Association for Computational Linguistics",
     url = "http://arxiv.org/abs/1908.10084",
+}
+```
+
+
+If you use the code for multilingual models, feel free to cite our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
+``` 
+@article{reimers-2020-multilingual-sentence-bert,
+    title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
+    author = "Reimers, Nils and Gurevych, Iryna",
+    journal= "arXiv preprint arXiv:2004.09813",
+    month = "04",
+    year = "2020",
+    url = "http://arxiv.org/abs/2004.09813",
 }
 ```
 

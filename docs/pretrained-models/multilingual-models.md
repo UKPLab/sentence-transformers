@@ -1,13 +1,11 @@
-# Multilingual Pre-Trained Models
-The issue with the multilingual BERT (mBERT) as well as with XLM-RoBERTa is that those produce rather bad sentence representation out-of-the-box. Especially, the vectors spaces are not well aligned. If an English and a Spanish sentence have the same meaning, these BERT produces different sentence embeddings. This is especially an issue for cross-lingual tasks.
+# Extending Sentence Embeddings Models to New Languages
+The issue with multilingual BERT (mBERT) as well as with XLM-RoBERTa is that those produce rather bad sentence representation out-of-the-box. Further, the vectors spaces between languages are not  aligned, i.e., the sentences with the same content in different languages would be mapped to different locations in the vector space.
 
-Currently I train various multilingual models that can be used for producing sentence embeddings. The models have aligned vector spaces, i.e., independet of the language, sentences with similar meanings should be mapped to the same point in vector space.
+In my publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) I describe any easy approach to extend sentence embeddings to further languages.
 
 
-## Available models:
+## Available Pre-trained Models
 - **distiluse-base-multilingual-cased**: Supported languages: Arabic, Chinese, Dutch, English, French, German,  Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. Model is based on DistilBERT-multi-lingual.
-
-Further models and details will be added soon.
 
 ## Usage
 You can use the model in the following way:
@@ -17,6 +15,49 @@ embeddings = embedder.encode(['Hello World', 'Hallo Welt', 'Hola mundo'])
 print(embeddings)
 ```
 
+
+## Extend your own models
+![Multilingual Knowledge Distillation](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/pretrained-models/multilingual-distillation.png)
+
+The idea is based on a fixed (monolingual) **teacher model**, that produces sentence embeddings with our desired properties in one language. The **student model** is supposed to mimic the teacher model, i.e., the same English sentence should be mapped to the same vector by the teacher and by the student model. In order that the student model works for further languages, we train the student model on parallel (translated) sentences. The translation of each sentence should also be mapped to the same vector as the original sentence.
+
+In the above figure, the student model should map *Hello World* and the German translation *Hallo Welt* to the vector of *teacher_model('Hello World')*. We achieve this by training the student model using mean squared error (MSE) loss.
+
+In our experiments we initiliazed the student model with the multilingual XLM-RoBERTa model. 
+
+**For an example**, how to extend an English model such that it works for English and German, see [training_sbert-en.de.py](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training_multilingual/training_sbert-en.de.py)
+
+I tested the approach with various languages with different alphabets, including Chinese and Arabic. The method allows to extend a model to multiple new languages in the same training process.
+
+
+## Training Data
+Your training data must be tab-seperated. In the first column, you have your source sentence, for example, an English sentence. In the following columns, you have the translations of this source sentence. If you have multiple translations per source sentence, you can put them in the same line or in different lines.
+```
+Source_sentence\tTarget_lang1\tTarget_lang2\tTarget_lang3
+Source_sentence\tTarget_lang1\tTarget_lang2
+```
+
+An example file could look like this (EN DE ES):
+```
+Hello World Hallo Welt  Hola Mundo
+Sentences are separated with a tab character.    Die Sätze sind per Tab getrennt.    Las oraciones se separan con un carácter de tabulación.
+```
+
+The order of the translations are not important.
+
+You can load such a training file using the *ParallelSentencesDataset*
+```
+train_data = ParallelSentencesDataset(student_model=model, teacher_model=teacher_model)
+train_data.load_data('path/to/tab/separated/train_file.tsv')
+
+train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
+train_loss = losses.MSELoss(model=model)
+```
+
+You load a file with the *load_data()* method. You can load multiple files by calling load_data multiple times. You can also pass a gzip compressed file to this method.
+
+#Sources for Training Data
+A great website for a vast number of parallel (translated) datasets is [OPUS](http://opus.nlpl.eu/). There, you find parallel datasets for more than 400 languages. 
 
 ## Performance
 The performance was evaluated on the [Semantic Textual Similarity (STS) 2017 dataset](http://ixa2.si.ehu.es/stswiki/index.php/Main_Page). The task is to predict the semantic similarity (on a scale 0-5) of two given sentences. STS2017 has monolingual test data for English, Arabic, and Spanish, and cross-lingual test data for English-Arabic, -Spanish and -Turkish.
@@ -99,4 +140,15 @@ We extended the STS2017 and added cross-lingual test data for English-German, Fr
     </tr>
 </table>
 
-
+## Citation
+If you use the code for multilingual models, feel free to cite our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
+``` 
+@article{reimers-2020-multilingual-sentence-bert,
+    title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
+    author = "Reimers, Nils and Gurevych, Iryna",
+    journal= "arXiv preprint arXiv:2004.09813",
+    month = "04",
+    year = "2020",
+    url = "http://arxiv.org/abs/2004.09813",
+}
+```
