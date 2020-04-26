@@ -152,7 +152,7 @@ class SentenceTransformer(nn.Sequential):
 
                 if output_value == 'token_embeddings':
                     #Set token embeddings to 0 for padding tokens
-                    input_mask = out_features['input_mask']
+                    input_mask = out_features['attention_mask']
                     input_mask_expanded = input_mask.unsqueeze(-1).expand(embeddings.size()).float()
                     embeddings = embeddings * input_mask_expanded
 
