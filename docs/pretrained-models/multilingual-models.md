@@ -25,7 +25,7 @@ In the above figure, the student model should map *Hello World* and the German t
 
 In our experiments we initiliazed the student model with the multilingual XLM-RoBERTa model. 
 
-**For an example**, how to extend an English model such that it works for English and German, see [training_sbert-en.de.py](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training_multilingual/training_sbert-en.de.py)
+**For an example**, how to extend an English model such that it works for English and German, see [training_sbert-en-de.py](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training_multilingual/training_sbert-en-de.py)
 
 I tested the approach with various languages with different alphabets, including Chinese and Arabic. The method allows to extend a model to multiple new languages in the same training process.
 
