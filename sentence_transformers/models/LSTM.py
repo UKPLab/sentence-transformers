@@ -1,29 +1,29 @@
 import torch
-from torch import nn, Tensor
-from typing import Union, Tuple, List, Iterable, Dict
-import logging
-import gzip
-from tqdm import tqdm
-import numpy as np
+from torch import nn
+from typing import List
 import os
 import json
-from ..util import import_from_string, fullname, http_get
-from .tokenizer import WordTokenizer, WhitespaceTokenizer
+
 
 
 class LSTM(nn.Module):
-    """Bidirectional LSTM running over word embeddings.
     """
-    def __init__(self, word_embedding_dimension: int, hidden_dim: int, num_layers: int = 1, dropout: float = 0):
+    Bidirectional LSTM running over word embeddings.
+    """
+    def __init__(self, word_embedding_dimension: int, hidden_dim: int, num_layers: int = 1, dropout: float = 0, bidirectional: bool = True):
         nn.Module.__init__(self)
-        self.config_keys = ['word_embedding_dimension', 'hidden_dim', 'num_layers', 'dropout']
+        self.config_keys = ['word_embedding_dimension', 'hidden_dim', 'num_layers', 'dropout', 'bidirectional']
         self.word_embedding_dimension = word_embedding_dimension
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.dropout = dropout
+        self.bidirectional = bidirectional
 
-        self.embeddings_dimension = 2*hidden_dim
-        self.encoder = nn.LSTM(word_embedding_dimension, hidden_dim, num_layers=num_layers, dropout=dropout, bidirectional=True, batch_first=True)
+        self.embeddings_dimension = hidden_dim
+        if self.bidirectional:
+            self.embeddings_dimension *= 2
+
+        self.encoder = nn.LSTM(word_embedding_dimension, hidden_dim, num_layers=num_layers, dropout=dropout, bidirectional=bidirectional, batch_first=True)
 
     def forward(self, features):
         token_embeddings = features['token_embeddings']

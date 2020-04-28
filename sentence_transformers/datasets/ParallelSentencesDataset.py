@@ -19,6 +19,9 @@ class ParallelSentencesDataset(Dataset):
     mapped to this English sentence embedding.
 
     When getting a sample from the dataset, we get one sentence with the according sentence embedding for this sentence.
+
+    teacher_model can be any class that implement an encode function. The encode function gets a list of sentences and
+    returns a list of sentence embeddings
     """
 
     def __init__(self, student_model: SentenceTransformer, teacher_model):
