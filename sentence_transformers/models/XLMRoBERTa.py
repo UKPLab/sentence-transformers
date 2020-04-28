@@ -62,7 +62,7 @@ class XLMRoBERTa(nn.Module):
             the maximal length of the sequence. Cannot be greater than self.sentence_transformer_config.max_seq_length
         :return: embedding ids, segment ids and mask for the sentence
         """
-        pad_seq_length = min(pad_seq_length, self.max_seq_length) + 3 #Add space for special tokens
+        pad_seq_length = min(pad_seq_length, self.max_seq_length) + 2 #Add space for special tokens
         return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt')
 
     def get_config_dict(self):
