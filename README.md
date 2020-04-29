@@ -177,7 +177,7 @@ model = SentenceTransformer('bert-base-nli-mean-tokens')
 
 This downloads the `bert-base-nli-mean-tokens` from our server and stores it locally.
 
-## Loading customn BERT models
+## Loading custom BERT models
 If you have fine-tuned BERT (or similar models) and you want to use it to generate sentence embeddings, you must construct an appropriate sentence transformer model from it. This is possible by using this code:
 
 ```
