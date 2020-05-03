@@ -1,6 +1,6 @@
 from torch import Tensor
 from torch import nn
-from transformers import RobertaModel, RobertaTokenizer
+from transformers import RobertaModel, RobertaTokenizerFast
 import json
 from typing import Union, Tuple, List, Dict, Optional
 import os
@@ -26,7 +26,7 @@ class RoBERTa(nn.Module):
             tokenizer_args['do_lower_case'] = do_lower_case
 
         self.roberta = RobertaModel.from_pretrained(model_name_or_path, **model_args)
-        self.tokenizer = RobertaTokenizer.from_pretrained(model_name_or_path, **tokenizer_args)
+        self.tokenizer = RobertaTokenizerFast.from_pretrained(model_name_or_path, **tokenizer_args)
 
 
     def forward(self, features):
@@ -48,7 +48,7 @@ class RoBERTa(nn.Module):
         """
         Tokenizes a text and maps tokens to token-ids
         """
-        return self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(text))
+        return self.tokenizer.encode(text)
 
     def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
         """
@@ -61,7 +61,7 @@ class RoBERTa(nn.Module):
         :return: embedding ids, segment ids and mask for the sentence
         """
         pad_seq_length = min(pad_seq_length, self.max_seq_length) + 2 ##Add Space for CLS + SEP token
-        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt')
+        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt', add_special_tokens = False)
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}

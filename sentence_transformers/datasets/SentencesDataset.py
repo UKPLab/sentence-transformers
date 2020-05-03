@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 from typing import List
 import torch
 import logging
+import itertools
 from tqdm import tqdm
 from .. import SentenceTransformer
 from ..readers.InputExample import InputExample
@@ -43,33 +44,39 @@ class SentencesDataset(Dataset):
         labels = []
         too_long = [0] * num_texts
         label_type = None
-        iterator = examples
+        batch_size = len(examples)
+        iterator = self.chunks(examples, batch_size)
         max_seq_length = model.get_max_seq_length()
 
         if self.show_progress_bar:
-            iterator = tqdm(iterator, desc="Convert dataset")
+            batch_size = round(len(examples)/10)
+            iterator = tqdm(self.chunks(examples, batch_size), desc = f"Tokenizing inputs in batches of size {batch_size}", total=round(len(examples)/batch_size))
 
-        for ex_index, example in enumerate(iterator):
-            if label_type is None:
-                if isinstance(example.label, int):
-                    label_type = torch.long
-                elif isinstance(example.label, float):
-                    label_type = torch.float
-            tokenized_texts = [model.tokenize(text) for text in example.texts]
-
-            for i, token in enumerate(tokenized_texts):
-                if max_seq_length != None and max_seq_length > 0 and len(token) >= max_seq_length:
-                    too_long[i] += 1
-
-            labels.append(example.label)
+        for chunk in iterator:
+            flat_chunk = list(itertools.chain(*[example.texts for example in chunk]))
+            flat_tokenized_examples = model.batch_tokenize(flat_chunk)
+            tokenized_examples = list(self.chunks(flat_tokenized_examples, 2))
             for i in range(num_texts):
-                inputs[i].append(tokenized_texts[i])
+                inputs[i].extend([tokenized_example[i] for tokenized_example in tokenized_examples])
+
+            for example in chunk:
+                if label_type is None:
+                    if isinstance(example.label, int):
+                        label_type = torch.long
+                    elif isinstance(example.label, float):
+                        label_type = torch.float
+                labels.append(example.label)
+
+        for i, tokenized_texts in enumerate(inputs): 
+            for tokenized_text in tokenized_texts:
+                if max_seq_length != None and max_seq_length > 0 and len(tokenized_text) >= max_seq_length:
+                    too_long[i] += 1
 
         tensor_labels = torch.tensor(labels, dtype=label_type)
 
         logging.info("Num sentences: %d" % (len(examples)))
         for i in range(num_texts):
-            logging.info("Sentences {} longer than max_seqence_length: {}".format(i, too_long[i]))
+            logging.info("Sentences {} longer than max_sequence_length: {}".format(i, too_long[i]))
 
         self.tokens = inputs
         self.labels = tensor_labels
@@ -79,3 +86,11 @@ class SentencesDataset(Dataset):
 
     def __len__(self):
         return len(self.tokens[0])
+
+    @staticmethod
+    def chunks(lst, n):
+        """Yield successive n-sized chunks from lst.
+        >>> list(chunks([1,2,3,4,5,6,7],3))
+        [[1,2,3],[4,5,6],[7]]"""
+        for i in range(0, len(lst), n):
+            yield lst[i : i + n]

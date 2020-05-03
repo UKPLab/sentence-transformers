@@ -17,7 +17,7 @@ class Transformer(nn.Module):
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
         self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, cache_dir=cache_dir)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, use_fast=True, cache_dir=cache_dir)
 
 
     def forward(self, features):
@@ -45,7 +45,7 @@ class Transformer(nn.Module):
         """
         Tokenizes a text and maps tokens to token-ids
         """
-        return self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(text))
+        return self.tokenizer.encode(text)
 
     def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
         """
@@ -58,7 +58,7 @@ class Transformer(nn.Module):
         :return: embedding ids, segment ids and mask for the sentence
         """
         pad_seq_length = min(pad_seq_length, self.max_seq_length) + 3 #Add space for special tokens
-        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt')
+        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt', add_special_tokens=False)
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}

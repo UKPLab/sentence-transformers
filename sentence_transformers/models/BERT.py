@@ -1,5 +1,5 @@
 from torch import nn
-from transformers import BertModel, BertTokenizer
+from transformers import BertModel, BertTokenizerFast
 import json
 from typing import List, Dict, Optional
 import os
@@ -25,7 +25,7 @@ class BERT(nn.Module):
             tokenizer_args['do_lower_case'] = do_lower_case
 
         self.bert = BertModel.from_pretrained(model_name_or_path, **model_args)
-        self.tokenizer = BertTokenizer.from_pretrained(model_name_or_path, **tokenizer_args)
+        self.tokenizer = BertTokenizerFast.from_pretrained(model_name_or_path, **tokenizer_args)
 
 
     def forward(self, features):
@@ -47,7 +47,7 @@ class BERT(nn.Module):
         """
         Tokenizes a text and maps tokens to token-ids
         """
-        return self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(text))
+        return self.tokenizer.encode(text)
 
     def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
         """
@@ -61,7 +61,7 @@ class BERT(nn.Module):
         """
         pad_seq_length = min(pad_seq_length, self.max_seq_length) + 2  ##Add Space for CLS + SEP token
 
-        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt')
+        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt', add_special_tokens = False)
 
 
     def get_config_dict(self):
