@@ -176,7 +176,10 @@ class SentenceTransformer(nn.Sequential):
         return self._first_module().tokenize(text)
 
     def batch_tokenize(self, batch):
-        return self._first_module().tokenizer.batch_encode_plus(batch, return_attention_mask=False)["input_ids"]
+        if hasattr(self._first_module().tokenizer, "batch_encode_plus"):
+            return self._first_module().tokenizer.batch_encode_plus(batch, return_attention_mask=False)["input_ids"]
+        else:
+            return [self._first_module().tokenizer.tokenize(text) for text in batch]
 
     def get_sentence_features(self, *features):
         return self._first_module().get_sentence_features(*features)
