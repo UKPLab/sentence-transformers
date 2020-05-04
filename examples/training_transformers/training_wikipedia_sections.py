@@ -50,7 +50,7 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 
 logging.info("Read Triplet train dataset")
-train_data = SentencesDataset(examples=triplet_reader.get_examples('train.csv'), model=model)
+train_data = SentencesDataset(examples=triplet_reader.get_examples('train.csv', max_examples=100000), model=model)
 train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.TripletLoss(model=model)
 
