@@ -6,6 +6,8 @@ In my publication [Making Monolingual Sentence Embeddings Multilingual using Kno
 
 ## Available Pre-trained Models
 - **distiluse-base-multilingual-cased**: Supported languages: Arabic, Chinese, Dutch, English, French, German,  Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. Model is based on DistilBERT-multi-lingual.
+- **xlm-r-base-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 81.47
+- **xlm-r-large-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 84.05
 
 ## Usage
 You can use the model in the following way:
