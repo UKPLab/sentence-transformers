@@ -48,7 +48,7 @@ class SentenceTransformer(nn.Sequential):
                 os.makedirs(model_path, exist_ok=True)
 
                 if not os.listdir(model_path):
-                    if model_url[-1] is "/":
+                    if model_url[-1] == "/":
                         model_url = model_url[:-1]
                     logging.info("Downloading sentence transformer model from {} and saving it at {}".format(model_url, model_path))
                     try:
