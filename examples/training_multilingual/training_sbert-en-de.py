@@ -11,7 +11,7 @@ https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/data
 And store them in the datasets-folder.
 
 You can then run this code like this:
-python training_multilingual.py datasets/TED2013-en-de.txt.gz
+python training_sbert-en-de.py datasets/TED2013-en-de.txt.gz
 """
 
 from sentence_transformers import SentenceTransformer, SentencesDataset, LoggingHandler, losses, models, readers, evaluation, losses
@@ -31,7 +31,7 @@ train_files = sys.argv[1:]
 
 
 if len(train_files) == 0:
-    print("Please specify at least 1 training file: python training_multilingual.py path/to/trainfile.txt")
+    print("Please specify at least 1 training file: python training_sbert-en-de.py path/to/trainfile.txt")
 
 logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
