@@ -4,10 +4,6 @@ This script trains sentence transformers with a batch hard loss function.
 The TREC dataset will be automatically downloaded and put in the datasets/ directory
 """
 
-import sys
-mypath = "/home/cdimachkie/projects/sentence-transformers/"
-sys.path.insert(0, mypath)
-
 from sentence_transformers import (
     SentenceTransformer,
     SentenceLabelDataset,
