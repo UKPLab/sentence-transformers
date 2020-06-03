@@ -2,6 +2,20 @@
 This script trains sentence transformers with a batch hard loss function.
 
 The TREC dataset will be automatically downloaded and put in the datasets/ directory
+
+Usual triplet loss takes 3 inputs: anchor, positive, negative and optimizes the network such that
+the positive sentence is closer to the anchor than the negative sentence. However, a challenge here is
+to select good triplets. If the negative sentence is selected randomly, the training objective is often
+too easy and the network fails to learn good representations.
+
+Batch hard triplet loss (https://arxiv.org/abs/1703.07737) creates triplets on the fly. It requires that the
+data is labeled (e.g. labels A, B, C) and we assume that samples with the same label are similar:
+A sent1; A sent2; B sent3; B sent4
+...
+
+In a batch, it checks for sent1 with label A what is the other sentence with label A that is the furthest (hard positive)
+which sentence with another label is the closest (hard negative example). It then tries to optimize this, i.e.
+all sentences with the same label should be close and sentences for different labels should be clearly seperated.
 """
 
 from sentence_transformers import (
@@ -94,6 +108,7 @@ num_epochs = 1
 logging.info("Loading TREC dataset")
 train, test, val = trec_dataset()
 
+
 # Load pretrained model
 model = SentenceTransformer(model_name)
 
@@ -109,7 +124,7 @@ train_loss = losses.BatchHardTripletLoss(sentence_embedder=model)
 
 logging.info("Read TREC val dataset")
 dataset_dev = SentenceLabelDataset(examples=val, model=model)
-dev_dataloader = DataLoader(dataset_dev, shuffle=True, batch_size=train_batch_size)
+dev_dataloader = DataLoader(dataset_dev, shuffle=False, batch_size=train_batch_size)
 evaluator = TripletEvaluator(dev_dataloader)
 
 warmup_steps = int(
@@ -133,10 +148,11 @@ model.fit(
 ##############################################################################
 
 logging.info("Read TREC test dataset")
-dataset_test = SentenceLabelDataset(examples=val, model=model)
-test_dataloader = DataLoader(dataset_test, shuffle=True, batch_size=train_batch_size)
+model = SentenceTransformer(output_path)
+
+dataset_test = SentenceLabelDataset(examples=test, model=model)
+test_dataloader = DataLoader(dataset_test, shuffle=False, batch_size=train_batch_size)
 test_evaluator = TripletEvaluator(test_dataloader)
 
 logging.info("Evaluating model")
-model = SentenceTransformer(output_path)
 model.evaluate(test_evaluator)
