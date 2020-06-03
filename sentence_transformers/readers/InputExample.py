@@ -21,3 +21,6 @@ class InputExample:
         self.guid = guid
         self.texts = [text.strip() for text in texts]
         self.label = label
+
+    def __str__(self):
+        return "<InputExample> label: {}, texts: {}".format(str(self.label), "; ".join(self.texts))
