@@ -96,7 +96,7 @@ logging.basicConfig(
 model_name = 'bert-base-nli-stsb-mean-tokens'
 
 ### Create a torch.DataLoader that passes training batch instances to our model
-train_batch_size = 16
+train_batch_size = 32
 output_path = (
     "output/finetune-batch-hard-trec-"
     + model_name
@@ -116,7 +116,7 @@ logging.info("Read TREC train dataset")
 dataset_train = SentenceLabelDataset(
     examples=train,
     model=model,
-    provide_positive=False,
+    provide_positive=False, #For BatchHardTripletLoss, we must set provide_positive and provide_negative to False
     provide_negative=False,
 )
 train_dataloader = DataLoader(dataset_train, shuffle=True, batch_size=train_batch_size)
