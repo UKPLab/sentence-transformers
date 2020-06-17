@@ -166,6 +166,81 @@ class SentenceTransformer(nn.Sequential):
 
         return all_embeddings
 
+    def embed(self, token_sentences: List[int], batch_size: int = 8, show_progress_bar: bool = None, output_value: str = 'sentence_embedding', convert_to_numpy: bool = True) -> List[ndarray]:
+        """
+        Computes sentence embeddings
+
+        :param sentences:
+           the int encoded sentences to embed
+        :param batch_size:
+           the batch size used for the computation
+        :param show_progress_bar:
+            Output a progress bar when encode sentences
+        :param output_value:
+            Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings
+            to get wordpiece token embeddings.
+        :param convert_to_numpy:
+            If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
+        :return:
+           Depending on convert_to_numpy, either a list of numpy vectors or a list of pytorch tensors
+        """
+        self.eval()
+        if show_progress_bar is None:
+            show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
+
+        all_embeddings = []
+        length_sorted_idx = np.argsort([len(sen) for sen in token_sentences])
+
+        iterator = range(0, len(token_sentences), batch_size)
+        if show_progress_bar:
+            iterator = tqdm(iterator, desc="Batches")
+
+        for batch_idx in iterator:
+            batch_tokens = []
+
+            batch_start = batch_idx
+            batch_end = min(batch_start + batch_size, len(token_sentences))
+
+            longest_seq = 0
+
+            for idx in length_sorted_idx[batch_start: batch_end]:
+                tokens = token_sentences[idx]
+                longest_seq = max(longest_seq, len(tokens))
+                batch_tokens.append(tokens)
+
+            features = {}
+            for text in batch_tokens:
+                sentence_features = self.get_sentence_features(text, longest_seq)
+
+                for feature_name in sentence_features:
+                    if feature_name not in features:
+                        features[feature_name] = []
+                    features[feature_name].append(sentence_features[feature_name])
+
+            for feature_name in features:
+                #features[feature_name] = torch.tensor(np.asarray(features[feature_name])).to(self.device)
+                features[feature_name] = torch.cat(features[feature_name]).to(self.device)
+
+            with torch.no_grad():
+                out_features = self.forward(features)
+                embeddings = out_features[output_value]
+
+                if output_value == 'token_embeddings':
+                    #Set token embeddings to 0 for padding tokens
+                    input_mask = out_features['attention_mask']
+                    input_mask_expanded = input_mask.unsqueeze(-1).expand(embeddings.size()).float()
+                    embeddings = embeddings * input_mask_expanded
+
+                if convert_to_numpy:
+                    embeddings = embeddings.to('cpu').numpy()
+
+                all_embeddings.extend(embeddings)
+
+        reverting_order = np.argsort(length_sorted_idx)
+        all_embeddings = [all_embeddings[idx] for idx in reverting_order]
+
+        return all_embeddings
+
     def get_max_seq_length(self):
         if hasattr(self._first_module(), 'max_seq_length'):
             return self._first_module().max_seq_length
