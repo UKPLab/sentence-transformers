@@ -13,7 +13,7 @@ from numpy import ndarray
 from torch import nn, Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from tqdm import tqdm, trange
+from tqdm.autonotebook import tqdm, trange
 
 from . import __DOWNLOAD_SERVER__
 from .evaluation import SentenceEvaluator
