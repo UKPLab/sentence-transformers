@@ -141,6 +141,8 @@ class SentenceTransformer(nn.Sequential):
                     if feature_name not in features:
                         features[feature_name] = []
                     features[feature_name].append(sentence_features[feature_name])
+                
+                print(features)
 
             for feature_name in features:
                 #features[feature_name] = torch.tensor(np.asarray(features[feature_name])).to(self.device)
@@ -209,8 +211,8 @@ class SentenceTransformer(nn.Sequential):
                 batch_tokens.append(tokens)
 
             features = {}
-            for text in batch_tokens:
-                sentence_features = self.get_sentence_features(text, longest_seq)
+            for doc in batch_tokens:
+                sentence_features = self.get_sentence_features(doc, longest_seq)
 
                 for feature_name in sentence_features:
                     if feature_name not in features:
