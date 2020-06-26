@@ -220,8 +220,8 @@ class SentenceTransformer(nn.Sequential):
                     features[feature_name].append(sentence_features[feature_name])
 
             for feature_name in features:
-                #features[feature_name] = torch.tensor(np.asarray(features[feature_name])).to(self.device)
-                features[feature_name] = torch.cat(features[feature_name]).to(self.device)
+                features[feature_name] = torch.tensor(np.asarray(features[feature_name])).to(self.device)
+                # features[feature_name] = torch.cat(features[feature_name]).to(self.device)
 
             with torch.no_grad():
                 out_features = self.forward(features)
