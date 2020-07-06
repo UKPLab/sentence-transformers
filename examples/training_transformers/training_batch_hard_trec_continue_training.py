@@ -18,10 +18,6 @@ which sentence with another label is the closest (hard negative example). It the
 all sentences with the same label should be close and sentences for different labels should be clearly seperated.
 """
 
-import sys
-mypath = "/home/cdimachkie/projects/sentence-transformers/"
-sys.path.insert(0, mypath)
-
 from sentence_transformers import (
     SentenceTransformer,
     SentenceLabelDataset,
