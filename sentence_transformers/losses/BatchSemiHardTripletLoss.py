@@ -16,10 +16,21 @@ class BatchSemiHardTripletLoss(nn.Module):
 
 
     # Semi-Hard Triplet Loss
-    # https://github.com/tensorflow/addons/blob/master/tensorflow_addons/losses/triplet.py#L71
+    # Based on: https://github.com/tensorflow/addons/blob/master/tensorflow_addons/losses/triplet.py#L71
     # Paper: FaceNet: A Unified Embedding for Face Recognition and Clustering: https://arxiv.org/pdf/1503.03832.pdf
     @staticmethod
     def batch_semi_hard_triplet_loss(labels: Tensor, embeddings: Tensor, margin: float, squared: bool = False) -> Tensor:
+        """Build the triplet loss over a batch of embeddings.
+        We generate all the valid triplets and average the loss over the positive ones.
+        Args:
+            labels: labels of the batch, of size (batch_size,)
+            embeddings: tensor of shape (batch_size, embed_dim)
+            margin: margin for triplet loss
+            squared: Boolean. If true, output is the pairwise squared euclidean distance matrix.
+                     If false, output is the pairwise euclidean distance matrix.
+        Returns:
+            Label_Sentence_Triplet: scalar tensor containing the triplet loss
+        """
         labels = labels.unsqueeze(1)
 
         pdist_matrix = BatchSemiHardTripletLoss._pairwise_distances(embeddings, squared)
