@@ -19,6 +19,16 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
     # Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
     @staticmethod
     def batch_hard_triplet_soft_margin_loss(labels: Tensor, embeddings: Tensor, squared: bool = False) -> Tensor:
+        """Build the triplet loss over a batch of embeddings.
+        For each anchor, we get the hardest positive and hardest negative to form a triplet.
+        Args:
+            labels: labels of the batch, of size (batch_size,)
+            embeddings: tensor of shape (batch_size, embed_dim)
+            squared: Boolean. If true, output is the pairwise squared euclidean distance matrix.
+                     If false, output is the pairwise euclidean distance matrix.
+        Returns:
+            Label_Sentence_Triplet: scalar tensor containing the triplet loss
+        """
         # Get the pairwise distance matrix
         pairwise_dist = BatchHardTripletLoss._pairwise_distances(embeddings, squared=squared)
         #pairwise_dist = BatchHardTripletLoss._cosine_distance(embeddings)
