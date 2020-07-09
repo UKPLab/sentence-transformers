@@ -120,7 +120,17 @@ dataset_train = SentenceLabelDataset(
     provide_negative=False,
 )
 train_dataloader = DataLoader(dataset_train, shuffle=True, batch_size=train_batch_size)
-train_loss = losses.BatchHardTripletLoss(sentence_embedder=model)
+
+### Triplet losses ####################
+### There are 3 triplet loss variants:
+### - BatchHardTripletLoss
+### - BatchHardSoftMarginTripletLoss
+### - BatchSemiHardTripletLoss
+#######################################
+
+#train_loss = losses.BatchHardTripletLoss(sentence_embedder=model)
+#train_loss = losses.BatchHardSoftMarginTripletLoss(sentence_embedder=model)
+train_loss = losses.BatchSemiHardTripletLoss(sentence_embedder=model)
 
 logging.info("Read TREC val dataset")
 dataset_dev = SentenceLabelDataset(examples=val, model=model)
