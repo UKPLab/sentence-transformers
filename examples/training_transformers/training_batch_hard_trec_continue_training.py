@@ -37,7 +37,7 @@ import urllib.request
 
 # Inspired from torchnlp
 def trec_dataset(
-    directory="sentence-transformers/datasets/trec/",
+    directory="datasets/trec/",
     train_filename="train_5500.label",
     test_filename="TREC_10.label",
     validation_dataset_nb=500,

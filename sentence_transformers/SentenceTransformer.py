@@ -157,7 +157,7 @@ class SentenceTransformer(nn.Sequential):
                     embeddings = embeddings * input_mask_expanded
 
                 if convert_to_numpy:
-                    embeddings = embeddings.to('cpu').numpy()
+                    embeddings = embeddings.cpu().detach().numpy()
 
                 all_embeddings.extend(embeddings)
 

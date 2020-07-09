@@ -28,6 +28,7 @@ class BERT(nn.Module):
         self.tokenizer = BertTokenizer.from_pretrained(model_name_or_path, **tokenizer_args)
 
 
+
     def forward(self, features):
         """Returns token_embeddings, cls_token"""
         output_states = self.bert(**features)
