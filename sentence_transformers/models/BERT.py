@@ -28,7 +28,6 @@ class BERT(nn.Module):
         self.tokenizer = BertTokenizer.from_pretrained(model_name_or_path, **tokenizer_args)
 
 
-
     def forward(self, features):
         """Returns token_embeddings, cls_token"""
         output_states = self.bert(**features)
@@ -62,7 +61,7 @@ class BERT(nn.Module):
         """
         pad_seq_length = min(pad_seq_length, self.max_seq_length) + 2  ##Add Space for CLS + SEP token
 
-        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt')
+        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt', truncation=True)
 
 
     def get_config_dict(self):
