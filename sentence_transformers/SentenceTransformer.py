@@ -3,7 +3,7 @@ import logging
 import os
 import shutil
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type
+from typing import List, Dict, Tuple, Iterable, Type, Union
 from zipfile import ZipFile
 
 import numpy as np
@@ -90,7 +90,7 @@ class SentenceTransformer(nn.Sequential):
         self.device = torch.device(device)
         self.to(device)
 
-    def encode(self, sentences: List[str], batch_size: int = 8, show_progress_bar: bool = None, output_value: str = 'sentence_embedding', convert_to_numpy: bool = True) -> List[ndarray]:
+    def encode(self, sentences: Union[str, List[str], List[int]], batch_size: int = 8, show_progress_bar: bool = None, output_value: str = 'sentence_embedding', convert_to_numpy: bool = True, is_pretokenized: bool = False) -> List[ndarray]:
         """
         Computes sentence embeddings
 
@@ -105,6 +105,8 @@ class SentenceTransformer(nn.Sequential):
             to get wordpiece token embeddings.
         :param convert_to_numpy:
             If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
+        :param is_pretokenized:
+            If is_pretokenized=True, sentences must be a list of integers, containing the tokenized sentences with each token convert to the respective int.
         :return:
            Depending on convert_to_numpy, either a list of numpy vectors or a list of pytorch tensors
         """
@@ -112,8 +114,16 @@ class SentenceTransformer(nn.Sequential):
         if show_progress_bar is None:
             show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
 
+        if isinstance(sentences, str): ##Individual sentence
+            sentences = [sentences]
+
         all_embeddings = []
-        length_sorted_idx = np.argsort([len(sen) for sen in sentences])
+        if is_pretokenized:
+            sentences_tokenized = sentences
+        else:
+            sentences_tokenized = [self.tokenize(sen) for sen in sentences]
+
+        length_sorted_idx = np.argsort([len(sentences_tokenized) for sen in sentences])
 
         iterator = range(0, len(sentences), batch_size)
         if show_progress_bar:
@@ -128,8 +138,7 @@ class SentenceTransformer(nn.Sequential):
             longest_seq = 0
 
             for idx in length_sorted_idx[batch_start: batch_end]:
-                sentence = sentences[idx]
-                tokens = self.tokenize(sentence)
+                tokens = sentences_tokenized[idx]
                 longest_seq = max(longest_seq, len(tokens))
                 batch_tokens.append(tokens)
 
@@ -143,7 +152,6 @@ class SentenceTransformer(nn.Sequential):
                     features[feature_name].append(sentence_features[feature_name])
 
             for feature_name in features:
-                #features[feature_name] = torch.tensor(np.asarray(features[feature_name])).to(self.device)
                 features[feature_name] = torch.cat(features[feature_name]).to(self.device)
 
             with torch.no_grad():
