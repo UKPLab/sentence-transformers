@@ -3,8 +3,12 @@ from .SimilarityFunction import SimilarityFunction
 
 from .BinaryEmbeddingSimilarityEvaluator import BinaryEmbeddingSimilarityEvaluator
 from .EmbeddingSimilarityEvaluator import EmbeddingSimilarityEvaluator
-from .LabelAccuracyEvaluator import LabelAccuracyEvaluator
-from .SequentialEvaluator import SequentialEvaluator
-from .TripletEvaluator import TripletEvaluator
-from .MSEEvaluator import MSEEvaluator
+from .EmbeddingSimilarityEvaluatorFromList import EmbeddingSimilarityEvaluatorFromList
 from .EnhancedBinaryEmbeddingSimilarityEvaluator import EnhancedBinaryEmbeddingSimilarityEvaluator
+from .LabelAccuracyEvaluator import LabelAccuracyEvaluator
+from .MSEEvaluator import MSEEvaluator
+from .MSEEvaluatorFromDataFrame import MSEEvaluatorFromDataFrame
+from .MSEEvaluatorFromDataLoader import MSEEvaluatorFromDataLoader
+from .SequentialEvaluator import SequentialEvaluator
+from .TranslationEvaluator import TranslationEvaluator
+from .TripletEvaluator import TripletEvaluator

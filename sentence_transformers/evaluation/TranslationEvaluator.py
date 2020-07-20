@@ -7,10 +7,9 @@ from tqdm import tqdm
 from ..util import batch_to_device
 import os
 import csv
-from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
-from scipy.stats import pearsonr, spearmanr
 import numpy as np
 import scipy.spatial
+from typing import List, Tuple
 
 class TranslationEvaluator(SentenceEvaluator):
     """
@@ -18,38 +17,34 @@ class TranslationEvaluator(SentenceEvaluator):
     and assuming that en_i = fr_i.
     Checks if vec(en_i) has the highest similarity to vec(fr_i). Computes the accurarcy in both directions
     """
-    def __init__(self, dataloader: DataLoader, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = None):
+    def __init__(self, source_sentences: List[str], target_sentences: List[str],  show_progress_bar: bool = False, batch_size: int = 8, name: str = ''):
         """
         Constructs an evaluator based for the dataset
 
         The labels need to indicate the similarity between the sentences.
 
-        :param dataloader:
-            the data for the evaluation
+        :param source_sentences:
+            List of sentences in source language
+        :param target_sentences:
+            List of sentences in target language
         :param main_similarity:
             the similarity metric that will be used for the returned score
         """
-        self.dataloader = dataloader
-        self.main_similarity = main_similarity
+        self.source_sentences = source_sentences
+        self.target_sentences = target_sentences
         self.name = name
+        self.batch_size = batch_size
+        self.show_progress_bar = show_progress_bar
+
+        assert len(self.source_sentences) == len(self.target_sentences)
+
         if name:
             name = "_"+name
 
-        if show_progress_bar is None:
-            show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
-        self.show_progress_bar = show_progress_bar
-
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.csv_file = "translation_evaluation"+name+"_results.csv"
         self.csv_headers = ["epoch", "steps", "src2trg", "trg2src"]
 
-
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
-        model.eval()
-        embeddings1 = []
-        embeddings2 = []
-        labels = []
-
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)
@@ -58,25 +53,12 @@ class TranslationEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("Evaluation the model on "+self.name+" dataset"+out_txt)
+        logging.info("Evaluating translation matching Accuracy on "+self.name+" dataset"+out_txt)
 
-        self.dataloader.collate_fn = model.smart_batching_collate
-
-        iterator = self.dataloader
-        if self.show_progress_bar:
-            iterator = tqdm(iterator, desc="Convert Evaluating")
-
-        for step, batch in enumerate(iterator):
-            features, label_ids = batch_to_device(batch, self.device)
-            with torch.no_grad():
-                emb1, emb2 = [model(sent_features)['sentence_embedding'].to("cpu").numpy() for sent_features in features]
-
-            labels.extend(label_ids.to("cpu").numpy())
-            embeddings1.extend(emb1)
-            embeddings2.extend(emb2)
+        embeddings1 = np.asarray(model.encode(self.source_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size))
+        embeddings2 = np.asarray(model.encode(self.target_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size))
 
         distances = -scipy.spatial.distance.cdist(embeddings1, embeddings2, "cosine")
-
 
         correct_src2trg = 0
         correct_trg2src = 0

@@ -1,50 +1,42 @@
 from sentence_transformers.evaluation import SentenceEvaluator
-from sentence_transformers.util import batch_to_device
-import torch
 import numpy as np
 import logging
 import os
 import csv
-
+from typing import List
 
 class MSEEvaluator(SentenceEvaluator):
     """
     Computes the mean squared error (x100) between the computed sentence embedding
     and some target sentence embedding
     """
-    def __init__(self, dataloader, name=''):
-        self.dataloader = dataloader
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def __init__(self, source_sentences: List[str], target_sentences: List[str], teacher_model = None, show_progress_bar: bool = False, batch_size:int = 8, name: str = ''):
+        self.source_sentences = source_sentences
+        self.source_embeddings = np.asarray(teacher_model.encode(source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size))
+
+        self.target_sentences = target_sentences
+        self.show_progress_bar = show_progress_bar
+        self.batch_size = batch_size
         self.name = name
 
-        if name:
-            name = "_"+name
-        self.csv_file = "mse_evaluation" + name + "_results.csv"
+        self.csv_file = "mse_evaluation_" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps", "MSE"]
 
     def __call__(self, model, output_path, epoch  = -1, steps = -1):
-        model.eval()
-        self.dataloader.collate_fn = model.smart_batching_collate
+        if epoch != -1:
+            if steps == -1:
+                out_txt = " after epoch {}:".format(epoch)
+            else:
+                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
+        else:
+            out_txt = ":"
 
-        embeddings = []
-        labels = []
-        for step, batch in enumerate(self.dataloader):
-            features, batch_labels = batch_to_device(batch, self.device)
-            with torch.no_grad():
-                emb1 = model(features[0])['sentence_embedding'].to("cpu").numpy()
+        target_embeddings = np.asarray(model.encode(self.source_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size))
 
-            labels.extend(batch_labels.to("cpu").numpy())
-            embeddings.extend(emb1)
-
-        embeddings = np.asarray(embeddings)
-        labels = np.asarray(labels)
-
-        mse = ((embeddings - labels)**2).mean()
-
-        logging.info("MSE evaluation on "+self.name+" dataset")
+        mse = ((self.source_embeddings - target_embeddings)**2).mean()
         mse *= 100
 
-        logging.info("embeddings shape:\t"+str(embeddings.shape))
+        logging.info("MSE evaluation (lower = better) on "+self.name+" dataset"+out_txt)
         logging.info("MSE (*100):\t{:4f}".format(mse))
 
         if output_path is not None:
@@ -56,6 +48,5 @@ class MSEEvaluator(SentenceEvaluator):
                     writer.writerow(self.csv_headers)
 
                 writer.writerow([epoch, steps, mse])
-
 
         return -mse #Return negative score as SentenceTransformers maximizes the performance
