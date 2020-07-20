@@ -46,8 +46,8 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read STSbenchmark train dataset")
-train_data = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model)
-train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
+train_dataset = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model)
+train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)
 
 
@@ -58,7 +58,7 @@ evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
 
 
 # Configure the training. We skip evaluation in this example
-warmup_steps = math.ceil(len(train_data)*num_epochs/train_batch_size*0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 

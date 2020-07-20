@@ -50,8 +50,8 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 
 logging.info("Read Triplet train dataset")
-train_data = SentencesDataset(examples=triplet_reader.get_examples('train.csv', max_examples=100000), model=model)
-train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
+train_dataset = SentencesDataset(examples=triplet_reader.get_examples('train.csv', max_examples=100000), model=model)
+train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.TripletLoss(model=model)
 
 logging.info("Read Wikipedia Triplet dev dataset")
@@ -60,7 +60,7 @@ dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size
 evaluator = TripletEvaluator(dev_dataloader)
 
 
-warmup_steps = int(len(train_data)*num_epochs/train_batch_size*0.1) #10% of train data
+warmup_steps = int(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data
 
 
 # Train the model

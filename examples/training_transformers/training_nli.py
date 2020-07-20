@@ -30,7 +30,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-uncased'
 
 # Read the dataset
-batch_size = 16
+train_batch_size = 16
 nli_reader = NLIDataReader('../datasets/AllNLI')
 sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark')
 train_num_labels = nli_reader.get_num_labels()
@@ -51,21 +51,21 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read AllNLI train dataset")
-train_data = SentencesDataset(nli_reader.get_examples('train.gz'), model=model)
-train_dataloader = DataLoader(train_data, shuffle=True, batch_size=batch_size)
+train_dataset = SentencesDataset(nli_reader.get_examples('train.gz'), model=model)
+train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=train_num_labels)
 
 
 
 logging.info("Read STSbenchmark dev dataset")
 dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
-dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=batch_size)
+dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
 evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
 
 # Configure the training
 num_epochs = 1
 
-warmup_steps = math.ceil(len(train_dataloader) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 
@@ -89,7 +89,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 
 model = SentenceTransformer(model_save_path)
 test_data = SentencesDataset(examples=sts_reader.get_examples("sts-test.csv"), model=model)
-test_dataloader = DataLoader(test_data, shuffle=False, batch_size=batch_size)
+test_dataloader = DataLoader(test_data, shuffle=False, batch_size=train_batch_size)
 evaluator = EmbeddingSimilarityEvaluator(test_dataloader)
 
 model.evaluate(evaluator)

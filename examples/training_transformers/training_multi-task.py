@@ -61,7 +61,7 @@ evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
 # Configure the training
 num_epochs = 4
 
-warmup_steps = math.ceil(len(train_dataloader_sts) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_data_sts) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 

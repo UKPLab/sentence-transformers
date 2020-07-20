@@ -113,13 +113,13 @@ train, test, val = trec_dataset()
 model = SentenceTransformer(model_name)
 
 logging.info("Read TREC train dataset")
-dataset_train = SentenceLabelDataset(
+train_dataset = SentenceLabelDataset(
     examples=train,
     model=model,
     provide_positive=False, #For BatchHardTripletLoss, we must set provide_positive and provide_negative to False
     provide_negative=False,
 )
-train_dataloader = DataLoader(dataset_train, shuffle=True, batch_size=train_batch_size)
+train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
 
 ### Triplet losses ####################
 ### There are 3 triplet loss variants:
@@ -138,7 +138,7 @@ dev_dataloader = DataLoader(dataset_dev, shuffle=False, batch_size=train_batch_s
 evaluator = TripletEvaluator(dev_dataloader)
 
 warmup_steps = int(
-    len(train_dataloader) * num_epochs / train_batch_size * 0.1
+    len(train_dataset) * num_epochs / train_batch_size * 0.1
 )  # 10% of train data
 
 # Train the model
