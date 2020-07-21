@@ -1,17 +1,24 @@
 """
-This script contains an example how to extend a model to new languages.
+This script contains an example how to extend an existent sentence embedding model to new languages.
 
+You specify the new languages in the target_languages variable.
+
+As training data, parallel sentences between the source language and the target languages are needed. This scripts
+downloads automatically the TED2020 corpus. This corpus contains transcripts from TED and TEDx talks, translated to 100+
+languages. Other parallel sentences corpora can be found at http://opus.nlpl.eu/
+
+Further information can be found in our paper:
+Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation
+https://arxiv.org/abs/2004.09813
 """
 
-from sentence_transformers import SentenceTransformer, SentencesDataset, LoggingHandler, models, readers, evaluation, \
-    losses
+from sentence_transformers import SentenceTransformer, LoggingHandler, models, evaluation, losses
 from torch.utils.data import DataLoader
 from sentence_transformers.datasets import ParallelSentencesDataset
 from datetime import datetime
 
 import os
 import logging
-import sys
 import sentence_transformers.util
 import csv
 import gzip
@@ -24,8 +31,6 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
-
-
 
 
 teacher_model_name = 'bert-base-nli-stsb-mean-tokens'   #Our monolingual teacher model, we want to convert to multiple languages
@@ -80,8 +85,8 @@ dev_files = []
 files_to_create = []
 for source_lang in source_languages:
     for target_lang in target_languages:
-        output_filename_train = "parallel-sentences/{}-{}.tsv.gz".format(source_lang, target_lang)
-        output_filename_dev = "parallel-sentences/{}-{}-dev.tsv.gz".format(source_lang, target_lang)
+        output_filename_train = "parallel-sentences/TED2020-{}-{}-train.tsv.gz".format(source_lang, target_lang)
+        output_filename_dev = "parallel-sentences/TED2020-{}-{}-dev.tsv.gz".format(source_lang, target_lang)
         train_files.append(output_filename_train)
         dev_files.append(output_filename_dev)
         if not os.path.exists(output_filename_train) or not os.path.exists(output_filename_dev):
