@@ -35,8 +35,6 @@ class SentencesDataset(Dataset):
             the input examples for the training
         :param model
             the Sentence BERT model for the conversion
-        :return: a SmartBatchingDataset usable to train the model with SentenceTransformer.smart_batching_collate as the collate_fn
-            for the DataLoader
         """
         num_texts = len(examples[0].texts)
         inputs = [[] for _ in range(num_texts)]
