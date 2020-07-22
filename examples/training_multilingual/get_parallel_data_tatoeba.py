@@ -92,15 +92,17 @@ for src_lang in source_languages:
         dev_sentences = source_sentences[0:num_dev_sentences]
 
         print("{}-{} has {} sentences".format(src_lang, trg_lang, len(source_sentences)))
-        with gzip.open(os.path.join(output_folder, 'Tatoeba-{}-{}-dev.tsv.gz'.format(src_lang, trg_lang)), 'wt', encoding='utf8') as fOut:
-            for sent in dev_sentences:
-                fOut.write("\t".join([sent]+translations[src_lang][trg_lang][sent]))
-                fOut.write("\n")
+        if len(dev_sentences) > 0:
+            with gzip.open(os.path.join(output_folder, 'Tatoeba-{}-{}-dev.tsv.gz'.format(src_lang, trg_lang)), 'wt', encoding='utf8') as fOut:
+                for sent in dev_sentences:
+                    fOut.write("\t".join([sent]+translations[src_lang][trg_lang][sent]))
+                    fOut.write("\n")
 
-        with gzip.open(os.path.join(output_folder, 'Tatoeba-{}-{}-train.tsv.gz'.format(src_lang, trg_lang)), 'wt', encoding='utf8') as fOut:
-            for sent in train_sentences:
-                fOut.write("\t".join([sent]+translations[src_lang][trg_lang][sent]))
-                fOut.write("\n")
+        if len(train_sentences) > 0:
+            with gzip.open(os.path.join(output_folder, 'Tatoeba-{}-{}-train.tsv.gz'.format(src_lang, trg_lang)), 'wt', encoding='utf8') as fOut:
+                for sent in train_sentences:
+                    fOut.write("\t".join([sent]+translations[src_lang][trg_lang][sent]))
+                    fOut.write("\n")
 
 
 print("---DONE---")

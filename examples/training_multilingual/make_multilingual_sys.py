@@ -52,17 +52,17 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 teacher_model_name = 'bert-base-nli-stsb-mean-tokens'   #Our monolingual teacher model, we want to convert to multiple languages
 student_model_name = 'xlm-roberta-base'                 #Multilingual base model we use to imitate the teacher model
 
-max_seq_length = 128                #Student model max. lengths for inputs (number of word pieces)
-train_batch_size = 64               #Batch size for training
-inference_batch_size = 64           #Batch size at inference
-max_sentences_per_language = 500000 #Maximum number of  parallel sentences for training
-train_max_sentence_length = 250     #Maximum length (characters) for parallel training sentences
+max_seq_length = 128                 #Student model max. lengths for inputs (number of word pieces)
+train_batch_size = 64                #Batch size for training
+inference_batch_size = 64            #Batch size at inference
+max_sentences_per_trainfile = 500000 #Maximum number of  parallel sentences for training
+train_max_sentence_length = 250      #Maximum length (characters) for parallel training sentences
 
 num_epochs = 5                       #Train for x epochs
 num_warmup_steps = 10000             #Warumup steps
 
 num_evaluation_steps = 1000          #Evaluate performance after every xxxx steps
-dev_sentences = 1000                 #Number of parallel sentences to be used for development
+
 
 
 output_path = "output/make-multilingual-sys-"+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -111,7 +111,7 @@ student_model = SentenceTransformer(modules=[word_embedding_model, pooling_model
 ###### Read Parallel Sentences Dataset ######
 train_data = ParallelSentencesDataset(student_model=student_model, teacher_model=teacher_model, batch_size=inference_batch_size, use_embedding_cache=True)
 for train_file in train_files:
-    train_data.load_data(train_file, max_sentences=max_sentences_per_language, max_sentence_length=train_max_sentence_length)
+    train_data.load_data(train_file, max_sentences=max_sentences_per_trainfile, max_sentence_length=train_max_sentence_length)
 
 train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.MSELoss(model=student_model)
