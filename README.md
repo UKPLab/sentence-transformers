@@ -194,7 +194,7 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 ```
 
 ## Training Multilingual Sentence Embeddings Models
-We provide code and example to easily train sentence embedding models for various languages and also port existent sentence embedding models to new languages. For details, see [multilingual-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/pretrained-models/multilingual-models.md) and our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813).
+We provide code and example to easily train sentence embedding models for various languages and also port existent sentence embedding models to new languages. For details, see [multilingual-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/training/multilingual-models.md) and our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813).
 
 ## Pretrained Models
 We provide the following models. You can use them in the following way:
@@ -328,7 +328,7 @@ for query, query_embedding in zip(queries, query_embeddings):
 ```
 
 The output looks like this:
-```python
+```
 Query: A man is eating pasta.
 Top 5 most similar sentences in corpus:
 A man is eating a piece of bread. (Score: 0.8518)
