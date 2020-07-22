@@ -35,19 +35,19 @@ pip install -e .
 [This example](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/basic_embedding.py) shows you how to use an already trained Sentence Transformer model to embed sentences for another task.
 
 First download a pretrained model.
-````
+````python
 from sentence_transformers import SentenceTransformer
 model = SentenceTransformer('bert-base-nli-mean-tokens')
 ````
 Then provide some sentences to the model.
-````
+````python
 sentences = ['This framework generates embeddings for each input sentence',
     'Sentences are passed as a list of string.', 
     'The quick brown fox jumps over the lazy dog.']
 sentence_embeddings = model.encode(sentences)
 ````
 And that's it already. We now have a list of numpy arrays with the embeddings.
-````
+````python
 for sentence, embedding in zip(sentences, sentence_embeddings):
     print("Sentence:", sentence)
     print("Embedding:", embedding)
@@ -71,7 +71,7 @@ It will download some [datasets](https://github.com/UKPLab/sentence-transformers
 
 
 First, we define a sequential model of how a sentence is mapped to a fixed size sentence embedding:
-```
+```python
 # Use BERT for mapping tokens to embeddings
 word_embedding_model = models.Transformer('bert-base-uncased')
 
@@ -90,7 +90,7 @@ These two modules (word_embedding_model and pooling_model) form our SentenceTran
 
 
 Next, we specify a train dataloader:
-```
+```python
 nli_reader = NLIDataReader('datasets/AllNLI')
 
 train_data = SentencesDataset(nli_reader.get_examples('train.gz'), model=model)
@@ -102,7 +102,7 @@ The `NLIDataReader` reads the AllNLI dataset and we generate a dataloader that i
 
 Next, we also specify a dev-set. The dev-set is used to evaluate the sentence embedding model on some unseen data. Note, the dev-set can be any data, in this case, we evaluate on the dev-set of the STS benchmark dataset.  The `evaluator` computes the performance metric, in this case, the cosine-similarity between sentence embeddings are computed and the Spearman-correlation to the gold scores is computed.
 
-```
+```python
 sts_reader = STSBenchmarkDataReader('datasets/stsbenchmark')
 dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
 dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
@@ -110,7 +110,7 @@ evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
 ```
 
  The training then looks like this:
- ```
+ ```python
 model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=evaluator,
           epochs=num_epochs,
@@ -126,13 +126,13 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 [training_stsbenchmark_continue_training.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_stsbenchmark_continue_training.py) shows an example where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset and then continue training on the training data from the STS benchmark.
 
 First, we load a pre-trained model from the server:
-```
+```python
 model = SentenceTransformer('bert-base-nli-mean-tokens')
 ```
 
 
 The next steps are as before. We specify training and dev data:
-```
+```python
 sts_reader = STSBenchmarkDataReader('datasets/stsbenchmark', normalize_scores=True)
 train_data = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model)
 train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
@@ -146,7 +146,7 @@ evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
 In that example, we use CosineSimilarityLoss, which computes the cosine similarity between two sentences and compares this score with a provided gold similarity score.
 
 Then we can train as before:
-```
+```python
 model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=evaluator,
           epochs=num_epochs,
@@ -158,20 +158,20 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 
 ## Loading SentenceTransformer Models
 Loading trained models is easy. You can specify a path:
-```
+```python
 model = SentenceTransformer('./my/path/to/model/')
 ```
 Note: It is important that a / or \ is the path, otherwise, it is not recognized as a path.
 
 You can also host the training output on a server and download it:
- ```
+ ```python
 model = SentenceTransformer('http://www.server.com/path/to/model/my_model.zip')
 ```
 With the first call, the model is downloaded and stored in the local torch cache-folder (`~/.cache/torch/sentence_transformers`). In order to work, you must zip all files and subfolders of your model. 
 
 We also provide several pre-trained models, that can be loaded by just passing a name:
 
- ```
+ ```python
 model = SentenceTransformer('bert-base-nli-mean-tokens')
 ```
 
@@ -180,7 +180,7 @@ This downloads the `bert-base-nli-mean-tokens` from our server and stores it loc
 ## Loading custom BERT models
 If you have fine-tuned BERT (or similar models) and you want to use it to generate sentence embeddings, you must construct an appropriate sentence transformer model from it. This is possible by using this code:
 
-```
+```python
 # Use BERT for mapping tokens to embeddings
 word_embedding_model = models.Transformer('path/to/your/BERT/model')
 
@@ -198,7 +198,7 @@ We provide code and example to easily train sentence embedding models for variou
 
 ## Pretrained Models
 We provide the following models. You can use them in the following way:
- ```
+ ```python
 model = SentenceTransformer('name_of_model')
 ```
 
@@ -298,7 +298,7 @@ We present some examples, how the generated sentence embeddings can be used for 
 Semantic search is the task of finding similar sentences to a given sentence. See [semantic_search.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic_search.py).
 
 We first generate an embedding for all sentences in a corpus:
-```
+```python
 embedder = SentenceTransformer('bert-base-nli-mean-tokens')
 
 # Corpus with example sentences
@@ -316,19 +316,19 @@ corpus_embeddings = embedder.encode(corpus)
 ```
 
 Then, we generate the embeddings for different query sentences:
-```
+```python
 queries = ['A man is eating pasta.', 'Someone in a gorilla costume is playing a set of drums.', 'A cheetah chases prey on across a field.']
 query_embeddings = embedder.encode(queries)
 ```
 
 We then use scipy to find the most-similar embeddings for queries in the corpus:
-```
+```python
 for query, query_embedding in zip(queries, query_embeddings):
     distances = scipy.spatial.distance.cdist([query_embedding], corpus_embeddings, "cosine")[0]
 ```
 
 The output looks like this:
-```
+```python
 Query: A man is eating pasta.
 Top 5 most similar sentences in corpus:
 A man is eating a piece of bread. (Score: 0.8518)
@@ -362,7 +362,7 @@ A monkey is playing drums. (Score: 0.3435)
 [clustering.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/clustering.py) depicts an example to cluster similar sentences based on their sentence embedding similarity.
 
 As before, we first compute an embedding for each sentence:
-```
+```python
 embedder = SentenceTransformer('bert-base-nli-mean-tokens')
 
 # Corpus with example sentences
@@ -382,7 +382,7 @@ corpus_embeddings = embedder.encode(corpus)
 ```
 
 Then, we perform k-means clustering using sklearn:
-```
+```python
 from sklearn.cluster import KMeans
 
 num_clusters = 5
