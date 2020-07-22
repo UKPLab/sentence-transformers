@@ -32,9 +32,9 @@ from opustools import OpusRead
 import os
 
 
-corpora = ['JW300', 'GlobalVoices']  #Corpora you want to use
+corpora = ['JW300']  #Corpora you want to use
 source_languages = ['en']            #Source language, our teacher model is able to understand
-target_languages = ['de', 'es']    #Target languages, out student model should learn
+target_languages = ['de', 'es', 'it', 'fr', 'ar', 'tr']    #Target languages, out student model should learn
 
 output_folder = 'parallel-sentences'
 opus_download_folder = './opus'

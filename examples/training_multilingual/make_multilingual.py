@@ -1,11 +1,16 @@
 """
 This script contains an example how to extend an existent sentence embedding model to new languages.
 
-You specify the new languages in the target_languages variable.
+Given a (monolingual) teacher model you would like to extend to new languages, which is specified in the teacher_model_name
+variable. We train a multilingual student model to imitate the teacher model (variable student_model_name)
+on multiple languages.
 
-As training data, parallel sentences between the source language and the target languages are needed. This scripts
-downloads automatically the TED2020 corpus. This corpus contains transcripts from TED and TEDx talks, translated to 100+
-languages. Other parallel sentences corpora can be found at http://opus.nlpl.eu/
+For training, you need parallel sentence data (machine translation training data). You need tab-seperated files (.tsv)
+with the first column a sentence in a language understood by the teacher model, e.g. English,
+and the further columns contain the according translations for languages you want to extend to.
+
+This scripts downloads automatically the TED2020 corpus. This corpus contains transcripts from
+TED and TEDx talks, translated to 100+ languages. For other parallel data, see get_parallel_data_[].py scripts
 
 Further information can be found in our paper:
 Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation
@@ -73,20 +78,21 @@ def download_corpa(filepaths):
 # Here we define train train and dev corpora
 train_corpus = "../datasets/ted2020.tsv.gz"         # Transcripts of TED talks, crawled 2020
 sts_corpus = "../datasets/STS2017-extended.zip"     # Extended STS2017 dataset for more languages
+parallel_sentences_folder = "parallel-sentences/"
 
 # Check if the file exists. If not, they are downloaded
 download_corpa([train_corpus, sts_corpus])
 
 
 # Create parallel files for the selected language combinations
-os.makedirs('parallel-sentences', exist_ok=True)
+os.makedirs(parallel_sentences_folder, exist_ok=True)
 train_files = []
 dev_files = []
 files_to_create = []
 for source_lang in source_languages:
     for target_lang in target_languages:
-        output_filename_train = "parallel-sentences/TED2020-{}-{}-train.tsv.gz".format(source_lang, target_lang)
-        output_filename_dev = "parallel-sentences/TED2020-{}-{}-dev.tsv.gz".format(source_lang, target_lang)
+        output_filename_train = os.path.join(parallel_sentences_folder, "TED2020-{}-{}-train.tsv.gz".format(source_lang, target_lang))
+        output_filename_dev = os.path.join(parallel_sentences_folder, "TED2020-{}-{}-dev.tsv.gz".format(source_lang, target_lang))
         train_files.append(output_filename_train)
         dev_files.append(output_filename_dev)
         if not os.path.exists(output_filename_train) or not os.path.exists(output_filename_dev):

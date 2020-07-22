@@ -11,9 +11,10 @@ import gzip
 
 # Note: Tatoeba uses 3 letter languages codes (ISO-639-2),
 # while other datasets like OPUS / TED2020 use 2 letter language codes (ISO-639-1)
-# For training of sentence transformers, which type of language code is used doesn't matter
+# For training of sentence transformers, which type of language code is used doesn't matter.
+# For language codes, see: https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes
 source_languages = set(['eng'])
-target_languages = set(['deu', 'nld'])
+target_languages = set(['deu', 'ara', 'tur', 'spa', 'ita', 'fra'])
 
 num_dev_sentences = 1000     #Number of sentences that are used to create a development set
 
@@ -86,11 +87,11 @@ with open(links_file, encoding='utf8') as fIn:
 print("Write output files")
 for src_lang in source_languages:
     for trg_lang in target_languages:
-        print(src_lang, trg_lang)
         source_sentences = list(translations[src_lang][trg_lang])
         train_sentences = source_sentences[num_dev_sentences:]
         dev_sentences = source_sentences[0:num_dev_sentences]
 
+        print("{}-{} has {} sentences".format(src_lang, trg_lang, len(source_sentences)))
         with gzip.open(os.path.join(output_folder, 'Tatoeba-{}-{}-dev.tsv.gz'.format(src_lang, trg_lang)), 'wt', encoding='utf8') as fOut:
             for sent in dev_sentences:
                 fOut.write("\t".join([sent]+translations[src_lang][trg_lang][sent]))
