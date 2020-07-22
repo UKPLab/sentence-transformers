@@ -49,7 +49,7 @@ for corpus in corpora:
             if not os.path.exists(output_filename):
                 print("Create:", output_filename)
                 try:
-                    read = OpusRead(directory=corpus, source=src_lang, target=trg_lang, write=[output_filename], download_dir=opus_download_folder, preprocess='raw', write_mode='moses')
+                    read = OpusRead(directory=corpus, source=src_lang, target=trg_lang, write=[output_filename], download_dir=opus_download_folder, preprocess='raw', write_mode='moses', suppress_prompts=True)
                     read.printPairs()
                 except:
                     print("An error occured during the creation of", output_filename)
