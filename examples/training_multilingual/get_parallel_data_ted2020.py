@@ -1,5 +1,6 @@
 """
-This script downloads the TED2020 corpus and create parallel sentences tsv files that can be used to extend existent sentence embedding models to new languages.
+This script downloads the TED2020 corpus (https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md)
+ and create parallel sentences tsv files that can be used to extend existent sentence embedding models to new languages.
 
 The TED2020 corpus is a crawl of transcripts from TED and TEDx talks, which are translated to 100+ languages.
 

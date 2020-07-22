@@ -9,7 +9,8 @@ For training, you need parallel sentence data (machine translation training data
 with the first column a sentence in a language understood by the teacher model, e.g. English,
 and the further columns contain the according translations for languages you want to extend to.
 
-This scripts downloads automatically the TED2020 corpus. This corpus contains transcripts from
+This scripts downloads automatically the TED2020 corpus: https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md
+This corpus contains transcripts from
 TED and TEDx talks, translated to 100+ languages. For other parallel data, see get_parallel_data_[].py scripts
 
 Further information can be found in our paper:
