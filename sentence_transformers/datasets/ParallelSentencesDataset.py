@@ -33,6 +33,7 @@ class ParallelSentencesDataset(Dataset):
         self.teacher_model = teacher_model
         self.datasets = []
         self.datasets_iterator = []
+        self.datasets_tokenized = []
         self.dataset_indices = []
         self.copy_dataset_indices = []
         self.cache = []
@@ -89,12 +90,13 @@ class ParallelSentencesDataset(Dataset):
         self.num_sentences += sum([len(sentences_map[sent]) for sent in sentences_map])
 
         #Tokenize
-        for src_sent in sentences_map:
-            sentences_map[src_sent] = [self.student_model.tokenize(sent) for sent in sentences_map[src_sent]]
+        #for src_sent in sentences_map:
+        #    sentences_map[src_sent] = [self.student_model.tokenize(sent) for sent in sentences_map[src_sent]]
 
         dataset_id = len(self.datasets)
         self.datasets.append(list(sentences_map.items()))
         self.datasets_iterator.append(0)
+        self.datasets_tokenized.append(False)
         self.dataset_indices.extend([dataset_id] * weight)
 
     def generate_data(self):
@@ -118,9 +120,14 @@ class ParallelSentencesDataset(Dataset):
     def next_entry(self, data_idx):
         source, target_sentences = self.datasets[data_idx][self.datasets_iterator[data_idx]]
 
+        if not self.datasets_tokenized[data_idx]:
+            target_sentences = [self.student_model.tokenize(sent) for sent in target_sentences]
+            self.datasets[data_idx][self.datasets_iterator[data_idx]] = [source, target_sentences]
+
         self.datasets_iterator[data_idx] += 1
         if self.datasets_iterator[data_idx] >= len(self.datasets[data_idx]): #Restart iterator
             self.datasets_iterator[data_idx] = 0
+            self.datasets_tokenized[data_idx] = True
             random.shuffle(self.datasets[data_idx])
 
         return source, target_sentences
