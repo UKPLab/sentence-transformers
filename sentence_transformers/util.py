@@ -5,6 +5,17 @@ from tqdm import tqdm
 import sys
 import importlib
 import os
+import torch
+
+def pytorch_cos_sim(a, b):
+    """
+    Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j
+    :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
+    """
+    a_norm = a / a.norm(dim=1)[:, None]
+    b_norm = b / b.norm(dim=1)[:, None]
+    res = torch.mm(a_norm, b_norm.transpose(0, 1))
+    return res
 
 def batch_to_device(batch, target_device: device):
     """
