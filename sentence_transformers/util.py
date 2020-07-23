@@ -9,7 +9,8 @@ import torch
 
 def pytorch_cos_sim(a, b):
     """
-    Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j
+    Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j.
+    This function can be used as a faster replacement for 1-scipy.spatial.distance.cdist(a,b)
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
     """
     a_norm = a / a.norm(dim=1)[:, None]
