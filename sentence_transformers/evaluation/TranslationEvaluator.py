@@ -11,7 +11,7 @@ import torch
 class TranslationEvaluator(SentenceEvaluator):
     """
     Given two sets of sentences in different languages, e.g. (en_1, en_2, en_3...) and (fr_1, fr_2, fr_3, ...),
-    and assuming that en_i = fr_i.
+    and assuming that fr_i is the translation of en_i.
     Checks if vec(en_i) has the highest similarity to vec(fr_i). Computes the accurarcy in both directions
     """
     def __init__(self, source_sentences: List[str], target_sentences: List[str],  show_progress_bar: bool = False, batch_size: int = 8, name: str = '', print_wrong_matches: bool = False):
