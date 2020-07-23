@@ -6,8 +6,7 @@ we want to find the most similar sentence in this corpus.
 
 This script outputs for various queries the top 5 most similar sentences in the corpus.
 """
-from sentence_transformers import SentenceTransformer
-import scipy.spatial
+from sentence_transformers import SentenceTransformer, util
 
 embedder = SentenceTransformer('bert-base-nli-mean-tokens')
 
@@ -22,26 +21,24 @@ corpus = ['A man is eating food.',
           'A monkey is playing drums.',
           'A cheetah is running behind its prey.'
           ]
-corpus_embeddings = embedder.encode(corpus)
+corpus_embeddings = embedder.encode(corpus, convert_to_tensor=True)
 
 # Query sentences:
 queries = ['A man is eating pasta.', 'Someone in a gorilla costume is playing a set of drums.', 'A cheetah chases prey on across a field.']
-query_embeddings = embedder.encode(queries)
+
 
 # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
 closest_n = 5
-for query, query_embedding in zip(queries, query_embeddings):
-    distances = scipy.spatial.distance.cdist([query_embedding], corpus_embeddings, "cosine")[0]
+for query in queries:
+    query_embedding = embedder.encode(query, convert_to_tensor=True)
+    scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
 
-    results = zip(range(len(distances)), distances)
-    results = sorted(results, key=lambda x: x[1])
+    results = zip(range(len(scores)), scores)
+    results = sorted(results, key=lambda x: x[1], reverse=True)
 
     print("\n\n======================\n\n")
     print("Query:", query)
     print("\nTop 5 most similar sentences in corpus:")
 
-    for idx, distance in results[0:closest_n]:
-        print(corpus[idx].strip(), "(Score: %.4f)" % (1-distance))
-
-
-
+    for idx, score in results[0:closest_n]:
+        print(corpus[idx].strip(), "(Score: %.4f)" % (score))

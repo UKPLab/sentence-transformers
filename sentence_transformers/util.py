@@ -13,6 +13,11 @@ def pytorch_cos_sim(a, b):
     This function can be used as a faster replacement for 1-scipy.spatial.distance.cdist(a,b)
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
     """
+    if len(a.shape) == 1:
+        a = a.unsqueeze(0)
+    if len(b.shape) == 1:
+        b = b.unsqueeze(0)
+
     a_norm = a / a.norm(dim=1)[:, None]
     b_norm = b / b.norm(dim=1)[:, None]
     res = torch.mm(a_norm, b_norm.transpose(0, 1))
