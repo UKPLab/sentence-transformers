@@ -26,7 +26,7 @@ target_languages = set(['de', 'es', 'it', 'fr', 'ar', 'tr'])    #New languages w
 
 dev_sentences = 1000         #Number of sentences we want to use for development
 download_url = "https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/ted2020.tsv.gz"
-ted2020_path = "../datasets/ted2020/ted2020.tsv.gz" #Path of the TED2020.tsv.gz file.
+ted2020_path = "../datasets/ted2020.tsv.gz" #Path of the TED2020.tsv.gz file.
 parallel_sentences_folder = "parallel-sentences/"
 
 
