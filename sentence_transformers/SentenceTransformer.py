@@ -90,7 +90,7 @@ class SentenceTransformer(nn.Sequential):
         self.device = torch.device(device)
         self.to(device)
 
-    def encode(self, sentences: Union[str, List[str], List[int]], batch_size: int = 8, show_progress_bar: bool = None, output_value: str = 'sentence_embedding', convert_to_numpy: bool = True, is_pretokenized: bool = False) -> List[ndarray]:
+    def encode(self, sentences: Union[str, List[str], List[int]], batch_size: int = 8, show_progress_bar: bool = None, output_value: str = 'sentence_embedding', convert_to_numpy: bool = True, convert_to_tensor: bool = False, is_pretokenized: bool = False) -> List[ndarray]:
         """
         Computes sentence embeddings
 
@@ -105,6 +105,8 @@ class SentenceTransformer(nn.Sequential):
             to get wordpiece token embeddings.
         :param convert_to_numpy:
             If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
+        :param convert_to_tensor:
+            If true, you get one large tensor as return. Overwrites any setting from conver_to_numy
         :param is_pretokenized:
             If is_pretokenized=True, sentences must be a list of integers, containing the tokenized sentences with each token convert to the respective int.
         :return:
@@ -164,13 +166,16 @@ class SentenceTransformer(nn.Sequential):
                     input_mask_expanded = input_mask.unsqueeze(-1).expand(embeddings.size()).float()
                     embeddings = embeddings * input_mask_expanded
 
-                if convert_to_numpy:
+                if convert_to_numpy and not convert_to_tensor:
                     embeddings = np.copy(embeddings.cpu().detach().numpy())
 
                 all_embeddings.extend(embeddings)
 
         reverting_order = np.argsort(length_sorted_idx)
         all_embeddings = [all_embeddings[idx] for idx in reverting_order]
+
+        if convert_to_tensor:
+            all_embeddings = torch.stack(all_embeddings)
 
         return all_embeddings
 
