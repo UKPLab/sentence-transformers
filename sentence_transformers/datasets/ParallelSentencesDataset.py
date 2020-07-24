@@ -87,11 +87,10 @@ class ParallelSentencesDataset(Dataset):
             if max_sentences is not None and max_sentences > 0 and len(sentences_map) >= max_sentences:
                 break
 
-        self.num_sentences += sum([len(sentences_map[sent]) for sent in sentences_map])
+        if len(sentences_map) == 0:
+            return
 
-        #Tokenize
-        #for src_sent in sentences_map:
-        #    sentences_map[src_sent] = [self.student_model.tokenize(sent) for sent in sentences_map[src_sent]]
+        self.num_sentences += sum([len(sentences_map[sent]) for sent in sentences_map])
 
         dataset_id = len(self.datasets)
         self.datasets.append(list(sentences_map.items()))
