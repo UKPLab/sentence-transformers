@@ -69,7 +69,7 @@ class EnhancedBinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
             labels.extend(label_ids.to("cpu").numpy())
             embeddings1.extend(emb1)
             embeddings2.extend(emb2)
-        cosine_scores = paired_cosine_distances(embeddings1, embeddings2)
+        cosine_scores = 1-paired_cosine_distances(embeddings1, embeddings2)
         manhattan_distances = paired_manhattan_distances(embeddings1, embeddings2)
         euclidean_distances = paired_euclidean_distances(embeddings1, embeddings2)
 
@@ -78,16 +78,16 @@ class EnhancedBinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
             assert (label == 0 or label == 1)
 
         labels = np.asarray(labels)
-        cosine_acc, _ = self.find_best_acc_and_threshold(cosine_scores, labels)
-        manhattan_acc, _ = self.find_best_acc_and_threshold(manhattan_distances, labels)
-        euclidean_acc, _ = self.find_best_acc_and_threshold(euclidean_distances, labels)
+        cosine_acc, cosine_threshold = self.find_best_acc_and_threshold(cosine_scores, labels, True)
+        manhattan_acc, manhatten_threshold = self.find_best_acc_and_threshold(manhattan_distances, labels, False)
+        euclidean_acc, euclidean_threshold = self.find_best_acc_and_threshold(euclidean_distances, labels, False)
 
-        logging.info("Cosine-Classification:\t{:4f}".format(
-            cosine_acc))
-        logging.info("Manhattan-Classification:\t{:4f}".format(
-            manhattan_acc))
-        logging.info("Euclidean-Classification:\t{:4f}\n".format(
-            euclidean_acc))
+        logging.info("Accuracy with Cosine-Similarity:\t{:.2f}\t(Threshold: {:.4f})".format(
+            cosine_acc*100, cosine_threshold))
+        logging.info("Accuracy with Manhattan-Distance:\t{:.2f}\t(Threshold: {:.4f})".format(
+            manhattan_acc*100, manhatten_threshold))
+        logging.info("Accuracy with Euclidean-Distance:\t{:.2f}\t(Threshold: {:.4f})\n".format(
+            euclidean_acc*100, euclidean_threshold))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)
@@ -111,9 +111,34 @@ class EnhancedBinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
             raise ValueError("Unknown main_similarity value")
 
     @staticmethod
-    def find_best_acc_and_threshold(dists, labels):
-        pos_dists = dists[labels == 1]
-        neg_dists = dists[labels == 0]
+    def find_best_acc_and_threshold(scores, labels, high_score_more_similar: bool):
+        assert len(scores) == len(labels)
+        rows = list(zip(scores, labels))
+
+        rows = sorted(rows, key=lambda x: x[0], reverse=high_score_more_similar)
+
+        max_acc = 0
+        best_threshold = -1
+
+        positive_so_far = 0
+        remaining_negatives = sum(labels == 0)
+
+        for i in range(len(rows)-1):
+            score, label = rows[i]
+            if label == 1:
+                positive_so_far += 1
+            else:
+                remaining_negatives -= 1
+
+            acc = (positive_so_far + remaining_negatives) / len(labels)
+            if acc > max_acc:
+                max_acc = acc
+                best_threshold = (rows[i][0] + rows[i+1][0]) / 2
+
+        return max_acc, best_threshold
+
+        """pos_dists = scores[labels == 1]
+        neg_dists = scores[labels == 0]
 
         pos_mean, neg_mean = np.mean(pos_dists), np.mean(neg_dists)
         total_num = len(pos_dists) + len(neg_dists)
@@ -129,4 +154,4 @@ class EnhancedBinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
             if acc > max_acc:
                 max_acc = acc
                 best_threshold = threshold
-        return max_acc, best_threshold
+        return max_acc, best_threshold"""
