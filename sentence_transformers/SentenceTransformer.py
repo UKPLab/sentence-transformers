@@ -599,7 +599,7 @@ class SentenceTransformer(nn.Sequential):
         """Runs evaluation during the training"""
         if evaluator is not None:
             score = evaluator(self, output_path=output_path, epoch=epoch, steps=steps)
-            if self.callback is not None:
+            if callback is not None:
                 callback(score, epoch, steps)
             if score > self.best_score and save_best_model:
                 self.save(output_path)
