@@ -26,7 +26,12 @@ from .models import Transformer, Pooling
 from . import __version__
 
 class SentenceTransformer(nn.Sequential):
-    def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
+    def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, 
+                 device: str = None, callback = None):
+        self.callback = callback
+        if modules is not None and not isinstance(modules, OrderedDict):
+            modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
+
         if model_name_or_path is not None and model_name_or_path != "":
             logging.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
             model_path = model_name_or_path
@@ -588,6 +593,8 @@ class SentenceTransformer(nn.Sequential):
         """Runs evaluation during the training"""
         if evaluator is not None:
             score = evaluator(self, output_path=output_path, epoch=epoch, steps=steps)
+            if self.callback is not None:
+                callback(score, epoch, steps)
             if score > self.best_score and save_best_model:
                 self.save(output_path)
                 self.best_score = score
