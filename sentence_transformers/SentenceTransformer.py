@@ -3,7 +3,7 @@ import logging
 import os
 import shutil
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable
 from zipfile import ZipFile
 import requests
 import numpy as np
@@ -437,7 +437,7 @@ class SentenceTransformer(nn.Sequential):
             fp16: bool = False,
             fp16_opt_level: str = 'O1',
             local_rank: int = -1,
-            callback: Callable = None,
+            callback: Callable[[float, int, int], None] = None,
             ):
         """
         Train the model with the given training objective
