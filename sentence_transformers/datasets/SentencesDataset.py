@@ -78,7 +78,7 @@ class SentencesDataset(Dataset):
             tokenized_texts = [example.text for example in examples]
         else:
             logging.info("Start tokenization")
-            if not self.parallel_tokenization or self.max_processes == 1 or len(examples) <= (self.chunk_size):
+            if not self.parallel_tokenization or self.max_processes == 1 or len(examples) <= self.chunk_size:
                 iterator = examples
 
                 if self.show_progress_bar:
@@ -86,6 +86,8 @@ class SentencesDataset(Dataset):
 
                 tokenized_texts = [self.tokenize_example(example) for example in iterator]
             else:
+                logging.info("Use multi-process tokenization with {} processes".format(self.max_processes))
+                self.model.to('cpu')
                 with Pool(self.max_processes) as p:
                     if self.show_progress_bar:
                         tokenized_texts = list(tqdm(p.imap(self.tokenize_example, examples, self.chunk_size), total=len(examples), desc='Tokenize', smoothing=0))
@@ -100,7 +102,6 @@ class SentencesDataset(Dataset):
                 elif isinstance(example.label, float):
                     label_type = torch.float
 
-            #example_tokenized = [self.model.tokenize(text) for text in example.texts]
             example_tokenized = tokenized_texts[ex_index]
 
             for i, token in enumerate(example_tokenized):

@@ -58,7 +58,7 @@ class EnhancedBinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("Evaluation the model on " + self.name + " dataset" + out_txt)
+        logging.info("Binary Accuracy Evaluation of the model on " + self.name + " dataset" + out_txt)
         self.dataloader.collate_fn = model.smart_batching_collate
         for step, batch in enumerate(tqdm(self.dataloader, desc="Evaluating")):
             features, label_ids = batch_to_device(batch, self.device)

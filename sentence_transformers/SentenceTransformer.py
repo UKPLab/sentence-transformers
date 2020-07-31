@@ -10,7 +10,7 @@ import numpy as np
 import transformers
 import torch
 from numpy import ndarray
-from torch import nn, Tensor
+from torch import nn, Tensor, device
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
@@ -87,8 +87,8 @@ class SentenceTransformer(nn.Sequential):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             logging.info("Use pytorch device: {}".format(device))
 
-        self.device = torch.device(device)
-        self.to(device)
+        self._target_device = torch.device(device)
+
 
     def encode(self, sentences: Union[str, List[str], List[int]],
                batch_size: int = 8,
@@ -118,6 +118,7 @@ class SentenceTransformer(nn.Sequential):
         :return:
            Depending on convert_to_numpy, either a list of numpy vectors or a list of pytorch tensors
         """
+        self.to(self._target_device)
         self.eval()
         if show_progress_bar is None:
             show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
@@ -160,7 +161,7 @@ class SentenceTransformer(nn.Sequential):
                     features[feature_name].append(sentence_features[feature_name])
 
             for feature_name in features:
-                features[feature_name] = torch.cat(features[feature_name]).to(self.device)
+                features[feature_name] = torch.cat(features[feature_name]).to(self._target_device)
 
             with torch.no_grad():
                 out_features = self.forward(features)
@@ -319,6 +320,8 @@ class SentenceTransformer(nn.Sequential):
         :param epochs:
         :param steps_per_epoch: Train for x steps in each epoch. If set to None, the length of the dataset will be used
         """
+        self.to(self._target_device)
+
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
             if not output_path_ignore_not_empty and len(os.listdir(output_path)) > 0:
@@ -332,7 +335,7 @@ class SentenceTransformer(nn.Sequential):
             dataloader.collate_fn = self.smart_batching_collate
 
         loss_models = [loss for _, loss in train_objectives]
-        device = self.device
+        device = self._target_device
 
         for loss_model in loss_models:
             loss_model.to(device)
@@ -403,7 +406,7 @@ class SentenceTransformer(nn.Sequential):
                         data_iterators[train_idx] = data_iterator
                         data = next(data_iterator)
 
-                    features, labels = batch_to_device(data, self.device)
+                    features, labels = batch_to_device(data, self._target_device)
                     loss_value = loss_model(features, labels)
 
                     if fp16:
@@ -468,3 +471,21 @@ class SentenceTransformer(nn.Sequential):
             return transformers.get_cosine_with_hard_restarts_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total)
         else:
             raise ValueError("Unknown scheduler {}".format(scheduler))
+
+    @property
+    def device(self) -> device:
+        """
+        Get torch.device from module, assuming that the whole module has one device.
+        """
+        try:
+            return next(self.parameters()).device
+        except StopIteration:
+            # For nn.DataParallel compatibility in PyTorch 1.5
+
+            def find_tensor_attributes(module: nn.Module) -> List[Tuple[str, Tensor]]:
+                tuples = [(k, v) for k, v in module.__dict__.items() if torch.is_tensor(v)]
+                return tuples
+
+            gen = self._named_members(get_members_fn=find_tensor_attributes)
+            first_tuple = next(gen)
+            return first_tuple[1].device

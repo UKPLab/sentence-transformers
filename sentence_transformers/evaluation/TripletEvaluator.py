@@ -26,7 +26,7 @@ class TripletEvaluator(SentenceEvaluator):
         """
         self.dataloader = dataloader
         self.main_distance_function = main_distance_function
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.name = name
         if name:
             name = "_"+name
@@ -45,14 +45,14 @@ class TripletEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("Evaluation the model on "+self.name+" dataset"+out_txt)
+        logging.info("TripletEvaluator: Evaluation the model on "+self.name+" dataset"+out_txt)
 
         num_triplets = 0
         num_correct_cos_triplets, num_correct_manhatten_triplets, num_correct_euclidean_triplets = 0, 0, 0
 
         self.dataloader.collate_fn = model.smart_batching_collate
         for step, batch in enumerate(tqdm(self.dataloader, desc="Evaluating")):
-            features, label_ids = batch_to_device(batch, self.device)
+            features, label_ids = batch_to_device(batch, model.device)
             with torch.no_grad():
                 emb1, emb2, emb3 = [model(sent_features)['sentence_embedding'].to("cpu").numpy() for sent_features in features]
 

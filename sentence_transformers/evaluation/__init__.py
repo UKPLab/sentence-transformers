@@ -9,6 +9,7 @@ from .LabelAccuracyEvaluator import LabelAccuracyEvaluator
 from .MSEEvaluator import MSEEvaluator
 from .MSEEvaluatorFromDataFrame import MSEEvaluatorFromDataFrame
 from .MSEEvaluatorFromDataLoader import MSEEvaluatorFromDataLoader
+from .ParaphraseMiningEvaluator import ParaphraseMiningEvaluator
 from .SequentialEvaluator import SequentialEvaluator
 from .TranslationEvaluator import TranslationEvaluator
 from .TripletEvaluator import TripletEvaluator
