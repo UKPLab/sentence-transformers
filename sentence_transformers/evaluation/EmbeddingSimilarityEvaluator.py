@@ -43,7 +43,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
         self.show_progress_bar = show_progress_bar
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.csv_file = "similarity_evaluation"+name+"_results.csv"
         self.csv_headers = ["epoch", "steps", "cosine_pearson", "cosine_spearman", "euclidean_pearson", "euclidean_spearman", "manhattan_pearson", "manhattan_spearman", "dot_pearson", "dot_spearman"]
 
@@ -70,7 +70,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             iterator = tqdm(iterator, desc="Convert Evaluating")
 
         for step, batch in enumerate(iterator):
-            features, label_ids = batch_to_device(batch, self.device)
+            features, label_ids = batch_to_device(batch, model.device)
             with torch.no_grad():
                 emb1, emb2 = [model(sent_features)['sentence_embedding'].to("cpu").numpy() for sent_features in features]
 

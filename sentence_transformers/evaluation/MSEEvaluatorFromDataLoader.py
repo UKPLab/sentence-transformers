@@ -14,7 +14,6 @@ class MSEEvaluatorFromDataLoader(SentenceEvaluator):
     """
     def __init__(self, dataloader, name=''):
         self.dataloader = dataloader
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.name = name
 
         if name:
@@ -29,7 +28,7 @@ class MSEEvaluatorFromDataLoader(SentenceEvaluator):
         embeddings = []
         labels = []
         for step, batch in enumerate(self.dataloader):
-            features, batch_labels = batch_to_device(batch, self.device)
+            features, batch_labels = batch_to_device(batch, model.device)
             with torch.no_grad():
                 emb1 = model(features[0])['sentence_embedding'].to("cpu").numpy()
 
