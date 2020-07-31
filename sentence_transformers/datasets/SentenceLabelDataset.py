@@ -22,7 +22,7 @@ class SentenceLabelDataset(Dataset):
     """
 
     def __init__(self, examples: List[InputExample], model: SentenceTransformer, provide_positive: bool = True,
-                 provide_negative: bool = True):
+                 provide_negative: bool = True, is_pretokenized: bool = False):
         """
         Converts input examples to a SentenceLabelDataset usable to train the model with
         SentenceTransformer.smart_batching_collate as the collate_fn for the DataLoader
@@ -49,7 +49,7 @@ class SentenceLabelDataset(Dataset):
         self.grouped_inputs = []
         self.grouped_labels = []
 
-        self.convert_input_examples(examples, model)
+        self.convert_input_examples(examples, model, is_pretokenized)
 
         self.idxs = np.arange(len(self.grouped_inputs))
 
