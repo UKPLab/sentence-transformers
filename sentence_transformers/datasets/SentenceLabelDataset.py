@@ -48,6 +48,7 @@ class SentenceLabelDataset(Dataset):
         self.groups_right_border = []
         self.grouped_inputs = []
         self.grouped_labels = []
+        self.num_labels = 0
 
         self.convert_input_examples(examples, model, is_pretokenized)
 
@@ -111,6 +112,7 @@ class SentenceLabelDataset(Dataset):
                 self.grouped_inputs.extend([inputs[j] for j in label_sent_mapping[label]])
                 self.grouped_labels.extend([labels[j] for j in label_sent_mapping[label]])
                 self.groups_right_border.append(len(self.grouped_inputs)) #At which position does this label group / bucket end?
+                self.num_labels += 1
 
         self.grouped_labels = torch.tensor(self.grouped_labels, dtype=label_type)
         logging.info("Num sentences: %d" % (len(self.grouped_inputs)))

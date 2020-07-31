@@ -39,7 +39,7 @@ class LabelSampler(Sampler):
         self.data_source = data_source
         self.samples_per_label = samples_per_label
         self.label_range = np.arange(data_source.num_labels)
-        self.borders = data_source.labels_right_border
+        self.borders = data_source.groups_right_border
         self.with_replacement = with_replacement
         np.random.shuffle(self.label_range)
 
@@ -50,7 +50,7 @@ class LabelSampler(Sampler):
         while count < len(self.data_source):
             label = self.label_range[label_idx]
             if label not in already_seen:
-                already_seen[label] = []
+                already_seen[label] = set()
 
             left_border = 0 if label == 0 else self.borders[label-1]
             right_border = self.borders[label]
@@ -63,12 +63,13 @@ class LabelSampler(Sampler):
             if len(selection) >= self.samples_per_label:
                 for element_idx in np.random.choice(selection, self.samples_per_label, replace=False):
                     count += 1
-                    already_seen[label].append(element_idx)
+                    already_seen[label].add(element_idx)
                     yield element_idx
 
             label_idx += 1
             if label_idx >= len(self.label_range):
                 label_idx = 0
+                already_seen = {}
                 np.random.shuffle(self.label_range)
 
     def __len__(self):
