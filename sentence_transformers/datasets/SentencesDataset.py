@@ -24,7 +24,7 @@ class SentencesDataset(Dataset):
 
         self.convert_input_examples(examples, model)
 
-    def convert_input_examples(self, examples: List[InputExample], model: SentenceTransformer):
+    def convert_input_examples(self, examples: List[InputExample], model: SentenceTransformer, is_pretokenized: bool = False):
         """
         Converts input examples to a SmartBatchingDataset usable to train the model with
         SentenceTransformer.smart_batching_collate as the collate_fn for the DataLoader
@@ -35,6 +35,8 @@ class SentencesDataset(Dataset):
             the input examples for the training
         :param model
             the Sentence BERT model for the conversion
+        :param is_pretokenized
+            If set to true, no tokenization will be applied. It is expected that the input is tokenized via model.tokenize
         """
         num_texts = len(examples[0].texts)
         inputs = [[] for _ in range(num_texts)]
@@ -53,7 +55,11 @@ class SentencesDataset(Dataset):
                     label_type = torch.long
                 elif isinstance(example.label, float):
                     label_type = torch.float
-            tokenized_texts = [model.tokenize(text) for text in example.texts]
+
+            if is_pretokenized:
+                tokenized_texts = [text for text in example.texts]
+            else:
+                tokenized_texts = [model.tokenize(text) for text in example.texts]
 
             for i, token in enumerate(tokenized_texts):
                 if max_seq_length != None and max_seq_length > 0 and len(token) >= max_seq_length:

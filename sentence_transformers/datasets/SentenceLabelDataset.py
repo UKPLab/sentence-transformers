@@ -57,7 +57,7 @@ class SentenceLabelDataset(Dataset):
         self.provide_negative = provide_negative
 
 
-    def convert_input_examples(self, examples: List[InputExample], model: SentenceTransformer):
+    def convert_input_examples(self, examples: List[InputExample], model: SentenceTransformer, is_pretokenized: bool = False):
         """
         Converts input examples to a SentenceLabelDataset.
 
@@ -70,6 +70,8 @@ class SentenceLabelDataset(Dataset):
             the input examples for the training
         :param model
             the Sentence Transformer model for the conversion
+        :param is_pretokenized
+            If set to true, no tokenization will be applied. It is expected that the input is tokenized via model.tokenize
         """
 
         inputs = []
@@ -87,7 +89,7 @@ class SentenceLabelDataset(Dataset):
                     label_type = torch.long
                 elif isinstance(example.label, float):
                     label_type = torch.float
-            tokenized_text = model.tokenize(example.texts[0])
+            tokenized_text = model.tokenize(example.texts[0]) if not is_pretokenized else example.texts[0]
 
             if hasattr(model, 'max_seq_length') and model.max_seq_length is not None and model.max_seq_length > 0 and len(tokenized_text) > model.max_seq_length:
                 too_long += 1
