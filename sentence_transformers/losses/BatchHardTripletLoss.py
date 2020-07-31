@@ -16,8 +16,9 @@ class BatchHardTripletLoss(nn.Module):
 
 
     # Hard Triplet Loss
-    # Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/triplet_loss.py
+    # Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
     # Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
+    # Blog post: https://omoindrot.github.io/triplet-loss
     @staticmethod
     def batch_hard_triplet_loss(labels: Tensor, embeddings: Tensor, margin: float, squared: bool = False) -> Tensor:
         """Build the triplet loss over a batch of embeddings.
