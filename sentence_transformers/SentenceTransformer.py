@@ -90,7 +90,13 @@ class SentenceTransformer(nn.Sequential):
         self.device = torch.device(device)
         self.to(device)
 
-    def encode(self, sentences: Union[str, List[str], List[int]], batch_size: int = 8, show_progress_bar: bool = None, output_value: str = 'sentence_embedding', convert_to_numpy: bool = True, convert_to_tensor: bool = False, is_pretokenized: bool = False) -> List[ndarray]:
+    def encode(self, sentences: Union[str, List[str], List[int]],
+               batch_size: int = 8,
+               show_progress_bar: bool = None,
+               output_value: str = 'sentence_embedding',
+               convert_to_numpy: bool = True,
+               convert_to_tensor: bool = False,
+               is_pretokenized: bool = False) -> List[ndarray]:
         """
         Computes sentence embeddings
 
@@ -166,9 +172,6 @@ class SentenceTransformer(nn.Sequential):
                     input_mask_expanded = input_mask.unsqueeze(-1).expand(embeddings.size()).float()
                     embeddings = embeddings * input_mask_expanded
 
-                if convert_to_numpy and not convert_to_tensor:
-                    embeddings = np.copy(embeddings.cpu().detach().numpy())
-
                 all_embeddings.extend(embeddings)
 
         reverting_order = np.argsort(length_sorted_idx)
@@ -176,6 +179,8 @@ class SentenceTransformer(nn.Sequential):
 
         if convert_to_tensor:
             all_embeddings = torch.stack(all_embeddings)
+        elif convert_to_numpy:
+            all_embeddings = np.asarray([emb.cpu().detach().numpy() for emb in all_embeddings])
 
         return all_embeddings
 
@@ -278,10 +283,11 @@ class SentenceTransformer(nn.Sequential):
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
             optimizer_class: Type[Optimizer] = transformers.AdamW,
-            optimizer_params : Dict[str, object ]= {'lr': 2e-5, 'eps': 1e-6, 'correct_bias': False},
+            optimizer_params : Dict[str, object]= {'lr': 2e-5, 'eps': 1e-6, 'correct_bias': False},
             weight_decay: float = 0.01,
             evaluation_steps: int = 0,
             output_path: str = None,
+            output_path_ignore_not_empty: bool = False,
             save_best_model: bool = True,
             max_grad_norm: float = 1,
             fp16: bool = False,
@@ -301,6 +307,7 @@ class SentenceTransformer(nn.Sequential):
         :param optimizer:
         :param evaluation_steps:
         :param output_path:
+        :param output_path_ignore_not_empty: Ignore if the output path contains already files
         :param save_best_model:
         :param max_grad_norm:
         :param fp16:
@@ -314,7 +321,7 @@ class SentenceTransformer(nn.Sequential):
         """
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
-            if os.listdir(output_path):
+            if not output_path_ignore_not_empty and len(os.listdir(output_path)) > 0:
                 raise ValueError("Output directory ({}) already exists and is not empty.".format(
                     output_path))
 
