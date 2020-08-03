@@ -4,6 +4,7 @@ from .SimilarityFunction import SimilarityFunction
 from .BinaryEmbeddingSimilarityEvaluator import BinaryEmbeddingSimilarityEvaluator
 from .EmbeddingSimilarityEvaluator import EmbeddingSimilarityEvaluator
 from .EmbeddingSimilarityEvaluatorFromList import EmbeddingSimilarityEvaluatorFromList
+from .InformationRetrievalEvaluator import InformationRetrievalEvaluator
 from .LabelAccuracyEvaluator import LabelAccuracyEvaluator
 from .MSEEvaluator import MSEEvaluator
 from .MSEEvaluatorFromDataFrame import MSEEvaluatorFromDataFrame

@@ -1,19 +1,35 @@
-from . import SentenceEvaluator, SimilarityFunction
-import torch
-from torch.utils.data import DataLoader
+from . import SentenceEvaluator
 import logging
-from tqdm import tqdm
-from sentence_transformers.util import batch_to_device, pytorch_cos_sim
+from sentence_transformers.util import pytorch_cos_sim
 import os
 import csv
-from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 import numpy as np
 from typing import List, Tuple, Dict
 from collections import defaultdict
 import queue
 
 class ParaphraseMiningEvaluator(SentenceEvaluator):
-    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, query_batch_size:int = 100000, corpus_batch_size:int = 250000, max_pairs: int = 500000, show_progress_bar: bool = False,  batch_size:int = 16, name: str = ''):
+    """
+    Given a large set of sentences, this evaluator performs paraphrase (duplicate) mining and
+    identifies the pairs with the highest similarity. It compare the extracted paraphrase pairs
+     with a set of gold labels and computes the F1 score.
+    """
+
+    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, query_batch_size:int = 5000, corpus_batch_size:int = 100000, max_pairs: int = 500000, top_k: int = 100, show_progress_bar: bool = False,  batch_size:int = 16, name: str = ''):
+        """
+
+        :param sentences_map: A dictionary that maps sentence-ids to sentences, i.e. sentences_map[id] => sentence.
+        :param duplicates_list: Duplicates_list is a list with id pairs [(id1, id2), (id1, id5)] that identifies the duplicates / paraphrases in the sentences_map
+        :param query_batch_size: To identify the paraphrases, the cosine-similarity between all sentence-pairs will be computed. As this might require a lot of memory, we perform a batched computation.  #query_batch_size sentences will be compared against up to #corpus_batch_size sentences. In the default setting, 5000 sentences will be grouped together and compared up-to against 100k other sentences.
+        :param corpus_batch_size: The corpus will be batched, to reduce the memory requirement
+        :param max_pairs: We will only extract up to #max_pairs potential paraphrase candidates.
+        :param top_k: For each query, we extract the top_k most similar pairs and add it to a sorted list. I.e., for one sentence we cannot find more than top_k paraphrases
+        :param show_progress_bar: Output a progress bar
+        :param batch_size: Batch size for computing sentence embeddings
+        :param name: Name of the experiment
+        """
+
+
         self.sentences = []
         self.ids = []
 
@@ -27,6 +43,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.query_batch_size = query_batch_size
         self.corpus_batch_size = corpus_batch_size
         self.max_pairs = max_pairs
+        self.k = top_k
 
         self.duplicates = defaultdict(lambda: defaultdict(bool))
         self.total_num_duplicates = 0
@@ -70,11 +87,11 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
                 cos_scores = np.nan_to_num(cos_scores)
 
                 # logging.info("Sort scores")
-                cos_score_argsort = np.argpartition(-cos_scores, 100)
+                cos_score_argpartition = np.argpartition(-cos_scores, self.k)
 
                 # logging.info("Find most similar pairs out of {} queries".format(len(cos_scores)))
                 for query_itr in range(len(cos_scores)):
-                    for corpus_itr in cos_score_argsort[query_itr][0:100]:
+                    for corpus_itr in cos_score_argpartition[query_itr][0:self.k]:
                         i = query_start_idx + query_itr
                         j = corpus_start_idx + corpus_itr
 

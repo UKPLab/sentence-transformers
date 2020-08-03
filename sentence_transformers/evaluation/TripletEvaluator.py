@@ -80,8 +80,6 @@ class TripletEvaluator(SentenceEvaluator):
                 if pos_euclidean_distance[idx] < neg_euclidean_distances[idx]:
                     num_correct_euclidean_triplets += 1
 
-
-
         accuracy_cos = num_correct_cos_triplets / num_triplets
         accuracy_manhatten = num_correct_manhatten_triplets / num_triplets
         accuracy_euclidean = num_correct_euclidean_triplets / num_triplets

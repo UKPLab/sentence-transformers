@@ -12,7 +12,7 @@ class MSEEvaluator(SentenceEvaluator):
     """
     def __init__(self, source_sentences: List[str], target_sentences: List[str], teacher_model = None, show_progress_bar: bool = False, batch_size:int = 8, name: str = ''):
         self.source_sentences = source_sentences
-        self.source_embeddings = np.asarray(teacher_model.encode(source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size))
+        self.source_embeddings = teacher_model.encode(source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True)
 
         self.target_sentences = target_sentences
         self.show_progress_bar = show_progress_bar
