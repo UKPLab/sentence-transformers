@@ -7,6 +7,8 @@ import numpy as np
 from tqdm import tqdm
 from .. import SentenceTransformer
 from ..readers.InputExample import InputExample
+from multiprocessing import Pool, cpu_count
+import multiprocessing
 
 class SentenceLabelDataset(Dataset):
     """
@@ -22,7 +24,10 @@ class SentenceLabelDataset(Dataset):
     """
 
     def __init__(self, examples: List[InputExample], model: SentenceTransformer, provide_positive: bool = True,
-                 provide_negative: bool = True, is_pretokenized: bool = False):
+                 provide_negative: bool = True,
+                 parallel_tokenization: bool = True,
+                 max_processes: int = 4,
+                 chunk_size: int = 5000):
         """
         Converts input examples to a SentenceLabelDataset usable to train the model with
         SentenceTransformer.smart_batching_collate as the collate_fn for the DataLoader
@@ -43,14 +48,28 @@ class SentenceLabelDataset(Dataset):
         :param provide_negative:
             set this to False, if you don't need a negative example (e.g. for BATCH_HARD_TRIPLET_LOSS
             or MULTIPLE_NEGATIVES_RANKING_LOSS).
+        :param parallel_tokenization
+            If true, multiple processes will be started for the tokenization
+        :param max_processes
+            Maximum number of processes started for tokenization. Cannot be larger can cpu_count()
+        :param chunk_size
+            #chunk_size number of examples are send to each process. Larger values increase overall tokenization speed
         """
         self.model = model
         self.groups_right_border = []
         self.grouped_inputs = []
         self.grouped_labels = []
         self.num_labels = 0
+        self.max_processes = min(max_processes, cpu_count())
+        self.chunk_size = chunk_size
+        self.parallel_tokenization = parallel_tokenization
 
-        self.convert_input_examples(examples, model, is_pretokenized)
+        if self.parallel_tokenization:
+            if multiprocessing.get_start_method() != 'fork':
+                logging.info("Parallel tokenization is only available on Unix systems which allow to fork processes. Fall back to sequential tokenization")
+                self.parallel_tokenization = False
+
+        self.convert_input_examples(examples, model)
 
         self.idxs = np.arange(len(self.grouped_inputs))
 
@@ -58,7 +77,7 @@ class SentenceLabelDataset(Dataset):
         self.provide_negative = provide_negative
 
 
-    def convert_input_examples(self, examples: List[InputExample], model: SentenceTransformer, is_pretokenized: bool = False):
+    def convert_input_examples(self, examples: List[InputExample], model: SentenceTransformer):
         """
         Converts input examples to a SentenceLabelDataset.
 
@@ -82,6 +101,15 @@ class SentenceLabelDataset(Dataset):
         too_long = 0
         label_type = None
 
+        logging.info("Start tokenization")
+        if not self.parallel_tokenization or self.max_processes == 1 or len(examples) <= self.chunk_size:
+            tokenized_texts = [self.tokenize_example(example) for example in examples]
+        else:
+            logging.info("Use multi-process tokenization with {} processes".format(self.max_processes))
+            self.model.to('cpu')
+            with Pool(self.max_processes) as p:
+                tokenized_texts = list(p.imap(self.tokenize_example, examples, chunksize=self.chunk_size))
+
         # Group examples and labels
         # Add examples with the same label to the same dict
         for ex_index, example in enumerate(tqdm(examples, desc="Convert dataset")):
@@ -90,7 +118,7 @@ class SentenceLabelDataset(Dataset):
                     label_type = torch.long
                 elif isinstance(example.label, float):
                     label_type = torch.float
-            tokenized_text = model.tokenize(example.texts[0]) if not is_pretokenized else example.texts[0]
+            tokenized_text = tokenized_texts[ex_index][0]
 
             if hasattr(model, 'max_seq_length') and model.max_seq_length is not None and model.max_seq_length > 0 and len(tokenized_text) > model.max_seq_length:
                 too_long += 1
@@ -120,6 +148,11 @@ class SentenceLabelDataset(Dataset):
         logging.info("Number of labels with >1 examples: {}".format(len(distinct_labels)))
 
 
+    def tokenize_example(self, example):
+        if example.texts_tokenized is not None:
+            return example.texts_tokenized
+
+        return [self.model.tokenize(text) for text in example.texts]
 
     def __getitem__(self, item):
         if not self.provide_positive and not self.provide_negative:
