@@ -15,13 +15,13 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
      with a set of gold labels and computes the F1 score.
     """
 
-    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, query_batch_size:int = 5000, corpus_batch_size:int = 100000, max_pairs: int = 500000, top_k: int = 100, show_progress_bar: bool = False,  batch_size:int = 16, name: str = ''):
+    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, query_chunk_size:int = 5000, corpus_chunk_size:int = 100000, max_pairs: int = 500000, top_k: int = 100, show_progress_bar: bool = False, batch_size:int = 16, name: str = ''):
         """
 
         :param sentences_map: A dictionary that maps sentence-ids to sentences, i.e. sentences_map[id] => sentence.
         :param duplicates_list: Duplicates_list is a list with id pairs [(id1, id2), (id1, id5)] that identifies the duplicates / paraphrases in the sentences_map
-        :param query_batch_size: To identify the paraphrases, the cosine-similarity between all sentence-pairs will be computed. As this might require a lot of memory, we perform a batched computation.  #query_batch_size sentences will be compared against up to #corpus_batch_size sentences. In the default setting, 5000 sentences will be grouped together and compared up-to against 100k other sentences.
-        :param corpus_batch_size: The corpus will be batched, to reduce the memory requirement
+        :param query_chunk_size: To identify the paraphrases, the cosine-similarity between all sentence-pairs will be computed. As this might require a lot of memory, we perform a batched computation.  #query_batch_size sentences will be compared against up to #corpus_batch_size sentences. In the default setting, 5000 sentences will be grouped together and compared up-to against 100k other sentences.
+        :param corpus_chunk_size: The corpus will be batched, to reduce the memory requirement
         :param max_pairs: We will only extract up to #max_pairs potential paraphrase candidates.
         :param top_k: For each query, we extract the top_k most similar pairs and add it to a sorted list. I.e., for one sentence we cannot find more than top_k paraphrases
         :param show_progress_bar: Output a progress bar
@@ -40,8 +40,8 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.name = name
         self.show_progress_bar = show_progress_bar
         self.batch_size = batch_size
-        self.query_batch_size = query_batch_size
-        self.corpus_batch_size = corpus_batch_size
+        self.query_chunk_size = query_chunk_size
+        self.corpus_chunk_size = corpus_chunk_size
         self.max_pairs = max_pairs
         self.k = top_k
 
@@ -77,10 +77,10 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         min_score = -1
         num_added = 0
 
-        for corpus_start_idx in range(0, len(embeddings), self.corpus_batch_size):
-            corpus_end_idx = min(corpus_start_idx + self.corpus_batch_size, len(embeddings))
-            for query_start_idx in range(0, len(embeddings), self.query_batch_size):
-                query_end_idx = min(query_start_idx + self.query_batch_size, len(embeddings))
+        for corpus_start_idx in range(0, len(embeddings), self.corpus_chunk_size):
+            corpus_end_idx = min(corpus_start_idx + self.corpus_chunk_size, len(embeddings))
+            for query_start_idx in range(0, len(embeddings), self.query_chunk_size):
+                query_end_idx = min(query_start_idx + self.query_chunk_size, len(embeddings))
 
                 # logging.info("Compute cosine similarities")
                 cos_scores = pytorch_cos_sim(embeddings[query_start_idx:query_end_idx], embeddings[corpus_start_idx:corpus_end_idx]).cpu().numpy()

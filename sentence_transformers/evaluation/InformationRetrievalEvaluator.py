@@ -23,8 +23,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                  queries: Dict[str, str],  #qid => query
                  corpus: Dict[str, str],  #cid => doc
                  relevant_docs: Dict[str, Set[str]],  #qid => Set[cid]
-                 query_batch_size: int = 1000,
-                 corpus_batch_size: int = 500000,
+                 query_chunk_size: int = 1000,
+                 corpus_chunk_size: int = 500000,
                  mrr_at_k: List[int] = [10],
                  ndcg_at_k: List[int] = [10],
                  accuracy_at_k: List[int] = [1, 3, 5, 10],
@@ -44,8 +44,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.corpus = [corpus[cid] for cid in self.corpus_ids]
 
         self.relevant_docs = relevant_docs
-        self.query_batch_size = query_batch_size
-        self.corpus_batch_size = corpus_batch_size
+        self.query_chunk_size = query_chunk_size
+        self.corpus_chunk_size = corpus_chunk_size
         self.mrr_at_k = mrr_at_k
         self.ndcg_at_k = ndcg_at_k
         self.accuracy_at_k = accuracy_at_k
@@ -99,14 +99,14 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         #Compute embedding for the corpus
         corpus_embeddings = model.encode(self.corpus, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_tensor=True)
 
-        for query_start_idx in range(0, len(query_embeddings), self.query_batch_size):
-            query_end_idx = min(query_start_idx+self.query_batch_size, len(query_embeddings))
+        for query_start_idx in range(0, len(query_embeddings), self.query_chunk_size):
+            query_end_idx = min(query_start_idx + self.query_chunk_size, len(query_embeddings))
 
             queries_result_list = [[] for _ in range(query_start_idx, query_end_idx)]
 
             #Iterate over chunks of the corpus
-            for corpus_start_idx in range(0, len(corpus_embeddings), self.corpus_batch_size):
-                corpus_end_idx = min(corpus_start_idx+self.corpus_batch_size, len(corpus_embeddings))
+            for corpus_start_idx in range(0, len(corpus_embeddings), self.corpus_chunk_size):
+                corpus_end_idx = min(corpus_start_idx + self.corpus_chunk_size, len(corpus_embeddings))
 
                 #Compute cosine similarites
                 cos_scores = pytorch_cos_sim(query_embeddings[query_start_idx:query_end_idx], corpus_embeddings[corpus_start_idx:corpus_end_idx]).cpu().numpy()
