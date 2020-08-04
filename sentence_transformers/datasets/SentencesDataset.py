@@ -50,7 +50,7 @@ class SentencesDataset(Dataset):
                 self.parallel_tokenization = False
 
         self.examples = examples
-        self.convert_input_examples(examples)
+        self.convert_input_examples()
 
     def convert_input_examples(self):
         """

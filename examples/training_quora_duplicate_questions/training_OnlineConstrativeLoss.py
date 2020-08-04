@@ -1,14 +1,12 @@
 """
-This scripts demonstrates how to train a sentence embedding model for Information Retrieval.
+This scripts demonstrates how to train a sentence embedding model for question pair classification
+with cosine-similarity and a simple threshold.
 
-As dataset, we use Quora Duplicates Questions, where we have pairs of duplicate questions.
+As dataset, we use Quora Duplicates Questions, where we have labeled pairs of  questions beeing either duplicates (label 1) or non-duplicate (label 0).
 
-As loss function, we use MultipleNegativesRankingLoss. Here, we only need positive pairs, i.e., pairs of sentences/texts that are considered to be relevant. Our dataset looks like this (a_1, b_1), (a_2, b_2), ... with a_i / b_i a text and (a_i, b_i) are relevant (e.g. are duplicates).
+As loss function, we use OnlineConstrativeLoss. It reduces the distance between positive pairs, i.e., it pulls the embeddings of positive pairs closer together. For negative pairs, it pushes them further apart.
 
-MultipleNegativesRankingLoss takes a random subset of these, for example (a_1, b_1), ..., (a_n, b_n). a_i and b_i are considered to be relevant and should be close in vector space. All other b_j (for i != j) are negative examples and the distance between a_i and b_j should be maximized. Note: MultipleNegativesRankingLoss only works if a random b_j is likely not to be relevant for a_i. This is the case for our duplicate questions dataset: If a sample randomly b_j, it is unlikely to be a duplicate of a_i.
-
-
-The model we get works well for duplicate questions mining and for duplicate questions information retrieval. For question pair classification, other losses (like OnlineConstrativeLoss) work better.
+An issue with constrative loss is, that it might push sentences away that are already well positioned in vector space.
 """
 
 from torch.utils.data import DataLoader
@@ -32,17 +30,17 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 #As base model, we use DistilBERT-base that was pre-trained on NLI and STSb data
 model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
-
-#Training for multiple epochs can be beneficial, as in each epoch a mini-batch is sampled differently
-#hence, we get different negatives for each positive
 num_epochs = 10
-
-#Increasing the batch size improves the performance for MultipleNegativesRankingLoss. Choose it as large as possible
-#I achieved the good results with a batch size of 300-350 (requires about 30 GB of GPU memory)
 train_batch_size = 64
 
+#As distance metric, we use cosine distance (cosine_distance = 1-cosine_similarity)
+distance_metric = losses.SiameseDistanceMetric.COSINE_DISTANCE
+
+#Negative pairs should have a distance of at least 0.5
+margin = 0.5
+
 dataset_path = 'quora-IR-dataset'
-model_save_path = 'output/training_MultipleNegativesRankingLoss-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+model_save_path = 'output/training_OnlineConstrativeLoss-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 os.makedirs(model_save_path, exist_ok=True)
 
@@ -56,39 +54,19 @@ if not os.path.exists(dataset_path):
 
 
 ######### Read train data  ##########
-train_ids = set()
-train_sentences = {}
+# Read train data
 train_samples = []
-
-# First, we read the question ids (qid) that belong to the train split
-with open("quora-IR-dataset/graph/train-questions.tsv", encoding='utf8') as fIn:
-    next(fIn)   #Skip header
-    for qid in fIn:
-        train_ids.add(qid.strip())
-
-# Then, from all sentences, we only extract the train sentences
-with open("quora-IR-dataset/graph/sentences.tsv", encoding='utf8') as fIn:
+with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
     for row in reader:
-        if row['qid'] in train_ids:
-            train_sentences[row['qid']] = row['question']
-
-# Finally, we exract all duplicate relations. These are given in the format (qid1, qid2) indicating that question1 and question2 are duplicates.
-# For MultipleNegativesRankingLoss, we only require positive relation, i.e. only sentence pairs that are duplicates. It will
-# automatically sample train_batch_size-1 negative pairs.
-with open("quora-IR-dataset/graph/duplicates-graph-pairwise.tsv", encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
-    for row in reader:
-        if row['qid1'] in train_ids and row['qid2'] in train_ids:
-            #If A is a duplicate of B, then B is also a duplicate of A. Add both (a, b) and (b, a)
-            train_samples.append(InputExample(texts=[train_sentences[row['qid1']], train_sentences[row['qid2']]], label=1))
-            train_samples.append(InputExample(texts=[train_sentences[row['qid2']], train_sentences[row['qid1']]], label=1))
+        sample = InputExample(texts=[row['question1'], row['question2']], label=int(row['is_duplicate']))
+        train_samples.append(sample)
 
 
-# After reading the train_samples, we create a SentencesDataset and a DataLoader
 train_dataset = SentencesDataset(train_samples, model=model)
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
-train_loss = losses.MultipleNegativesRankingLoss(model)
+train_loss = losses.OnlineContrastiveLoss(model=model, distance_metric=distance_metric, margin=margin)
+
 
 
 ################### Development  Evaluators ##################
@@ -191,7 +169,7 @@ for qid in other_qid_list[0:max(0, max_corpus_size-len(ir_corpus))]:
 # metrices. For our use case MRR@k and Accuracy@k are relevant.
 ir_evaluator = evaluation.InformationRetrievalEvaluator(ir_queries, ir_corpus, ir_relevant_docs)
 
-evaluators.append(ir_evaluator)
+evaluators.append((ir_evaluator))
 
 # Create a SequentialEvaluator. This SequentialEvaluator runs all three evaluators in a sequential order.
 # We optimize the model with respect to the score from the last evaluator (scores[-1])

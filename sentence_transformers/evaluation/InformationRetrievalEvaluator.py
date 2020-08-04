@@ -50,7 +50,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.ndcg_at_k = ndcg_at_k
         self.accuracy_at_k = accuracy_at_k
         self.precision_recall_at_k = precision_recall_at_k
-        self.show_progress_bar = show_progress_bar,
+        self.show_progress_bar = show_progress_bar
         self.batch_size = batch_size
         self.name = name
 
@@ -180,8 +180,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             MRR[k] /= len(self.queries)
 
         #Output
-        logging.info("Queries: {}".format(len(self.queries)))
-        logging.info("Corpus: {}".format(len(self.corpus)))
+
 
         for k in num_hits_at_k:
             logging.info("Accuracy@{}: {:.2f}%".format(k, num_hits_at_k[k]*100))
@@ -197,6 +196,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
         for k in ndcg:
             logging.info("NDCG@{}: {:.4f}".format(k, ndcg[k]))
+        logging.info("Queries: {}".format(len(self.queries)))
+        logging.info("Corpus: {}\n".format(len(self.corpus)))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)
