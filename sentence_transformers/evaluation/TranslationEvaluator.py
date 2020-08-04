@@ -14,7 +14,7 @@ class TranslationEvaluator(SentenceEvaluator):
     and assuming that fr_i is the translation of en_i.
     Checks if vec(en_i) has the highest similarity to vec(fr_i). Computes the accurarcy in both directions
     """
-    def __init__(self, source_sentences: List[str], target_sentences: List[str],  show_progress_bar: bool = False, batch_size: int = 8, name: str = '', print_wrong_matches: bool = False):
+    def __init__(self, source_sentences: List[str], target_sentences: List[str],  show_progress_bar: bool = False, batch_size: int = 16, name: str = '', print_wrong_matches: bool = False):
         """
         Constructs an evaluator based for the dataset
 

@@ -8,6 +8,8 @@ import os
 import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 import numpy as np
+from typing import List
+from ..readers import InputExample
 
 
 class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
@@ -22,8 +24,9 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
     The results are written in a CSV. If a CSV already exists, then values are appended.
     """
 
-    def __init__(self, dataloader: DataLoader,
-                 main_similarity: SimilarityFunction = SimilarityFunction.COSINE, name: str = ''):
+    def __init__(self, sentences1: List[str], sentences2: List[str], labels: List[int],
+                 main_similarity: SimilarityFunction = SimilarityFunction.COSINE, name: str = '',
+                 batch_size: int = 16, show_progress_bar: bool = False):
         """
         Constructs an evaluator based for the dataset
 
@@ -34,20 +37,38 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
         :param main_similarity:
             the similarity metric that will be used for the returned score
         """
-        self.dataloader = dataloader
+        self.sentences1 = sentences1
+        self.sentences2 = sentences2
+        self.labels = labels
+
+        assert len(self.sentences1) == len(self.sentences2)
+        assert len(self.sentences1) == len(self.labels)
+        for label in labels:
+            assert (label == 0 or label == 1)
+
         self.main_similarity = main_similarity
         self.name = name
-        if name:
-            name = "_" + name
+        self.batch_size = batch_size
+        if show_progress_bar is None:
+            show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
+        self.show_progress_bar = show_progress_bar
 
-        self.csv_file: str = "binary_similarity_evaluation" + name + "_results.csv"
-        self.csv_headers = ["epoch", "steps", "cosine_acc", "euclidean_acc", "manhattan_acc"]
+        self.csv_file: str = "binary_similarity_evaluation" + ("_"+name if name else '') + "_results.csv"
+        self.csv_headers = ["epoch", "steps", "cosine_acc", "cosine_threshold", "manhattan_acc", "manhattan_threshold", "euclidean_acc", "euclidean_threshold", "dot-product_acc", "dot-product_threshold"]
+
+    @classmethod
+    def from_input_examples(cls, examples: List[InputExample], **kwargs):
+        sentences1 = []
+        sentences2 = []
+        scores = []
+
+        for example in examples:
+            sentences1.append(example.texts[0])
+            sentences2.append(example.texts[1])
+            scores.append(example.label)
+        return cls(sentences1, sentences2, scores, **kwargs)
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
-        model.eval()
-        embeddings1 = []
-        embeddings2 = []
-        labels = []
 
         if epoch != -1:
             if steps == -1:
@@ -58,35 +79,30 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
             out_txt = ":"
 
         logging.info("Binary Accuracy Evaluation of the model on " + self.name + " dataset" + out_txt)
-        self.dataloader.collate_fn = model.smart_batching_collate
-        for step, batch in enumerate(tqdm(self.dataloader, desc="Evaluating")):
-            features, label_ids = batch_to_device(batch, model.device)
-            with torch.no_grad():
-                emb1, emb2 = [model(sent_features)['sentence_embedding'].to("cpu").numpy() for sent_features in
-                              features]
+        embeddings1 = model.encode(self.sentences1, batch_size=self.batch_size,
+                                   show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
+        embeddings2 = model.encode(self.sentences2, batch_size=self.batch_size,
+                                   show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
 
-            labels.extend(label_ids.to("cpu").numpy())
-            embeddings1.extend(emb1)
-            embeddings2.extend(emb2)
         cosine_scores = 1-paired_cosine_distances(embeddings1, embeddings2)
         manhattan_distances = paired_manhattan_distances(embeddings1, embeddings2)
         euclidean_distances = paired_euclidean_distances(embeddings1, embeddings2)
+        dot_products = [np.dot(emb1, emb2) for emb1, emb2 in zip(embeddings1, embeddings2)]
 
-        # Ensure labels are just 0 or 1
-        for label in labels:
-            assert (label == 0 or label == 1)
-
-        labels = np.asarray(labels)
+        labels = np.asarray(self.labels)
         cosine_acc, cosine_threshold = self.find_best_acc_and_threshold(cosine_scores, labels, True)
         manhattan_acc, manhatten_threshold = self.find_best_acc_and_threshold(manhattan_distances, labels, False)
         euclidean_acc, euclidean_threshold = self.find_best_acc_and_threshold(euclidean_distances, labels, False)
+        dot_acc, dot_threshold = self.find_best_acc_and_threshold(dot_products, labels, False)
 
         logging.info("Accuracy with Cosine-Similarity:\t{:.2f}\t(Threshold: {:.4f})".format(
             cosine_acc*100, cosine_threshold))
         logging.info("Accuracy with Manhattan-Distance:\t{:.2f}\t(Threshold: {:.4f})".format(
             manhattan_acc*100, manhatten_threshold))
-        logging.info("Accuracy with Euclidean-Distance:\t{:.2f}\t(Threshold: {:.4f})\n".format(
+        logging.info("Accuracy with Euclidean-Distance:\t{:.2f}\t(Threshold: {:.4f})".format(
             euclidean_acc*100, euclidean_threshold))
+        logging.info("Accuracy with Dot-Product:\t{:.2f}\t(Threshold: {:.4f})\n".format(
+            dot_acc * 100, dot_threshold))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)
@@ -94,11 +110,11 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
                 with open(csv_path, mode="w", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow(self.csv_headers)
-                    writer.writerow([epoch, steps, cosine_acc, euclidean_acc, manhattan_acc])
+                    writer.writerow([epoch, steps, cosine_acc, cosine_threshold, manhattan_acc, manhatten_threshold, euclidean_acc, euclidean_threshold, dot_acc, dot_threshold])
             else:
                 with open(csv_path, mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
-                    writer.writerow([epoch, steps, cosine_acc, euclidean_acc, manhattan_acc])
+                    writer.writerow([epoch, steps, cosine_acc, cosine_threshold, manhattan_acc, manhatten_threshold, euclidean_acc, euclidean_threshold, dot_acc, dot_threshold])
 
         if self.main_similarity == SimilarityFunction.COSINE:
             return cosine_acc

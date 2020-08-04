@@ -3,12 +3,11 @@ from .SimilarityFunction import SimilarityFunction
 
 from .BinaryEmbeddingSimilarityEvaluator import BinaryEmbeddingSimilarityEvaluator
 from .EmbeddingSimilarityEvaluator import EmbeddingSimilarityEvaluator
-from .EmbeddingSimilarityEvaluatorFromList import EmbeddingSimilarityEvaluatorFromList
+
 from .InformationRetrievalEvaluator import InformationRetrievalEvaluator
 from .LabelAccuracyEvaluator import LabelAccuracyEvaluator
 from .MSEEvaluator import MSEEvaluator
 from .MSEEvaluatorFromDataFrame import MSEEvaluatorFromDataFrame
-from .MSEEvaluatorFromDataLoader import MSEEvaluatorFromDataLoader
 from .ParaphraseMiningEvaluator import ParaphraseMiningEvaluator
 from .SequentialEvaluator import SequentialEvaluator
 from .TranslationEvaluator import TranslationEvaluator

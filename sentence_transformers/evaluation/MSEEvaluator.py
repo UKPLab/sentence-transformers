@@ -10,7 +10,7 @@ class MSEEvaluator(SentenceEvaluator):
     Computes the mean squared error (x100) between the computed sentence embedding
     and some target sentence embedding
     """
-    def __init__(self, source_sentences: List[str], target_sentences: List[str], teacher_model = None, show_progress_bar: bool = False, batch_size:int = 8, name: str = ''):
+    def __init__(self, source_sentences: List[str], target_sentences: List[str], teacher_model = None, show_progress_bar: bool = False, batch_size: int = 16, name: str = ''):
         self.source_sentences = source_sentences
         self.source_embeddings = teacher_model.encode(source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True)
 

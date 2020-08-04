@@ -1,15 +1,13 @@
 from . import SentenceEvaluator, SimilarityFunction
-from torch.utils.data import DataLoader
-
 import torch
 import logging
-from tqdm import tqdm
-from ..util import batch_to_device
 import os
 import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 from scipy.stats import pearsonr, spearmanr
 import numpy as np
+from typing import List
+from ..readers import InputExample
 
 class EmbeddingSimilarityEvaluator(SentenceEvaluator):
     """
@@ -20,39 +18,52 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
     The results are written in a CSV. If a CSV already exists, then values are appended.
     """
-
-
-    def __init__(self, dataloader: DataLoader, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = None):
+    def __init__(self, sentences1: List[str], sentences2: List[str], scores: List[float], batch_size: int = 16, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = False):
         """
         Constructs an evaluator based for the dataset
 
         The labels need to indicate the similarity between the sentences.
 
-        :param dataloader:
-            the data for the evaluation
-        :param main_similarity:
-            the similarity metric that will be used for the returned score
+        :param sentences1:
+            List with the first sentence in a pair
+        :param sentences2:
+            List with the second sentence in a pair
+        :param scores:
+            Similarity score between sentences1[i] and sentences2[i]
+
         """
-        self.dataloader = dataloader
+        self.sentences1 = sentences1
+        self.sentences2 = sentences2
+        self.scores = scores
+
+        assert len(self.sentences1) == len(self.sentences2)
+        assert len(self.sentences1) == len(self.scores)
+
         self.main_similarity = main_similarity
         self.name = name
-        if name:
-            name = "_"+name
 
+        self.batch_size = batch_size
         if show_progress_bar is None:
             show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
         self.show_progress_bar = show_progress_bar
 
-
-        self.csv_file = "similarity_evaluation"+name+"_results.csv"
+        self.csv_file = "similarity_evaluation"+("_"+name if name else '')+"_results.csv"
         self.csv_headers = ["epoch", "steps", "cosine_pearson", "cosine_spearman", "euclidean_pearson", "euclidean_spearman", "manhattan_pearson", "manhattan_spearman", "dot_pearson", "dot_spearman"]
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
-        model.eval()
-        embeddings1 = []
-        embeddings2 = []
-        labels = []
+    @classmethod
+    def from_input_examples(cls, examples: List[InputExample], **kwargs):
+        sentences1 = []
+        sentences2 = []
+        scores = []
 
+        for example in examples:
+            sentences1.append(example.texts[0])
+            sentences2.append(example.texts[1])
+            scores.append(example.label)
+        return cls(sentences1, sentences2, scores, **kwargs)
+
+
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)
@@ -61,30 +72,13 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("Evaluation the model on "+self.name+" dataset"+out_txt)
+        logging.info("Evaluation the model on " + self.name + " dataset" + out_txt)
 
-        self.dataloader.collate_fn = model.smart_batching_collate
+        embeddings1 = model.encode(self.sentences1, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
+        embeddings2 = model.encode(self.sentences2, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
+        labels = self.scores
 
-        iterator = self.dataloader
-        if self.show_progress_bar:
-            iterator = tqdm(iterator, desc="Convert Evaluating")
-
-        for step, batch in enumerate(iterator):
-            features, label_ids = batch_to_device(batch, model.device)
-            with torch.no_grad():
-                emb1, emb2 = [model(sent_features)['sentence_embedding'].to("cpu").numpy() for sent_features in features]
-
-            labels.extend(label_ids.to("cpu").numpy())
-            embeddings1.extend(emb1)
-            embeddings2.extend(emb2)
-
-        try:
-            cosine_scores = 1 - (paired_cosine_distances(embeddings1, embeddings2))
-        except Exception as e:
-            print(embeddings1)
-            print(embeddings2)
-            raise(e)
-
+        cosine_scores = 1 - (paired_cosine_distances(embeddings1, embeddings2))
         manhattan_distances = -paired_manhattan_distances(embeddings1, embeddings2)
         euclidean_distances = -paired_euclidean_distances(embeddings1, embeddings2)
         dot_products = [np.dot(emb1, emb2) for emb1, emb2 in zip(embeddings1, embeddings2)]
