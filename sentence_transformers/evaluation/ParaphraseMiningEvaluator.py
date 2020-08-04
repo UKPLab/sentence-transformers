@@ -28,8 +28,6 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         :param batch_size: Batch size for computing sentence embeddings
         :param name: Name of the experiment
         """
-
-
         self.sentences = []
         self.ids = []
 
