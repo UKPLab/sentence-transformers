@@ -3,7 +3,7 @@ This file contains sampler functions, that can be used to sample mini-batches wi
 """
 from torch.utils.data import Sampler
 import numpy as np
-from .datasets import SentenceLabelDataset
+from ...datasets import SentenceLabelDataset
 
 
 class LabelSampler(Sampler):
