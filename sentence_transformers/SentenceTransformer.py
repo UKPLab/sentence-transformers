@@ -504,3 +504,17 @@ class SentenceTransformer(nn.Sequential):
             gen = self._named_members(get_members_fn=find_tensor_attributes)
             first_tuple = next(gen)
             return first_tuple[1].device
+
+    @property
+    def tokenizer(self):
+        """
+        Property to get the tokenizer that is used by this model
+        """
+        return self._first_module().tokenizer
+
+    @tokenizer.setter
+    def tokenizer(self, value):
+        """
+        Property to set the tokenizer that is should used by this model
+        """
+        self._first_module().tokenizer = value
