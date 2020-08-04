@@ -7,8 +7,8 @@ with open("README.md", mode="r", encoding="utf-8") as readme_file:
 
 setup(
     name="sentence-transformers",
-    version="0.3.2",
-    author="Nils Reimers, Gregor Geigle",
+    version="0.3.3",
+    author="Nils Reimers",
     author_email="info@nils-reimers.de",
     description="Sentence Embeddings using BERT / RoBERTa / XLNet",
     long_description=readme,

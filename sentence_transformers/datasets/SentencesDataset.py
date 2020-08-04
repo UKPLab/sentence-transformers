@@ -49,9 +49,10 @@ class SentencesDataset(Dataset):
                 logging.info("Parallel tokenization is only available on Unix systems which allow to fork processes. Fall back to sequential tokenization")
                 self.parallel_tokenization = False
 
+        self.examples = examples
         self.convert_input_examples(examples)
 
-    def convert_input_examples(self, examples: List[InputExample]):
+    def convert_input_examples(self):
         """
         Converts input examples to a SmartBatchingDataset usable to train the model with
         SentenceTransformer.smart_batching_collate as the collate_fn for the DataLoader
@@ -64,7 +65,7 @@ class SentencesDataset(Dataset):
             the Sentence BERT model for the conversion
 
         """
-        num_texts = len(examples[0].texts)
+        num_texts = len(self.examples[0].texts)
         inputs = [[] for _ in range(num_texts)]
         labels = []
         too_long = [0] * num_texts
@@ -72,34 +73,34 @@ class SentencesDataset(Dataset):
         max_seq_length = self.model.get_max_seq_length()
 
         logging.info("Start tokenization")
-        if not self.parallel_tokenization or self.max_processes == 1 or len(examples) <= self.chunk_size:
-            tokenized_texts = [self.tokenize_example(example) for example in examples]
+        if not self.parallel_tokenization or self.max_processes == 1 or len(self.examples) <= self.chunk_size:
+            tokenized_texts = [self.tokenize_example(example) for example in self.examples]
         else:
             logging.info("Use multi-process tokenization with {} processes".format(self.max_processes))
             self.model.to('cpu')
             with Pool(self.max_processes) as p:
-                tokenized_texts = list(p.imap(self.tokenize_example, examples, chunksize=self.chunk_size))
+                tokenized_texts = list(p.imap(self.tokenize_example, self.examples, chunksize=self.chunk_size))
 
-        for ex_index, example in enumerate(examples):
+        for ex_index, example in enumerate(self.examples):
             if label_type is None:
                 if isinstance(example.label, int):
                     label_type = torch.long
                 elif isinstance(example.label, float):
                     label_type = torch.float
 
-            example_tokenized = tokenized_texts[ex_index]
+            example.texts_tokenized = tokenized_texts[ex_index]
 
-            for i, token in enumerate(example_tokenized):
+            for i, token in enumerate(example.texts_tokenized):
                 if max_seq_length is not None and max_seq_length > 0 and len(token) >= max_seq_length:
                     too_long[i] += 1
 
             labels.append(example.label)
             for i in range(num_texts):
-                inputs[i].append(example_tokenized[i])
+                inputs[i].append(example.texts_tokenized[i])
 
         tensor_labels = torch.tensor(labels, dtype=label_type)
 
-        logging.info("Num sentences: %d" % (len(examples)))
+        logging.info("Num sentences: %d" % (len(self.examples)))
         for i in range(num_texts):
             logging.info("Sentences {} longer than max_seqence_length: {}".format(i, too_long[i]))
 

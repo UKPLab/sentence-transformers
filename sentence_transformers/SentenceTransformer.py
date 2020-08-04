@@ -132,7 +132,8 @@ class SentenceTransformer(nn.Sequential):
 
         all_embeddings = []
 
-        logging.info("Start tokenization {} sentences".format(len(sentences)))
+        if show_progress_bar:
+            logging.info("Start tokenization {} sentences".format(len(sentences)))
 
         if is_pretokenized:
             sentences_tokenized = sentences
@@ -140,7 +141,9 @@ class SentenceTransformer(nn.Sequential):
             if not self.parallel_tokenization or len(sentences) < self.parallel_tokenization_chunksize:
                 sentences_tokenized = [self.tokenize(sen) for sen in sentences]
             else:
-                logging.info("Multi-process tokenization with {} workers".format(self.parallel_tokenization_processes))
+                if show_progress_bar:
+                    logging.info("Multi-process tokenization with {} workers".format(self.parallel_tokenization_processes))
+
                 self.to('cpu')   #Model must be on CPU to work with fork
                 with Pool(self.parallel_tokenization_processes) as p:
                     sentences_tokenized = list(p.imap(self.tokenize, sentences, chunksize=self.parallel_tokenization_chunksize))

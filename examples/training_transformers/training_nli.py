@@ -56,11 +56,8 @@ train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batc
 train_loss = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=train_num_labels)
 
 
-
 logging.info("Read STSbenchmark dev dataset")
-dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
-dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
-evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
+dev_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-dev.csv'), batch_size=train_batch_size, name='sts-dev')
 
 # Configure the training
 num_epochs = 1
@@ -72,7 +69,7 @@ logging.info("Warmup-steps: {}".format(warmup_steps))
 
 # Train the model
 model.fit(train_objectives=[(train_dataloader, train_loss)],
-          evaluator=evaluator,
+          evaluator=dev_evaluator,
           epochs=num_epochs,
           evaluation_steps=1000,
           warmup_steps=warmup_steps,
@@ -88,8 +85,5 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 ##############################################################################
 
 model = SentenceTransformer(model_save_path)
-test_data = SentencesDataset(examples=sts_reader.get_examples("sts-test.csv"), model=model)
-test_dataloader = DataLoader(test_data, shuffle=False, batch_size=train_batch_size)
-evaluator = EmbeddingSimilarityEvaluator(test_dataloader)
-
-model.evaluate(evaluator)
+test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-test.csv'), batch_size=train_batch_size, name='sts-test')
+test_evaluator(model, output_path=model_save_path)
