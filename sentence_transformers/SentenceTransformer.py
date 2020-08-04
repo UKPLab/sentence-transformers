@@ -5,7 +5,8 @@ import shutil
 from collections import OrderedDict
 from typing import List, Dict, Tuple, Iterable, Type, Union
 from zipfile import ZipFile
-
+import time
+from multiprocessing import Pool, cpu_count
 import numpy as np
 import transformers
 import torch
@@ -14,6 +15,7 @@ from torch import nn, Tensor, device
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
+import multiprocessing
 
 from . import __DOWNLOAD_SERVER__
 from .evaluation import SentenceEvaluator
@@ -88,7 +90,9 @@ class SentenceTransformer(nn.Sequential):
             logging.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
-
+        self.parallel_tokenization = multiprocessing.get_start_method() == 'fork'   #parallel_tokenization only works if the Operating System support fork
+        self.parallel_tokenization_processes = min(4, cpu_count())                  #Number of parallel processes used for tokenization. Increase up to cpu_count() for faster tokenization
+        self.parallel_tokenization_chunksize = 5000                                 #Number of sentences sent per chunk to each process. Increase for faster tokenization
 
     def encode(self, sentences: Union[str, List[str], List[int]],
                batch_size: int = 8,
@@ -96,7 +100,7 @@ class SentenceTransformer(nn.Sequential):
                output_value: str = 'sentence_embedding',
                convert_to_numpy: bool = True,
                convert_to_tensor: bool = False,
-               is_pretokenized: bool = False) -> List[ndarray]:
+               is_pretokenized: bool = False) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings
 
@@ -116,21 +120,32 @@ class SentenceTransformer(nn.Sequential):
         :param is_pretokenized:
             If is_pretokenized=True, sentences must be a list of integers, containing the tokenized sentences with each token convert to the respective int.
         :return:
-           Depending on convert_to_numpy, either a list of numpy vectors or a list of pytorch tensors
+           By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
         """
-        self.to(self._target_device)
+
         self.eval()
         if show_progress_bar is None:
             show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
 
-        if isinstance(sentences, str): ##Individual sentence
+        if isinstance(sentences, str): #Cast an individual sentence to a list with length 1
             sentences = [sentences]
 
         all_embeddings = []
+
+        logging.info("Start tokenization {} sentences".format(len(sentences)))
+
         if is_pretokenized:
             sentences_tokenized = sentences
         else:
-            sentences_tokenized = [self.tokenize(sen) for sen in sentences]
+            if not self.parallel_tokenization or len(sentences) < self.parallel_tokenization_chunksize:
+                sentences_tokenized = [self.tokenize(sen) for sen in sentences]
+            else:
+                logging.info("Multi-process tokenization with {} workers".format(self.parallel_tokenization_processes))
+                self.to('cpu')   #Model must be on CPU to work with fork
+                with Pool(self.parallel_tokenization_processes) as p:
+                    sentences_tokenized = list(p.imap(self.tokenize, sentences, chunksize=self.parallel_tokenization_chunksize))
+
+        self.to(self._target_device)
 
         length_sorted_idx = np.argsort([len(sen) for sen in sentences])
 
