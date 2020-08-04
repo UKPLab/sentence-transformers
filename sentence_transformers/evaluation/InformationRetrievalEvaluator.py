@@ -115,6 +115,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 #Partial sort scores
                 cos_score_argpartition = np.argpartition(-cos_scores, max_k)[:, 0:max_k]
 
+
                 for query_itr in range(len(cos_scores)):
                     for sub_corpus_id in cos_score_argpartition[query_itr]:
                         corpus_id = self.corpus_ids[corpus_start_idx+sub_corpus_id]
