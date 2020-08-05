@@ -15,8 +15,8 @@ from zipfile import ZipFile
 import pickle
 import time
 
-model_name = 'distilbert-base-nli-stsb-mean-tokens'
-embedding_cache_path = 'quora-embeddings-{}.pkl'.format(model_name)
+model_name = 'distilbert-base-nli-stsb-quora-ranking'
+embedding_cache_path = 'quora-embeddings-{}.pkl'.format(model_name.replace('/', '_'))
 max_corpus_size = 100000
 
 model = SentenceTransformer(model_name)

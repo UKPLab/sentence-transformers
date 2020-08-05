@@ -1,13 +1,12 @@
 from . import SentenceEvaluator
 import logging
-from sentence_transformers.util import pytorch_cos_sim
-from sentence_transformers import SentenceTransformer
+from sentence_transformers.util import paraphrase_mining
 import os
 import csv
-import numpy as np
+
 from typing import List, Tuple, Dict
 from collections import defaultdict
-import queue
+
 
 class ParaphraseMiningEvaluator(SentenceEvaluator):
     """
@@ -69,7 +68,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         logging.info("Paraphrase Mining Evaluation on " + self.name + " dataset" + out_txt)
 
         #Compute embedding for the sentences
-        pairs_list = self.paraphrase_mining(model, self.sentences, self.show_progress_bar, self.batch_size,  self.query_chunk_size,  self.corpus_chunk_size, self.max_pairs, self.top_k )
+        pairs_list = paraphrase_mining(model, self.sentences, self.show_progress_bar, self.batch_size,  self.query_chunk_size,  self.corpus_chunk_size, self.max_pairs, self.top_k )
 
 
         logging.info("Number of candidate pairs: " + str(len(pairs_list)))
@@ -117,63 +116,3 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         return best_f1
 
 
-    @staticmethod
-    def paraphrase_mining(model: SentenceTransformer,
-                          sentences: List[str],
-                          show_progress_bar=False,
-                          batch_size=32,
-                          query_chunk_size:int = 5000,
-                          corpus_chunk_size:int = 100000,
-                          max_pairs: int = 500000,
-                          top_k: int = 100):
-
-        # Compute embedding for the sentences
-        embeddings = model.encode(sentences, show_progress_bar=show_progress_bar, batch_size=batch_size,
-                                  convert_to_tensor=True)
-
-        # Mine for duplicates
-        pairs = queue.PriorityQueue()
-        min_score = -1
-        num_added = 0
-
-        for corpus_start_idx in range(0, len(embeddings), corpus_chunk_size):
-            corpus_end_idx = min(corpus_start_idx + corpus_chunk_size, len(embeddings))
-            for query_start_idx in range(0, len(embeddings), query_chunk_size):
-                query_end_idx = min(query_start_idx + query_chunk_size, len(embeddings))
-
-                # logging.info("Compute cosine similarities")
-                cos_scores = pytorch_cos_sim(embeddings[query_start_idx:query_end_idx],
-                                             embeddings[corpus_start_idx:corpus_end_idx]).cpu().numpy()
-                cos_scores = np.nan_to_num(cos_scores)
-
-                # logging.info("Sort scores")
-                cos_score_argpartition = np.argpartition(-cos_scores, min(len(cos_scores)-1, top_k))
-
-                # logging.info("Find most similar pairs out of {} queries".format(len(cos_scores)))
-                for query_itr in range(len(cos_scores)):
-                    for corpus_itr in cos_score_argpartition[query_itr][0:top_k]:
-                        i = query_start_idx + query_itr
-                        j = corpus_start_idx + corpus_itr
-
-                        if i != j and cos_scores[query_itr][corpus_itr] > min_score:
-                            pairs.put((cos_scores[query_itr][corpus_itr], i, j))
-                            num_added += 1
-
-                            if num_added >= max_pairs:
-                                entry = pairs.get()
-                                min_score = entry[0]
-
-        # Get the pairs
-        added_pairs = set()  # Used for duplicate detection
-        pairs_list = []
-        while not pairs.empty():
-            score, i, j = pairs.get()
-            id1, id2 = sorted([i, j])
-
-            if id1 != id2 and (id1, id2) not in added_pairs:
-                added_pairs.add((id1, id2))
-                pairs_list.append([score, id1, id2])
-
-        # Highest scores first
-        pairs_list = sorted(pairs_list, key=lambda x: x[0], reverse=True)
-        return pairs_list

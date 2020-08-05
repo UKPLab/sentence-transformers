@@ -30,7 +30,7 @@ questions = [
     'How do I get more followers for my Quora?'
 ]
 
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('distilbert-base-nli-stsb-quora-ranking')
 
 # Given a model and a List of strings (texts), evaluation.ParaphraseMiningEvaluator.paraphrase_mining performs a
 # mining task by computing cosine similarity between all possible combinations and returning the ones with the highest scores.

@@ -127,8 +127,10 @@ class SentenceTransformer(nn.Sequential):
         if show_progress_bar is None:
             show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
 
+
         if isinstance(sentences, str): #Cast an individual sentence to a list with length 1
             sentences = [sentences]
+
 
         all_embeddings = []
 
@@ -200,6 +202,7 @@ class SentenceTransformer(nn.Sequential):
             all_embeddings = torch.stack(all_embeddings)
         elif convert_to_numpy:
             all_embeddings = np.asarray([emb.cpu().detach().numpy() for emb in all_embeddings])
+
 
         return all_embeddings
 

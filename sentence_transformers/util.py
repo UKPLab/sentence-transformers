@@ -6,6 +6,8 @@ import sys
 import importlib
 import os
 import torch
+import numpy as np
+import queue
 
 def pytorch_cos_sim(a, b):
     """
@@ -23,25 +25,123 @@ def pytorch_cos_sim(a, b):
     res = torch.mm(a_norm, b_norm.transpose(0, 1))
     return res
 
-def batch_to_device(batch, target_device: device):
+
+def paraphrase_mining(model,
+                      sentences: List[str],
+                      show_progress_bar=False,
+                      batch_size=32,
+                      query_chunk_size: int = 5000,
+                      corpus_chunk_size: int = 100000,
+                      max_pairs: int = 500000,
+                      top_k: int = 100):
     """
-    send a batch to a device
+    Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
+    other sentences and returns a list with the pairs that have the highest cosine similarity score.
 
-    :param batch:
-    :param target_device:
-    :return: the batch sent to the device
+    :param model: SentenceTransformer model for embedding computation
+    :param sentences: A list of strings (texts or sentences)
+    :param show_progress_bar: Plotting of a progress bar
+    :param batch_size: Number of texts that are encoded simultaneously by the model
+    :param query_chunk_size: Search for most similar pairs for #query_chunk_size at the same time. Decrease, to lower memory footprint (increases run-time).
+    :param corpus_chunk_size: Compare a sentence simultaneously against #corpus_chunk_size other sentences. Decrease, to lower memory footprint (increases run-time).
+    :param max_pairs: Maximal number of text pairs returned.
+    :param top_k: For each sentence, we retrieve up to top_k other sentences
+    :return:
     """
-    features = batch['features']
-    for paired_sentence_idx in range(len(features)):
-        for feature_name in features[paired_sentence_idx]:
-            features[paired_sentence_idx][feature_name] = features[paired_sentence_idx][feature_name].to(target_device)
 
-    labels = batch['labels'].to(target_device)
-    return features, labels
+    # Compute embedding for the sentences
+    embeddings = model.encode(sentences, show_progress_bar=show_progress_bar, batch_size=batch_size,
+                              convert_to_tensor=True)
 
+    # Mine for duplicates
+    pairs = queue.PriorityQueue()
+    min_score = -1
+    num_added = 0
+
+    for corpus_start_idx in range(0, len(embeddings), corpus_chunk_size):
+        corpus_end_idx = min(corpus_start_idx + corpus_chunk_size, len(embeddings))
+        for query_start_idx in range(0, len(embeddings), query_chunk_size):
+            query_end_idx = min(query_start_idx + query_chunk_size, len(embeddings))
+
+            # logging.info("Compute cosine similarities")
+            cos_scores = pytorch_cos_sim(embeddings[query_start_idx:query_end_idx],
+                                         embeddings[corpus_start_idx:corpus_end_idx]).cpu().numpy()
+            cos_scores = np.nan_to_num(cos_scores)
+
+            # logging.info("Sort scores")
+            cos_score_argpartition = np.argpartition(-cos_scores, min(len(cos_scores)-1, top_k))
+
+            # logging.info("Find most similar pairs out of {} queries".format(len(cos_scores)))
+            for query_itr in range(len(cos_scores)):
+                for corpus_itr in cos_score_argpartition[query_itr][0:top_k]:
+                    i = query_start_idx + query_itr
+                    j = corpus_start_idx + corpus_itr
+
+                    if i != j and cos_scores[query_itr][corpus_itr] > min_score:
+                        pairs.put((cos_scores[query_itr][corpus_itr], i, j))
+                        num_added += 1
+
+                        if num_added >= max_pairs:
+                            entry = pairs.get()
+                            min_score = entry[0]
+
+    # Get the pairs
+    added_pairs = set()  # Used for duplicate detection
+    pairs_list = []
+    while not pairs.empty():
+        score, i, j = pairs.get()
+        id1, id2 = sorted([i, j])
+
+        if id1 != id2 and (id1, id2) not in added_pairs:
+            added_pairs.add((id1, id2))
+            pairs_list.append([score, id1, id2])
+
+    # Highest scores first
+    pairs_list = sorted(pairs_list, key=lambda x: x[0], reverse=True)
+    return pairs_list
+
+
+def information_retrieval(query_embeddings,
+                          corpus_embeddings,
+                          query_chunk_size: int = 100,
+                          corpus_chunk_size: int = 100000,
+                          max_k: int = 10):
+
+    queries_result_list = [[] for _ in range(len(query_embeddings))]
+
+    for query_start_idx in range(0, len(query_embeddings), query_chunk_size):
+        query_end_idx = min(query_start_idx + query_chunk_size, len(query_embeddings))
+
+        # Iterate over chunks of the corpus
+        for corpus_start_idx in range(0, len(corpus_embeddings), corpus_chunk_size):
+            corpus_end_idx = min(corpus_start_idx + corpus_chunk_size, len(corpus_embeddings))
+
+            # Compute cosine similarites
+            cos_scores = pytorch_cos_sim(query_embeddings[query_start_idx:query_end_idx],
+                                         corpus_embeddings[corpus_start_idx:corpus_end_idx]).cpu().numpy()
+            cos_scores = np.nan_to_num(cos_scores)
+
+            # Partial sort scores
+            cos_score_argpartition = np.argpartition(-cos_scores, max_k)[:, 0:max_k]
+
+            for query_itr in range(len(cos_scores)):
+                for sub_corpus_id in cos_score_argpartition[query_itr]:
+                    corpus_id = corpus_start_idx + sub_corpus_id
+                    query_id = query_start_idx + query_itr
+                    score = cos_scores[query_itr][sub_corpus_id]
+                    queries_result_list[query_id].append({'corpus_id': corpus_id, 'score': score})
+
+    #Sort
+    for idx in range(len(queries_result_list)):
+        queries_result_list[idx] = sorted(queries_result_list[idx], key=lambda x: x['score'], reverse=True)
+
+    return queries_result_list
 
 
 def http_get(url, path):
+    """
+    Downloads a URL to a given path on disc
+    """
     req = requests.get(url, stream=True)
     if req.status_code != 200:
         print("Exception when trying to download {}. Response {}".format(url, req.status_code), file=sys.stderr)
@@ -62,13 +162,24 @@ def http_get(url, path):
     progress.close()
 
 
+def batch_to_device(batch, target_device: device):
+    """
+    send a pytorch batch to a device (CPU/GPU)
+    """
+    features = batch['features']
+    for paired_sentence_idx in range(len(features)):
+        for feature_name in features[paired_sentence_idx]:
+            features[paired_sentence_idx][feature_name] = features[paired_sentence_idx][feature_name].to(target_device)
+
+    labels = batch['labels'].to(target_device)
+    return features, labels
+
+
 def fullname(o):
-  # o.__module__ + "." + o.__class__.__qualname__ is an example in
-  # this context of H.L. Mencken's "neat, plausible, and wrong."
-  # Python makes no guarantees as to whether the __module__ special
-  # attribute is defined, so we take a more circumspect approach.
-  # Alas, the module name is explicitly excluded from __qualname__
-  # in Python 3.
+  """
+  Gives a full name (package_name.class_name) for a class / object in Python. Will
+  be used to load the correct classes from JSON files
+  """
 
   module = o.__class__.__module__
   if module is None or module == str.__class__.__module__:
