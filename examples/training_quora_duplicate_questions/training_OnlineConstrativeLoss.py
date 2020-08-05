@@ -169,7 +169,7 @@ for qid in other_qid_list[0:max(0, max_corpus_size-len(ir_corpus))]:
 # metrices. For our use case MRR@k and Accuracy@k are relevant.
 ir_evaluator = evaluation.InformationRetrievalEvaluator(ir_queries, ir_corpus, ir_relevant_docs)
 
-evaluators.append((ir_evaluator))
+evaluators.append(ir_evaluator)
 
 # Create a SequentialEvaluator. This SequentialEvaluator runs all three evaluators in a sequential order.
 # We optimize the model with respect to the score from the last evaluator (scores[-1])

@@ -9,7 +9,7 @@ import torch
 import numpy as np
 import queue
 
-def pytorch_cos_sim(a, b):
+def pytorch_cos_sim(a: Tensor, b: Tensor):
     """
     Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j.
     This function can be used as a faster replacement for 1-scipy.spatial.distance.cdist(a,b)
@@ -22,8 +22,8 @@ def pytorch_cos_sim(a, b):
 
     a_norm = a / a.norm(dim=1)[:, None]
     b_norm = b / b.norm(dim=1)[:, None]
-    res = torch.mm(a_norm, b_norm.transpose(0, 1))
-    return res
+    return torch.mm(a_norm, b_norm.transpose(0, 1))
+
 
 
 def paraphrase_mining(model,
@@ -46,7 +46,7 @@ def paraphrase_mining(model,
     :param corpus_chunk_size: Compare a sentence simultaneously against #corpus_chunk_size other sentences. Decrease, to lower memory footprint (increases run-time).
     :param max_pairs: Maximal number of text pairs returned.
     :param top_k: For each sentence, we retrieve up to top_k other sentences
-    :return:
+    :return: Returns a list of triplets with the format [score, id1, id2]
     """
 
     # Compute embedding for the sentences
@@ -101,11 +101,35 @@ def paraphrase_mining(model,
     return pairs_list
 
 
-def information_retrieval(query_embeddings,
-                          corpus_embeddings,
+def information_retrieval(query_embeddings: Tensor,
+                          corpus_embeddings: Tensor,
                           query_chunk_size: int = 100,
                           corpus_chunk_size: int = 100000,
-                          max_k: int = 10):
+                          top_k: int = 10):
+    """
+    This function performs a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
+    It can be used for Information Retrieval / Semantic Search for corpora up to about 1 Million entries.
+
+    :param query_embeddings: A 2 dimensional tensor with the query embeddings.
+    :param corpus_embeddings: A 2 dimensional tensor with the corpus embeddings.
+    :param query_chunk_size: Process 100 queries simultaneously. Increasing that value increases the speed, but requires more memory.
+    :param corpus_chunk_size: Scans the corpus 100k entries at a time. Increasing that value increases the speed, but requires more memory.
+    :param top_k: Retrieve top k matching entries. Note, if your corpus is larger than query_chunk_size, |Chunks|*top_k are returned
+    :return: Returns a sorted list with decreasing cosine similarity scores. Entries are dictionaries with the keys 'corpus_id' and 'score'
+    """
+
+    if isinstance(query_embeddings, list):
+        query_embeddings = torch.stack(query_embeddings)
+
+    if len(query_embeddings.shape) == 1:
+        query_embeddings = query_embeddings.unsqueeze(0)
+
+    if isinstance(corpus_embeddings, list):
+        corpus_embeddings = torch.stack(corpus_embeddings)
+
+    #Normalize scores, so that the dot-product is equivalent to cosine similarity
+    query_embeddings = query_embeddings / query_embeddings.norm(dim=1)[:, None]
+    corpus_embeddings = corpus_embeddings / corpus_embeddings.norm(dim=1)[:, None]
 
     queries_result_list = [[] for _ in range(len(query_embeddings))]
 
@@ -117,12 +141,11 @@ def information_retrieval(query_embeddings,
             corpus_end_idx = min(corpus_start_idx + corpus_chunk_size, len(corpus_embeddings))
 
             # Compute cosine similarites
-            cos_scores = pytorch_cos_sim(query_embeddings[query_start_idx:query_end_idx],
-                                         corpus_embeddings[corpus_start_idx:corpus_end_idx]).cpu().numpy()
+            cos_scores = torch.mm(query_embeddings[query_start_idx:query_end_idx], corpus_embeddings[corpus_start_idx:corpus_end_idx].transpose(0, 1)).cpu().numpy()
             cos_scores = np.nan_to_num(cos_scores)
 
             # Partial sort scores
-            cos_score_argpartition = np.argpartition(-cos_scores, max_k)[:, 0:max_k]
+            cos_score_argpartition = np.argpartition(-cos_scores, top_k)[:, 0:top_k]
 
             for query_itr in range(len(cos_scores)):
                 for sub_corpus_id in cos_score_argpartition[query_itr]:

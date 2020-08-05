@@ -44,7 +44,7 @@ if not os.path.exists(embedding_cache_path):
                 break
 
     print("Encode the corpus. This might take a while")
-    corpus_embeddings = model.encode(corpus_sentences, show_progress_bar=True, convert_to_tensor=True)
+    corpus_embeddings = model.encode(corpus_sentences, show_progress_bar=True)
 
     print("Store file on disc")
     with open(embedding_cache_path, "wb") as fOut:
@@ -63,7 +63,7 @@ while True:
     inp_question = input("Please enter a question: ")
 
     start_time = time.time()
-    question_embedding = model.encode(inp_question, convert_to_tensor=True)
+    question_embedding = model.encode(inp_question)
     hits = util.information_retrieval(question_embedding, corpus_embeddings)
     end_time = time.time()
     hits = hits[0]  #Get the hits for the first query

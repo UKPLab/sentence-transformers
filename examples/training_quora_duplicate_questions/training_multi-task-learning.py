@@ -1,14 +1,14 @@
 """
-This scripts demonstrates how to train a sentence embedding model for Information Retrieval.
+This script combines training_OnlineContrastiveLoss.py with training_MultipleNegativesRankingLoss.py
 
-As dataset, we use Quora Duplicates Questions, where we have pairs of duplicate questions.
+Online constrative loss works well for classification (are question1 and question2 duplicates?), but it
+performs less well for duplicate questions mining. MultipleNegativesRankingLoss works well for duplicate
+questions mining, but it has some issues with classification as it does not push dissimilar pairs away.
 
-As loss function, we use MultipleNegativesRankingLoss. Here, we only need positive pairs, i.e., pairs of sentences/texts that are considered to be relevant. Our dataset looks like this (a_1, b_1), (a_2, b_2), ... with a_i / b_i a text and (a_i, b_i) are relevant (e.g. are duplicates).
+This script combines both losses to get the best of both worlds.
 
-MultipleNegativesRankingLoss takes a random subset of these, for example (a_1, b_1), ..., (a_n, b_n). a_i and b_i are considered to be relevant and should be close in vector space. All other b_j (for i != j) are negative examples and the distance between a_i and b_j should be maximized. Note: MultipleNegativesRankingLoss only works if a random b_j is likely not to be relevant for a_i. This is the case for our duplicate questions dataset: If a sample randomly b_j, it is unlikely to be a duplicate of a_i.
-
-
-The model we get works well for duplicate questions mining and for duplicate questions information retrieval. For question pair classification, other losses (like OnlineConstrativeLoss) work better.
+Multi task learning is achieved quite easily by calling the model.fit method like this:
+model.fit(train_objectives=[(train_dataloader_MultipleNegativesRankingLoss, train_loss_MultipleNegativesRankingLoss), (train_dataloader_constrative_loss, train_loss_constrative_loss)] ...)
 """
 
 from torch.utils.data import DataLoader
@@ -41,8 +41,14 @@ num_epochs = 10
 #I achieved the good results with a batch size of 300-350 (requires about 30 GB of GPU memory)
 train_batch_size = 64
 
+#As distance metric, we use cosine distance (cosine_distance = 1-cosine_similarity)
+distance_metric = losses.SiameseDistanceMetric.COSINE_DISTANCE
+
+#Negative pairs should have a distance of at least 0.5
+margin = 0.5
+
 dataset_path = 'quora-IR-dataset'
-model_save_path = 'output/training_MultipleNegativesRankingLoss-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+model_save_path = 'output/training_multi-task-learning'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 os.makedirs(model_save_path, exist_ok=True)
 
@@ -56,19 +62,31 @@ if not os.path.exists(dataset_path):
 
 
 ######### Read train data  ##########
-train_samples = []
+train_samples_MultipleNegativesRankingLoss = []
+train_samples_ConstrativeLoss = []
+
 with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
     for row in reader:
+        train_samples_ConstrativeLoss.append(InputExample(texts=[row['question1'], row['question2']], label=int(row['is_duplicate'])))
         if row['is_duplicate'] == '1':
-            train_samples.append(InputExample(texts=[row['question1'], row['question2']], label=1))
-            train_samples.append(InputExample(texts=[row['question2'], row['question1']], label=1)) #if A is a duplicate of B, then B is a duplicate of A
+            train_samples_MultipleNegativesRankingLoss.append(InputExample(texts=[row['question1'], row['question2']], label=1))
+            train_samples_MultipleNegativesRankingLoss.append(InputExample(texts=[row['question2'], row['question1']], label=1))  # if A is a duplicate of B, then B is a duplicate of A
+
+# Create data loader and loss for MultipleNegativesRankingLoss
+train_dataset_MultipleNegativesRankingLoss = SentencesDataset(train_samples_MultipleNegativesRankingLoss, model=model)
+train_dataloader_MultipleNegativesRankingLoss = DataLoader(train_dataset_MultipleNegativesRankingLoss, shuffle=True, batch_size=train_batch_size)
+train_loss_MultipleNegativesRankingLoss = losses.MultipleNegativesRankingLoss(model)
 
 
-# After reading the train_samples, we create a SentencesDataset and a DataLoader
-train_dataset = SentencesDataset(train_samples, model=model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
-train_loss = losses.MultipleNegativesRankingLoss(model)
+# Create data loader and loss for OnlineContrastiveLoss
+train_dataset_ConstrativeLoss = SentencesDataset(train_samples_ConstrativeLoss, model=model)
+train_dataloader_ConstrativeLoss = DataLoader(train_dataset_ConstrativeLoss, shuffle=True, batch_size=train_batch_size)
+train_loss_ConstrativeLoss = losses.OnlineContrastiveLoss(model=model, distance_metric=distance_metric, margin=margin)
+
+
+
+
 
 
 ################### Development  Evaluators ##################
@@ -183,7 +201,7 @@ seq_evaluator(model, epoch=0, steps=0, output_path=model_save_path)
 
 
 # Train the model
-model.fit(train_objectives=[(train_dataloader, train_loss)],
+model.fit(train_objectives=[(train_dataloader_MultipleNegativesRankingLoss, train_loss_MultipleNegativesRankingLoss), (train_dataloader_ConstrativeLoss, train_loss_ConstrativeLoss)],
           evaluator=seq_evaluator,
           epochs=num_epochs,
           warmup_steps=1000,
