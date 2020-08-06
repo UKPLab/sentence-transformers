@@ -10,7 +10,7 @@ You can use this code to easily **train your own sentence embeddings**, that are
 
 
 ## Setup
-We recommend Python 3.6 or higher. The model is implemented with PyTorch (at least 1.0.1) using [transformers v3.0.2](https://github.com/huggingface/transformers).
+We recommend Python 3.6 or higher. The model is implemented with PyTorch (at least 1.2.0) using [transformers v3.0.2](https://github.com/huggingface/transformers).
 The code does **not** work with Python 2.7.
 
 **With pip**
@@ -101,9 +101,7 @@ Next, we also specify a dev-set. The dev-set is used to evaluate the sentence em
 
 ```python
 sts_reader = STSBenchmarkDataReader('datasets/stsbenchmark')
-dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
-dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
-evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-dev.csv'))
 ```
 
  The training then looks like this:
@@ -135,9 +133,7 @@ train_data = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model)
 train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)
 
-dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
-dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
-evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-dev.csv'))
 ```
 
 In that example, we use CosineSimilarityLoss, which computes the cosine similarity between two sentences and compares this score with a provided gold similarity score.
