@@ -9,15 +9,21 @@ import logging
 class Transformer(nn.Module):
     """Huggingface AutoModel to generate token embeddings.
     Loads the correct class, e.g. BERT / RoBERTa etc.
+
+    :param tokenizer_args: Dict with parameters which are passed to the tokenizer.
     """
-    def __init__(self, model_name_or_path: str, max_seq_length: int = 128, model_args: Dict = {}, cache_dir: Optional[str] = None ):
+    def __init__(self, model_name_or_path: str, max_seq_length: int = 128,
+                 model_args: Dict = {}, cache_dir: Optional[str] = None,
+                 tokenizer_args: Dict = {}):
         super(Transformer, self).__init__()
         self.config_keys = ['max_seq_length']
         self.max_seq_length = max_seq_length
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
         self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, cache_dir=cache_dir)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path,
+                                                       cache_dir=cache_dir,
+                                                       **tokenizer_args)
 
 
     def forward(self, features):
