@@ -177,7 +177,8 @@ This downloads the `bert-base-nli-mean-tokens` from our server and stores it loc
 ## Loading custom BERT models
 If you have fine-tuned BERT (or similar models) and you want to use it to generate sentence embeddings, you must construct an appropriate sentence transformer model from it. This is possible by using this code:
 
-```python
+```python  
+from sentence_transformers import models
 # Use BERT for mapping tokens to embeddings
 word_embedding_model = models.Transformer('path/to/your/BERT/model')
 
