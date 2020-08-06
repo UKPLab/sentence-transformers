@@ -34,9 +34,6 @@ pooling_model = models.WKPooling(word_embedding_model.get_word_embedding_dimensi
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark')
-
-test_data = SentencesDataset(examples=sts_reader.get_examples("sts-test.csv"), model=model)
-test_dataloader = DataLoader(test_data, shuffle=False, batch_size=8)
-evaluator = EmbeddingSimilarityEvaluator(test_dataloader)
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples("sts-test.csv"))
 
 model.evaluate(evaluator)
