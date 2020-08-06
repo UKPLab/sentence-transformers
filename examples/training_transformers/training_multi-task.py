@@ -54,9 +54,7 @@ train_loss_sts = losses.CosineSimilarityLoss(model=model)
 
 
 logging.info("Read STSbenchmark dev dataset")
-dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
-dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=batch_size)
-evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-dev.csv'), name='sts-dev')
 
 # Configure the training
 num_epochs = 4
@@ -88,8 +86,5 @@ model.fit(train_objectives=train_objectives,
 ##############################################################################
 
 model = SentenceTransformer(model_save_path)
-test_data = SentencesDataset(examples=sts_reader.get_examples("sts-test.csv"), model=model)
-test_dataloader = DataLoader(test_data, shuffle=False, batch_size=batch_size)
-evaluator = EmbeddingSimilarityEvaluator(test_dataloader)
-
-model.evaluate(evaluator)
+test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-test.csv'), name='sts-test')
+test_evaluator(model, output_path=model_save_path)

@@ -133,9 +133,7 @@ train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batc
 train_loss = losses.BatchSemiHardTripletLoss(sentence_embedder=model)
 
 logging.info("Read TREC val dataset")
-dataset_dev = SentenceLabelDataset(examples=val, model=model)
-dev_dataloader = DataLoader(dataset_dev, shuffle=False, batch_size=train_batch_size)
-evaluator = TripletEvaluator(dev_dataloader)
+evaluator = TripletEvaluator.from_input_examples(val, name='dev')
 
 warmup_steps = int(
     len(train_dataset) * num_epochs / train_batch_size * 0.1
@@ -159,10 +157,7 @@ model.fit(
 
 logging.info("Read TREC test dataset")
 model = SentenceTransformer(output_path)
-
-dataset_test = SentenceLabelDataset(examples=test, model=model)
-test_dataloader = DataLoader(dataset_test, shuffle=False, batch_size=train_batch_size)
-test_evaluator = TripletEvaluator(test_dataloader)
+test_evaluator = TripletEvaluator.from_input_examples(test, name='test')
 
 logging.info("Evaluating model")
 model.evaluate(test_evaluator)

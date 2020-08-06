@@ -55,9 +55,7 @@ train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batc
 train_loss = losses.TripletLoss(model=model)
 
 logging.info("Read Wikipedia Triplet dev dataset")
-dev_data = SentencesDataset(examples=triplet_reader.get_examples('validation.csv', 1000), model=model)
-dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
-evaluator = TripletEvaluator(dev_dataloader)
+evaluator = TripletEvaluator.from_input_examples(triplet_reader.get_examples('validation.csv', 1000), name='dev')
 
 
 warmup_steps = int(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data
@@ -78,9 +76,6 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 ##############################################################################
 
 model = SentenceTransformer(output_path)
-test_data = SentencesDataset(examples=triplet_reader.get_examples('test.csv'), model=model)
-test_dataloader = DataLoader(test_data, shuffle=False, batch_size=train_batch_size)
-evaluator = TripletEvaluator(test_dataloader)
-
-model.evaluate(evaluator)
+test_evaluator = TripletEvaluator.from_input_examples(triplet_reader.get_examples('test.csv'), name='test')
+test_evaluator(model, output_path=output_path)
 
