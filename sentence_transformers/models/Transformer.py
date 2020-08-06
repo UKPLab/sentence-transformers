@@ -3,8 +3,7 @@ from transformers import AutoModel, AutoTokenizer, AutoConfig
 import json
 from typing import List, Dict, Optional
 import os
-import numpy as np
-import logging
+
 
 class Transformer(nn.Module):
     """Huggingface AutoModel to generate token embeddings.
