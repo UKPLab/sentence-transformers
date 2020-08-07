@@ -95,7 +95,7 @@ class SentenceTransformer(nn.Sequential):
         self.parallel_tokenization_chunksize = 5000                                 #Number of sentences sent per chunk to each process. Increase for faster tokenization
 
     def encode(self, sentences: Union[str, List[str], List[int]],
-               batch_size: int = 8,
+               batch_size: int = 16,
                show_progress_bar: bool = None,
                output_value: str = 'sentence_embedding',
                convert_to_numpy: bool = True,
@@ -524,3 +524,17 @@ class SentenceTransformer(nn.Sequential):
         Property to set the tokenizer that is should used by this model
         """
         self._first_module().tokenizer = value
+
+    @property
+    def max_seq_length(self):
+        """
+        Property to get the maximal input sequence length for the model. Longer inputs will be truncated.
+        """
+        return self._first_module().max_seq_length
+
+    @max_seq_length.setter
+    def max_seq_length(self, value):
+        """
+        Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
+        """
+        self._first_module().max_seq_length = value
