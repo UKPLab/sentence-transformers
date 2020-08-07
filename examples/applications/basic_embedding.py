@@ -18,8 +18,8 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 
 
-# Load Sentence model (based on BERT) from URL
-model = SentenceTransformer('bert-base-nli-mean-tokens')
+# Load pre-trained Sentence Transformer Model (based on DistilBERT). It will be downloaded automatically
+model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
 
 # Embed a list of sentences
 sentences = ['This framework generates embeddings for each input sentence',
@@ -32,3 +32,6 @@ for sentence, embedding in zip(sentences, sentence_embeddings):
     print("Sentence:", sentence)
     print("Embedding:", embedding)
     print("")
+
+
+
