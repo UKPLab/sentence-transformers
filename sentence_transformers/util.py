@@ -49,6 +49,8 @@ def paraphrase_mining(model,
     :return: Returns a list of triplets with the format [score, id1, id2]
     """
 
+    top_k += 1  #A sentence has the highest similarity to itself. Increase +1 as we are interest in distinct pairs
+
     # Compute embedding for the sentences
     embeddings = model.encode(sentences, show_progress_bar=show_progress_bar, batch_size=batch_size,
                               convert_to_tensor=True)
@@ -90,11 +92,11 @@ def paraphrase_mining(model,
     pairs_list = []
     while not pairs.empty():
         score, i, j = pairs.get()
-        id1, id2 = sorted([i, j])
+        sorted_i, sorted_j = sorted([i, j])
 
-        if id1 != id2 and (id1, id2) not in added_pairs:
-            added_pairs.add((id1, id2))
-            pairs_list.append([score, id1, id2])
+        if sorted_i != sorted_j and (sorted_i, sorted_j) not in added_pairs:
+            added_pairs.add((sorted_i, sorted_j))
+            pairs_list.append([score, i, j])
 
     # Highest scores first
     pairs_list = sorted(pairs_list, key=lambda x: x[0], reverse=True)
