@@ -128,8 +128,10 @@ class SentenceTransformer(nn.Sequential):
             show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
 
 
+        input_was_string = False
         if isinstance(sentences, str): #Cast an individual sentence to a list with length 1
             sentences = [sentences]
+            input_was_string = True
 
 
         all_embeddings = []
@@ -203,6 +205,8 @@ class SentenceTransformer(nn.Sequential):
         elif convert_to_numpy:
             all_embeddings = np.asarray([emb.cpu().detach().numpy() for emb in all_embeddings])
 
+        if input_was_string:
+            all_embeddings = all_embeddings[0]
 
         return all_embeddings
 

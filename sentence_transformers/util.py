@@ -17,6 +17,7 @@ def pytorch_cos_sim(a: Tensor, b: Tensor):
     """
     if len(a.shape) == 1:
         a = a.unsqueeze(0)
+
     if len(b.shape) == 1:
         b = b.unsqueeze(0)
 
@@ -103,11 +104,16 @@ def paraphrase_mining(model,
     return pairs_list
 
 
-def information_retrieval(query_embeddings: Tensor,
-                          corpus_embeddings: Tensor,
-                          query_chunk_size: int = 100,
-                          corpus_chunk_size: int = 100000,
-                          top_k: int = 10):
+def information_retrieval(*args, **kwargs):
+    """This function is decprecated. Use semantic_search insted"""
+    return semantic_search(*args, **kwargs)
+
+
+def semantic_search(query_embeddings: Tensor,
+                      corpus_embeddings: Tensor,
+                      query_chunk_size: int = 100,
+                      corpus_chunk_size: int = 100000,
+                      top_k: int = 10):
     """
     This function performs a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
     It can be used for Information Retrieval / Semantic Search for corpora up to about 1 Million entries.
@@ -120,13 +126,17 @@ def information_retrieval(query_embeddings: Tensor,
     :return: Returns a sorted list with decreasing cosine similarity scores. Entries are dictionaries with the keys 'corpus_id' and 'score'
     """
 
-    if isinstance(query_embeddings, list):
+    if isinstance(query_embeddings, (np.ndarray, np.generic)):
+        query_embeddings = torch.from_numpy(query_embeddings)
+    elif isinstance(query_embeddings, list):
         query_embeddings = torch.stack(query_embeddings)
 
     if len(query_embeddings.shape) == 1:
         query_embeddings = query_embeddings.unsqueeze(0)
 
-    if isinstance(corpus_embeddings, list):
+    if isinstance(corpus_embeddings, (np.ndarray, np.generic)):
+        corpus_embeddings = torch.from_numpy(corpus_embeddings)
+    elif isinstance(corpus_embeddings, list):
         corpus_embeddings = torch.stack(corpus_embeddings)
 
     #Normalize scores, so that the dot-product is equivalent to cosine similarity
@@ -156,9 +166,10 @@ def information_retrieval(query_embeddings: Tensor,
                     score = cos_scores[query_itr][sub_corpus_id]
                     queries_result_list[query_id].append({'corpus_id': corpus_id, 'score': score})
 
-    #Sort
+    #Sort and strip to top_k results
     for idx in range(len(queries_result_list)):
         queries_result_list[idx] = sorted(queries_result_list[idx], key=lambda x: x['score'], reverse=True)
+        queries_result_list[idx] = queries_result_list[idx][0:top_k]
 
     return queries_result_list
 
