@@ -12,13 +12,15 @@ import csv
 import pickle
 import time
 
+model_name = 'distilbert-base-nli-stsb-quora-ranking'
+model = SentenceTransformer(model_name)
+
 url = "http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv"
 dataset_path = "quora_duplicate_questions.tsv"
 max_corpus_size = 100000
 
-model_name = 'distilbert-base-nli-stsb-quora-ranking'
-model = SentenceTransformer(model_name)
-embedding_cache_path = 'quora-embeddings-{}.pkl'.format(model_name.replace('/', '_'))
+
+embedding_cache_path = 'quora-embeddings-{}-size-{}.pkl'.format(model_name.replace('/', '_'), max_corpus_size)
 
 
 #Check if embedding cache path exists
@@ -35,8 +37,10 @@ if not os.path.exists(embedding_cache_path):
         reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
         for row in reader:
             corpus_sentences.add(row['question1'])
-            corpus_sentences.add(row['question2'])
+            if len(corpus_sentences) >= max_corpus_size:
+                break
 
+            corpus_sentences.add(row['question2'])
             if len(corpus_sentences) >= max_corpus_size:
                 break
 
@@ -62,7 +66,7 @@ while True:
 
     start_time = time.time()
     question_embedding = model.encode(inp_question, convert_to_tensor=True)
-    hits = util.information_retrieval(question_embedding, corpus_embeddings)
+    hits = util.semantic_search(question_embedding, corpus_embeddings)
     end_time = time.time()
     hits = hits[0]  #Get the hits for the first query
 

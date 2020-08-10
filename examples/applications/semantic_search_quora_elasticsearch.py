@@ -9,6 +9,9 @@ embeddings.
 
 The script shows results from BM25 as well as from semantic search with
 cosine similarity.
+
+You need ElasticSearch (https://www.elastic.co/de/elasticsearch/) up and running. Further, you need the Python
+ElasticSearch Client installed: https://elasticsearch-py.readthedocs.io/en/master/
 """
 
 from sentence_transformers import SentenceTransformer, util
@@ -37,8 +40,10 @@ with open(dataset_path, encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
     for row in reader:
         all_questions[row['qid1']] = row['question1']
-        all_questions[row['qid2']] = row['question2']
+        if len(all_questions) >= max_corpus_size:
+            break
 
+        all_questions[row['qid2']] = row['question2']
         if len(all_questions) >= max_corpus_size:
             break
 
