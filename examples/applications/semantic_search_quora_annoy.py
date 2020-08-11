@@ -1,7 +1,7 @@
 """
 This example uses Approximate Nearest Neighbor Search (ANN) with Annoy (https://github.com/spotify/annoy).
 
-Search a large corpus with Millions of embeddings can be time-consuming. To speed this up,
+Searching a large corpus with Millions of embeddings can be time-consuming. To speed this up,
 ANN can index the existent vectors. For a new query vector, this index can be used to find the nearest neighbors.
 
 This nearest neighbor search is not perfect, i.e., it might not perfectly find all top-k nearest neighbors.

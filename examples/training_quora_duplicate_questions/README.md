@@ -39,11 +39,11 @@ For details on the creation of the dataset, see [create_splits.py](create_splits
 
 Given a large set of sentences (in this case questions), identify all pairs that are duplicates. See [application_duplicate_questions_mining.py](application_duplicate_questions_mining.py) for an example how to use sentence transformers to mine for duplicate questions / paraphrases. This approach can be scaled to hundred thousands of sentences given you have enough memory.
 
-### Information Retrieval
+### Semantic Search
 
-The model can also be used for Information Retrieval. Given a new question, search a large corpus of hundred thousands of questions for duplicate questions. Given you have enough memory, this approach works well to copora up in the Millions (depending on your real-time requirements).
+The model can also be used for Information Retrieval / Semantic Search. Given a new question, search a large corpus of hundred thousands of questions for duplicate questions. Given you have enough memory, this approach works well to copora up in the Millions (depending on your real-time requirements).
 
-For an interactive example, see [application_Information_Retrieval.py](application_Information_Retrieval.py).
+For an interactive example, see [application_Semantic_Search.py](application_Semantic_Search.py).
 
 
 ## Training

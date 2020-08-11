@@ -7,8 +7,9 @@ we want to find the most similar sentence in this corpus.
 This script outputs for various queries the top 5 most similar sentences in the corpus.
 """
 from sentence_transformers import SentenceTransformer, util
+import numpy as np
 
-embedder = SentenceTransformer('bert-base-nli-mean-tokens')
+embedder = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
 
 # Corpus with example sentences
 corpus = ['A man is eating food.',
@@ -28,17 +29,17 @@ queries = ['A man is eating pasta.', 'Someone in a gorilla costume is playing a 
 
 
 # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
-closest_n = 5
+top_k = 5
 for query in queries:
     query_embedding = embedder.encode(query, convert_to_tensor=True)
-    scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
+    cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
 
-    results = zip(range(len(scores)), scores)
-    results = sorted(results, key=lambda x: x[1], reverse=True)
+    #We use np.argpartition, to only partially sort the top_k results
+    top_results = np.argpartition(-cos_scores, range(top_k))[0:top_k]
 
     print("\n\n======================\n\n")
     print("Query:", query)
     print("\nTop 5 most similar sentences in corpus:")
 
-    for idx, score in results[0:closest_n]:
-        print(corpus[idx].strip(), "(Score: %.4f)" % (score))
+    for idx in top_results[0:top_k]:
+        print(corpus[idx].strip(), "(Score: %.4f)" % (cos_scores[idx]))

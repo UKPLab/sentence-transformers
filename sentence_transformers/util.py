@@ -157,7 +157,7 @@ def semantic_search(query_embeddings: Tensor,
             cos_scores = np.nan_to_num(cos_scores)
 
             # Partial sort scores
-            cos_score_argpartition = np.argpartition(-cos_scores, top_k)[:, 0:top_k]
+            cos_score_argpartition = np.argpartition(-cos_scores, min(top_k, len(cos_scores[0])-1))[:, 0:top_k]
 
             for query_itr in range(len(cos_scores)):
                 for sub_corpus_id in cos_score_argpartition[query_itr]:
