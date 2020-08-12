@@ -26,7 +26,8 @@ If you use the code for multilingual models, feel free to cite our publication [
 }
 ```
 
-## SentenceTransformers used for Applications
+**SentenceTransformers used for Applications**
+
 In the following you find a (selective) list of articles / applications using SentenceTransformers to do amazing stuff. Feel free to contact me (info@nils-reimers.de) to add you application here. 
 
 - **July 2020 - [Simple Sentence Similarity Search with SentenceBERT](https://laptrinhx.com/simple-sentence-similarity-search-with-sentencebert-800684405/?fbclid=IwAR0rxdYS2DBGuHhijIRO_lsXqGc9BbjtDA-dDQM5Ng_StahT9xrHdRZuP9M)**
@@ -34,7 +35,8 @@ In the following you find a (selective) list of articles / applications using Se
 - **March 2020 - [Building a k-NN Similarity Search Engine using Amazon Elasticsearch and SageMaker](https://towardsdatascience.com/building-a-k-nn-similarity-search-engine-using-amazon-elasticsearch-and-sagemaker-98df18d883bd)**
 - **February 2020 - [Semantic Search Engine with Sentence BERT](https://medium.com/@evergreenllc2020/semantic-search-engine-with-s-abbfb3cd9377)**
 
-## SentenceTransformers used in Research
+
+**SentenceTransformers used in Research**
 
 For the full list research publications using sentence transformers, see [Google Scholar](https://scholar.google.com/scholar?oi=bibs&hl=de&cites=12599223809118664426).
 

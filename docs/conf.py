@@ -63,11 +63,19 @@ html_js_files = [
     'js/custom.js',
 ]
 
+html_show_sourcelink = False
+html_context = {
+  'display_github': True,
+  'github_user': 'UKPLab',
+  'github_repo': 'sentence-transformers',
+  'github_version': 'master/docs/',
+}
 
-github_doc_root = 'https://github.com/UKPLab/sentence-transformers/'
+
+github_doc_root = 'https://github.com/UKPLab/sentence-transformers/docs/'
 def setup(app):
     app.add_config_value('recommonmark_config', {
-            'url_resolver': lambda url: github_doc_root + url,
+            #'url_resolver': lambda url: github_doc_root + url,
             'auto_toc_tree_section': 'Contents',
             }, True)
     app.add_transform(AutoStructify)

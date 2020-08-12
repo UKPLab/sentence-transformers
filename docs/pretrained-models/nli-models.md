@@ -10,26 +10,10 @@ We train the models on the [SNLI](https://nlp.stanford.edu/projects/snli/) and o
 
 For a training example, see [examples/training_nli_bert.py](../../examples/training_nli_bert.py). 
 
-# Pre-trained models
-We provide the following pre-trained models. The performance was evaluated on the test set of the [STS benchmark dataset](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) using Spearman rank correlation.
+# Pretrained models
+We provide the various pre-trained models. The performance was evaluated on the test set of the [STS benchmark dataset](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) using Spearman rank correlation.
 
-
-### BERT models
-- **bert-base-nli-mean-tokens**: BERT-base model with mean-tokens pooling. Performance: STSbenchmark: 77.12
-- **bert-base-nli-max-tokens**: BERT-base with max-tokens pooling. Performance: STSbenchmark: 77.21
-- **bert-base-nli-cls-token**: BERT-base with cls token pooling. Performance: STSbenchmark: 76.30
-- **bert-large-nli-mean-tokens**: BERT-large with mean-tokens pooling. Performance: STSbenchmark: 79.19
-- **bert-large-nli-max-tokens**: BERT-large with max-tokens pooling. Performance: STSbenchmark: 78.41
-- **bert-large-nli-cls-token**: BERT-large with CLS token pooling. Performance: STSbenchmark: 78.29
-
-### RoBERTa models
-RoBERTa is an extension of BERT. [More Information](https://arxiv.org/abs/1907.11692).
-- **roberta-base-nli-mean-tokens**: RoBERTa-base with mean-tokens pooling. Performance: STSbenchmark: 77.49
-- **roberta-large-nli-mean-tokens**: RoBERTa-base with mean-tokens pooling. Performance: STSbenchmark: 78.69
-
-### DistilBERT models
-DistilBERT is a small, fast, cheap and light Transformer model based on Bert architecture. [More Information](https://github.com/huggingface/transformers/tree/master/examples/distillation)
-- **distilbert-base-nli-mean-tokens**: DistilBERT-base with mean-tokens pooling. Performance: STSbenchmark: 76.97
+[» Full List of NLI & STS Models](https://docs.google.com/spreadsheets/d/14QplCdTCDwEmTqrn1LH4yrbKvdogK4oQvYO1K1aPR5M/edit#gid=0)
 
 # Performance Comparison
 Here are the performances on the STS benchmark for other sentence embeddings methods. They were also computed by using cosine-similarity and Spearman rank correlation:
@@ -40,4 +24,4 @@ Here are the performances on the STS benchmark for other sentence embeddings met
 - Universal Sentence Encoder: 74.92
 
 # Applications
-This model works well in accessing the coarse-grained similarity between sentences. For application examples, see [examples/application_semantic_search.py](../../examples/application_semantic_search.py) and [examples/application_clustering.py](../../examples/application_clustering.py)
+This model works well in accessing the coarse-grained similarity between sentences. For application examples, see [semantic_textual_similarity](../usage/semantic_textual_similarity.md) and [semantic search](../usage/semantic_search.md).

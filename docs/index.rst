@@ -8,6 +8,7 @@ SentenceTransformers Documentation
 
 Hello World
 
+
 .. toctree::
    :maxdepth: 2
    :caption: Overview
@@ -24,8 +25,8 @@ Hello World
    usage/computing_sentence_embeddings
    usage/semantic_textual_similarity
    usage/paraphrase_mining
-   usage/information_retrieval
-   usage/real_world_applications
+   usage/semantic_search
+
 
 .. toctree::
    :maxdepth: 2
@@ -42,13 +43,14 @@ Hello World
    :maxdepth: 1
    :titlesonly:
    :caption: Training (Use Cases)
+
    training/use_case/quora_duplicate_questions
 
 
 
-Indices and tables
-==================
+.. toctree::
+   :maxdepth: 1
+   :titlesonly:
+   :caption: Package Reference
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   package_reference/models

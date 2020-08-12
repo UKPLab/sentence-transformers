@@ -36,6 +36,6 @@ However, it does not matter how far the negative example is away, it can be litt
 However, this model works well for **fine-grained clustering**. 
 
 For an example, see:
-[examples/application_clustering_wikipedia_sections.py](../../examples/application_clustering_wikipedia_sections.py)
+[examples/application_clustering_wikipedia_sections.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/clustering_wikipedia_sections.py)
 
 

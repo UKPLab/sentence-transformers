@@ -5,24 +5,13 @@ The models were first trained on [NLI data](nli-models.md), then we fine-tuned t
 We use the training file from the  [STS benchmark dataset](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark).
 
 For a training example, see:
-- [examples/training_stsbenchmark.py](../../examples/training_stsbenchmark_bert.py) - Train directly on STS data
-- [examples/training_stsbenchmark_continue_training.py ](../../examples/training_stsbenchmark_continue_training.py) - First train one NLI, than train on STS data.
+- [examples/training_stsbenchmark.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_stsbenchmark.py) - Train directly on STS data
+- [examples/training_stsbenchmark_continue_training.py ](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_stsbenchmark_continue_training.py) - First train on NLI, than train on STS data.
 
 # Pre-trained models
  We provide the following pre-trained models:
- 
-### BERT models
-- **bert-base-nli-stsb-mean-tokens**: BERT-base trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.14
-- **bert-large-nli-stsb-mean-tokens**: BERT-large trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.29
 
-### RoBERTa models
-RoBERTa is an extension of BERT. [More Information](https://arxiv.org/abs/1907.11692).
-- **roberta-base-nli-stsb-mean-tokens**: RoBERTa-base trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 85.40
-- **roberta-large-nli-stsb-mean-tokens**: RoBERTa-large trained on AllNLI, then on STS benchmark training set. Performance: STSbenchmark: 86.31
-
-### DistilBERT
-DistilBERT is a small, fast, cheap and light Transformer model based on Bert architecture. [More Information](https://github.com/huggingface/transformers/tree/master/examples/distillation)
-- **distilbert-base-nli-stsb-mean-tokens**: Performance: STSbenchmark: 84.38
+[» Full List of STS Models](https://docs.google.com/spreadsheets/d/14QplCdTCDwEmTqrn1LH4yrbKvdogK4oQvYO1K1aPR5M/edit#gid=0)
 
 # Performance Comparison
 Here are the performances on the STS benchmark for other sentence embeddings methods. They were also computed by using cosine-similarity and Spearman rank correlation. Note, these models were not-fined on the STS benchmark.

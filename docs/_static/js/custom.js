@@ -11,6 +11,15 @@ function addGithubButton() {
     document.querySelector(".wy-side-nav-search .icon-home").insertAdjacentHTML('afterend', div);
 }
 
+function addHomeButton() {
+    const link = `
+    <ul>
+        <li class="toctree-l1"><a class="reference internal" href="/">Home</a></li>
+    </ul>
+    `;
+    document.querySelector("div.wy-menu-vertical").insertAdjacentHTML('afterbegin', link)
+}
+
 /*!
  * github-buttons v2.2.10
  * (c) 2019 なつき
@@ -26,6 +35,7 @@ function parseGithubButtons (){"use strict";var e=window.document,t=e.location,o
 function onLoad() {
     addGithubButton();
     parseGithubButtons();
+    //addHomeButton();
 }
 
 
