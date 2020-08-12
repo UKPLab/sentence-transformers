@@ -12,14 +12,14 @@ class BatchSemiHardTripletLoss(nn.Module):
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.sentence_embedder(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
 
-        return BatchSemiHardTripletLoss.batch_semi_hard_triplet_loss(labels, reps[0], margin=self.triplet_margin)
+        return BatchSemiHardTripletLoss.batch_semi_hard_triplet_loss(labels, reps[0], margin=self.triplet_margin, device=self.sentence_embedder.device)
 
 
     # Semi-Hard Triplet Loss
     # Based on: https://github.com/tensorflow/addons/blob/master/tensorflow_addons/losses/triplet.py#L71
     # Paper: FaceNet: A Unified Embedding for Face Recognition and Clustering: https://arxiv.org/pdf/1503.03832.pdf
     @staticmethod
-    def batch_semi_hard_triplet_loss(labels: Tensor, embeddings: Tensor, margin: float, squared: bool = False) -> Tensor:
+    def batch_semi_hard_triplet_loss(labels: Tensor, embeddings: Tensor, margin: float, squared: bool = False, device = None) -> Tensor:
         """Build the triplet loss over a batch of embeddings.
         We generate all the valid triplets and average the loss over the positive ones.
         Args:
@@ -57,11 +57,11 @@ class BatchSemiHardTripletLoss(nn.Module):
 
         loss_mat = (pdist_matrix - semi_hard_negatives) + margin
 
-        mask_positives = adjacency.float().cuda() - torch.eye(batch_size).cuda()
-        mask_positives = mask_positives.cuda()
+        mask_positives = adjacency.float().to(device) - torch.eye(batch_size, device=device)
+        mask_positives = mask_positives.to(device)
         num_positives = torch.sum(mask_positives)
 
-        triplet_loss = torch.sum(torch.max(loss_mat * mask_positives, torch.tensor([0.0]).cuda())) / num_positives
+        triplet_loss = torch.sum(torch.max(loss_mat * mask_positives, torch.tensor([0.0], device=device))) / num_positives
 
         return triplet_loss
 
