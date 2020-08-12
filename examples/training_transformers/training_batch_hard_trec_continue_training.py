@@ -81,7 +81,7 @@ def trec_dataset(
         dev_set = train_set[-validation_dataset_nb:]
         train_set = train_set[:-validation_dataset_nb]
 
-    #For dev & test set, we return triplets (anchor, positive, negative
+    # For dev & test set, we return triplets (anchor, positive, negative)
     random.seed(42) #Fix seed, so that we always get the same triplets
     dev_triplets = triplets_from_labeled_dataset(dev_set)
     test_triplets = triplets_from_labeled_dataset(test_set)
@@ -90,6 +90,9 @@ def trec_dataset(
 
 
 def triplets_from_labeled_dataset(input_examples):
+    # Create triplets for a [(label, sentence), (label, sentence)...] dataset
+    # by using each example as an anchor and selecting randomly a
+    # positive instance with the same label and a negative instance with a different label
     triplets = []
     label2sentence = defaultdict(list)
     for inp_example in input_examples:
