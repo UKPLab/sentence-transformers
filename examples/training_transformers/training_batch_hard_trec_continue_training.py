@@ -23,17 +23,18 @@ from sentence_transformers import (
     SentenceLabelDataset,
     LoggingHandler,
     losses,
-    models,
 )
 from torch.utils.data import DataLoader
-from sentence_transformers.readers import TripletReader, InputExample
+from sentence_transformers.readers import InputExample
 from sentence_transformers.evaluation import TripletEvaluator
 from datetime import datetime
 
-import csv
+
 import logging
 import os
 import urllib.request
+import random
+from collections import defaultdict
 
 # Inspired from torchnlp
 def trec_dataset(
@@ -56,7 +57,7 @@ def trec_dataset(
 
         examples = []
         label_map = {}
-        guid = 0
+        guid=1
         for line in open(full_path, "rb"):
             # there is one non-ASCII byte: sisterBADBYTEcity; replaced with space
             label, _, text = line.replace(b"\xf0", b" ").strip().decode().partition(" ")
@@ -67,22 +68,50 @@ def trec_dataset(
             if label not in label_map:
                 label_map[label] = len(label_map)
 
-            guid += 1
             label_id = label_map[label]
+            guid += 1
             examples.append(InputExample(guid=guid, texts=[text], label=label_id))
         ret.append(examples)
 
-    # Validation dataset:
-    # It doesn't exist in the original dataset,
-    # so we create one by splitting the train data
-    # Ret[0] is train
-    # Ret[1] is test
-    # Ret[2] is val
-    if validation_dataset_nb > 0:
-        ret.append(ret[0][-validation_dataset_nb:])
-        ret[0] = ret[0][:-validation_dataset_nb]
+    train_set, test_set = ret
+    dev_set = None
 
-    return ret
+    # Create a dev set from train set
+    if validation_dataset_nb > 0:
+        dev_set = train_set[-validation_dataset_nb:]
+        train_set = train_set[:-validation_dataset_nb]
+
+    #For dev & test set, we return triplets (anchor, positive, negative
+    random.seed(42) #Fix seed, so that we always get the same triplets
+    dev_triplets = triplets_from_labeled_dataset(dev_set)
+    test_triplets = triplets_from_labeled_dataset(test_set)
+
+    return train_set, dev_triplets, test_triplets
+
+
+def triplets_from_labeled_dataset(input_examples):
+    triplets = []
+    label2sentence = defaultdict(list)
+    for inp_example in input_examples:
+        label2sentence[inp_example.label].append(inp_example)
+
+    for inp_example in input_examples:
+        anchor = inp_example
+
+        if len(label2sentence[inp_example.label]) < 2: #We need at least 2 examples per label to create a triplet
+            continue
+
+        positive = None
+        while positive is None or positive.guid == anchor.guid:
+            positive = random.choice(label2sentence[inp_example.label])
+
+        negative = None
+        while negative is None or negative.label == anchor.label:
+            negative = random.choice(input_examples)
+
+        triplets.append(InputExample(texts=[anchor.texts[0], positive.texts[0], negative.texts[0]]))
+
+    return triplets
 
 
 logging.basicConfig(
@@ -93,7 +122,7 @@ logging.basicConfig(
 )
 
 # You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
-model_name = 'bert-base-nli-stsb-mean-tokens'
+model_name = 'distilbert-base-nli-stsb-mean-tokens'
 
 ### Create a torch.DataLoader that passes training batch instances to our model
 train_batch_size = 32
@@ -106,7 +135,8 @@ output_path = (
 num_epochs = 1
 
 logging.info("Loading TREC dataset")
-train, test, val = trec_dataset()
+train_set, dev_set, test_set = trec_dataset()
+
 
 
 # Load pretrained model
@@ -114,7 +144,7 @@ model = SentenceTransformer(model_name)
 
 logging.info("Read TREC train dataset")
 train_dataset = SentenceLabelDataset(
-    examples=train,
+    examples=train_set,
     model=model,
     provide_positive=False, #For BatchHardTripletLoss, we must set provide_positive and provide_negative to False
     provide_negative=False,
@@ -133,7 +163,10 @@ train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batc
 train_loss = losses.BatchSemiHardTripletLoss(sentence_embedder=model)
 
 logging.info("Read TREC val dataset")
-evaluator = TripletEvaluator.from_input_examples(val, name='dev')
+dev_evaluator = TripletEvaluator.from_input_examples(dev_set, name='dev')
+
+logging.info("Performance before fine-tuning:")
+dev_evaluator(model)
 
 warmup_steps = int(
     len(train_dataset) * num_epochs / train_batch_size * 0.1
@@ -142,7 +175,7 @@ warmup_steps = int(
 # Train the model
 model.fit(
     train_objectives=[(train_dataloader, train_loss)],
-    evaluator=evaluator,
+    evaluator=dev_evaluator,
     epochs=num_epochs,
     evaluation_steps=1000,
     warmup_steps=warmup_steps,
@@ -155,9 +188,6 @@ model.fit(
 #
 ##############################################################################
 
-logging.info("Read TREC test dataset")
-model = SentenceTransformer(output_path)
-test_evaluator = TripletEvaluator.from_input_examples(test, name='test')
-
-logging.info("Evaluating model")
+logging.info("Evaluating model on test set")
+test_evaluator = TripletEvaluator.from_input_examples(test_set, name='test')
 model.evaluate(test_evaluator)
