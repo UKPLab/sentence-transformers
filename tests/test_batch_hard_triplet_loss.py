@@ -38,7 +38,7 @@ def test_pairwise_distances():
 
     for squared in [True, False]:
         res_np = pairwise_distance_np(embeddings, squared=squared)
-        res_pt = BatchHardTripletLoss._pairwise_distances(torch.from_numpy(embeddings), squared=squared)
+        res_pt = BatchHardTripletLoss.pairwise_distances(torch.from_numpy(embeddings), squared=squared)
         assert np.allclose(res_np, res_pt)
 
 def test_pairwise_distances_are_positive():
@@ -54,7 +54,7 @@ def test_pairwise_distances_are_positive():
     embeddings[1] = embeddings[0]  # to get distance 0
 
     for squared in [True, False]:
-        res_tf = BatchHardTripletLoss._pairwise_distances(torch.from_numpy(embeddings), squared=squared)
+        res_tf = BatchHardTripletLoss.pairwise_distances(torch.from_numpy(embeddings), squared=squared)
         assert res_tf[res_tf < 0].sum() == 0
 
 
@@ -73,7 +73,7 @@ def test_triplet_mask():
                 valid = (labels[i] == labels[j]) and (labels[i] != labels[k])
                 mask_np[i, j, k] = (distinct and valid)
 
-    mask_tf_val = BatchHardTripletLoss._get_triplet_mask(torch.from_numpy(labels))
+    mask_tf_val = BatchHardTripletLoss.get_triplet_mask(torch.from_numpy(labels))
     assert np.allclose(mask_np, mask_tf_val)
 
 def test_anchor_positive_triplet_mask():
@@ -90,7 +90,7 @@ def test_anchor_positive_triplet_mask():
             valid = labels[i] == labels[j]
             mask_np[i, j] = (distinct and valid)
 
-    mask_tf_val = BatchHardTripletLoss._get_anchor_positive_triplet_mask(torch.from_numpy(labels))
+    mask_tf_val = BatchHardTripletLoss.get_anchor_positive_triplet_mask(torch.from_numpy(labels))
 
     assert np.allclose(mask_np, mask_tf_val)
 
@@ -108,7 +108,7 @@ def test_anchor_negative_triplet_mask():
             valid = (labels[i] != labels[k])
             mask_np[i, k] = (distinct and valid)
 
-    mask_tf_val = BatchHardTripletLoss._get_anchor_negative_triplet_mask(torch.from_numpy(labels))
+    mask_tf_val = BatchHardTripletLoss.get_anchor_negative_triplet_mask(torch.from_numpy(labels))
 
     assert np.allclose(mask_np, mask_tf_val)
 
