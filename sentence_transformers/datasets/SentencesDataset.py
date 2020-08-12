@@ -70,6 +70,12 @@ class SentencesDataset(Dataset):
         labels = []
         too_long = [0] * num_texts
         label_type = None
+
+        if isinstance(self.examples[0].label, int):
+            label_type = torch.long
+        elif isinstance(self.examples[0].label, float):
+            label_type = torch.float
+
         max_seq_length = self.model.get_max_seq_length()
 
         logging.info("Start tokenization")
@@ -82,30 +88,25 @@ class SentencesDataset(Dataset):
                 tokenized_texts = list(p.imap(self.tokenize_example, self.examples, chunksize=self.chunk_size))
 
         for ex_index, example in enumerate(self.examples):
-            if label_type is None:
-                if isinstance(example.label, int):
-                    label_type = torch.long
-                elif isinstance(example.label, float):
-                    label_type = torch.float
-
             example.texts_tokenized = tokenized_texts[ex_index]
 
             for i, token in enumerate(example.texts_tokenized):
                 if max_seq_length is not None and max_seq_length > 0 and len(token) >= max_seq_length:
                     too_long[i] += 1
 
-            labels.append(example.label)
+            labels.append(example.label if example.label is not None else 0)
+
             for i in range(num_texts):
                 inputs[i].append(example.texts_tokenized[i])
 
-        tensor_labels = torch.tensor(labels, dtype=label_type)
+        labels = torch.tensor(labels, dtype=label_type)
 
         logging.info("Num sentences: %d" % (len(self.examples)))
         for i in range(num_texts):
             logging.info("Sentences {} longer than max_seqence_length: {}".format(i, too_long[i]))
 
         self.tokens = inputs
-        self.labels = tensor_labels
+        self.labels = labels
 
 
     def tokenize_example(self, example):
