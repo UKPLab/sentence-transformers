@@ -19,11 +19,24 @@ class MultipleNegativesRankingLoss(nn.Module):
         For more information, see: https://arxiv.org/pdf/1705.00652.pdf
         (Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4)
 
-        The error function is equivalent to:
-        scores = torch.matmul(embeddings_a, embeddings_b.t())
-        labels = torch.tensor(range(len(scores)), dtype=torch.long).to(self.model.device) #Example a[i] should match with b[i]
-        cross_entropy_loss = nn.CrossEntropyLoss()
-        return cross_entropy_loss(scores, labels)
+        The error function is equivalent to::
+
+            scores = torch.matmul(embeddings_a, embeddings_b.t())
+            labels = torch.tensor(range(len(scores)), dtype=torch.long).to(self.model.device) #Example a[i] should match with b[i]
+            cross_entropy_loss = nn.CrossEntropyLoss()
+            return cross_entropy_loss(scores, labels)
+
+        Example::
+
+            from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses
+            from sentence_transformers.readers import InputExample
+
+            model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+            train_examples = [InputExample(texts=['Anchor 1', 'Positive 1']),
+                InputExample(texts=['Anchor 2', 'Positive 2'])]
+            train_dataset = SentencesDataset(train_examples, model)
+            train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+            train_loss = losses.MultipleNegativesRankingLoss(model=model)
     """
     def __init__(self, model: SentenceTransformer):
         super(MultipleNegativesRankingLoss, self).__init__()
