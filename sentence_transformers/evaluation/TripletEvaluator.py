@@ -64,7 +64,7 @@ class TripletEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("TripletEvaluator: Evaluation the model on "+self.name+" dataset"+out_txt)
+        logging.info("TripletEvaluator: Evaluating the model on "+self.name+" dataset"+out_txt)
 
         num_triplets = 0
         num_correct_cos_triplets, num_correct_manhatten_triplets, num_correct_euclidean_triplets = 0, 0, 0
@@ -105,7 +105,7 @@ class TripletEvaluator(SentenceEvaluator):
         accuracy_manhatten = num_correct_manhatten_triplets / num_triplets
         accuracy_euclidean = num_correct_euclidean_triplets / num_triplets
 
-        logging.info("Accuracy Cosine Distance:\t{:.2f}".format(accuracy_cos*100))
+        logging.info("Accuracy Cosine Distance:   \t{:.2f}".format(accuracy_cos*100))
         logging.info("Accuracy Manhatten Distance:\t{:.2f}".format(accuracy_manhatten*100))
         logging.info("Accuracy Euclidean Distance:\t{:.2f}\n".format(accuracy_euclidean*100))
 

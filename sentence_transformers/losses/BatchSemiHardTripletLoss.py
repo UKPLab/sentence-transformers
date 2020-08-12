@@ -1,25 +1,24 @@
 import torch
 from torch import nn, Tensor
 from typing import Union, Tuple, List, Iterable, Dict
-
+from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
 
 class BatchSemiHardTripletLoss(nn.Module):
-    def __init__(self, sentence_embedder, triplet_margin: float = 1):
+    def __init__(self, sentence_embedder, triplet_margin: float = 5, distance_function = BatchHardTripletLossDistanceFunction.eucledian_distance):
         super(BatchSemiHardTripletLoss, self).__init__()
         self.sentence_embedder = sentence_embedder
         self.triplet_margin = triplet_margin
+        self.distance_function = distance_function
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.sentence_embedder(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
-
-        return BatchSemiHardTripletLoss.batch_semi_hard_triplet_loss(labels, reps[0], margin=self.triplet_margin, device=self.sentence_embedder.device)
+        return self.batch_semi_hard_triplet_loss(labels, reps[0])
 
 
     # Semi-Hard Triplet Loss
     # Based on: https://github.com/tensorflow/addons/blob/master/tensorflow_addons/losses/triplet.py#L71
     # Paper: FaceNet: A Unified Embedding for Face Recognition and Clustering: https://arxiv.org/pdf/1503.03832.pdf
-    @staticmethod
-    def batch_semi_hard_triplet_loss(labels: Tensor, embeddings: Tensor, margin: float, squared: bool = False, device = None) -> Tensor:
+    def batch_semi_hard_triplet_loss(self, labels: Tensor, embeddings: Tensor) -> Tensor:
         """Build the triplet loss over a batch of embeddings.
         We generate all the valid triplets and average the loss over the positive ones.
         Args:
@@ -33,8 +32,8 @@ class BatchSemiHardTripletLoss(nn.Module):
         """
         labels = labels.unsqueeze(1)
 
-        pdist_matrix = BatchSemiHardTripletLoss._pairwise_distances(embeddings, squared)
-        #pdist_matrix = BatchSemiHardTripletLoss._cosine_distance(embeddings)
+        pdist_matrix = self.distance_function(embeddings)
+
 
         adjacency = labels == labels.t()
         adjacency_not = ~adjacency
@@ -55,13 +54,13 @@ class BatchSemiHardTripletLoss(nn.Module):
 
         semi_hard_negatives = torch.where(mask_final, negatives_outside, negatives_inside)
 
-        loss_mat = (pdist_matrix - semi_hard_negatives) + margin
+        loss_mat = (pdist_matrix - semi_hard_negatives) + self.triplet_margin
 
-        mask_positives = adjacency.float().to(device) - torch.eye(batch_size, device=device)
-        mask_positives = mask_positives.to(device)
+        mask_positives = adjacency.float().to(labels.device) - torch.eye(batch_size, device=labels.device)
+        mask_positives = mask_positives.to(labels.device)
         num_positives = torch.sum(mask_positives)
 
-        triplet_loss = torch.sum(torch.max(loss_mat * mask_positives, torch.tensor([0.0], device=device))) / num_positives
+        triplet_loss = torch.sum(torch.max(loss_mat * mask_positives, torch.tensor([0.0], device=labels.device))) / num_positives
 
         return triplet_loss
 
@@ -83,37 +82,3 @@ class BatchSemiHardTripletLoss(nn.Module):
 
         return masked_maximums
 
-    @staticmethod
-    def _pairwise_distances(embeddings, squared=False):
-        """Compute the 2D matrix of distances between all the embeddings.
-        Args:
-            embeddings: tensor of shape (batch_size, embed_dim)
-            squared: Boolean. If true, output is the pairwise squared euclidean distance matrix.
-                     If false, output is the pairwise euclidean distance matrix.
-        Returns:
-            pairwise_distances: tensor of shape (batch_size, batch_size)
-        """
-        dot_product = torch.matmul(embeddings, embeddings.t())
-
-        # Get squared L2 norm for each embedding. We can just take the diagonal of `dot_product`.
-        # This also provides more numerical stability (the diagonal of the result will be exactly 0).
-        # shape (batch_size,)
-        square_norm = torch.diag(dot_product)
-
-        # Compute the pairwise distance matrix as we have:
-        # ||a - b||^2 = ||a||^2  - 2 <a, b> + ||b||^2
-        # shape (batch_size, batch_size)
-        distances = square_norm.unsqueeze(0) - 2.0 * dot_product + square_norm.unsqueeze(1)
-
-        # Because of computation errors, some distances might be negative so we put everything >= 0.0
-        distances[distances < 0] = 0
-
-        if not squared:
-            # Because the gradient of sqrt is infinite when distances == 0.0 (ex: on the diagonal)
-            # we need to add a small epsilon where distances == 0.0
-            mask = distances.eq(0).float()
-            distances = distances + mask * 1e-16
-
-            distances = (1.0 - mask) * torch.sqrt(distances)
-
-        return distances
