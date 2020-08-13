@@ -227,7 +227,8 @@ The following models can be used for languages other than English. The vector sp
 - **distiluse-base-multilingual-cased**: Supported languages: Arabic, Chinese, Dutch, English, French, German,  Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. Performance on the extended STS2017: 80.1
 - **xlm-r-base-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 81.47
 - **xlm-r-large-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 84.05
-
+- **xlm-r-40langs-bert-base-nli-mean-tokens**: Produces similar embeddings as the bert-base-nli-mean-token for 40 languages: ar, bg, ca, cs, da, de, el, en, es, fa, fi, fr, he, hi, hr, hu, id, it, ja, ko, ku, lt, lv, my, nl, pl, pt, ro, ru, sk, sl, sq, sr, sv, th, tr, uk, vi, zh
+- **xlm-r-40langs-bert-base-nli-stsb-mean-tokens**: Produces similar embeddings as the bert-base-nli-stsb-mean-token for 40 supported languages: ar, bg, ca, cs, da, de, el, en, es, fa, fi, fr, he, hi, hr, hu, id, it, ja, ko, ku, lt, lv, my, nl, pl, pt, ro, ru, sk, sl, sq, sr, sv, th, tr, uk, vi, zh
 
 ## Performance
 
