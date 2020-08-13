@@ -2,23 +2,48 @@ import torch
 from torch import nn, Tensor
 from typing import Union, Tuple, List, Iterable, Dict
 from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
+from sentence_transformers.SentenceTransformer import SentenceTransformer
+
 
 class BatchAllTripletLoss(nn.Module):
-    def __init__(self, sentence_embedder, triplet_margin: float = 5, distance_function=BatchHardTripletLossDistanceFunction.eucledian_distance):
+    """
+    BatchAllTripletLoss takes a batch with (label, sentence) pairs and computes the loss for all possible, valid
+    triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. The labels
+    must be integers, with same label indicating sentences from the same class. You train dataset
+    must contain at least 2 examples per label class.
+
+    | Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
+    | Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
+    | Blog post: https://omoindrot.github.io/triplet-loss
+
+    :param model: SentenceTransformer model
+    :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
+    :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
+
+    Example::
+
+        from sentence_transformers import SentenceTransformer, SentencesDataset, losses
+        from sentence_transformers.readers import InputExample
+
+        model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+        train_examples = [InputExample(texts=['Sentence from class 0'], label=0), InputExample(texts=['Another sentence from class 0'], label=0),
+            InputExample(texts=['Sentence from class 1'], label=1), InputExample(texts=['Sentence from class 2'], label=2)]
+        train_dataset = SentencesDataset(train_examples, model)
+        train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+        train_loss = losses.BatchAllTripletLoss(model=model)
+    """
+    def __init__(self, model: SentenceTransformer, distance_metric=BatchHardTripletLossDistanceFunction.eucledian_distance, margin: float = 5):
         super(BatchAllTripletLoss, self).__init__()
-        self.sentence_embedder = sentence_embedder
-        self.triplet_margin = triplet_margin
-        self.distance_function = distance_function
+        self.sentence_embedder = model
+        self.triplet_margin = margin
+        self.distance_metric = distance_metric
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.sentence_embedder(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
         return self.batch_all_triplet_loss(labels, reps[0])
 
 
-    # Hard Triplet Loss
-    # Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
-    # Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
-    # Blog post: https://omoindrot.github.io/triplet-loss
+
     def batch_all_triplet_loss(self, labels, embeddings):
         """Build the triplet loss over a batch of embeddings.
         We generate all the valid triplets and average the loss over the positive ones.
@@ -32,7 +57,7 @@ class BatchAllTripletLoss(nn.Module):
             Label_Sentence_Triplet: scalar tensor containing the triplet loss
         """
         # Get the pairwise distance matrix
-        pairwise_dist = self.distance_function(embeddings)
+        pairwise_dist = self.distance_metric(embeddings)
 
         anchor_positive_dist = pairwise_dist.unsqueeze(2)
         anchor_negative_dist = pairwise_dist.unsqueeze(1)
