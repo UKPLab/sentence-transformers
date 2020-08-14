@@ -16,6 +16,9 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
 import multiprocessing
+import torch.multiprocessing as mp
+import math
+import queue
 
 from . import __DOWNLOAD_SERVER__
 from .evaluation import SentenceEvaluator
@@ -93,6 +96,7 @@ class SentenceTransformer(nn.Sequential):
         self.parallel_tokenization = multiprocessing.get_start_method() == 'fork'   #parallel_tokenization only works if the Operating System support fork
         self.parallel_tokenization_processes = min(4, cpu_count())                  #Number of parallel processes used for tokenization. Increase up to cpu_count() for faster tokenization
         self.parallel_tokenization_chunksize = 5000                                 #Number of sentences sent per chunk to each process. Increase for faster tokenization
+        self._multi_gpu_pool = None
 
     def encode(self, sentences: Union[str, List[str], List[int]],
                batch_size: int = 16,
@@ -100,48 +104,40 @@ class SentenceTransformer(nn.Sequential):
                output_value: str = 'sentence_embedding',
                convert_to_numpy: bool = True,
                convert_to_tensor: bool = False,
-               is_pretokenized: bool = False) -> Union[List[Tensor], ndarray, Tensor]:
+               is_pretokenized: bool = False,
+               device: str = None) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings
 
-        :param sentences:
-           the sentences to embed
-        :param batch_size:
-           the batch size used for the computation
-        :param show_progress_bar:
-            Output a progress bar when encode sentences
-        :param output_value:
-            Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings
-            to get wordpiece token embeddings.
-        :param convert_to_numpy:
-            If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
-        :param convert_to_tensor:
-            If true, you get one large tensor as return. Overwrites any setting from conver_to_numy
-        :param is_pretokenized:
-            If is_pretokenized=True, sentences must be a list of integers, containing the tokenized sentences with each token convert to the respective int.
+
+        :param sentences: the sentences to embed
+        :param batch_size: the batch size used for the computation
+        :param show_progress_bar: Output a progress bar when encode sentences
+        :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings.
+        :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
+        :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from conver_to_numy
+        :param is_pretokenized: If is_pretokenized=True, sentences must be a list of integers, containing the tokenized sentences with each token convert to the respective int.
+        :param device: Which torch.device to use for the computation
         :return:
            By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
         """
-
         self.eval()
         if show_progress_bar is None:
             show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
-
 
         input_was_string = False
         if isinstance(sentences, str): #Cast an individual sentence to a list with length 1
             sentences = [sentences]
             input_was_string = True
 
-
         all_embeddings = []
-
-        if show_progress_bar:
-            logging.info("Start tokenization {} sentences".format(len(sentences)))
 
         if is_pretokenized:
             sentences_tokenized = sentences
         else:
+            if show_progress_bar:
+                logging.info("Start tokenization {} sentences".format(len(sentences)))
+
             if not self.parallel_tokenization or len(sentences) < self.parallel_tokenization_chunksize:
                 sentences_tokenized = [self.tokenize(sen) for sen in sentences]
             else:
@@ -152,7 +148,10 @@ class SentenceTransformer(nn.Sequential):
                 with Pool(self.parallel_tokenization_processes) as p:
                     sentences_tokenized = list(p.imap(self.tokenize, sentences, chunksize=self.parallel_tokenization_chunksize))
 
-        self.to(self._target_device)
+        if device is None:
+            device = self._target_device
+
+        self.to(device)
 
         length_sorted_idx = np.argsort([len(sen) for sen in sentences])
 
@@ -183,7 +182,7 @@ class SentenceTransformer(nn.Sequential):
                     features[feature_name].append(sentence_features[feature_name])
 
             for feature_name in features:
-                features[feature_name] = torch.cat(features[feature_name]).to(self._target_device)
+                features[feature_name] = torch.cat(features[feature_name]).to(device)
 
             with torch.no_grad():
                 out_features = self.forward(features)
@@ -209,6 +208,97 @@ class SentenceTransformer(nn.Sequential):
             all_embeddings = all_embeddings[0]
 
         return all_embeddings
+
+
+
+    def start_multi_gpu_pool(self, cuda_ids=None, encode_batch_size=32):
+        if cuda_ids is None:
+            cuda_ids = list(range(torch.cuda.device_count()))
+
+        logging.info("Start multi-gpu pool on cudas: {}".format(', '.join(map(str, cuda_ids))))
+
+        ctx = mp.get_context('spawn')
+        input_queue = ctx.Queue()
+        output_queue = ctx.Queue()
+        processes = []
+
+        for cuda_id in cuda_ids:
+            p = ctx.Process(target=SentenceTransformer._encode_multi_gpu_worker, args=(cuda_id, self, input_queue, output_queue, encode_batch_size), daemon=True)
+            p.start()
+            processes.append(p)
+
+        return {'input': input_queue, 'output': output_queue, 'processes': processes}
+
+
+    @staticmethod
+    def stop_multi_gpu_pool(pool):
+        for p in pool['processes']:
+            p.terminate()
+
+        for p in pool['processes']:
+            p.join()
+            p.close()
+
+        pool['input'].close()
+        pool['output'].close()
+
+
+
+
+
+    def encode_multi_gpu(self, sentences, pool, is_pretokenized=False):
+        """
+        This method allows to run encode() on multiple GPUs. The sentences are chunked into smaller packages
+        and sent to individual processes, which encode these on the different GPUs. This method is only suitable
+        for encoding large sets of sentences
+        :param sentences:
+        :param pool:
+        :param is_pretokenized:
+        :return: Numpy matrix with all embeddings
+        """
+
+        chunk_size = min(math.ceil(len(sentences) / torch.cuda.device_count() / 10), 5000)
+        logging.info("Chunk data into packages of size {}".format(chunk_size))
+
+        if is_pretokenized:
+            sentences_tokenized = sentences
+        else:
+            sentences_tokenized = map(self.tokenize, sentences)
+
+        input_queue = pool['input']
+        num_chunks = 0
+        chunk = []
+
+        for sentence in sentences_tokenized:
+            chunk.append(sentence)
+            if len(chunk) >= chunk_size:
+                input_queue.put([num_chunks, chunk])
+                num_chunks += 1
+                chunk = []
+
+        if len(chunk) >= chunk_size:
+            input_queue.put([num_chunks, chunk])
+            num_chunks += 1
+
+        output_queue = pool['output']
+        results_list = sorted([output_queue.get() for _ in range(num_chunks)], key=lambda x: x[0])
+        embeddings = np.concatenate([result[1] for result in results_list])
+        return embeddings
+
+    @staticmethod
+    def _encode_multi_gpu_worker(cuda_id, model, input_queue, results_queue, encode_batch_size):
+        target_decice = 'cuda:{}'.format(cuda_id)
+
+        while True:
+            try:
+                id, sentences = input_queue.get()
+                embeddings = model.encode(sentences, device=target_decice, is_pretokenized=True, show_progress_bar=False, convert_to_numpy=True, batch_size=encode_batch_size)
+                results_queue.put([id, embeddings])
+            except queue.Empty:
+                break
+
+
+
 
     def get_max_seq_length(self):
         if hasattr(self._first_module(), 'max_seq_length'):
