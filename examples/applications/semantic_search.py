@@ -33,6 +33,7 @@ top_k = 5
 for query in queries:
     query_embedding = embedder.encode(query, convert_to_tensor=True)
     cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
+    cos_scores = cos_scores.cpu()
 
     #We use np.argpartition, to only partially sort the top_k results
     top_results = np.argpartition(-cos_scores, range(top_k))[0:top_k]
