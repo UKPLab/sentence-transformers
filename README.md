@@ -225,8 +225,8 @@ These models were first fine-tuned on the AllNLI datasent, then on train set of 
 The following models can be used for languages other than English. The vector spaces for the included languages are aligned, i.e., two sentences are mapped to the same point in vector space independent of the language. The models can be used for cross-lingual tasks. For more details see [multilingual-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/pretrained-models/multilingual-models.md).
 
 - **distiluse-base-multilingual-cased**: Supported languages: Arabic, Chinese, Dutch, English, French, German,  Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. Performance on the extended STS2017: 80.1
-- **xlm-r-100langs-bert-base-nli-mean-tokens**: Produces similar embeddings as the bert-base-nli-mean-token for 100+ languages
-- **xlm-r-100langs-bert-base-nli-stsb-mean-tokens**: Produces similar embeddings as the bert-base-nli-stsb-mean-token for 100+ languages
+- **xlm-r-100langs-bert-base-nli-mean-tokens**: Produces similar embeddings as the bert-base-nli-mean-token model for 100+ languages
+- **xlm-r-100langs-bert-base-nli-stsb-mean-tokens**: Produces similar embeddings as the bert-base-nli-stsb-mean-token model for 100+ languages
 
 
 XLM-R supports the following 100 languages.
