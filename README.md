@@ -221,6 +221,12 @@ These models were first fine-tuned on the AllNLI datasent, then on train set of 
 - **distilbert-base-nli-stsb-mean-tokens**: Performance: STSbenchmark: 84.38
 
 
+**Trained on Quora Duplicate Question Detection**
+
+These models were tuned to detect duplicate questions based on the Quora duplicate questions dataset. It can be used for semantic search to find similar questions. [Further information](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training_quora_duplicate_questions).
+- **distilbert-base-nli-stsb-quora-ranking**
+
+
 ### Multilingual Models
 The following models can be used for languages other than English. The vector spaces for the included languages are aligned, i.e., two sentences are mapped to the same point in vector space independent of the language. The models can be used for cross-lingual tasks. For more details see [multilingual-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/pretrained-models/multilingual-models.md).
 
