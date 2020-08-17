@@ -225,10 +225,36 @@ These models were first fine-tuned on the AllNLI datasent, then on train set of 
 The following models can be used for languages other than English. The vector spaces for the included languages are aligned, i.e., two sentences are mapped to the same point in vector space independent of the language. The models can be used for cross-lingual tasks. For more details see [multilingual-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/pretrained-models/multilingual-models.md).
 
 - **distiluse-base-multilingual-cased**: Supported languages: Arabic, Chinese, Dutch, English, French, German,  Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. Performance on the extended STS2017: 80.1
-- **xlm-r-base-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 81.47
-- **xlm-r-large-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 84.05
-- **xlm-r-40langs-bert-base-nli-mean-tokens**: Produces similar embeddings as the bert-base-nli-mean-token for 40 languages: ar, bg, ca, cs, da, de, el, en, es, fa, fi, fr, he, hi, hr, hu, id, it, ja, ko, ku, lt, lv, my, nl, pl, pt, ro, ru, sk, sl, sq, sr, sv, th, tr, uk, vi, zh
-- **xlm-r-40langs-bert-base-nli-stsb-mean-tokens**: Produces similar embeddings as the bert-base-nli-stsb-mean-token for 40 supported languages: ar, bg, ca, cs, da, de, el, en, es, fa, fi, fr, he, hi, hr, hu, id, it, ja, ko, ku, lt, lv, my, nl, pl, pt, ro, ru, sk, sl, sq, sr, sv, th, tr, uk, vi, zh
+- **xlm-r-100langs-bert-base-nli-mean-tokens**: Produces similar embeddings as the bert-base-nli-mean-token for 100+ languages
+- **xlm-r-100langs-bert-base-nli-stsb-mean-tokens**: Produces similar embeddings as the bert-base-nli-stsb-mean-token for 100+ languages
+
+
+XLM-R supports the following 100 languages.
+ Language | Language|Language |Language | Language
+---|---|---|---|---
+Afrikaans | Albanian | Amharic | Arabic | Armenian 
+Assamese | Azerbaijani | Basque | Belarusian | Bengali 
+Bengali Romanize | Bosnian | Breton | Bulgarian | Burmese 
+Burmese zawgyi font | Catalan | Chinese (Simplified) | Chinese (Traditional) | Croatian 
+Czech | Danish | Dutch | English | Esperanto 
+Estonian | Filipino | Finnish | French | Galician
+Georgian | German | Greek | Gujarati | Hausa
+Hebrew | Hindi | Hindi Romanize | Hungarian | Icelandic
+Indonesian | Irish | Italian | Japanese | Javanese
+Kannada | Kazakh | Khmer | Korean | Kurdish (Kurmanji)
+Kyrgyz | Lao | Latin | Latvian | Lithuanian
+Macedonian | Malagasy | Malay | Malayalam | Marathi
+Mongolian | Nepali | Norwegian | Oriya | Oromo
+Pashto | Persian | Polish | Portuguese | Punjabi
+Romanian | Russian | Sanskrit | Scottish Gaelic | Serbian
+Sindhi | Sinhala | Slovak | Slovenian | Somali
+Spanish | Sundanese | Swahili | Swedish | Tamil
+Tamil Romanize | Telugu | Telugu Romanize | Thai | Turkish
+Ukrainian | Urdu | Urdu Romanize | Uyghur | Uzbek
+Vietnamese | Welsh | Western Frisian | Xhosa | Yiddish
+
+The XLM-R-100langs models were fine-tuned using [Multilingual Knowledge Distillation](https://arxiv.org/abs/2004.09813) using parallel data for the following languages: ar, bg, ca, cs, da, de, el, es, et, fa, fi, fr, fr-ca, gl, gu, he, hi, hr, hu, hy, id, it, ja, ka, ko, ku, lt, lv, mk, mn, mr, ms, my, nb, nl, pl, pt, pt, pt-br, ro, ru, sk, sl, sq, sr, sv, th, tr, uk, ur, vi, zh-cn, zh-tw. It achieves also quite good performance scores for languages not in these lists.
+
 
 ## Performance
 
