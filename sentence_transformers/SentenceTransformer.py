@@ -211,19 +211,32 @@ class SentenceTransformer(nn.Sequential):
 
 
 
-    def start_multi_gpu_pool(self, cuda_ids=None, encode_batch_size=32):
-        if cuda_ids is None:
-            cuda_ids = list(range(torch.cuda.device_count()))
+    def start_multi_process_pool(self, target_devices: List[str] = None, encode_batch_size: int = 32):
+        """
+        Starts multi process to process the encode with several, independent  process.
+        This methos is recommend if you want to encode on multiple GPUs. It is advised
+        to start only one process per GPU. This method works together with encode_multi_process
 
-        logging.info("Start multi-gpu pool on cudas: {}".format(', '.join(map(str, cuda_ids))))
+        :param target_devices: PyTorch target devices, e.g. cuda:0, cuda:1... If None, all available CUDA devices will be used
+        :param encode_batch_size: Batch size for each process when calling encode
+        :return: Returns a dict with the target processes, an input queue and and output queue.
+        """
+        if target_devices is None:
+            if torch.cuda.is_available():
+                target_devices = ['cuda:{}'.format(i) for i in range(torch.cuda.device_count())]
+            else:
+                logging.info("CUDA is not available. Start 4 CPU worker")
+                target_devices = ['cpu']*4
+
+        logging.info("Start multi-process pool on devices: {}".format(', '.join(map(str, target_devices))))
 
         ctx = mp.get_context('spawn')
         input_queue = ctx.Queue()
         output_queue = ctx.Queue()
         processes = []
 
-        for cuda_id in cuda_ids:
-            p = ctx.Process(target=SentenceTransformer._encode_multi_gpu_worker, args=(cuda_id, self, input_queue, output_queue, encode_batch_size), daemon=True)
+        for cuda_id in target_devices:
+            p = ctx.Process(target=SentenceTransformer._encode_multi_process_worker, args=(cuda_id, self, input_queue, output_queue, encode_batch_size), daemon=True)
             p.start()
             processes.append(p)
 
@@ -231,7 +244,10 @@ class SentenceTransformer(nn.Sequential):
 
 
     @staticmethod
-    def stop_multi_gpu_pool(pool):
+    def stop_multi_process_pool(pool):
+        """
+        Stops all processes started with start_multi_process_pool
+        """
         for p in pool['processes']:
             p.terminate()
 
@@ -243,17 +259,15 @@ class SentenceTransformer(nn.Sequential):
         pool['output'].close()
 
 
-
-
-
-    def encode_multi_gpu(self, sentences, pool, is_pretokenized=False):
+    def encode_multi_process(self, sentences: List[str], pool: Dict[str, object], is_pretokenized: bool = False):
         """
         This method allows to run encode() on multiple GPUs. The sentences are chunked into smaller packages
         and sent to individual processes, which encode these on the different GPUs. This method is only suitable
         for encoding large sets of sentences
-        :param sentences:
-        :param pool:
-        :param is_pretokenized:
+
+        :param sentences: List of sentences
+        :param pool: A pool of workers started with SentenceTransformer.start_multi_process_pool
+        :param is_pretokenized: If true, no tokenization will be applied. It is expected that the input sentences are list of ints.
         :return: Numpy matrix with all embeddings
         """
 
@@ -286,27 +300,32 @@ class SentenceTransformer(nn.Sequential):
         return embeddings
 
     @staticmethod
-    def _encode_multi_gpu_worker(cuda_id, model, input_queue, results_queue, encode_batch_size):
-        target_decice = 'cuda:{}'.format(cuda_id)
-
+    def _encode_multi_process_worker(target_device: str, model, input_queue, results_queue, encode_batch_size):
+        """
+        Internal working process to encode sentences in multi-process setup
+        """
         while True:
             try:
                 id, sentences = input_queue.get()
-                embeddings = model.encode(sentences, device=target_decice, is_pretokenized=True, show_progress_bar=False, convert_to_numpy=True, batch_size=encode_batch_size)
+                embeddings = model.encode(sentences, device=target_device, is_pretokenized=True, show_progress_bar=False, convert_to_numpy=True, batch_size=encode_batch_size)
                 results_queue.put([id, embeddings])
             except queue.Empty:
                 break
 
 
-
-
     def get_max_seq_length(self):
+        """
+        Returns the maximal sequence length for input the model accepts. Longer inputs will be truncated
+        """
         if hasattr(self._first_module(), 'max_seq_length'):
             return self._first_module().max_seq_length
 
         return None
 
-    def tokenize(self, text):
+    def tokenize(self, text: str):
+        """
+        Tokenizes the text
+        """
         return self._first_module().tokenize(text)
 
     def get_sentence_features(self, *features):
