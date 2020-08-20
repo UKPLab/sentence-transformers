@@ -6,15 +6,12 @@ python evaluation_inference_speed.py
 OR
 python evaluation_inference_speed.py model_name
 """
-from torch.utils.data import DataLoader
-from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers.readers import STSBenchmarkDataReader
-import logging
+from sentence_transformers import SentenceTransformer
 import sys
 import os
 import time
 import torch
+import gzip
 
 #Limit torch to 4 threads
 torch.set_num_threads(4)
@@ -22,12 +19,6 @@ torch.set_num_threads(4)
 script_folder_path = os.path.dirname(os.path.realpath(__file__))
 
 
-#### Just some code to print debug information to stdout
-logging.basicConfig(format='%(asctime)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO,
-                    handlers=[LoggingHandler()])
-#### /print debug information to stdout
 
 model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-nli-mean-tokens'
 
@@ -35,14 +26,30 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-nli-mean-tokens'
 # Alternatively, you can also pass a filepath to SentenceTransformer()
 model = SentenceTransformer(model_name)
 
-sts_reader = STSBenchmarkDataReader(os.path.join(script_folder_path, '../datasets/stsbenchmark'))
-examples = sts_reader.get_examples("sts-train.csv")
-sentences = [text for ex in examples for text in ex.texts]
+#Perform computation with FP16
+#model.half()
+
+#Fork multiple processes to tokenize the input data
+#model.parallel_tokenization = True
+
+sentences = []
+max_sentences = 100000
+
+with gzip.open(os.path.join(script_folder_path, '../datasets/AllNLI/s1.train.gz'), 'rt', encoding='utf8') as fIn:
+    for line in fIn:
+        sentences.append(line.strip())
+        if len(sentences) >= max_sentences:
+            break
+
+print("Model Name:", model_name)
 print("Number of sentences:", len(sentences))
 
-start_time = time.time()
-emb = model.encode(sentences, batch_size=32)
-end_time = time.time()
-diff_time = end_time - start_time
-print("Done after {:.2f} sec".format(diff_time))
-print("Speed: {:.2f}".format(len(sentences) / diff_time))
+for i in range(3):
+    print("Run", i)
+    start_time = time.time()
+    emb = model.encode(sentences, batch_size=32)
+    end_time = time.time()
+    diff_time = end_time - start_time
+    print("Done after {:.2f} seconds".format(diff_time))
+    print("Speed: {:.2f} sentences / second".format(len(sentences) / diff_time))
+    print("=====")
