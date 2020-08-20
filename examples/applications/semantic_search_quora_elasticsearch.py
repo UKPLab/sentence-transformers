@@ -20,6 +20,7 @@ from elasticsearch import Elasticsearch
 import csv
 import time
 import tqdm.autonotebook
+from elasticsearch import helpers
 
 es = Elasticsearch()
 
@@ -77,20 +78,18 @@ if not es.indices.exists(index="quora"):
                 embeddings = model.encode(questions[start_idx:end_idx])
                 bulk_data = []
                 for qid, question, embedding in zip(qids[start_idx:end_idx], questions[start_idx:end_idx], embeddings):
-                    data_dict = {}
-                    op_dict = {
+                    bulk_data.append({
                         "index": {
                             "_index": 'quora',
                             "_id": qid,
+                            "_source": {
+                                "question": question,
+                                "question_vector": embedding
+                            }
                         }
-                    }
-                    data_dict = {
-                        "question": question,
-                        "question_vector": embedding
-                    }
-                    bulk_data.append(op_dict)
-                    bulk_data.append(data_dict)
-                es.bulk(index='quora', body=bulk_data)
+                    })
+
+                helpers.bulk(es, bulk_data)
                 pbar.update(chunk_size)
 
     except:
