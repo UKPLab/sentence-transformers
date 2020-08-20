@@ -93,10 +93,10 @@ class SentenceTransformer(nn.Sequential):
             logging.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
-        self.parallel_tokenization = multiprocessing.get_start_method() == 'fork'   #parallel_tokenization only works if the Operating System support fork
+        self.parallel_tokenization = False #multiprocessing.get_start_method() == 'fork'   #parallel_tokenization only works if the Operating System support fork
         self.parallel_tokenization_processes = min(4, cpu_count())                  #Number of parallel processes used for tokenization. Increase up to cpu_count() for faster tokenization
         self.parallel_tokenization_chunksize = 5000                                 #Number of sentences sent per chunk to each process. Increase for faster tokenization
-        self._multi_gpu_pool = None
+
 
     def encode(self, sentences: Union[str, List[str], List[int]],
                batch_size: int = 16,
@@ -141,12 +141,14 @@ class SentenceTransformer(nn.Sequential):
             if not self.parallel_tokenization or len(sentences) < self.parallel_tokenization_chunksize:
                 sentences_tokenized = [self.tokenize(sen) for sen in sentences]
             else:
-                if show_progress_bar:
-                    logging.info("Multi-process tokenization with {} workers".format(self.parallel_tokenization_processes))
-
-                self.to('cpu')   #Model must be on CPU to work with fork
+                self.to('cpu')  # Model must be on CPU to work with fork
                 with Pool(self.parallel_tokenization_processes) as p:
-                    sentences_tokenized = list(p.imap(self.tokenize, sentences, chunksize=self.parallel_tokenization_chunksize))
+                    sentences_tokenized = p.imap(self.tokenize, sentences, chunksize=self.parallel_tokenization_chunksize)
+                    if show_progress_bar:
+                        logging.info("Multi-process tokenization with {} workers".format(self.parallel_tokenization_processes))
+                        sentences_tokenized = tqdm(sentences_tokenized, total=len(sentences), smoothing=0)
+
+                    sentences_tokenized = list(sentences_tokenized)
 
         if device is None:
             device = self._target_device
@@ -167,7 +169,7 @@ class SentenceTransformer(nn.Sequential):
 
             longest_seq = 0
 
-            for idx in length_sorted_idx[batch_start: batch_end]:
+            for idx in length_sorted_idx[batch_start:batch_end]:
                 tokens = sentences_tokenized[idx]
                 longest_seq = max(longest_seq, len(tokens))
                 batch_tokens.append(tokens)
@@ -436,23 +438,20 @@ class SentenceTransformer(nn.Sequential):
         We sample only as many batches from each objective as there are in the smallest one
         to make sure of equal training with each dataset.
 
-        :param weight_decay:
-        :param scheduler:
-        :param warmup_steps:
-        :param optimizer:
-        :param evaluation_steps:
-        :param output_path:
-        :param output_path_ignore_not_empty: Ignore if the output path contains already files
-        :param save_best_model:
-        :param max_grad_norm:
-        :param fp16:
-        :param fp16_opt_level:
-        :param local_rank:
-        :param train_objectives:
-            Tuples of DataLoader and LossConfig
-        :param evaluator:
-        :param epochs:
-        :param steps_per_epoch: Train for x steps in each epoch. If set to None, the length of the dataset will be used
+        :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
+        :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
+        :param epochs: Number of epochs for training
+        :param steps_per_epoch: Number of training steps per epoch. If set to None (default), one epoch is equal the DataLoader size from train_objectives.
+        :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
+        :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
+        :param optimizer_class: Optimizer
+        :param optimizer_params: Optimizer parameters
+        :param weight_decay: Weight decay for model parameters
+        :param evaluation_steps: If > 0, evaluate the model using evaluator after each number of training steps
+        :param output_path: Storage path for the model and evaluation files
+        :param output_path_ignore_not_empty: By default, training will stop if output_path is not empty. If set to true, this error will be ignored and training proceeds.
+        :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
+        :param max_grad_norm: Used for gradient normalization.
         """
         self.to(self._target_device)
 
@@ -590,7 +589,7 @@ class SentenceTransformer(nn.Sequential):
 
     def _get_scheduler(self, optimizer, scheduler: str, warmup_steps: int, t_total: int):
         """
-        Returns the correct learning rate scheduler
+        Returns the correct learning rate scheduler. Available scheduler: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         """
         scheduler = scheduler.lower()
         if scheduler == 'constantlr':

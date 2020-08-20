@@ -45,7 +45,6 @@ class MultipleNegativesRankingLoss(nn.Module):
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
-
         reps_a, reps_b = reps
         return self.multiple_negatives_ranking_loss(reps_a, reps_b)
 

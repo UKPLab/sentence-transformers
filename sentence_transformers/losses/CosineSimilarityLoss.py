@@ -17,8 +17,7 @@ class CosineSimilarityLoss(nn.Module):
 
     Example::
 
-            from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses
-            from sentence_transformers.readers import InputExample
+            from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample, losses
 
             model = SentenceTransformer('distilbert-base-nli-mean-tokens')
             train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=0.8),

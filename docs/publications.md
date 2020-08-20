@@ -40,6 +40,7 @@ In the following you find a (selective) list of articles / applications using Se
 
 For the full list research publications using sentence transformers, see [Google Scholar](https://scholar.google.com/scholar?oi=bibs&hl=de&cites=12599223809118664426).
 
+- **July 2020** - **[CORD19STS: COVID-19 Semantic Textual Similarity Dataset](https://arxiv.org/abs/2007.02461)**
 - **July 2020** - **[IR-BERT: Leveraging BERT for Semantic Search in Background Linking for News Articles](https://arxiv.org/abs/2007.12603)** 
 - **July 2020 - [COVID-19 Knowledge Graph: Accelerating Information Retrieval and Discovery for Scientific Literature](https://arxiv.org/abs/2007.12731)**
 - **July 2020 - [CrossBERT: a Triplet Neural Architecture for

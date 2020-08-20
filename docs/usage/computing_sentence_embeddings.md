@@ -93,6 +93,10 @@ with open('embeddings.pkl', "rb") as fIn:
     stored_embeddings = stored_data['embeddings']
 ```
 
+## Multi-Process / Multi-GPU Encoding
+
+You can encode input texts with more than one GPU. 
+If you want to encode texts with more than one GPU, the 
 
 ## Sentence Embeddings with Transformers
 Most of our pre-trained models are based on [Huggingface.co/Transformers](https://huggingface.co/transformers/) and are also hosted in the [models repository](https://huggingface.co/models) from Hugginface. It is possible to use our sentence embeddings models without installing sentence-transformers:

@@ -9,6 +9,7 @@ SentenceTransformers Documentation
 Hello World
 
 
+
 .. toctree::
    :maxdepth: 2
    :caption: Overview
@@ -50,7 +51,7 @@ Hello World
 
 .. toctree::
    :maxdepth: 1
-   :titlesonly:
    :caption: Package Reference
 
    package_reference/models
+   package_reference/losses

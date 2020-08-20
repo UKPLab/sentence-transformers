@@ -19,7 +19,7 @@ class SentencesDataset(Dataset):
     def __init__(self,
                  examples: List[InputExample],
                  model: SentenceTransformer,
-                 parallel_tokenization: bool = True,
+                 parallel_tokenization: bool = False,
                  max_processes: int = 4,
                  chunk_size: int = 5000
                  ):
@@ -80,12 +80,12 @@ class SentencesDataset(Dataset):
 
         logging.info("Start tokenization")
         if not self.parallel_tokenization or self.max_processes == 1 or len(self.examples) <= self.chunk_size:
-            tokenized_texts = [self.tokenize_example(example) for example in self.examples]
+            tokenized_texts = [self.tokenize_example(example) for example in tqdm(self.examples)]
         else:
             logging.info("Use multi-process tokenization with {} processes".format(self.max_processes))
             self.model.to('cpu')
             with Pool(self.max_processes) as p:
-                tokenized_texts = list(p.imap(self.tokenize_example, self.examples, chunksize=self.chunk_size))
+                tokenized_texts = list(tqdm(p.imap(self.tokenize_example, self.examples, chunksize=self.chunk_size), total=len(self.examples), smoothing=0))
 
         for ex_index, example in enumerate(self.examples):
             example.texts_tokenized = tokenized_texts[ex_index]

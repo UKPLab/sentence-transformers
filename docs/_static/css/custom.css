@@ -12,3 +12,7 @@ ul.simple {
 dd.field-odd > ul.simple {
     margin-top: 0px;
 }
+
+dl.class > dt {
+    width: 100%;
+}
