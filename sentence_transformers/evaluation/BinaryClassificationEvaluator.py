@@ -10,22 +10,20 @@ from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_d
 import numpy as np
 from typing import List
 from ..readers import InputExample
+from sklearn.metrics import average_precision_score
 
-
-class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
+class BinaryClassificationEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on the similarity of the embeddings by calculating the accuracy of identifying similar and
     dissimilar sentences.
     The metrics are the cosine similarity as well as euclidean and Manhattan distance
     The returned score is the accuracy with a specified metric.
 
-    Same Usage with BinaryEmbeddingSimilarityEvaluator , but no need assumes that the dataset is split 50-50.
-
     The results are written in a CSV. If a CSV already exists, then values are appended.
     """
 
     def __init__(self, sentences1: List[str], sentences2: List[str], labels: List[int],
-                 main_similarity: SimilarityFunction = SimilarityFunction.COSINE, name: str = '',
+                name: str = '',
                  batch_size: int = 16, show_progress_bar: bool = False):
         """
         Constructs an evaluator based for the dataset
@@ -46,7 +44,7 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
         for label in labels:
             assert (label == 0 or label == 1)
 
-        self.main_similarity = main_similarity
+
         self.name = name
         self.batch_size = batch_size
         if show_progress_bar is None:
@@ -54,7 +52,11 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
         self.show_progress_bar = show_progress_bar
 
         self.csv_file: str = "binary_similarity_evaluation" + ("_"+name if name else '') + "_results.csv"
-        self.csv_headers = ["epoch", "steps", "cosine_acc", "cosine_threshold", "manhattan_acc", "manhattan_threshold", "euclidean_acc", "euclidean_threshold", "dot-product_acc", "dot-product_threshold"]
+        self.csv_headers = ["epoch", "steps",
+                            "cosine_acc", "cosine_acc_threshold", "cosine_f1", "cosine_precision", "cosine_recall", "cosine_f1_threshold", "cosine_average_precision",
+                            "manhatten_acc", "manhatten_acc_threshold", "manhatten_f1", "manhatten_precision", "manhatten_recall", "manhatten_f1_threshold", "manhatten_average_precision",
+                            "eucledian_acc", "eucledian_acc_threshold", "eucledian_f1", "eucledian_precision", "eucledian_recall", "eucledian_f1_threshold", "eucledian_average_precision"]
+
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -87,22 +89,28 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
         cosine_scores = 1-paired_cosine_distances(embeddings1, embeddings2)
         manhattan_distances = paired_manhattan_distances(embeddings1, embeddings2)
         euclidean_distances = paired_euclidean_distances(embeddings1, embeddings2)
-        dot_products = [np.dot(emb1, emb2) for emb1, emb2 in zip(embeddings1, embeddings2)]
+
 
         labels = np.asarray(self.labels)
-        cosine_acc, cosine_threshold = self.find_best_acc_and_threshold(cosine_scores, labels, True)
-        manhattan_acc, manhatten_threshold = self.find_best_acc_and_threshold(manhattan_distances, labels, False)
-        euclidean_acc, euclidean_threshold = self.find_best_acc_and_threshold(euclidean_distances, labels, False)
-        dot_acc, dot_threshold = self.find_best_acc_and_threshold(dot_products, labels, False)
 
-        logging.info("Accuracy with Cosine-Similarity:\t{:.2f}\t(Threshold: {:.4f})".format(
-            cosine_acc*100, cosine_threshold))
-        logging.info("Accuracy with Manhattan-Distance:\t{:.2f}\t(Threshold: {:.4f})".format(
-            manhattan_acc*100, manhatten_threshold))
-        logging.info("Accuracy with Euclidean-Distance:\t{:.2f}\t(Threshold: {:.4f})".format(
-            euclidean_acc*100, euclidean_threshold))
-        logging.info("Accuracy with Dot-Product:\t{:.2f}\t(Threshold: {:.4f})\n".format(
-            dot_acc * 100, dot_threshold))
+        file_output_data = [epoch, steps]
+
+        main_score = None
+        for name, scores, reverse in [['Cosine-Similarity', cosine_scores, True], ['Manhatten-Distance', manhattan_distances, False], ['Euclidean-Distance', euclidean_distances, False]]:
+            acc, acc_threshold = self.find_best_acc_and_threshold(scores, labels, reverse)
+            f1, precision, recall, f1_threshold = self.find_best_f1_and_threshold(cosine_scores, labels, reverse)
+            ap = average_precision_score(labels, scores * (1 if reverse else -1))
+
+            logging.info("Accuracy with {}:\t{:.2f}\t(Threshold: {:.4f})".format(name, acc * 100, acc_threshold))
+            logging.info("F1 with {}:\t{:.2f}\t(Threshold: {:.4f})".format(name, f1 * 100, f1_threshold))
+            logging.info("Precision with {}:\t{:.2f}".format(name, precision * 100))
+            logging.info("Recall with {}:\t{:.2f}".format(name, recall * 100))
+            logging.info("Average Precision with {}:\t{:.2f}\n".format(name, ap * 100))
+
+            file_output_data.extend([acc, acc_threshold, f1, precision, recall, f1_threshold, ap])
+
+            if main_score is None: #Use AveragePrecision with Cosine-Similarity as main score
+                main_score = ap
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)
@@ -110,20 +118,13 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
                 with open(csv_path, mode="w", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow(self.csv_headers)
-                    writer.writerow([epoch, steps, cosine_acc, cosine_threshold, manhattan_acc, manhatten_threshold, euclidean_acc, euclidean_threshold, dot_acc, dot_threshold])
+                    writer.writerow(file_output_data)
             else:
                 with open(csv_path, mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
-                    writer.writerow([epoch, steps, cosine_acc, cosine_threshold, manhattan_acc, manhatten_threshold, euclidean_acc, euclidean_threshold, dot_acc, dot_threshold])
+                    writer.writerow(file_output_data)
 
-        if self.main_similarity == SimilarityFunction.COSINE:
-            return cosine_acc
-        elif self.main_similarity == SimilarityFunction.EUCLIDEAN:
-            return euclidean_acc
-        elif self.main_similarity == SimilarityFunction.MANHATTAN:
-            return manhattan_acc
-        else:
-            raise ValueError("Unknown main_similarity value")
+        return main_score
 
     @staticmethod
     def find_best_acc_and_threshold(scores, labels, high_score_more_similar: bool):
@@ -151,4 +152,40 @@ class BinaryEmbeddingSimilarityEvaluator(SentenceEvaluator):
                 best_threshold = (rows[i][0] + rows[i+1][0]) / 2
 
         return max_acc, best_threshold
+
+    @staticmethod
+    def find_best_f1_and_threshold(scores, labels, high_score_more_similar: bool):
+        assert len(scores) == len(labels)
+
+        scores = np.asarray(scores)
+        labels = np.asarray(labels)
+
+        rows = list(zip(scores, labels))
+
+        rows = sorted(rows, key=lambda x: x[0], reverse=high_score_more_similar)
+
+        best_f1 = best_precision = best_recall = 0
+        threshold = 0
+        nextract = 0
+        ncorrect = 0
+        total_num_duplicates = sum(labels)
+
+        for i in range(len(rows)-1):
+            score, label = rows[i]
+            nextract += 1
+
+            if label == 1:
+                ncorrect += 1
+
+            if ncorrect > 0:
+                precision = ncorrect / nextract
+                recall = ncorrect / total_num_duplicates
+                f1 = 2 * precision * recall / (precision + recall)
+                if f1 > best_f1:
+                    best_f1 = f1
+                    best_precision = precision
+                    best_recall = recall
+                    threshold = (rows[i][0] + rows[i + 1][0]) / 2
+
+        return best_f1, best_precision, best_recall, threshold
 
