@@ -72,11 +72,11 @@ def paraphrase_mining(model,
             cos_scores = np.nan_to_num(cos_scores)
 
             # logging.info("Sort scores")
-            cos_score_argpartition = np.argpartition(-cos_scores, min(len(cos_scores)-1, top_k))
+            cos_score_argpartition = np.argpartition(cos_scores, max(len(cos_scores)-top_k, 0))
 
             # logging.info("Find most similar pairs out of {} queries".format(len(cos_scores)))
             for query_itr in range(len(cos_scores)):
-                for corpus_itr in cos_score_argpartition[query_itr][0:top_k]:
+                for corpus_itr in cos_score_argpartition[query_itr][-top_k:]:
                     i = query_start_idx + query_itr
                     j = corpus_start_idx + corpus_itr
 
