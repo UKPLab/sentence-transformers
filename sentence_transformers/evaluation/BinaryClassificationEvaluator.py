@@ -51,7 +51,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
         self.show_progress_bar = show_progress_bar
 
-        self.csv_file: str = "binary_similarity_evaluation" + ("_"+name if name else '') + "_results.csv"
+        self.csv_file: str = "binary_classification_evaluation" + ("_"+name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps",
                             "cosine_acc", "cosine_acc_threshold", "cosine_f1", "cosine_precision", "cosine_recall", "cosine_f1_threshold", "cosine_average_precision",
                             "manhatten_acc", "manhatten_acc_threshold", "manhatten_f1", "manhatten_precision", "manhatten_recall", "manhatten_f1_threshold", "manhatten_average_precision",
@@ -98,14 +98,14 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         main_score = None
         for name, scores, reverse in [['Cosine-Similarity', cosine_scores, True], ['Manhatten-Distance', manhattan_distances, False], ['Euclidean-Distance', euclidean_distances, False]]:
             acc, acc_threshold = self.find_best_acc_and_threshold(scores, labels, reverse)
-            f1, precision, recall, f1_threshold = self.find_best_f1_and_threshold(cosine_scores, labels, reverse)
+            f1, precision, recall, f1_threshold = self.find_best_f1_and_threshold(scores, labels, reverse)
             ap = average_precision_score(labels, scores * (1 if reverse else -1))
 
-            logging.info("Accuracy with {}:\t{:.2f}\t(Threshold: {:.4f})".format(name, acc * 100, acc_threshold))
-            logging.info("F1 with {}:\t{:.2f}\t(Threshold: {:.4f})".format(name, f1 * 100, f1_threshold))
-            logging.info("Precision with {}:\t{:.2f}".format(name, precision * 100))
-            logging.info("Recall with {}:\t{:.2f}".format(name, recall * 100))
-            logging.info("Average Precision with {}:\t{:.2f}\n".format(name, ap * 100))
+            logging.info("Accuracy with {}:           {:.2f}\t(Threshold: {:.4f})".format(name, acc * 100, acc_threshold))
+            logging.info("F1 with {}:                 {:.2f}\t(Threshold: {:.4f})".format(name, f1 * 100, f1_threshold))
+            logging.info("Precision with {}:          {:.2f}".format(name, precision * 100))
+            logging.info("Recall with {}:             {:.2f}".format(name, recall * 100))
+            logging.info("Average Precision with {}:  {:.2f}\n".format(name, ap * 100))
 
             file_output_data.extend([acc, acc_threshold, f1, precision, recall, f1_threshold, ap])
 

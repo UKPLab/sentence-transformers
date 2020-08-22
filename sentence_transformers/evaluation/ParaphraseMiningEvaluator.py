@@ -3,7 +3,6 @@ import logging
 from sentence_transformers.util import paraphrase_mining
 import os
 import csv
-from sklearn.metrics import average_precision_score
 
 from typing import List, Tuple, Dict
 from collections import defaultdict
@@ -16,11 +15,13 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
      with a set of gold labels and computes the F1 score.
     """
 
-    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, query_chunk_size:int = 5000, corpus_chunk_size:int = 100000, max_pairs: int = 500000, top_k: int = 100, show_progress_bar: bool = False, batch_size:int = 16, name: str = ''):
+    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, duplicates_dict: Dict[str, Dict[str, bool]] = defaultdict(lambda: defaultdict(bool)), add_transitive_closure: bool = False, query_chunk_size:int = 5000, corpus_chunk_size:int = 100000, max_pairs: int = 500000, top_k: int = 100, show_progress_bar: bool = False, batch_size: int = 16, name: str = ''):
         """
 
         :param sentences_map: A dictionary that maps sentence-ids to sentences, i.e. sentences_map[id] => sentence.
         :param duplicates_list: Duplicates_list is a list with id pairs [(id1, id2), (id1, id5)] that identifies the duplicates / paraphrases in the sentences_map
+        :param duplicates_dict: A default dictionary mapping [id1][id2] to true if id1 and id2 are duplicates. Must be symmetric, i.e., if [id1][id2] => True, then [id2][id1] => True.
+        :param add_transitive_closure: If true, it adds a transitive closure, i.e. if dup[a][b] and dup[b][c], then dup[a][c]
         :param query_chunk_size: To identify the paraphrases, the cosine-similarity between all sentence-pairs will be computed. As this might require a lot of memory, we perform a batched computation.  #query_batch_size sentences will be compared against up to #corpus_batch_size sentences. In the default setting, 5000 sentences will be grouped together and compared up-to against 100k other sentences.
         :param corpus_chunk_size: The corpus will be batched, to reduce the memory requirement
         :param max_pairs: We will only extract up to #max_pairs potential paraphrase candidates.
@@ -44,15 +45,35 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.max_pairs = max_pairs
         self.top_k = top_k
 
-        self.duplicates = defaultdict(lambda: defaultdict(bool))
-        self.total_num_duplicates = 0
-
+        self.duplicates = duplicates_dict
         if duplicates_list is not None:
             for id1, id2 in duplicates_list:
-                if id1 in sentences_map and id2 in sentences_map and not self.duplicates[id1][id2]:
+                if id1 in sentences_map and id2 in sentences_map:
                     self.duplicates[id1][id2] = True
                     self.duplicates[id2][id1] = True
-                    self.total_num_duplicates += 1
+
+
+        #Add transitive closure
+        if add_transitive_closure:
+            new_entries = True
+            while new_entries:
+                new_entries = False
+                for a in self.duplicates:
+                    for b in list(self.duplicates[a]):
+                        for c in list(self.duplicates[b]):
+                            if a != c and not self.duplicates[a][c]:
+                                new_entries = True
+                                self.duplicates[a][c] = True
+                                self.duplicates[c][a] = True
+
+
+        positive_key_pairs = set()
+        for key1 in self.duplicates:
+            for key2 in self.duplicates[key1]:
+                if self.duplicates[key1][key2]:
+                    positive_key_pairs.add(tuple(sorted([key1, key2])))
+
+        self.total_num_duplicates = len(positive_key_pairs)
 
         if name:
             name = "_" + name
@@ -75,39 +96,32 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         logging.info("Number of candidate pairs: " + str(len(pairs_list)))
 
         #Compute F1 score and Average Precision
-        nextract = ncorrect = 0
+        n_extract = n_correct = 0
         threshold = 0
         best_f1 = best_recall = best_precision = 0
 
-        y_scores = []
-        y_true = []
+        average_precision = 0
 
-        for i in range(len(pairs_list)):
-            score, i, j = pairs_list[i]
+        for idx in range(len(pairs_list)):
+            score, i, j = pairs_list[idx]
             id1 = self.ids[i]
             id2 = self.ids[j]
 
-            # Get y_scores and y_true List for Average Precision
-            y_scores.append(score)
-            y_true.append(1 if self.duplicates[id1][id2] or self.duplicates[id2][id1] else 0)
-
-
             #Compute optimal threshold and F1-score
-            nextract += 1
+            n_extract += 1
             if self.duplicates[id1][id2] or self.duplicates[id2][id1]:
-                ncorrect += 1
-
-            if ncorrect > 0:
-                precision = ncorrect / nextract
-                recall = ncorrect / self.total_num_duplicates
+                n_correct += 1
+                precision = n_correct / n_extract
+                recall = n_correct / self.total_num_duplicates
                 f1 = 2 * precision * recall / (precision + recall)
+                average_precision += precision
                 if f1 > best_f1:
                     best_f1 = f1
                     best_precision = precision
                     best_recall = recall
-                    threshold = (pairs_list[i][0] + pairs_list[i + 1][0]) / 2
+                    threshold = (pairs_list[idx][0] + pairs_list[min(idx + 1, len(pairs_list)-1)][0]) / 2
 
-        average_precision = average_precision_score(y_true, y_scores)
+        average_precision = average_precision / self.total_num_duplicates
 
         logging.info("Average Precision: {:.2f}".format(average_precision * 100))
         logging.info("Optimal threshold: {:.4f}".format(threshold))
