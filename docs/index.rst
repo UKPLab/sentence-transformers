@@ -34,18 +34,7 @@ Hello World
    :caption: Training
 
    training/overview
-   training/loading_datasets
-   training/loss_functions
-   training/evaluators
-   training/multi_task_learning
-   training/multi_lingual_training
-
-.. toctree::
-   :maxdepth: 1
-   :titlesonly:
-   :caption: Training (Use Cases)
-
-   training/use_case/quora_duplicate_questions
+   training/multilingual
 
 
 
