@@ -1,4 +1,4 @@
-# Duplicate Questions Information Retrieval
+# Quora Duplicate Questions
 
 This folder contains scripts that demonstrate how to train SentenceTransformers for **Information Retrieval**. As simple example, we will use the [Quora Duplicate Questions dataset](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs). It contains over 500,000 sentences with over 400,000 pairwise annotations whether two questions are a duplicate or not.
 

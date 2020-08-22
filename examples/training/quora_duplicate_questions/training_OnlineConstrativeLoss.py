@@ -89,7 +89,7 @@ with open(os.path.join(dataset_path, "classification/dev_pairs.tsv"), encoding='
         dev_labels.append(int(row['is_duplicate']))
 
 
-binary_acc_evaluator = evaluation.BinaryEmbeddingSimilarityEvaluator(dev_sentences1, dev_sentences2, dev_labels)
+binary_acc_evaluator = evaluation.BinaryClassificationEvaluator(dev_sentences1, dev_sentences2, dev_labels)
 evaluators.append(binary_acc_evaluator)
 
 

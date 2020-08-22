@@ -70,7 +70,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         positive_key_pairs = set()
         for key1 in self.duplicates:
             for key2 in self.duplicates[key1]:
-                if self.duplicates[key1][key2]:
+                if self.duplicates[key1][key2] or self.duplicates[key2][key1]:
                     positive_key_pairs.add(tuple(sorted([key1, key2])))
 
         self.total_num_duplicates = len(positive_key_pairs)

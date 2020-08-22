@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 import math
 from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses, models
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers.readers import STSBenchmarkDataReader
+from sentence_transformers.readers import STSBenchmarkDataReader, InputExample
 import logging
 from datetime import datetime
 import sys
@@ -25,7 +25,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #### /print debug information to stdout
 
 #You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
-model_name = sys.argv[1] if len(sys.argv) > 1 else  'bert-base-uncased'
+model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-uncased'
 
 # Read the dataset
 train_batch_size = 16

@@ -1,4 +1,4 @@
-## Extending Sentence Embeddings Models to New Languages
+# Multilingual-Models
 The issue with multilingual BERT (mBERT) as well as with XLM-RoBERTa is that those produce rather bad sentence representation out-of-the-box. Further, the vectors spaces between languages are not  aligned, i.e., the sentences with the same content in different languages would be mapped to different locations in the vector space.
 
 In my publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) I describe any easy approach to extend sentence embeddings to further languages.
@@ -109,7 +109,7 @@ In the above figure, the student model should map *Hello World* and the German t
 
 In our experiments we initiliazed the student model with the multilingual XLM-RoBERTa model. 
 
-# Training 
+## Training 
 For a **fully automatic code example**, see [make_multilingual.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_multilingual/make_multilingual.py). 
 
 This scripts downloads the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md), a corpus with transcripts and translations from TED and TEDx talks. It than extends the monolingual `bert-base-nli-stsb-mean-tokens` model to several languages (en, de, es, it, fr, ar, tr). TED2020 contains parallel data for more than 100 languages, hence, you can simple change the script and train a multilingual model in your favorite languages.

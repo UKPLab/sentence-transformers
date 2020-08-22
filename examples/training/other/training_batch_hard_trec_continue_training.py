@@ -162,7 +162,7 @@ train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batc
 ### - BatchAllTripletLoss
 #######################################
 
-train_loss = losses.BatchAllTripletLoss(sentence_embedder=model)
+train_loss = losses.BatchAllTripletLoss(model=model)
 #train_loss = losses.BatchHardTripletLoss(sentence_embedder=model)
 #train_loss = losses.BatchHardSoftMarginTripletLoss(sentence_embedder=model)
 #train_loss = losses.BatchSemiHardTripletLoss(sentence_embedder=model)

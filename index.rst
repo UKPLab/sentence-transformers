@@ -30,6 +30,7 @@ Hello World
 
    docs/training/overview
    examples/training/multilingual/README
+   examples/training/quora_duplicate_questions/README
 
 
 

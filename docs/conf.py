@@ -75,10 +75,33 @@ html_context = {
 }
 
 
-github_doc_root = 'https://github.com/UKPLab/sentence-transformers/'
+
+
+
+
+from sphinx.domains import Domain
+
+class GithubURLDomain(Domain):
+    """
+    Resolve .py links to their respective Github URL
+    """
+
+    name = "githuburl"
+    ROOT = "https://github.com/UKPLab/sentence-transformers/tree/master"
+
+    def resolve_any_xref(self, env, fromdocname, builder, target, node, contnode):
+        if target.endswith('.py') and not target.startswith('http'):
+            from_folder = os.path.dirname(fromdocname)
+            contnode["refuri"] = "/".join([self.ROOT, from_folder, target])
+            return [("githuburl:any", contnode)]
+        return []
+
+
+
 def setup(app):
+    app.add_domain(GithubURLDomain)
     app.add_config_value('recommonmark_config', {
-            'url_resolver': lambda url: github_doc_root + url,
+            #'url_resolver': lambda url: github_doc_root + url,
             'auto_toc_tree_section': 'Contents',
             }, True)
     app.add_transform(AutoStructify)
