@@ -38,8 +38,10 @@ In the following you find a (selective) list of articles / applications using Se
 
 **SentenceTransformers used in Research**
 
-For the full list research publications using sentence transformers, see [Google Scholar](https://scholar.google.com/scholar?oi=bibs&hl=de&cites=12599223809118664426).
+The following papers use SentenceTransformers in research:
 
+- **August 2020** - **[Ranking Clarification Questions via Natural Language Inference](https://arxiv.org/pdf/2008.07688.pdf)**
+- **August 2020** - **[Searching Scientific Literature for Answers on COVID-19 Questions](https://openreview.net/pdf?id=eeYSJJGAkg1)**
 - **July 2020** - **[CORD19STS: COVID-19 Semantic Textual Similarity Dataset](https://arxiv.org/abs/2007.02461)**
 - **July 2020** - **[IR-BERT: Leveraging BERT for Semantic Search in Background Linking for News Articles](https://arxiv.org/abs/2007.12603)** 
 - **July 2020 - [COVID-19 Knowledge Graph: Accelerating Information Retrieval and Discovery for Scientific Literature](https://arxiv.org/abs/2007.12731)**
@@ -49,3 +51,6 @@ Ranking Entity Properties](https://dl.acm.org/doi/pdf/10.1145/3397271.3401265)**
 - **May 2020 - [A Recipe for Creating Multimodal Aligned Datasets for Sequential Tasks](https://arxiv.org/abs/2005.09606)**
 - **April 2020 - [PANDORA Talks: Personality and Demographics on Reddit](https://arxiv.org/abs/2004.04460)**
 - **September 2019 - [Learning Entailment-Based Sentence Embeddings from Natural Language Inference](https://openreview.net/forum?id=BkxackSKvH)**
+
+
+Feel free to contact me (info@nils-reimers.de) to add you paper here. 

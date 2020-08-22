@@ -19,7 +19,6 @@ from recommonmark.transform import AutoStructify
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
@@ -44,7 +43,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'nr_examples']
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -76,10 +75,10 @@ html_context = {
 }
 
 
-github_doc_root = 'https://github.com/UKPLab/sentence-transformers/docs/'
+github_doc_root = 'https://github.com/UKPLab/sentence-transformers/'
 def setup(app):
     app.add_config_value('recommonmark_config', {
-            #'url_resolver': lambda url: github_doc_root + url,
+            'url_resolver': lambda url: github_doc_root + url,
             'auto_toc_tree_section': 'Contents',
             }, True)
     app.add_transform(AutoStructify)
