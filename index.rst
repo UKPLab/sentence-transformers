@@ -29,6 +29,8 @@ Hello World
    :caption: Training
 
    docs/training/overview
+   examples/training/sts/README
+   examples/training/nli/README
    examples/training/multilingual/README
    examples/training/quora_duplicate_questions/README
 

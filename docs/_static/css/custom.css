@@ -16,3 +16,7 @@ dd.field-odd > ul.simple {
 dl.class > dt {
     width: 100%;
 }
+
+.toctree-l1  > ul {
+    margin-top: 0px !important;
+}

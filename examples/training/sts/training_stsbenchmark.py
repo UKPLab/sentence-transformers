@@ -10,12 +10,14 @@ python training_nli.py pretrained_transformer_model_name
 """
 from torch.utils.data import DataLoader
 import math
-from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses, models
+from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses, models, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import STSBenchmarkDataReader, InputExample
 import logging
 from datetime import datetime
 import sys
+import os
+import zipfile
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -24,6 +26,18 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
+
+
+#Check if dataset exsist. If not, download and extract  it
+dataset_path = 'datasets/stsbenchmark'
+if not os.path.exists(dataset_path):
+    os.makedirs(dataset_path, exist_ok=True)
+    filepath = os.path.join(dataset_path, 'stsbenchmark.zip')
+    url = 'https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/stsbenchmark.zip'
+    util.http_get(url, filepath)
+    with zipfile.ZipFile(filepath, "r") as zip_ref:
+        zip_ref.extractall(dataset_path)
+
 #You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
 model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-uncased'
 
@@ -31,7 +45,7 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-uncased'
 train_batch_size = 16
 num_epochs = 4
 model_save_path = 'output/training_stsbenchmark_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark', normalize_scores=True)
+sts_reader = STSBenchmarkDataReader(dataset_path, normalize_scores=True)
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name)

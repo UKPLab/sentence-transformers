@@ -40,6 +40,9 @@ In the following you find a (selective) list of articles / applications using Se
 
 The following papers use SentenceTransformers in research:
 
+- **August 2020** - **[Using Natural Language
+Processing to Identify Similar
+Patent Documents](https://lup.lub.lu.se/luur/download?func=downloadFile&recordOId=9008699&fileOId=9026407)**
 - **August 2020** - **[Ranking Clarification Questions via Natural Language Inference](https://arxiv.org/pdf/2008.07688.pdf)**
 - **August 2020** - **[Searching Scientific Literature for Answers on COVID-19 Questions](https://openreview.net/pdf?id=eeYSJJGAkg1)**
 - **July 2020** - **[CORD19STS: COVID-19 Semantic Textual Similarity Dataset](https://arxiv.org/abs/2007.02461)**

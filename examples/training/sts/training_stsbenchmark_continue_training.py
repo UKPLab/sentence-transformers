@@ -7,12 +7,13 @@ If you want to fine-tune a huggingface/transformers model like bert-base-uncased
 """
 from torch.utils.data import DataLoader
 import math
-from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses
+from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import STSBenchmarkDataReader
 import logging
 from datetime import datetime
-
+import os
+import zipfile
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -21,12 +22,23 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
+#Check if dataset exsist. If not, download and extract  it
+dataset_path = 'datasets/stsbenchmark'
+if not os.path.exists(dataset_path):
+    os.makedirs(dataset_path, exist_ok=True)
+    filepath = os.path.join(dataset_path, 'stsbenchmark.zip')
+    url = 'https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/stsbenchmark.zip'
+    util.http_get(url, filepath)
+    with zipfile.ZipFile(filepath, "r") as zip_ref:
+        zip_ref.extractall(dataset_path)
+
+
 # Read the dataset
 model_name = 'bert-base-nli-mean-tokens'
 train_batch_size = 16
 num_epochs = 4
 model_save_path = 'output/training_stsbenchmark_continue_training-'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark', normalize_scores=True)
+sts_reader = STSBenchmarkDataReader(dataset_path, normalize_scores=True)
 
 # Load a pre-trained sentence transformer model
 model = SentenceTransformer(model_name)

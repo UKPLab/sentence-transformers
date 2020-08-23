@@ -71,7 +71,7 @@ html_context = {
   'display_github': True,
   'github_user': 'UKPLab',
   'github_repo': 'sentence-transformers',
-  'github_version': 'master/docs/',
+  'github_version': 'master/',
 }
 
 
