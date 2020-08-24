@@ -64,10 +64,11 @@ The XLM-R-100langs models were fine-tuned using [Multilingual Knowledge Distilla
 
 ## Duplicate Questions Detection
 
-The following models were trained duplicate questions mining and duplicate questions retrieval. You can use them to detect (see [paraphrase mining](usage/paraphrase_mining) ) or search for similar questions (see [semantic search](usage/semantic_search)). 
+The following models were trained duplicate questions mining and duplicate questions retrieval. You can use them to detect duplicate questions in a large corpus (see [paraphrase mining](usage/paraphrase_mining) ) or to search for similar questions (see [semantic search](usage/semantic_search)). 
 
 Available models:
-- **distilbert-base-nli-stsb-quora-ranking**
+- **distilbert-base-nli-stsb-quora-ranking** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
+- **distillbert-multilingual-nli-stsb-quora-ranking** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*. DistilBERT-multilingual support 104 languages. Fine-tuned with parallel data for 50+ languages. 
 
 
 ## Wikipedia Sections
