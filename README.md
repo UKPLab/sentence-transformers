@@ -8,7 +8,7 @@ We provide an increasing number of **[state-of-the-art pretrained models](https:
 Further, this framework allows an easy  **[fine-tuning of custom embeddings models](https://www.sbert.net/docs/training/overview.html)**, to achieve maximal performance on your specific task.
 
 
-For the **full documentation**, see [www.SBERT.net](https://www.sbert.de), as well as our publications:
+For the **full documentation**, see [www.SBERT.net](https://www.sbert.net), as well as our publications:
 - [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (EMNLP 2019).
 - [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) (ArXiv 2020)
 
