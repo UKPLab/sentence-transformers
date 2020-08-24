@@ -71,31 +71,7 @@ To prepare the examples for training, we provide a custom `SentencesDataset`, wh
 
 We can wrap `SentencesDataset` with the standard PyTorch `DataLoader`, which produces for example batches and allows us to shuffle the data for training.
 
-## Data Readers
 
-For common dataset formats, we provide `DataReaders` that read text (or .gz-files), and generate according lists with `InputExample`.  This are just help function and not required to train a model.
-
-Assume you have a tab-seperated file with the following format:
-```
-My first sentence   The second sentence   3.5
-```
-
-
-The following script allows to read this file. You specifiy the delimiter between the columns, the columns for sentence1 (s1), sentence2 (s2), and the score. Further, the semantic similarity might be a score between 0 and 5. However, for training, we must have scores between 0 and 1. Hence, we tell the reader to normalize the score and that the lowest score is 0 and the highest 5.
-
-```python
-from sentence_transformers import readers
-import csv
-
-sts_reader = readers.STSDataReader('path/to/folder/with/files', s1_col_idx=0, s2_col_idx=1, score_col_idx=2, delimiter="\t",
-                 quoting=csv.QUOTE_NONE, normalize_scores=True, min_score=0, max_score=5)
-
-train_examples = sts_reader.get_examples('train.tsv')
-```
-
-This gives back a list of `InputExample` that has as `texts`-parameter the two sentences and as `label` the similarity score (0...1).
-
-To see all readers, see [Readers](../package_reference/readers).
  
 ## Loss Functions
 
@@ -164,3 +140,54 @@ evaluator = evaluation.EmbeddingSimilarityEvaluator(sentences1, sentences2, scor
 model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_steps=100, evaluator=evaluator, evaluation_steps=500)
 ```
 
+
+
+### Continue Training on Other Data
+[training_stsbenchmark_continue_training.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_stsbenchmark_continue_training.py) shows an example where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset and then continue training on the training data from the STS benchmark.
+
+First, we load a pre-trained model from the server:
+```python
+model = SentenceTransformer('bert-base-nli-mean-tokens')
+```
+
+
+The next steps are as before. We specify training and dev data:
+```python
+sts_reader = STSBenchmarkDataReader('datasets/stsbenchmark', normalize_scores=True)
+train_data = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model)
+train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
+train_loss = losses.CosineSimilarityLoss(model=model)
+
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-dev.csv'))
+```
+
+In that example, we use CosineSimilarityLoss, which computes the cosine similarity between two sentences and compares this score with a provided gold similarity score.
+
+Then we can train as before:
+```python
+model.fit(train_objectives=[(train_dataloader, train_loss)],
+          evaluator=evaluator,
+          epochs=num_epochs,
+          evaluation_steps=1000,
+          warmup_steps=warmup_steps,
+          output_path=model_save_path)
+```
+
+
+## Loading Custom SentenceTransformer Models
+Loading trained models is easy. You can specify a path:
+```python
+model = SentenceTransformer('./my/path/to/model/')
+```
+Note: It is important that a / or \ is the path, otherwise, it is not recognized as a path.
+
+You can also host the training output on a server and download it:
+ ```python
+model = SentenceTransformer('http://www.server.com/path/to/model/my_model.zip')
+```
+With the first call, the model is downloaded and stored in the local torch cache-folder (`~/.cache/torch/sentence_transformers`). In order to work, you must zip all files and subfolders of your model. 
+
+
+
+## Multitask Training
+This code allows multi-task learning with training data from different datasets and with different loss-functions. For an example, see [training_multi-task.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/other/training_multi-task.py).

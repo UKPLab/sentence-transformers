@@ -9,7 +9,7 @@ model = SentenceTransformer('model_name')
 
 Alternatively, you can download and unzip them from [here](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/).
 
-## Choosing the right Pretrained Model
+## Choosing the Right Model
 Sadly there cannot exist a universal model that performs great on all possible tasks. Models strong on one task, will be weak for another task. Hence, it is important to select the right model for your task.
 
 
@@ -26,6 +26,42 @@ We can recommend this models as general purpose models. The best available model
 
 I can recommend the **distilbert-base-nli-stsb-mean-tokens** model, which gives a nice balance between speed and performance.
 
+## Multi-Lingual Models
+The following models generate aligned vector spaces, i.e., similar inputs in different languages are mapped close in vector space. You do not need to specify the input language.  Details are in our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
+
+- **distiluse-base-multilingual-cased**: Supported languages: Arabic, Chinese, Dutch, English, French, German,  Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. Performance on the extended STS2017: 80.1
+- **xlm-r-100langs-bert-base-nli-mean-tokens**: Produces similar embeddings as the bert-base-nli-mean-token model for 100+ languages
+- **xlm-r-100langs-bert-base-nli-stsb-mean-tokens**: Produces similar embeddings as the bert-base-nli-stsb-mean-token model for 100+ languages
+
+
+XLM-R supports the following 100 languages.
+
+ Language | Language|Language |Language | Language
+---|---|---|---|---
+Afrikaans | Albanian | Amharic | Arabic | Armenian 
+Assamese | Azerbaijani | Basque | Belarusian | Bengali 
+Bengali Romanize | Bosnian | Breton | Bulgarian | Burmese 
+Burmese zawgyi font | Catalan | Chinese (Simplified) | Chinese (Traditional) | Croatian 
+Czech | Danish | Dutch | English | Esperanto 
+Estonian | Filipino | Finnish | French | Galician
+Georgian | German | Greek | Gujarati | Hausa
+Hebrew | Hindi | Hindi Romanize | Hungarian | Icelandic
+Indonesian | Irish | Italian | Japanese | Javanese
+Kannada | Kazakh | Khmer | Korean | Kurdish (Kurmanji)
+Kyrgyz | Lao | Latin | Latvian | Lithuanian
+Macedonian | Malagasy | Malay | Malayalam | Marathi
+Mongolian | Nepali | Norwegian | Oriya | Oromo
+Pashto | Persian | Polish | Portuguese | Punjabi
+Romanian | Russian | Sanskrit | Scottish Gaelic | Serbian
+Sindhi | Sinhala | Slovak | Slovenian | Somali
+Spanish | Sundanese | Swahili | Swedish | Tamil
+Tamil Romanize | Telugu | Telugu Romanize | Thai | Turkish
+Ukrainian | Urdu | Urdu Romanize | Uyghur | Uzbek
+Vietnamese | Welsh | Western Frisian | Xhosa | Yiddish
+
+The XLM-R-100langs models were fine-tuned using [Multilingual Knowledge Distillation](https://arxiv.org/abs/2004.09813) using parallel data for the following languages: ar, bg, ca, cs, da, de, el, es, et, fa, fi, fr, fr-ca, gl, gu, he, hi, hr, hu, hy, id, it, ja, ka, ko, ku, lt, lv, mk, mn, mr, ms, my, nb, nl, pl, pt, pt, pt-br, ro, ru, sk, sl, sq, sr, sv, th, tr, uk, ur, vi, zh-cn, zh-tw. It achieves also quite good performance scores for languages not in these lists.
+
+
 ## Duplicate Questions Detection
 
 The following models were trained duplicate questions mining and duplicate questions retrieval. You can use them to detect (see [paraphrase mining](usage/paraphrase_mining) ) or search for similar questions (see [semantic search](usage/semantic_search)). 
@@ -38,3 +74,11 @@ Available models:
 The following models is trained on the dataset from Dor et al. 2018, [Learning Thematic Similarity Metric Using Triplet Networks](https://aclweb.org/anthology/P18-2009) and learns if two sentences belong to the same section in a Wikipedia page or not. It can be used to do fine-grained clustering of similar sentences into sections / topics. [Further details](pretrained-models/wikipedia-sections-models.md)    
 
 - **bert-base-wikipedia-sections-mean-tokens**: 80.42% accuracy on Wikipedia Triplets test set.
+
+## Average Word Embeddings Models
+
+The following models apply compute the average word embedding for some well-known word embedding methods. Their computation speed is much higher than the transformer based models, but the quality of the embeddings are worse.
+- **average_word_embeddings_glove.6B.300d**
+- **average_word_embeddings_komninos**
+- **average_word_embeddings_levy_dependency**
+- **average_word_embeddings_glove.840B.300d**

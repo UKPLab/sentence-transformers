@@ -24,44 +24,67 @@ With `SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')` we define whi
 
 BERT (and other transformer networks) output for each token in our input text an embedding. In order to create a fixed-sized sentence embedding out of this, the model applies mean pooling, i.e., the output embeddings for all tokens are averaged to yield a 768-dimensional vector.
 
+## Comparing Sentence Similarities
 
-## Pre-Trained Models (English)
-Various pre-trained models exists optimized for many tasks exists. For a full list, see **[Full List of Pretrained Models](pretrained_models.md)**. To highlight some models:
+The sentences (texts) are mapped such that sentences with similar meanings are close in vector space. One common method to measure the similarity in vector space is to use [cosine similarity](https://en.wikipedia.org/wiki/Cosine_similarity). For two sentences, this can be done like this:
 
-**Semantic Similarity**:
+```python
+from sentence_transformers import SentenceTransformer, util
+model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
 
-The following models were optimized to assign semantic similarity scores with cosine-similarity for sentence pairs: 
-- **distilbert-base-nli-stsb-mean-tokens**: DistilBERT-base-model (STSbenchmark Spearman correlation: 85.16)
-- **roberta-base-nli-stsb-mean-tokens**: RoBERTa-base model (STSbenchmark Spearman correlation:: 85.44)
-- **roberta-large-nli-stsb-mean-tokens**: RoBERTa-large model (STSbenchmark Spearman correlation:: 86.39)
+#Sentences are encoded by calling model.encode()
+emb1 = model.encode("This is a red cat with a hat.")
+emb2 = model.encode("Have you seen my red cat?")
+
+cos_sim = util.pytorch_cos_sim(emb1, emb2)
+print("Cosine-Similarity:", cos_sim)
+```
+
+If you have a list with more sentences, you can use the following code example:
+```python
+from sentence_transformers import SentenceTransformer, util
+model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+
+sentences = ['A man is eating food.',
+          'A man is eating a piece of bread.',
+          'The girl is carrying a baby.',
+          'A man is riding a horse.',
+          'A woman is playing violin.',
+          'Two men pushed carts through the woods.',
+          'A man is riding a white horse on an enclosed ground.',
+          'A monkey is playing drums.',
+          'Someone in a gorilla costume is playing a set of drums.'
+          ]
+
+#Encode all sentences
+embeddings = model.encode(sentences)
+
+#Compute cosine similarity between all pairs
+cos_sim = util.pytorch_cos_sim(embeddings, embeddings)
+
+#Add all pairs to a list with their cosine similarity score
+all_sentence_combinations = []
+for i in range(len(cos_sim)-1):
+    for j in range(i+1, len(cos_sim)):
+        all_sentence_combinations.append([cos_sim[i][j], i, j])
+
+#Sort list by the highest cosine similarity score
+all_sentence_combinations = sorted(all_sentence_combinations, key=lambda x: x[0], reverse=True)
+
+print("Top-5 most similar pairs:")
+for score, i, j in all_sentence_combinations[0:5]:
+    print("{} \t {} \t {:.4f}".format(sentences[i], sentences[j], cos_sim[i][j]))
+```
+
+See on the right the *Usage* sections for more examples how to use SentenceTransformers.
+
+## Pre-Trained Models
+Various pre-trained models exists optimized for many tasks exists. For a full list, see **[Pretrained Models](pretrained_models.md)**. 
 
 
-**Duplicate Questions:**
-
-The following models were trained on the [Quora Duplicate Questions](training/use_case/quora_duplicate_questions.md) dataset and are especially suitable for duplicate questions mining (given large set of questions, find all duplicates) and related questions semantic search (given new question, search large corpus for similar questions).
-- **distilbert-base-nli-stsb-quora-ranking**: DistilBERT-base-model
-
-**Average Word Embeddings:**
-
-The following models perform a simple average word embeddings encoding.
-- **average_word_embeddings_glove.6B.300d**: GloVe embeddings trained on Wikipedia
-- **average_word_embeddings_glove.840B.300d**: GloVe embeddings traind on Common Crawl
-- **average_word_embeddings_komninos**: Embeddings from Komninos et al.
-- **average_word_embeddings_levy_dependency**: Dependency based embeddings from Levy et al.
-
-
-## Multi-Lingual Pre-Trained Models 
-In our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) I describe a method to extend mono-lingual sentence embeddings for many languages. An increasing number of models are currently extended to various languages.
-
-Currently available models:
-- **distiluse-base-multilingual-cased**: Supported languages: Arabic, Chinese, Dutch, English, French, German, Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. Performance on the extended STS2017 dataset: 80.1
-- **xlm-r-base-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 81.47
-- **xlm-r-large-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 84.05
-
-## Applications & Use-Cases
 
 ## Training your own Embeddings
 
 Training your own sentence embeddings models for all type of use-cases is easy and requires often only minimal coding effort. For a comprehensive tutorial, see [Training/Overview](training/overview.md).
 
-You can also extend easily existent sentence embeddings models to various languages from all types of language families.  For details, see [Multi-Lingual Training](training/multi_lingual_training.md).
+You can also extend easily existent sentence embeddings models to **further languages**.  For details, see [Multi-Lingual Training](../examples/training/multilingual/README).
