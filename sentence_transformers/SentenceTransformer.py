@@ -22,7 +22,7 @@ import queue
 from . import __DOWNLOAD_SERVER__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, http_get
-from .datasets import EncodeDataset
+from .datasets.EncodeDataset import EncodeDataset
 from . import __version__
 
 class SentenceTransformer(nn.Sequential):
