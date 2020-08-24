@@ -23,7 +23,7 @@ The performance was evaluated on the [Semantic Textual Similarity (STS) 2017 dat
 
 We extended the STS2017 and added cross-lingual test data for English-German, French-English, Italian-English, and Dutch-English ([STS2017-extended.zip](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/STS2017-extended.zip)). The performance is measured using Spearman correlation between the predicted similarity score and the gold score.
 
-<table>
+<table class="docutils">
   <tr>
     <th>Model</th>
     <th>AR-AR</th>
@@ -81,7 +81,7 @@ We extended the STS2017 and added cross-lingual test data for English-German, Fr
     <td align="center">69.5</td>
   </tr> 
   <tr>
-    <td colspan="9"><b>Sentence Transformer Models</b></td>
+    <td colspan="12"><b>Sentence Transformer Models</b></td>
   </tr>
   <tr>
   <td>distiluse-base-multilingual-cased</td>

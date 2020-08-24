@@ -27,13 +27,13 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
-model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-nli-mean-tokens'
+model_name = sys.argv[1] if len(sys.argv) > 1 else 'distilbert-base-nli-stsb-mean-tokens'
 
 # Load a named sentence model (based on BERT). This will download the model from our server.
 # Alternatively, you can also pass a filepath to SentenceTransformer()
 model = SentenceTransformer(model_name)
 
 sts_reader = STSBenchmarkDataReader(os.path.join(script_folder_path, '../datasets/stsbenchmark'))
-evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples("sts-test.csv"))
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples("sts-test.csv"), name='sts-test')
 
 model.evaluate(evaluator)
