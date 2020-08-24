@@ -9,4 +9,4 @@ The [applications](applications/) folder contains examples how to use SentenceTr
 The [evaluation](evaluation/) folder contains some examples how to evaluate SentenceTransformer models for common tasks.
 
 ## Training 
-The [training](training/) folder contains examples how to fine-tune transformer models like BERT, RoBERTa, or XLM-RoBERTa for generating sentence embedding.
+The [training](training/) folder contains examples how to fine-tune transformer models like BERT, RoBERTa, or XLM-RoBERTa for generating sentence embedding. For the documentation how to train your own models, see [Training Overview](http://www.sbert.net/docs/training/overview.html).

@@ -4,6 +4,8 @@ This folder contains various examples to fine-tune `SentenceTransformers` for sp
 
 For the beginning, I can recommend to have a look at the Semantic Textual Similarity ([STS](sts/)) or the Natural Language Inference ([NLI](nli/)) examples. 
 
+For the documentation how to train your own models, see [Training Overview](http://www.sbert.net/docs/training/overview.html).
+
 ## Training Examples
 - [avg_word_embeddings](avg_word_embeddings/) - This folder contains examples to train models based on classical word embeddings like GloVe. These models are extremely fast, but are a more inaccuracte than transformers based models.
 - [multilingual](multilingual/) - Existent monolingual models can be extend to various languages ([paper](https://arxiv.org/abs/2004.09813)). This folder contains a step-by-step guide to extend existent models to new languages. 
