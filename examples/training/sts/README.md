@@ -1,6 +1,6 @@
 # Semantic Textual Similarity
 
-Semantic Textual Similarity (STS) assigns a score on the similarity of two texts. In this example, we use the [STSbenchmark](https://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) as training data to fine-tune our network.
+Semantic Textual Similarity (STS) assigns a score on the similarity of two texts. In this example, we use the [STSbenchmark](https://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) as training data to fine-tune our network. See the following example scripts how to tune SentenceTransformer on STS data:
 
 - **[training_stsbenchmark.py](training_stsbenchmark.py)** - This example shows how to create a SentenceTransformer model from scratch by using a pre-trained transformer model together with a pooling layer.
  - **[training_stsbenchmark_continue_training.py](training_stsbenchmark_continue_training.py)** - This example shows how to continue training on STS data for a previously created & trained SentenceTransformer model. In that example, we load a model trained on [NLI data](../nli/README.md).

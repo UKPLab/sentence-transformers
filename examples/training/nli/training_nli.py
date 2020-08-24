@@ -122,7 +122,7 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
     for row in reader:
         if row['split'] == 'test':
             score = float(row['score']) / 5.0 #Normalize score to range 0 ... 1
-            dev_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=score))
+            test_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=score))
 
 model = SentenceTransformer(model_save_path)
 test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, batch_size=train_batch_size, name='sts-test')
