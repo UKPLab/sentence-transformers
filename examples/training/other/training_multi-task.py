@@ -6,11 +6,14 @@ The system trains BERT on the AllNLI and on the STSbenchmark dataset.
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses
-from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer
+from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import *
 import logging
 from datetime import datetime
+import gzip
+import csv
+import os
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -22,10 +25,18 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 # Read the dataset
 model_name = 'bert-base-uncased'
 batch_size = 16
-nli_reader = NLIDataReader('../datasets/AllNLI')
-sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark')
-train_num_labels = nli_reader.get_num_labels()
 model_save_path = 'output/training_multi-task_'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+
+#Check if dataset exsist. If not, download and extract  it
+nli_dataset_path = 'datasets/AllNLI.tsv.gz'
+sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
+
+if not os.path.exists(nli_dataset_path):
+    util.http_get('https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/AllNLI.tsv.gz', nli_dataset_path)
+
+if not os.path.exists(sts_dataset_path):
+    util.http_get('https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/stsbenchmark.tsv.gz', sts_dataset_path)
 
 
 
@@ -43,18 +54,43 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read AllNLI train dataset")
-train_data_nli = SentencesDataset(nli_reader.get_examples('train.gz'), model=model)
+label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
+train_nli_samples = []
+with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
+    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+    for row in reader:
+        if row['split'] == 'train':
+            label_id = label2int[row['label']]
+            train_nli_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=label_id))
+
+train_data_nli = SentencesDataset(train_nli_samples, model=model)
 train_dataloader_nli = DataLoader(train_data_nli, shuffle=True, batch_size=batch_size)
-train_loss_nli = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=train_num_labels)
+train_loss_nli = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=len(label2int))
 
 logging.info("Read STSbenchmark train dataset")
-train_data_sts = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model=model)
+train_sts_samples = []
+dev_sts_samples = []
+test_sts_samples = []
+with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
+    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+    for row in reader:
+        score = float(row['score']) / 5.0  # Normalize score to range 0 ... 1
+        inp_example = InputExample(texts=[row['sentence1'], row['sentence2']], label=score)
+
+        if row['split'] == 'dev':
+            dev_sts_samples.append(inp_example)
+        elif row['split'] == 'test':
+            test_sts_samples.append(inp_example)
+        else:
+            train_sts_samples.append(inp_example)
+
+train_data_sts = SentencesDataset(train_sts_samples, model=model)
 train_dataloader_sts = DataLoader(train_data_sts, shuffle=True, batch_size=batch_size)
 train_loss_sts = losses.CosineSimilarityLoss(model=model)
 
 
 logging.info("Read STSbenchmark dev dataset")
-evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-dev.csv'), name='sts-dev')
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_sts_samples, name='sts-dev')
 
 # Configure the training
 num_epochs = 4
@@ -86,5 +122,5 @@ model.fit(train_objectives=train_objectives,
 ##############################################################################
 
 model = SentenceTransformer(model_save_path)
-test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-test.csv'), name='sts-test')
+test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_sts_samples, name='sts-test')
 test_evaluator(model, output_path=model_save_path)
