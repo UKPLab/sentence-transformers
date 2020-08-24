@@ -50,5 +50,5 @@ class STSBenchmarkDataReader(STSDataReader):
     """
     def __init__(self, dataset_folder, s1_col_idx=5, s2_col_idx=6, score_col_idx=4, delimiter="\t",
                  quoting=csv.QUOTE_NONE, normalize_scores=True, min_score=0, max_score=5):
-        super().__init__(dataset_folder=dataset_folder, s1_col_idx=s1_col_idx, s2_col_idx=s2_col_idx, score_col_idx=score_col_idx, delimiter="\t",
+        super().__init__(dataset_folder=dataset_folder, s1_col_idx=s1_col_idx, s2_col_idx=s2_col_idx, score_col_idx=score_col_idx, delimiter=delimiter,
                  quoting=quoting, normalize_scores=normalize_scores, min_score=min_score, max_score=max_score)

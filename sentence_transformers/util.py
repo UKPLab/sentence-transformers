@@ -178,6 +178,7 @@ def http_get(url, path):
     """
     Downloads a URL to a given path on disc
     """
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     req = requests.get(url, stream=True)
     if req.status_code != 200:
         print("Exception when trying to download {}. Response {}".format(url, req.status_code), file=sys.stderr)

@@ -15,7 +15,6 @@ from torch import nn, Tensor, device
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
-import multiprocessing
 import torch.multiprocessing as mp
 import math
 import queue
@@ -23,6 +22,7 @@ import queue
 from . import __DOWNLOAD_SERVER__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, http_get
+from .datasets import EncodeDataset
 from . import __version__
 
 class SentenceTransformer(nn.Sequential):
@@ -93,19 +93,17 @@ class SentenceTransformer(nn.Sequential):
             logging.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
-        self.parallel_tokenization = False #multiprocessing.get_start_method() == 'fork'   #parallel_tokenization only works if the Operating System support fork
-        self.parallel_tokenization_processes = min(4, cpu_count())                  #Number of parallel processes used for tokenization. Increase up to cpu_count() for faster tokenization
-        self.parallel_tokenization_chunksize = 5000                                 #Number of sentences sent per chunk to each process. Increase for faster tokenization
 
 
     def encode(self, sentences: Union[str, List[str], List[int]],
-               batch_size: int = 16,
+               batch_size: int = 32,
                show_progress_bar: bool = None,
                output_value: str = 'sentence_embedding',
                convert_to_numpy: bool = True,
                convert_to_tensor: bool = False,
                is_pretokenized: bool = False,
-               device: str = None) -> Union[List[Tensor], ndarray, Tensor]:
+               device: str = None,
+               num_workers: int = 0) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings
 
@@ -118,6 +116,7 @@ class SentenceTransformer(nn.Sequential):
         :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from conver_to_numy
         :param is_pretokenized: If is_pretokenized=True, sentences must be a list of integers, containing the tokenized sentences with each token convert to the respective int.
         :param device: Which torch.device to use for the computation
+        :param num_workers: Number of background-workers to tokenize data. Set to positive number to increase tokenization speed
         :return:
            By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
         """
@@ -130,61 +129,24 @@ class SentenceTransformer(nn.Sequential):
             sentences = [sentences]
             input_was_string = True
 
-        all_embeddings = []
-
-        if is_pretokenized:
-            sentences_tokenized = sentences
-        else:
-            if show_progress_bar:
-                logging.info("Start tokenization {} sentences".format(len(sentences)))
-
-            if not self.parallel_tokenization or len(sentences) < self.parallel_tokenization_chunksize:
-                sentences_tokenized = [self.tokenize(sen) for sen in sentences]
-            else:
-                self.to('cpu')  # Model must be on CPU to work with fork
-                with Pool(self.parallel_tokenization_processes) as p:
-                    sentences_tokenized = p.imap(self.tokenize, sentences, chunksize=self.parallel_tokenization_chunksize)
-                    if show_progress_bar:
-                        logging.info("Multi-process tokenization with {} workers".format(self.parallel_tokenization_processes))
-                        sentences_tokenized = tqdm(sentences_tokenized, total=len(sentences), smoothing=0)
-
-                    sentences_tokenized = list(sentences_tokenized)
-
         if device is None:
             device = self._target_device
 
         self.to(device)
 
+        all_embeddings = []
         length_sorted_idx = np.argsort([len(sen) for sen in sentences])
+        sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
+        inp_dataset = EncodeDataset(sentences_sorted, model=self, is_tokenized=is_pretokenized)
+        inp_dataloader = DataLoader(inp_dataset, batch_size=batch_size, collate_fn=self.smart_batching_collate_text_only, num_workers=num_workers, shuffle=False)
 
-        iterator = range(0, len(sentences), batch_size)
+        iterator = inp_dataloader
         if show_progress_bar:
-            iterator = tqdm(iterator, desc="Batches")
+            iterator = tqdm(inp_dataloader, desc="Batches")
 
-        for batch_idx in iterator:
-            batch_tokens = []
-
-            batch_start = batch_idx
-            batch_end = min(batch_start + batch_size, len(sentences))
-
-            longest_seq = 0
-
-            for idx in length_sorted_idx[batch_start:batch_end]:
-                tokens = sentences_tokenized[idx]
-                longest_seq = max(longest_seq, len(tokens))
-                batch_tokens.append(tokens)
-
-            features = {}
-            for text in batch_tokens:
-                sentence_features = self.get_sentence_features(text, longest_seq)
-
-                for feature_name in sentence_features:
-                    if feature_name not in features:
-                        features[feature_name] = []
-                    features[feature_name].append(sentence_features[feature_name])
-
+        for features in iterator:
             for feature_name in features:
-                features[feature_name] = torch.cat(features[feature_name]).to(device)
+                features[feature_name] = features[feature_name].to(device)
 
             with torch.no_grad():
                 out_features = self.forward(features)
@@ -198,8 +160,8 @@ class SentenceTransformer(nn.Sequential):
 
                 all_embeddings.extend(embeddings)
 
-        reverting_order = np.argsort(length_sorted_idx)
-        all_embeddings = [all_embeddings[idx] for idx in reverting_order]
+
+        all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
         if convert_to_tensor:
             all_embeddings = torch.stack(all_embeddings)
@@ -409,6 +371,33 @@ class SentenceTransformer(nn.Sequential):
             features.append(feature_lists)
 
         return {'features': features, 'labels': torch.stack(labels)}
+
+
+    def smart_batching_collate_text_only(self, batch):
+        """
+        Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
+
+        :param batch:
+            a batch from a SmartBatchingDataset
+        :return:
+            a batch of tensors for the model
+        """
+
+        max_seq_len = max([len(text) for text in batch])
+        feature_lists = {}
+
+        for text in batch:
+            sentence_features = self.get_sentence_features(text, max_seq_len)
+            for feature_name in sentence_features:
+                if feature_name not in feature_lists:
+                    feature_lists[feature_name] = []
+
+                feature_lists[feature_name].append(sentence_features[feature_name])
+
+        for feature_name in feature_lists:
+            feature_lists[feature_name] = torch.cat(feature_lists[feature_name])
+
+        return feature_lists
 
 
 
