@@ -3,17 +3,19 @@ import logging
 import os
 import shutil
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type
+from typing import List, Dict, Tuple, Iterable, Type, Union
 from zipfile import ZipFile
-
+import time
+from multiprocessing import Pool, cpu_count
 import numpy as np
 import transformers
 import torch
 from numpy import ndarray
-from torch import nn, Tensor
+from torch import nn, Tensor, device
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from tqdm import tqdm, trange
+from tqdm.autonotebook import tqdm, trange
+import multiprocessing
 
 from . import __DOWNLOAD_SERVER__
 from .evaluation import SentenceEvaluator
@@ -87,10 +89,18 @@ class SentenceTransformer(nn.Sequential):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             logging.info("Use pytorch device: {}".format(device))
 
-        self.device = torch.device(device)
-        self.to(device)
+        self._target_device = torch.device(device)
+        self.parallel_tokenization = multiprocessing.get_start_method() == 'fork'   #parallel_tokenization only works if the Operating System support fork
+        self.parallel_tokenization_processes = min(4, cpu_count())                  #Number of parallel processes used for tokenization. Increase up to cpu_count() for faster tokenization
+        self.parallel_tokenization_chunksize = 5000                                 #Number of sentences sent per chunk to each process. Increase for faster tokenization
 
-    def encode(self, sentences: List[str], batch_size: int = 8, show_progress_bar: bool = None, output_value: str = 'sentence_embedding', convert_to_numpy: bool = True) -> List[ndarray]:
+    def encode(self, sentences: Union[str, List[str], List[int]],
+               batch_size: int = 16,
+               show_progress_bar: bool = None,
+               output_value: str = 'sentence_embedding',
+               convert_to_numpy: bool = True,
+               convert_to_tensor: bool = False,
+               is_pretokenized: bool = False) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings
 
@@ -105,14 +115,45 @@ class SentenceTransformer(nn.Sequential):
             to get wordpiece token embeddings.
         :param convert_to_numpy:
             If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
+        :param convert_to_tensor:
+            If true, you get one large tensor as return. Overwrites any setting from conver_to_numy
+        :param is_pretokenized:
+            If is_pretokenized=True, sentences must be a list of integers, containing the tokenized sentences with each token convert to the respective int.
         :return:
-           Depending on convert_to_numpy, either a list of numpy vectors or a list of pytorch tensors
+           By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
         """
+
         self.eval()
         if show_progress_bar is None:
             show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
 
+
+        input_was_string = False
+        if isinstance(sentences, str): #Cast an individual sentence to a list with length 1
+            sentences = [sentences]
+            input_was_string = True
+
+
         all_embeddings = []
+
+        if show_progress_bar:
+            logging.info("Start tokenization {} sentences".format(len(sentences)))
+
+        if is_pretokenized:
+            sentences_tokenized = sentences
+        else:
+            if not self.parallel_tokenization or len(sentences) < self.parallel_tokenization_chunksize:
+                sentences_tokenized = [self.tokenize(sen) for sen in sentences]
+            else:
+                if show_progress_bar:
+                    logging.info("Multi-process tokenization with {} workers".format(self.parallel_tokenization_processes))
+
+                self.to('cpu')   #Model must be on CPU to work with fork
+                with Pool(self.parallel_tokenization_processes) as p:
+                    sentences_tokenized = list(p.imap(self.tokenize, sentences, chunksize=self.parallel_tokenization_chunksize))
+
+        self.to(self._target_device)
+
         length_sorted_idx = np.argsort([len(sen) for sen in sentences])
 
         iterator = range(0, len(sentences), batch_size)
@@ -128,8 +169,7 @@ class SentenceTransformer(nn.Sequential):
             longest_seq = 0
 
             for idx in length_sorted_idx[batch_start: batch_end]:
-                sentence = sentences[idx]
-                tokens = self.tokenize(sentence)
+                tokens = sentences_tokenized[idx]
                 longest_seq = max(longest_seq, len(tokens))
                 batch_tokens.append(tokens)
 
@@ -143,8 +183,7 @@ class SentenceTransformer(nn.Sequential):
                     features[feature_name].append(sentence_features[feature_name])
 
             for feature_name in features:
-                #features[feature_name] = torch.tensor(np.asarray(features[feature_name])).to(self.device)
-                features[feature_name] = torch.cat(features[feature_name]).to(self.device)
+                features[feature_name] = torch.cat(features[feature_name]).to(self._target_device)
 
             with torch.no_grad():
                 out_features = self.forward(features)
@@ -156,13 +195,18 @@ class SentenceTransformer(nn.Sequential):
                     input_mask_expanded = input_mask.unsqueeze(-1).expand(embeddings.size()).float()
                     embeddings = embeddings * input_mask_expanded
 
-                if convert_to_numpy:
-                    embeddings = embeddings.to('cpu').numpy()
-
                 all_embeddings.extend(embeddings)
 
         reverting_order = np.argsort(length_sorted_idx)
         all_embeddings = [all_embeddings[idx] for idx in reverting_order]
+
+        if convert_to_tensor:
+            all_embeddings = torch.stack(all_embeddings)
+        elif convert_to_numpy:
+            all_embeddings = np.asarray([emb.cpu().detach().numpy() for emb in all_embeddings])
+
+        if input_was_string:
+            all_embeddings = all_embeddings[0]
 
         return all_embeddings
 
@@ -265,10 +309,11 @@ class SentenceTransformer(nn.Sequential):
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
             optimizer_class: Type[Optimizer] = transformers.AdamW,
-            optimizer_params : Dict[str, object ]= {'lr': 2e-5, 'eps': 1e-6, 'correct_bias': False},
+            optimizer_params : Dict[str, object]= {'lr': 2e-5, 'eps': 1e-6, 'correct_bias': False},
             weight_decay: float = 0.01,
             evaluation_steps: int = 0,
             output_path: str = None,
+            output_path_ignore_not_empty: bool = False,
             save_best_model: bool = True,
             max_grad_norm: float = 1,
             fp16: bool = False,
@@ -288,6 +333,7 @@ class SentenceTransformer(nn.Sequential):
         :param optimizer:
         :param evaluation_steps:
         :param output_path:
+        :param output_path_ignore_not_empty: Ignore if the output path contains already files
         :param save_best_model:
         :param max_grad_norm:
         :param fp16:
@@ -299,9 +345,11 @@ class SentenceTransformer(nn.Sequential):
         :param epochs:
         :param steps_per_epoch: Train for x steps in each epoch. If set to None, the length of the dataset will be used
         """
+        self.to(self._target_device)
+
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
-            if os.listdir(output_path):
+            if not output_path_ignore_not_empty and len(os.listdir(output_path)) > 0:
                 raise ValueError("Output directory ({}) already exists and is not empty.".format(
                     output_path))
 
@@ -312,7 +360,7 @@ class SentenceTransformer(nn.Sequential):
             dataloader.collate_fn = self.smart_batching_collate
 
         loss_models = [loss for _, loss in train_objectives]
-        device = self.device
+        device = self._target_device
 
         for loss_model in loss_models:
             loss_model.to(device)
@@ -383,7 +431,7 @@ class SentenceTransformer(nn.Sequential):
                         data_iterators[train_idx] = data_iterator
                         data = next(data_iterator)
 
-                    features, labels = batch_to_device(data, self.device)
+                    features, labels = batch_to_device(data, self._target_device)
                     loss_value = loss_model(features, labels)
 
                     if fp16:
@@ -448,3 +496,49 @@ class SentenceTransformer(nn.Sequential):
             return transformers.get_cosine_with_hard_restarts_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total)
         else:
             raise ValueError("Unknown scheduler {}".format(scheduler))
+
+    @property
+    def device(self) -> device:
+        """
+        Get torch.device from module, assuming that the whole module has one device.
+        """
+        try:
+            return next(self.parameters()).device
+        except StopIteration:
+            # For nn.DataParallel compatibility in PyTorch 1.5
+
+            def find_tensor_attributes(module: nn.Module) -> List[Tuple[str, Tensor]]:
+                tuples = [(k, v) for k, v in module.__dict__.items() if torch.is_tensor(v)]
+                return tuples
+
+            gen = self._named_members(get_members_fn=find_tensor_attributes)
+            first_tuple = next(gen)
+            return first_tuple[1].device
+
+    @property
+    def tokenizer(self):
+        """
+        Property to get the tokenizer that is used by this model
+        """
+        return self._first_module().tokenizer
+
+    @tokenizer.setter
+    def tokenizer(self, value):
+        """
+        Property to set the tokenizer that is should used by this model
+        """
+        self._first_module().tokenizer = value
+
+    @property
+    def max_seq_length(self):
+        """
+        Property to get the maximal input sequence length for the model. Longer inputs will be truncated.
+        """
+        return self._first_module().max_seq_length
+
+    @max_seq_length.setter
+    def max_seq_length(self, value):
+        """
+        Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
+        """
+        self._first_module().max_seq_length = value

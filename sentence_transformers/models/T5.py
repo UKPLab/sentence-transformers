@@ -61,7 +61,7 @@ class T5(nn.Module):
         """
 
         pad_seq_length = min(pad_seq_length, self.max_seq_length)
-        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt')
+        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt', truncation=True)
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}

@@ -34,9 +34,6 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-nli-mean-tokens'
 model = SentenceTransformer(model_name)
 
 sts_reader = STSBenchmarkDataReader(os.path.join(script_folder_path, '../datasets/stsbenchmark'))
-
-test_data = SentencesDataset(examples=sts_reader.get_examples("sts-test.csv"), model=model)
-test_dataloader = DataLoader(test_data, shuffle=False, batch_size=8)
-evaluator = EmbeddingSimilarityEvaluator(test_dataloader)
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples("sts-test.csv"))
 
 model.evaluate(evaluator)

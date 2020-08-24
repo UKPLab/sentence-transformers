@@ -11,6 +11,12 @@ class Pooling(nn.Module):
 
     Using pooling, it generates from a variable sized sentence a fixed sized sentence embedding. This layer also allows to use the CLS token if it is returned by the underlying word embedding model.
     You can concatenate multiple poolings together.
+
+    :param word_embedding_dimension: Dimensions for the word embeddings
+    :param pooling_mode_cls_token: Use the first token (CLS token) as text representations
+    :param pooling_mode_max_tokens: Use max in each dimension over all tokens.
+    :param pooling_mode_mean_tokens: Perform mean-pooling
+    :param pooling_mode_mean_sqrt_len_tokens: Perform mean-pooling, but devide by sqrt(input_length).
     """
     def __init__(self,
                  word_embedding_dimension: int,

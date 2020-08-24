@@ -10,7 +10,7 @@ You can use this code to easily **train your own sentence embeddings**, that are
 
 
 ## Setup
-We recommend Python 3.6 or higher. The model is implemented with PyTorch (at least 1.0.1) using [transformers v2.8.0](https://github.com/huggingface/transformers).
+We recommend Python 3.6 or higher. The model is implemented with PyTorch (at least 1.2.0) using [transformers v3.0.2](https://github.com/huggingface/transformers).
 The code does **not** work with Python 2.7.
 
 **With pip**
@@ -35,19 +35,19 @@ pip install -e .
 [This example](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/basic_embedding.py) shows you how to use an already trained Sentence Transformer model to embed sentences for another task.
 
 First download a pretrained model.
-````
+````python
 from sentence_transformers import SentenceTransformer
 model = SentenceTransformer('bert-base-nli-mean-tokens')
 ````
 Then provide some sentences to the model.
-````
+````python
 sentences = ['This framework generates embeddings for each input sentence',
     'Sentences are passed as a list of string.', 
     'The quick brown fox jumps over the lazy dog.']
 sentence_embeddings = model.encode(sentences)
 ````
 And that's it already. We now have a list of numpy arrays with the embeddings.
-````
+````python
 for sentence, embedding in zip(sentences, sentence_embeddings):
     print("Sentence:", sentence)
     print("Embedding:", embedding)
@@ -71,15 +71,12 @@ It will download some [datasets](https://github.com/UKPLab/sentence-transformers
 
 
 First, we define a sequential model of how a sentence is mapped to a fixed size sentence embedding:
-```
+```python
 # Use BERT for mapping tokens to embeddings
 word_embedding_model = models.Transformer('bert-base-uncased')
 
 # Apply mean pooling to get one fixed sized sentence vector
-pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
-                               pooling_mode_mean_tokens=True,
-                               pooling_mode_cls_token=False,
-                               pooling_mode_max_tokens=False)
+pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
 
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 ```
@@ -90,7 +87,7 @@ These two modules (word_embedding_model and pooling_model) form our SentenceTran
 
 
 Next, we specify a train dataloader:
-```
+```python
 nli_reader = NLIDataReader('datasets/AllNLI')
 
 train_data = SentencesDataset(nli_reader.get_examples('train.gz'), model=model)
@@ -102,15 +99,13 @@ The `NLIDataReader` reads the AllNLI dataset and we generate a dataloader that i
 
 Next, we also specify a dev-set. The dev-set is used to evaluate the sentence embedding model on some unseen data. Note, the dev-set can be any data, in this case, we evaluate on the dev-set of the STS benchmark dataset.  The `evaluator` computes the performance metric, in this case, the cosine-similarity between sentence embeddings are computed and the Spearman-correlation to the gold scores is computed.
 
-```
+```python
 sts_reader = STSBenchmarkDataReader('datasets/stsbenchmark')
-dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
-dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
-evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-dev.csv'))
 ```
 
  The training then looks like this:
- ```
+ ```python
 model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=evaluator,
           epochs=num_epochs,
@@ -126,27 +121,25 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 [training_stsbenchmark_continue_training.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_stsbenchmark_continue_training.py) shows an example where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset and then continue training on the training data from the STS benchmark.
 
 First, we load a pre-trained model from the server:
-```
+```python
 model = SentenceTransformer('bert-base-nli-mean-tokens')
 ```
 
 
 The next steps are as before. We specify training and dev data:
-```
+```python
 sts_reader = STSBenchmarkDataReader('datasets/stsbenchmark', normalize_scores=True)
 train_data = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model)
 train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)
 
-dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
-dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
-evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-dev.csv'))
 ```
 
 In that example, we use CosineSimilarityLoss, which computes the cosine similarity between two sentences and compares this score with a provided gold similarity score.
 
 Then we can train as before:
-```
+```python
 model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=evaluator,
           epochs=num_epochs,
@@ -158,20 +151,20 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 
 ## Loading SentenceTransformer Models
 Loading trained models is easy. You can specify a path:
-```
+```python
 model = SentenceTransformer('./my/path/to/model/')
 ```
 Note: It is important that a / or \ is the path, otherwise, it is not recognized as a path.
 
 You can also host the training output on a server and download it:
- ```
+ ```python
 model = SentenceTransformer('http://www.server.com/path/to/model/my_model.zip')
 ```
 With the first call, the model is downloaded and stored in the local torch cache-folder (`~/.cache/torch/sentence_transformers`). In order to work, you must zip all files and subfolders of your model. 
 
 We also provide several pre-trained models, that can be loaded by just passing a name:
 
- ```
+ ```python
 model = SentenceTransformer('bert-base-nli-mean-tokens')
 ```
 
@@ -180,7 +173,8 @@ This downloads the `bert-base-nli-mean-tokens` from our server and stores it loc
 ## Loading custom BERT models
 If you have fine-tuned BERT (or similar models) and you want to use it to generate sentence embeddings, you must construct an appropriate sentence transformer model from it. This is possible by using this code:
 
-```
+```python  
+from sentence_transformers import models
 # Use BERT for mapping tokens to embeddings
 word_embedding_model = models.Transformer('path/to/your/BERT/model')
 
@@ -194,11 +188,11 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 ```
 
 ## Training Multilingual Sentence Embeddings Models
-We provide code and example to easily train sentence embedding models for various languages and also port existent sentence embedding models to new languages. For details, see [multilingual-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/pretrained-models/multilingual-models.md) and our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813).
+We provide code and example to easily train sentence embedding models for various languages and also port existent sentence embedding models to new languages. For details, see [multilingual-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/training/multilingual-models.md) and our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813).
 
 ## Pretrained Models
 We provide the following models. You can use them in the following way:
- ```
+ ```python
 model = SentenceTransformer('name_of_model')
 ```
 
@@ -227,12 +221,45 @@ These models were first fine-tuned on the AllNLI datasent, then on train set of 
 - **distilbert-base-nli-stsb-mean-tokens**: Performance: STSbenchmark: 84.38
 
 
+**Trained on Quora Duplicate Question Detection**
+
+These models were tuned to detect duplicate questions based on the Quora duplicate questions dataset. It can be used for semantic search to find similar questions. [Further information](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training_quora_duplicate_questions).
+- **distilbert-base-nli-stsb-quora-ranking**
+
+
 ### Multilingual Models
 The following models can be used for languages other than English. The vector spaces for the included languages are aligned, i.e., two sentences are mapped to the same point in vector space independent of the language. The models can be used for cross-lingual tasks. For more details see [multilingual-models.md](https://github.com/UKPLab/sentence-transformers/blob/master/docs/pretrained-models/multilingual-models.md).
 
 - **distiluse-base-multilingual-cased**: Supported languages: Arabic, Chinese, Dutch, English, French, German,  Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. Performance on the extended STS2017: 80.1
-- **xlm-r-base-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 81.47
-- **xlm-r-large-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 84.05
+- **xlm-r-100langs-bert-base-nli-mean-tokens**: Produces similar embeddings as the bert-base-nli-mean-token model for 100+ languages
+- **xlm-r-100langs-bert-base-nli-stsb-mean-tokens**: Produces similar embeddings as the bert-base-nli-stsb-mean-token model for 100+ languages
+
+
+XLM-R supports the following 100 languages.
+ Language | Language|Language |Language | Language
+---|---|---|---|---
+Afrikaans | Albanian | Amharic | Arabic | Armenian 
+Assamese | Azerbaijani | Basque | Belarusian | Bengali 
+Bengali Romanize | Bosnian | Breton | Bulgarian | Burmese 
+Burmese zawgyi font | Catalan | Chinese (Simplified) | Chinese (Traditional) | Croatian 
+Czech | Danish | Dutch | English | Esperanto 
+Estonian | Filipino | Finnish | French | Galician
+Georgian | German | Greek | Gujarati | Hausa
+Hebrew | Hindi | Hindi Romanize | Hungarian | Icelandic
+Indonesian | Irish | Italian | Japanese | Javanese
+Kannada | Kazakh | Khmer | Korean | Kurdish (Kurmanji)
+Kyrgyz | Lao | Latin | Latvian | Lithuanian
+Macedonian | Malagasy | Malay | Malayalam | Marathi
+Mongolian | Nepali | Norwegian | Oriya | Oromo
+Pashto | Persian | Polish | Portuguese | Punjabi
+Romanian | Russian | Sanskrit | Scottish Gaelic | Serbian
+Sindhi | Sinhala | Slovak | Slovenian | Somali
+Spanish | Sundanese | Swahili | Swedish | Tamil
+Tamil Romanize | Telugu | Telugu Romanize | Thai | Turkish
+Ukrainian | Urdu | Urdu Romanize | Uyghur | Uzbek
+Vietnamese | Welsh | Western Frisian | Xhosa | Yiddish
+
+The XLM-R-100langs models were fine-tuned using [Multilingual Knowledge Distillation](https://arxiv.org/abs/2004.09813) using parallel data for the following languages: ar, bg, ca, cs, da, de, el, es, et, fa, fi, fr, fr-ca, gl, gu, he, hi, hr, hu, hy, id, it, ja, ka, ko, ku, lt, lv, mk, mn, mr, ms, my, nb, nl, pl, pt, pt, pt-br, ro, ru, sk, sl, sq, sr, sv, th, tr, uk, ur, vi, zh-cn, zh-tw. It achieves also quite good performance scores for languages not in these lists.
 
 
 ## Performance
@@ -298,7 +325,7 @@ We present some examples, how the generated sentence embeddings can be used for 
 Semantic search is the task of finding similar sentences to a given sentence. See [semantic_search.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic_search.py).
 
 We first generate an embedding for all sentences in a corpus:
-```
+```python
 embedder = SentenceTransformer('bert-base-nli-mean-tokens')
 
 # Corpus with example sentences
@@ -316,13 +343,13 @@ corpus_embeddings = embedder.encode(corpus)
 ```
 
 Then, we generate the embeddings for different query sentences:
-```
+```python
 queries = ['A man is eating pasta.', 'Someone in a gorilla costume is playing a set of drums.', 'A cheetah chases prey on across a field.']
 query_embeddings = embedder.encode(queries)
 ```
 
 We then use scipy to find the most-similar embeddings for queries in the corpus:
-```
+```python
 for query, query_embedding in zip(queries, query_embeddings):
     distances = scipy.spatial.distance.cdist([query_embedding], corpus_embeddings, "cosine")[0]
 ```
@@ -362,7 +389,7 @@ A monkey is playing drums. (Score: 0.3435)
 [clustering.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/clustering.py) depicts an example to cluster similar sentences based on their sentence embedding similarity.
 
 As before, we first compute an embedding for each sentence:
-```
+```python
 embedder = SentenceTransformer('bert-base-nli-mean-tokens')
 
 # Corpus with example sentences
@@ -382,7 +409,7 @@ corpus_embeddings = embedder.encode(corpus)
 ```
 
 Then, we perform k-means clustering using sklearn:
-```
+```python
 from sklearn.cluster import KMeans
 
 num_clusters = 5

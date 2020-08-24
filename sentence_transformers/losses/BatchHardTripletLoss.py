@@ -16,8 +16,9 @@ class BatchHardTripletLoss(nn.Module):
 
 
     # Hard Triplet Loss
-    # Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/triplet_loss.py
+    # Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
     # Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
+    # Blog post: https://omoindrot.github.io/triplet-loss
     @staticmethod
     def batch_hard_triplet_loss(labels: Tensor, embeddings: Tensor, margin: float, squared: bool = False) -> Tensor:
         """Build the triplet loss over a batch of embeddings.
@@ -151,7 +152,7 @@ class BatchHardTripletLoss(nn.Module):
             labels: tf.int32 `Tensor` with shape [batch_size]
         """
         # Check that i, j and k are distinct
-        indices_equal = torch.eye(labels.size(0)).byte()
+        indices_equal = torch.eye(labels.size(0)).bool()
         indices_not_equal = ~indices_equal
         i_not_equal_j = indices_not_equal.unsqueeze(2)
         i_not_equal_k = indices_not_equal.unsqueeze(1)
@@ -178,7 +179,7 @@ class BatchHardTripletLoss(nn.Module):
         # Check that i and j are distinct
 
         device = 'cuda' if labels.is_cuda else 'cpu'
-        indices_equal = torch.eye(labels.size(0)).byte().to(device)
+        indices_equal = torch.eye(labels.size(0)).bool().to(device)
         indices_not_equal = ~indices_equal
 
         # Check if labels[i] == labels[j]
