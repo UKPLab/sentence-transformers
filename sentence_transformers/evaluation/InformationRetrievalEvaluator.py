@@ -29,8 +29,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                  ndcg_at_k: List[int] = [10],
                  accuracy_at_k: List[int] = [1, 3, 5, 10],
                  precision_recall_at_k: List[int] = [1, 3, 5, 10],
+                 map_at_k: List[int] = [100],
                  show_progress_bar: bool = False,
-                 batch_size: int = 16,
+                 batch_size: int = 32,
                  name: str = ''):
 
         self.queries_ids = []
@@ -50,6 +51,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.ndcg_at_k = ndcg_at_k
         self.accuracy_at_k = accuracy_at_k
         self.precision_recall_at_k = precision_recall_at_k
+        self.map_at_k = map_at_k
+
         self.show_progress_bar = show_progress_bar
         self.batch_size = batch_size
         self.name = name
@@ -74,6 +77,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         for k in ndcg_at_k:
             self.csv_headers.append("NDCG@{}".format(k))
 
+        for k in map_at_k:
+            self.csv_headers.append("MAP@{}".format(k))
+
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             out_txt = " after epoch {}:".format(epoch) if steps == -1 else " in epoch {} after {} steps:".format(epoch, steps)
@@ -82,7 +88,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
         logging.info("Information Retrieval Evaluation on " + self.name + " dataset" + out_txt)
 
-        max_k = max(max(self.mrr_at_k), max(self.ndcg_at_k), max(self.accuracy_at_k), max(self.precision_recall_at_k))
+        max_k = max(max(self.mrr_at_k), max(self.ndcg_at_k), max(self.accuracy_at_k), max(self.precision_recall_at_k), max(self.map_at_k))
 
         # Compute embedding for the queries
         query_embeddings = model.encode(self.queries, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_tensor=True)
@@ -95,6 +101,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         recall_at_k = {k: [] for k in self.precision_recall_at_k}
         MRR = {k: 0 for k in self.mrr_at_k}
         ndcg = {k: [] for k in self.ndcg_at_k}
+        AveP_at_k = {k: [] for k in self.map_at_k}
 
         #Compute embedding for the corpus
         corpus_embeddings = model.encode(self.corpus, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_tensor=True)
@@ -109,17 +116,17 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 corpus_end_idx = min(corpus_start_idx + self.corpus_chunk_size, len(corpus_embeddings))
 
                 #Compute cosine similarites
-                cos_scores = pytorch_cos_sim(query_embeddings[query_start_idx:query_end_idx], corpus_embeddings[corpus_start_idx:corpus_end_idx]).cpu().numpy()
-                cos_scores = np.nan_to_num(cos_scores)
+                cos_scores = pytorch_cos_sim(query_embeddings[query_start_idx:query_end_idx], corpus_embeddings[corpus_start_idx:corpus_end_idx]).cpu()
 
-                #Partial sort scores
-                cos_score_argpartition = np.argpartition(-cos_scores, max_k)[:, 0:max_k]
+                #Get top-k values
+                cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(max_k, len(cos_scores[0]) - 1), dim=1, largest=True, sorted=False)
+                cos_scores_top_k_values = cos_scores_top_k_values.tolist()
+                cos_scores_top_k_idx = cos_scores_top_k_idx.tolist()
 
 
                 for query_itr in range(len(cos_scores)):
-                    for sub_corpus_id in cos_score_argpartition[query_itr]:
+                    for sub_corpus_id, score in zip(cos_scores_top_k_idx[query_itr], cos_scores_top_k_values[query_itr]):
                         corpus_id = self.corpus_ids[corpus_start_idx+sub_corpus_id]
-                        score = cos_scores[query_itr][sub_corpus_id]
                         queries_result_list[query_itr].append({'corpus_id': corpus_id, 'score': score})
 
             for query_itr in range(len(queries_result_list)):
@@ -140,7 +147,6 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 #Precision and Recall@k
                 for k_val in self.precision_recall_at_k:
                     num_correct = 0
-
                     for hit in top_hits[0:k_val]:
                         if hit['corpus_id'] in query_relevant_docs:
                             num_correct += 1
@@ -163,6 +169,21 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                     ndcg_value = self.compute_dcg_at_k(predicted_relevance, k_val) / self.compute_dcg_at_k(true_relevances, k_val)
                     ndcg[k_val].append(ndcg_value)
 
+                #MAP@k
+                for k_val in self.map_at_k:
+                    num_correct = 0
+                    sum_precisions = 0
+
+                    for rank, hit in enumerate(top_hits[0:k_val]):
+                        if hit['corpus_id'] in query_relevant_docs:
+                            num_correct += 1
+                            sum_precisions += num_correct / (rank+1)
+
+                    avg_precision = sum_precisions / min(k_val, len(query_relevant_docs))
+                    AveP_at_k[k_val].append(avg_precision)
+
+
+
         #Compute averages
         for k in num_hits_at_k:
             num_hits_at_k[k] /= len(self.queries)
@@ -179,9 +200,10 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         for k in MRR:
             MRR[k] /= len(self.queries)
 
+        for k in AveP_at_k:
+            AveP_at_k[k] = np.mean(AveP_at_k[k])
+
         #Output
-
-
         for k in num_hits_at_k:
             logging.info("Accuracy@{}: {:.2f}%".format(k, num_hits_at_k[k]*100))
 
@@ -196,6 +218,11 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
         for k in ndcg:
             logging.info("NDCG@{}: {:.4f}".format(k, ndcg[k]))
+
+        for k in AveP_at_k:
+            logging.info("MAP@{}: {:.4f}".format(k, AveP_at_k[k]))
+
+
         logging.info("Queries: {}".format(len(self.queries)))
         logging.info("Corpus: {}\n".format(len(self.corpus)))
 
@@ -223,11 +250,14 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             for k in self.ndcg_at_k:
                 output_data.append(ndcg[k])
 
+            for k in self.map_at_k:
+                output_data.append(AveP_at_k[k])
+
             fOut.write(",".join(map(str,output_data)))
             fOut.write("\n")
             fOut.close()
 
-        return MRR[max(self.mrr_at_k)]
+        return AveP_at_k[max(self.map_at_k)]
 
     @staticmethod
     def compute_dcg_at_k(relevances, k):
