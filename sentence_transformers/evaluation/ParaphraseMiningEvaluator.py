@@ -15,7 +15,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
      with a set of gold labels and computes the F1 score.
     """
 
-    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, duplicates_dict: Dict[str, Dict[str, bool]] = defaultdict(lambda: defaultdict(bool)), add_transitive_closure: bool = False, query_chunk_size:int = 5000, corpus_chunk_size:int = 100000, max_pairs: int = 500000, top_k: int = 100, show_progress_bar: bool = False, batch_size: int = 16, name: str = ''):
+    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, duplicates_dict: Dict[str, Dict[str, bool]] = None, add_transitive_closure: bool = False, query_chunk_size:int = 5000, corpus_chunk_size:int = 100000, max_pairs: int = 500000, top_k: int = 100, show_progress_bar: bool = False, batch_size: int = 16, name: str = ''):
         """
 
         :param sentences_map: A dictionary that maps sentence-ids to sentences, i.e. sentences_map[id] => sentence.
@@ -45,7 +45,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.max_pairs = max_pairs
         self.top_k = top_k
 
-        self.duplicates = duplicates_dict
+        self.duplicates = duplicates_dict if duplicates_dict is not None else defaultdict(lambda: defaultdict(bool))
         if duplicates_list is not None:
             for id1, id2 in duplicates_list:
                 if id1 in sentences_map and id2 in sentences_map:
