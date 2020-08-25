@@ -235,7 +235,7 @@ class SentenceTransformer(nn.Sequential):
         :return: Numpy matrix with all embeddings
         """
 
-        chunk_size = min(math.ceil(len(sentences) / torch.cuda.device_count() / 10), 5000)
+        chunk_size = min(math.ceil(len(sentences) / len(pool["processes"]) / 10), 5000)
         logging.info("Chunk data into packages of size {}".format(chunk_size))
 
         if is_pretokenized:
@@ -540,8 +540,8 @@ class SentenceTransformer(nn.Sequential):
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
 
                     optimizer.step()
-                    scheduler.step()
                     optimizer.zero_grad()
+                scheduler.step()
 
                 training_steps += 1
                 global_step += 1
