@@ -416,9 +416,7 @@ class SentenceTransformer(nn.Sequential):
             output_path_ignore_not_empty: bool = False,
             save_best_model: bool = True,
             max_grad_norm: float = 1,
-            fp16: bool = False,
-            fp16_opt_level: str = 'O1',
-            local_rank: int = -1
+            use_amp: bool = False
             ):
         """
         Train the model with the given training objective
@@ -441,7 +439,13 @@ class SentenceTransformer(nn.Sequential):
         :param output_path_ignore_not_empty: By default, training will stop if output_path is not empty. If set to true, this error will be ignored and training proceeds.
         :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
         :param max_grad_norm: Used for gradient normalization.
+        :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
         """
+
+        if use_amp:
+            from torch.cuda.amp import autocast
+            scaler = torch.cuda.amp.GradScaler()
+
         self.to(self._target_device)
 
         if output_path is not None:
@@ -480,26 +484,13 @@ class SentenceTransformer(nn.Sequential):
                 {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': weight_decay},
                 {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
             ]
-            t_total = num_train_steps
-            if local_rank != -1:
-                t_total = t_total // torch.distributed.get_world_size()
 
             optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
-            scheduler_obj = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=t_total)
+            scheduler_obj = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps)
 
             optimizers.append(optimizer)
             schedulers.append(scheduler_obj)
 
-        if fp16:
-            try:
-                from apex import amp
-            except ImportError:
-                raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use fp16 training.")
-
-            for train_idx in range(len(loss_models)):
-                model, optimizer = amp.initialize(loss_models[train_idx], optimizers[train_idx], opt_level=fp16_opt_level)
-                loss_models[train_idx] = model
-                optimizers[train_idx] = optimizer
 
         global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
@@ -529,17 +520,22 @@ class SentenceTransformer(nn.Sequential):
                         data = next(data_iterator)
 
                     features, labels = batch_to_device(data, self._target_device)
-                    loss_value = loss_model(features, labels)
 
-                    if fp16:
-                        with amp.scale_loss(loss_value, optimizer) as scaled_loss:
-                            scaled_loss.backward()
-                        torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), max_grad_norm)
+                    if use_amp:
+                        with autocast():
+                            loss_value = loss_model(features, labels)
+
+                        scaler.scale(loss_value).backward()
+                        scaler.unscale_(optimizer)
+                        torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
+                        scaler.step(optimizer)
+                        scaler.update()
                     else:
+                        loss_value = loss_model(features, labels)
                         loss_value.backward()
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
+                        optimizer.step()
 
-                    optimizer.step()
                     optimizer.zero_grad()
                 scheduler.step()
 
