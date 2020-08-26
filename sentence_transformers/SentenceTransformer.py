@@ -254,7 +254,7 @@ class SentenceTransformer(nn.Sequential):
                 num_chunks += 1
                 chunk = []
 
-        if len(chunk) >= chunk_size:
+        if len(chunk) > 0:
             input_queue.put([num_chunks, chunk])
             num_chunks += 1
 
