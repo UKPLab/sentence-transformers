@@ -204,7 +204,7 @@ with zipfile.ZipFile(sts_corpus) as zip:
                     sts_data[filename]['scores'].append(score)
 
 for filename, data in sts_data.items():
-    test_evaluator = evaluation.EmbeddingSimilarityEvaluatorFromList(data['sentences1'], data['sentences2'], data['scores'], batch_size=inference_batch_size, name=filename, show_progress_bar=False)
+    test_evaluator = evaluation.EmbeddingSimilarityEvaluator(data['sentences1'], data['sentences2'], data['scores'], batch_size=inference_batch_size, name=filename, show_progress_bar=False)
     evaluators.append(test_evaluator)
 
 
