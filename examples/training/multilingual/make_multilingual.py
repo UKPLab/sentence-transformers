@@ -64,7 +64,7 @@ output_path = "output/make-multilingual-"+"-".join(sorted(list(source_languages)
 
 
 # This function downloads a corpus if it does not exist
-def download_corpa(filepaths):
+def download_corpora(filepaths):
     if not isinstance(filepaths, list):
         filepaths = [filepaths]
 
@@ -82,7 +82,7 @@ sts_corpus = "../datasets/STS2017-extended.zip"     # Extended STS2017 dataset f
 parallel_sentences_folder = "parallel-sentences/"
 
 # Check if the file exists. If not, they are downloaded
-download_corpa([train_corpus, sts_corpus])
+download_corpora([train_corpus, sts_corpus])
 
 
 # Create parallel files for the selected language combinations
