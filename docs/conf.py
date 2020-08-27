@@ -18,7 +18,7 @@ import recommonmark
 from recommonmark.transform import AutoStructify
 import os
 import sys
-
+from sphinx.domains import Domain
 
 # -- Project information -----------------------------------------------------
 
@@ -53,6 +53,12 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'nr_examples']
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
+html_theme_path = ["_themes"]
+
+html_theme_options = {
+    'logo_only': True,
+    'canonical_url': "https://www.sbert.net"
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -75,12 +81,12 @@ html_context = {
   'github_version': 'master/',
 }
 
+html_logo = 'img/logo.png'
+html_favicon = 'img/favicon.ico'
 
 
 
 
-
-from sphinx.domains import Domain
 
 class GithubURLDomain(Domain):
     """

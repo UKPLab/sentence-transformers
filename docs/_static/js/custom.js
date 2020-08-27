@@ -1,24 +1,16 @@
 function addGithubButton() {
     const div = `
         <div class="github-repo">
-            <a 
-                class="github-button"
+            <a class="github-button"
                 href="https://github.com/UKPLab/sentence-transformers" data-size="large" data-show-count="true" aria-label="Star UKPLab/sentence-transformers on GitHub">
                 Star
             </a>
         </div>
     `;
-    document.querySelector(".wy-side-nav-search .icon-home").insertAdjacentHTML('afterend', div);
+    document.getElementById("github-button").innerHTML = div;
 }
 
-function addHomeButton() {
-    const link = `
-    <ul>
-        <li class="toctree-l1"><a class="reference internal" href="/">Home</a></li>
-    </ul>
-    `;
-    document.querySelector("div.wy-menu-vertical").insertAdjacentHTML('afterbegin', link)
-}
+
 
 /*!
  * github-buttons v2.2.10
@@ -35,7 +27,6 @@ function parseGithubButtons (){"use strict";var e=window.document,t=e.location,o
 function onLoad() {
     addGithubButton();
     parseGithubButtons();
-    //addHomeButton();
 }
 
 

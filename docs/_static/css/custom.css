@@ -20,3 +20,11 @@ dl.class > dt {
 .toctree-l1  > ul {
     margin-top: 0px !important;
 }
+
+.wy-side-nav-search .wy-dropdown>a:hover, .wy-side-nav-search>a:hover {
+    background: none;
+}
+
+.project-name {
+    font-size: 1.4em;
+}
