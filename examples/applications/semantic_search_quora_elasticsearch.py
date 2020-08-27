@@ -116,7 +116,7 @@ if __name__ == '__main__':
                     "match_all": {}
                   },
                   "script": {
-                    "source": "cosineSimilarity(params.queryVector, doc['question_vector'])",
+                    "source": "cosineSimilarity(params.queryVector, doc['question_vector']) + 1.0",
                     "params": {
                       "queryVector": question_embedding
                     }
