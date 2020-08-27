@@ -71,30 +71,29 @@ if __name__ == '__main__':
 
             es.indices.create(index='quora', body=es_index, ignore=[400])
             chunk_size = 500
-            print("Index data (you can stop it by pressinc Ctrl+C once):")
+            print("Index data (you can stop it by pressing Ctrl+C once):")
             with tqdm.tqdm(total=len(qids)) as pbar:
                 for start_idx in range(0, len(qids), chunk_size):
                     end_idx = start_idx+chunk_size
 
-                    embeddings = model.encode(questions[start_idx:end_idx], show_progress_bar=True, num_workers=2)
+                    embeddings = model.encode(questions[start_idx:end_idx], show_progress_bar=False)
                     bulk_data = []
                     for qid, question, embedding in zip(qids[start_idx:end_idx], questions[start_idx:end_idx], embeddings):
                         bulk_data.append({
-                            "index": {
                                 "_index": 'quora',
                                 "_id": qid,
                                 "_source": {
                                     "question": question,
                                     "question_vector": embedding
                                 }
-                            }
-                        })
+                            })
 
                     helpers.bulk(es, bulk_data)
                     pbar.update(chunk_size)
 
         except:
             print("During index an exception occured. Continue\n\n")
+
 
 
 
