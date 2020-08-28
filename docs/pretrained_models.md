@@ -68,7 +68,7 @@ The following models were trained duplicate questions mining and duplicate quest
 
 Available models:
 - **distilbert-base-nli-stsb-quora-ranking** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
-- **distillbert-multilingual-nli-stsb-quora-ranking** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*. DistilBERT-multilingual support 104 languages. Fine-tuned with parallel data for 50+ languages. 
+- **distilbert-multilingual-nli-stsb-quora-ranking** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*. DistilBERT-multilingual support 104 languages. Fine-tuned with parallel data for 50+ languages. 
 
 
 ## Wikipedia Sections
