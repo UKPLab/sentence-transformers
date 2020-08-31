@@ -25,6 +25,7 @@ import pickle
 import time
 import faiss
 import numpy as np
+import wget
 
 if __name__ == '__main__':
     model_name = 'distilbert-base-nli-stsb-quora-ranking'
@@ -57,7 +58,7 @@ if __name__ == '__main__':
         # Download dataset if needed
         if not os.path.exists(dataset_path):
             print("Download dataset")
-            util.http_get(url, dataset_path)
+            wget.download(url,dataset_path)
 
         # Get all unique sentences from the file
         corpus_sentences = set()
