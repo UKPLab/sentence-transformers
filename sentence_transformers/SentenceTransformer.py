@@ -5,8 +5,7 @@ import shutil
 from collections import OrderedDict
 from typing import List, Dict, Tuple, Iterable, Type, Union
 from zipfile import ZipFile
-import time
-from multiprocessing import Pool, cpu_count
+import requests
 import numpy as np
 import transformers
 import torch
@@ -23,22 +22,21 @@ from . import __DOWNLOAD_SERVER__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, http_get
 from .datasets.EncodeDataset import EncodeDataset
+from .models import Transformer, Pooling
 from . import __version__
 
 class SentenceTransformer(nn.Sequential):
     def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
-        if modules is not None and not isinstance(modules, OrderedDict):
-            modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
-
         if model_name_or_path is not None and model_name_or_path != "":
             logging.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
+            model_path = model_name_or_path
 
-            if '/' not in model_name_or_path and '\\' not in model_name_or_path and not os.path.isdir(model_name_or_path):
-                logging.info("Did not find a '/' or '\\' in the name. Assume to download model from server.")
-                model_name_or_path = __DOWNLOAD_SERVER__ + model_name_or_path + '.zip'
+            if not os.path.isdir(model_path):
+                logging.info("Did not find folder {}. Assume to download model from server.".format(model_path))
+                model_path = __DOWNLOAD_SERVER__ + model_path + '.zip'
 
-            if model_name_or_path.startswith('http://') or model_name_or_path.startswith('https://'):
-                model_url = model_name_or_path
+            if model_path.startswith('http://') or model_path.startswith('https://'):
+                model_url = model_path
                 folder_name = model_url.replace("https://", "").replace("http://", "").replace("/", "_")[:250]
 
                 try:
@@ -61,11 +59,25 @@ class SentenceTransformer(nn.Sequential):
                         http_get(model_url, zip_save_path)
                         with ZipFile(zip_save_path, 'r') as zip:
                             zip.extractall(model_path)
+                    except requests.exceptions.HTTPError as e:
+                        shutil.rmtree(model_path)
+                        if e.response.status_code == 404:
+                            logging.warning('SentenceTransformer-Model {} not found. Try to create it from scratch'.format(model_url))
+                            logging.warning('Try to create Transformer Model {} with mean pooling'.format(model_name_or_path))
+
+                            model_path = None
+                            transformer_model = Transformer(model_name_or_path)
+                            pooling_model = Pooling(transformer_model.get_word_embedding_dimension())
+                            modules = [transformer_model, pooling_model]
+
+                        else:
+                            raise e
                     except Exception as e:
                         shutil.rmtree(model_path)
                         raise e
-            else:
-                model_path = model_name_or_path
+
+
+
 
             #### Load from disk
             if model_path is not None:
@@ -86,6 +98,9 @@ class SentenceTransformer(nn.Sequential):
                     module = module_class.load(os.path.join(model_path, module_config['path']))
                     modules[module_config['name']] = module
 
+
+        if modules is not None and not isinstance(modules, OrderedDict):
+            modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
 
         super().__init__(modules)
         if device is None:
