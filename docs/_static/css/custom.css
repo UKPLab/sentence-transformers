@@ -28,3 +28,7 @@ dl.class > dt {
 .project-name {
     font-size: 1.4em;
 }
+
+.wy-side-nav-search {
+    padding-top: 0px;
+}
