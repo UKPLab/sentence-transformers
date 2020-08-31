@@ -497,6 +497,7 @@ class SentenceTransformer(nn.Sequential):
 
         num_train_objectives = len(train_objectives)
 
+        skip_scheduler = False
         for epoch in trange(epochs, desc="Epoch"):
             training_steps = 0
 
@@ -525,11 +526,14 @@ class SentenceTransformer(nn.Sequential):
                         with autocast():
                             loss_value = loss_model(features, labels)
 
+                        scale_before_step = scaler.get_scale()
                         scaler.scale(loss_value).backward()
                         scaler.unscale_(optimizer)
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
                         scaler.step(optimizer)
                         scaler.update()
+
+                        skip_scheduler = scaler.get_scale() != scale_before_step
                     else:
                         loss_value = loss_model(features, labels)
                         loss_value.backward()
@@ -537,7 +541,9 @@ class SentenceTransformer(nn.Sequential):
                         optimizer.step()
 
                     optimizer.zero_grad()
-                scheduler.step()
+
+                if not skip_scheduler:
+                    scheduler.step()
 
                 training_steps += 1
                 global_step += 1
