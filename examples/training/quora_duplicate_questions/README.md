@@ -6,6 +6,7 @@ This folder contains scripts that demonstrate how to train SentenceTransformers 
 
 Currently the following models trained on Quora Duplicate Questions are available:
 * **distilbert-base-nli-stsb-quora-ranking**:  We extended the *distilbert-base-nli-stsb-mean-tokens* model and trained it with *OnlineContrastiveLoss* and with *MultipleNegativesRankingLoss* on the Quora Duplicate questions dataset. For the code, see [training_multi-task-learning.py](training_multi-task-learning.py)
+* **distilbert-multilingual-nli-stsb-quora-ranking**: Extension of *distilbert-base-nli-stsb-quora-ranking* to be multi-lingual. Trained on parallel data for 50 languages.
 
 You can load & use pre-trained models like this:
 ```python
@@ -37,13 +38,13 @@ For details on the creation of the dataset, see [create_splits.py](create_splits
 
 ### Duplicate Questions Mining
 
-Given a large set of sentences (in this case questions), identify all pairs that are duplicates. See [application_duplicate_questions_mining.py](application_duplicate_questions_mining.py) for an example how to use sentence transformers to mine for duplicate questions / paraphrases. This approach can be scaled to hundred thousands of sentences given you have enough memory.
+Given a large set of sentences (in this case questions), identify all pairs that are duplicates. See [Paraphrase Mining](https://www.sbert.net/docs/usage/paraphrase_mining.html) for an example how to use sentence transformers to mine for duplicate questions / paraphrases. This approach can be scaled to hundred thousands of sentences given you have enough memory.
 
 ### Semantic Search
 
 The model can also be used for Information Retrieval / Semantic Search. Given a new question, search a large corpus of hundred thousands of questions for duplicate questions. Given you have enough memory, this approach works well to copora up in the Millions (depending on your real-time requirements).
 
-For an interactive example, see [application_Semantic_Search.py](application_Semantic_Search.py).
+For an interactive example, see [Semantic Search](https://www.sbert.net/docs/usage/semantic_search.html).
 
 
 ## Training
@@ -82,7 +83,7 @@ For each row in our train dataset, we create new InputExample objects and the tw
 
 
 
-##MultipleNegativesRankingLoss
+## MultipleNegativesRankingLoss
 *MultipleNegativesRankingLoss* is especially suitable for Information Retrieval / Semantic Search. A nice advantage of *MultipleNegativesRankingLoss* is that it only requires positive pairs, i.e., we only need examples of duplicate questions.
 
 From all pairs, we sample a mini-batch *(a_1, b_1), ..., (a_n, b_n)* where *(a_i, b_i)* is a duplicate question.
