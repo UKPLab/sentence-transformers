@@ -7,7 +7,7 @@ with open("README.md", mode="r", encoding="utf-8") as readme_file:
 
 setup(
     name="sentence-transformers",
-    version="0.3.4",
+    version="0.3.5",
     author="Nils Reimers",
     author_email="info@nils-reimers.de",
     description="Sentence Embeddings using BERT / RoBERTa / XLNet",
@@ -18,7 +18,7 @@ setup(
     download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.3.4.zip",
     packages=find_packages(),
     install_requires=[
-        'transformers>=3.0.2',
+        'transformers==3.0.2',
         'tqdm',
         'torch>=1.2.0',
         'numpy',
