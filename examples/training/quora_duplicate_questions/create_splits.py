@@ -48,6 +48,7 @@ import random
 import os
 from sentence_transformers import util
 
+
 random.seed(42)
 
 #Get raw file
@@ -87,6 +88,51 @@ with open(source_file, encoding='utf8') as fIn:
             duplicates[id1][id2] = True
             duplicates[id2][id1] = True
 
+
+# Search for (near) exact duplicates
+# The original Quora duplicate questions dataset is an incomplete annotation,
+# i.e., there are several duplicate question pairs which are not marked as duplicates.
+# These missing annotation can make it difficult to compare approaches.
+# Here we use a simple approach that searches for near identical questions, that only differ in maybe a stopword
+# We mark these found question pairs also as duplicate to increase the annotation coverage
+stopwords = set(['a', 'about', 'above', 'after', 'again', 'against', 'ain', 'all', 'am', 'an', 'and', 'any', 'are', 'aren', "aren't", 'as', 'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'can', 'couldn', "couldn't", 'd', 'did', 'didn', "didn't", 'do', 'does', 'doesn', "doesn't", 'doing', 'don', "don't", 'down', 'during', 'each', 'few', 'for', 'from', 'further', 'had', 'hadn', "hadn't", 'has', 'hasn', "hasn't", 'have', 'haven', "haven't", 'having', 'he', 'her', 'here', 'hers', 'herself', 'him', 'himself', 'his', 'i', 'if', 'in', 'into', 'is', 'isn', "isn't", "it's", 'its', 'itself', 'just', 'll', 'm', 'ma', 'me', 'mightn', "mightn't", 'more', 'most', 'mustn', "mustn't", 'my', 'myself', 'needn', "needn't", 'no', 'nor', 'not', 'now', 'o', 'of', 'off', 'on', 'once', 'only', 'or', 'other', 'our', 'ours', 'ourselves', 'out', 'over', 'own', 're', 's', 'same', 'shan', "shan't", 'she', "she's", 'should', "should've", 'shouldn', "shouldn't", 'so', 'some', 'such', 't', 'than', 'that', "that'll", 'the', 'their', 'theirs', 'them', 'themselves', 'then', 'there', 'these', 'they', 'this', 'those', 'through', 'to', 'too', 'under', 'until', 'up', 've', 'very', 'was', 'wasn', "wasn't", 'we', 'were', 'weren', "weren't", 'which', 'while', 'will', 'with', 'won', "won't", 'wouldn', "wouldn't", 'y', 'you', "you'd", "you'll", "you're", "you've", 'your', 'yours', 'yourself', 'yourselves'])
+
+num_new_duplicates = 0
+sentences_norm = {}
+
+for id, sent in sentences.items():
+    sent_norm = sent.lower()
+
+    #Replace some common paraphrases
+    sent_norm = sent_norm.replace("how do you", "how do i").replace("how do we", "how do i")
+    sent_norm = sent_norm.replace("how can we", "how can i").replace("how can you", "how can i").replace("how can i", "how do i")
+    sent_norm = sent_norm.replace("really true", "true")
+    sent_norm = sent_norm.replace("what are the importance", "what is the importance")
+    sent_norm = sent_norm.replace("what was", "what is")
+    sent_norm = sent_norm.replace("so many", "many")
+    sent_norm = sent_norm.replace("would it take", "will it take")
+
+    #Remove any punctuation characters
+    for c in [",", "!", ".", "?", "'", '"', ":", ";", "[", "]", "{", "}", "<", ">"]:
+        sent_norm = sent_norm.replace(c, " ")
+
+    #Remove stop words
+    tokens = sent_norm.split()
+    tokens = [token for token in tokens if token not in stopwords]
+    sent_norm = "".join(tokens)
+
+
+    if sent_norm in sentences_norm:
+        if not duplicates[id][sentences_norm[sent_norm]]:
+            num_new_duplicates += 1
+
+        duplicates[id][sentences_norm[sent_norm]] = True
+        duplicates[sentences_norm[sent_norm]][id] = True
+    else:
+        sentences_norm[sent_norm] = id
+
+
+print("(Nearly) exact duplicates found:", num_new_duplicates)
 
 
 #Add transitive closure (if a,b and b,c duplicates => a,c are duplicates)
@@ -203,10 +249,25 @@ with open('quora-IR-dataset/graph/duplicates-graph-pairwise.tsv', 'w', encoding=
 print("Write duplicate graph in list format")
 with open('quora-IR-dataset/graph/duplicates-graph-list.tsv', 'w', encoding='utf8') as fOut:
     fOut.write("qid1\tqid2\n")
-    for a in sorted(duplicates.keys()):
+    for a in sorted(duplicates.keys(), key=lambda x: int(x)):
         if len(duplicates[a]) > 0:
             fOut.write("{}\t{}\n".format(a, ",".join(sorted(duplicates[a]))))
 
+print("Write duplicate graph in connected subgraph format")
+with open('quora-IR-dataset/graph/duplicates-graph-connected-nodes.tsv', 'w', encoding='utf8') as fOut:
+    written_qids = set()
+    fOut.write("qids\n")
+    for a in sorted(duplicates.keys(), key=lambda x: int(x)):
+        if a not in written_qids:
+            ids = set()
+            ids.add(a)
+
+            for b in duplicates[a]:
+                ids.add(b)
+
+            fOut.write("{}\n".format(",".join(sorted(ids, key=lambda x: int(x)))))
+            for id in ids:
+                written_qids.add(id)
 
 def write_qids(name, ids_list):
     with open('quora-IR-dataset/graph/'+name+'-questions.tsv', 'w', encoding='utf8') as fOut:
