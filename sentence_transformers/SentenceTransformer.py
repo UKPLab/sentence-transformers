@@ -27,9 +27,6 @@ from . import __version__
 
 class SentenceTransformer(nn.Sequential):
     def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
-        if modules is not None and not isinstance(modules, OrderedDict):
-            modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
-
         if model_name_or_path is not None and model_name_or_path != "":
             logging.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
             model_path = model_name_or_path
@@ -434,35 +431,29 @@ class SentenceTransformer(nn.Sequential):
             output_path_ignore_not_empty: bool = False,
             save_best_model: bool = True,
             max_grad_norm: float = 1,
-            fp16: bool = False,
-            fp16_opt_level: str = 'O1',
-            local_rank: int = -1,
+            use_amp: bool = False,
             callback: Callable[[float, int, int], None] = None,
             ):
         """
         Train the model with the given training objective
-
         Each training objective is sampled in turn for one batch.
         We sample only as many batches from each objective as there are in the smallest one
         to make sure of equal training with each dataset.
-
-        :param weight_decay:
-        :param scheduler:
-        :param warmup_steps:
-        :param optimizer:
-        :param evaluation_steps:
-        :param output_path:
-        :param output_path_ignore_not_empty: Ignore if the output path contains already files
-        :param save_best_model:
-        :param max_grad_norm:
-        :param fp16:
-        :param fp16_opt_level:
-        :param local_rank:
-        :param train_objectives:
-            Tuples of DataLoader and LossConfig
-        :param evaluator:
-        :param epochs:
-        :param steps_per_epoch: Train for x steps in each epoch. If set to None, the length of the dataset will be used
+        :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
+        :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
+        :param epochs: Number of epochs for training
+        :param steps_per_epoch: Number of training steps per epoch. If set to None (default), one epoch is equal the DataLoader size from train_objectives.
+        :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
+        :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
+        :param optimizer_class: Optimizer
+        :param optimizer_params: Optimizer parameters
+        :param weight_decay: Weight decay for model parameters
+        :param evaluation_steps: If > 0, evaluate the model using evaluator after each number of training steps
+        :param output_path: Storage path for the model and evaluation files
+        :param output_path_ignore_not_empty: By default, training will stop if output_path is not empty. If set to true, this error will be ignored and training proceeds.
+        :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
+        :param max_grad_norm: Used for gradient normalization.
+        :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
         :param callback: Callback function that is invoked after each evaluation.
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
