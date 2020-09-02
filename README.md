@@ -9,8 +9,8 @@ Further, this framework allows an easy  **[fine-tuning of custom embeddings mode
 
 
 For the **full documentation**, see [www.SBERT.net](https://www.sbert.net), as well as our publications:
-- [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (EMNLP 2019).
-- [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) (ArXiv 2020)
+- [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (EMNLP 2019)
+- [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) (ArXiv 2020).
 
 
 
@@ -40,7 +40,7 @@ pip install -e .
 
 ## Getting Started
 
-See [Quicksart](https://www.sbert.net/docs/quickstart.html) in our documenation.
+See [Quickstart](https://www.sbert.net/docs/quickstart.html) in our documenation.
 
 
 [This example](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications/computing_embeddings.py) shows you how to use an already trained Sentence Transformer model to embed sentences for another task.
@@ -67,7 +67,7 @@ for sentence, embedding in zip(sentences, sentence_embeddings):
 
 ## Pre-Trained Models
 
-We provide a large list of [Pretrained Models](https://www.sbert.net/docs/pretrained_models.html) for more than 100 languages. Some models are general purpose models, while others produce embeddings for specific use cases. Pre-trained models can be loaded by just passing the model name: `SentenceTransformer('model_name')`
+We provide a large list of [Pretrained Models](https://www.sbert.net/docs/pretrained_models.html) for more than 100 languages. Some models are general purpose models, while others produce embeddings for specific use cases. Pre-trained models can be loaded by just passing the model name: `SentenceTransformer('model_name')`.
 
 [»  Full list of pretrained models](https://www.sbert.net/docs/pretrained_models.html)
 
@@ -120,7 +120,7 @@ Extensive evaluation is currently undergoing, but here we provide some prelimina
 We present some examples, how the generated sentence embeddings can be used for downstream applications.
 
 ### Semantic Search
-Semantic search is the task of finding similar sentences to a given sentence. See [semantic_search.py](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications/semantic_search.py) for an example. See [our documentation](https://www.sbert.net/docs/usage/semantic_search.html) on more details about semantic search
+Semantic search is the task of finding similar sentences to a given sentence. See [semantic_search.py](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications/semantic_search.py) for an example. See [our documentation](https://www.sbert.net/docs/usage/semantic_search.html) on more details about semantic search.
 
 We first generate an embedding for all sentences in a corpus:
 ```python

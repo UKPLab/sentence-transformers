@@ -129,7 +129,7 @@ class SentenceTransformer(nn.Sequential):
         :param show_progress_bar: Output a progress bar when encode sentences
         :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings.
         :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
-        :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from conver_to_numy
+        :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from conver_to_numpy
         :param is_pretokenized: If is_pretokenized=True, sentences must be a list of integers, containing the tokenized sentences with each token convert to the respective int.
         :param device: Which torch.device to use for the computation
         :param num_workers: Number of background-workers to tokenize data. Set to positive number to increase tokenization speed
