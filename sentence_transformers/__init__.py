@@ -1,5 +1,5 @@
-__version__ = "0.3.5"
-__DOWNLOAD_SERVER__ = 'https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/'
+__version__ = "0.3.5.1"
+__DOWNLOAD_SERVER__ = 'https://sbert.net/models/'
 from .datasets import SentencesDataset, SentenceLabelDataset, ParallelSentencesDataset
 from .LoggingHandler import LoggingHandler
 from .SentenceTransformer import SentenceTransformer

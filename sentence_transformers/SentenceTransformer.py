@@ -31,13 +31,13 @@ class SentenceTransformer(nn.Sequential):
             logging.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
             model_path = model_name_or_path
 
-            if not os.path.isdir(model_path):
+            if not os.path.isdir(model_path) and not model_path.startswith('http://') and not model_path.startswith('https://'):
                 logging.info("Did not find folder {}. Assume to download model from server.".format(model_path))
                 model_path = __DOWNLOAD_SERVER__ + model_path + '.zip'
 
             if model_path.startswith('http://') or model_path.startswith('https://'):
                 model_url = model_path
-                folder_name = model_url.replace("https://", "").replace("http://", "").replace("/", "_")[:250]
+                folder_name = model_url.replace("https://", "").replace("http://", "").replace("/", "_")[:250].rstrip('.zip')
 
                 try:
                     from torch.hub import _get_torch_home
@@ -59,6 +59,7 @@ class SentenceTransformer(nn.Sequential):
                         http_get(model_url, zip_save_path)
                         with ZipFile(zip_save_path, 'r') as zip:
                             zip.extractall(model_path)
+                        os.remove(zip_save_path)
                     except requests.exceptions.HTTPError as e:
                         shutil.rmtree(model_path)
                         if e.response.status_code == 404:
