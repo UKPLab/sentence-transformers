@@ -13,7 +13,7 @@ https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs
 Dataset: http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv
 
 You do not need to run this script. You can download all files from here:
-https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/quora-duplicate-questions.zip
+https://sbert.net/datasets/quora-duplicate-questions.zip
 
 This script does the following:
 1) After reading the quora_duplicate_questions.tsv, as provided by Quora, we add a transitive closure: If question (A, B) are duplicates and (B, C) are duplicates, than (A, C) must also be a duplicate. We add these missing links.

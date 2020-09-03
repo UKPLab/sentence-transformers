@@ -72,7 +72,7 @@ def download_corpora(filepaths):
         if not os.path.exists(filepath):
             print(filepath, "does not exists. Try to download from server")
             filename = os.path.basename(filepath)
-            url = "https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/" + filename
+            url = "https://sbert.net/datasets/" + filename
             sentence_transformers.util.http_get(url, filepath)
 
 

@@ -50,7 +50,7 @@ os.makedirs(model_save_path, exist_ok=True)
 if not os.path.exists(dataset_path):
     logging.info("Dataset not found. Download")
     zip_save_path = 'quora-IR-dataset.zip'
-    util.http_get(url='https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/quora-IR-dataset.zip', path=zip_save_path)
+    util.http_get(url='https://sbert.net/datasets/quora-IR-dataset.zip', path=zip_save_path)
     with ZipFile(zip_save_path, 'r') as zip:
         zip.extractall(dataset_path)
 

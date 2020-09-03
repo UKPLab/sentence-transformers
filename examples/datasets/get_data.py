@@ -5,7 +5,7 @@ folder_path = os.path.dirname(os.path.realpath(__file__))
 print('Beginning download of datasets')
 
 datasets = ['AllNLI.zip', 'stsbenchmark.zip', 'wikipedia-sections-triplets.zip', 'STS2017.en-de.txt.gz', 'TED2013-en-de.txt.gz', 'xnli-en-de.txt.gz']
-server = "https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/"
+server = "https://sbert.net/datasets/"
 
 for dataset in datasets:
     print("Download", dataset)
