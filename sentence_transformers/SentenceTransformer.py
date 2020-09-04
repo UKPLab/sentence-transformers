@@ -3,7 +3,7 @@ import logging
 import os
 import shutil
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable
 from zipfile import ZipFile
 import requests
 import numpy as np
@@ -432,15 +432,14 @@ class SentenceTransformer(nn.Sequential):
             output_path_ignore_not_empty: bool = False,
             save_best_model: bool = True,
             max_grad_norm: float = 1,
-            use_amp: bool = False
+            use_amp: bool = False,
+            callback: Callable[[float, int, int], None] = None,
             ):
         """
         Train the model with the given training objective
-
         Each training objective is sampled in turn for one batch.
         We sample only as many batches from each objective as there are in the smallest one
         to make sure of equal training with each dataset.
-
         :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
         :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
         :param epochs: Number of epochs for training
@@ -456,6 +455,9 @@ class SentenceTransformer(nn.Sequential):
         :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
         :param max_grad_norm: Used for gradient normalization.
         :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
+        :param callback: Callback function that is invoked after each evaluation.
+                It must accept the following three parameters in this order:
+                `score`, `epoch`, `steps`
         """
 
         if use_amp:
@@ -565,12 +567,14 @@ class SentenceTransformer(nn.Sequential):
                 global_step += 1
 
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps)
+                    self._eval_during_training(evaluator, output_path, save_best_model, epoch,
+                                               training_steps, callback)
                     for loss_model in loss_models:
                         loss_model.zero_grad()
                         loss_model.train()
 
-            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1)
+            self._eval_during_training(evaluator, output_path, save_best_model, epoch,
+                                       -1, callback)
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
         """
@@ -585,10 +589,12 @@ class SentenceTransformer(nn.Sequential):
             os.makedirs(output_path, exist_ok=True)
         return evaluator(self, output_path)
 
-    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps):
+    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
         """Runs evaluation during the training"""
         if evaluator is not None:
             score = evaluator(self, output_path=output_path, epoch=epoch, steps=steps)
+            if callback is not None:
+                callback(score, epoch, steps)
             if score > self.best_score and save_best_model:
                 self.save(output_path)
                 self.best_score = score
