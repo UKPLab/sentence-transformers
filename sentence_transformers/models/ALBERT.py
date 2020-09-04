@@ -8,7 +8,9 @@ import numpy as np
 import logging
 
 class ALBERT(nn.Module):
-    """ALBERT model to generate token embeddings.
+    """DEPRECATED: Please use models.Transformer instead.
+
+    ALBERT model to generate token embeddings.
 
     Each token is mapped to an output vector from BERT.
     """
@@ -61,7 +63,7 @@ class ALBERT(nn.Module):
         :return: embedding ids, segment ids and mask for the sentence
         """
         pad_seq_length = min(pad_seq_length, self.max_seq_length) + 3 #Add space for special tokens
-        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt', truncation=True)
+        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt', truncation=True, prepend_batch_axis=True)
 
 
     def get_config_dict(self):

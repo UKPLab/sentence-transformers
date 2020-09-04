@@ -7,7 +7,9 @@ import numpy as np
 import logging
 
 class BERT(nn.Module):
-    """BERT model to generate token embeddings.
+    """DEPRECATED: Please use models.Transformer instead.
+
+    BERT model to generate token embeddings.
 
     Each token is mapped to an output vector from BERT.
     """
@@ -61,7 +63,7 @@ class BERT(nn.Module):
         """
         pad_seq_length = min(pad_seq_length, self.max_seq_length) + 2  ##Add Space for CLS + SEP token
 
-        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt', truncation=True)
+        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, pad_to_max_length=True, return_tensors='pt', truncation=True, prepend_batch_axis=True)
 
 
     def get_config_dict(self):
