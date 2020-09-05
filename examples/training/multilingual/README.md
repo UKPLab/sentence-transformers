@@ -154,10 +154,10 @@ Per default, all datasets are weighted equally. In the above example a (source, 
 ## Sources for Training Data
 A great website for a vast number of parallel (translated) datasets is [OPUS](http://opus.nlpl.eu/). There, you find parallel datasets for more than 400 languages. 
 
-The [examples/training_multilingual](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_multilingual/) folder contains some scripts that downloads parallel training data and brings it into the right format:
-- [get_parallel_data_opus.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_multilingual/get_parallel_data_opus.py): This script downloads data from the [OPUS](http://opus.nlpl.eu/) website.
-- [get_parallel_data_tatoeba.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_multilingual/get_parallel_data_tatoeba.py): This script downloads data from the [Tatoeba](https://tatoeba.org/) website, a website for language learners with example sentences for more than many languages.
-- [get_parallel_data_ted2020.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_multilingual/get_parallel_data_ted2020.py): This script downloads data the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md), which contains transcripts and translations of more than 4,000 TED and TEDx talks in 100+ languages.
+The [examples/training/multilingual](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/multilingual/) folder contains some scripts that downloads parallel training data and brings it into the right format:
+- [get_parallel_data_opus.py](get_parallel_data_opus.py): This script downloads data from the [OPUS](http://opus.nlpl.eu/) website.
+- [get_parallel_data_tatoeba.py](get_parallel_data_tatoeba.py): This script downloads data from the [Tatoeba](https://tatoeba.org/) website, a website for language learners with example sentences for more than many languages.
+- [get_parallel_data_ted2020.py](get_parallel_data_ted2020.py): This script downloads data the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md), which contains transcripts and translations of more than 4,000 TED and TEDx talks in 100+ languages.
 
 ## Evaluation
 
