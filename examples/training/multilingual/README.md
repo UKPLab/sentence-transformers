@@ -161,7 +161,7 @@ The [examples/training/multilingual](https://github.com/UKPLab/sentence-transfor
 
 ## Evaluation
 
-Training can be evaluated in different ways. For an example how to use these evaluation methods, see [make_multilingual.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_multilingual/make_multilingual.py). 
+Training can be evaluated in different ways. For an example how to use these evaluation methods, see [make_multilingual.py](make_multilingual.py). 
 
 ### MSE Evaluation
 You can measure the mean squared error (MSE) between the student embeddings and teacher embeddings. This can be achieved with the ``
