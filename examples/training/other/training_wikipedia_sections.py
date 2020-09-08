@@ -2,10 +2,6 @@
 This script trains sentence transformers with a triplet loss function.
 
 As corpus, we use the wikipedia sections dataset that was describd by Dor et al., 2018, Learning Thematic Similarity Metric Using Triplet Networks.
-
-See docs/pretrained-models/wikipedia-sections-modesl.md for further details.
-
-You can get the dataset by running examples/datasets/get_data.py
 """
 
 from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample, LoggingHandler, losses, models, util
