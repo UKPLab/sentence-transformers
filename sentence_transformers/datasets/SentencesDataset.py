@@ -1,3 +1,4 @@
+import numpy as np
 from torch.utils.data import Dataset
 from typing import List
 import torch
@@ -25,7 +26,7 @@ class SentencesDataset(Dataset):
         """
         self.model = model
         self.examples = examples
-        self.label_type = torch.long if isinstance(self.examples[0].label, int) else torch.float
+        self.label_type = torch.long if isinstance(self.examples[0].label, np.integer) else torch.float
 
 
     def __getitem__(self, item):
