@@ -29,7 +29,8 @@ If you use the code for multilingual models, feel free to cite our publication [
 **SentenceTransformers used for Applications**
 
 In the following you find a (selective) list of articles / applications using SentenceTransformers to do amazing stuff. Feel free to contact me (info@nils-reimers.de) to add you application here. 
-
+- **September 2020 - [Elastic Transformers -
+Making BERT stretchy - Scalable Semantic Search on a Jupyter Notebook](https://medium.com/@mihail.dungarov/elastic-transformers-ae011e8f5b88)**
 - **July 2020 - [Simple Sentence Similarity Search with SentenceBERT](https://laptrinhx.com/simple-sentence-similarity-search-with-sentencebert-800684405/?fbclid=IwAR0rxdYS2DBGuHhijIRO_lsXqGc9BbjtDA-dDQM5Ng_StahT9xrHdRZuP9M)**
 - **May 2020 - [HN Time Machine: finally some Hacker News history!](https://peltarion.com/blog/applied-ai/hacker-news-time-machine)**
 - **March 2020 - [Building a k-NN Similarity Search Engine using Amazon Elasticsearch and SageMaker](https://towardsdatascience.com/building-a-k-nn-similarity-search-engine-using-amazon-elasticsearch-and-sagemaker-98df18d883bd)**
@@ -40,6 +41,9 @@ In the following you find a (selective) list of articles / applications using Se
 
 The following papers use SentenceTransformers in research:
 
+- **September 2020** - **[End-to-End Neural Matching for Semantic Location Prediction of Tweets](https://dl.acm.org/doi/abs/10.1145/3415149)**
+- **August 2020 - [VisualSem: a high-quality knowledge graph for vision & language](https://arxiv.org/pdf/2008.09150.pdf)**
+- **August 2020 - [Contextualized moral inference](https://arxiv.org/pdf/2008.10762.pdf)**
 - **August 2020** - **[Using Natural Language
 Processing to Identify Similar
 Patent Documents](https://lup.lub.lu.se/luur/download?func=downloadFile&recordOId=9008699&fileOId=9026407)**
