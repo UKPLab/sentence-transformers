@@ -31,7 +31,7 @@ class WKPoolingTest(unittest.TestCase):
             assert abs(similarity-score) < 0.01
 
     def test_roberta_wkpooling(self):
-        word_embedding_model = models.Auto('roberta-base', model_args={'output_hidden_states': True})
+        word_embedding_model = models.Transformer('roberta-base', model_args={'output_hidden_states': True})
         pooling_model = models.WKPooling(word_embedding_model.get_word_embedding_dimension())
         model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
         scores = [0.9594874382019043,
