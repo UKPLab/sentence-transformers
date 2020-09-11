@@ -17,9 +17,9 @@ For the **full documentation**, see [www.SBERT.net](https://www.sbert.net), as w
 
 
 ## Installation
-We recommend **Python 3.6** or higher, **[PyTorch 1.2.0](https://pytorch.org/get-started/locally/)** or higher and **[transformers v3.0.2](https://github.com/huggingface/transformers)** or higher. The code does **not** work with Python 2.7.
+We recommend **Python 3.6** or higher, **[PyTorch 1.2.0](https://pytorch.org/get-started/locally/)** or higher and **[transformers v3.1.0](https://github.com/huggingface/transformers)** or higher. The code does **not** work with Python 2.7. Note, for some features and pre-trained models, you need **PyTorch 1.6.0** or higher.
 
-First, follow the installation for PyTroch you can find here: [PyTorch - Get Started](https://pytorch.org/get-started/locally/). As the provided models can have a high computational overhead, it is recommend to run them on a GPU. See the PyTorch page how to install PyTorch for GPU (CUDA).
+
 
 
 **Install with pip**
@@ -35,6 +35,10 @@ Alternatively, you can also clone the latest version from the [repository](https
 ````
 pip install -e .
 ```` 
+
+**PyTorch with CUDA**
+If you want to use a GPU / CUDA, you must install PyTorch with the matching CUDA Version. Follow
+[PyTorch - Get Started](https://pytorch.org/get-started/locally/) for further details how to install PyTorch.
 
 
 
@@ -94,7 +98,7 @@ Some highlights are:
 
 ## Performance
 
-Extensive evaluation is currently undergoing, but here we provide some preliminary results.
+Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed.
 
 | Model    | STS benchmark | SentEval  |
 | ----------------------------------|:-----: |:---:   |

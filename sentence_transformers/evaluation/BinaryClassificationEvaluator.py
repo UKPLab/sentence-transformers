@@ -20,21 +20,18 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
     The returned score is the accuracy with a specified metric.
 
     The results are written in a CSV. If a CSV already exists, then values are appended.
+
+    The labels need to be 0 for dissimilar pairs and 1 for similar pairs.
+
+    :param sentences1: The first column of sentences
+    :param sentences2: The second column of sentences
+    :param labels: labels[i] is the label for the pair (sentences1[i], sentences2[i]). Must be 0 or 1
+    :param name: Name for the output
+    :param batch_size: Batch size used to compute embeddings
+    :param show_progress_bar: If true, prints a progress bar
     """
 
-    def __init__(self, sentences1: List[str], sentences2: List[str], labels: List[int],
-                name: str = '',
-                 batch_size: int = 16, show_progress_bar: bool = False):
-        """
-        Constructs an evaluator based for the dataset
-
-        The labels need to be 0 for dissimilar pairs and 1 for similar pairs.
-
-        :param dataloader:
-            the data for the evaluation
-        :param main_similarity:
-            the similarity metric that will be used for the returned score
-        """
+    def __init__(self, sentences1: List[str], sentences2: List[str], labels: List[int], name: str = '', batch_size: int = 32, show_progress_bar: bool = False):
         self.sentences1 = sentences1
         self.sentences2 = sentences2
         self.labels = labels

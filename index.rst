@@ -7,7 +7,24 @@ You can use this framework to compute sentence / text embeddings for more than 1
 
 The framework is based on `PyTorch <https://pytorch.org/>`_ and `Transformers <https://huggingface.co/transformers/>`_ and offers a large collection of `pre-trained models <docs/pretrained_models.html>`_ tuned for various tasks. Further, it is easy to `fine-tune your own models <docs/training/overview.html>`_.
 
-After the `installation <docs/installation.html>`_, the usage is as simple as:
+
+Installation
+=================================================
+
+You can install it using pip:
+
+.. code-block:: python
+
+   pip install -U sentence-transformers
+
+
+We recommand **Python 3.6** or higher, and at least **PyTorch 1.2.0**. PyTorch 1.6.0 or higher is recommended and needed for some features. See `installation <docs/installation.html>`_ for further installation options, especially if you want to use a GPU.
+
+
+
+Usage
+=================================================
+The usage is as simple as:
 
 .. code-block:: python
 
@@ -28,6 +45,90 @@ After the `installation <docs/installation.html>`_, the usage is as simple as:
         print("Embedding:", embedding)
         print("")
 
+Performance
+=========================
+
+Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed.
+
+
+.. raw:: html
+
+    <table class="docutils">
+    <thead>
+    <tr>
+    <th>Model</th>
+    <th align="center">STS benchmark</th>
+    <th align="center">SentEval</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>Avg. GloVe embeddings</td>
+    <td align="center">58.02</td>
+    <td align="center">81.52</td>
+    </tr>
+    <tr>
+    <td>BERT-as-a-service avg. embeddings</td>
+    <td align="center">46.35</td>
+    <td align="center">84.04</td>
+    </tr>
+    <tr>
+    <td>BERT-as-a-service CLS-vector</td>
+    <td align="center">16.50</td>
+    <td align="center">84.66</td>
+    </tr>
+    <tr>
+    <td>InferSent - GloVe</td>
+    <td align="center">68.03</td>
+    <td align="center">85.59</td>
+    </tr>
+    <tr>
+    <td>Universal Sentence Encoder</td>
+    <td align="center">74.92</td>
+    <td align="center">85.10</td>
+    </tr>
+    <tr>
+    <td><strong>Sentence Transformer Models</strong></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    </tr>
+    <tr>
+    <td>bert-base-nli-mean-tokens</td>
+    <td align="center">77.12</td>
+    <td align="center">86.37</td>
+    </tr>
+    <tr>
+    <td>bert-large-nli-mean-tokens</td>
+    <td align="center">79.19</td>
+    <td align="center">87.78</td>
+    </tr>
+    <tr>
+    <td>bert-base-nli-stsb-mean-tokens</td>
+    <td align="center">85.14</td>
+    <td align="center">86.07</td>
+    </tr>
+    <tr>
+    <td>bert-large-nli-stsb-mean-tokens</td>
+    <td align="center">85.29</td>
+    <td align="center">86.66</td>
+    </tr>
+    <tr>
+    <td>roberta-base-nli-stsb-mean-tokens</td>
+    <td align="center">85.44</td>
+    <td align="center">-</td>
+    </tr>
+    <tr>
+    <td>roberta-large-nli-stsb-mean-tokens</td>
+    <td align="center">86.39</td>
+    <td align="center">-</td>
+    </tr>
+    <tr>
+    <td>distilbert-base-nli-stsb-mean-tokens</td>
+    <td align="center">85.16</td>
+    <td align="center">-</td>
+    </tr>
+    </tbody>
+    </table>
 
 
 
@@ -66,6 +167,8 @@ After the `installation <docs/installation.html>`_, the usage is as simple as:
    :maxdepth: 1
    :caption: Package Reference
 
+   docs/package_reference/SentenceTransformer
+   docs/package_reference/util
    docs/package_reference/models
    docs/package_reference/losses
    docs/package_reference/evaluation

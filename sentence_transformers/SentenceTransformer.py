@@ -26,6 +26,14 @@ from .models import Transformer, Pooling
 from . import __version__
 
 class SentenceTransformer(nn.Sequential):
+    """
+    Loads or create a SentenceTransformer model, that can be used to map sentences / text to embeddings.
+
+    :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path, it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model from Huggingface models repository with that name.
+    :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
+    :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
+    """
+
     def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
         if model_name_or_path is not None and model_name_or_path != "":
             logging.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
@@ -440,6 +448,7 @@ class SentenceTransformer(nn.Sequential):
         Each training objective is sampled in turn for one batch.
         We sample only as many batches from each objective as there are in the smallest one
         to make sure of equal training with each dataset.
+
         :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
         :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
         :param epochs: Number of epochs for training
