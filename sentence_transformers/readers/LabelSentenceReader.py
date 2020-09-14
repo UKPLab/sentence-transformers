@@ -19,7 +19,7 @@ class LabelSentenceReader:
 
         id = 0
         for line in open(os.path.join(self.folder, filename), encoding="utf-8"):
-            splits = line.strip().split(seperator)
+            splits = line.strip().split(self.seperator)
             label = splits[self.label_col_idx]
             sentence = splits[self.sentence_col_idx]
 
