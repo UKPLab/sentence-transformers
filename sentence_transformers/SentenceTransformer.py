@@ -137,7 +137,7 @@ class SentenceTransformer(nn.Sequential):
         :param show_progress_bar: Output a progress bar when encode sentences
         :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings.
         :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
-        :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from conver_to_numpy
+        :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from convert_to_numpy
         :param is_pretokenized: If is_pretokenized=True, sentences must be a list of integers, containing the tokenized sentences with each token convert to the respective int.
         :param device: Which torch.device to use for the computation
         :param num_workers: Number of background-workers to tokenize data. Set to positive number to increase tokenization speed
@@ -201,8 +201,8 @@ class SentenceTransformer(nn.Sequential):
 
     def start_multi_process_pool(self, target_devices: List[str] = None, encode_batch_size: int = 32):
         """
-        Starts multi process to process the encode with several, independent  process.
-        This methos is recommend if you want to encode on multiple GPUs. It is advised
+        Starts multi process to process the encoding with several, independent processes.
+        This method is recommended if you want to encode on multiple GPUs. It is advised
         to start only one process per GPU. This method works together with encode_multi_process
 
         :param target_devices: PyTorch target devices, e.g. cuda:0, cuda:1... If None, all available CUDA devices will be used
