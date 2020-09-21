@@ -15,8 +15,12 @@ as well as the missing results in the top-k hits list.
 
 See the FAISS repository, how to install FAISS.
 
-As dataset, we use the Quora Duplicate Questions dataset, which contains about 500k questions:
-https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs
+As dataset, we use the Quora Duplicate Questions dataset, which contains about 500k questions (only 100k are used):
+https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs.
+
+As embeddings model, we use the SBERT model 'distilbert-multilingual-nli-stsb-quora-ranking',
+that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
+return the closest questions in the corpus (questions in the corpus are mainly in English).
 """
 from sentence_transformers import SentenceTransformer, util
 import os
@@ -27,7 +31,7 @@ import faiss
 import numpy as np
 
 if __name__ == '__main__':
-    model_name = 'distilbert-base-nli-stsb-quora-ranking'
+    model_name = 'distilbert-multilingual-nli-stsb-quora-ranking'
     model = SentenceTransformer(model_name)
 
     url = "http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv"
