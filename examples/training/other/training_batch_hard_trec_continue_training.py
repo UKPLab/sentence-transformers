@@ -105,7 +105,7 @@ def triplets_from_labeled_dataset(input_examples):
             continue
 
         positive = None
-        while positive is None or positive.guid == anchor.guid:
+        while positive is None or positive.guid != anchor.guid:
             positive = random.choice(label2sentence[inp_example.label])
 
         negative = None
