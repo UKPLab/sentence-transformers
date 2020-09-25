@@ -31,7 +31,7 @@ class MSEEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        target_embeddings = np.asarray(model.encode(self.source_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size))
+        target_embeddings = model.encode(self.source_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_numpy=True)
 
         mse = ((self.source_embeddings - target_embeddings)**2).mean()
         mse *= 100

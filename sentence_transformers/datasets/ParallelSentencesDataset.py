@@ -71,7 +71,7 @@ class ParallelSentencesDataset(Dataset):
         self.add_dataset(parallel_sentences, weight=weight, max_sentences=max_sentences, max_sentence_length=max_sentence_length)
 
 
-    def add_dataset(self, parallel_sentences: List[List[str]], weight: int = 1000, max_sentences: int = None, max_sentence_length: int = 128):
+    def add_dataset(self, parallel_sentences: List[List[str]], weight: int = 100, max_sentences: int = None, max_sentence_length: int = 128):
         sentences_map = {}
         for sentences in parallel_sentences:
             if max_sentence_length is not None and max_sentence_length > 0 and max([len(sent) for sent in sentences]) > max_sentence_length:
@@ -98,6 +98,7 @@ class ParallelSentencesDataset(Dataset):
         self.datasets_tokenized.append(False)
         self.dataset_indices.extend([dataset_id] * weight)
 
+
     def generate_data(self):
         source_sentences_list = []
         target_sentences_list = []
@@ -105,7 +106,6 @@ class ParallelSentencesDataset(Dataset):
             src_sentence, trg_sentences = self.next_entry(data_idx)
             source_sentences_list.append(src_sentence)
             target_sentences_list.append(trg_sentences)
-
 
         #Generate embeddings
         src_embeddings = self.get_embeddings(source_sentences_list)

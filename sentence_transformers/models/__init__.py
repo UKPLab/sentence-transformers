@@ -7,6 +7,7 @@ from .CamemBERT import CamemBERT
 from .Dense import Dense
 from .DistilBERT import DistilBERT
 from .LSTM import LSTM
+from .Normalize import Normalize
 from .Pooling import Pooling
 from .RoBERTa import RoBERTa
 from .T5 import T5
