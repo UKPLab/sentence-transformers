@@ -129,8 +129,6 @@ class SentenceTransformer(nn.Sequential):
                num_workers: int = 0) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings
-
-
         :param sentences: the sentences to embed
         :param batch_size: the batch size used for the computation
         :param show_progress_bar: Output a progress bar when encode sentences
@@ -246,7 +244,7 @@ class SentenceTransformer(nn.Sequential):
         pool['output'].close()
 
 
-    def encode_multi_process(self, sentences: List[str], pool: Dict[str, object], is_pretokenized: bool = False):
+    def encode_multi_process(self, sentences: List[str], pool: Dict[str, object], is_pretokenized: bool = False, chunk_size=None):
         """
         This method allows to run encode() on multiple GPUs. The sentences are chunked into smaller packages
         and sent to individual processes, which encode these on the different GPUs. This method is only suitable
@@ -255,34 +253,32 @@ class SentenceTransformer(nn.Sequential):
         :param sentences: List of sentences
         :param pool: A pool of workers started with SentenceTransformer.start_multi_process_pool
         :param is_pretokenized: If true, no tokenization will be applied. It is expected that the input sentences are list of ints.
+        :param chunk_size: Sentences are chunked and sent to the individual processes. If none, it determine a sensible size.
         :return: Numpy matrix with all embeddings
         """
 
-        chunk_size = min(math.ceil(len(sentences) / len(pool["processes"]) / 10), 5000)
+        if chunk_size is None:
+            chunk_size = min(math.ceil(len(sentences) / len(pool["processes"]) / 10), 5000)
+
         logging.info("Chunk data into packages of size {}".format(chunk_size))
 
-        if is_pretokenized:
-            sentences_tokenized = sentences
-        else:
-            sentences_tokenized = map(self.tokenize, sentences)
-
         input_queue = pool['input']
-        num_chunks = 0
+        last_chunk_id = 0
         chunk = []
 
-        for sentence in sentences_tokenized:
+        for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([num_chunks, chunk])
-                num_chunks += 1
+                input_queue.put([last_chunk_id, is_pretokenized, chunk])
+                last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([num_chunks, chunk])
-            num_chunks += 1
+            input_queue.put([last_chunk_id, chunk])
+            last_chunk_id += 1
 
         output_queue = pool['output']
-        results_list = sorted([output_queue.get() for _ in range(num_chunks)], key=lambda x: x[0])
+        results_list = sorted([output_queue.get() for _ in range(last_chunk_id)], key=lambda x: x[0])
         embeddings = np.concatenate([result[1] for result in results_list])
         return embeddings
 
@@ -293,8 +289,8 @@ class SentenceTransformer(nn.Sequential):
         """
         while True:
             try:
-                id, sentences = input_queue.get()
-                embeddings = model.encode(sentences, device=target_device, is_pretokenized=True, show_progress_bar=False, convert_to_numpy=True, batch_size=encode_batch_size)
+                id, is_pretokenized, sentences = input_queue.get()
+                embeddings = model.encode(sentences, device=target_device, is_pretokenized=is_pretokenized, show_progress_bar=False, convert_to_numpy=True, batch_size=encode_batch_size)
                 results_queue.put([id, embeddings])
             except queue.Empty:
                 break
