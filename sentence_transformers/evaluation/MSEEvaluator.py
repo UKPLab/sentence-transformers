@@ -8,9 +8,20 @@ from typing import List
 class MSEEvaluator(SentenceEvaluator):
     """
     Computes the mean squared error (x100) between the computed sentence embedding
-    and some target sentence embedding
+    and some target sentence embedding.
+
+    The MSE is computed between ||teacher.encode(source_sentences) - student.encode(target_sentences)||.
+
+    For multilingual knowledge distillation (https://arxiv.org/abs/2004.09813), source_sentences are in English
+    and target_sentences are in a different language like German, Chinese, Spanish...
+
+    :param source_sentences: Source sentences are embedded with the teacher model
+    :param target_sentences: Target sentences are ambedding with the student model.
+    :param show_progress_bar: Show progress bar when computing embeddings
+    :param batch_size: Batch size to compute sentence embeddings
+    :param name: Name of the evaluator
     """
-    def __init__(self, source_sentences: List[str], target_sentences: List[str], teacher_model = None, show_progress_bar: bool = False, batch_size: int = 16, name: str = ''):
+    def __init__(self, source_sentences: List[str], target_sentences: List[str], teacher_model = None, show_progress_bar: bool = False, batch_size: int = 32, name: str = ''):
         self.source_sentences = source_sentences
         self.source_embeddings = teacher_model.encode(source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True)
 
@@ -31,7 +42,7 @@ class MSEEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        target_embeddings = model.encode(self.source_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_numpy=True)
+        target_embeddings = model.encode(self.target_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_numpy=True)
 
         mse = ((self.source_embeddings - target_embeddings)**2).mean()
         mse *= 100
