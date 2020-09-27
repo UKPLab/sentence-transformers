@@ -1,7 +1,7 @@
 from torch import nn
 from transformers import AutoModel, AutoTokenizer, AutoConfig
 import json
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 import os
 
 
@@ -14,14 +14,17 @@ class Transformer(nn.Module):
     :param model_args: Arguments (key, value pairs) passed to the Huggingface Transformers model
     :param cache_dir: Cache dir for Huggingface Transformers to store/load models
     :param tokenizer_args: Arguments (key, value pairs) passed to the Huggingface Tokenizer model
-    :param tokenizer_args: Dict with parameters which are passed to the tokenizer.
+    :param do_lower_case: Lowercase the input
     """
     def __init__(self, model_name_or_path: str, max_seq_length: int = 128,
                  model_args: Dict = {}, cache_dir: Optional[str] = None,
-                 tokenizer_args: Dict = {}):
+                 tokenizer_args: Dict = {}, do_lower_case: Optional[bool] = None):
         super(Transformer, self).__init__()
         self.config_keys = ['max_seq_length']
         self.max_seq_length = max_seq_length
+
+        if do_lower_case is not None:
+            tokenizer_args['do_lower_case'] = do_lower_case
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
         self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
@@ -49,13 +52,16 @@ class Transformer(nn.Module):
     def get_word_embedding_dimension(self) -> int:
         return self.auto_model.config.hidden_size
 
-    def tokenize(self, text: str) -> List[int]:
+    def tokenize(self, text: Union[str, List[str]]) -> List[int]:
         """
         Tokenizes a text and maps tokens to token-ids
         """
-        return self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(text))
+        if isinstance(text, str):
+            return self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(text))
+        else:
+            return [self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(t)) for t in text]
 
-    def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
+    def get_sentence_features(self, tokens: Union[List[int], List[List[int]]], pad_seq_length: int):
         """
         Convert tokenized sentence in its embedding ids, segment ids and mask
 
@@ -66,7 +72,11 @@ class Transformer(nn.Module):
         :return: embedding ids, segment ids and mask for the sentence
         """
         pad_seq_length = min(pad_seq_length, self.max_seq_length) + 3 #Add space for special tokens
-        return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, padding='max_length', return_tensors='pt', truncation=True, prepend_batch_axis=True)
+
+        if isinstance(tokens[0], int):
+            return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, padding='max_length', return_tensors='pt', truncation=True, prepend_batch_axis=True)
+        else:
+            return self.tokenizer.prepare_for_model(tokens[0], tokens[1], max_length=pad_seq_length, padding='max_length', return_tensors='pt', truncation='longest_first', prepend_batch_axis=True)
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}
@@ -80,7 +90,13 @@ class Transformer(nn.Module):
 
     @staticmethod
     def load(input_path: str):
-        with open(os.path.join(input_path, 'sentence_bert_config.json')) as fIn:
+        #Old classes used other config names than 'sentence_bert_config.json'
+        for config_name in ['sentence_bert_config.json', 'sentence_roberta_config.json', 'sentence_distilbert_config.json', 'sentence_camembert_config.json', 'sentence_albert_config.json', 'sentence_xlm-roberta_config.json', 'sentence_xlnet_config.json']:
+            sbert_config_path = os.path.join(input_path, config_name)
+            if os.path.exists(sbert_config_path):
+                break
+
+        with open(sbert_config_path) as fIn:
             config = json.load(fIn)
         return Transformer(model_name_or_path=input_path, **config)
 
