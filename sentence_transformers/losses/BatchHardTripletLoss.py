@@ -90,7 +90,9 @@ class BatchHardTripletLoss(nn.Module):
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.sentence_embedder(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
-        return self.batch_hard_triplet_loss(labels, reps[0])
+        repss = torch.cat(reps)
+        labels = labels.repeat(len(reps))
+        return self.batch_hard_triplet_loss(labels, repss)
 
 
     # Hard Triplet Loss
