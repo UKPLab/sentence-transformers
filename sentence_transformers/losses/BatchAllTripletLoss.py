@@ -39,8 +39,8 @@ class BatchAllTripletLoss(nn.Module):
         self.distance_metric = distance_metric
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-        reps = [self.sentence_embedder(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
-        return self.batch_all_triplet_loss(labels, reps[0])
+        rep = self.sentence_embedder(sentence_features[0])['sentence_embedding']
+        return self.batch_all_triplet_loss(labels, rep)
 
 
 
