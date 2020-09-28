@@ -153,15 +153,19 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
 
 .. toctree::
    :maxdepth: 2
-   :caption: Training Examples
+   :caption: Training
 
    docs/training/overview
-   examples/training/sts/README
-   examples/training/nli/README
-   examples/training/quora_duplicate_questions/README
    examples/training/multilingual/README
    examples/training/distillation/README
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Training Examples
+
+   examples/training/sts/README
+   examples/training/nli/README
+   examples/training/quora_duplicate_questions/README
 
 
 .. toctree::

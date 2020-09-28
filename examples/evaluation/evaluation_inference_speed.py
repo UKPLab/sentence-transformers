@@ -6,18 +6,16 @@ python evaluation_inference_speed.py
 OR
 python evaluation_inference_speed.py model_name
 """
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, util
 import sys
 import os
 import time
 import torch
 import gzip
+import csv
 
 #Limit torch to 4 threads
 torch.set_num_threads(4)
-
-script_folder_path = os.path.dirname(os.path.realpath(__file__))
-
 
 
 model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-nli-mean-tokens'
@@ -26,28 +24,31 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-nli-mean-tokens'
 # Alternatively, you can also pass a filepath to SentenceTransformer()
 model = SentenceTransformer(model_name)
 
-#Perform computation with FP16
-#model.half()
 
-#Fork multiple processes to tokenize the input data
-#model.parallel_tokenization = True
-
-sentences = []
+nli_dataset_path = 'datasets/AllNLI.tsv.gz'
+sentences = set()
 max_sentences = 100000
 
-with gzip.open(os.path.join(script_folder_path, '../datasets/AllNLI/s1.train.gz'), 'rt', encoding='utf8') as fIn:
-    for line in fIn:
-        sentences.append(line.strip())
+
+#Download datasets if needed
+if not os.path.exists(nli_dataset_path):
+    util.http_get('https://sbert.net/datasets/AllNLI.tsv.gz', nli_dataset_path)
+
+with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
+    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+    for row in reader:
+        sentences.add(row['sentence1'])
         if len(sentences) >= max_sentences:
             break
 
+sentences = list(sentences)
 print("Model Name:", model_name)
 print("Number of sentences:", len(sentences))
 
 for i in range(3):
     print("Run", i)
     start_time = time.time()
-    emb = model.encode(sentences, batch_size=32)
+    emb = model.encode(sentences, num_workers=2, batch_size=32)
     end_time = time.time()
     diff_time = end_time - start_time
     print("Done after {:.2f} seconds".format(diff_time))

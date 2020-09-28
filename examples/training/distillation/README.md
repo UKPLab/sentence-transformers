@@ -25,9 +25,9 @@ Smaller models are faster, but show a (slightly) worse performance when evaluate
 | 8 | 85.54 | +0.1% | 3200 |
 | 6 | 85.23 | -0.2% | 4000 |
 | 4 | 84.92 | -0.6% | 5300 |
-| 3 | | | 6500 |
+| 3 |  84.39 | -1.2%  |6500 |
 | 2 | 83.32 | -2.5% | 7700 |
-| 1 | | | 9200 |
+| 1 | 80.86 |  -5.4%| 9200 |
 
 
 ## Dimensionality Reduction
