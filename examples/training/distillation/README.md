@@ -1,7 +1,7 @@
-# Model Distillation - Faster, cheaper & lighter Model
-This folder contains example to make SentenceTransformer models faster, cheaper and lighter. These light models achieve 97.5% - 100% performance of the original model on downstream tasks.
+# Model Distillation 
+This folder contains example to make SentenceTransformer models **faster, cheaper and lighter**. These light models achieve 97.5% - 100% performance of the original model on downstream tasks.
 
-# Knowledge Distillation
+## Knowledge Distillation
 Knowledge distillation describes the process to transfer knowledge from a  teacher model to a student model. It can be used to extend sentence embeddings to new languages ([Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813)), but the traditional approach is to have slow (but well performing) teacher model and a fast student model.
 
 The fast student model imitates the teacher model and achieves by this a high performance. 
@@ -30,7 +30,7 @@ Smaller models are faster, but show a (slightly) worse performance when evaluate
 | 1 | | | 9200 |
 
 
-## Dimension Reduction
+## Dimensionality Reduction
 By default, the pretrained models output embeddings with size 768 (base-models) or with size 1024 (large-models). However, when you store Millions of embeddings, this can require quite a lot of memory / storage.
 
 [dimensionality_reduction.py](dimensionality_reduction.py) contains a simple example how to reduce the embedding dimension to any size by using Principle Component Analysis (PCA). In that example, we reduce 768 dimension to 128 dimension, reducing the storage requirement by factor 6. The performance only slightly drops from 85.44 to 84.96 on the STS benchmark dataset.

@@ -160,6 +160,7 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
    examples/training/nli/README
    examples/training/quora_duplicate_questions/README
    examples/training/multilingual/README
+   examples/training/distillation/README
 
 
 
