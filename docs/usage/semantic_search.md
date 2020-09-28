@@ -56,7 +56,9 @@ However, the results are not necessarily exact: It can happen, that some vectors
 
 For all ANN methods, there is usually one or more parameters to tune that determine the recall - speed trade-off. If you want the highest speed, you have a high chance of missing hits. If you want high recall, the search speed decreases.
 
-To popular libraries for approximate nearest neighbor are [Annoy](https://github.com/spotify/annoy) and [FAISS](https://github.com/facebookresearch/faiss). Personally I find Annoy is easier to use, but FAISS offers more options, especially for really large scale scenarios.
+Three popular libraries for approximate nearest neighbor are [Annoy](https://github.com/spotify/annoy), [FAISS](https://github.com/facebookresearch/faiss), and [hnswlib](https://github.com/nmslib/hnswlib/). Personally I find hnswlib the most suitable library: It is easy to use, offers a great performance and has nice features included that are important for real applications.
+
+For an example how to use SentenceTransformers with HNSWLib, see: [semantic_search_quora_hnswlib.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic_search_quora_hnswlib.py)
 
 For an example how to use SentenceTransformers with Annoy, see: [semantic_search_quora_annoy.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic_search_quora_annoy.py)
 

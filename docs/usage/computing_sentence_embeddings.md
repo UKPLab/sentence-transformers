@@ -95,8 +95,13 @@ with open('embeddings.pkl', "rb") as fIn:
 
 ## Multi-Process / Multi-GPU Encoding
 
-You can encode input texts with more than one GPU. 
-If you want to encode texts with more than one GPU, the 
+You can encode input texts with more than one GPU (or with multiple processes on a CPU machine). For an example, see: [computing_embeddings_mutli_gpu.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/computing_embeddings_mutli_gpu.py).
+
+The relevant method is `start_multi_process_pool()`, which starts multiple processes that are used for encoding.
+
+ ```eval_rst
+.. automethod:: sentence_transformers.SentenceTransformer.start_multi_process_pool
+```
 
 ## Sentence Embeddings with Transformers
 Most of our pre-trained models are based on [Huggingface.co/Transformers](https://huggingface.co/transformers/) and are also hosted in the [models repository](https://huggingface.co/models) from Hugginface. It is possible to use our sentence embeddings models without installing sentence-transformers:

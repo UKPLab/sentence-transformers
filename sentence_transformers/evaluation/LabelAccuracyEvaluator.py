@@ -26,7 +26,6 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         self.dataloader = dataloader
         self.name = name
         self.softmax_model = softmax_model
-        self.softmax_model.to(self.device)
 
         if name:
             name = "_"+name
