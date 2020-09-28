@@ -2,6 +2,8 @@
 This folder contains example to make SentenceTransformer models **faster, cheaper and lighter**. These light models achieve 97.5% - 100% performance of the original model on downstream tasks.
 
 ## Knowledge Distillation
+See: **[model_distillation.py](model_distillation.py)**
+
 Knowledge distillation describes the process to transfer knowledge from a  teacher model to a student model. It can be used to extend sentence embeddings to new languages ([Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813)), but the traditional approach is to have slow (but well performing) teacher model and a fast student model.
 
 The fast student model imitates the teacher model and achieves by this a high performance. 
