@@ -9,7 +9,7 @@ The fast student model imitates the teacher model and achieves by this a high pe
 ![Knowledge Distillation](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/monolingual-distillation.png)
 
 
-We implement two options for creating the student model:
+**[model_distillation.py](model_distillation.py)** implements two options for creating the student model:
 1) Use a light transformer model like TinyBERT or BERT-Small to imitate the teacher.
 2) We take the teacher model and keep only certain layers, for example, only 4 layers.
 
@@ -33,7 +33,7 @@ Smaller models are faster, but show a (slightly) worse performance when evaluate
 ## Dimensionality Reduction
 By default, the pretrained models output embeddings with size 768 (base-models) or with size 1024 (large-models). However, when you store Millions of embeddings, this can require quite a lot of memory / storage.
 
-[dimensionality_reduction.py](dimensionality_reduction.py) contains a simple example how to reduce the embedding dimension to any size by using Principle Component Analysis (PCA). In that example, we reduce 768 dimension to 128 dimension, reducing the storage requirement by factor 6. The performance only slightly drops from 85.44 to 84.96 on the STS benchmark dataset.
+**[dimensionality_reduction.py](dimensionality_reduction.py)** contains a simple example how to reduce the embedding dimension to any size by using Principle Component Analysis (PCA). In that example, we reduce 768 dimension to 128 dimension, reducing the storage requirement by factor 6. The performance only slightly drops from 85.44 to 84.96 on the STS benchmark dataset.
 
 This dimensionality reduction technique can easily be applied to existent models. We could even reduce the embeddings size to 32, reducing the storage requirment by factor 24 (performance decreases to 81.82). 
 
