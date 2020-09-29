@@ -7,14 +7,14 @@ from typing import List, Dict, Tuple, Iterable, Type, Union, Callable
 from zipfile import ZipFile
 import requests
 import numpy as np
+from numpy import ndarray
 import transformers
 import torch
-from numpy import ndarray
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from tqdm.autonotebook import tqdm, trange
 import torch.multiprocessing as mp
+from tqdm.autonotebook import tqdm, trange
 import math
 import queue
 
@@ -156,7 +156,7 @@ class SentenceTransformer(nn.Sequential):
         self.to(device)
 
         all_embeddings = []
-        length_sorted_idx = np.argsort([len(sen) for sen in sentences])
+        length_sorted_idx = np.argsort([self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
         inp_dataset = EncodeDataset(sentences_sorted, model=self, is_tokenized=is_pretokenized)
         inp_dataloader = DataLoader(inp_dataset, batch_size=batch_size, collate_fn=self.smart_batching_collate_text_only, num_workers=num_workers, shuffle=False)
@@ -351,6 +351,7 @@ class SentenceTransformer(nn.Sequential):
     def smart_batching_collate(self, batch):
         """
         Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
+        Here, batch is a list of tuples: [(tokens, label), ...]
 
         :param batch:
             a batch from a SmartBatchingDataset
@@ -366,7 +367,7 @@ class SentenceTransformer(nn.Sequential):
             labels.append(label)
             for i in range(num_texts):
                 paired_texts[i].append(tokens[i])
-                max_seq_len[i] = max(max_seq_len[i], len(tokens[i]))
+                max_seq_len[i] = max(max_seq_len[i], self._text_length(tokens[i]))
 
         features = []
         for idx in range(num_texts):
@@ -384,7 +385,6 @@ class SentenceTransformer(nn.Sequential):
 
 
             for feature_name in feature_lists:
-                #feature_lists[feature_name] = torch.tensor(np.asarray(feature_lists[feature_name]))
                 feature_lists[feature_name] = torch.cat(feature_lists[feature_name])
 
             features.append(feature_lists)
@@ -394,7 +394,8 @@ class SentenceTransformer(nn.Sequential):
 
     def smart_batching_collate_text_only(self, batch):
         """
-        Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
+        Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model.
+        Here, batch is a list of texts
 
         :param batch:
             a batch from a SmartBatchingDataset
@@ -402,7 +403,7 @@ class SentenceTransformer(nn.Sequential):
             a batch of tensors for the model
         """
 
-        max_seq_len = max([len(text) for text in batch])
+        max_seq_len = max([self._text_length(text) for text in batch])
         feature_lists = {}
 
         for text in batch:
@@ -418,7 +419,16 @@ class SentenceTransformer(nn.Sequential):
 
         return feature_lists
 
-
+    def _text_length(self, text: Union[List[int], List[List[int]]]):
+        """
+        Help function to get the length for the input text. Text can be either
+        a list of ints (which means a single text as input), or a tuple of list of ints
+        (representing several text inputs to the model).
+        """
+        if isinstance(text[0], int):
+            return len(text)
+        else:
+            return sum([len(t) for t in text])
 
     def fit(self,
             train_objectives: Iterable[Tuple[DataLoader, nn.Module]],

@@ -1,6 +1,6 @@
 import requests
 from torch import Tensor, device
-from typing import Tuple, List
+from typing import List
 from tqdm import tqdm
 import sys
 import importlib
@@ -8,7 +8,7 @@ import os
 import torch
 import numpy as np
 import queue
-import logging
+
 
 def pytorch_cos_sim(a: Tensor, b: Tensor):
     """

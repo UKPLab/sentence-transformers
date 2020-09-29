@@ -163,9 +163,9 @@ train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batc
 #######################################
 
 train_loss = losses.BatchAllTripletLoss(model=model)
-#train_loss = losses.BatchHardTripletLoss(sentence_embedder=model)
-#train_loss = losses.BatchHardSoftMarginTripletLoss(sentence_embedder=model)
-#train_loss = losses.BatchSemiHardTripletLoss(sentence_embedder=model)
+#train_loss = losses.BatchHardTripletLoss(model=model)
+#train_loss = losses.BatchHardSoftMarginTripletLoss(model=model)
+#train_loss = losses.BatchSemiHardTripletLoss(model=model)
 
 
 logging.info("Read TREC val dataset")

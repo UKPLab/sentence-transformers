@@ -84,7 +84,7 @@ html_context = {
 html_logo = 'img/logo.png'
 html_favicon = 'img/favicon.ico'
 
-
+autoclass_content = 'both'
 
 
 

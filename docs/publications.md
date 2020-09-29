@@ -49,12 +49,14 @@ Processing to Identify Similar
 Patent Documents](https://lup.lub.lu.se/luur/download?func=downloadFile&recordOId=9008699&fileOId=9026407)**
 - **August 2020** - **[Ranking Clarification Questions via Natural Language Inference](https://arxiv.org/pdf/2008.07688.pdf)**
 - **August 2020** - **[Searching Scientific Literature for Answers on COVID-19 Questions](https://openreview.net/pdf?id=eeYSJJGAkg1)**
+- **July 2020** - **[Learning Neural Textual Representations for Citation Recommendation](https://arxiv.org/abs/2007.04070)**
 - **July 2020** - **[CORD19STS: COVID-19 Semantic Textual Similarity Dataset](https://arxiv.org/abs/2007.02461)**
 - **July 2020** - **[IR-BERT: Leveraging BERT for Semantic Search in Background Linking for News Articles](https://arxiv.org/abs/2007.12603)** 
 - **July 2020 - [COVID-19 Knowledge Graph: Accelerating Information Retrieval and Discovery for Scientific Literature](https://arxiv.org/abs/2007.12731)**
 - **July 2020 - [CrossBERT: a Triplet Neural Architecture for
 Ranking Entity Properties](https://dl.acm.org/doi/pdf/10.1145/3397271.3401265)**
 - **June 2020 - [CO-Search: COVID-19 Information Retrieval with Semantic Search, Question Answering, and Abstractive Summarization](https://arxiv.org/abs/2006.09595)**
+- **May 2020 - [SUPERT: Towards New Frontiers in Unsupervised Evaluation Metrics for Multi-Document Summarization](https://arxiv.org/abs/2005.03724)**
 - **May 2020 - [A Recipe for Creating Multimodal Aligned Datasets for Sequential Tasks](https://arxiv.org/abs/2005.09606)**
 - **April 2020 - [PANDORA Talks: Personality and Demographics on Reddit](https://arxiv.org/abs/2004.04460)**
 - **September 2019 - [Learning Entailment-Based Sentence Embeddings from Natural Language Inference](https://openreview.net/forum?id=BkxackSKvH)**
