@@ -45,7 +45,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 teacher_model_name = 'roberta-base-nli-stsb-mean-tokens'
 teacher_model = SentenceTransformer(teacher_model_name)
 
-output_path = "output/model-distillation-3layers-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+output_path = "output/model-distillation-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 use_layer_reduction = True
@@ -66,7 +66,7 @@ if use_layer_reduction:
     #layers_to_keep = [0, 2, 4, 6, 8, 10]
     #layers_to_keep = [0, 1, 3, 4, 6, 7, 9, 10]
 
-    logging.info("Remove layers from teacher. Only keep these layer: {}".format(layers_to_keep))
+    logging.info("Remove layers from teacher. Only keep these layers: {}".format(layers_to_keep))
     new_layers = torch.nn.ModuleList([layer_module for i, layer_module in enumerate(auto_model.encoder.layer) if i in layers_to_keep])
     auto_model.encoder.layer = new_layers
     auto_model.config.num_hidden_layers = len(layers_to_keep)
