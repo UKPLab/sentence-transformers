@@ -71,7 +71,7 @@ class Transformer(nn.Module):
             the maximal length of the sequence. Cannot be greater than self.sentence_transformer_config.max_seq_length
         :return: embedding ids, segment ids and mask for the sentence
         """
-        pad_seq_length = min(pad_seq_length, self.max_seq_length) + 3 #Add space for special tokens
+        pad_seq_length = min(pad_seq_length, self.max_seq_length, self.auto_model.config.max_position_embeddings-3) + 3 #Add space for special tokens
 
         if isinstance(tokens[0], int):
             return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, padding='max_length', return_tensors='pt', truncation=True, prepend_batch_axis=True)

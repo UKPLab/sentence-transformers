@@ -425,7 +425,9 @@ class SentenceTransformer(nn.Sequential):
         a list of ints (which means a single text as input), or a tuple of list of ints
         (representing several text inputs to the model).
         """
-        if isinstance(text[0], int):
+        if len(text) == 0:
+            return 0
+        elif isinstance(text[0], int):
             return len(text)
         else:
             return sum([len(t) for t in text])
