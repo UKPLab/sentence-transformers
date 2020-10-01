@@ -102,7 +102,7 @@ if __name__ == '__main__':
         start_time = time.time()
         question_embedding = model.encode(inp_question)
 
-        #FAISS works with inner product (dot product). When we normalize vectors to unit length, inner product is equal to cosine similarity
+        #We use hnswlib knn_query method to find the top_k_hits
         corpus_ids, distances = index.knn_query(question_embedding, k=top_k_hits)
 
         # We extract corpus ids and scores for the first query

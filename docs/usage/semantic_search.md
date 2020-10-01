@@ -10,7 +10,7 @@ In the following example, we define a small corpus with few example question and
 
 When then use the [util.pytorch_cos_sim()](semantic_textual_similarity.md) function to compute the cosine similarity between the query and all corpus entries.
 
-For large corpora, sorting all scores would take too much time. Hence, we use [np.argpartition](https://numpy.org/doc/stable/reference/generated/numpy.argpartition.html) to only sort the top k entries.
+For large corpora, sorting all scores would take too much time. Hence, we use [torch.topk](https://pytorch.org/docs/stable/generated/torch.topk.html) to only get the top k entries.
 
 For a simple example, see [examples/semantic_search.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic_search.py):
 

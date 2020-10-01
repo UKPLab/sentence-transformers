@@ -7,7 +7,7 @@ we want to find the most similar sentence in this corpus.
 This script outputs for various queries the top 5 most similar sentences in the corpus.
 """
 from sentence_transformers import SentenceTransformer, util
-import numpy as np
+import torch
 
 embedder = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
 
@@ -35,12 +35,12 @@ for query in queries:
     cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
     cos_scores = cos_scores.cpu()
 
-    #We use np.argpartition, to only partially sort the top_k results
-    top_results = np.argpartition(-cos_scores, range(top_k))[0:top_k]
+    #We use torch.topk to find the highest 5 scores
+    top_results = torch.topk(cos_scores, k=top_k)
 
     print("\n\n======================\n\n")
     print("Query:", query)
     print("\nTop 5 most similar sentences in corpus:")
 
-    for idx in top_results[0:top_k]:
-        print(corpus[idx].strip(), "(Score: %.4f)" % (cos_scores[idx]))
+    for score, idx in zip(top_results[0], top_results[1]):
+        print(corpus[idx], "(Score: %.4f)" % (score))
