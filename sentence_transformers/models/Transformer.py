@@ -73,7 +73,7 @@ class Transformer(nn.Module):
         """
         pad_seq_length = min(pad_seq_length, self.max_seq_length, self.auto_model.config.max_position_embeddings-3) + 3 #Add space for special tokens
 
-        if isinstance(tokens[0], int):
+        if len(tokens) == 0 or isinstance(tokens[0], int):
             return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, padding='max_length', return_tensors='pt', truncation=True, prepend_batch_axis=True)
         else:
             return self.tokenizer.prepare_for_model(tokens[0], tokens[1], max_length=pad_seq_length, padding='max_length', return_tensors='pt', truncation='longest_first', prepend_batch_axis=True)
