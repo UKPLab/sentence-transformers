@@ -274,7 +274,7 @@ class SentenceTransformer(nn.Sequential):
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, chunk])
+            input_queue.put([last_chunk_id, is_pretokenized, chunk])
             last_chunk_id += 1
 
         output_queue = pool['output']
