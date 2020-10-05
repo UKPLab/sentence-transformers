@@ -574,8 +574,8 @@ class SentenceTransformer(nn.Sequential):
 
                     optimizer.zero_grad()
 
-                if not skip_scheduler:
-                    scheduler.step()
+                    if not skip_scheduler:
+                        scheduler.step()
 
                 training_steps += 1
                 global_step += 1
