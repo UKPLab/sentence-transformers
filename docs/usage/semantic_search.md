@@ -8,7 +8,7 @@ For small corpora (up to about 100k entries) we can compute the cosine-similarit
 
 In the following example, we define a small corpus with few example question and compute the embeddings for the corpus as well as for our query.
 
-When then use the [util.pytorch_cos_sim()](semantic_textual_similarity.md) function to compute the cosine similarity between the query and all corpus entries.
+We then use the [util.pytorch_cos_sim()](semantic_textual_similarity.md) function to compute the cosine similarity between the query and all corpus entries.
 
 For large corpora, sorting all scores would take too much time. Hence, we use [torch.topk](https://pytorch.org/docs/stable/generated/torch.topk.html) to only get the top k entries.
 
