@@ -498,10 +498,8 @@ class SentenceTransformer(nn.Sequential):
             dataloader.collate_fn = self.smart_batching_collate
 
         loss_models = [loss for _, loss in train_objectives]
-        device = self._target_device
-
         for loss_model in loss_models:
-            loss_model.to(device)
+            loss_model.to(self._target_device)
 
         self.best_score = -9999999
 
@@ -592,8 +590,7 @@ class SentenceTransformer(nn.Sequential):
                         loss_model.zero_grad()
                         loss_model.train()
 
-            self._eval_during_training(evaluator, output_path, save_best_model, epoch,
-                                       -1, callback)
+            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
         """
@@ -620,7 +617,8 @@ class SentenceTransformer(nn.Sequential):
                     self.save(output_path)
 
 
-    def _get_scheduler(self, optimizer, scheduler: str, warmup_steps: int, t_total: int):
+    @staticmethod
+    def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
         """
         Returns the correct learning rate scheduler. Available scheduler: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         """
