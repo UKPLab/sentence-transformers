@@ -179,7 +179,7 @@ class SentenceTransformer(nn.Sequential):
                     input_mask_expanded = input_mask.unsqueeze(-1).expand(embeddings.size()).float()
                     embeddings = embeddings * input_mask_expanded
 
-                all_embeddings.extend(embeddings)
+                all_embeddings.extend(embeddings.cpu())
 
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
