@@ -172,30 +172,27 @@ The output looks like this:
 ```
 Query: A man is eating pasta.
 Top 5 most similar sentences in corpus:
-A man is eating a piece of bread. (Score: 0.8518)
-A man is eating a food. (Score: 0.8020)
-A monkey is playing drums. (Score: 0.4167)
-A man is riding a horse. (Score: 0.2621)
-A man is riding a white horse on an enclosed ground. (Score: 0.2379)
-
+A man is eating food. (Score: 0.5777)
+A man is eating a piece of bread. (Score: 0.4986)
+A man is riding a horse. (Score: 0.1581)
+A man is riding a white horse on an enclosed ground. (Score: 0.1474)
+Two men pushed carts through the woods. (Score: 0.0992)
 
 Query: Someone in a gorilla costume is playing a set of drums.
 Top 5 most similar sentences in corpus:
-A monkey is playing drums. (Score: 0.8514)
-A man is eating a piece of bread. (Score: 0.3671)
-A man is eating a food. (Score: 0.3559)
-A man is riding a horse. (Score: 0.3153)
-The girl is carrying a baby. (Score: 0.2589)
-
+A monkey is playing drums. (Score: 0.6435)
+A man is eating a piece of bread. (Score: 0.1719)
+A man is eating food. (Score: 0.1240)
+A man is riding a white horse on an enclosed ground. (Score: 0.0706)
+A cheetah is running behind its prey. (Score: 0.0352)
 
 Query: A cheetah chases prey on across a field.
 Top 5 most similar sentences in corpus:
-A cheetah is running behind its prey. (Score: 0.9073)
-Two men pushed carts through the woods. (Score: 0.3896)
-A man is riding a horse. (Score: 0.3789)
-A man is riding a white horse on an enclosed ground. (Score: 0.3544)
-A monkey is playing drums. (Score: 0.3435)
-
+A cheetah is running behind its prey. (Score: 0.7769)
+A man is riding a white horse on an enclosed ground. (Score: 0.2485)
+A man is riding a horse. (Score: 0.2116)
+A monkey is playing drums. (Score: 0.1820)
+Two men pushed carts through the woods. (Score: 0.0869)
 ```
 
 
