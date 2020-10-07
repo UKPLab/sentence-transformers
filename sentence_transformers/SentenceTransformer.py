@@ -39,8 +39,13 @@ class SentenceTransformer(nn.Sequential):
             model_path = model_name_or_path
 
             if not os.path.isdir(model_path) and not model_path.startswith('http://') and not model_path.startswith('https://'):
-                logging.info("Did not find folder {}. Assume to download model from server.".format(model_path))
+                logging.info("Did not find folder {}".format(model_path))
+
+                if '\\' in model_path or model_path.count('/') > 1:
+                    raise AttributeError("Path {} not found".format(model_path))
+
                 model_path = __DOWNLOAD_SERVER__ + model_path + '.zip'
+                logging.info("Try to download model from server: {}".format(model_path))
 
             if model_path.startswith('http://') or model_path.startswith('https://'):
                 model_url = model_path
