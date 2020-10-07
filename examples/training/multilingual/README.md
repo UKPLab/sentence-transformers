@@ -5,7 +5,7 @@ In my publication [Making Monolingual Sentence Embeddings Multilingual using Kno
 
 
 ## Available Pre-trained Models
-For a list of available models, see [www.sbert.net](https://www.sbert.net/docs/pretrained_models.html#multi-lingual-models).
+For a list of available models, see [Pretrained Models](https://www.sbert.net/docs/pretrained_models.html#multi-lingual-models).
 
 
 ## Usage
