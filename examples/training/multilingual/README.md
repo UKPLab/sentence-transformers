@@ -5,9 +5,8 @@ In my publication [Making Monolingual Sentence Embeddings Multilingual using Kno
 
 
 ## Available Pre-trained Models
-- **distiluse-base-multilingual-cased**: Supported languages: Arabic, Chinese, Dutch, English, French, German,  Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. Model is based on DistilBERT-multi-lingual.
-- **xlm-r-base-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 81.47
-- **xlm-r-large-en-ko-nli-ststb**: Supported languages: English, Korean. Performance on Korean STSbenchmark: 84.05
+For a list of available models, see [www.sbert.net](https://www.sbert.net/docs/pretrained_models.html#multi-lingual-models).
+
 
 ## Usage
 You can use the models in the following way:
@@ -184,7 +183,7 @@ dev_trans_acc = evaluation.TranslationEvaluator(src_sentences, trg_sentences, na
 ```
 
 ### Multi-Lingual Semantic Textual Similarity
-You can also meaasure the semantic textual similarity (STS) between sentece pairs in different languages:
+You can also measure the semantic textual similarity (STS) between sentence pairs in different languages:
 
 ```python
 sts_evaluator = evaluation.EmbeddingSimilarityEvaluatorFromList(sentences1, senteces2, scores)
