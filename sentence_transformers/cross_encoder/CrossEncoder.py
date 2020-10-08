@@ -84,7 +84,7 @@ class CrossEncoder():
             evaluator: SentenceEvaluator = None,
             epochs: int = 1,
             loss_fct = None,
-            acitvation_fct = None,
+            acitvation_fct = nn.Identity(),
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
             optimizer_class: Type[Optimizer] = transformers.AdamW,
@@ -106,8 +106,8 @@ class CrossEncoder():
         :param train_dataloader: DataLoader with training InputExamples
         :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
         :param epochs: Number of epochs for training
-        :param loss_fct: Which loss function to use for training. If None, will use nn.BCELoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
-        :param acitvation_fct: Activation function applied on top of logits output of model. If None, nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
+        :param loss_fct: Which loss function to use for training. If None, will use nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
+        :param acitvation_fct: Activation function applied on top of logits output of model.
         :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
         :param optimizer_class: Optimizer
@@ -151,10 +151,8 @@ class CrossEncoder():
             scheduler = SentenceTransformer._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps)
 
         if loss_fct is None:
-            loss_fct = nn.BCELoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
+            loss_fct = nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
 
-        if acitvation_fct is None:
-            acitvation_fct = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
 
         skip_scheduler = False
         for epoch in trange(epochs, desc="Epoch"):
