@@ -1,9 +1,9 @@
 
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoConfig
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoConfig, DistilBertConfig
 import numpy as np
 import logging
 import os
-from typing import Dict, Type, Callable
+from typing import Dict, Type, Callable, List
 import transformers
 import torch
 from torch import nn
@@ -14,16 +14,28 @@ from .. import SentenceTransformer
 from ..evaluation import SentenceEvaluator
 
 
-
-
-
-
 class CrossEncoder():
-    def __init__(self, model_name, num_labels=1, device=None):
+    def __init__(self, model_name:str, num_labels:int = None, device:str = None):
+        """
+        A CrossEncoder takes exactly two sentences / texts as input and either predicts
+        a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
+        on a scale of 0 ... 1.
+
+        It does not yield a sentence embedding and does not work for individually sentences.
+
+        :param model_name: Any model name from Huggingface Models Repository that can be loaded with AutoModel. We provide several pre-trained CrossEncoder models that can be used for common tasks
+        :param num_labels: Number of labels of the classifier. If 1, the CrossEncoder is a regression model that outputs a continous score 0...1. If > 1, it output several scores that can be soft-maxed to get probability scores for the different classes.
+        :param device: Device that should be used for the model. If None, it will use CUDA if available.
+        """
+
         self.config = AutoConfig.from_pretrained(model_name)
+        classifier_trained = any([arch.endswith('ForSequenceClassification') for arch in self.config.architectures])
+
+        if num_labels is None and not classifier_trained:
+            num_labels = 1
 
         if num_labels is not None:
-            self.config.num_labels=num_labels
+            self.config.num_labels = num_labels
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name, config=self.config)
@@ -91,9 +103,11 @@ class CrossEncoder():
         We sample only as many batches from each objective as there are in the smallest one
         to make sure of equal training with each dataset.
 
-        :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
+        :param train_dataloader: DataLoader with training InputExamples
         :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
         :param epochs: Number of epochs for training
+        :param loss_fct: Which loss function to use for training. If None, will use nn.BCELoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
+        :param acitvation_fct: Activation function applied on top of logits output of model. If None, nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
         :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
         :param optimizer_class: Optimizer
@@ -108,7 +122,6 @@ class CrossEncoder():
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
         """
-
         train_dataloader.collate_fn = self.smart_batching_collate
 
         if use_amp:
@@ -119,7 +132,6 @@ class CrossEncoder():
 
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
-
 
         self.best_score = -9999999
         num_train_steps = int(len(train_dataloader) * epochs)
@@ -154,9 +166,10 @@ class CrossEncoder():
                 if use_amp:
                     with autocast():
                         model_predictions = self.model(**features, return_dict=True)
-                        #logits = torch.sigmoid(model_predictions.logits)
-                        #loss_value = loss_fct(logits.view(-1), labels.view(-1))
-                        raise NotImplementedError()
+                        logits = acitvation_fct(model_predictions.logits)
+                        if self.config.num_labels == 1:
+                            logits = logits.view(-1)
+                        loss_value = loss_fct(logits, labels)
 
                     scale_before_step = scaler.get_scale()
                     scaler.scale(loss_value).backward()
@@ -184,7 +197,6 @@ class CrossEncoder():
 
                 training_steps += 1
 
-
                 if evaluator is not None and evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
 
@@ -196,7 +208,7 @@ class CrossEncoder():
 
 
 
-    def encode(self, sentences,
+    def predict(self, sentences: List[List[str]],
                batch_size: int = 32,
                show_progress_bar: bool = None,
                num_workers: int = 0,
@@ -204,7 +216,18 @@ class CrossEncoder():
                convert_to_numpy: bool = True,
                convert_to_tensor: bool = False
                ):
+        """
+        Performs predicts with the CrossEncoder on the given sentence pairs.
 
+        :param sentences: A list of sentence pairs [[Sent1, Sent2], [Sent3, Sent4]]
+        :param batch_size: Batch size for encoding
+        :param show_progress_bar: Output progress bar
+        :param num_workers: Number of workers for tokenization
+        :param activation_fct: Activation function applied on the logits output of the CrossEncoder. If None, nn.Sigmoid() will be used if num_labels=1, else nn.Identity
+        :param convert_to_numpy: Convert the output to a numpy matrix.
+        :param convert_to_tensor:  Conver the output to a tensor.
+        :return: Predictions for the passed sentence pairs
+        """
         input_was_string = False
         if isinstance(sentences[0], str):  # Cast an individual sentence to a list with length 1
             sentences = [sentences]
@@ -224,6 +247,7 @@ class CrossEncoder():
 
         pred_scores = []
         self.model.eval()
+        self.model.to(self._target_device)
         with torch.no_grad():
             for features in iterator:
                 model_predictions = self.model(**features, return_dict=True)
@@ -257,7 +281,7 @@ class CrossEncoder():
 
     def save(self, path):
         """
-        Saves all elements for this seq. sentence embedder into different sub-folders
+        Saves all model and tokenizer to path
         """
         if path is None:
             return
@@ -266,5 +290,9 @@ class CrossEncoder():
         self.model.save_pretrained(path)
         self.tokenizer.save_pretrained(path)
 
-
+    def save_pretrained(self, path):
+        """
+        Same function as save
+        """
+        return self.save(path)
 
