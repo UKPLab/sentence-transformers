@@ -76,7 +76,7 @@ for score, i, j in all_sentence_combinations[0:5]:
     print("{} \t {} \t {:.4f}".format(sentences[i], sentences[j], cos_sim[i][j]))
 ```
 
-See on the right the *Usage* sections for more examples how to use SentenceTransformers.
+See on the left the *Usage* sections for more examples how to use SentenceTransformers.
 
 ## Pre-Trained Models
 Various pre-trained models exists optimized for many tasks exists. For a full list, see **[Pretrained Models](pretrained_models.md)**. 
