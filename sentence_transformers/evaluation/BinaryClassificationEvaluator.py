@@ -89,10 +89,10 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         euclidean_distances = paired_euclidean_distances(embeddings1, embeddings2)
 
         misclassed = self.get_missclassified(self.sentences1, self.sentences2, self.labels, cosine_scores)
-        logging.info("Misclassified Report".center(75, '~'))
+        logging.info('\n',"Misclassified Report".center(75, '~'))
         for idx in range(25):
             logging.info(f"{misclassed[idx][0]} | {misclassed[idx][1]} | {misclassed[idx][2]} | {misclassed[idx][3]} ")
-
+        logging.info('~'*75, '\n')
         labels = np.asarray(self.labels)
         
 
