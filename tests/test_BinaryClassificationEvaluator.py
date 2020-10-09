@@ -26,3 +26,13 @@ class BinaryClassificationEvaluatorTest(unittest.TestCase):
         y_pred_labels = [1 if pred >= threshold else 0 for pred in y_pred_cosine]
         sklearn_acc = accuracy_score(y_true, y_pred_labels)
         assert np.abs(max_acc - sklearn_acc) < 1e-6
+
+    def test_missclassified(self):
+        """Tests the misclassifications"""
+        sents1 = ['This is a sentence.', 'This is another sentece.']
+        sents2 = ['This is a sentence.', 'This is another sentece.']
+        labels = [1, 0]
+        scores = [0.1, 0.9]
+        missclassed = evaluation.BinaryClassificationEvaluator.get_missclassified(
+            sents1, sents2, labels, scores)
+        assert len(missclassed) == 2
