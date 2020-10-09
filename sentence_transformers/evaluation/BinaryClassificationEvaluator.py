@@ -135,9 +135,8 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         for sent1, sent2, lbl, sc in zip(sentences1, sentences2, labels, scores):
             if lbl != round(sc):
                 data.append([sent1, sent2, lbl, sc, np.abs(float(lbl)-sc)])
-
-        return data.sort(key=itemgetter(4))
-
+        data.sort(key=itemgetter(4))
+        return data
 
     @staticmethod
     def find_best_acc_and_threshold(scores, labels, high_score_more_similar: bool):
