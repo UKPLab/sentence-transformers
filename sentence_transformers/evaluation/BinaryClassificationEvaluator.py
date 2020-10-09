@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 import logging
 from tqdm import tqdm
 from sentence_transformers.util import batch_to_device
+from operator import itemgetter
 import os
 import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
@@ -87,8 +88,13 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         manhattan_distances = paired_manhattan_distances(embeddings1, embeddings2)
         euclidean_distances = paired_euclidean_distances(embeddings1, embeddings2)
 
+        misclassed = self.get_missclassified(self.sentences1, self.sentences2, self.labels, cosine_scores)
+        logging.info("Misclassified Report".center(75, '~'))
+        for idx in range(25):
+            logging.info(f"{misclassed[idx][0]} | {misclassed[idx][1]} | {misclassed[idx][2]} | {misclassed[idx][3]} ")
 
         labels = np.asarray(self.labels)
+        
 
         file_output_data = [epoch, steps]
 
@@ -122,6 +128,16 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                     writer.writerow(file_output_data)
 
         return main_score
+
+    @staticmethod
+    def get_missclassified(sentences1, sentences2, labels, scores):
+        data = []
+        for sent1, sent2, lbl, sc in zip(sentences1, sentences2, labels, scores):
+            if lbl != round(sc):
+                data.append([sent1, sent2, lbl, sc, np.abs(float(lbl)-sc)])
+
+        return data.sort(key=itemgetter(4))
+
 
     @staticmethod
     def find_best_acc_and_threshold(scores, labels, high_score_more_similar: bool):
