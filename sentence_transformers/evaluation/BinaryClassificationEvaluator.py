@@ -32,7 +32,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
     :param show_progress_bar: If true, prints a progress bar
     """
 
-    def __init__(self, sentences1: List[str], sentences2: List[str], labels: List[int], name: str = '', batch_size: int = 32, show_progress_bar: bool = False):
+    def __init__(self, sentences1: List[str], sentences2: List[str], labels: List[int], name: str = '', batch_size: int = 32, show_progress_bar: bool = False, log_missclassified: bool = False):
         self.sentences1 = sentences1
         self.sentences2 = sentences2
         self.labels = labels
@@ -54,6 +54,8 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                             "cosine_acc", "cosine_acc_threshold", "cosine_f1", "cosine_precision", "cosine_recall", "cosine_f1_threshold", "cosine_average_precision",
                             "manhatten_acc", "manhatten_acc_threshold", "manhatten_f1", "manhatten_precision", "manhatten_recall", "manhatten_f1_threshold", "manhatten_average_precision",
                             "eucledian_acc", "eucledian_acc_threshold", "eucledian_f1", "eucledian_precision", "eucledian_recall", "eucledian_f1_threshold", "eucledian_average_precision"]
+        self.log_missclassified = log_missclassified
+        self.missclassified_csv: str = f"missclassified_results_{name}.csv"
 
 
     @classmethod
@@ -88,13 +90,13 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         manhattan_distances = paired_manhattan_distances(embeddings1, embeddings2)
         euclidean_distances = paired_euclidean_distances(embeddings1, embeddings2)
 
-        misclassed = self.get_missclassified(self.sentences1, self.sentences2, self.labels, cosine_scores)
-        logging.info("Missclassified Report".center(75, '~'))
-        for idx in range(25):
-            logging.info(f"{misclassed[idx][0]} | {misclassed[idx][1]} | {misclassed[idx][2]} | {misclassed[idx][3]} ")
-        logging.info('~'*75)
+        if self.log_missclassified:
+            misclassed = self.get_missclassified(self.sentences1, self.sentences2, self.labels, cosine_scores)
+            self.save_misclassed(output_path, misclassed)
+
+
         labels = np.asarray(self.labels)
-        
+            
 
         file_output_data = [epoch, steps]
 
@@ -128,6 +130,17 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                     writer.writerow(file_output_data)
 
         return main_score
+
+    def save_misclassed(self, output_path, misclassed):
+        if output_path is not None:
+            mis_csv_path = os.path.join(output_path, self.missclassified_csv)
+            logging.info(f"Saving missclassified cases to: {mis_csv_path}")
+            with open(mis_csv_path, mode="w", encoding="utf-8") as fil:
+                writer = csv.writer(fil)
+                writer.writerow(
+                    ['sentence1', 'sentence2', 'label', 'cosine_score'])
+                for row in misclassed:
+                    writer.writerow(row[:4])
 
     @staticmethod
     def get_missclassified(sentences1, sentences2, labels, scores):
