@@ -12,7 +12,7 @@ import math
 from sentence_transformers import LoggingHandler, util
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
-from sentence_transformers.readers import InputExample
+from sentence_transformers import InputExample
 import logging
 from datetime import datetime
 import sys
