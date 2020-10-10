@@ -1,6 +1,12 @@
+"""
+This example computes the score between a query and all possible
+sentences in a corpus using a Cross-Encoder for semantic textual similarity (STS).
+It output then the most similar sentences for the given query.
+"""
 from sentence_transformers.cross_encoder import CrossEncoder
 import numpy as np
 
+# Pre-trained cross encoder
 model = CrossEncoder('output/training_stsbenchmark_bert-base-uncased-2020-10-08_21-06-27')
 
 # We want to compute the similarity between the query sentence

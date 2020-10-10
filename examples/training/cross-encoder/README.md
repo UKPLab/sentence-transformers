@@ -1,36 +1,11 @@
-# CrossEncoder
-SentenceTransformers also supports the option to train CrossEncoder for sentence pair score and sentence pair classification tasks.
+# Cross-Encoders
+SentenceTransformers also supports the option to train Cross-Encoder for sentence pair score and sentence pair classification tasks.
 
-
-## BiEncoder vs. CrossEncoder
-
-First, it is important to understand the difference between BiEncoders and CrossEncoder.
-
-SentenceTransformer is centered around BiEncoders, which produces for a given sentence a sentence embedding. We pass to a BERT independelty the sentences A and B, which result in the sentence embeddings u and v. These sentence embedding can then be compared using cosine similarity:
-![BiEncoder](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/BiEncoder.png)
-
-
-In contrast, for a CrossEncoder  we pass both sentences simultanously to BERT. It produces than an output value between 0 and 1 indicating the similarity of sentence pair. 
-![CrossEncoder](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/CrossEncoder.png)
-
-A CrossEncoder does not produce a sentence embedding. Also, we are not able to pass individual sentences to a CrossEncoder.
-
-As detailed in our [paper](https://arxiv.org/abs/1908.10084), CrossEncoder achieve better performances than BiEncoders. However, for many application they are not pratical as they do not produce embeddings we could e.g. index or efficiently compare using cosine similarity.
-
-
-### When to use Cross- / BiEncoders?
-
-CrossEncoders can be used whenever you have a pre-defined set of sentence pairs you want to score. For example, you have 100 sentence pairs and you want to get similarity scores for these 100 pairs.
-
-
-BiEncoders (see [Computing Sentence Embeddings](https://www.sbert.net/docs/usage/computing_sentence_embeddings.html)) are used whenever you need a sentence embedding in a vector space for efficient comparison. Applications are for example Information Retrieval / Semantic Search or Clustering. CrossEncoders would be the wrong choice for these application: Clustering 10,000 sentence with CrossEncoders would require computing similarity scores for about 50 Million sentence combinations, which takes about 65 hours. With a BiEncoder, you compute the embedding for each sentence, which takes only 5 seconds. You can then perform the clustering.
-
-
-## Pretrained Cross-Encoders
-We provide various pre-trained cross-encoders, that are easy to use:
-
-
-
+## Examples
+See the following examples how to train Cross-Encoders:
+- [training_stsbenchmark.py](training_stsbenchmark.py) - Example how to train for Semantic Textual Similarity (STS) on the STS benchmark dataset.
+- [training_quora_duplicate_questions.py](training_quora_duplicate_questions.py) - Example how to train a Cross-Encoder to predict if two questions are duplicates. Uses Quora Duplicate Questions as training dataset.
+- [training_nli.py](training_nli.py) - Example for a multilabel classification task for Natural Language Inference (NLI) task.
 
 ## Training CrossEncoders
 
@@ -72,6 +47,4 @@ model.fit(train_dataloader=train_dataloader,
 ```
 
 
-## Combining Cross- and BiEncoders
-Combining Cross- and BiEncoders can make sense in Information Retrieval / Semantic Search scenarios: First, you use an efficient BiEncoder to retrieve e.g. the top-100 most similar sentences for a query. Then, you use a CrossEncoder to re-rank these 100 hits by computing the score for every (query, hit) combination.
 

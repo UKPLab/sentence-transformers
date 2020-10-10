@@ -7,10 +7,10 @@ from sentence_transformers.util import batch_to_device
 import os
 import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
+from sklearn.metrics import average_precision_score
 import numpy as np
 from typing import List
 from ..readers import InputExample
-from sklearn.metrics import average_precision_score
 
 class BinaryClassificationEvaluator(SentenceEvaluator):
     """

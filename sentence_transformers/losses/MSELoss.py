@@ -14,9 +14,8 @@ class MSELoss(nn.Module):
     def __init__(self, model):
         super(MSELoss, self).__init__()
         self.model = model
+        self.loss_fct = nn.MSELoss()
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         rep = self.model(sentence_features[0])['sentence_embedding']
-        loss_fct = nn.MSELoss()
-        loss = loss_fct(rep, labels)
-        return loss
+        return self.loss_fct(rep, labels)

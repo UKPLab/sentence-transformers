@@ -1,6 +1,7 @@
 .idea
 *.pyc
 *.gz
+*.tsv
 examples/datasets/*/
 sentence_transformers.egg-info
 dist/
