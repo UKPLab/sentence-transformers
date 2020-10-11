@@ -47,16 +47,16 @@ class CrossEncoder():
         self._target_device = torch.device(device)
 
     def smart_batching_collate(self, batch):
-        text1 = []
-        text2 = []
+        texts = [[] for _ in range(len(batch[0].texts))]
         labels = []
 
         for example in batch:
-            text1.append(example.texts[0])
-            text2.append(example.texts[1])
+            for idx, text in enumerate(example.texts):
+                texts[idx].append(text)
+
             labels.append(example.label)
 
-        tokenized = self.tokenizer(text1, text2, padding=True, truncation='longest_first', return_tensors="pt")
+        tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt")
         labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
 
         for name in tokenized:
@@ -65,14 +65,13 @@ class CrossEncoder():
         return tokenized, labels
 
     def smart_batching_collate_text_only(self, batch):
-        text1 = []
-        text2 = []
+        texts = [[] for _ in range(len(batch[0]))]
 
         for example in batch:
-            text1.append(example[0])
-            text2.append(example[1])
+            for idx, text in enumerate(example):
+                texts[idx].append(text)
 
-        tokenized = self.tokenizer(text1, text2, padding=True, truncation='longest_first', return_tensors="pt")
+        tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt")
 
         for name in tokenized:
             tokenized[name] = tokenized[name].to(self._target_device)

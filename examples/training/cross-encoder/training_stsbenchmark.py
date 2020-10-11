@@ -45,6 +45,8 @@ model_save_path = 'output/training_stsbenchmark-'+datetime.now().strftime("%Y-%m
 #We use distilroberta-base as base model and set num_labels=1, which predicts a continous score between 0 and 1
 model = CrossEncoder('distilroberta-base', num_labels=1)
 
+
+
 # Read STSb dataset
 logging.info("Read STSbenchmark train dataset")
 

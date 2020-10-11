@@ -2,6 +2,9 @@ import logging
 from sklearn.metrics import average_precision_score
 from typing import List
 import numpy as np
+import os
+import csv
+
 from ... import InputExample
 from ...evaluation import BinaryClassificationEvaluator
 
@@ -19,6 +22,9 @@ class CEBinaryClassificationEvaluator:
 
         self.labels = np.asarray(labels)
         self.name = name
+
+        self.csv_file = "CEBinaryClassificationEvaluator" + ("_" + name if name else '') + "_results.csv"
+        self.csv_headers = ["epoch", "steps", "Accuracy", "Accuracy_Threshold", "F1", "F1_Threshold", "Precision", "Recall", "Average_Precision"]
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -51,5 +57,16 @@ class CEBinaryClassificationEvaluator:
         logging.info("Precision:          {:.2f}".format(precision * 100))
         logging.info("Recall:             {:.2f}".format(recall * 100))
         logging.info("Average Precision:  {:.2f}\n".format(ap * 100))
+
+        if output_path is not None:
+            csv_path = os.path.join(output_path, self.csv_file)
+            output_file_exists = os.path.isfile(csv_path)
+            with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:
+                writer = csv.writer(f)
+                if not output_file_exists:
+                    writer.writerow(self.csv_headers)
+
+                writer.writerow([epoch, steps, acc, acc_threshold, f1, f1_threshold, precision, recall, ap])
+
 
         return ap

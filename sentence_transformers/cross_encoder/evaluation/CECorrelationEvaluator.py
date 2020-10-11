@@ -1,6 +1,8 @@
 import logging
 from scipy.stats import pearsonr, spearmanr
 from typing import List
+import os
+import csv
 from ... import InputExample
 
 class CECorrelationEvaluator:
@@ -13,6 +15,9 @@ class CECorrelationEvaluator:
         self.sentence_pairs = sentence_pairs
         self.scores = scores
         self.name = name
+
+        self.csv_file = "CECorrelationEvaluator" + ("_" + name if name else '') + "_results.csv"
+        self.csv_headers = ["epoch", "steps", "Pearson_Correlation", "Spearman_Correlation"]
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -41,5 +46,15 @@ class CECorrelationEvaluator:
         eval_spearman, _ = spearmanr(self.scores, pred_scores)
 
         logging.info("Correlation:\tPearson: {:.4f}\tSpearman: {:.4f}".format(eval_pearson, eval_spearman))
+
+        if output_path is not None:
+            csv_path = os.path.join(output_path, self.csv_file)
+            output_file_exists = os.path.isfile(csv_path)
+            with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:
+                writer = csv.writer(f)
+                if not output_file_exists:
+                    writer.writerow(self.csv_headers)
+
+                writer.writerow([epoch, steps, eval_pearson, eval_spearman])
 
         return eval_spearman

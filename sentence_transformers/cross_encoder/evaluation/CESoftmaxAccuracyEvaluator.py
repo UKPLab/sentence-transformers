@@ -1,5 +1,6 @@
 import logging
-from scipy.stats import pearsonr, spearmanr
+import os
+import csv
 from typing import List
 from ... import InputExample
 import numpy as np
@@ -15,6 +16,9 @@ class CESoftmaxAccuracyEvaluator:
         self.sentence_pairs = sentence_pairs
         self.labels = labels
         self.name = name
+
+        self.csv_file = "CESoftmaxAccuracyEvaluator" + ("_" + name if name else '') + "_results.csv"
+        self.csv_headers = ["epoch", "steps", "Accuracy"]
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -44,5 +48,15 @@ class CESoftmaxAccuracyEvaluator:
         acc = np.sum(pred_labels == self.labels) / len(self.labels)
 
         logging.info("Accuracy: {:.2f}".format(acc*100))
+
+        if output_path is not None:
+            csv_path = os.path.join(output_path, self.csv_file)
+            output_file_exists = os.path.isfile(csv_path)
+            with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:
+                writer = csv.writer(f)
+                if not output_file_exists:
+                    writer.writerow(self.csv_headers)
+
+                writer.writerow([epoch, steps, acc])
 
         return acc
