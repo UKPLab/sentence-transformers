@@ -13,10 +13,17 @@ Alternatively, you can download and unzip them from [here](https://public.ukp.in
 Sadly there cannot exist a universal model that performs great on all possible tasks. Models strong on one task, will be weak for another task. Hence, it is important to select the right model for your task.
 
 
-## Semantic Textual Similarity
-The following models were optimized for [Semantic Textual Similarity](usage/semantic_textual_similarity) (STS): You can compute the embeddings for two sentences and then use cosine-similarity to get a score -1 ... 1 to indicate their semantic similarity. They were trained on [NLI](pretrained-models/nli-models.md) and [STS](pretrained-models/sts-models.md) data. They are evaluated on the STSbenchmark dataset.
+## Paraphrase Identification
 
-We can recommend this models as general purpose models. The best available models are:
+The following models were trained on Millions of paraphrase sentences. They create extremely good results for various similarity and retrieval tasks. They are currently under development, better versions and more details will be released in future.
+
+- **distilroberta-base-paraphrase-v1** - Trained on large scale paraphrase data.
+- **xlm-r-distilroberta-base-paraphrase-v1** - Multilingual version of distilroberta-base-paraphrase-v1, trained on parallel data for 50+ languages. 
+
+## Semantic Textual Similarity
+The following models were optimized for [Semantic Textual Similarity](usage/semantic_textual_similarity) (STS). They were trained on SNLI+MultiNLI and then fine-tuned on the STS benchmark train set.
+ 
+ The best available models for STS are:
 - **roberta-large-nli-stsb-mean-tokens** - STSb performance: 86.39
 - **roberta-base-nli-stsb-mean-tokens** - STSb performance: 85.44
 - **bert-large-nli-stsb-mean-tokens** - STSb performance: 85.29
@@ -25,6 +32,15 @@ We can recommend this models as general purpose models. The best available model
 [» Full List of STS Models](https://docs.google.com/spreadsheets/d/14QplCdTCDwEmTqrn1LH4yrbKvdogK4oQvYO1K1aPR5M/edit#gid=0)
 
 I can recommend the **distilbert-base-nli-stsb-mean-tokens** model, which gives a nice balance between speed and performance.
+
+## Duplicate Questions Detection
+
+The following models were trained for duplicate questions mining and duplicate questions retrieval. You can use them to detect duplicate questions in a large corpus (see [paraphrase mining](usage/paraphrase_mining) ) or to search for similar questions (see [semantic search](usage/semantic_search)). 
+
+Available models:
+- **distilbert-base-nli-stsb-quora-ranking** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
+- **distilbert-multilingual-nli-stsb-quora-ranking** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*. Fine-tuned with parallel data for 50+ languages. 
+
 
 ## Multi-Lingual Models
 The following models generate aligned vector spaces, i.e., similar inputs in different languages are mapped close in vector space. You do not need to specify the input language.  Details are in our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
@@ -36,8 +52,9 @@ Currently, there are models for two use-cases:
 These models find semantically similar sentences within one language or across languages:
 
 - **distiluse-base-multilingual-cased**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). While the original mUSE model only supports 16 languages, this multilingual knowledge distilled version supports 50+ languages.
-- **xlm-r-100langs-bert-base-nli-stsb-mean-tokens**: Produces similar embeddings as the bert-base-nli-stsb-mean-token model supporting 100 languages. Trained on parallel data for 50+ languages.
-- **distilbert-multilingual-nli-stsb-quora-ranking** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*. DistilBERT-multilingual support 104 languages. Fine-tuned with parallel data for 50+ languages. 
+- **xlm-r-distilroberta-base-paraphrase-v1** - Multilingual version of distilroberta-base-paraphrase-v1, trained on parallel data for 50+ languages. 
+- **xlm-r-bert-base-nli-stsb-mean-tokens**: Produces similar embeddings as the bert-base-nli-stsb-mean-token model. Trained on parallel data for 50+ languages.
+- **distilbert-multilingual-nli-stsb-quora-ranking** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*.  Fine-tuned with parallel data for 50+ languages. 
 
 
 **Bitext Mining** 
@@ -79,13 +96,6 @@ We used the following languages for [Multilingual Knowledge Distillation](https:
 Extending a model to new languages is easy by following [the description here](https://www.sbert.net/examples/training/multilingual/README.html).
 
 
-## Duplicate Questions Detection
-
-The following models were trained duplicate questions mining and duplicate questions retrieval. You can use them to detect duplicate questions in a large corpus (see [paraphrase mining](usage/paraphrase_mining) ) or to search for similar questions (see [semantic search](usage/semantic_search)). 
-
-Available models:
-- **distilbert-base-nli-stsb-quora-ranking** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
-- **distilbert-multilingual-nli-stsb-quora-ranking** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*. DistilBERT-multilingual support 104 languages. Fine-tuned with parallel data for 50+ languages. 
 
 
 ## Wikipedia Sections
