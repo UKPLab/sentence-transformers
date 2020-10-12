@@ -7,7 +7,7 @@ from sentence_transformers.cross_encoder import CrossEncoder
 import numpy as np
 
 # Pre-trained cross encoder
-model = CrossEncoder('output/training_stsbenchmark_bert-base-uncased-2020-10-08_21-06-27')
+model = CrossEncoder('sentence-transformers/ce-distilroberta-base-stsb')
 
 # We want to compute the similarity between the query sentence
 query = 'A man is eating pasta.'
