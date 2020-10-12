@@ -149,7 +149,7 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
    docs/usage/semantic_textual_similarity
    docs/usage/paraphrase_mining
    docs/usage/semantic_search
-
+   docs/usage/cross-encoder
 
 .. toctree::
    :maxdepth: 2
@@ -158,6 +158,7 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
    docs/training/overview
    examples/training/multilingual/README
    examples/training/distillation/README
+   examples/training/cross-encoder/README
 
 .. toctree::
    :maxdepth: 2
@@ -178,3 +179,4 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
    docs/package_reference/losses
    docs/package_reference/evaluation
    docs/package_reference/datasets
+   docs/package_reference/cross_encoder
