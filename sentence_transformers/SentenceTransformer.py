@@ -437,7 +437,7 @@ class SentenceTransformer(nn.Sequential):
 
     def fit(self,
             train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
-            evaluator: SentenceEvaluator,
+            evaluator: SentenceEvaluator = None,
             epochs: int = 1,
             steps_per_epoch = None,
             scheduler: str = 'WarmupLinear',
