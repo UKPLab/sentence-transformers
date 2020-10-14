@@ -20,11 +20,11 @@ return the closest questions in the corpus (questions in the corpus are mainly i
 
 from sentence_transformers import SentenceTransformer, util
 import os
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, helpers
 import csv
 import time
 import tqdm.autonotebook
-from elasticsearch import helpers
+
 
 
 es = Elasticsearch()
