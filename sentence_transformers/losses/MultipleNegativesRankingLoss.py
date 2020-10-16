@@ -2,6 +2,7 @@ import torch
 from torch import nn, Tensor
 from typing import Iterable, Dict
 from ..SentenceTransformer import SentenceTransformer
+from .. import util
 
 class MultipleNegativesRankingLoss(nn.Module):
     """
@@ -21,7 +22,7 @@ class MultipleNegativesRankingLoss(nn.Module):
 
         The error function is equivalent to::
 
-            scores = torch.matmul(embeddings_a, embeddings_b.t())
+            scores = self.similarity_fct(embeddings_a, embeddings_b) * self.scale
             labels = torch.tensor(range(len(scores)), dtype=torch.long).to(self.model.device) #Example a[i] should match with b[i]
             cross_entropy_loss = nn.CrossEntropyLoss()
             return cross_entropy_loss(scores, labels)
@@ -38,9 +39,16 @@ class MultipleNegativesRankingLoss(nn.Module):
             train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
             train_loss = losses.MultipleNegativesRankingLoss(model=model)
     """
-    def __init__(self, model: SentenceTransformer):
+    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct = util.pytorch_cos_sim):
+        """
+        :param model: SentenceTransformer model
+        :param scale: Output of similarity function is multiplied by scale value
+        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set sclae to 1)
+        """
         super(MultipleNegativesRankingLoss, self).__init__()
         self.model = model
+        self.scale = scale
+        self.similarity_fct = similarity_fct
 
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
@@ -58,7 +66,7 @@ class MultipleNegativesRankingLoss(nn.Module):
         :return:
             The scalar loss
         """
-        scores = torch.matmul(embeddings_a, embeddings_b.t())
+        scores = self.similarity_fct(embeddings_a, embeddings_b) * self.scale
         diagonal_mean = torch.mean(torch.diag(scores))
         mean_log_row_sum_exp = torch.mean(torch.logsumexp(scores, dim=1))
         return -diagonal_mean + mean_log_row_sum_exp
