@@ -10,10 +10,10 @@ For more details, refer to our publication - [Augmented SBERT: Data Augmentation
 
 ## Extend to your own datasets
 
-### Scenario 1: Limited or small annotated datasets (few labeled sentence-pairs (1k-3k))
+**Scenario 1: Limited or small annotated datasets (few labeled sentence-pairs (1k-3k))**\
 If you have specialized datsets in your company or reseach which are small-sized or contain labeled few sentence-pairs. You can extend the idea of Augmented SBERT (in-domain) strategy by training a cross-encoder over your small gold  dataset and use BM25 sampling to generate combinations not seen earlier. Use the cross-encoder to label these unlabeled pairs to create the silver dataset. Finally train a bi-encoder (i.e. SBERT) over your extended dataset (gold+silver) dataset as shown in [train_sts_indomain_bm25.py](train_sts_indomain_bm25.py).
 
-### Scenario 2: No annotated datasets (Only unlabeled sentence-pairs)
+**Scenario 2: No annotated datasets (Only unlabeled sentence-pairs)**\
 If you have specialized datsets in your company or reseach which only contain unlabeled sentence-pairs. You can extend the idea of Augmented SBERT (domain-transfer) strategy by training a cross-encoder over a source dataset which is annotated (for eg. QQP). Use this cross-encoder to label your specialised unlabeled dataset i.e. target dataset. Finally train a bi-encoder i.e. SBERT over your labeled target dataset as shown in [train_sts_qqp_crossdomain.py](train_sts_qqp_crossdomain.py).
 
 
@@ -82,8 +82,6 @@ The [examples/training/data_augmentation](https://github.com/UKPLab/sentence-tra
     - Label the Quora Questions Pair (QQP) training dataset (Assume no labels present) using the cross-encoder.
     - Train a bi-encoder (SBERT) model on the QQP dataset. (Augmented SBERT (Domain-Transfer) Strategy).
 
-
-## Performance
 
 
 ## Citation

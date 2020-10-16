@@ -41,6 +41,23 @@ Available models:
 - **distilbert-base-nli-stsb-quora-ranking** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
 - **distilbert-multilingual-nli-stsb-quora-ranking** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*. Fine-tuned with parallel data for 50+ languages. 
 
+## Information Retrieval 
+
+The following models were trained on [MSMARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking): Given a search query (which can be anything like key words, a sentence, a question), find the relevant passages. You can index the embeddings and use it for dense information retrieval, outperforming lexical approaches like BM25.
+
+- **distilroberta-base-msmarco-v1** - First version trained on MSMarco train set. MRR on MSMARCO dev dataset: 23.28
+
+To encode a query, you have to prepend  `[QRY] ` to the queries and `[DOC] ` to passages:
+```python
+from sentence_transformers import SentenceTransformer, util
+model = SentenceTransformer('distilroberta-base-msmarco-v1')
+
+qry_embedding = model.encode('[QRY] '+'How big is London')
+passage_embedding = model.encode('[DOC] '+ 'London has 9,787,426 inhabitants at the 2011 census')
+
+print("Similarity:", util.pytorch_cos_sim(qry_embedding, passage_embedding))
+```
+
 
 ## Multi-Lingual Models
 The following models generate aligned vector spaces, i.e., similar inputs in different languages are mapped close in vector space. You do not need to specify the input language.  Details are in our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
