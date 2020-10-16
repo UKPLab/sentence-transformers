@@ -47,16 +47,18 @@ The following models were trained on [MSMARCO Passage Ranking](https://github.co
 
 - **distilroberta-base-msmarco-v1** - First version trained on MSMarco train set. MRR on MSMARCO dev dataset: 23.28
 
-To encode a query, you have to prepend  `[QRY] ` to the queries and `[DOC] ` to passages:
+To use, you have to prepend  `[QRY] ` to the queries and `[DOC] ` to passages:
 ```python
 from sentence_transformers import SentenceTransformer, util
 model = SentenceTransformer('distilroberta-base-msmarco-v1')
 
-qry_embedding = model.encode('[QRY] '+'How big is London')
-passage_embedding = model.encode('[DOC] '+ 'London has 9,787,426 inhabitants at the 2011 census')
+query_embedding = model.encode('[QRY] ' + 'How big is London')
+passage_embedding = model.encode('[DOC] ' + 'London has 9,787,426 inhabitants at the 2011 census')
 
-print("Similarity:", util.pytorch_cos_sim(qry_embedding, passage_embedding))
+print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 ```
+
+You can index the passages as shown [here](https://www.sbert.net/docs/usage/semantic_search.html).
 
 
 ## Multi-Lingual Models
