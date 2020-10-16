@@ -57,7 +57,7 @@ The [examples/training/data_augmentation](https://github.com/UKPLab/sentence-tra
     - For Seed opt., we train our bi-encoder for various seeds and evaluate using an early stopping algorithm. 
     - Finally, measure dev performance across the seeds to get the highest performing seeds.
 
-- [train_sts_indomain_eda.py](train_sts_indomain_eda.py)
+- [train_sts_indomain_nlpaug.py](train_sts_indomain_nlpaug.py)
     - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using easy data augmentation. 
     - Data augmentation strategies are used from popular [nlpaug](https://github.com/makcedward/nlpaug) package.
     - Augment single sentences with synonyms using (word2vec, BERT or WordNet). Forms our silver dataset.

@@ -17,7 +17,6 @@ OR
 python train_sts_qqp_crossdomain.py pretrained_transformer_model_name
 """
 from torch.utils.data import DataLoader
-from simpletransformers.classification import ClassificationModel
 from sentence_transformers import models, losses, util
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
@@ -75,7 +74,6 @@ bi_encoder_path = 'output/bi-encoder/qqp_cross_domain_'+model_name.replace("/", 
 
 logging.info("Loading cross-encoder model: {}".format(model_name))
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for cross-encoder model
-# TODO: add max seq length to cross-encoder example
 cross_encoder = CrossEncoder(model_name, num_labels=1)
 
 ###### Bi-encoder (sentence-transformers) ######

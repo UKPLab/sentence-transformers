@@ -5,6 +5,7 @@ from .TripletLoss import *
 from .MSELoss import *
 from .ContrastiveLoss import *
 from .OnlineContrastiveLoss import *
+from .MegaBatchMarginLoss import *
 
 # Triplet losses
 from .BatchHardTripletLoss import *

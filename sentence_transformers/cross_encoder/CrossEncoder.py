@@ -15,7 +15,7 @@ from ..evaluation import SentenceEvaluator
 
 
 class CrossEncoder():
-    def __init__(self, model_name:str, num_labels:int = None, device:str = None):
+    def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, device:str = None):
         """
         A CrossEncoder takes exactly two sentences / texts as input and either predicts
         a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
@@ -25,6 +25,7 @@ class CrossEncoder():
 
         :param model_name: Any model name from Huggingface Models Repository that can be loaded with AutoModel. We provide several pre-trained CrossEncoder models that can be used for common tasks
         :param num_labels: Number of labels of the classifier. If 1, the CrossEncoder is a regression model that outputs a continous score 0...1. If > 1, it output several scores that can be soft-maxed to get probability scores for the different classes.
+        :param max_length: Max length for input sequences. Longer sequences will be truncated. If None, max length of the model will be used
         :param device: Device that should be used for the model. If None, it will use CUDA if available.
         """
 
@@ -39,6 +40,7 @@ class CrossEncoder():
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name, config=self.config)
+        self.max_length = max_length
 
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -56,7 +58,7 @@ class CrossEncoder():
 
             labels.append(example.label)
 
-        tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt")
+        tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
         labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
 
         for name in tokenized:
