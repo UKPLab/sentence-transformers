@@ -21,7 +21,7 @@ The following models were trained on Millions of paraphrase sentences. They crea
 - **xlm-r-distilroberta-base-paraphrase-v1** - Multilingual version of distilroberta-base-paraphrase-v1, trained on parallel data for 50+ languages. 
 
 ## Semantic Textual Similarity
-The following models were optimized for [Semantic Textual Similarity](usage/semantic_textual_similarity) (STS). They were trained on SNLI+MultiNLI and then fine-tuned on the STS benchmark train set.
+The following models were optimized for [Semantic Textual Similarity](usage/semantic_textual_similarity.md) (STS). They were trained on SNLI+MultiNLI and then fine-tuned on the STS benchmark train set.
  
  The best available models for STS are:
 - **roberta-large-nli-stsb-mean-tokens** - STSb performance: 86.39
@@ -35,7 +35,7 @@ I can recommend the **distilbert-base-nli-stsb-mean-tokens** model, which gives 
 
 ## Duplicate Questions Detection
 
-The following models were trained for duplicate questions mining and duplicate questions retrieval. You can use them to detect duplicate questions in a large corpus (see [paraphrase mining](usage/paraphrase_mining) ) or to search for similar questions (see [semantic search](usage/semantic_search)). 
+The following models were trained for duplicate questions mining and duplicate questions retrieval. You can use them to detect duplicate questions in a large corpus (see [paraphrase mining](usage/paraphrase_mining.md)) or to search for similar questions (see [semantic search](usage/semantic_search.md)). 
 
 Available models:
 - **distilbert-base-nli-stsb-quora-ranking** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
