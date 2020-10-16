@@ -63,8 +63,8 @@ if not os.path.exists(qqp_dataset_path):
     logging.info("Dataset not found. Download")
     zip_save_path = 'quora-IR-dataset.zip'
     util.http_get(url='https://sbert.net/datasets/quora-IR-dataset.zip', path=zip_save_path)
-    with ZipFile(zip_save_path, 'r') as zip:
-        zip.extractall(qqp_dataset_path)
+    with ZipFile(zip_save_path, 'r') as zipIn:
+        zipIn.extractall(qqp_dataset_path)
 
 
 cross_encoder_path = 'output/cross-encoder/stsb_indomain_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
