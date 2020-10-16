@@ -159,6 +159,7 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
    examples/training/multilingual/README
    examples/training/distillation/README
    examples/training/cross-encoder/README
+   examples/training/data_augmentation/README
 
 .. toctree::
    :maxdepth: 2
