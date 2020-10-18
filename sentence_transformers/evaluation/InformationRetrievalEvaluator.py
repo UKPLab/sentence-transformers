@@ -1,15 +1,12 @@
-from . import SentenceEvaluator, SimilarityFunction
+from . import SentenceEvaluator
 import torch
-from torch.utils.data import DataLoader
 import logging
-from tqdm import tqdm
-from sentence_transformers.util import batch_to_device, pytorch_cos_sim
+from tqdm import tqdm, trange
+from ..util import pytorch_cos_sim
 import os
-import csv
 import numpy as np
 from typing import List, Tuple, Dict, Set
-from collections import defaultdict
-import queue
+
 
 class InformationRetrievalEvaluator(SentenceEvaluator):
     """
@@ -23,8 +20,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                  queries: Dict[str, str],  #qid => query
                  corpus: Dict[str, str],  #cid => doc
                  relevant_docs: Dict[str, Set[str]],  #qid => Set[cid]
-                 query_chunk_size: int = 1000,
-                 corpus_chunk_size: int = 500000,
+                 corpus_chunk_size: int = 50000,
                  mrr_at_k: List[int] = [10],
                  ndcg_at_k: List[int] = [10],
                  accuracy_at_k: List[int] = [1, 3, 5, 10],
@@ -45,7 +41,6 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.corpus = [corpus[cid] for cid in self.corpus_ids]
 
         self.relevant_docs = relevant_docs
-        self.query_chunk_size = query_chunk_size
         self.corpus_chunk_size = corpus_chunk_size
         self.mrr_at_k = mrr_at_k
         self.ndcg_at_k = ndcg_at_k
@@ -93,98 +88,143 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         # Compute embedding for the queries
         query_embeddings = model.encode(self.queries, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_tensor=True)
 
+        queries_result_list = [[] for _ in range(len(query_embeddings))]
 
-        #Init score computation values
+        itr = range(0, len(self.corpus), self.corpus_chunk_size)
+
+        if self.show_progress_bar:
+            itr = tqdm(itr, desc='Corpus Chunks')
+
+        #Iterate over chunks of the corpus
+        for corpus_start_idx in itr:
+            corpus_end_idx = min(corpus_start_idx + self.corpus_chunk_size, len(self.corpus))
+
+            #Encode chunk of corpus
+            sub_corpus_embeddings = model.encode(self.corpus[corpus_start_idx:corpus_end_idx], show_progress_bar=False, batch_size=self.batch_size, convert_to_tensor=True)
+
+            #Compute cosine similarites
+            cos_scores = pytorch_cos_sim(query_embeddings, sub_corpus_embeddings)
+            del sub_corpus_embeddings
+
+            #Get top-k values
+            cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(max_k, len(cos_scores[0]) - 1), dim=1, largest=True, sorted=False)
+            cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
+            cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
+            del cos_scores
+
+            for query_itr in range(len(query_embeddings)):
+                for sub_corpus_id, score in zip(cos_scores_top_k_idx[query_itr], cos_scores_top_k_values[query_itr]):
+                    corpus_id = self.corpus_ids[corpus_start_idx+sub_corpus_id]
+                    queries_result_list[query_itr].append({'corpus_id': corpus_id, 'score': score})
+
+
+        #Compute scores
+        scores = self.compute_metrics(queries_result_list)
+
+        #Output
+        self.output_scores(scores)
+
+
+        logging.info("Queries: {}".format(len(self.queries)))
+        logging.info("Corpus: {}\n".format(len(self.corpus)))
+
+        if output_path is not None:
+            csv_path = os.path.join(output_path, self.csv_file)
+            if not os.path.isfile(csv_path):
+                fOut = open(csv_path, mode="w", encoding="utf-8")
+                fOut.write(",".join(self.csv_headers))
+                fOut.write("\n")
+
+            else:
+                fOut = open(csv_path, mode="a", encoding="utf-8")
+
+            output_data = [epoch, steps]
+            for k in self.accuracy_at_k:
+                output_data.append(scores['accuracy@k'][k])
+
+            for k in self.precision_recall_at_k:
+                output_data.append(scores['precision@k'][k])
+                output_data.append(scores['recall@k'][k])
+
+            for k in self.mrr_at_k:
+                output_data.append(scores['mrr@k'][k])
+
+            for k in self.ndcg_at_k:
+                output_data.append(scores['ndcg@k'][k])
+
+            for k in self.map_at_k:
+                output_data.append(scores['map@k'][k])
+
+            fOut.write(",".join(map(str,output_data)))
+            fOut.write("\n")
+            fOut.close()
+
+        return scores['map@k'][max(self.map_at_k)]
+
+
+    def compute_metrics(self, queries_result_list: List[object]):
+        # Init score computation values
         num_hits_at_k = {k: 0 for k in self.accuracy_at_k}
-
         precisions_at_k = {k: [] for k in self.precision_recall_at_k}
         recall_at_k = {k: [] for k in self.precision_recall_at_k}
         MRR = {k: 0 for k in self.mrr_at_k}
         ndcg = {k: [] for k in self.ndcg_at_k}
         AveP_at_k = {k: [] for k in self.map_at_k}
 
-        #Compute embedding for the corpus
-        corpus_embeddings = model.encode(self.corpus, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_tensor=True)
+        # Compute scores on results
+        for query_itr in range(len(queries_result_list)):
+            query_id = self.queries_ids[query_itr]
 
-        for query_start_idx in range(0, len(query_embeddings), self.query_chunk_size):
-            query_end_idx = min(query_start_idx + self.query_chunk_size, len(query_embeddings))
+            # Sort scores
+            top_hits = sorted(queries_result_list[query_itr], key=lambda x: x['score'], reverse=True)
+            query_relevant_docs = self.relevant_docs[query_id]
 
-            queries_result_list = [[] for _ in range(query_start_idx, query_end_idx)]
+            # Accuracy@k - We count the result correct, if at least one relevant doc is accross the top-k documents
+            for k_val in self.accuracy_at_k:
+                for hit in top_hits[0:k_val]:
+                    if hit['corpus_id'] in query_relevant_docs:
+                        num_hits_at_k[k_val] += 1
+                        break
 
-            #Iterate over chunks of the corpus
-            for corpus_start_idx in range(0, len(corpus_embeddings), self.corpus_chunk_size):
-                corpus_end_idx = min(corpus_start_idx + self.corpus_chunk_size, len(corpus_embeddings))
+            # Precision and Recall@k
+            for k_val in self.precision_recall_at_k:
+                num_correct = 0
+                for hit in top_hits[0:k_val]:
+                    if hit['corpus_id'] in query_relevant_docs:
+                        num_correct += 1
 
-                #Compute cosine similarites
-                cos_scores = pytorch_cos_sim(query_embeddings[query_start_idx:query_end_idx], corpus_embeddings[corpus_start_idx:corpus_end_idx]).cpu()
+                precisions_at_k[k_val].append(num_correct / k_val)
+                recall_at_k[k_val].append(num_correct / len(query_relevant_docs))
 
-                #Get top-k values
-                cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(max_k, len(cos_scores[0]) - 1), dim=1, largest=True, sorted=False)
-                cos_scores_top_k_values = cos_scores_top_k_values.tolist()
-                cos_scores_top_k_idx = cos_scores_top_k_idx.tolist()
+            # MRR@k
+            for k_val in self.mrr_at_k:
+                for rank, hit in enumerate(top_hits[0:k_val]):
+                    if hit['corpus_id'] in query_relevant_docs:
+                        MRR[k_val] += 1.0 / (rank + 1)
+                        break
 
+            # NDCG@k
+            for k_val in self.ndcg_at_k:
+                predicted_relevance = [1 if top_hit['corpus_id'] in query_relevant_docs else 0 for top_hit in top_hits[0:k_val]]
+                true_relevances = [1] * len(query_relevant_docs)
 
-                for query_itr in range(len(cos_scores)):
-                    for sub_corpus_id, score in zip(cos_scores_top_k_idx[query_itr], cos_scores_top_k_values[query_itr]):
-                        corpus_id = self.corpus_ids[corpus_start_idx+sub_corpus_id]
-                        queries_result_list[query_itr].append({'corpus_id': corpus_id, 'score': score})
+                ndcg_value = self.compute_dcg_at_k(predicted_relevance, k_val) / self.compute_dcg_at_k(true_relevances, k_val)
+                ndcg[k_val].append(ndcg_value)
 
-            for query_itr in range(len(queries_result_list)):
-                query_id = self.queries_ids[query_start_idx + query_itr]
+            # MAP@k
+            for k_val in self.map_at_k:
+                num_correct = 0
+                sum_precisions = 0
 
-                #Sort scores
-                top_hits = sorted(queries_result_list[query_itr], key=lambda x: x['score'], reverse=True)
-                query_relevant_docs = self.relevant_docs[query_id]
+                for rank, hit in enumerate(top_hits[0:k_val]):
+                    if hit['corpus_id'] in query_relevant_docs:
+                        num_correct += 1
+                        sum_precisions += num_correct / (rank + 1)
 
+                avg_precision = sum_precisions / min(k_val, len(query_relevant_docs))
+                AveP_at_k[k_val].append(avg_precision)
 
-                #Accuracy@k - We count the result correct, if at least one relevant doc is accross the top-k documents
-                for k_val in self.accuracy_at_k:
-                    for hit in top_hits[0:k_val]:
-                        if hit['corpus_id'] in query_relevant_docs:
-                            num_hits_at_k[k_val] += 1
-                            break
-
-                #Precision and Recall@k
-                for k_val in self.precision_recall_at_k:
-                    num_correct = 0
-                    for hit in top_hits[0:k_val]:
-                        if hit['corpus_id'] in query_relevant_docs:
-                            num_correct += 1
-
-                    precisions_at_k[k_val].append(num_correct / k_val)
-                    recall_at_k[k_val].append(num_correct / len(query_relevant_docs))
-
-                #MRR@k
-                for k_val in self.mrr_at_k:
-                    for rank, hit in enumerate(top_hits[0:k_val]):
-                        if hit['corpus_id'] in query_relevant_docs:
-                            MRR[k_val] += 1.0 / (rank + 1)
-                            break
-
-                #NDCG@k
-                for k_val in self.ndcg_at_k:
-                    predicted_relevance = [1 if top_hit['corpus_id'] in query_relevant_docs else 0 for top_hit in top_hits[0:k_val]]
-                    true_relevances = [1] * len(query_relevant_docs)
-
-                    ndcg_value = self.compute_dcg_at_k(predicted_relevance, k_val) / self.compute_dcg_at_k(true_relevances, k_val)
-                    ndcg[k_val].append(ndcg_value)
-
-                #MAP@k
-                for k_val in self.map_at_k:
-                    num_correct = 0
-                    sum_precisions = 0
-
-                    for rank, hit in enumerate(top_hits[0:k_val]):
-                        if hit['corpus_id'] in query_relevant_docs:
-                            num_correct += 1
-                            sum_precisions += num_correct / (rank+1)
-
-                    avg_precision = sum_precisions / min(k_val, len(query_relevant_docs))
-                    AveP_at_k[k_val].append(avg_precision)
-
-
-
-        #Compute averages
+        # Compute averages
         for k in num_hits_at_k:
             num_hits_at_k[k] /= len(self.queries)
 
@@ -203,61 +243,29 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         for k in AveP_at_k:
             AveP_at_k[k] = np.mean(AveP_at_k[k])
 
-        #Output
-        for k in num_hits_at_k:
-            logging.info("Accuracy@{}: {:.2f}%".format(k, num_hits_at_k[k]*100))
 
-        for k in precisions_at_k:
-            logging.info("Precision@{}: {:.2f}%".format(k, precisions_at_k[k]*100))
-
-        for k in recall_at_k:
-            logging.info("Recall@{}: {:.2f}%".format(k, recall_at_k[k]*100))
-
-        for k in MRR:
-            logging.info("MRR@{}: {:.4f}".format(k, MRR[k]))
-
-        for k in ndcg:
-            logging.info("NDCG@{}: {:.4f}".format(k, ndcg[k]))
-
-        for k in AveP_at_k:
-            logging.info("MAP@{}: {:.4f}".format(k, AveP_at_k[k]))
+        return {'accuracy@k': num_hits_at_k, 'precision@k': precisions_at_k, 'recall@k': recall_at_k, 'ndcg@k': ndcg, 'mrr@k': MRR, 'map@k': AveP_at_k}
 
 
-        logging.info("Queries: {}".format(len(self.queries)))
-        logging.info("Corpus: {}\n".format(len(self.corpus)))
+    def output_scores(self, scores):
+        for k in scores['accuracy@k']:
+            logging.info("Accuracy@{}: {:.2f}%".format(k, scores['accuracy@k'][k]*100))
 
-        if output_path is not None:
-            csv_path = os.path.join(output_path, self.csv_file)
-            if not os.path.isfile(csv_path):
-                fOut = open(csv_path, mode="w", encoding="utf-8")
-                fOut.write(",".join(self.csv_headers))
-                fOut.write("\n")
+        for k in scores['precision@k']:
+            logging.info("Precision@{}: {:.2f}%".format(k, scores['precision@k'][k]*100))
 
-            else:
-                fOut = open(csv_path, mode="a", encoding="utf-8")
+        for k in scores['recall@k']:
+            logging.info("Recall@{}: {:.2f}%".format(k, scores['recall@k'][k]*100))
 
-            output_data = [epoch, steps]
-            for k in self.accuracy_at_k:
-                output_data.append(num_hits_at_k[k])
+        for k in scores['mrr@k']:
+            logging.info("MRR@{}: {:.4f}".format(k, scores['mrr@k'][k]))
 
-            for k in self.precision_recall_at_k:
-                output_data.append(precisions_at_k[k])
-                output_data.append(recall_at_k[k])
+        for k in scores['ndcg@k']:
+            logging.info("NDCG@{}: {:.4f}".format(k, scores['ndcg@k'][k]))
 
-            for k in self.mrr_at_k:
-                output_data.append(MRR[k])
+        for k in scores['map@k']:
+            logging.info("MAP@{}: {:.4f}".format(k, scores['map@k'][k]))
 
-            for k in self.ndcg_at_k:
-                output_data.append(ndcg[k])
-
-            for k in self.map_at_k:
-                output_data.append(AveP_at_k[k])
-
-            fOut.write(",".join(map(str,output_data)))
-            fOut.write("\n")
-            fOut.close()
-
-        return AveP_at_k[max(self.map_at_k)]
 
     @staticmethod
     def compute_dcg_at_k(relevances, k):
