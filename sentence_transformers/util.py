@@ -151,6 +151,9 @@ def semantic_search(query_embeddings: Tensor,
     query_embeddings = query_embeddings / query_embeddings.norm(dim=1)[:, None]
     corpus_embeddings = corpus_embeddings / corpus_embeddings.norm(dim=1)[:, None]
 
+    if corpus_embeddings.device != query_embeddings.device:
+        corpus_embeddings = corpus_embeddings.to(query_embeddings.device)
+
     queries_result_list = [[] for _ in range(len(query_embeddings))]
 
     for query_start_idx in range(0, len(query_embeddings), query_chunk_size):
