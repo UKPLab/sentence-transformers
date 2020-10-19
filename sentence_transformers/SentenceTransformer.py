@@ -320,7 +320,11 @@ class SentenceTransformer(nn.Sequential):
         return self._first_module().get_sentence_features(*features)
 
     def get_sentence_embedding_dimension(self):
-        return self._last_module().get_sentence_embedding_dimension()
+        for mod in reversed(self._modules.values()):
+            sent_embedding_dim_method = getattr(mod, "get_sentence_embedding_dimension", None)
+            if callable(sent_embedding_dim_method):
+                return sent_embedding_dim_method()
+        return None
 
     def _first_module(self):
         """Returns the first module of this sequential embedder"""
