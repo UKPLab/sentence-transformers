@@ -10,8 +10,8 @@ Further, this framework allows an easy  **[fine-tuning of custom embeddings mode
 
 For the **full documentation**, see [www.SBERT.net](https://www.sbert.net), as well as our publications:
 - [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (EMNLP 2019)
-- [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) (ArXiv 2020).
-
+- [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) (EMNLP 2020).
+- [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240) (arXiv 2020)
 
 
 
@@ -263,20 +263,34 @@ If you find this repository helpful, feel free to cite our publication [Sentence
     month = "11",
     year = "2019",
     publisher = "Association for Computational Linguistics",
-    url = "http://arxiv.org/abs/1908.10084",
+    url = "https://arxiv.org/abs/1908.10084",
 }
 ```
 
 
-If you use the code for multilingual models, feel free to cite our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
+If you use one of the multilingual models, feel free to cite our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
 ``` 
-@article{reimers-2020-multilingual-sentence-bert,
+@inproceedings{reimers-2020-multilingual-sentence-bert,
     title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
     author = "Reimers, Nils and Gurevych, Iryna",
-    journal= "arXiv preprint arXiv:2004.09813",
-    month = "04",
+    booktitle = "Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing",
+    month = "11",
     year = "2020",
-    url = "http://arxiv.org/abs/2004.09813",
+    publisher = "Association for Computational Linguistics",
+    url = "https://arxiv.org/abs/2004.09813",
+}
+```
+
+
+If you use the code for [data augmentation](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training/data_augmentation), feel free to cite our publication [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240):
+``` 
+@article{thakur-2020-AugSBERT,
+    title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
+    author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes and  Gurevych, Iryna", 
+    journal= "arXiv preprint arXiv:2010.08240",
+    month = "10",
+    year = "2020",
+    url = "https://arxiv.org/abs/2010.08240",
 }
 ```
 
