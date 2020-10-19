@@ -15,7 +15,7 @@ Sadly there cannot exist a universal model that performs great on all possible t
 
 ## Paraphrase Identification
 
-The following models were trained on Millions of paraphrase sentences. They create extremely good results for various similarity and retrieval tasks. They are currently under development, better versions and more details will be released in future.
+The following models **are recommended for various applications**, as they were trained on Millions of paraphrase examples. They create extremely good results for various similarity and retrieval tasks. They are currently under development, better versions and more details will be released in future. But they many tasks they work better than the NLI / STSb models.
 
 - **distilroberta-base-paraphrase-v1** - Trained on large scale paraphrase data.
 - **xlm-r-distilroberta-base-paraphrase-v1** - Multilingual version of distilroberta-base-paraphrase-v1, trained on parallel data for 50+ languages. 
@@ -31,7 +31,7 @@ The following models were optimized for [Semantic Textual Similarity](usage/sema
 
 [» Full List of STS Models](https://docs.google.com/spreadsheets/d/14QplCdTCDwEmTqrn1LH4yrbKvdogK4oQvYO1K1aPR5M/edit#gid=0)
 
-I can recommend the **distilbert-base-nli-stsb-mean-tokens** model, which gives a nice balance between speed and performance.
+
 
 ## Duplicate Questions Detection
 
@@ -59,6 +59,8 @@ print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 ```
 
 You can index the passages as shown [here](https://www.sbert.net/docs/usage/semantic_search.html).
+
+[More details](pretrained-models/msmarco.md)
 
 
 ## Multi-Lingual Models

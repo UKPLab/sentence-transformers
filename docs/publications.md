@@ -31,7 +31,7 @@ If you use one of the multilingual models, feel free to cite our publication [Ma
 If you use the code for [data augmentation](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training/data_augmentation), feel free to cite our publication [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240):
 ``` 
 @article{thakur-2020-AugSBERT,
-    title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
+    title = "Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
     author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes and  Gurevych, Iryna", 
     journal= "arXiv preprint arXiv:2010.08240",
     month = "10",

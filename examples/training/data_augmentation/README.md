@@ -86,5 +86,13 @@ The [examples/training/data_augmentation](https://github.com/UKPLab/sentence-tra
 
 ## Citation
 If you use the code for augmented sbert, feel free to cite our publication [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240):
-```
+``` 
+@article{thakur-2020-AugSBERT,
+    title = "Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
+    author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes and  Gurevych, Iryna", 
+    journal= "arXiv preprint arXiv:2010.08240",
+    month = "10",
+    year = "2020",
+    url = "https://arxiv.org/abs/2010.08240",
+}
 ```
