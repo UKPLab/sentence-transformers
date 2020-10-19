@@ -12,6 +12,8 @@ Dodge et al. (2020) show a high dependence on the random seed for transformer ba
 as it converges to different minima that generalize differently to unseen data. This is especially the 
 case for small training datasets. 
 
+Citation: https://arxiv.org/abs/2010.08240
+
 Usage:
 python train_sts_seed_optimization.py
 
