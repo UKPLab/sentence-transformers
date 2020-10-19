@@ -60,20 +60,22 @@ class SentenceTransformer(nn.Sequential):
                             os.getenv('XDG_CACHE_HOME', '~/.cache'), 'torch')))
                 default_cache_path = os.path.join(torch_cache_home, 'sentence_transformers')
                 model_path = os.path.join(default_cache_path, folder_name)
-                os.makedirs(model_path, exist_ok=True)
 
-                if not os.listdir(model_path):
+                if not os.path.exists(model_path) or not os.listdir(model_path):
                     if model_url[-1] == "/":
                         model_url = model_url[:-1]
                     logging.info("Downloading sentence transformer model from {} and saving it at {}".format(model_url, model_path))
+
+                    model_path_tmp = model_path.rstrip("/").rstrip("\\")+"_part"
                     try:
-                        zip_save_path = os.path.join(model_path, 'model.zip')
+                        zip_save_path = os.path.join(model_path_tmp, 'model.zip')
                         http_get(model_url, zip_save_path)
                         with ZipFile(zip_save_path, 'r') as zip:
-                            zip.extractall(model_path)
+                            zip.extractall(model_path_tmp)
                         os.remove(zip_save_path)
+                        os.rename(model_path_tmp, model_path)
                     except requests.exceptions.HTTPError as e:
-                        shutil.rmtree(model_path)
+                        shutil.rmtree(model_path_tmp)
                         if e.response.status_code == 404:
                             logging.warning('SentenceTransformer-Model {} not found. Try to create it from scratch'.format(model_url))
                             logging.warning('Try to create Transformer Model {} with mean pooling'.format(model_name_or_path))
