@@ -184,15 +184,15 @@ class SentenceTransformer(nn.Sequential):
                     input_mask_expanded = input_mask.unsqueeze(-1).expand(embeddings.size()).float()
                     embeddings = embeddings * input_mask_expanded
 
-                all_embeddings.extend(embeddings)
-
+                for emb in embeddings:
+                    all_embeddings.append(emb.detach())
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
         if convert_to_tensor:
             all_embeddings = torch.stack(all_embeddings)
         elif convert_to_numpy:
-            all_embeddings = np.asarray([emb.cpu().detach().numpy() for emb in all_embeddings])
+            all_embeddings = np.asarray([emb.cpu().numpy() for emb in all_embeddings])
 
         if input_was_string:
             all_embeddings = all_embeddings[0]
@@ -337,6 +337,8 @@ class SentenceTransformer(nn.Sequential):
         if path is None:
             return
 
+        os.makedirs(path, exist_ok=True)
+
         logging.info("Save model to {}".format(path))
         contained_modules = []
 
@@ -447,11 +449,11 @@ class SentenceTransformer(nn.Sequential):
             weight_decay: float = 0.01,
             evaluation_steps: int = 0,
             output_path: str = None,
-            output_path_ignore_not_empty: bool = False,
             save_best_model: bool = True,
             max_grad_norm: float = 1,
             use_amp: bool = False,
             callback: Callable[[float, int, int], None] = None,
+            output_path_ignore_not_empty: bool = False
             ):
         """
         Train the model with the given training objective
@@ -470,13 +472,13 @@ class SentenceTransformer(nn.Sequential):
         :param weight_decay: Weight decay for model parameters
         :param evaluation_steps: If > 0, evaluate the model using evaluator after each number of training steps
         :param output_path: Storage path for the model and evaluation files
-        :param output_path_ignore_not_empty: By default, training will stop if output_path is not empty. If set to true, this error will be ignored and training proceeds.
         :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
         :param max_grad_norm: Used for gradient normalization.
         :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
         :param callback: Callback function that is invoked after each evaluation.
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
+        :param output_path_ignore_not_empty: deprecated, no longer used
         """
 
         if use_amp:
@@ -487,9 +489,6 @@ class SentenceTransformer(nn.Sequential):
 
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
-            if not output_path_ignore_not_empty and len(os.listdir(output_path)) > 0:
-                raise ValueError("Output directory ({}) already exists and is not empty.".format(
-                    output_path))
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
 
