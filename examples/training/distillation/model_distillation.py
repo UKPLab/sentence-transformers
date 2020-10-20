@@ -56,7 +56,7 @@ if use_layer_reduction:
     student_model = SentenceTransformer(teacher_model_name)
 
     # Get the transformer model
-    auto_model = student_model._first_module().model
+    auto_model = student_model._first_module().auto_model
 
     # Which layers to keep from the teacher model. We equally spread the layers to keep over the original teacher
     #layers_to_keep = [5]
