@@ -72,7 +72,7 @@ Currently, there are models for two use-cases:
 
 These models find semantically similar sentences within one language or across languages:
 
-- **distiluse-base-multilingual-cased**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). While the original mUSE model only supports 16 languages, this multilingual knowledge distilled version supports 50+ languages.
+- **distiluse-base-multilingual-cased-v2**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). While the original mUSE model only supports 16 languages, this multilingual knowledge distilled version supports 50+ languages.
 - **xlm-r-distilroberta-base-paraphrase-v1** - Multilingual version of distilroberta-base-paraphrase-v1, trained on parallel data for 50+ languages. 
 - **xlm-r-bert-base-nli-stsb-mean-tokens**: Produces similar embeddings as the bert-base-nli-stsb-mean-token model. Trained on parallel data for 50+ languages.
 - **distilbert-multilingual-nli-stsb-quora-ranking** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*.  Fine-tuned with parallel data for 50+ languages. 
