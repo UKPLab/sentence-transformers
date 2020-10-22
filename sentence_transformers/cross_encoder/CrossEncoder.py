@@ -30,7 +30,9 @@ class CrossEncoder():
         """
 
         self.config = AutoConfig.from_pretrained(model_name)
-        classifier_trained = any([arch.endswith('ForSequenceClassification') for arch in self.config.architectures])
+        classifier_trained = True
+        if self.config.architectures is not None:
+            classifier_trained = any([arch.endswith('ForSequenceClassification') for arch in self.config.architectures])
 
         if num_labels is None and not classifier_trained:
             num_labels = 1
@@ -73,7 +75,7 @@ class CrossEncoder():
             for idx, text in enumerate(example):
                 texts[idx].append(text)
 
-        tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt")
+        tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
 
         for name in tokenized:
             tokenized[name] = tokenized[name].to(self._target_device)
@@ -212,6 +214,7 @@ class CrossEncoder():
                show_progress_bar: bool = None,
                num_workers: int = 0,
                activation_fct = None,
+               apply_softmax = False,
                convert_to_numpy: bool = True,
                convert_to_tensor: bool = False
                ):
@@ -224,6 +227,7 @@ class CrossEncoder():
         :param num_workers: Number of workers for tokenization
         :param activation_fct: Activation function applied on the logits output of the CrossEncoder. If None, nn.Sigmoid() will be used if num_labels=1, else nn.Identity
         :param convert_to_numpy: Convert the output to a numpy matrix.
+        :param apply_softmax: If there are more than 2 dimensions and apply_softmax=True, applies softmax on the logits output
         :param convert_to_tensor:  Conver the output to a tensor.
         :return: Predictions for the passed sentence pairs
         """
@@ -251,6 +255,9 @@ class CrossEncoder():
             for features in iterator:
                 model_predictions = self.model(**features, return_dict=True)
                 logits = activation_fct(model_predictions.logits)
+
+                if apply_softmax and len(logits[0]) > 1:
+                    logits = torch.nn.functional.softmax(logits, dim=1)
                 pred_scores.extend(logits)
 
         if self.config.num_labels == 1:
