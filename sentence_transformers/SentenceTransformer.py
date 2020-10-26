@@ -187,6 +187,8 @@ class SentenceTransformer(nn.Sequential):
                     embeddings = embeddings * input_mask_expanded
 
                 for emb in embeddings:
+                    if convert_to_numpy:
+                        emb.cpu()
                     all_embeddings.append(emb.detach())
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
