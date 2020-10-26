@@ -186,9 +186,12 @@ class SentenceTransformer(nn.Sequential):
                     input_mask_expanded = input_mask.unsqueeze(-1).expand(embeddings.size()).float()
                     embeddings = embeddings * input_mask_expanded
 
+                # fixes for #522 and #487
+                # to avoid oom problems on gpu with large datasets
+                if convert_to_numpy:
+                    embeddings.cpu()
+
                 for emb in embeddings:
-                    if convert_to_numpy:
-                        emb.cpu()
                     all_embeddings.append(emb.detach())
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
