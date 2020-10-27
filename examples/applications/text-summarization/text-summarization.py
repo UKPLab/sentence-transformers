@@ -6,6 +6,14 @@ The document is splitted into sentences using NLTK, then the sentence embeddings
 then compute the cosine-similarity across all possible sentence pairs.
 
 We then use LexRank to find the most central sentences in the document, which form our summary.
+
+Input document: First section from the English Wikipedia Section
+Output summary:
+Located at the southern tip of the U.S. state of New York, the city is the center of the New York metropolitan area, the largest metropolitan area in the world by urban landmass.
+New York City (NYC), often called simply New York, is the most populous city in the United States.
+Anchored by Wall Street in the Financial District of Lower Manhattan, New York City has been called both the world's leading financial center and the most financially powerful city in the world, and is home to the world's two largest stock exchanges by total market capitalization, the New York Stock Exchange and NASDAQ.
+New York City has been described as the cultural, financial, and media capital of the world, significantly influencing commerce, entertainment, research, technology, education, politics, tourism, art, fashion, and sports.
+If the New York metropolitan area were a sovereign state, it would have the eighth-largest economy in the world.
 """
 import nltk
 from sentence_transformers import SentenceTransformer, util
