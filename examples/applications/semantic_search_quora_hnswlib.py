@@ -84,7 +84,7 @@ else:
 
 ### Create the HNSWLIB index
 print("Start creating HNSWLIB index")
-index.init_index(max_elements = len(corpus_embeddings), ef_construction = 200, M = 16)
+index.init_index(max_elements = len(corpus_embeddings), ef_construction = 400, M = 64)
 
 # Then we train the index to find a suitable clustering
 index.add_items(corpus_embeddings, list(range(len(corpus_embeddings))))
