@@ -54,7 +54,9 @@ Making BERT stretchy - Scalable Semantic Search on a Jupyter Notebook](https://m
 **SentenceTransformers used in Research**
 
 The following papers use SentenceTransformers in research:
-
+- **October 2020 - [Identifying Similar Movie Characters Quickly but Effectively Using Non-exhaustive Pair-wise Attention](https://arxiv.org/abs/2010.12183)**
+- **October 2020 - [SciSummPip: An Unsupervised Scientific Paper Summarization Pipeline](https://arxiv.org/abs/2010.09190)**
+- **October 2020 - [Effective Distributed Representations for Academic Expert Search](https://arxiv.org/abs/2010.08269)**
 - **September 2020** - **[End-to-End Neural Matching for Semantic Location Prediction of Tweets](https://dl.acm.org/doi/abs/10.1145/3415149)**
 - **August 2020 - [VisualSem: a high-quality knowledge graph for vision & language](https://arxiv.org/pdf/2008.09150.pdf)**
 - **August 2020 - [Contextualized moral inference](https://arxiv.org/pdf/2008.10762.pdf)**
