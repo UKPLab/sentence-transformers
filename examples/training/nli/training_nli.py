@@ -26,6 +26,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 #Check if dataset exsist. If not, download and extract  it
@@ -62,7 +63,7 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 
 # Read the AllNLI.tsv.gz file and create the training dataset
-logging.info("Read AllNLI train dataset")
+logger.info("Read AllNLI train dataset")
 
 label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
 train_samples = []
@@ -80,7 +81,7 @@ train_loss = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.
 
 
 #Read STSbenchmark dataset and use it as development set
-logging.info("Read STSbenchmark dev dataset")
+logger.info("Read STSbenchmark dev dataset")
 dev_samples = []
 with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -95,7 +96,7 @@ dev_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, ba
 num_epochs = 1
 
 warmup_steps = math.ceil(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 
 

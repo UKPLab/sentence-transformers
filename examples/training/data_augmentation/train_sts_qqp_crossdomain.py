@@ -3,7 +3,7 @@ The script shows how to train Augmented SBERT (Domain-Transfer/Cross-Domain) str
 For our example below we consider STSb (source) and QQP (target) datasets respectively.
 
 Methodology:
-Three steps are followed for AugSBERT data-augmentation strategy with Domain Trasfer / Cross-Domain - 
+Three steps are followed for AugSBERT data-augmentation strategy with Domain Trasfer / Cross-Domain -
 1. Cross-Encoder aka BERT is trained over STSb (source) dataset.
 2. Cross-Encoder is used to label QQP training (target) dataset (Assume no labels/no annotations are provided).
 3. Bi-encoder aka SBERT is trained over the labeled QQP (target) dataset.
@@ -39,6 +39,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 #You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
@@ -60,7 +61,7 @@ if not os.path.exists(sts_dataset_path):
 
 # Check if the QQP dataset exists. If not, download and extract
 if not os.path.exists(qqp_dataset_path):
-    logging.info("Dataset not found. Download")
+    logger.info("Dataset not found. Download")
     zip_save_path = 'quora-IR-dataset.zip'
     util.http_get(url='https://sbert.net/datasets/quora-IR-dataset.zip', path=zip_save_path)
     with ZipFile(zip_save_path, 'r') as zipIn:
@@ -72,13 +73,13 @@ bi_encoder_path = 'output/bi-encoder/qqp_cross_domain_'+model_name.replace("/", 
 
 ###### Cross-encoder (simpletransformers) ######
 
-logging.info("Loading cross-encoder model: {}".format(model_name))
+logger.info("Loading cross-encoder model: {}".format(model_name))
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for cross-encoder model
 cross_encoder = CrossEncoder(model_name, num_labels=1)
 
 ###### Bi-encoder (sentence-transformers) ######
 
-logging.info("Loading bi-encoder model: {}".format(model_name))
+logger.info("Loading bi-encoder model: {}".format(model_name))
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
@@ -98,7 +99,7 @@ bi_encoder = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 #
 #####################################################
 
-logging.info("Step 1: Train cross-encoder: {} with STSbenchmark (source dataset)".format(model_name))
+logger.info("Step 1: Train cross-encoder: {} with STSbenchmark (source dataset)".format(model_name))
 
 gold_samples = []
 dev_samples = []
@@ -128,7 +129,7 @@ evaluator = CECorrelationEvaluator.from_input_examples(dev_samples, name='sts-de
 
 # Configure the training
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 # Train the cross-encoder model
 cross_encoder.fit(train_dataloader=train_dataloader,
@@ -144,7 +145,7 @@ cross_encoder.fit(train_dataloader=train_dataloader,
 #
 ##################################################################
 
-logging.info("Step 2: Label QQP (target dataset) with cross-encoder: {}".format(model_name))
+logger.info("Step 2: Label QQP (target dataset) with cross-encoder: {}".format(model_name))
 
 cross_encoder = CrossEncoder(cross_encoder_path)
 
@@ -169,10 +170,10 @@ binary_silver_scores = [1 if score >= 0.5 else 0 for score in silver_scores]
 #
 ###########################################################################
 
-logging.info("Step 3: Train bi-encoder: {} over labeled QQP (target dataset)".format(model_name))
+logger.info("Step 3: Train bi-encoder: {} over labeled QQP (target dataset)".format(model_name))
 
 # Convert the dataset to a DataLoader ready for training
-logging.info("Loading BERT labeled QQP dataset")
+logger.info("Loading BERT labeled QQP dataset")
 qqp_train_data = list(InputExample(texts=[data[0], data[1]], label=score) for (data, score) in zip(silver_data, binary_silver_scores))
 
 train_dataset = SentencesDataset(qqp_train_data, bi_encoder)
@@ -183,7 +184,7 @@ train_loss = losses.MultipleNegativesRankingLoss(bi_encoder)
 # Given (quesiton1, question2), is this a duplicate or not?
 # The evaluator will compute the embeddings for both questions and then compute
 # a cosine similarity. If the similarity is above a threshold, we have a duplicate.
-logging.info("Read QQP dev dataset")
+logger.info("Read QQP dev dataset")
 
 dev_sentences1 = []
 dev_sentences2 = []
@@ -200,7 +201,7 @@ evaluator = BinaryClassificationEvaluator(dev_sentences1, dev_sentences2, dev_la
 
 # Configure the training.
 warmup_steps = math.ceil(len(train_dataset) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 # Train the bi-encoder model
 bi_encoder.fit(train_objectives=[(train_dataloader, train_loss)],
@@ -218,10 +219,10 @@ bi_encoder.fit(train_objectives=[(train_dataloader, train_loss)],
 #
 ###############################################################
 
-# Loading the augmented sbert model 
+# Loading the augmented sbert model
 bi_encoder = SentenceTransformer(bi_encoder_path)
 
-logging.info("Read QQP test dataset")
+logger.info("Read QQP test dataset")
 test_sentences1 = []
 test_sentences2 = []
 test_labels = []

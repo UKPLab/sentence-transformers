@@ -20,6 +20,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 #Check if dataset exsist. If not, download and extract  it
@@ -43,7 +44,7 @@ model_save_path = 'output/training_stsbenchmark_continue_training-'+model_name+'
 model = SentenceTransformer(model_name)
 
 # Convert the dataset to a DataLoader ready for training
-logging.info("Read STSbenchmark train dataset")
+logger.info("Read STSbenchmark train dataset")
 
 train_samples = []
 dev_samples = []
@@ -68,13 +69,13 @@ train_loss = losses.CosineSimilarityLoss(model=model)
 
 
 # Development set: Measure correlation between cosine score and gold labels
-logging.info("Read STSbenchmark dev dataset")
+logger.info("Read STSbenchmark dev dataset")
 evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name='sts-dev')
 
 
 # Configure the training. We skip evaluation in this example
 warmup_steps = math.ceil(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 
 # Train the model

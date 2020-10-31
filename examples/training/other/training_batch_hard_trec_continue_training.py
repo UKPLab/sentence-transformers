@@ -36,6 +36,12 @@ import urllib.request
 import random
 from collections import defaultdict
 
+logging.basicConfig(format='%(asctime)s - %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO,
+                    handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
+
 # Inspired from torchnlp
 def trec_dataset(
     directory="datasets/trec/",
@@ -61,7 +67,7 @@ def trec_dataset(
         for line in open(full_path, "rb"):
             # there is one non-ASCII byte: sisterBADBYTEcity; replaced with space
             label, _, text = line.replace(b"\xf0", b" ").strip().decode().partition(" ")
-            
+
             # We extract the upper category (e.g. DESC from DESC:def)
             label, _, _ = label.partition(":")
 
@@ -137,7 +143,7 @@ output_path = (
 )
 num_epochs = 1
 
-logging.info("Loading TREC dataset")
+logger.info("Loading TREC dataset")
 train_set, dev_set, test_set = trec_dataset()
 
 
@@ -145,7 +151,7 @@ train_set, dev_set, test_set = trec_dataset()
 # Load pretrained model
 model = SentenceTransformer(model_name)
 
-logging.info("Read TREC train dataset")
+logger.info("Read TREC train dataset")
 train_dataset = SentenceLabelDataset(
     examples=train_set,
     model=model,
@@ -168,10 +174,10 @@ train_loss = losses.BatchAllTripletLoss(model=model)
 #train_loss = losses.BatchSemiHardTripletLoss(model=model)
 
 
-logging.info("Read TREC val dataset")
+logger.info("Read TREC val dataset")
 dev_evaluator = TripletEvaluator.from_input_examples(dev_set, name='dev')
 
-logging.info("Performance before fine-tuning:")
+logger.info("Performance before fine-tuning:")
 dev_evaluator(model)
 
 warmup_steps = int(
@@ -194,6 +200,6 @@ model.fit(
 #
 ##############################################################################
 
-logging.info("Evaluating model on test set")
+logger.info("Evaluating model on test set")
 test_evaluator = TripletEvaluator.from_input_examples(test_set, name='test')
 model.evaluate(test_evaluator)

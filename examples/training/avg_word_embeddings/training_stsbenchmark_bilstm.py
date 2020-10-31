@@ -19,6 +19,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 # Read the dataset
@@ -44,18 +45,18 @@ model = SentenceTransformer(modules=[word_embedding_model, lstm, pooling_model])
 
 
 # Convert the dataset to a DataLoader ready for training
-logging.info("Read STSbenchmark train dataset")
+logger.info("Read STSbenchmark train dataset")
 train_data = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model=model)
 train_dataloader = DataLoader(train_data, shuffle=True, batch_size=batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)
 
-logging.info("Read STSbenchmark dev dataset")
+logger.info("Read STSbenchmark dev dataset")
 evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-dev.csv'))
 
 # Configure the training
 num_epochs = 10
 warmup_steps = math.ceil(len(train_data) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 # Train the model
 model.fit(train_objectives=[(train_dataloader, train_loss)],

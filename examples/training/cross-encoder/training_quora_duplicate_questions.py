@@ -26,6 +26,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 
@@ -34,7 +35,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 dataset_path = 'quora-dataset/'
 
 if not os.path.exists(dataset_path):
-    logging.info("Dataset not found. Download")
+    logger.info("Dataset not found. Download")
     zip_save_path = 'quora-IR-dataset.zip'
     util.http_get(url='https://sbert.net/datasets/quora-IR-dataset.zip', path=zip_save_path)
     with ZipFile(zip_save_path, 'r') as zip:
@@ -42,7 +43,7 @@ if not os.path.exists(dataset_path):
 
 
 # Read the quora dataset split for classification
-logging.info("Read train dataset")
+logger.info("Read train dataset")
 train_samples = []
 with open(os.path.join(dataset_path, 'classification', 'train_pairs.tsv'), 'r', encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -51,7 +52,7 @@ with open(os.path.join(dataset_path, 'classification', 'train_pairs.tsv'), 'r', 
         train_samples.append(InputExample(texts=[row['question2'], row['question1']], label=int(row['is_duplicate'])))
 
 
-logging.info("Read dev dataset")
+logger.info("Read dev dataset")
 dev_samples = []
 with open(os.path.join(dataset_path, 'classification', 'dev_pairs.tsv'), 'r', encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -78,7 +79,7 @@ evaluator = CEBinaryClassificationEvaluator.from_input_examples(dev_samples, nam
 
 # Configure the training
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 
 # Train the model

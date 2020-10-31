@@ -4,13 +4,13 @@ We apply early stopping and evaluate the models over the dev set, to find out th
 
 For more details refer to -
 Fine-Tuning Pretrained Language Models:
-Weight Initializations, Data Orders, and Early Stopping by Dodge et al. 2020 
+Weight Initializations, Data Orders, and Early Stopping by Dodge et al. 2020
 https://arxiv.org/pdf/2002.06305.pdf
 
 Why Seed Optimization?
-Dodge et al. (2020) show a high dependence on the random seed for transformer based models like BERT, 
-as it converges to different minima that generalize differently to unseen data. This is especially the 
-case for small training datasets. 
+Dodge et al. (2020) show a high dependence on the random seed for transformer based models like BERT,
+as it converges to different minima that generalize differently to unseen data. This is especially the
+case for small training datasets.
 
 Citation: https://arxiv.org/abs/2010.08240
 
@@ -42,6 +42,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 
@@ -59,16 +60,16 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-uncased'
 seed_count = int(sys.argv[2]) if len(sys.argv) > 2 else 10
 stop_after = float(sys.argv[3]) if len(sys.argv) > 3 else 0.3
 
-logging.info("Train and Evaluate: {} Random Seeds".format(seed_count))
+logger.info("Train and Evaluate: {} Random Seeds".format(seed_count))
 
 for seed in range(seed_count):
 
     # Setting seed for all random initializations
-    logging.info("##### Seed {} #####".format(seed))
+    logger.info("##### Seed {} #####".format(seed))
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    
+
     # Read the dataset
     train_batch_size = 16
     num_epochs = 1
@@ -86,7 +87,7 @@ for seed in range(seed_count):
     model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
     # Convert the dataset to a DataLoader ready for training
-    logging.info("Read STSbenchmark train dataset")
+    logger.info("Read STSbenchmark train dataset")
 
     train_samples = []
     dev_samples = []
@@ -109,20 +110,20 @@ for seed in range(seed_count):
     train_loss = losses.CosineSimilarityLoss(model=model)
 
 
-    logging.info("Read STSbenchmark dev dataset")
+    logger.info("Read STSbenchmark dev dataset")
     evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name='sts-dev')
 
 
     # Configure the training. We skip evaluation in this example
     warmup_steps = math.ceil(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data for warm-up
-    
+
     # Stopping and Evaluating after 30% of training data (less than 1 epoch)
     # We find from (Dodge et al.) that 20-30% is often ideal for convergence of random seed
-    steps_per_epoch = math.ceil( len(train_dataset) / train_batch_size * stop_after ) 
-    
-    logging.info("Warmup-steps: {}".format(warmup_steps))
+    steps_per_epoch = math.ceil( len(train_dataset) / train_batch_size * stop_after )
 
-    logging.info("Early-stopping: {}% of the training-data".format(int(stop_after*100)))
+    logger.info("Warmup-steps: {}".format(warmup_steps))
+
+    logger.info("Early-stopping: {}% of the training-data".format(int(stop_after*100)))
 
 
     # Train the model

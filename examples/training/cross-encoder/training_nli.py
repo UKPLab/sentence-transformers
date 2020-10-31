@@ -24,6 +24,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 
@@ -36,7 +37,7 @@ if not os.path.exists(nli_dataset_path):
 
 
 # Read the AllNLI.tsv.gz file and create the training dataset
-logging.info("Read AllNLI train dataset")
+logger.info("Read AllNLI train dataset")
 
 label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
 train_samples = []
@@ -67,7 +68,7 @@ evaluator = CESoftmaxAccuracyEvaluator.from_input_examples(dev_samples, name='Al
 
 
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 
 # Train the model

@@ -20,6 +20,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 # Read the dataset
@@ -53,7 +54,7 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 
 # Convert the dataset to a DataLoader ready for training
-logging.info("Read AllNLI train dataset")
+logger.info("Read AllNLI train dataset")
 label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
 train_nli_samples = []
 with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
@@ -67,7 +68,7 @@ train_data_nli = SentencesDataset(train_nli_samples, model=model)
 train_dataloader_nli = DataLoader(train_data_nli, shuffle=True, batch_size=batch_size)
 train_loss_nli = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=len(label2int))
 
-logging.info("Read STSbenchmark train dataset")
+logger.info("Read STSbenchmark train dataset")
 train_sts_samples = []
 dev_sts_samples = []
 test_sts_samples = []
@@ -89,14 +90,14 @@ train_dataloader_sts = DataLoader(train_data_sts, shuffle=True, batch_size=batch
 train_loss_sts = losses.CosineSimilarityLoss(model=model)
 
 
-logging.info("Read STSbenchmark dev dataset")
+logger.info("Read STSbenchmark dev dataset")
 evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_sts_samples, name='sts-dev')
 
 # Configure the training
 num_epochs = 4
 
 warmup_steps = math.ceil(len(train_data_sts) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 
 # Here we define the two train objectives: train_dataloader_nli with train_loss_nli (i.e., SoftmaxLoss for NLI data)

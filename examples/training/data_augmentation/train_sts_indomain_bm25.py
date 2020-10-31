@@ -9,9 +9,9 @@ link for download - https://www.elastic.co/downloads/elasticsearch
 Or to run it with Docker: https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
 
 Methodology:
-Three steps are followed for AugSBERT data-augmentation with BM25 Sampling - 
+Three steps are followed for AugSBERT data-augmentation with BM25 Sampling -
     1. Fine-tune cross-encoder (BERT) on gold STSb dataset
-    2. Fine-tuned Cross-encoder is used to label on BM25 sampled unlabeled pairs (silver STSb dataset) 
+    2. Fine-tuned Cross-encoder is used to label on BM25 sampled unlabeled pairs (silver STSb dataset)
     3. Bi-encoder (SBERT) is finally fine-tuned on both gold + silver STSb dataset
 
 Citation: https://arxiv.org/abs/2010.08240
@@ -47,10 +47,11 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 # supressing INFO messages for elastic-search logger
-tracer = logging.getLogger('elasticsearch') 
+tracer = logging.getLogger('elasticsearch')
 tracer.setLevel(logging.CRITICAL)
 es = Elasticsearch()
 
@@ -74,13 +75,13 @@ cross_encoder_path = 'output/cross-encoder/stsb_indomain_'+model_name.replace("/
 bi_encoder_path = 'output/bi-encoder/stsb_augsbert_BM25_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 ###### Cross-encoder (simpletransformers) ######
-logging.info("Loading sentence-transformers model: {}".format(model_name))
+logger.info("Loading sentence-transformers model: {}".format(model_name))
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for cross-encoder model
 cross_encoder = CrossEncoder(model_name, num_labels=1)
 
 
 ###### Bi-encoder (sentence-transformers) ######
-logging.info("Loading bi-encoder model: {}".format(model_name))
+logger.info("Loading bi-encoder model: {}".format(model_name))
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
 
@@ -96,7 +97,7 @@ bi_encoder = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 #
 #####################################################################
 
-logging.info("Step 1: Train cross-encoder: ({}) with STSbenchmark".format(model_name))
+logger.info("Step 1: Train cross-encoder: ({}) with STSbenchmark".format(model_name))
 
 gold_samples = []
 dev_samples = []
@@ -126,7 +127,7 @@ evaluator = CECorrelationEvaluator.from_input_examples(dev_samples, name='sts-de
 
 # Configure the training
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 # Train the cross-encoder model
 cross_encoder.fit(train_dataloader=train_dataloader,
@@ -145,7 +146,7 @@ cross_encoder.fit(train_dataloader=train_dataloader,
 #### Larger the k, bigger the silver dataset ####
 
 index_name = "stsb" # index-name should be in lowercase
-logging.info("Step 2.1: Generate STSbenchmark (silver dataset) using top-{} bm25 combinations".format(top_k))
+logger.info("Step 2.1: Generate STSbenchmark (silver dataset) using top-{} bm25 combinations".format(top_k))
 
 unique_sentences = set()
 
@@ -157,20 +158,20 @@ sent2idx = {sentence: idx for idx, sentence in enumerate(unique_sentences)} # st
 duplicates = set((sent2idx[data.texts[0]], sent2idx[data.texts[1]]) for data in gold_samples) # not to include gold pairs of sentences again
 
 # Ignore 400 cause by IndexAlreadyExistsException when creating an index
-logging.info("Creating elastic-search index - {}".format(index_name))
-es.indices.create(index=index_name, ignore=[400]) 
+logger.info("Creating elastic-search index - {}".format(index_name))
+es.indices.create(index=index_name, ignore=[400])
 
 # indexing all sentences
-logging.info("Starting to index....")
+logger.info("Starting to index....")
 for sent in unique_sentences:
     response = es.index(
         index = index_name,
         id = sent2idx[sent],
         body = {"sent" : sent})
 
-logging.info("Indexing complete for {} unique sentences".format(len(unique_sentences)))
+logger.info("Indexing complete for {} unique sentences".format(len(unique_sentences)))
 
-silver_data = [] 
+silver_data = []
 progress = tqdm.tqdm(unit="docs", total=len(sent2idx))
 
 # retrieval of top-k sentences which forms the silver training data
@@ -185,8 +186,8 @@ for sent, idx in sent2idx.items():
 progress.reset()
 progress.close()
 
-logging.info("Number of silver pairs generated for STSbenchmark: {}".format(len(silver_data)))
-logging.info("Step 2.2: Label STSbenchmark (silver dataset) with cross-encoder: {}".format(model_name))
+logger.info("Number of silver pairs generated for STSbenchmark: {}".format(len(silver_data)))
+logger.info("Step 2.2: Label STSbenchmark (silver dataset) with cross-encoder: {}".format(model_name))
 
 cross_encoder = CrossEncoder(cross_encoder_path)
 silver_scores = cross_encoder.predict(silver_data)
@@ -200,10 +201,10 @@ assert all(0.0 <= score <= 1.0 for score in silver_scores)
 #
 #################################################################################################
 
-logging.info("Step 3: Train bi-encoder: {} with STSbenchmark (gold + silver dataset)".format(model_name))
+logger.info("Step 3: Train bi-encoder: {} with STSbenchmark (gold + silver dataset)".format(model_name))
 
 # Convert the dataset to a DataLoader ready for training
-logging.info("Read STSbenchmark gold and silver train dataset")
+logger.info("Read STSbenchmark gold and silver train dataset")
 silver_samples = list(InputExample(texts=[data[0], data[1]], label=score) for \
     data, score in zip(silver_data, silver_scores))
 
@@ -211,12 +212,12 @@ train_dataset = SentencesDataset(gold_samples + silver_samples, bi_encoder)
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
 train_loss = losses.CosineSimilarityLoss(model=bi_encoder)
 
-logging.info("Read STSbenchmark dev dataset")
+logger.info("Read STSbenchmark dev dataset")
 evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name='sts-dev')
 
 # Configure the training.
 warmup_steps = math.ceil(len(train_dataset) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 # Train the bi-encoder model
 bi_encoder.fit(train_objectives=[(train_dataloader, train_loss)],
@@ -235,6 +236,6 @@ bi_encoder.fit(train_objectives=[(train_dataloader, train_loss)],
 
 # load the stored augmented-sbert model
 bi_encoder = SentenceTransformer(bi_encoder_path)
-logging.info("Read STSbenchmark test dataset")
+logger.info("Read STSbenchmark test dataset")
 test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name='sts-test')
 test_evaluator(bi_encoder, output_path=bi_encoder_path)

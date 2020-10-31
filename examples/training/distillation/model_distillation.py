@@ -38,6 +38,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 
@@ -66,7 +67,7 @@ if use_layer_reduction:
     #layers_to_keep = [0, 2, 4, 6, 8, 10]
     #layers_to_keep = [0, 1, 3, 4, 6, 7, 9, 10]
 
-    logging.info("Remove layers from teacher. Only keep these layers: {}".format(layers_to_keep))
+    logger.info("Remove layers from teacher. Only keep these layers: {}".format(layers_to_keep))
     new_layers = torch.nn.ModuleList([layer_module for i, layer_module in enumerate(auto_model.encoder.layer) if i in layers_to_keep])
     auto_model.encoder.layer = new_layers
     auto_model.config.num_hidden_layers = len(layers_to_keep)
@@ -138,7 +139,7 @@ train_sentences_wikipedia = wikipeda_sentences[5000:]
 
 
 # We use the STS benchmark dataset to measure the performance of student model im comparison to the teacher model
-logging.info("Read STSbenchmark dev dataset")
+logger.info("Read STSbenchmark dev dataset")
 dev_samples = []
 with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -150,12 +151,12 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
 dev_evaluator_sts = evaluation.EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name='sts-dev')
 
 
-logging.info("Teacher Performance:")
+logger.info("Teacher Performance:")
 dev_evaluator_sts(teacher_model)
 
 # Student Model has fewer dimension. Compute PCA for the teacher to reduce the dimensions
 if student_model.get_sentence_embedding_dimension() < teacher_model.get_sentence_embedding_dimension():
-    logging.info("Student model has fewer dimensions that the teacher. Compute PCA for down projection")
+    logger.info("Student model has fewer dimensions that the teacher. Compute PCA for down projection")
     pca_sentences = train_sentences_nli[0:25000]
     pca_embeddings = teacher_model.encode(pca_sentences, convert_to_numpy=True)
     pca = PCA(n_components=student_model.get_sentence_embedding_dimension())
@@ -166,7 +167,7 @@ if student_model.get_sentence_embedding_dimension() < teacher_model.get_sentence
     dense.linear.weight = torch.nn.Parameter(torch.tensor(pca.components_))
     teacher_model.add_module('dense', dense)
 
-    logging.info("Teacher Performance with {} dimensions:".format(teacher_model.get_sentence_embedding_dimension()))
+    logger.info("Teacher Performance with {} dimensions:".format(teacher_model.get_sentence_embedding_dimension()))
     dev_evaluator_sts(teacher_model)
 
 

@@ -19,7 +19,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
-
+logger = logging.getLogger(__name__)
 
 #You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
 model_name = 'distilbert-base-uncased'
@@ -52,7 +52,7 @@ pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 
-logging.info("Read Triplet train dataset")
+logger.info("Read Triplet train dataset")
 train_examples = []
 with open(os.path.join(dataset_path, 'train.csv'), encoding="utf-8") as fIn:
     reader = csv.DictReader(fIn, delimiter=',', quoting=csv.QUOTE_MINIMAL)
@@ -64,7 +64,7 @@ train_dataset = SentencesDataset(train_examples, model=model)
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.TripletLoss(model=model)
 
-logging.info("Read Wikipedia Triplet dev dataset")
+logger.info("Read Wikipedia Triplet dev dataset")
 dev_examples = []
 with open(os.path.join(dataset_path, 'validation.csv'), encoding="utf-8") as fIn:
     reader = csv.DictReader(fIn, delimiter=',', quoting=csv.QUOTE_MINIMAL)
@@ -94,7 +94,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 #
 ##############################################################################
 
-logging.info("Read test examples")
+logger.info("Read test examples")
 test_examples = []
 with open(os.path.join(dataset_path, 'test.csv'), encoding="utf-8") as fIn:
     reader = csv.DictReader(fIn, delimiter=',', quoting=csv.QUOTE_MINIMAL)

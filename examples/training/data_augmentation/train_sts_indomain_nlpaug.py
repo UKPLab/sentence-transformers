@@ -3,12 +3,12 @@ The script shows how to train Augmented SBERT (In-Domain) strategy for STSb data
 We utilise nlpaug (https://github.com/makcedward/nlpaug) for data augmentation strategies over a single sentence.
 
 We chose synonym replacement for our example with (can be extended to other techniques) -
-    1. Word-embeddings (word2vec) 
+    1. Word-embeddings (word2vec)
     2. WordNet
     3. Contextual word-embeddings (BERT)
 
 Methodology:
-Take a gold STSb pair, like (A, B, 0.6) Then replace synonyms in A and B, which gives you (A', B', 0.6) 
+Take a gold STSb pair, like (A, B, 0.6) Then replace synonyms in A and B, which gives you (A', B', 0.6)
 These are the silver data and SBERT is finally trained on (gold + silver) STSb data.
 
 Additional requirements:
@@ -48,6 +48,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 #You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
@@ -68,7 +69,7 @@ if not os.path.exists(sts_dataset_path):
 model_save_path = 'output/bi-encoder/stsb_indomain_eda_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 ###### Bi-encoder (sentence-transformers) ######
-logging.info("Loading SBERT model: {}".format(model_name))
+logger.info("Loading SBERT model: {}".format(model_name))
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name)
 
@@ -104,7 +105,7 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
 #
 ##################################################################################
 
-logging.info("Starting with synonym replacement...")
+logger.info("Starting with synonym replacement...")
 
 #### Synonym replacement using Word2Vec ####
 # Download the word2vec pre-trained Google News corpus (GoogleNews-vectors-negative300.bin)
@@ -132,8 +133,8 @@ for sample in gold_samples:
 
 progress.reset()
 progress.close()
-logging.info("Textual augmentation completed....")
-logging.info("Number of silver pairs generated: {}".format(len(silver_samples)))
+logger.info("Textual augmentation completed....")
+logger.info("Number of silver pairs generated: {}".format(len(silver_samples)))
 
 ###################################################################
 #
@@ -141,19 +142,19 @@ logging.info("Number of silver pairs generated: {}".format(len(silver_samples)))
 #
 ###################################################################
 
-logging.info("Read STSbenchmark (gold + silver) training dataset")
+logger.info("Read STSbenchmark (gold + silver) training dataset")
 train_dataset = SentencesDataset(gold_samples + silver_samples, model)
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)
 
 
-logging.info("Read STSbenchmark dev dataset")
+logger.info("Read STSbenchmark dev dataset")
 evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name='sts-dev')
 
 
 # Configure the training.
 warmup_steps = math.ceil(len(train_dataset) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 
 # Train the SBERT model

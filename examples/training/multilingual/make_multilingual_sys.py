@@ -47,6 +47,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 
 
 teacher_model_name = 'bert-base-nli-stsb-mean-tokens'   #Our monolingual teacher model, we want to convert to multiple languages
@@ -93,15 +94,15 @@ if len(train_files) == 0:
     exit()
 
 
-logging.info("Train files: {}".format(", ".join(train_files)))
-logging.info("Dev files: {}".format(", ".join(dev_files)))
+logger.info("Train files: {}".format(", ".join(train_files)))
+logger.info("Dev files: {}".format(", ".join(dev_files)))
 
 ######## Start the extension of the teacher model to multiple languages ########
-logging.info("Load teacher model")
+logger.info("Load teacher model")
 teacher_model = SentenceTransformer(teacher_model_name)
 
 
-logging.info("Create student model from scratch")
+logger.info("Create student model from scratch")
 word_embedding_model = models.Transformer(student_model_name, max_seq_length=max_seq_length)
 # Apply mean pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
@@ -122,7 +123,7 @@ train_loss = losses.MSELoss(model=student_model)
 evaluators = []         #evaluators has a list of different evaluator classes we call periodically
 
 for dev_file in dev_files:
-    logging.info("Create evaluator for " + dev_file)
+    logger.info("Create evaluator for " + dev_file)
     src_sentences = []
     trg_sentences = []
     with gzip.open(dev_file, 'rt', encoding='utf8') if dev_file.endswith('.gz') else open(dev_file, encoding='utf8') as fIn:
