@@ -92,7 +92,6 @@ For each sentence pair, we pass sentence A and sentence B through our network wh
 
 A minimal example with `CosineSimilarityLoss` is the following:
 ```python
- ```python
 from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample, losses
 from torch.utils.data import DataLoader
 
