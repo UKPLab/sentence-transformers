@@ -17,7 +17,7 @@ For the **full documentation**, see [www.SBERT.net](https://www.sbert.net), as w
 
 
 ## Installation
-We recommend **Python 3.6** or higher, **[PyTorch 1.6.0](https://pytorch.org/get-started/locally/)** or higher and **[transformers v3.1.0](https://github.com/huggingface/transformers)** or higher. The code does **not** work with Python 2.7 and with PyTorch before version 1.6.0 so models and functions cannot be used.
+We recommend **Python 3.6** or higher, **[PyTorch 1.6.0](https://pytorch.org/get-started/locally/)** or higher and **[transformers v3.1.0](https://github.com/huggingface/transformers)** or higher. The code does **not** work with Python 2.7 and with PyTorch before version 1.6.0 some models and functions cannot be used.
 
 
 
