@@ -45,22 +45,21 @@ Available models:
 
 The following models were trained on [MSMARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking): Given a search query (which can be anything like key words, a sentence, a question), find the relevant passages. You can index the embeddings and use it for dense information retrieval, outperforming lexical approaches like BM25.
 
-- **distilroberta-base-msmarco-v1** - First version trained on MSMarco train set. MRR on MSMARCO dev dataset: 23.28
+- **distilroberta-base-msmarco-v2** 
 
-To use, you have to prepend  `[QRY] ` to the queries and `[DOC] ` to passages:
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('distilroberta-base-msmarco-v1')
+model = SentenceTransformer('distilroberta-base-msmarco-v2')
 
-query_embedding = model.encode('[QRY] ' + 'How big is London')
-passage_embedding = model.encode('[DOC] ' + 'London has 9,787,426 inhabitants at the 2011 census')
+query_embedding = model.encode('How big is London')
+passage_embedding = model.encode('London has 9,787,426 inhabitants at the 2011 census')
 
 print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 ```
 
 You can index the passages as shown [here](https://www.sbert.net/docs/usage/semantic_search.html).
 
-[More details](pretrained-models/msmarco.md)
+[More details](pretrained-models/msmarco-v2.md)
 
 
 ## Multi-Lingual Models
@@ -76,7 +75,7 @@ These models find semantically similar sentences within one language or across l
 - **xlm-r-distilroberta-base-paraphrase-v1** - Multilingual version of distilroberta-base-paraphrase-v1, trained on parallel data for 50+ languages. 
 - **xlm-r-bert-base-nli-stsb-mean-tokens**: Produces similar embeddings as the bert-base-nli-stsb-mean-token model. Trained on parallel data for 50+ languages.
 - **distilbert-multilingual-nli-stsb-quora-ranking** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*.  Fine-tuned with parallel data for 50+ languages. 
-
+- **T-Systems-onsite/cross-en-de-roberta-sentence-transformer** - Multilingual model for English an German. [[More]](https://huggingface.co/T-Systems-onsite/cross-en-de-roberta-sentence-transformer)
 
 **Bitext Mining** 
 
