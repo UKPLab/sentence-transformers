@@ -145,11 +145,13 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
    :maxdepth: 2
    :caption: Usage
 
-   docs/usage/computing_sentence_embeddings
+   examples/applications/computing-embeddings/README
    docs/usage/semantic_textual_similarity
-   docs/usage/paraphrase_mining
-   docs/usage/semantic_search
-   docs/usage/cross-encoder
+   examples/applications/clustering/README
+   examples/applications/paraphrase-mining/README
+   examples/applications/parallel-sentence-mining/README
+   examples/applications/semantic-search/README
+   examples/applications/cross-encoder/README
 
 .. toctree::
    :maxdepth: 2

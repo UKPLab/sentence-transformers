@@ -1,4 +1,4 @@
-# Bitext-Mining
+# Translated Sentence Mining
 
 Bitext mining describes the process of finding parallel (translated) sentence pairs in monolingual corpora. For example, you have an set of English sentences:
 ```
@@ -24,7 +24,7 @@ This is an example sentences.   Dies ist ein Beispielsatz.
 
 Usually you apply this method to large corpora, for example, you want to find all translated sentences in the English Wikipedia and the Chinese Wikipedia. 
 
-## Bitext-Mining using Sentence-Transformers
+## Marging Based Mining
 
 We follow the setup from [Artetxe and Schwenk, Section 4.3](https://arxiv.org/pdf/1812.10464.pdf) to find translated sentences in two datasets:
 1) First, we encode all sentences to their respective embedding. As shown in [our paper](https://arxiv.org/abs/2004.09813) is [LaBSE](https://tfhub.dev/google/LaBSE/1) currently the best method for bitext mining. The model is integrated in Sentence-Transformers

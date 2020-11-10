@@ -10,14 +10,14 @@ Further, this framework allows an easy  **[fine-tuning of custom embeddings mode
 
 For the **full documentation**, see [www.SBERT.net](https://www.sbert.net), as well as our publications:
 - [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (EMNLP 2019)
-- [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) (EMNLP 2020).
+- [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) (EMNLP 2020)
 - [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240) (arXiv 2020)
 
 
 
 
 ## Installation
-We recommend **Python 3.6** or higher, **[PyTorch 1.2.0](https://pytorch.org/get-started/locally/)** or higher and **[transformers v3.1.0](https://github.com/huggingface/transformers)** or higher. The code does **not** work with Python 2.7. Note, for some features and pre-trained models, you need **PyTorch 1.6.0** or higher.
+We recommend **Python 3.6** or higher, **[PyTorch 1.6.0](https://pytorch.org/get-started/locally/)** or higher and **[transformers v3.1.0](https://github.com/huggingface/transformers)** or higher. The code does **not** work with Python 2.7.
 
 
 
@@ -84,15 +84,10 @@ See [Training Overview](https://www.sbert.net/docs/training/overview.html) for a
 
 
 Some highlights are:
-- Support of various transformer networks including BERT, RoBERTa, XLM-R, DistilBERT, Elextra, BART, ...
+- Support of various transformer networks including BERT, RoBERTa, XLM-R, DistilBERT, Electra, BART, ...
 - Multi-Lingual and multi-task learning
 - Evaluation during training to find optimal model
 - [10+ loss-functions](https://www.sbert.net/docs/package_reference/losses.html) allowing to tune models specifically for semantic search, paraphrase mining, semantic similarity comparison, clustering, triplet loss, constrative loss.
-
-
-
-
-
 
 
 
@@ -121,137 +116,11 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
 
 
 ## Application Examples
-We present some examples, how the generated sentence embeddings can be used for downstream applications.
-
-### Semantic Search
-Semantic search is the task of finding similar sentences to a given sentence. See [semantic_search.py](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications/semantic_search.py) for an example. See [our documentation](https://www.sbert.net/docs/usage/semantic_search.html) on more details about semantic search.
-
-We first generate an embedding for all sentences in a corpus:
-```python
-from sentence_transformers import SentenceTransformer, util
-import torch
-
-embedder = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
-
-# Corpus with example sentences
-corpus = ['A man is eating food.',
-          'A man is eating a piece of bread.',
-          'The girl is carrying a baby.',
-          'A man is riding a horse.',
-          'A woman is playing violin.',
-          'Two men pushed carts through the woods.',
-          'A man is riding a white horse on an enclosed ground.',
-          'A monkey is playing drums.',
-          'A cheetah is running behind its prey.'
-          ]
-corpus_embeddings = embedder.encode(corpus, convert_to_tensor=True)
-
-# Query sentences:
-queries = ['A man is eating pasta.', 'Someone in a gorilla costume is playing a set of drums.', 'A cheetah chases prey on across a field.']
+You can use this framework for [Semantic Textual Similarity](https://www.sbert.net/docs/usage/semantic_textual_similarity.html), [Clustering](https://www.sbert.net/examples/applications/clustering/README.html), [Paraphrase Mining](https://www.sbert.net/examples/applications/paraphrase-mining/README.html), [Translated Sentence Mining](https://www.sbert.net/examples/applications/parallel-sentence-mining/README.html), [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html), [Information Retrieval](https://www.sbert.net/examples/applications/information-retrieval/README.html), [Text Summarization](https://www.sbert.net/examples/applications/text-summarization/README.html) and many more use-cases.
 
 
-# Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
-top_k = 5
-for query in queries:
-    query_embedding = embedder.encode(query, convert_to_tensor=True)
-    cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
-    cos_scores = cos_scores.cpu()
 
-    #We use torch.topk to find the highest 5 scores
-    top_results = torch.topk(cos_scores, k=top_k)
-
-    print("\n\n======================\n\n")
-    print("Query:", query)
-    print("\nTop 5 most similar sentences in corpus:")
-
-    for score, idx in zip(top_results[0], top_results[1]):
-        print(corpus[idx], "(Score: %.4f)" % (score))
-```
-
-The output looks like this:
-```
-Query: A man is eating pasta.
-Top 5 most similar sentences in corpus:
-A man is eating food. (Score: 0.5777)
-A man is eating a piece of bread. (Score: 0.4986)
-A man is riding a horse. (Score: 0.1581)
-A man is riding a white horse on an enclosed ground. (Score: 0.1474)
-Two men pushed carts through the woods. (Score: 0.0992)
-
-Query: Someone in a gorilla costume is playing a set of drums.
-Top 5 most similar sentences in corpus:
-A monkey is playing drums. (Score: 0.6435)
-A man is eating a piece of bread. (Score: 0.1719)
-A man is eating food. (Score: 0.1240)
-A man is riding a white horse on an enclosed ground. (Score: 0.0706)
-A cheetah is running behind its prey. (Score: 0.0352)
-
-Query: A cheetah chases prey on across a field.
-Top 5 most similar sentences in corpus:
-A cheetah is running behind its prey. (Score: 0.7769)
-A man is riding a white horse on an enclosed ground. (Score: 0.2485)
-A man is riding a horse. (Score: 0.2116)
-A monkey is playing drums. (Score: 0.1820)
-Two men pushed carts through the woods. (Score: 0.0869)
-```
-
-
-### Clustering
-[clustering.py](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications/clustering.py) depicts an example to cluster similar sentences based on their sentence embedding similarity.
-
-As before, we first compute an embedding for each sentence:
-```python
-from sentence_transformers import SentenceTransformer
-from sklearn.cluster import KMeans
-
-embedder = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
-
-
-# Corpus with example sentences
-corpus = ['A man is eating food.',
-          'A man is eating a piece of bread.',
-          'A man is eating pasta.',
-          'The girl is carrying a baby.',
-          'The baby is carried by the woman',
-          'A man is riding a horse.',
-          'A man is riding a white horse on an enclosed ground.',
-          'A monkey is playing drums.',
-          'Someone in a gorilla costume is playing a set of drums.',
-          'A cheetah is running behind its prey.',
-          'A cheetah chases prey on across a field.']
-
-corpus_embeddings = embedder.encode(corpus)
-
-
-# Then, we perform k-means clustering using sklearn:
-from sklearn.cluster import KMeans
-
-num_clusters = 5
-clustering_model = KMeans(n_clusters=num_clusters)
-clustering_model.fit(corpus_embeddings)
-cluster_assignment = clustering_model.labels_
-```
-
-The output looks like this:
-```
-Cluster  1
-['The girl is carrying a baby.', 'The baby is carried by the woman']
-
-Cluster  2
-['A cheetah is running behind its prey.', 'A cheetah chases prey on across a field.']
-
-Cluster  3
-['A monkey is playing drums.', 'Someone in a gorilla costume is playing a set of drums.']
-
-Cluster  4
-['A man is eating food.', 'A man is eating a piece of bread.', 'A man is eating pasta.']
-
-Cluster  5
-['A man is riding a horse.', 'A man is riding a white horse on an enclosed ground.']
-```
-
-
-For more examples, see [examples/applications](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications).
+For all examples, see [examples/applications](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications).
 
 ## Citing & Authors
 If you find this repository helpful, feel free to cite our publication [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084):
@@ -273,7 +142,7 @@ If you use one of the multilingual models, feel free to cite our publication [Ma
 @inproceedings{reimers-2020-multilingual-sentence-bert,
     title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
     author = "Reimers, Nils and Gurevych, Iryna",
-    booktitle = "Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing",
+    booktitle = "Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing",
     month = "11",
     year = "2020",
     publisher = "Association for Computational Linguistics",

@@ -19,7 +19,7 @@ If you use one of the multilingual models, feel free to cite our publication [Ma
 @inproceedings{reimers-2020-multilingual-sentence-bert,
     title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
     author = "Reimers, Nils and Gurevych, Iryna",
-    booktitle = "Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing",
+    booktitle = "Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing",
     month = "11",
     year = "2020",
     publisher = "Association for Computational Linguistics",

@@ -30,7 +30,7 @@ from sentence_transformers import SentenceTransformer
 model = SentenceTransformer('model_name_or_path')
 ```
 
-You can either specify a [pre-trained model](../pretrained-models) or you can pass a path on your disc to load the sentence-transformer model from that folder.
+You can either specify a [pre-trained model](https://www.sbert.net/docs/pretrained_models.html) or you can pass a path on your disc to load the sentence-transformer model from that folder.
 
 If available, the model is automatically executed on the GPU. You can specify the device for the model like this:
 ```python
@@ -95,7 +95,7 @@ with open('embeddings.pkl', "rb") as fIn:
 
 ## Multi-Process / Multi-GPU Encoding
 
-You can encode input texts with more than one GPU (or with multiple processes on a CPU machine). For an example, see: [computing_embeddings_mutli_gpu.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/computing_embeddings_mutli_gpu.py).
+You can encode input texts with more than one GPU (or with multiple processes on a CPU machine). For an example, see: [computing_embeddings_mutli_gpu.py](computing_embeddings_mutli_gpu.py).
 
 The relevant method is `start_multi_process_pool()`, which starts multiple processes that are used for encoding.
 
