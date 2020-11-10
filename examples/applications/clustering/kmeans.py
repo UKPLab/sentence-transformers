@@ -6,7 +6,7 @@ Sentences are mapped to sentence embeddings and then k-mean clustering is applie
 from sentence_transformers import SentenceTransformer
 from sklearn.cluster import KMeans
 
-embedder = SentenceTransformer('bert-base-nli-mean-tokens')
+embedder = SentenceTransformer('distilroberta-base-paraphrase-v1')
 
 # Corpus with example sentences
 corpus = ['A man is eating food.',
