@@ -42,7 +42,7 @@ You pass to `model.predict` a list of sentence **pairs**. Note, Cross-Encoder do
 As model name, you can pass any model or path that is compatible with Huggingface [AutoModel](https://huggingface.co/transformers/model_doc/auto.html) class
 
 
-For a full example, to score a query with all possible sentences in a corpus see [cross-encoder_usage.py](examples/applications/cross-encoder_usage.py).
+For a full example, to score a query with all possible sentences in a corpus see [cross-encoder_usage.py](cross-encoder_usage.py).
 
 
 
@@ -62,4 +62,4 @@ These models return a score 0...1 indicating the semantic similarity of the give
 Cross-Encoder achieve higher performance than Bi-Encoders, however, they do not scale well for large datasets. Here, it can make sense to combine Cross- and Bi-Encoders, for example in Information Retrieval / Semantic Search scenarios: First, you use an efficient Bi-Encoder to retrieve e.g. the top-100 most similar sentences for a query. Then, you use a Cross-Encoder to re-rank these 100 hits by computing the score for every (query, hit) combination.
 
 ## Training Cross-Encoders 
-See [Cross-Encoder Training](../../examples/training/cross-encoder/README.md) how to train your own Cross-Encoder models.
+See [Cross-Encoder Training](../../training/cross-encoder/README.md) how to train your own Cross-Encoder models.

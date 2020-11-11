@@ -18,7 +18,7 @@ You can install it using pip:
    pip install -U sentence-transformers
 
 
-We recommand **Python 3.6** or higher, and at least **PyTorch 1.2.0**. PyTorch 1.6.0 or higher is recommended and needed for some features. See `installation <docs/installation.html>`_ for further installation options, especially if you want to use a GPU.
+We recommand **Python 3.6** or higher, and at least **PyTorch 1.6.0**. See `installation <docs/installation.html>`_ for further installation options, especially if you want to use a GPU.
 
 
 
@@ -129,6 +129,68 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
     </tr>
     </tbody>
     </table>
+
+
+Contact
+=========================
+
+Contact person: Nils Reimers, reimers@ukp.informatik.tu-darmstadt.de
+
+https://www.ukp.tu-darmstadt.de/
+
+
+Don't hesitate to send us an e-mail or report an issue, if something is broken (and it shouldn't be) or if you have further questions.
+
+*This repository contains experimental software and is published for the sole purpose of giving additional background details on the respective publication.*
+
+
+Citing & Authors
+=========================
+
+If you find this repository helpful, feel free to cite our publication `Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks <https://arxiv.org/abs/1908.10084>`_:
+
+ .. code-block:: javascript
+
+  @inproceedings{reimers-2019-sentence-bert,
+    title = "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
+    author = "Reimers, Nils and Gurevych, Iryna",
+    booktitle = "Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing",
+    month = "11",
+    year = "2019",
+    publisher = "Association for Computational Linguistics",
+    url = "https://arxiv.org/abs/1908.10084",
+  }
+
+
+
+If you use one of the multilingual models, feel free to cite our publication `Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation <https://arxiv.org/abs/2004.09813>`_:
+
+ .. code-block:: javascript
+
+  @inproceedings{reimers-2020-multilingual-sentence-bert,
+    title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
+    author = "Reimers, Nils and Gurevych, Iryna",
+    booktitle = "Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing",
+    month = "11",
+    year = "2020",
+    publisher = "Association for Computational Linguistics",
+    url = "https://arxiv.org/abs/2004.09813",
+  }
+
+
+
+If you use the code for `data augmentation <https://github.com/UKPLab/sentence-transformers/tree/master/examples/training/data_augmentation>`_, feel free to cite our publication `Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks <https://arxiv.org/abs/2010.08240>`_:
+
+ .. code-block:: javascript
+
+  @article{thakur-2020-AugSBERT,
+    title = "Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
+    author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes and  Gurevych, Iryna",
+    journal= "arXiv preprint arXiv:2010.08240",
+    month = "10",
+    year = "2020",
+    url = "https://arxiv.org/abs/2010.08240",
+  }
 
 
 

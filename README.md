@@ -118,13 +118,13 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
 ## Application Examples
 You can use this framework for:
 - [Computing Sentence Embeddings](https://www.sbert.net/examples/applications/computing-embeddings/README.html)
- - [Semantic Textual Similarity](https://www.sbert.net/docs/usage/semantic_textual_similarity.html)
- - [Clustering](https://www.sbert.net/examples/applications/clustering/README.html)
- - [Paraphrase Mining](https://www.sbert.net/examples/applications/paraphrase-mining/README.html)
-  - [Translated Sentence Mining](https://www.sbert.net/examples/applications/parallel-sentence-mining/README.html)
-  - [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html)
-  - [Information Retrieval](https://www.sbert.net/examples/applications/information-retrieval/README.html) 
-  - [Text Summarization](https://www.sbert.net/examples/applications/text-summarization/README.html) 
+- [Semantic Textual Similarity](https://www.sbert.net/docs/usage/semantic_textual_similarity.html)
+- [Clustering](https://www.sbert.net/examples/applications/clustering/README.html)
+- [Paraphrase Mining](https://www.sbert.net/examples/applications/paraphrase-mining/README.html)
+ - [Translated Sentence Mining](https://www.sbert.net/examples/applications/parallel-sentence-mining/README.html)
+ - [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html)
+ - [Information Retrieval](https://www.sbert.net/examples/applications/information-retrieval/README.html) 
+ - [Text Summarization](https://www.sbert.net/examples/applications/text-summarization/README.html) 
   
 and many more use-cases.
 
