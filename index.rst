@@ -201,6 +201,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    docs/installation
    docs/quickstart
    docs/pretrained_models
+   docs/pretrained_cross-encoders
    docs/publications
 
 .. toctree::

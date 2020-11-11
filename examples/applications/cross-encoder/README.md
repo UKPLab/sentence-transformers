@@ -46,17 +46,7 @@ For a full example, to score a query with all possible sentences in a corpus see
 
 
 
-## Pretrained Cross-Encoders
-We provide the following pre-trained Cross-Encoders. They can by loaded via:
-```
-model = CrossEncoder('model_name_or_path')
-```
 
-**STSbechmark**\
-These models return a score 0...1 indicating the semantic similarity of the given sentence pair.
-- **sentence-transformers/ce-distilroberta-base-stsb** - STSbenchmark test performance: 88.27
-- **sentence-transformers/ce-roberta-base-stsb** - STSbenchmark test performance: 89.85
-- **sentence-transformers/ce-roberta-large-stsb** - STSbenchmark test performance: 91.23 
 
 ## Combining Cross- and Bi-Encoders
 Cross-Encoder achieve higher performance than Bi-Encoders, however, they do not scale well for large datasets. Here, it can make sense to combine Cross- and Bi-Encoders, for example in Information Retrieval / Semantic Search scenarios: First, you use an efficient Bi-Encoder to retrieve e.g. the top-100 most similar sentences for a query. Then, you use a Cross-Encoder to re-rank these 100 hits by computing the score for every (query, hit) combination.
