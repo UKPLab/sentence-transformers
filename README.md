@@ -47,7 +47,7 @@ If you want to use a GPU / CUDA, you must install PyTorch with the matching CUDA
 See [Quickstart](https://www.sbert.net/docs/quickstart.html) in our documenation.
 
 
-[This example](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications/computing_embeddings.py) shows you how to use an already trained Sentence Transformer model to embed sentences for another task.
+[This example](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications/computing-embeddings/computing_embeddings.py) shows you how to use an already trained Sentence Transformer model to embed sentences for another task.
 
 First download a pretrained model.
 ````python
@@ -116,8 +116,17 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
 
 
 ## Application Examples
-You can use this framework for [Semantic Textual Similarity](https://www.sbert.net/docs/usage/semantic_textual_similarity.html), [Clustering](https://www.sbert.net/examples/applications/clustering/README.html), [Paraphrase Mining](https://www.sbert.net/examples/applications/paraphrase-mining/README.html), [Translated Sentence Mining](https://www.sbert.net/examples/applications/parallel-sentence-mining/README.html), [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html), [Information Retrieval](https://www.sbert.net/examples/applications/information-retrieval/README.html), [Text Summarization](https://www.sbert.net/examples/applications/text-summarization/README.html) and many more use-cases.
-
+You can use this framework for:
+- [Computing Sentence Embeddings](https://www.sbert.net/examples/applications/computing-embeddings/README.html)
+ - [Semantic Textual Similarity](https://www.sbert.net/docs/usage/semantic_textual_similarity.html)
+ - [Clustering](https://www.sbert.net/examples/applications/clustering/README.html)
+ - [Paraphrase Mining](https://www.sbert.net/examples/applications/paraphrase-mining/README.html)
+  - [Translated Sentence Mining](https://www.sbert.net/examples/applications/parallel-sentence-mining/README.html)
+  - [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html)
+  - [Information Retrieval](https://www.sbert.net/examples/applications/information-retrieval/README.html) 
+  - [Text Summarization](https://www.sbert.net/examples/applications/text-summarization/README.html) 
+  
+and many more use-cases.
 
 
 For all examples, see [examples/applications](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications).
