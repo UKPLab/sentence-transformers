@@ -4,11 +4,7 @@ from torch import nn
 from typing import Union, Tuple, List, Iterable, Dict
 import os
 import json
-import numpy as np
-import torch.nn.functional as F
 
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import normalize
 
 class WeightedLayerPooling(nn.Module):
     """

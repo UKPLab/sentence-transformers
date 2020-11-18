@@ -1,5 +1,4 @@
 from . import SentenceEvaluator, SimilarityFunction
-import torch
 import logging
 import os
 import csv

@@ -18,9 +18,9 @@ setup(
     download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.3.8.zip",
     packages=find_packages(),
     install_requires=[
-        'transformers>=3.1.0,<3.5.0',
+        'transformers>=3.1.0,<3.6.0',
         'tqdm',
-        'torch>=1.2.0',
+        'torch>=1.6.0',
         'numpy',
         'scikit-learn',
         'scipy',

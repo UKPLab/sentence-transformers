@@ -1,9 +1,5 @@
 from . import SentenceEvaluator, SimilarityFunction
-import torch
-from torch.utils.data import DataLoader
 import logging
-from tqdm import tqdm
-from ..util import batch_to_device
 import os
 import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
