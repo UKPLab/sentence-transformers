@@ -15,7 +15,7 @@ setup(
     long_description_content_type="text/markdown",
     license="Apache License 2.0",
     url="https://github.com/UKPLab/sentence-transformers",
-    download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.3.8.zip",
+    download_url="https://github.com/UKPLab/sentence-transformers/archive/v0.3.9.zip",
     packages=find_packages(),
     install_requires=[
         'transformers>=3.1.0,<3.6.0',
