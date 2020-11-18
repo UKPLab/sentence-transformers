@@ -60,8 +60,7 @@ def paraphrase_mining(model,
     top_k += 1  #A sentence has the highest similarity to itself. Increase +1 as we are interest in distinct pairs
 
     # Compute embedding for the sentences
-    embeddings = model.encode(sentences, show_progress_bar=show_progress_bar, batch_size=batch_size,
-                              convert_to_tensor=True)
+    embeddings = model.encode(sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True)
 
     # Mine for duplicates
     pairs = queue.PriorityQueue()
@@ -78,7 +77,7 @@ def paraphrase_mining(model,
                                          embeddings[corpus_start_idx:corpus_end_idx]).cpu()
 
 
-            cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(top_k, len(cos_scores[0])-1), dim=1, largest=True, sorted=False)
+            cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(top_k, len(cos_scores[0])), dim=1, largest=True, sorted=False)
             cos_scores_top_k_values = cos_scores_top_k_values.tolist()
             cos_scores_top_k_idx = cos_scores_top_k_idx.tolist()
 
