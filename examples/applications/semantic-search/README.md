@@ -34,7 +34,7 @@ By default, up to 100 queries are processes in parallel. Further, the corpus is 
 Depending on your real-time requirements, you can use this function for corpora up to 1 Million entries given you have enough memory.
 
 ## Full-Scale Example
-For a full-scale example, see [semantic_search_quora_pytorch.py](semantic_search_quora_elasticsearch.py)
+For a full-scale example, see [semantic_search_quora_pytorch.py](semantic_search_quora_pytorch.py)
 
 There, we embed the [Quora duplicate questions](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs) dataset, which has around 500k questions asked on Quora. We use *util.semantic_search* to search this corpus.
 
