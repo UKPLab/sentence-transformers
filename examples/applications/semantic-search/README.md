@@ -12,7 +12,7 @@ We then use the [util.pytorch_cos_sim()](../../../docs/usage/semantic_textual_si
 
 For large corpora, sorting all scores would take too much time. Hence, we use [torch.topk](https://pytorch.org/docs/stable/generated/torch.topk.html) to only get the top k entries.
 
-For a simple example, see [semantic_search.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic_search.py):
+For a simple example, see [semantic_search.py](semantic_search.py):
 
 ```eval_rst
 .. literalinclude:: semantic_search.py
