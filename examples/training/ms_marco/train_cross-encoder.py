@@ -39,7 +39,6 @@ train_batch_size = 32
 num_epochs = 1
 model_save_path = 'output/training_ms-marco_cross-encoder-'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-max_train_size = 2e7    #We limit our training samples to 20 Million. The dataset provides about 400 Million triplets (query, positive passage, negative passage)
 
 # We train the network with as a binary label task
 # Given [query, passage] is the label 0 = irrelevant or 1 = relevant?
@@ -130,9 +129,6 @@ with gzip.open(triplets_filepath, 'rt') as fIn:
             dev_qids.add(qid)
         elif qid not in dev_qids:
             train_samples.append(example)
-
-        if len(train_samples) >= max_train_size:
-            break
 
 # We create a DataLoader to load our train samples
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
