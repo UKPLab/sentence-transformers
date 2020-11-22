@@ -13,4 +13,5 @@ CrossEncoder have their own evaluation classes, that are in `sentence_transforme
 .. autoclass:: sentence_transformers.cross_encoder.evaluation.CEBinaryClassificationEvaluator
 .. autoclass:: sentence_transformers.cross_encoder.evaluation.CECorrelationEvaluator
 .. autoclass:: sentence_transformers.cross_encoder.evaluation.CESoftmaxAccuracyEvaluator
+.. autoclass:: sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator
 ```
