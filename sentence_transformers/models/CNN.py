@@ -61,7 +61,7 @@ class CNN(nn.Module):
         with open(os.path.join(input_path, 'cnn_config.json'), 'r') as fIn:
             config = json.load(fIn)
 
-        weights = torch.load(os.path.join(input_path, 'pytorch_model.bin'))
+        weights = torch.load(os.path.join(input_path, 'pytorch_model.bin'), map_location=torch.device('cpu'))
         model = CNN(**config)
         model.load_state_dict(weights)
         return model
