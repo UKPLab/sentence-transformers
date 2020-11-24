@@ -17,7 +17,7 @@ A common setup is to use ElasticSearch and to retrieve e.g. the top 100 or top 1
 ## Pre-trained Cross-Encoders
 
 Pre-trained models can be used like this:
-```
+```python
 from sentence_transformers import CrossEncoder
 model = CrossEncoder('model_name', max_length=512)
 scores = model.predict([('Query', 'Paragraph1'), ('Query', 'Paragraph2') , ('Query', 'Paragraph3')])
@@ -41,7 +41,7 @@ In the following table, we provide various pre-trained Cross-Encoders together w
  
  Note: Runtime was computed on a V100 GPU. A bottleneck for smaller models is the standard Python tokenizer from Huggingface. Replacing it with the fast tokenizer based on Rust, the throughput is significantly improved:
  
- ```
+ ```python
 from sentence_transformers import CrossEncoder
 import transformers
 model = CrossEncoder('model_name', max_length=512)
