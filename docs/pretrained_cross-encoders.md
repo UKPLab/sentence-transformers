@@ -28,18 +28,18 @@ These models have been trained on the [Quora duplicate questions dataset](https:
 
 ## Information Retrieval
 
-[nboost](https://github.com/koursaros-ai/nboost/) trained models for Information Retrieval: Given a query (like key-words or a question), and a paragraph, can the query be answered by the paragraph? The models have beend trained on MS Marco, a large dataset with real-user queries from Bing search engine.
+The following models are trained for Information Retrieval: Given a query (like key-words or a question), and a paragraph, can the query be answered by the paragraph? The models have beend trained on MS Marco, a large dataset with real-user queries from Bing search engine.
 
 The models can be used like this:
 ```
 from sentence_transformers import CrossEncoder
 model = CrossEncoder('model_name', max_length=512)
-scores = model.predict([('Query1', 'Paragraph1'), ('Query2', 'Paragraph2')], apply_softmax=True)[:, 1]
+scores = model.predict([('Query', 'Paragraph1'), ('Query', 'Paragraph2')])
 ```
 
 This returns a score 0...1 indicating if the paragraph is relevant for a given query.
 
-- **nboost/pt-tinybert-msmarco** - MRR@10 on MS Marco Dev Set: 0.26
-- **nboost/pt-bert-base-uncased-msmarco** -  MRR@10 on MS Marco Dev Set: 0.29
-- **nboost/pt-bert-large-msmarco** - MRR@10 on MS Marco Dev Set: 0.32
-- **nboost/pt-biobert-base-msmarco** - MRR biomed: 0.17
+- **sentence-transformers/ce-ms-marco-TinyBERT-L-2** - MRR@10 on MS Marco Dev Set: 30.15
+- **sentence-transformers/ce-ms-marco-TinyBERT-L-4** -  MRR@10 on MS Marco Dev Set: 34.50
+- **sentence-transformers/ce-ms-marco-TinyBERT-L-6** - MRR@10 on MS Marco Dev Set: 36.13
+- **sentence-transformers/ce-ms-marco-electra-base** - MRR@10 on MS Marco Dev Set: 36.41
