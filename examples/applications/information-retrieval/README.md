@@ -36,8 +36,8 @@ In the following table, we provide various pre-trained Cross-Encoders together w
 | nboost/pt-tinybert-msmarco | 63.63 | 28.80 | 2900 | 760
 | nboost/pt-bert-base-uncased-msmarco | 70.94 | 34.75 | 340 | 340|
 | nboost/pt-bert-large-msmarco | 73.36 | 36.48 | 100 | 100 |
-| Capreolus/electra-base-msmarco | 71.23 | | 340 | 340 |
-| amberoad/bert-multilingual-passage-reranking-msmarco | 68.40 | | 330 | 330 
+| Capreolus/electra-base-msmarco | 71.23 | 36.89 | 340 | 340 |
+| amberoad/bert-multilingual-passage-reranking-msmarco | 68.40 | 35.54 | 330 | 330 
  
  Note: Runtime was computed on a V100 GPU. A bottleneck for smaller models is the standard Python tokenizer from Huggingface. Replacing it with the fast tokenizer based on Rust, the throughput is significantly improved:
  

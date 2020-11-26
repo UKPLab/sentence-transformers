@@ -21,7 +21,6 @@ from sentence_transformers import InputExample
 import logging
 from datetime import datetime
 import gzip
-import sys
 import os
 import tarfile
 import tqdm
