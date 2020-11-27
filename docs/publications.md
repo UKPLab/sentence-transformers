@@ -43,6 +43,8 @@ If you use the code for [data augmentation](https://github.com/UKPLab/sentence-t
 **SentenceTransformers used for Applications**
 
 In the following you find a (selective) list of articles / applications using SentenceTransformers to do amazing stuff. Feel free to contact me (info@nils-reimers.de) to add you application here. 
+- **November 2020 - [How to Build a Semantic Search Engine With Transformers and Faiss](https://towardsdatascience.com/how-to-build-a-semantic-search-engine-with-transformers-and-faiss-dcbea307a0e8)**
+- **October 2020 - [Topic Modeling with BERT](https://towardsdatascience.com/topic-modeling-with-bert-779f7db187e6)**
 - **September 2020 - [Elastic Transformers -
 Making BERT stretchy - Scalable Semantic Search on a Jupyter Notebook](https://medium.com/@mihail.dungarov/elastic-transformers-ae011e8f5b88)**
 - **July 2020 - [Simple Sentence Similarity Search with SentenceBERT](https://laptrinhx.com/simple-sentence-similarity-search-with-sentencebert-800684405/?fbclid=IwAR0rxdYS2DBGuHhijIRO_lsXqGc9BbjtDA-dDQM5Ng_StahT9xrHdRZuP9M)**
