@@ -54,4 +54,4 @@ def file_open(filepath):
     elif filepath.endswith('xz'):
         return lzma.open(filepath, 'rt', encoding='utf8')
     else:
-        open(filepath, 'r', encoding='utf8')
+        return open(filepath, 'r', encoding='utf8')
