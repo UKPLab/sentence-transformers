@@ -14,19 +14,19 @@ passage_embedding = model.encode('London has 9,787,426 inhabitants at the 2011 c
 print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 ```
 
+
+For more details on the usage, see [Applications - Information Retrieval](../../examples/applications/information-retrieval/README.md)
+
+
 ## Performance
-Performance is evaluated on [TREC-DL 2019](https://microsoft.github.io/TREC-2019-Deep-Learning/), which is a query-passage retrieval task where multiple queries have been annotated as with their relevance with respect to the given query.
+Performance is evaluated on [TREC-DL 2019](https://microsoft.github.io/TREC-2019-Deep-Learning/), which is a query-passage retrieval task where multiple queries have been annotated as with their relevance with respect to the given query.  Further, we evaluate on the [MS Marco Passage Retrieval](https://github.com/microsoft/MSMARCO-Passage-Ranking/) dataset. 
 
-As baseline, we use ElasticSearch. We evaluate re-ranking performance. We retrieve the top 100/1000 passages from BM25 and re-rank results with respecte to cosine similarity. We also compare against [Cross-Encoder](https://www.sbert.net/docs/usage/cross-encoder.html), that compute a similarity score for a given query and passage. However, Cross-Encoders scores cannot be precomputed and are hence rather slow.
+As baseline we show the results for lexical search with BM25 using ElasticSearch.
 
-| Approach       | TREC-DL 2019 (NDCG@10) |   
-| ------------- |:-------------: | 
-| BM25 (ElasticSearch)   | 45.46 |  |
-| BM25 + rerank top 100 with distilroberta-base-msmarco-v2      | 63.51      |   
-| BM25 + rerank top 1000 with distilroberta-base-msmarco-v2  | 64.53      | 
-| **Cross-Encoders** | |
-| BM25 + rerank top 100 with nboost/pt-tinybert-msmarco  | 62.34      |
-| BM25 + rerank top 100 with nboost/pt-bert-base-uncased-msmarco | 67.81     |
+| Approach       | NDCG@10 (TREC DL 19) | MRR@10 (MS Marco Dev) |  
+| ------------- |:-------------: | :---: |
+| BM25 (ElasticSearch)   | 45.46 | 17.29  |
+| distilroberta-base-msmarco-v2   | |  28.55    |   
 
 
 

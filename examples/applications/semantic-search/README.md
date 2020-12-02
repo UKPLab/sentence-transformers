@@ -2,11 +2,19 @@
 Semantic search seeks to improve search accuracy by understanding the content of the search query. In contrast to traditional search engines, that only finds documents based on lexical matches, semantic search can also find synonyms.
 
 
+## Background
+The idea behind semantic search is to embedd all entries in your corpus, which can be sentences, paragraphs, or documents, into a vector space. 
+
+At search time, the query is embedded into the same vector space and the closest embedding from your corpus are found. These entries should have a high semantic overlap with the query.
+
+![SemanticSearch](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/SemanticSearch.png) 
+
+
 ## Python
 
 For small corpora (up to about 100k entries) we can compute the cosine-similarity between the query and all entries in the corpus.
 
-In the following example, we define a small corpus with few example question and compute the embeddings for the corpus as well as for our query.
+In the following example, we define a small corpus with few example sentences and compute the embeddings for the corpus as well as for our query.
 
 We then use the [util.pytorch_cos_sim()](../../../docs/usage/semantic_textual_similarity.md) function to compute the cosine similarity between the query and all corpus entries.
 
@@ -33,10 +41,8 @@ By default, up to 100 queries are processes in parallel. Further, the corpus is 
 
 Depending on your real-time requirements, you can use this function for corpora up to 1 Million entries given you have enough memory.
 
-## Full-Scale Example
-For a full-scale example, see [semantic_search_quora_pytorch.py](semantic_search_quora_pytorch.py)
-
-There, we embed the [Quora duplicate questions](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs) dataset, which has around 500k questions asked on Quora. We use *util.semantic_search* to search this corpus.
+## Similar Questions Retrieval
+[semantic_search_quora_pytorch.py](semantic_search_quora_pytorch.py) shows an example based on the [Quora duplicate questions](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs) dataset. The user can enter a question, and the code retrieves the most similar questions from the dataset using the *util.semantic_search* method. As model, we use *distilbert-multilingual-nli-stsb-quora-ranking*, which was trained to identify similar questions and supports 50+ languages.
 
 
 ## ElasticSearch

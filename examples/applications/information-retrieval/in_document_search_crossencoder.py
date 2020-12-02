@@ -61,7 +61,7 @@ print("Passages: ", len(passages))
 
 
 ## Load our cross-encoder. Use fast tokenizer to speed up the tokenization
-model = CrossEncoder('sentence-transformers/ce-ms-marco-TinyBERT-L-2', use_fast_tokenizer=True)
+model = CrossEncoder('sentence-transformers/ce-ms-marco-TinyBERT-L-2')
 
 ## Some queries we want to search for in the document
 queries = ["How large is Europe?",

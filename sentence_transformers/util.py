@@ -129,7 +129,7 @@ def semantic_search(query_embeddings: Tensor,
     :param corpus_embeddings: A 2 dimensional tensor with the corpus embeddings.
     :param query_chunk_size: Process 100 queries simultaneously. Increasing that value increases the speed, but requires more memory.
     :param corpus_chunk_size: Scans the corpus 100k entries at a time. Increasing that value increases the speed, but requires more memory.
-    :param top_k: Retrieve top k matching entries. Note, if your corpus is larger than query_chunk_size, |Chunks|*top_k are returned
+    :param top_k: Retrieve top k matching entries.
     :return: Returns a sorted list with decreasing cosine similarity scores. Entries are dictionaries with the keys 'corpus_id' and 'score'
     """
 

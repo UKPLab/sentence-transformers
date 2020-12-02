@@ -214,6 +214,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    examples/applications/paraphrase-mining/README
    examples/applications/parallel-sentence-mining/README
    examples/applications/semantic-search/README
+   examples/applications/information-retrieval/README
    examples/applications/cross-encoder/README
 
 .. toctree::

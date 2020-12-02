@@ -43,3 +43,5 @@ This returns a score 0...1 indicating if the paragraph is relevant for a given q
 - **sentence-transformers/ce-ms-marco-TinyBERT-L-4** -  MRR@10 on MS Marco Dev Set: 34.50
 - **sentence-transformers/ce-ms-marco-TinyBERT-L-6** - MRR@10 on MS Marco Dev Set: 36.13
 - **sentence-transformers/ce-ms-marco-electra-base** - MRR@10 on MS Marco Dev Set: 36.41
+
+For details on the usage, see [Applications - Information Retrieval](../examples/applications/information-retrieval/README.md)
