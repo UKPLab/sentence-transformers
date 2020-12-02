@@ -104,7 +104,7 @@ The relevant method is `start_multi_process_pool()`, which starts multiple proce
 ```
 
 ## Sentence Embeddings with Transformers
-Most of our pre-trained models are based on [Huggingface.co/Transformers](https://huggingface.co/transformers/) and are also hosted in the [models repository](https://huggingface.co/models) from Hugginface. It is possible to use our sentence embeddings models without installing sentence-transformers:
+Most of our pre-trained models are based on [Huggingface.co/Transformers](https://huggingface.co/transformers/) and are also hosted in the [models repository](https://huggingface.co/models) from Huggingface. It is possible to use our sentence embeddings models without installing sentence-transformers:
 
 ```python
 from transformers import AutoTokenizer, AutoModel
