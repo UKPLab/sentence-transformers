@@ -27,7 +27,7 @@ class CrossEncoder():
         :param num_labels: Number of labels of the classifier. If 1, the CrossEncoder is a regression model that outputs a continous score 0...1. If > 1, it output several scores that can be soft-maxed to get probability scores for the different classes.
         :param max_length: Max length for input sequences. Longer sequences will be truncated. If None, max length of the model will be used
         :param device: Device that should be used for the model. If None, it will use CUDA if available.
-        :param use_fast_tokenizer: If true, uses fast tokenizer from Huggingface if available
+        :param use_fast_tokenizer: Use fast tokenizer from hugging face.
         """
 
         self.config = AutoConfig.from_pretrained(model_name)
@@ -43,7 +43,7 @@ class CrossEncoder():
 
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name, config=self.config)
         tokenizer_args = {}
-        if use_fast_tokenizer:
+        if use_fast_tokenizer is not None:
             tokenizer_args['use_fast'] = use_fast_tokenizer
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, **tokenizer_args)
