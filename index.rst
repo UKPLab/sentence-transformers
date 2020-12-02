@@ -234,6 +234,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    examples/training/sts/README
    examples/training/nli/README
    examples/training/quora_duplicate_questions/README
+   examples/training/ms_marco/README
 
 
 .. toctree::
