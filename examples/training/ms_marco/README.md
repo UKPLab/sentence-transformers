@@ -18,6 +18,8 @@ To **train an cross-encoder** on the MS Marco dataset, see: **[train_cross-encod
 
 ## Bi-Encoder
 
-The training for bi-encoder, that produces independent embeddings for queries and documents will shortly be added here. Stay tuned.
+Cross-Encoder are only suitable for reranking a small set of passages. For retrieval of suitable documents from a large collection, we have to use a bi-encoder. The documents are independently encoded into fixed-sized embeddings. A query is embedded into the same vector space. Relevant documents can then be found by using cosine-similarity.
 
 ![BiEncoder](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/BiEncoder.png)
+
+To **train an bi-encoder** on the MS Marco dataset, see: **[train_bi-encoder.py](train_bi-encoder.py)**.
