@@ -92,8 +92,6 @@ class SentenceTransformer(nn.Sequential):
                         raise e
 
 
-
-
             #### Load from disk
             if model_path is not None:
                 logging.info("Load SentenceTransformer from folder: {}".format(model_path))
@@ -136,6 +134,7 @@ class SentenceTransformer(nn.Sequential):
                num_workers: int = 0) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings
+
         :param sentences: the sentences to embed
         :param batch_size: the batch size used for the computation
         :param show_progress_bar: Output a progress bar when encode sentences
