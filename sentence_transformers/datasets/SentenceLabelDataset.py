@@ -10,6 +10,9 @@ from ..readers.InputExample import InputExample
 from multiprocessing import Pool, cpu_count
 import multiprocessing
 
+
+logger = logging.getLogger(__name__)
+
 class SentenceLabelDataset(Dataset):
     """
     Dataset for training with triplet loss.
@@ -66,7 +69,7 @@ class SentenceLabelDataset(Dataset):
 
         if self.parallel_tokenization:
             if multiprocessing.get_start_method() != 'fork':
-                logging.info("Parallel tokenization is only available on Unix systems which allow to fork processes. Fall back to sequential tokenization")
+                logger.info("Parallel tokenization is only available on Unix systems which allow to fork processes. Fall back to sequential tokenization")
                 self.parallel_tokenization = False
 
         self.convert_input_examples(examples, model)
@@ -101,11 +104,11 @@ class SentenceLabelDataset(Dataset):
         too_long = 0
         label_type = None
 
-        logging.info("Start tokenization")
+        logger.info("Start tokenization")
         if not self.parallel_tokenization or self.max_processes == 1 or len(examples) <= self.chunk_size:
             tokenized_texts = [self.tokenize_example(example) for example in examples]
         else:
-            logging.info("Use multi-process tokenization with {} processes".format(self.max_processes))
+            logger.info("Use multi-process tokenization with {} processes".format(self.max_processes))
             self.model.to('cpu')
             with Pool(self.max_processes) as p:
                 tokenized_texts = list(p.imap(self.tokenize_example, examples, chunksize=self.chunk_size))
@@ -143,9 +146,9 @@ class SentenceLabelDataset(Dataset):
                 self.num_labels += 1
 
         self.grouped_labels = torch.tensor(self.grouped_labels, dtype=label_type)
-        logging.info("Num sentences: %d" % (len(self.grouped_inputs)))
-        logging.info("Sentences longer than max_seqence_length: {}".format(too_long))
-        logging.info("Number of labels with >1 examples: {}".format(len(distinct_labels)))
+        logger.info("Num sentences: %d" % (len(self.grouped_inputs)))
+        logger.info("Sentences longer than max_seqence_length: {}".format(too_long))
+        logger.info("Number of labels with >1 examples: {}".format(len(distinct_labels)))
 
 
     def tokenize_example(self, example):

@@ -14,6 +14,9 @@ from .. import SentenceTransformer
 from ..evaluation import SentenceEvaluator
 
 
+logger = logging.getLogger(__name__)
+
+
 class CrossEncoder():
     def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, device:str = None, use_fast_tokenizer:bool = None):
         """
@@ -52,7 +55,7 @@ class CrossEncoder():
 
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            logging.info("Use pytorch device: {}".format(device))
+            logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
 
@@ -298,7 +301,7 @@ class CrossEncoder():
         if path is None:
             return
 
-        logging.info("Save model to {}".format(path))
+        logger.info("Save model to {}".format(path))
         self.model.save_pretrained(path)
         self.tokenizer.save_pretrained(path)
 

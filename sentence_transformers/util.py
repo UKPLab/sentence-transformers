@@ -8,6 +8,10 @@ import os
 import torch
 import numpy as np
 import queue
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def pytorch_cos_sim(a: Tensor, b: Tensor):
@@ -72,7 +76,7 @@ def paraphrase_mining(model,
         for query_start_idx in range(0, len(embeddings), query_chunk_size):
             query_end_idx = min(query_start_idx + query_chunk_size, len(embeddings))
 
-            #logging.info("Compute cosine similarities")
+            #logger.info("Compute cosine similarities")
             cos_scores = pytorch_cos_sim(embeddings[query_start_idx:query_end_idx],
                                          embeddings[corpus_start_idx:corpus_end_idx]).cpu()
 
@@ -81,7 +85,7 @@ def paraphrase_mining(model,
             cos_scores_top_k_values = cos_scores_top_k_values.tolist()
             cos_scores_top_k_idx = cos_scores_top_k_idx.tolist()
 
-            #logging.info("Find most similar pairs out of {} queries".format(len(cos_scores)))
+            #logger.info("Find most similar pairs out of {} queries".format(len(cos_scores)))
             for query_itr in range(len(cos_scores)):
                 for top_k_idx, corpus_itr in enumerate(cos_scores_top_k_idx[query_itr]):
                     i = query_start_idx + query_itr

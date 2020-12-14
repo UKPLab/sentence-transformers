@@ -5,3 +5,4 @@ numpy
 scikit-learn
 scipy
 nltk
+coloredlogs

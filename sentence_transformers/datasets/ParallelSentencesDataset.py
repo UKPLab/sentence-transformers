@@ -6,6 +6,9 @@ from .. import SentenceTransformer
 from typing import List
 import random
 
+
+logger = logging.getLogger(__name__)
+
 class ParallelSentencesDataset(Dataset):
     """
     This dataset reader can be used to read-in parallel sentences, i.e., it reads in a file with tab-seperated sentences with the same
@@ -54,7 +57,7 @@ class ParallelSentencesDataset(Dataset):
         :return:
         """
 
-        logging.info("Load "+filepath)
+        logger.info("Load "+filepath)
         parallel_sentences = []
 
         with gzip.open(filepath, 'rt', encoding='utf8') if filepath.endswith('.gz') else open(filepath, encoding='utf8') as fIn:

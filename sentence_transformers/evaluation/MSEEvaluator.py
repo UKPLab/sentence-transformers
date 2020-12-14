@@ -5,6 +5,9 @@ import os
 import csv
 from typing import List
 
+
+logger = logging.getLogger(__name__)
+
 class MSEEvaluator(SentenceEvaluator):
     """
     Computes the mean squared error (x100) between the computed sentence embedding
@@ -46,8 +49,8 @@ class MSEEvaluator(SentenceEvaluator):
         mse = ((self.source_embeddings - target_embeddings)**2).mean()
         mse *= 100
 
-        logging.info("MSE evaluation (lower = better) on "+self.name+" dataset"+out_txt)
-        logging.info("MSE (*100):\t{:4f}".format(mse))
+        logger.info("MSE evaluation (lower = better) on "+self.name+" dataset"+out_txt)
+        logger.info("MSE (*100):\t{:4f}".format(mse))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)
