@@ -40,7 +40,16 @@ If you use the code for [data augmentation](https://github.com/UKPLab/sentence-t
 }
 ```
 
-**SentenceTransformers used for Applications**
+**Repositories using SentenceTransformers**
+- **[Top2Vec](https://github.com/ddangelov/Top2Vec)** - Topic modeling
+- **[txtai](https://github.com/neuml/txtai)** - AI-powered search engine
+- **[BERTTopic](https://github.com/MaartenGr/BERTopic)** - Topic model using SBERT embeddings
+- **[KeyBERT](https://github.com/MaartenGr/KeyBERT)** - Key phrase extraction using SBERT
+- **[contextualized-topic-models](https://github.com/MilaNLProc/contextualized-topic-models)** - Cross-Lingual Topic Modeling
+- **[covid-papers-browser](https://github.com/gsarti/covid-papers-browser)** - Semantic Search for Covid-19 papers
+
+
+**SentenceTransformers in Articles**
 
 In the following you find a (selective) list of articles / applications using SentenceTransformers to do amazing stuff. Feel free to contact me (info@nils-reimers.de) to add you application here. 
 - **November 2020 - [How to Build a Semantic Search Engine With Transformers and Faiss](https://towardsdatascience.com/how-to-build-a-semantic-search-engine-with-transformers-and-faiss-dcbea307a0e8)**
@@ -56,6 +65,7 @@ Making BERT stretchy - Scalable Semantic Search on a Jupyter Notebook](https://m
 **SentenceTransformers used in Research**
 
 The following papers use SentenceTransformers in research:
+- **December 2020 - [Finding and Generating a Missing Part for Story Completion](https://www.aclweb.org/anthology/2020.latechclfl-1.19/)**
 - **October 2020 - [Identifying Similar Movie Characters Quickly but Effectively Using Non-exhaustive Pair-wise Attention](https://arxiv.org/abs/2010.12183)**
 - **October 2020 - [SciSummPip: An Unsupervised Scientific Paper Summarization Pipeline](https://arxiv.org/abs/2010.09190)**
 - **October 2020 - [Effective Distributed Representations for Academic Expert Search](https://arxiv.org/abs/2010.08269)**
