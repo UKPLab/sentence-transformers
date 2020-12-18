@@ -53,7 +53,7 @@ For each topic, you want to extract the words that describe this topic:
 
 Sentence-Transformers can be used to identify these topics in a collection of sentences, paragraphs or short documents. For
 
-For an excellent tutorial, see [Topic Modeling with BERT](https://towardsdatascience.com/topic-modeling-with-bert-779f7db187e6) as well as the repository [Top2Vec](https://github.com/ddangelov/Top2Vec).
+For an excellent tutorial, see [Topic Modeling with BERT](https://towardsdatascience.com/topic-modeling-with-bert-779f7db187e6) as well as the repositories [Top2Vec](https://github.com/ddangelov/Top2Vec) and [BERTopic](https://github.com/MaartenGr/BERTopic).
  
  
  Image source: [Top2Vec: Distributed Representations of Topics](https://arxiv.org/abs/2008.09470)

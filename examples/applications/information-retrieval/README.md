@@ -89,11 +89,4 @@ In the following table, we provide various pre-trained Cross-Encoders together w
 | Capreolus/electra-base-msmarco | 71.23 | 36.89 | 340 | 340 |
 | amberoad/bert-multilingual-passage-reranking-msmarco | 68.40 | 35.54 | 330 | 330 
  
- Note: Runtime was computed on a V100 GPU. A bottleneck for smaller models is the standard Python tokenizer from Huggingface. Replacing it with the fast tokenizer based on Rust, the throughput is significantly improved:
- 
- ```python
-from sentence_transformers import CrossEncoder
-import transformers
-model = CrossEncoder('model_name', max_length=512)
-model.tokenizer = transformers.BertTokenizerFast.from_pretrained('model_name')
-``` 
+ Note: Runtime was computed on a V100 GPU. A bottleneck for smaller models is the Python-based tokenizer from Huggingface that was used in Huggingface Version 3. Starting with Huggingface Version 4, fast tokenizer based on Rust is used.

@@ -1,7 +1,8 @@
-transformers>=3.1.0,<3.6.0
+transformers>=3.1.0,<5.0.0
 tqdm
 torch>=1.6.0
 numpy
 scikit-learn
 scipy
 nltk
+sentencepiece
