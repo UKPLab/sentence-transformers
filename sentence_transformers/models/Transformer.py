@@ -33,7 +33,7 @@ class Transformer(nn.Module):
 
     def forward(self, features):
         """Returns token_embeddings, cls_token"""
-        output_states = self.auto_model(**features)
+        output_states = self.auto_model(**features, return_dict=False)
         output_tokens = output_states[0]
 
         cls_tokens = output_tokens[:, 0, :]  # CLS token is first token
