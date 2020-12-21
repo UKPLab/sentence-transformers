@@ -51,15 +51,17 @@ class SentenceTransformer(nn.Sequential):
                 model_url = model_path
                 folder_name = model_url.replace("https://", "").replace("http://", "").replace("/", "_")[:250].rstrip('.zip')
 
-                try:
-                    from torch.hub import _get_torch_home
-                    torch_cache_home = _get_torch_home()
-                except ImportError:
-                    torch_cache_home = os.path.expanduser(
-                        os.getenv('TORCH_HOME', os.path.join(
-                            os.getenv('XDG_CACHE_HOME', '~/.cache'), 'torch')))
-                default_cache_path = os.path.join(torch_cache_home, 'sentence_transformers')
-                model_path = os.path.join(default_cache_path, folder_name)
+                cache_folder = os.getenv('SENTENCE_TRANSFORMERS_HOME')
+                if cache_folder is None:
+                    try:
+                        from torch.hub import _get_torch_home
+                        torch_cache_home = _get_torch_home()
+                    except ImportError:
+                        torch_cache_home = os.path.expanduser(os.getenv('TORCH_HOME', os.path.join(os.getenv('XDG_CACHE_HOME', '~/.cache'), 'torch')))
+
+                    cache_folder = os.path.join(torch_cache_home, 'sentence_transformers')
+
+                model_path = os.path.join(cache_folder, folder_name)
 
                 if not os.path.exists(model_path) or not os.listdir(model_path):
                     if model_url[-1] == "/":
