@@ -18,4 +18,11 @@ class MSELoss(nn.Module):
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         rep = self.model(sentence_features[0])['sentence_embedding']
-        return self.loss_fct(rep, labels)
+        """
+        Calculate cosine similarity between the vector embeddings and 
+        then the MSE between the it's similarity and label of 1.0
+        """
+        cos_sim = torch.cosine_similarity(rep, labels)
+        float_labs = torch.Tensor([1.0 for x in cos_sim]).cuda()
+
+        return self.loss_fct(cos_sim, float_labs)
