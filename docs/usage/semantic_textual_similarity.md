@@ -4,7 +4,7 @@ Once you have  [sentence embeddings computed](computing_sentence_embeddings.md),
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('paraphrase-distilroberta-base-v1')
 
 # Two lists of sentences
 sentences1 = ['The cat sits outside',

@@ -6,7 +6,7 @@ The training data constist of over 500k examples, while the complete  corpus con
 ## Usage
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('distilroberta-base-msmarco-v2')
+model = SentenceTransformer('msmarco-distilroberta-base-v2')
 
 query_embedding = model.encode('How big is London')
 passage_embedding = model.encode('London has 9,787,426 inhabitants at the 2011 census')
@@ -26,7 +26,7 @@ As baseline we show the results for lexical search with BM25 using ElasticSearch
 | Approach       | NDCG@10 (TREC DL 19) | MRR@10 (MS Marco Dev) |  
 | ------------- |:-------------: | :---: |
 | BM25 (ElasticSearch)   | 45.46 | 17.29  |
-| distilroberta-base-msmarco-v2   | |  28.55    |   
+| msmarco-distilroberta-base-v2   | |  28.55    |   
 
 
 

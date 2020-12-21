@@ -27,7 +27,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
-model_name = sys.argv[1] if len(sys.argv) > 1 else 'distilbert-base-nli-stsb-mean-tokens'
+model_name = sys.argv[1] if len(sys.argv) > 1 else 'paraphrase-distilroberta-base-v1'
 
 # Load a named sentence model (based on BERT). This will download the model from our server.
 # Alternatively, you can also pass a filepath to SentenceTransformer()

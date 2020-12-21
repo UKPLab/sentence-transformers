@@ -52,7 +52,7 @@ See [Quickstart](https://www.sbert.net/docs/quickstart.html) in our documenation
 First download a pretrained model.
 ````python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+model = SentenceTransformer('paraphrase-distilroberta-base-v1')
 ````
 Then provide some sentences to the model.
 ````python

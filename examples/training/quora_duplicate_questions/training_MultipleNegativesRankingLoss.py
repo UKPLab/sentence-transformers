@@ -31,7 +31,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 
 #As base model, we use DistilBERT-base that was pre-trained on NLI and STSb data
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('stsb-distilbert-base')
 
 #Training for multiple epochs can be beneficial, as in each epoch a mini-batch is sampled differently
 #hence, we get different negatives for each positive

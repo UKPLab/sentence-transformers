@@ -8,14 +8,14 @@ First, it is important to understand the difference between Bi- and Cross-Encode
 
 **Bi-Encoders** produce for a given sentence a sentence embedding. We pass to a BERT independelty the sentences A and B, which result in the sentence embeddings u and v. These sentence embedding can then be compared using cosine similarity:
 
-![BiEncoder](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/BiEncoder.png)
+![BiEncoder](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/Bi_vs_Cross-Encoder.png)
 
 
 In contrast, for a **Cross-Encoder**,  we pass both sentences simultanously to the Transformer network. It produces than an output value between 0 and 1 indicating the similarity of the input sentence pair: 
 
-![CrossEncoder](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/CrossEncoder.png)
 
-A Cross-Encoder does not produce a sentence embedding. Also, we are not able to pass individual sentences to a Cross-Encoder.
+
+A **Cross-Encoder does not produce a sentence embedding**. Also, we are not able to pass individual sentences to a Cross-Encoder.
 
 As detailed in our [paper](https://arxiv.org/abs/1908.10084), Cross-Encoder achieve better performances than Bi-Encoders. However, for many application they are not pratical as they do not produce embeddings we could e.g. index or efficiently compare using cosine similarity.
 

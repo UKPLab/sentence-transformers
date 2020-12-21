@@ -19,7 +19,7 @@ if __name__ == '__main__':
     sentences = ["This is sentence {}".format(i) for i in range(100000)]
 
     #Define the model
-    model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+    model = SentenceTransformer('paraphrase-distilroberta-base-v1')
 
     #Start the multi-process pool on all available CUDA devices
     pool = model.start_multi_process_pool()

@@ -4,7 +4,7 @@ This examples demonstrates the setup for Query / Question-Answer-Retrieval.
 You can input a query or a question. The script then uses semantic search
 to find relevant passages in Simple English Wikipedia (as it is smaller and fits better in RAM).
 
-For semantic search, we use SentenceTransformer('distilroberta-base-msmarco-v2') and retrieve
+For semantic search, we use SentenceTransformer('msmarco-distilroberta-base-v2') and retrieve
 100 potentially passages that answer the input query.
 
 Next, we use a more powerful CrossEncoder (cross_encoder = CrossEncoder('sentence-transformers/ce-ms-marco-TinyBERT-L-6')) that
@@ -18,7 +18,7 @@ import gzip
 import os
 
 #We use the Bi-Encoder to encode all passages, so that we can use it with sematic search
-bi_encoder = SentenceTransformer('distilroberta-base-msmarco-v2')
+bi_encoder = SentenceTransformer('msmarco-distilroberta-base-v2')
 top_k = 100     #Number of passages we want to retrieve with the bi-encoder
 
 #The bi-encoder will retrieve 100 documents. We use a cross-encoder, to re-rank the results list to improve the quality

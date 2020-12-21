@@ -61,11 +61,11 @@ class PretrainedSTSbTest(unittest.TestCase):
     def test_distilbert(self):
         self.pretrained_model_score('distilbert-base-nli-mean-tokens', 78.69)
         self.pretrained_model_score('distilbert-base-nli-stsb-mean-tokens', 85.16)
-        self.pretrained_model_score('distilroberta-base-paraphrase-v1', 81.81)
+        self.pretrained_model_score('paraphrase-distilroberta-base-v1', 81.81)
 
     def test_multiling(self):
         self.pretrained_model_score('distiluse-base-multilingual-cased', 80.75)
-        self.pretrained_model_score('xlm-r-distilroberta-base-paraphrase-v1', 83.50)
+        self.pretrained_model_score('paraphrase-xlm-r-multilingual-v1', 83.50)
 
 if "__main__" == __name__:
     unittest.main()

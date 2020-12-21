@@ -29,7 +29,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 
 #As base model, we use DistilBERT-base that was pre-trained on NLI and STSb data
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('stsb-distilbert-base')
 num_epochs = 10
 train_batch_size = 64
 

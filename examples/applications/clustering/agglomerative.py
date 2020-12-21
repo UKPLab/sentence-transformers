@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.cluster import AgglomerativeClustering
 import numpy as np
 
-embedder = SentenceTransformer('distilroberta-base-paraphrase-v1')
+embedder = SentenceTransformer('paraphrase-distilroberta-base-v1')
 
 # Corpus with example sentences
 corpus = ['A man is eating food.',
