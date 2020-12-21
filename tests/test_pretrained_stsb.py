@@ -67,5 +67,8 @@ class PretrainedSTSbTest(unittest.TestCase):
         self.pretrained_model_score('distiluse-base-multilingual-cased', 80.75)
         self.pretrained_model_score('paraphrase-xlm-r-multilingual-v1', 83.50)
 
+    def test_other_models(self):
+        self.pretrained_model_score('average_word_embeddings_komninos', 61.56)
+
 if "__main__" == __name__:
     unittest.main()

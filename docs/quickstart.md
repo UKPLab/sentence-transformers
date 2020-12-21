@@ -2,7 +2,7 @@
 Once you have SentenceTransformers [installed](installation.md), the usage is simple:
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('paraphrase-distilroberta-base-v1')
 
 #Our sentences we like to encode
 sentences = ['This framework generates embeddings for each input sentence',
@@ -20,7 +20,7 @@ for sentence, embedding in zip(sentences, sentence_embeddings):
 ```
 
 
-With `SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')` we define which sentence transformer model we like to load. In this example, we load *distilbert-base-nli-stsb-mean-tokens*, which is a DistilBERT-base-uncased model fine tuned on Natural Language Inference (NLI) and Semantic Textual Similarity Benchmark (STSb) data. 
+With `SentenceTransformer('paraphrase-distilroberta-base-v1')` we define which sentence transformer model we like to load. In this example, we load *paraphrase-distilroberta-base-v1*, which is a DistilBERT-base-uncased model fine tuned on a large dataset of paraphrase sentences.
 
 BERT (and other transformer networks) output for each token in our input text an embedding. In order to create a fixed-sized sentence embedding out of this, the model applies mean pooling, i.e., the output embeddings for all tokens are averaged to yield a 768-dimensional vector.
 
@@ -30,7 +30,7 @@ The sentences (texts) are mapped such that sentences with similar meanings are c
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('paraphrase-distilroberta-base-v1)
 
 #Sentences are encoded by calling model.encode()
 emb1 = model.encode("This is a red cat with a hat.")
@@ -43,7 +43,7 @@ print("Cosine-Similarity:", cos_sim)
 If you have a list with more sentences, you can use the following code example:
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('paraphrase-distilroberta-base-v1')
 
 sentences = ['A man is eating food.',
           'A man is eating a piece of bread.',

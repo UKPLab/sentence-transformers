@@ -120,7 +120,12 @@
               <span class="icon icon-home project-name"> {{ project }}</span>
             </a>
 
-            <div id="github-button"></div>
+            <div style="display: flex; justify-content: center;">
+              <div id="twitter-button">
+                <a href="https://twitter.com/Nils_Reimers" target="_blank" title="Follow SBERT on Twitter"><img src="https://sbert.net/_static/Twitter_Logo_White.svg" height="20" style="margin: 0px 10px 0px -10px;"> </a>
+              </div>
+              <div id="github-button"></div>
+            </div>
 
           {% if theme_display_version %}
             {%- set nav_version = version %}
