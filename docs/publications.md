@@ -65,6 +65,9 @@ Making BERT stretchy - Scalable Semantic Search on a Jupyter Notebook](https://m
 **SentenceTransformers used in Research**
 
 The following papers use SentenceTransformers in research:
+- **December 2020 - [Document Dating Using Sentence Embeddings
+at EVALITA 2020](http://ceur-ws.org/Vol-2765/paper106.pdf)**
+- **December 2020 - [Objective-Based Hierarchical Clustering of Deep Embedding Vectors](https://arxiv.org/pdf/2012.08466.pdf)**
 - **December 2020 - [Finding and Generating a Missing Part for Story Completion](https://www.aclweb.org/anthology/2020.latechclfl-1.19/)**
 - **October 2020 - [Identifying Similar Movie Characters Quickly but Effectively Using Non-exhaustive Pair-wise Attention](https://arxiv.org/abs/2010.12183)**
 - **October 2020 - [SciSummPip: An Unsupervised Scientific Paper Summarization Pipeline](https://arxiv.org/abs/2010.09190)**
@@ -89,7 +92,6 @@ Ranking Entity Properties](https://dl.acm.org/doi/pdf/10.1145/3397271.3401265)**
 - **May 2020 - [SUPERT: Towards New Frontiers in Unsupervised Evaluation Metrics for Multi-Document Summarization](https://arxiv.org/abs/2005.03724)**
 - **May 2020 - [A Recipe for Creating Multimodal Aligned Datasets for Sequential Tasks](https://arxiv.org/abs/2005.09606)**
 - **April 2020 - [PANDORA Talks: Personality and Demographics on Reddit](https://arxiv.org/abs/2004.04460)**
-- **September 2019 - [Learning Entailment-Based Sentence Embeddings from Natural Language Inference](https://openreview.net/forum?id=BkxackSKvH)**
 
 
 Feel free to contact me (info@nils-reimers.de) to add you paper here. 
