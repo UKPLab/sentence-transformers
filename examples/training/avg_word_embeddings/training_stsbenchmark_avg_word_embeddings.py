@@ -37,9 +37,8 @@ sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
 if not os.path.exists(sts_dataset_path):
     util.http_get('https://sbert.net/datasets/stsbenchmark.tsv.gz', sts_dataset_path)
 
-# Convert the dataset to a DataLoader ready for training
-logging.info("Read STSbenchmark train dataset")
 
+logging.info("Read STSbenchmark train dataset")
 train_samples = []
 dev_samples = []
 test_samples = []
