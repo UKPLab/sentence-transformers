@@ -46,21 +46,26 @@ class BoW(nn.Module):
         #Nothing to do, everything is done in get_sentence_features
         return features
 
-    def tokenize(self, text: str) -> List[int]:
-        return self.tokenizer.tokenize(text)
+    def tokenize(self, texts: List[str]) -> List[int]:
+        tokenized =  [self.tokenizer.tokenize(text) for text in texts]
+        return self.get_sentence_features(tokenized)
 
     def get_sentence_embedding_dimension(self):
         return self.sentence_embedding_dimension
 
-    def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
-        vector = np.zeros(self.get_sentence_embedding_dimension(), dtype=np.float32)
-        for token in tokens:
-            if self.cumulative_term_frequency:
-                vector[token] += self.weights[token]
-            else:
-                vector[token] = self.weights[token]
+    def get_sentence_features(self, tokenized_texts: List[List[int]], pad_seq_length: int = 0):
+        vectors = []
 
-        return {'sentence_embedding': torch.tensor([vector], dtype=torch.float)}
+        for tokens in tokenized_texts:
+            vector = np.zeros(self.get_sentence_embedding_dimension(), dtype=np.float32)
+            for token in tokens:
+                if self.cumulative_term_frequency:
+                    vector[token] += self.weights[token]
+                else:
+                    vector[token] = self.weights[token]
+            vectors.append(vector)
+
+        return {'sentence_embedding': torch.tensor(vectors, dtype=torch.float)}
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}
