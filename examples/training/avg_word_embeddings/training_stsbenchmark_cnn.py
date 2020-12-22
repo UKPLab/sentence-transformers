@@ -29,7 +29,7 @@ model_save_path = 'output/training_stsbenchmark_bilstm-'+datetime.now().strftime
 
 
 # Map tokens to vectors using BERT
-word_embedding_model = models.BERT('bert-base-uncased')
+word_embedding_model = models.Transformer('bert-base-uncased')
 
 cnn = models.CNN(in_word_embedding_dimension=word_embedding_model.get_word_embedding_dimension(), out_channels=256, kernel_sizes=[1,3,5])
 

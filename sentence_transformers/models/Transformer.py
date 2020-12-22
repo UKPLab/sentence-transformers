@@ -1,7 +1,7 @@
 from torch import nn
 from transformers import AutoModel, AutoTokenizer, AutoConfig
 import json
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Tuple
 import os
 
 
@@ -52,31 +52,14 @@ class Transformer(nn.Module):
     def get_word_embedding_dimension(self) -> int:
         return self.auto_model.config.hidden_size
 
-    def tokenize(self, text: Union[str, List[str]]) -> List[int]:
+    def tokenize(self, texts: Union[List[str], List[Tuple[str, str]]]):
         """
         Tokenizes a text and maps tokens to token-ids
         """
-        if isinstance(text, str):
-            return self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(text))
-        else:
-            return [self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(t)) for t in text]
+        if isinstance(texts[0], str):
+            texts = [texts]
+        return self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_seq_length)
 
-    def get_sentence_features(self, tokens: Union[List[int], List[List[int]]], pad_seq_length: int):
-        """
-        Convert tokenized sentence in its embedding ids, segment ids and mask
-
-        :param tokens:
-            a tokenized sentence
-        :param pad_seq_length:
-            the maximal length of the sequence. Cannot be greater than self.sentence_transformer_config.max_seq_length
-        :return: embedding ids, segment ids and mask for the sentence
-        """
-        pad_seq_length = min(pad_seq_length, self.max_seq_length, self.auto_model.config.max_position_embeddings-3) + 3 #Add space for special tokens
-
-        if len(tokens) == 0 or isinstance(tokens[0], int):
-            return self.tokenizer.prepare_for_model(tokens, max_length=pad_seq_length, padding='max_length', return_tensors='pt', truncation=True, prepend_batch_axis=True)
-        else:
-            return self.tokenizer.prepare_for_model(tokens[0], tokens[1], max_length=pad_seq_length, padding='max_length', return_tensors='pt', truncation='longest_first', prepend_batch_axis=True)
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}

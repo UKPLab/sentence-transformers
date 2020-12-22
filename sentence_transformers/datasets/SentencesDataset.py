@@ -23,17 +23,11 @@ class SentencesDataset(Dataset):
         :param model:
             SentenceTransformerModel
         """
-        self.model = model
         self.examples = examples
-        self.label_type = torch.long if isinstance(self.examples[0].label, int) else torch.float
 
 
     def __getitem__(self, item):
-        label = torch.tensor(self.examples[item].label, dtype=self.label_type)
-        if self.examples[item].texts_tokenized is None:
-            self.examples[item].texts_tokenized = [self.model.tokenize(text) for text in self.examples[item].texts]
-
-        return self.examples[item].texts_tokenized, label
+        return self.examples[item]
 
 
     def __len__(self):

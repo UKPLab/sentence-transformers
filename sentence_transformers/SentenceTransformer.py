@@ -143,9 +143,9 @@ class SentenceTransformer(nn.Sequential):
         :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings.
         :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
         :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from convert_to_numpy
-        :param is_pretokenized: If is_pretokenized=True, sentences must be a list of integers, containing the tokenized sentences with each token convert to the respective int.
+        :param is_pretokenized: DEPRECATED - No longer used
         :param device: Which torch.device to use for the computation
-        :param num_workers: Number of background-workers to tokenize data. Set to positive number to increase tokenization speed
+        :param num_workers: DEPRECATED - No longer used
         :return:
            By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
         """
@@ -166,16 +166,17 @@ class SentenceTransformer(nn.Sequential):
         all_embeddings = []
         length_sorted_idx = np.argsort([self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
-        inp_dataset = EncodeDataset(sentences_sorted, model=self, is_tokenized=is_pretokenized)
-        inp_dataloader = DataLoader(inp_dataset, batch_size=batch_size, collate_fn=self.smart_batching_collate_text_only, num_workers=num_workers, shuffle=False)
+        #inp_dataset = EncodeDataset(sentences_sorted, model=self, is_tokenized=is_pretokenized)
+        #inp_dataloader = DataLoader(inp_dataset, batch_size=batch_size, collate_fn=self.smart_batching_collate_text_only, num_workers=num_workers, shuffle=False)
 
-        iterator = inp_dataloader
+        iterator = range(0, len(sentences), batch_size)
         if show_progress_bar:
-            iterator = tqdm(inp_dataloader, desc="Batches")
+            iterator = tqdm(iterator, desc="Batches")
 
-        for features in iterator:
-            for feature_name in features:
-                features[feature_name] = features[feature_name].to(device)
+        for start_index in iterator:
+            sentences_batch = sentences_sorted[start_index:start_index+batch_size]
+            features = self.tokenize(sentences_batch)
+            features = batch_to_device(features, device)
 
             with torch.no_grad():
                 out_features = self.forward(features)
@@ -378,6 +379,28 @@ class SentenceTransformer(nn.Sequential):
         :return:
             a batch of tensors for the model
         """
+        num_texts = len(batch[0].texts)
+        texts = [[] for _ in range(num_texts)]
+        labels = []
+
+        for example in batch:
+            for idx, text in enumerate(example.texts):
+                texts[idx].append(text)
+
+            labels.append(example.label)
+
+        labels = torch.tensor(labels).to(self._target_device)
+
+        sentence_features = []
+        for idx in range(num_texts):
+            tokenized = self.tokenize(texts[idx])
+            for name in tokenized:
+                tokenized[name] = tokenized[name].to(self._target_device)
+            sentence_features.append(tokenized)
+
+        return sentence_features, labels
+
+        """
         num_texts = len(batch[0][0])
 
         labels = []
@@ -410,7 +433,7 @@ class SentenceTransformer(nn.Sequential):
             features.append(feature_lists)
 
         return {'features': features, 'labels': torch.stack(labels)}
-
+        """
 
     def smart_batching_collate_text_only(self, batch):
         """
@@ -562,12 +585,27 @@ class SentenceTransformer(nn.Sequential):
                     try:
                         data = next(data_iterator)
                     except StopIteration:
-                        #logging.info("Restart data_iterator")
                         data_iterator = iter(dataloaders[train_idx])
                         data_iterators[train_idx] = data_iterator
                         data = next(data_iterator)
 
-                    features, labels = batch_to_device(data, self._target_device)
+
+                    features, labels = data
+
+
+                    """
+                    num_texts = len(data[0].texts)
+                    texts = [[] for _ in range(num_texts)]
+                    labels = []
+                    for example in data:
+                        labels.append(data.label)
+                        for idx in range(num_texts):
+                            texts[idx].append(example.texts[idx])
+
+                    features = self.tokenize(texts)
+                    features = batch_to_device(features, self._target_device)
+                    labels  = torch.stack(labels).to(self._target_device)
+                    """
 
                     if use_amp:
                         with autocast():

@@ -38,10 +38,10 @@ if not os.path.exists(sts_dataset_path):
 
 
 #You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
-model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-uncased'
+model_name = sys.argv[1] if len(sys.argv) > 1 else 'distilbert-base-uncased'
 
 # Read the dataset
-train_batch_size = 16
+train_batch_size = 4
 num_epochs = 4
 model_save_path = 'output/training_stsbenchmark_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 

@@ -35,30 +35,28 @@ class WordEmbeddings(nn.Module):
         features.update({'token_embeddings': token_embeddings, 'cls_token_embeddings': cls_tokens, 'attention_mask': features['attention_mask']})
         return features
 
-    def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
-        pad_seq_length = min(pad_seq_length, self.max_seq_length)
+    def tokenize(self, texts: List[str]):
+        tokenized_texts = [self.tokenizer.tokenize(text) for text in texts]
+        sentence_lengths = [len(tokens) for tokens in tokenized_texts]
+        max_len = max(sentence_lengths)
 
-        tokens = tokens[0:pad_seq_length] #Truncate tokens if needed
-        input_ids = tokens
+        input_ids = []
+        attention_masks = []
+        for tokens in tokenized_texts:
+            padding = [0] * (max_len - len(tokens))
+            input_ids.append(tokens + padding)
+            attention_masks.append([1]*len(tokens) + padding)
 
-        sentence_length = len(input_ids)
-        attention_mask = [1] * len(input_ids)
-        padding = [0] * (pad_seq_length - len(input_ids))
-        input_ids += padding
-        attention_mask += padding
+        output = {'input_ids': torch.tensor(input_ids, dtype=torch.long),
+                'attention_mask': torch.tensor(attention_masks, dtype=torch.long),
+                'sentence_lengths': torch.tensor(sentence_lengths, dtype=torch.long)}
 
-        assert len(input_ids) == pad_seq_length
-        assert len(attention_mask) == pad_seq_length
+        return output
 
-        return {'input_ids': torch.tensor([input_ids], dtype=torch.long),
-                'attention_mask': torch.tensor([attention_mask], dtype=torch.long),
-                'sentence_lengths': torch.tensor([sentence_length], dtype=torch.long)}
+
 
     def get_word_embedding_dimension(self) -> int:
         return self.embeddings_dimension
-
-    def tokenize(self, text: str) -> List[int]:
-        return self.tokenizer.tokenize(text)
 
     def save(self, output_path: str):
         with open(os.path.join(output_path, 'wordembedding_config.json'), 'w') as fOut:
