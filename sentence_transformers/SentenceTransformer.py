@@ -21,7 +21,6 @@ import queue
 from . import __DOWNLOAD_SERVER__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, http_get
-from .datasets.EncodeDataset import EncodeDataset
 from .models import Transformer, Pooling
 from . import __version__
 
@@ -166,8 +165,6 @@ class SentenceTransformer(nn.Sequential):
         all_embeddings = []
         length_sorted_idx = np.argsort([self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
-        #inp_dataset = EncodeDataset(sentences_sorted, model=self, is_tokenized=is_pretokenized)
-        #inp_dataloader = DataLoader(inp_dataset, batch_size=batch_size, collate_fn=self.smart_batching_collate_text_only, num_workers=num_workers, shuffle=False)
 
         iterator = range(0, len(sentences), batch_size)
         if show_progress_bar:

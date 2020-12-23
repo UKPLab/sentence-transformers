@@ -1,8 +1,8 @@
 from torch.utils.data import Dataset
 import logging
 import gzip
-from queue import Queue
 from .. import SentenceTransformer
+from ..readers import InputExample
 from typing import List
 import random
 
@@ -95,7 +95,6 @@ class ParallelSentencesDataset(Dataset):
         dataset_id = len(self.datasets)
         self.datasets.append(list(sentences_map.items()))
         self.datasets_iterator.append(0)
-        self.datasets_tokenized.append(False)
         self.dataset_indices.extend([dataset_id] * weight)
 
 
@@ -112,28 +111,23 @@ class ParallelSentencesDataset(Dataset):
 
         for src_embedding, trg_sentences in zip(src_embeddings, target_sentences_list):
             for trg_sentence in trg_sentences:
-                self.cache.append([[trg_sentence], src_embedding])
+                self.cache.append(InputExample(texts=[trg_sentence], label=src_embedding))
 
         random.shuffle(self.cache)
 
     def next_entry(self, data_idx):
         source, target_sentences = self.datasets[data_idx][self.datasets_iterator[data_idx]]
 
-        if not self.datasets_tokenized[data_idx]:
-            target_sentences = [self.student_model.tokenize(sent) for sent in target_sentences]
-            self.datasets[data_idx][self.datasets_iterator[data_idx]] = [source, target_sentences]
-
         self.datasets_iterator[data_idx] += 1
         if self.datasets_iterator[data_idx] >= len(self.datasets[data_idx]): #Restart iterator
             self.datasets_iterator[data_idx] = 0
-            self.datasets_tokenized[data_idx] = True
             random.shuffle(self.datasets[data_idx])
 
         return source, target_sentences
 
     def get_embeddings(self, sentences):
         if not self.use_embedding_cache:
-            return self.teacher_model.encode(sentences, batch_size=self.batch_size, show_progress_bar=False, convert_to_numpy=False)
+            return self.teacher_model.encode(sentences, batch_size=self.batch_size, show_progress_bar=False, convert_to_numpy=True)
 
         #Use caching
         new_sentences = []
@@ -142,7 +136,7 @@ class ParallelSentencesDataset(Dataset):
                 new_sentences.append(sent)
 
         if len(new_sentences) > 0:
-            new_embeddings = self.teacher_model.encode(new_sentences, batch_size=self.batch_size, show_progress_bar=False, convert_to_numpy=False)
+            new_embeddings = self.teacher_model.encode(new_sentences, batch_size=self.batch_size, show_progress_bar=False, convert_to_numpy=True)
             for sent, embedding in zip(new_sentences, new_embeddings):
                 self.embedding_cache[sent] = embedding
 
