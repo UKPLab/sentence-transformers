@@ -41,7 +41,7 @@ if not os.path.exists(sts_dataset_path):
 model_name = sys.argv[1] if len(sys.argv) > 1 else 'distilbert-base-uncased'
 
 # Read the dataset
-train_batch_size = 4
+train_batch_size = 16
 num_epochs = 4
 model_save_path = 'output/training_stsbenchmark_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
