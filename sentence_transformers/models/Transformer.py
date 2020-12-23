@@ -58,6 +58,13 @@ class Transformer(nn.Module):
         """
         if isinstance(texts[0], str):
             texts = [texts]
+        else:
+            batch1, batch2 = [], []
+            for text_tuple in texts:
+                batch1.append(text_tuple[0])
+                batch2.append(text_tuple[1])
+            texts = [batch1, batch2]
+
         return self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_seq_length)
 
 
