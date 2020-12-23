@@ -27,7 +27,7 @@ class SentenceLabelDataset(IterableDataset):
         :param examples:
             a list with InputExamples
         :param samples_per_label:
-            the number of consecutive, random and unique samples drawn per label
+            the number of consecutive, random and unique samples drawn per label. Batch size should be a multiple of samples_per_label
         :param with_replacement:
             if this is True, then each sample is drawn at most once (depending on the total number of samples per label).
             if this is False, then one sample can be drawn in multiple draws, but still not multiple times in the same
