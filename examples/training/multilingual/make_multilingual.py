@@ -77,8 +77,8 @@ def download_corpora(filepaths):
 
 
 # Here we define train train and dev corpora
-train_corpus = "../datasets/ted2020.tsv.gz"         # Transcripts of TED talks, crawled 2020
-sts_corpus = "../datasets/STS2017-extended.zip"     # Extended STS2017 dataset for more languages
+train_corpus = "datasets/ted2020.tsv.gz"         # Transcripts of TED talks, crawled 2020
+sts_corpus = "datasets/STS2017-extended.zip"     # Extended STS2017 dataset for more languages
 parallel_sentences_folder = "parallel-sentences/"
 
 # Check if the file exists. If not, they are downloaded
