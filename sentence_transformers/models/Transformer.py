@@ -33,7 +33,11 @@ class Transformer(nn.Module):
 
     def forward(self, features):
         """Returns token_embeddings, cls_token"""
-        output_states = self.auto_model(**features, return_dict=False)
+        trans_features = {'input_ids': features['input_ids'], 'attention_mask': features['attention_mask']}
+        if 'token_type_ids' in features:
+            trans_features['token_type_ids'] = features['token_type_ids']
+
+        output_states = self.auto_model(**trans_features, return_dict=False)
         output_tokens = output_states[0]
 
         cls_tokens = output_tokens[:, 0, :]  # CLS token is first token
@@ -56,16 +60,26 @@ class Transformer(nn.Module):
         """
         Tokenizes a text and maps tokens to token-ids
         """
+        output = {}
         if isinstance(texts[0], str):
-            texts = [texts]
+            to_tokenize = [texts]
+        elif isinstance(texts[0], dict):
+            to_tokenize = []
+            output['text_keys'] = []
+            for lookup in texts:
+                text_key, text = next(iter(lookup.items()))
+                to_tokenize.append(text)
+                output['text_keys'].append(text_key)
+            to_tokenize = [to_tokenize]
         else:
             batch1, batch2 = [], []
             for text_tuple in texts:
                 batch1.append(text_tuple[0])
                 batch2.append(text_tuple[1])
-            texts = [batch1, batch2]
+            to_tokenize = [batch1, batch2]
 
-        return self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_seq_length)
+        output.update(self.tokenizer(*to_tokenize, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_seq_length))
+        return output
 
 
     def get_config_dict(self):

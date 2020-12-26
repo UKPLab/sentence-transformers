@@ -391,73 +391,11 @@ class SentenceTransformer(nn.Sequential):
         sentence_features = []
         for idx in range(num_texts):
             tokenized = self.tokenize(texts[idx])
-            for name in tokenized:
-                tokenized[name] = tokenized[name].to(self._target_device)
+            batch_to_device(tokenized, self._target_device)
             sentence_features.append(tokenized)
 
         return sentence_features, labels
 
-        """
-        num_texts = len(batch[0][0])
-
-        labels = []
-        paired_texts = [[] for _ in range(num_texts)]
-        max_seq_len = [0] * num_texts
-        for tokens, label in batch:
-            labels.append(label)
-            for i in range(num_texts):
-                paired_texts[i].append(tokens[i])
-                max_seq_len[i] = max(max_seq_len[i], self._text_length(tokens[i]))
-
-        features = []
-        for idx in range(num_texts):
-            max_len = max_seq_len[idx]
-            feature_lists = {}
-
-            for text in paired_texts[idx]:
-                sentence_features = self.get_sentence_features(text, max_len)
-
-                for feature_name in sentence_features:
-                    if feature_name not in feature_lists:
-                        feature_lists[feature_name] = []
-
-                    feature_lists[feature_name].append(sentence_features[feature_name])
-
-
-            for feature_name in feature_lists:
-                feature_lists[feature_name] = torch.cat(feature_lists[feature_name])
-
-            features.append(feature_lists)
-
-        return {'features': features, 'labels': torch.stack(labels)}
-        """
-
-    def smart_batching_collate_text_only(self, batch):
-        """
-        Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model.
-        Here, batch is a list of texts
-
-        :param batch:
-            a batch from a SmartBatchingDataset
-        :return:
-            a batch of tensors for the model
-        """
-
-        max_seq_len = max([self._text_length(text) for text in batch])
-        feature_lists = {}
-
-        for text in batch:
-            sentence_features = self.get_sentence_features(text, max_seq_len)
-            for feature_name in sentence_features:
-                if feature_name not in feature_lists:
-                    feature_lists[feature_name] = []
-
-                feature_lists[feature_name].append(sentence_features[feature_name])
-
-        for feature_name in feature_lists:
-            feature_lists[feature_name] = torch.cat(feature_lists[feature_name])
-
-        return feature_lists
 
     def _text_length(self, text: Union[List[int], List[List[int]]]):
         """
@@ -465,7 +403,9 @@ class SentenceTransformer(nn.Sequential):
         a list of ints (which means a single text as input), or a tuple of list of ints
         (representing several text inputs to the model).
         """
-        if len(text) == 0 or isinstance(text[0], int):
+        if isinstance(text, dict):
+            return len(next(iter(text.values())))
+        elif len(text) == 0 or isinstance(text[0], int):
             return len(text)
         else:
             return sum([len(t) for t in text])

@@ -1,5 +1,6 @@
 from .Transformer import Transformer
 from .ALBERT import ALBERT
+from .Asym import Asym
 from .BERT import BERT
 from .BoW import BoW
 from .CNN import CNN

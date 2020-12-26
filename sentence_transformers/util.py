@@ -216,18 +216,11 @@ def batch_to_device(batch, target_device: device):
     send a pytorch batch to a device (CPU/GPU)
     """
     for key in batch:
-        batch[key] = batch[key].to(target_device)
+        if isinstance(batch[key], Tensor):
+            batch[key] = batch[key].to(target_device)
     return batch
 
-    """
-    features = batch['features']
-    for paired_sentence_idx in range(len(features)):
-        for feature_name in features[paired_sentence_idx]:
-            features[paired_sentence_idx][feature_name] = features[paired_sentence_idx][feature_name].to(target_device)
 
-    labels = batch['labels'].to(target_device)
-    return features, labels
-    """
 
 def fullname(o):
   """
