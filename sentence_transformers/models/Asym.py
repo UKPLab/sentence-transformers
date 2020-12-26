@@ -1,11 +1,10 @@
-import torch
+
 from torch import Tensor
 from torch import nn
-from torch import functional as F
-from typing import Union, Tuple, List, Iterable, Dict
+from typing import List, Dict
 import os
 import json
-from ..util import fullname, import_from_string
+from ..util import import_from_string
 from collections import OrderedDict
 
 class Asym(nn.Sequential):
@@ -17,8 +16,6 @@ class Asym(nn.Sequential):
         be passed along along the first Dense model, and text that will be passed as {'doc': 'My document'} will use the other Dense model.
 
         Note, that when you call encode(), that only inputs of the same type can be encoded. Mixed-Types cannot be encoded.
-
-
 
         Example::
             word_embedding_model = models.Transformer(model_name)
