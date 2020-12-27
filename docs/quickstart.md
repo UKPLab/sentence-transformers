@@ -30,7 +30,7 @@ The sentences (texts) are mapped such that sentences with similar meanings are c
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('paraphrase-distilroberta-base-v1)
+model = SentenceTransformer('paraphrase-distilroberta-base-v1')
 
 #Sentences are encoded by calling model.encode()
 emb1 = model.encode("This is a red cat with a hat.")
