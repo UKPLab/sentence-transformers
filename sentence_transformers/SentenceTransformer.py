@@ -208,14 +208,13 @@ class SentenceTransformer(nn.Sequential):
 
 
 
-    def start_multi_process_pool(self, target_devices: List[str] = None, encode_batch_size: int = 32):
+    def start_multi_process_pool(self, target_devices: List[str] = None):
         """
         Starts multi process to process the encoding with several, independent processes.
         This method is recommended if you want to encode on multiple GPUs. It is advised
         to start only one process per GPU. This method works together with encode_multi_process
 
         :param target_devices: PyTorch target devices, e.g. cuda:0, cuda:1... If None, all available CUDA devices will be used
-        :param encode_batch_size: Batch size for each process when calling encode
         :return: Returns a dict with the target processes, an input queue and and output queue.
         """
         if target_devices is None:
@@ -233,7 +232,7 @@ class SentenceTransformer(nn.Sequential):
         processes = []
 
         for cuda_id in target_devices:
-            p = ctx.Process(target=SentenceTransformer._encode_multi_process_worker, args=(cuda_id, self, input_queue, output_queue, encode_batch_size), daemon=True)
+            p = ctx.Process(target=SentenceTransformer._encode_multi_process_worker, args=(cuda_id, self, input_queue, output_queue), daemon=True)
             p.start()
             processes.append(p)
 
@@ -256,7 +255,7 @@ class SentenceTransformer(nn.Sequential):
         pool['output'].close()
 
 
-    def encode_multi_process(self, sentences: List[str], pool: Dict[str, object], is_pretokenized: bool = False, chunk_size=None):
+    def encode_multi_process(self, sentences: List[str], pool: Dict[str, object], batch_size: int = 32, chunk_size: int = None):
         """
         This method allows to run encode() on multiple GPUs. The sentences are chunked into smaller packages
         and sent to individual processes, which encode these on the different GPUs. This method is only suitable
@@ -264,7 +263,7 @@ class SentenceTransformer(nn.Sequential):
 
         :param sentences: List of sentences
         :param pool: A pool of workers started with SentenceTransformer.start_multi_process_pool
-        :param is_pretokenized: If true, no tokenization will be applied. It is expected that the input sentences are list of ints.
+        :param batch_size: Encode sentences with batch size
         :param chunk_size: Sentences are chunked and sent to the individual processes. If none, it determine a sensible size.
         :return: Numpy matrix with all embeddings
         """
@@ -281,12 +280,12 @@ class SentenceTransformer(nn.Sequential):
         for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, is_pretokenized, chunk])
+                input_queue.put([last_chunk_id, batch_size, chunk])
                 last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, is_pretokenized, chunk])
+            input_queue.put([last_chunk_id, batch_size, chunk])
             last_chunk_id += 1
 
         output_queue = pool['output']
@@ -295,14 +294,14 @@ class SentenceTransformer(nn.Sequential):
         return embeddings
 
     @staticmethod
-    def _encode_multi_process_worker(target_device: str, model, input_queue, results_queue, encode_batch_size):
+    def _encode_multi_process_worker(target_device: str, model, input_queue, results_queue):
         """
         Internal working process to encode sentences in multi-process setup
         """
         while True:
             try:
-                id, is_pretokenized, sentences = input_queue.get()
-                embeddings = model.encode(sentences, device=target_device, is_pretokenized=is_pretokenized, show_progress_bar=False, convert_to_numpy=True, batch_size=encode_batch_size)
+                id, batch_size, sentences = input_queue.get()
+                embeddings = model.encode(sentences, device=target_device,  show_progress_bar=False, convert_to_numpy=True, batch_size=batch_size)
                 results_queue.put([id, embeddings])
             except queue.Empty:
                 break
