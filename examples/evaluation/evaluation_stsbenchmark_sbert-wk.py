@@ -7,7 +7,7 @@ for which there is so far not efficient implementation in pytorch for GPUs (see 
 Hence, WKPooling runs on the GPU, which makes it rather in-efficient.
 """
 from torch.utils.data import DataLoader
-from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, models
+from sentence_transformers import SentenceTransformer, LoggingHandler, models
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import STSBenchmarkDataReader
 import logging

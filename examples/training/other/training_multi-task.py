@@ -6,7 +6,7 @@ The system trains BERT on the AllNLI and on the STSbenchmark dataset.
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses
-from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer, util
+from sentence_transformers import LoggingHandler, SentenceTransformer, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import *
 import logging
@@ -63,8 +63,8 @@ with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
             label_id = label2int[row['label']]
             train_nli_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=label_id))
 
-train_data_nli = SentencesDataset(train_nli_samples, model=model)
-train_dataloader_nli = DataLoader(train_data_nli, shuffle=True, batch_size=batch_size)
+
+train_dataloader_nli = DataLoader(train_nli_samples, shuffle=True, batch_size=batch_size)
 train_loss_nli = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=len(label2int))
 
 logging.info("Read STSbenchmark train dataset")
@@ -84,8 +84,8 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
         else:
             train_sts_samples.append(inp_example)
 
-train_data_sts = SentencesDataset(train_sts_samples, model=model)
-train_dataloader_sts = DataLoader(train_data_sts, shuffle=True, batch_size=batch_size)
+
+train_dataloader_sts = DataLoader(train_sts_samples, shuffle=True, batch_size=batch_size)
 train_loss_sts = losses.CosineSimilarityLoss(model=model)
 
 
@@ -95,7 +95,7 @@ evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_sts_samples, na
 # Configure the training
 num_epochs = 4
 
-warmup_steps = math.ceil(len(train_data_sts) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_dataloader_sts) * num_epochs * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 

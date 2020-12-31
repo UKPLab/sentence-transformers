@@ -11,7 +11,7 @@ An issue with constrative loss is, that it might push sentences away that are al
 
 from torch.utils.data import DataLoader
 from sentence_transformers import losses, util
-from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer, evaluation
+from sentence_transformers import LoggingHandler, SentenceTransformer, evaluation
 from sentence_transformers.readers import InputExample
 import logging
 from datetime import datetime
@@ -63,8 +63,8 @@ with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding
         train_samples.append(sample)
 
 
-train_dataset = SentencesDataset(train_samples, model=model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+
+train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.OnlineContrastiveLoss(model=model, distance_metric=distance_metric, margin=margin)
 
 

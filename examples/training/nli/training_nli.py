@@ -12,7 +12,7 @@ python training_nli.py pretrained_transformer_model_name
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses
-from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer, util, InputExample
+from sentence_transformers import LoggingHandler, SentenceTransformer, util, InputExample
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 import logging
 from datetime import datetime
@@ -74,8 +74,8 @@ with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
             train_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=label_id))
 
 
-train_dataset = SentencesDataset(train_samples, model=model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+
+train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=len(label2int))
 
 
@@ -94,7 +94,7 @@ dev_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, ba
 # Configure the training
 num_epochs = 1
 
-warmup_steps = math.ceil(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 

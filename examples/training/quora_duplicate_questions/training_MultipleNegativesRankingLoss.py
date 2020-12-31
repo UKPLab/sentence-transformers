@@ -13,7 +13,7 @@ The model we get works well for duplicate questions mining and for duplicate que
 
 from torch.utils.data import DataLoader
 from sentence_transformers import losses, util
-from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer, evaluation
+from sentence_transformers import LoggingHandler, SentenceTransformer, evaluation
 from sentence_transformers.readers import InputExample
 import logging
 from datetime import datetime
@@ -65,9 +65,8 @@ with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding
             train_samples.append(InputExample(texts=[row['question2'], row['question1']], label=1)) #if A is a duplicate of B, then B is a duplicate of A
 
 
-# After reading the train_samples, we create a SentencesDataset and a DataLoader
-train_dataset = SentencesDataset(train_samples, model=model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+# After reading the train_samples, we create a DataLoader
+train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.MultipleNegativesRankingLoss(model)
 
 

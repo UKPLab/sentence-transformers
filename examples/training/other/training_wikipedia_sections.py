@@ -4,7 +4,7 @@ This script trains sentence transformers with a triplet loss function.
 As corpus, we use the wikipedia sections dataset that was describd by Dor et al., 2018, Learning Thematic Similarity Metric Using Triplet Networks.
 """
 
-from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample, LoggingHandler, losses, models, util
+from sentence_transformers import SentenceTransformer, InputExample, LoggingHandler, losses, models, util
 from torch.utils.data import DataLoader
 from sentence_transformers.evaluation import TripletEvaluator
 from datetime import datetime
@@ -60,8 +60,8 @@ with open(os.path.join(dataset_path, 'train.csv'), encoding="utf-8") as fIn:
         train_examples.append(InputExample(texts=[row['Sentence1'], row['Sentence2'], row['Sentence3']], label=0))
 
 
-train_dataset = SentencesDataset(train_examples, model=model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+
+train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.TripletLoss(model=model)
 
 logging.info("Read Wikipedia Triplet dev dataset")
@@ -77,7 +77,7 @@ with open(os.path.join(dataset_path, 'validation.csv'), encoding="utf-8") as fIn
 evaluator = TripletEvaluator.from_input_examples(dev_examples, name='dev')
 
 
-warmup_steps = int(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data
+warmup_steps = int(len(train_dataloader) * num_epochs * 0.1) #10% of train data
 
 
 # Train the model

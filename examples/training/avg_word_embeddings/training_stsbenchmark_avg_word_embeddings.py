@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses, util
-from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer
+from sentence_transformers import LoggingHandler, SentenceTransformer
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import *
 import logging

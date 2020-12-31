@@ -13,7 +13,7 @@ model.fit(train_objectives=[(train_dataloader_MultipleNegativesRankingLoss, trai
 
 from torch.utils.data import DataLoader
 from sentence_transformers import losses, util
-from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer, evaluation
+from sentence_transformers import LoggingHandler, SentenceTransformer, evaluation
 from sentence_transformers.readers import InputExample
 import logging
 from datetime import datetime
@@ -74,14 +74,12 @@ with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding
             train_samples_MultipleNegativesRankingLoss.append(InputExample(texts=[row['question2'], row['question1']], label=1))  # if A is a duplicate of B, then B is a duplicate of A
 
 # Create data loader and loss for MultipleNegativesRankingLoss
-train_dataset_MultipleNegativesRankingLoss = SentencesDataset(train_samples_MultipleNegativesRankingLoss, model=model)
-train_dataloader_MultipleNegativesRankingLoss = DataLoader(train_dataset_MultipleNegativesRankingLoss, shuffle=True, batch_size=train_batch_size)
+train_dataloader_MultipleNegativesRankingLoss = DataLoader(train_samples_MultipleNegativesRankingLoss, shuffle=True, batch_size=train_batch_size)
 train_loss_MultipleNegativesRankingLoss = losses.MultipleNegativesRankingLoss(model)
 
 
 # Create data loader and loss for OnlineContrastiveLoss
-train_dataset_ConstrativeLoss = SentencesDataset(train_samples_ConstrativeLoss, model=model)
-train_dataloader_ConstrativeLoss = DataLoader(train_dataset_ConstrativeLoss, shuffle=True, batch_size=train_batch_size)
+train_dataloader_ConstrativeLoss = DataLoader(train_samples_ConstrativeLoss, shuffle=True, batch_size=train_batch_size)
 train_loss_ConstrativeLoss = losses.OnlineContrastiveLoss(model=model, distance_metric=distance_metric, margin=margin)
 
 
