@@ -57,19 +57,16 @@ For all available building blocks see [» Models Package Reference](../package_r
  To represent our training data, we use the `InputExample` class to store training examples. As parameters, it accepts texts, which is a list of strings representing our pairs (or triplets). Further, we can also pass a label (either float or int). The following shows a simple example, where we pass text pairs to `InputExample` together with a label indicating the semantic similarity.
  
  ```python
-from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample
+from sentence_transformers import SentenceTransformer, InputExample
 from torch.utils.data import DataLoader
 
 model = SentenceTransformer('distilbert-base-nli-mean-tokens')
 train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=0.8),
     InputExample(texts=['Another pair', 'Unrelated sentence'], label=0.3)]
-train_dataset = SentencesDataset(train_examples, model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=16)
+train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
  ```
 
-To prepare the examples for training, we provide a custom `SentencesDataset`, which is a [custom PyTorch dataset](https://pytorch.org/tutorials/beginner/data_loading_tutorial.html). It accepts as parameters the list with `InputExamples` and the `SentenceTransformer` model.
-
-We can wrap `SentencesDataset` with the standard PyTorch `DataLoader`, which produces for example batches and allows us to shuffle the data for training.
+We wrap our `train_examples` with the standard PyTorch `DataLoader`, which shuffles our data and produces batches of certain sizes.
 
 
  
@@ -92,7 +89,7 @@ For each sentence pair, we pass sentence A and sentence B through our network wh
 
 A minimal example with `CosineSimilarityLoss` is the following:
 ```python
-from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample, losses
+from sentence_transformers import SentenceTransformer, InputExample, losses
 from torch.utils.data import DataLoader
 
 #Define the model. Either from scratch of by loading a pre-trained model
@@ -103,8 +100,7 @@ train_examples = [InputExample(texts=['My first sentence', 'My second sentence']
     InputExample(texts=['Another pair', 'Unrelated sentence'], label=0.3)]
 
 #Define your train dataset, the dataloader and the train loss
-train_dataset = SentencesDataset(train_examples, model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=16)
+train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
 train_loss = losses.CosineSimilarityLoss(model)
 
 #Tune the model
@@ -142,7 +138,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_st
 
 
 ### Continue Training on Other Data
-[training_stsbenchmark_continue_training.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_stsbenchmark_continue_training.py) shows an example where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset and then continue training on the training data from the STS benchmark.
+[training_stsbenchmark_continue_training.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/sts/training_stsbenchmark_continue_training.py) shows an example where training on a fine-tuned model is continued. In that example, we use a sentence transformer model that was first fine-tuned on the NLI dataset and then continue training on the training data from the STS benchmark.
 
 First, we load a pre-trained model from the server:
 ```python
@@ -152,9 +148,7 @@ model = SentenceTransformer('bert-base-nli-mean-tokens')
 
 The next steps are as before. We specify training and dev data:
 ```python
-sts_reader = STSBenchmarkDataReader('datasets/stsbenchmark', normalize_scores=True)
-train_data = SentencesDataset(sts_reader.get_examples('sts-train.csv'), model)
-train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
+train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)
 
 evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-dev.csv'))
