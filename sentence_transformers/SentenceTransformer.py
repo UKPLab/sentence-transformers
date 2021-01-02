@@ -24,6 +24,8 @@ from .util import import_from_string, batch_to_device, http_get
 from .models import Transformer, Pooling
 from . import __version__
 
+logger = logging.getLogger(__name__)
+
 class SentenceTransformer(nn.Sequential):
     """
     Loads or create a SentenceTransformer model, that can be used to map sentences / text to embeddings.
@@ -34,17 +36,17 @@ class SentenceTransformer(nn.Sequential):
     """
     def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
         if model_name_or_path is not None and model_name_or_path != "":
-            logging.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
+            logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
             model_path = model_name_or_path
 
             if not os.path.isdir(model_path) and not model_path.startswith('http://') and not model_path.startswith('https://'):
-                logging.info("Did not find folder {}".format(model_path))
+                logger.info("Did not find folder {}".format(model_path))
 
                 if '\\' in model_path or model_path.count('/') > 1:
                     raise AttributeError("Path {} not found".format(model_path))
 
                 model_path = __DOWNLOAD_SERVER__ + model_path + '.zip'
-                logging.info("Try to download model from server: {}".format(model_path))
+                logger.info("Try to download model from server: {}".format(model_path))
 
             if model_path.startswith('http://') or model_path.startswith('https://'):
                 model_url = model_path
@@ -65,7 +67,7 @@ class SentenceTransformer(nn.Sequential):
                 if not os.path.exists(model_path) or not os.listdir(model_path):
                     if model_url[-1] == "/":
                         model_url = model_url[:-1]
-                    logging.info("Downloading sentence transformer model from {} and saving it at {}".format(model_url, model_path))
+                    logger.info("Downloading sentence transformer model from {} and saving it at {}".format(model_url, model_path))
 
                     model_path_tmp = model_path.rstrip("/").rstrip("\\")+"_part"
                     try:
@@ -78,8 +80,8 @@ class SentenceTransformer(nn.Sequential):
                     except requests.exceptions.HTTPError as e:
                         shutil.rmtree(model_path_tmp)
                         if e.response.status_code == 404:
-                            logging.warning('SentenceTransformer-Model {} not found. Try to create it from scratch'.format(model_url))
-                            logging.warning('Try to create Transformer Model {} with mean pooling'.format(model_name_or_path))
+                            logger.warning('SentenceTransformer-Model {} not found. Try to create it from scratch'.format(model_url))
+                            logger.warning('Try to create Transformer Model {} with mean pooling'.format(model_name_or_path))
 
                             model_path = None
                             transformer_model = Transformer(model_name_or_path)
@@ -95,13 +97,13 @@ class SentenceTransformer(nn.Sequential):
 
             #### Load from disk
             if model_path is not None:
-                logging.info("Load SentenceTransformer from folder: {}".format(model_path))
+                logger.info("Load SentenceTransformer from folder: {}".format(model_path))
 
                 if os.path.exists(os.path.join(model_path, 'config.json')):
                     with open(os.path.join(model_path, 'config.json')) as fIn:
                         config = json.load(fIn)
                         if config['__version__'] > __version__:
-                            logging.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(config['__version__'], __version__))
+                            logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(config['__version__'], __version__))
 
                 with open(os.path.join(model_path, 'modules.json')) as fIn:
                     contained_modules = json.load(fIn)
@@ -119,7 +121,7 @@ class SentenceTransformer(nn.Sequential):
         super().__init__(modules)
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            logging.info("Use pytorch device: {}".format(device))
+            logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
 
@@ -150,7 +152,7 @@ class SentenceTransformer(nn.Sequential):
         """
         self.eval()
         if show_progress_bar is None:
-            show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
+            show_progress_bar = (logger.getLogger().getEffectiveLevel()==logger.INFO or logger.getLogger().getEffectiveLevel()==logger.DEBUG)
 
         input_was_string = False
         if isinstance(sentences, str): #Cast an individual sentence to a list with length 1
@@ -221,10 +223,10 @@ class SentenceTransformer(nn.Sequential):
             if torch.cuda.is_available():
                 target_devices = ['cuda:{}'.format(i) for i in range(torch.cuda.device_count())]
             else:
-                logging.info("CUDA is not available. Start 4 CPU worker")
+                logger.info("CUDA is not available. Start 4 CPU worker")
                 target_devices = ['cpu']*4
 
-        logging.info("Start multi-process pool on devices: {}".format(', '.join(map(str, target_devices))))
+        logger.info("Start multi-process pool on devices: {}".format(', '.join(map(str, target_devices))))
 
         ctx = mp.get_context('spawn')
         input_queue = ctx.Queue()
@@ -271,7 +273,7 @@ class SentenceTransformer(nn.Sequential):
         if chunk_size is None:
             chunk_size = min(math.ceil(len(sentences) / len(pool["processes"]) / 10), 5000)
 
-        logging.info("Chunk data into packages of size {}".format(chunk_size))
+        logger.info("Chunk data into packages of size {}".format(chunk_size))
 
         input_queue = pool['input']
         last_chunk_id = 0
@@ -349,7 +351,7 @@ class SentenceTransformer(nn.Sequential):
 
         os.makedirs(path, exist_ok=True)
 
-        logging.info("Save model to {}".format(path))
+        logger.info("Save model to {}".format(path))
         contained_modules = []
 
         for idx, name in enumerate(self._modules):

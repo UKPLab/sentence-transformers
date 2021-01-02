@@ -7,6 +7,9 @@ import logging
 from .WordTokenizer import WordTokenizer, ENGLISH_STOP_WORDS
 import nltk
 
+
+logger = logging.getLogger(__name__)
+
 class PhraseTokenizer(WordTokenizer):
     """Tokenizes the text with respect to existent phrases in the vocab.
 
@@ -40,8 +43,8 @@ class PhraseTokenizer(WordTokenizer):
                     self.ngram_lengths.add(ngram_count)
 
         if len(vocab) > 0:
-            logging.info("PhraseTokenizer - Phrase ngram lengths: {}".format(self.ngram_lengths))
-            logging.info("PhraseTokenizer - Num phrases: {}".format(len(self.ngram_lookup)))
+            logger.info("PhraseTokenizer - Phrase ngram lengths: {}".format(self.ngram_lengths))
+            logger.info("PhraseTokenizer - Num phrases: {}".format(len(self.ngram_lookup)))
 
     def tokenize(self, text: str) -> List[int]:
         tokens = nltk.word_tokenize(text, preserve_line=True)

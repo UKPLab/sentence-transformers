@@ -8,6 +8,9 @@ import numpy as np
 from typing import List
 from ..readers import InputExample
 
+
+logger = logging.getLogger(__name__)
+
 class EmbeddingSimilarityEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on the similarity of the embeddings by calculating the Spearman and Pearson rank correlation
@@ -71,7 +74,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("EmbeddingSimilarityEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
+        logger.info("EmbeddingSimilarityEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
 
         embeddings1 = model.encode(self.sentences1, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
         embeddings2 = model.encode(self.sentences2, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
@@ -95,13 +98,13 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         eval_pearson_dot, _ = pearsonr(labels, dot_products)
         eval_spearman_dot, _ = spearmanr(labels, dot_products)
 
-        logging.info("Cosine-Similarity :\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+        logger.info("Cosine-Similarity :\tPearson: {:.4f}\tSpearman: {:.4f}".format(
             eval_pearson_cosine, eval_spearman_cosine))
-        logging.info("Manhattan-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+        logger.info("Manhattan-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
             eval_pearson_manhattan, eval_spearman_manhattan))
-        logging.info("Euclidean-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+        logger.info("Euclidean-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
             eval_pearson_euclidean, eval_spearman_euclidean))
-        logging.info("Dot-Product-Similarity:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+        logger.info("Dot-Product-Similarity:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
             eval_pearson_dot, eval_spearman_dot))
 
         if output_path is not None:

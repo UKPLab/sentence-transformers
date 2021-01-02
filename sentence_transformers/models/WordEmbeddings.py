@@ -11,6 +11,8 @@ from ..util import import_from_string, fullname, http_get
 from .tokenizer import WordTokenizer, WhitespaceTokenizer
 
 
+logger = logging.getLogger(__name__)
+
 class WordEmbeddings(nn.Module):
     def __init__(self, tokenizer: WordTokenizer, embedding_weights, update_embeddings: bool = False, max_seq_length: int = 1000000):
         nn.Module.__init__(self)
@@ -82,10 +84,10 @@ class WordEmbeddings(nn.Module):
 
     @staticmethod
     def from_text_file(embeddings_file_path: str, update_embeddings: bool = False, item_separator: str = " ", tokenizer=WhitespaceTokenizer(), max_vocab_size: int = None):
-        logging.info("Read in embeddings file {}".format(embeddings_file_path))
+        logger.info("Read in embeddings file {}".format(embeddings_file_path))
 
         if not os.path.exists(embeddings_file_path):
-            logging.info("{} does not exist, try to download from server".format(embeddings_file_path))
+            logger.info("{} does not exist, try to download from server".format(embeddings_file_path))
 
             if '/' in embeddings_file_path or '\\' in embeddings_file_path:
                 raise ValueError("Embeddings file not found: ".format(embeddings_file_path))
@@ -109,7 +111,7 @@ class WordEmbeddings(nn.Module):
                     embeddings.append(np.zeros(embeddings_dimension))
 
                 if (len(split) - 1) != embeddings_dimension:  # Assure that all lines in the embeddings file are of the same length
-                    logging.error("ERROR: A line in the embeddings file had more or less  dimensions than expected. Skip token.")
+                    logger.error("ERROR: A line in the embeddings file had more or less  dimensions than expected. Skip token.")
                     continue
 
                 vector = np.array([float(num) for num in split[1:]])

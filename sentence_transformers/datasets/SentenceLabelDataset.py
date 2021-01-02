@@ -7,6 +7,8 @@ from typing import List
 from ..readers import InputExample
 import logging
 
+logger = logging.getLogger(__name__)
+
 class SentenceLabelDataset(IterableDataset):
     """
     This dataset can be used for some specific Triplet Losses like BATCH_HARD_TRIPLET_LOSS which requires
@@ -59,7 +61,7 @@ class SentenceLabelDataset(IterableDataset):
         self.with_replacement = with_replacement
         np.random.shuffle(self.label_range)
 
-        logging.info("SentenceLabelDataset: {} examples, from which {} examples could be used (those labels appeared at least {} times). {} different labels found.".format(len(examples), len(self.grouped_inputs), self.samples_per_label, num_labels ))
+        logger.info("SentenceLabelDataset: {} examples, from which {} examples could be used (those labels appeared at least {} times). {} different labels found.".format(len(examples), len(self.grouped_inputs), self.samples_per_label, num_labels ))
 
     def __iter__(self):
         label_idx = 0

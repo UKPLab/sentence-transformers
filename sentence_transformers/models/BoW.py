@@ -8,6 +8,9 @@ import logging
 import numpy as np
 from .tokenizer import WhitespaceTokenizer
 
+
+logger = logging.getLogger(__name__)
+
 class BoW(nn.Module):
     """Implements a Bag-of-Words (BoW) model to derive sentence embeddings.
 
@@ -36,7 +39,7 @@ class BoW(nn.Module):
                 num_unknown_words += 1
             self.weights.append(weight)
 
-        logging.info("{} out of {} words without a weighting value. Set weight to {}".format(num_unknown_words, len(vocab), unknown_word_weight))
+        logger.info("{} out of {} words without a weighting value. Set weight to {}".format(num_unknown_words, len(vocab), unknown_word_weight))
 
         self.tokenizer = WhitespaceTokenizer(vocab, stop_words=set(), do_lower_case=False)
         self.sentence_embedding_dimension = len(vocab)

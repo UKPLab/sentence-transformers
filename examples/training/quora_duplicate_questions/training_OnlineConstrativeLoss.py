@@ -25,6 +25,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 
@@ -46,7 +47,7 @@ os.makedirs(model_save_path, exist_ok=True)
 
 # Check if the dataset exists. If not, download and extract
 if not os.path.exists(dataset_path):
-    logging.info("Dataset not found. Download")
+    logger.info("Dataset not found. Download")
     zip_save_path = 'quora-IR-dataset.zip'
     util.http_get(url='https://sbert.net/datasets/quora-IR-dataset.zip', path=zip_save_path)
     with ZipFile(zip_save_path, 'r') as zip:
@@ -176,7 +177,7 @@ evaluators.append(ir_evaluator)
 seq_evaluator = evaluation.SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[-1])
 
 
-logging.info("Evaluate model without training")
+logger.info("Evaluate model without training")
 seq_evaluator(model, epoch=0, steps=0, output_path=model_save_path)
 
 

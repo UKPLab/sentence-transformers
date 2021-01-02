@@ -5,6 +5,9 @@ from typing import List
 from ... import InputExample
 import numpy as np
 
+
+logger = logging.getLogger(__name__)
+
 class CESoftmaxAccuracyEvaluator:
     """
     This evaluator can be used with the CrossEncoder class.
@@ -39,7 +42,7 @@ class CESoftmaxAccuracyEvaluator:
         else:
             out_txt = ":"
 
-        logging.info("CESoftmaxAccuracyEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
+        logger.info("CESoftmaxAccuracyEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
         pred_scores = model.predict(self.sentence_pairs, convert_to_numpy=True, show_progress_bar=False)
         pred_labels = np.argmax(pred_scores, axis=1)
 
@@ -47,7 +50,7 @@ class CESoftmaxAccuracyEvaluator:
 
         acc = np.sum(pred_labels == self.labels) / len(self.labels)
 
-        logging.info("Accuracy: {:.2f}".format(acc*100))
+        logger.info("Accuracy: {:.2f}".format(acc*100))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)

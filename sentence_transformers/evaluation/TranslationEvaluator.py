@@ -8,6 +8,9 @@ import scipy.spatial
 from typing import List
 import torch
 
+
+logger = logging.getLogger(__name__)
+
 class TranslationEvaluator(SentenceEvaluator):
     """
     Given two sets of sentences in different languages, e.g. (en_1, en_2, en_3...) and (fr_1, fr_2, fr_3, ...),
@@ -51,7 +54,7 @@ class TranslationEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("Evaluating translation matching Accuracy on "+self.name+" dataset"+out_txt)
+        logger.info("Evaluating translation matching Accuracy on "+self.name+" dataset"+out_txt)
 
         embeddings1 = torch.stack(model.encode(self.source_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_numpy=False))
         embeddings2 = torch.stack(model.encode(self.target_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_numpy=False))
@@ -89,8 +92,8 @@ class TranslationEvaluator(SentenceEvaluator):
         acc_src2trg = correct_src2trg / len(cos_sims)
         acc_trg2src = correct_trg2src / len(cos_sims)
 
-        logging.info("Accuracy src2trg: {:.2f}".format(acc_src2trg*100))
-        logging.info("Accuracy trg2src: {:.2f}".format(acc_trg2src*100))
+        logger.info("Accuracy src2trg: {:.2f}".format(acc_src2trg*100))
+        logger.info("Accuracy trg2src: {:.2f}".format(acc_trg2src*100))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)

@@ -6,6 +6,9 @@ import os
 import numpy as np
 import logging
 
+
+logger = logging.getLogger(__name__)
+
 class T5(nn.Module):
     """DEPRECATED: Please use models.Transformer instead.
 
@@ -19,7 +22,7 @@ class T5(nn.Module):
         self.do_lower_case = do_lower_case
 
         if max_seq_length > 512:
-            logging.warning("T5 only allows a max_seq_length of 512. Value will be set to 512")
+            logger.warning("T5 only allows a max_seq_length of 512. Value will be set to 512")
             max_seq_length = 512
         self.max_seq_length = max_seq_length
 
