@@ -22,7 +22,7 @@ num_candidates = 500
 
 # To refine the results, we use a CrossEncoder. A CrossEncoder gets both inputs (input_question, retrieved_question)
 # and outputs a score 0...1 indicating the similarity.
-cross_encoder_model = CrossEncoder('sentence-transformers/ce-roberta-base-stsb')
+cross_encoder_model = CrossEncoder('cross-encoder/roberta-base-stsb')
 
 # Dataset we want to use
 url = "http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv"

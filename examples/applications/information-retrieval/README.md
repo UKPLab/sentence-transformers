@@ -78,10 +78,10 @@ In the following table, we provide various pre-trained Cross-Encoders together w
 
 | Model-Name        | NDCG@10 (TREC DL 19) | MRR@10 (MS Marco Dev)  | Docs / Sec (BertTokenizerFast) | Docs / Sec |
 | ------------- |:-------------| -----| --- | --- |
-| sentence-transformers/ce-ms-marco-TinyBERT-L-2  | 67.43 | 30.15  | 9000 | 780
-| sentence-transformers/ce-ms-marco-TinyBERT-L-4  | 68.09 | 34.50  | 2900 | 760
-| sentence-transformers/ce-ms-marco-TinyBERT-L-6 |  69.57 | 36.13  | 680 | 660
-| sentence-transformers/ce-ms-marco-electra-base | 71.99 | 36.41 | 340 | 340
+| cross-encoder/ms-marco-TinyBERT-L-2  | 67.43 | 30.15  | 9000 | 780
+| cross-encoder/ms-marco-TinyBERT-L-4  | 68.09 | 34.50  | 2900 | 760
+| cross-encoder/ms-marco-TinyBERT-L-6 |  69.57 | 36.13  | 680 | 660
+| cross-encoder/ms-marco-electra-base | 71.99 | 36.41 | 340 | 340
 | *Other models* | | | |
 | nboost/pt-tinybert-msmarco | 63.63 | 28.80 | 2900 | 760
 | nboost/pt-bert-base-uncased-msmarco | 70.94 | 34.75 | 340 | 340|
