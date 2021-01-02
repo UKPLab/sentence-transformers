@@ -35,7 +35,7 @@ class TripletEvaluator(SentenceEvaluator):
 
         self.batch_size = batch_size
         if show_progress_bar is None:
-            show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
+            show_progress_bar = (logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
         self.show_progress_bar = show_progress_bar
 
         self.csv_file: str = "triplet_evaluation"+("_"+name if name else '')+"_results.csv"
