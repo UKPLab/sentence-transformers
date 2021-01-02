@@ -3,7 +3,7 @@ import numpy as np
 import os
 import csv
 
-logger = logging.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 class CERerankingEvaluator:
     """
