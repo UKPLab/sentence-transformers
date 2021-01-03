@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 import math
 from sentence_transformers import LoggingHandler, util
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation import CESoftmaxAccuracyEvaluator
+from sentence_transformers.cross_encoder.evaluation import CEBinaryAccuracyEvaluator
 from sentence_transformers.readers import InputExample
 import logging
 from datetime import datetime
@@ -64,7 +64,7 @@ model = CrossEncoder('distilroberta-base', num_labels=len(label2int))
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 
 #During training, we use CESoftmaxAccuracyEvaluator to measure the accuracy on the dev set.
-evaluator = CESoftmaxAccuracyEvaluator.from_input_examples(dev_samples, name='AllNLI-dev')
+evaluator = CEBinaryAccuracyEvaluator.from_input_examples(dev_samples, name='AllNLI-dev')
 
 
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up

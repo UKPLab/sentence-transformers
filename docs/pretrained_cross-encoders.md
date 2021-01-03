@@ -7,7 +7,7 @@ This page lists available **pretrained Cross-Encoders**. Cross-Encoders require 
 
 ## STSbenchmark
 The following models can be used like this:
-```
+```python
 from sentence_transformers import CrossEncoder
 model = CrossEncoder('model_name')
 scores = model.predict([('Sent A1', 'Sent B1'), ('Sent A2', 'Sent B2')])
@@ -26,13 +26,14 @@ These models have been trained on the [Quora duplicate questions dataset](https:
 - **cross-encoder/quora-roberta-base** - Average Precision dev set: 87.80
 - **cross-encoder/quora-roberta-large** - Average Precision dev set: 87.91
 
+Note: The model don't work for question similarity. The question *How to learn Java* and *How to learn Python* will get a low score, as these questions are not duplicates. For question similarity, the respective bi-encoder trained on the Quora dataset yields much more meaningful results.
 
 ## Information Retrieval
 
 The following models are trained for Information Retrieval: Given a query (like key-words or a question), and a paragraph, can the query be answered by the paragraph? The models have beend trained on MS Marco, a large dataset with real-user queries from Bing search engine.
 
 The models can be used like this:
-```
+```python
 from sentence_transformers import CrossEncoder
 model = CrossEncoder('model_name', max_length=512)
 scores = model.predict([('Query', 'Paragraph1'), ('Query', 'Paragraph2')])
@@ -41,8 +42,23 @@ scores = model.predict([('Query', 'Paragraph1'), ('Query', 'Paragraph2')])
 This returns a score 0...1 indicating if the paragraph is relevant for a given query.
 
 - **cross-encoder/ms-marco-TinyBERT-L-2** - MRR@10 on MS Marco Dev Set: 30.15
-- **cross-encoder/ms-marco-TinyBERT-L-4** -  MRR@10 on MS Marco Dev Set: 34.50
+- **cross-encoder/ms-marco-TinyBERT-L-4** - MRR@10 on MS Marco Dev Set: 34.50
 - **cross-encoder/ms-marco-TinyBERT-L-6** - MRR@10 on MS Marco Dev Set: 36.13
 - **cross-encoder/ms-marco-electra-base** - MRR@10 on MS Marco Dev Set: 36.41
 
 For details on the usage, see [Applications - Information Retrieval](../examples/applications/information-retrieval/README.md)
+
+## NLI
+The following models were trained on the [SNLI](https://nlp.stanford.edu/projects/snli/) and [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) datasets.
+- **cross-encoder/nli-distilroberta-base** - Accuracy on MNLI mismatched set: 83.98
+- **cross-encoder/nli-roberta-base** - Accuracy on MNLI mismatched set: 87.47
+
+```python
+from sentence_transformers import CrossEncoder
+model = CrossEncoder('model_name')
+scores = model.predict([('A man is eating pizza', 'A man eats something'), ('A black race car starts up in front of a crowd of people.', 'A man is driving down a lonely road.')])
+
+#Convert scores to labels
+label_mapping = ['contradiction', 'entailment', 'neutral']
+labels = [label_mapping[score_max] for score_max in scores.argmax(axis=1)]
+```
