@@ -21,9 +21,10 @@ import queue
 from . import __DOWNLOAD_SERVER__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, http_get
-from .datasets.EncodeDataset import EncodeDataset
 from .models import Transformer, Pooling
 from . import __version__
+
+logger = logging.getLogger(__name__)
 
 class SentenceTransformer(nn.Sequential):
     """
@@ -35,17 +36,17 @@ class SentenceTransformer(nn.Sequential):
     """
     def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
         if model_name_or_path is not None and model_name_or_path != "":
-            logging.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
+            logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
             model_path = model_name_or_path
 
             if not os.path.isdir(model_path) and not model_path.startswith('http://') and not model_path.startswith('https://'):
-                logging.info("Did not find folder {}".format(model_path))
+                logger.info("Did not find folder {}".format(model_path))
 
                 if '\\' in model_path or model_path.count('/') > 1:
                     raise AttributeError("Path {} not found".format(model_path))
 
                 model_path = __DOWNLOAD_SERVER__ + model_path + '.zip'
-                logging.info("Try to download model from server: {}".format(model_path))
+                logger.info("Try to download model from server: {}".format(model_path))
 
             if model_path.startswith('http://') or model_path.startswith('https://'):
                 model_url = model_path
@@ -66,7 +67,7 @@ class SentenceTransformer(nn.Sequential):
                 if not os.path.exists(model_path) or not os.listdir(model_path):
                     if model_url[-1] == "/":
                         model_url = model_url[:-1]
-                    logging.info("Downloading sentence transformer model from {} and saving it at {}".format(model_url, model_path))
+                    logger.info("Downloading sentence transformer model from {} and saving it at {}".format(model_url, model_path))
 
                     model_path_tmp = model_path.rstrip("/").rstrip("\\")+"_part"
                     try:
@@ -79,8 +80,8 @@ class SentenceTransformer(nn.Sequential):
                     except requests.exceptions.HTTPError as e:
                         shutil.rmtree(model_path_tmp)
                         if e.response.status_code == 404:
-                            logging.warning('SentenceTransformer-Model {} not found. Try to create it from scratch'.format(model_url))
-                            logging.warning('Try to create Transformer Model {} with mean pooling'.format(model_name_or_path))
+                            logger.warning('SentenceTransformer-Model {} not found. Try to create it from scratch'.format(model_url))
+                            logger.warning('Try to create Transformer Model {} with mean pooling'.format(model_name_or_path))
 
                             model_path = None
                             transformer_model = Transformer(model_name_or_path)
@@ -96,13 +97,13 @@ class SentenceTransformer(nn.Sequential):
 
             #### Load from disk
             if model_path is not None:
-                logging.info("Load SentenceTransformer from folder: {}".format(model_path))
+                logger.info("Load SentenceTransformer from folder: {}".format(model_path))
 
                 if os.path.exists(os.path.join(model_path, 'config.json')):
                     with open(os.path.join(model_path, 'config.json')) as fIn:
                         config = json.load(fIn)
                         if config['__version__'] > __version__:
-                            logging.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(config['__version__'], __version__))
+                            logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(config['__version__'], __version__))
 
                 with open(os.path.join(model_path, 'modules.json')) as fIn:
                     contained_modules = json.load(fIn)
@@ -120,7 +121,7 @@ class SentenceTransformer(nn.Sequential):
         super().__init__(modules)
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            logging.info("Use pytorch device: {}".format(device))
+            logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
 
@@ -143,15 +144,15 @@ class SentenceTransformer(nn.Sequential):
         :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings.
         :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
         :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from convert_to_numpy
-        :param is_pretokenized: If is_pretokenized=True, sentences must be a list of integers, containing the tokenized sentences with each token convert to the respective int.
+        :param is_pretokenized: DEPRECATED - No longer used
         :param device: Which torch.device to use for the computation
-        :param num_workers: Number of background-workers to tokenize data. Set to positive number to increase tokenization speed
+        :param num_workers: DEPRECATED - No longer used
         :return:
            By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
         """
         self.eval()
         if show_progress_bar is None:
-            show_progress_bar = (logging.getLogger().getEffectiveLevel()==logging.INFO or logging.getLogger().getEffectiveLevel()==logging.DEBUG)
+            show_progress_bar = (logger.getLogger().getEffectiveLevel()==logger.INFO or logger.getLogger().getEffectiveLevel()==logger.DEBUG)
 
         input_was_string = False
         if isinstance(sentences, str): #Cast an individual sentence to a list with length 1
@@ -166,16 +167,15 @@ class SentenceTransformer(nn.Sequential):
         all_embeddings = []
         length_sorted_idx = np.argsort([self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
-        inp_dataset = EncodeDataset(sentences_sorted, model=self, is_tokenized=is_pretokenized)
-        inp_dataloader = DataLoader(inp_dataset, batch_size=batch_size, collate_fn=self.smart_batching_collate_text_only, num_workers=num_workers, shuffle=False)
 
-        iterator = inp_dataloader
+        iterator = range(0, len(sentences), batch_size)
         if show_progress_bar:
-            iterator = tqdm(inp_dataloader, desc="Batches")
+            iterator = tqdm(iterator, desc="Batches")
 
-        for features in iterator:
-            for feature_name in features:
-                features[feature_name] = features[feature_name].to(device)
+        for start_index in iterator:
+            sentences_batch = sentences_sorted[start_index:start_index+batch_size]
+            features = self.tokenize(sentences_batch)
+            features = batch_to_device(features, device)
 
             with torch.no_grad():
                 out_features = self.forward(features)
@@ -210,24 +210,23 @@ class SentenceTransformer(nn.Sequential):
 
 
 
-    def start_multi_process_pool(self, target_devices: List[str] = None, encode_batch_size: int = 32):
+    def start_multi_process_pool(self, target_devices: List[str] = None):
         """
         Starts multi process to process the encoding with several, independent processes.
         This method is recommended if you want to encode on multiple GPUs. It is advised
         to start only one process per GPU. This method works together with encode_multi_process
 
         :param target_devices: PyTorch target devices, e.g. cuda:0, cuda:1... If None, all available CUDA devices will be used
-        :param encode_batch_size: Batch size for each process when calling encode
         :return: Returns a dict with the target processes, an input queue and and output queue.
         """
         if target_devices is None:
             if torch.cuda.is_available():
                 target_devices = ['cuda:{}'.format(i) for i in range(torch.cuda.device_count())]
             else:
-                logging.info("CUDA is not available. Start 4 CPU worker")
+                logger.info("CUDA is not available. Start 4 CPU worker")
                 target_devices = ['cpu']*4
 
-        logging.info("Start multi-process pool on devices: {}".format(', '.join(map(str, target_devices))))
+        logger.info("Start multi-process pool on devices: {}".format(', '.join(map(str, target_devices))))
 
         ctx = mp.get_context('spawn')
         input_queue = ctx.Queue()
@@ -235,7 +234,7 @@ class SentenceTransformer(nn.Sequential):
         processes = []
 
         for cuda_id in target_devices:
-            p = ctx.Process(target=SentenceTransformer._encode_multi_process_worker, args=(cuda_id, self, input_queue, output_queue, encode_batch_size), daemon=True)
+            p = ctx.Process(target=SentenceTransformer._encode_multi_process_worker, args=(cuda_id, self, input_queue, output_queue), daemon=True)
             p.start()
             processes.append(p)
 
@@ -258,7 +257,7 @@ class SentenceTransformer(nn.Sequential):
         pool['output'].close()
 
 
-    def encode_multi_process(self, sentences: List[str], pool: Dict[str, object], is_pretokenized: bool = False, chunk_size=None):
+    def encode_multi_process(self, sentences: List[str], pool: Dict[str, object], batch_size: int = 32, chunk_size: int = None):
         """
         This method allows to run encode() on multiple GPUs. The sentences are chunked into smaller packages
         and sent to individual processes, which encode these on the different GPUs. This method is only suitable
@@ -266,7 +265,7 @@ class SentenceTransformer(nn.Sequential):
 
         :param sentences: List of sentences
         :param pool: A pool of workers started with SentenceTransformer.start_multi_process_pool
-        :param is_pretokenized: If true, no tokenization will be applied. It is expected that the input sentences are list of ints.
+        :param batch_size: Encode sentences with batch size
         :param chunk_size: Sentences are chunked and sent to the individual processes. If none, it determine a sensible size.
         :return: Numpy matrix with all embeddings
         """
@@ -274,7 +273,7 @@ class SentenceTransformer(nn.Sequential):
         if chunk_size is None:
             chunk_size = min(math.ceil(len(sentences) / len(pool["processes"]) / 10), 5000)
 
-        logging.info("Chunk data into packages of size {}".format(chunk_size))
+        logger.info("Chunk data into packages of size {}".format(chunk_size))
 
         input_queue = pool['input']
         last_chunk_id = 0
@@ -283,12 +282,12 @@ class SentenceTransformer(nn.Sequential):
         for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, is_pretokenized, chunk])
+                input_queue.put([last_chunk_id, batch_size, chunk])
                 last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, is_pretokenized, chunk])
+            input_queue.put([last_chunk_id, batch_size, chunk])
             last_chunk_id += 1
 
         output_queue = pool['output']
@@ -297,14 +296,14 @@ class SentenceTransformer(nn.Sequential):
         return embeddings
 
     @staticmethod
-    def _encode_multi_process_worker(target_device: str, model, input_queue, results_queue, encode_batch_size):
+    def _encode_multi_process_worker(target_device: str, model, input_queue, results_queue):
         """
         Internal working process to encode sentences in multi-process setup
         """
         while True:
             try:
-                id, is_pretokenized, sentences = input_queue.get()
-                embeddings = model.encode(sentences, device=target_device, is_pretokenized=is_pretokenized, show_progress_bar=False, convert_to_numpy=True, batch_size=encode_batch_size)
+                id, batch_size, sentences = input_queue.get()
+                embeddings = model.encode(sentences, device=target_device,  show_progress_bar=False, convert_to_numpy=True, batch_size=batch_size)
                 results_queue.put([id, embeddings])
             except queue.Empty:
                 break
@@ -352,7 +351,7 @@ class SentenceTransformer(nn.Sequential):
 
         os.makedirs(path, exist_ok=True)
 
-        logging.info("Save model to {}".format(path))
+        logger.info("Save model to {}".format(path))
         contained_modules = []
 
         for idx, name in enumerate(self._modules):
@@ -378,66 +377,26 @@ class SentenceTransformer(nn.Sequential):
         :return:
             a batch of tensors for the model
         """
-        num_texts = len(batch[0][0])
-
+        num_texts = len(batch[0].texts)
+        texts = [[] for _ in range(num_texts)]
         labels = []
-        paired_texts = [[] for _ in range(num_texts)]
-        max_seq_len = [0] * num_texts
-        for tokens, label in batch:
-            labels.append(label)
-            for i in range(num_texts):
-                paired_texts[i].append(tokens[i])
-                max_seq_len[i] = max(max_seq_len[i], self._text_length(tokens[i]))
 
-        features = []
+        for example in batch:
+            for idx, text in enumerate(example.texts):
+                texts[idx].append(text)
+
+            labels.append(example.label)
+
+        labels = torch.tensor(labels).to(self._target_device)
+
+        sentence_features = []
         for idx in range(num_texts):
-            max_len = max_seq_len[idx]
-            feature_lists = {}
+            tokenized = self.tokenize(texts[idx])
+            batch_to_device(tokenized, self._target_device)
+            sentence_features.append(tokenized)
 
-            for text in paired_texts[idx]:
-                sentence_features = self.get_sentence_features(text, max_len)
+        return sentence_features, labels
 
-                for feature_name in sentence_features:
-                    if feature_name not in feature_lists:
-                        feature_lists[feature_name] = []
-
-                    feature_lists[feature_name].append(sentence_features[feature_name])
-
-
-            for feature_name in feature_lists:
-                feature_lists[feature_name] = torch.cat(feature_lists[feature_name])
-
-            features.append(feature_lists)
-
-        return {'features': features, 'labels': torch.stack(labels)}
-
-
-    def smart_batching_collate_text_only(self, batch):
-        """
-        Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model.
-        Here, batch is a list of texts
-
-        :param batch:
-            a batch from a SmartBatchingDataset
-        :return:
-            a batch of tensors for the model
-        """
-
-        max_seq_len = max([self._text_length(text) for text in batch])
-        feature_lists = {}
-
-        for text in batch:
-            sentence_features = self.get_sentence_features(text, max_seq_len)
-            for feature_name in sentence_features:
-                if feature_name not in feature_lists:
-                    feature_lists[feature_name] = []
-
-                feature_lists[feature_name].append(sentence_features[feature_name])
-
-        for feature_name in feature_lists:
-            feature_lists[feature_name] = torch.cat(feature_lists[feature_name])
-
-        return feature_lists
 
     def _text_length(self, text: Union[List[int], List[List[int]]]):
         """
@@ -445,7 +404,9 @@ class SentenceTransformer(nn.Sequential):
         a list of ints (which means a single text as input), or a tuple of list of ints
         (representing several text inputs to the model).
         """
-        if len(text) == 0 or isinstance(text[0], int):
+        if isinstance(text, dict):
+            return len(next(iter(text.values())))
+        elif len(text) == 0 or isinstance(text[0], int):
             return len(text)
         else:
             return sum([len(t) for t in text])
@@ -562,12 +523,27 @@ class SentenceTransformer(nn.Sequential):
                     try:
                         data = next(data_iterator)
                     except StopIteration:
-                        #logging.info("Restart data_iterator")
                         data_iterator = iter(dataloaders[train_idx])
                         data_iterators[train_idx] = data_iterator
                         data = next(data_iterator)
 
-                    features, labels = batch_to_device(data, self._target_device)
+
+                    features, labels = data
+
+
+                    """
+                    num_texts = len(data[0].texts)
+                    texts = [[] for _ in range(num_texts)]
+                    labels = []
+                    for example in data:
+                        labels.append(data.label)
+                        for idx in range(num_texts):
+                            texts[idx].append(example.texts[idx])
+
+                    features = self.tokenize(texts)
+                    features = batch_to_device(features, self._target_device)
+                    labels  = torch.stack(labels).to(self._target_device)
+                    """
 
                     if use_amp:
                         with autocast():

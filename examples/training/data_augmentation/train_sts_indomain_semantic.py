@@ -21,7 +21,7 @@ python train_sts_indomain_semantic.py bert-base-uncased 3
 """
 from torch.utils.data import DataLoader
 from sentence_transformers import models, losses, util
-from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer
+from sentence_transformers import LoggingHandler, SentenceTransformer
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
@@ -202,15 +202,15 @@ logging.info("Read STSbenchmark gold and silver train dataset")
 silver_samples = list(InputExample(texts=[data[0], data[1]], label=score) for \
     data, score in zip(silver_data, silver_scores))
 
-train_dataset = SentencesDataset(gold_samples + silver_samples, bi_encoder)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
+
+train_dataloader = DataLoader(gold_samples + silver_samples, shuffle=True, batch_size=batch_size)
 train_loss = losses.CosineSimilarityLoss(model=bi_encoder)
 
 logging.info("Read STSbenchmark dev dataset")
 evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name='sts-dev')
 
 # Configure the training.
-warmup_steps = math.ceil(len(train_dataset) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 # Train the bi-encoder model

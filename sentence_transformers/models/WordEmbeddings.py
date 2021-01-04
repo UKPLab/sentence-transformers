@@ -11,6 +11,8 @@ from ..util import import_from_string, fullname, http_get
 from .tokenizer import WordTokenizer, WhitespaceTokenizer
 
 
+logger = logging.getLogger(__name__)
+
 class WordEmbeddings(nn.Module):
     def __init__(self, tokenizer: WordTokenizer, embedding_weights, update_embeddings: bool = False, max_seq_length: int = 1000000):
         nn.Module.__init__(self)
@@ -35,30 +37,28 @@ class WordEmbeddings(nn.Module):
         features.update({'token_embeddings': token_embeddings, 'cls_token_embeddings': cls_tokens, 'attention_mask': features['attention_mask']})
         return features
 
-    def get_sentence_features(self, tokens: List[int], pad_seq_length: int):
-        pad_seq_length = min(pad_seq_length, self.max_seq_length)
+    def tokenize(self, texts: List[str]):
+        tokenized_texts = [self.tokenizer.tokenize(text) for text in texts]
+        sentence_lengths = [len(tokens) for tokens in tokenized_texts]
+        max_len = max(sentence_lengths)
 
-        tokens = tokens[0:pad_seq_length] #Truncate tokens if needed
-        input_ids = tokens
+        input_ids = []
+        attention_masks = []
+        for tokens in tokenized_texts:
+            padding = [0] * (max_len - len(tokens))
+            input_ids.append(tokens + padding)
+            attention_masks.append([1]*len(tokens) + padding)
 
-        sentence_length = len(input_ids)
-        attention_mask = [1] * len(input_ids)
-        padding = [0] * (pad_seq_length - len(input_ids))
-        input_ids += padding
-        attention_mask += padding
+        output = {'input_ids': torch.tensor(input_ids, dtype=torch.long),
+                'attention_mask': torch.tensor(attention_masks, dtype=torch.long),
+                'sentence_lengths': torch.tensor(sentence_lengths, dtype=torch.long)}
 
-        assert len(input_ids) == pad_seq_length
-        assert len(attention_mask) == pad_seq_length
+        return output
 
-        return {'input_ids': torch.tensor([input_ids], dtype=torch.long),
-                'attention_mask': torch.tensor([attention_mask], dtype=torch.long),
-                'sentence_lengths': torch.tensor([sentence_length], dtype=torch.long)}
+
 
     def get_word_embedding_dimension(self) -> int:
         return self.embeddings_dimension
-
-    def tokenize(self, text: str) -> List[int]:
-        return self.tokenizer.tokenize(text)
 
     def save(self, output_path: str):
         with open(os.path.join(output_path, 'wordembedding_config.json'), 'w') as fOut:
@@ -84,10 +84,10 @@ class WordEmbeddings(nn.Module):
 
     @staticmethod
     def from_text_file(embeddings_file_path: str, update_embeddings: bool = False, item_separator: str = " ", tokenizer=WhitespaceTokenizer(), max_vocab_size: int = None):
-        logging.info("Read in embeddings file {}".format(embeddings_file_path))
+        logger.info("Read in embeddings file {}".format(embeddings_file_path))
 
         if not os.path.exists(embeddings_file_path):
-            logging.info("{} does not exist, try to download from server".format(embeddings_file_path))
+            logger.info("{} does not exist, try to download from server".format(embeddings_file_path))
 
             if '/' in embeddings_file_path or '\\' in embeddings_file_path:
                 raise ValueError("Embeddings file not found: ".format(embeddings_file_path))
@@ -111,7 +111,7 @@ class WordEmbeddings(nn.Module):
                     embeddings.append(np.zeros(embeddings_dimension))
 
                 if (len(split) - 1) != embeddings_dimension:  # Assure that all lines in the embeddings file are of the same length
-                    logging.error("ERROR: A line in the embeddings file had more or less  dimensions than expected. Skip token.")
+                    logger.error("ERROR: A line in the embeddings file had more or less  dimensions than expected. Skip token.")
                     continue
 
                 vector = np.array([float(num) for num in split[1:]])

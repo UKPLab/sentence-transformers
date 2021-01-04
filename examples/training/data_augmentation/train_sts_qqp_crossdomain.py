@@ -20,7 +20,6 @@ from torch.utils.data import DataLoader
 from sentence_transformers import models, losses, util
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
-from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, BinaryClassificationEvaluator
 from sentence_transformers.readers import InputExample
 from datetime import datetime
@@ -175,8 +174,8 @@ logging.info("Step 3: Train bi-encoder: {} over labeled QQP (target dataset)".fo
 logging.info("Loading BERT labeled QQP dataset")
 qqp_train_data = list(InputExample(texts=[data[0], data[1]], label=score) for (data, score) in zip(silver_data, binary_silver_scores))
 
-train_dataset = SentencesDataset(qqp_train_data, bi_encoder)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
+
+train_dataloader = DataLoader(qqp_train_data, shuffle=True, batch_size=batch_size)
 train_loss = losses.MultipleNegativesRankingLoss(bi_encoder)
 
 ###### Classification ######
@@ -199,7 +198,7 @@ with open(os.path.join(qqp_dataset_path, "classification/dev_pairs.tsv"), encodi
 evaluator = BinaryClassificationEvaluator(dev_sentences1, dev_sentences2, dev_labels)
 
 # Configure the training.
-warmup_steps = math.ceil(len(train_dataset) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 # Train the bi-encoder model

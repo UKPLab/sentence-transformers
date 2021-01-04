@@ -7,7 +7,7 @@ to find relevant passages in Simple English Wikipedia (as it is smaller and fits
 For semantic search, we use SentenceTransformer('msmarco-distilroberta-base-v2') and retrieve
 100 potentially passages that answer the input query.
 
-Next, we use a more powerful CrossEncoder (cross_encoder = CrossEncoder('sentence-transformers/ce-ms-marco-TinyBERT-L-6')) that
+Next, we use a more powerful CrossEncoder (cross_encoder = CrossEncoder('cross-encoder/ms-marco-TinyBERT-L-6')) that
 scores the query and all retrieved passages for their relevancy. The cross-encoder is neccessary to filter out certain noise
 that might be retrieved from the semantic search step.
 """
@@ -22,7 +22,7 @@ bi_encoder = SentenceTransformer('msmarco-distilroberta-base-v2')
 top_k = 100     #Number of passages we want to retrieve with the bi-encoder
 
 #The bi-encoder will retrieve 100 documents. We use a cross-encoder, to re-rank the results list to improve the quality
-cross_encoder = CrossEncoder('sentence-transformers/ce-ms-marco-TinyBERT-L-6')
+cross_encoder = CrossEncoder('cross-encoder/ms-marco-TinyBERT-L-6')
 
 # As dataset, we use Simple English Wikipedia. Compared to the full English wikipedia, it has only
 # about 170k articles. We split these articles into paragraphs and encode them with the bi-encoder

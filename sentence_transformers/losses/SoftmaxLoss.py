@@ -4,6 +4,9 @@ from typing import Union, Tuple, List, Iterable, Dict
 from ..SentenceTransformer import SentenceTransformer
 import logging
 
+
+logger = logging.getLogger(__name__)
+
 class SoftmaxLoss(nn.Module):
     """
     This loss was used in our SBERT publication (https://arxiv.org/abs/1908.10084) to train the SentenceTransformer
@@ -49,7 +52,7 @@ class SoftmaxLoss(nn.Module):
             num_vectors_concatenated += 1
         if concatenation_sent_multiplication:
             num_vectors_concatenated += 1
-        logging.info("Softmax loss: #Vectors concatenated: {}".format(num_vectors_concatenated))
+        logger.info("Softmax loss: #Vectors concatenated: {}".format(num_vectors_concatenated))
         self.classifier = nn.Linear(num_vectors_concatenated * sentence_embedding_dimension, num_labels)
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):

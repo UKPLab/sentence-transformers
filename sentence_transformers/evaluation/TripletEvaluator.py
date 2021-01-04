@@ -7,6 +7,8 @@ from typing import List
 from ..readers import InputExample
 
 
+logger = logging.getLogger(__name__)
+
 class TripletEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on a triplet: (sentence, positive_example, negative_example). Checks if distance(sentence,positive_example) < distance(sentence, negative_example).
@@ -33,7 +35,7 @@ class TripletEvaluator(SentenceEvaluator):
 
         self.batch_size = batch_size
         if show_progress_bar is None:
-            show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
+            show_progress_bar = (logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
         self.show_progress_bar = show_progress_bar
 
         self.csv_file: str = "triplet_evaluation"+("_"+name if name else '')+"_results.csv"
@@ -60,7 +62,7 @@ class TripletEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("TripletEvaluator: Evaluating the model on "+self.name+" dataset"+out_txt)
+        logger.info("TripletEvaluator: Evaluating the model on "+self.name+" dataset"+out_txt)
 
         num_triplets = 0
         num_correct_cos_triplets, num_correct_manhatten_triplets, num_correct_euclidean_triplets = 0, 0, 0
@@ -101,9 +103,9 @@ class TripletEvaluator(SentenceEvaluator):
         accuracy_manhatten = num_correct_manhatten_triplets / num_triplets
         accuracy_euclidean = num_correct_euclidean_triplets / num_triplets
 
-        logging.info("Accuracy Cosine Distance:   \t{:.2f}".format(accuracy_cos*100))
-        logging.info("Accuracy Manhatten Distance:\t{:.2f}".format(accuracy_manhatten*100))
-        logging.info("Accuracy Euclidean Distance:\t{:.2f}\n".format(accuracy_euclidean*100))
+        logger.info("Accuracy Cosine Distance:   \t{:.2f}".format(accuracy_cos*100))
+        logger.info("Accuracy Manhatten Distance:\t{:.2f}".format(accuracy_manhatten*100))
+        logger.info("Accuracy Euclidean Distance:\t{:.2f}\n".format(accuracy_euclidean*100))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)

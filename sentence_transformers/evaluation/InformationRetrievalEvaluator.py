@@ -8,6 +8,8 @@ import numpy as np
 from typing import List, Tuple, Dict, Set
 
 
+logger = logging.getLogger(__name__)
+
 class InformationRetrievalEvaluator(SentenceEvaluator):
     """
     This class evaluates an Information Retrieval (IR) setting.
@@ -81,7 +83,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("Information Retrieval Evaluation on " + self.name + " dataset" + out_txt)
+        logger.info("Information Retrieval Evaluation on " + self.name + " dataset" + out_txt)
 
         max_k = max(max(self.mrr_at_k), max(self.ndcg_at_k), max(self.accuracy_at_k), max(self.precision_recall_at_k), max(self.map_at_k))
 
@@ -125,8 +127,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.output_scores(scores)
 
 
-        logging.info("Queries: {}".format(len(self.queries)))
-        logging.info("Corpus: {}\n".format(len(self.corpus)))
+        logger.info("Queries: {}".format(len(self.queries)))
+        logger.info("Corpus: {}\n".format(len(self.corpus)))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)
@@ -249,22 +251,22 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
     def output_scores(self, scores):
         for k in scores['accuracy@k']:
-            logging.info("Accuracy@{}: {:.2f}%".format(k, scores['accuracy@k'][k]*100))
+            logger.info("Accuracy@{}: {:.2f}%".format(k, scores['accuracy@k'][k]*100))
 
         for k in scores['precision@k']:
-            logging.info("Precision@{}: {:.2f}%".format(k, scores['precision@k'][k]*100))
+            logger.info("Precision@{}: {:.2f}%".format(k, scores['precision@k'][k]*100))
 
         for k in scores['recall@k']:
-            logging.info("Recall@{}: {:.2f}%".format(k, scores['recall@k'][k]*100))
+            logger.info("Recall@{}: {:.2f}%".format(k, scores['recall@k'][k]*100))
 
         for k in scores['mrr@k']:
-            logging.info("MRR@{}: {:.4f}".format(k, scores['mrr@k'][k]))
+            logger.info("MRR@{}: {:.4f}".format(k, scores['mrr@k'][k]))
 
         for k in scores['ndcg@k']:
-            logging.info("NDCG@{}: {:.4f}".format(k, scores['ndcg@k'][k]))
+            logger.info("NDCG@{}: {:.4f}".format(k, scores['ndcg@k'][k]))
 
         for k in scores['map@k']:
-            logging.info("MAP@{}: {:.4f}".format(k, scores['map@k'][k]))
+            logger.info("MAP@{}: {:.4f}".format(k, scores['map@k'][k]))
 
 
     @staticmethod

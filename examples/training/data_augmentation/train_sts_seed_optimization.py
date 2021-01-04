@@ -27,9 +27,9 @@ import math
 import torch
 import random
 import numpy as np
-from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses, models, util
+from sentence_transformers import SentenceTransformer,  LoggingHandler, losses, models, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers.readers import STSBenchmarkDataReader, InputExample
+from sentence_transformers.readers import InputExample
 import logging
 from datetime import datetime
 import sys
@@ -104,8 +104,8 @@ for seed in range(seed_count):
             else:
                 train_samples.append(inp_example)
 
-    train_dataset = SentencesDataset(train_samples, model)
-    train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+
+    train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
     train_loss = losses.CosineSimilarityLoss(model=model)
 
 
@@ -114,7 +114,7 @@ for seed in range(seed_count):
 
 
     # Configure the training. We skip evaluation in this example
-    warmup_steps = math.ceil(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data for warm-up
+    warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
     
     # Stopping and Evaluating after 30% of training data (less than 1 epoch)
     # We find from (Dodge et al.) that 20-30% is often ideal for convergence of random seed

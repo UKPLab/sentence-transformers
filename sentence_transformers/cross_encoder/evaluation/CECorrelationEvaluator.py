@@ -5,6 +5,9 @@ import os
 import csv
 from ... import InputExample
 
+
+logger = logging.getLogger(__name__)
+
 class CECorrelationEvaluator:
     """
     This evaluator can be used with the CrossEncoder class. Given sentence pairs and continuous scores,
@@ -38,14 +41,14 @@ class CECorrelationEvaluator:
         else:
             out_txt = ":"
 
-        logging.info("CECorrelationEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
+        logger.info("CECorrelationEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
         pred_scores = model.predict(self.sentence_pairs, convert_to_numpy=True, show_progress_bar=False)
 
 
         eval_pearson, _ = pearsonr(self.scores, pred_scores)
         eval_spearman, _ = spearmanr(self.scores, pred_scores)
 
-        logging.info("Correlation:\tPearson: {:.4f}\tSpearman: {:.4f}".format(eval_pearson, eval_spearman))
+        logger.info("Correlation:\tPearson: {:.4f}\tSpearman: {:.4f}".format(eval_pearson, eval_spearman))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)

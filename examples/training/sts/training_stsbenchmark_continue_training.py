@@ -7,7 +7,7 @@ If you want to fine-tune a huggingface/transformers model like bert-base-uncased
 """
 from torch.utils.data import DataLoader
 import math
-from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses, util, InputExample
+from sentence_transformers import SentenceTransformer, LoggingHandler, losses, util, InputExample
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 import logging
 from datetime import datetime
@@ -62,8 +62,8 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
             train_samples.append(inp_example)
 
 
-train_dataset = SentencesDataset(train_samples, model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+
+train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)
 
 
@@ -73,7 +73,7 @@ evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name='
 
 
 # Configure the training. We skip evaluation in this example
-warmup_steps = math.ceil(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 

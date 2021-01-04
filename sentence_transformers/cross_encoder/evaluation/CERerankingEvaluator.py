@@ -3,6 +3,8 @@ import numpy as np
 import os
 import csv
 
+logger = logging.getLogger(__name__)
+
 class CERerankingEvaluator:
     """
     This class evaluates a CrossEncoder model for the task of re-ranking.
@@ -33,7 +35,7 @@ class CERerankingEvaluator:
         else:
             out_txt = ":"
 
-        logging.info("CERerankingEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
+        logger.info("CERerankingEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
 
         all_mrr_scores = []
         num_queries = 0
@@ -65,8 +67,8 @@ class CERerankingEvaluator:
             all_mrr_scores.append(mrr_score)
 
         mean_mrr = np.mean(all_mrr_scores)
-        logging.info("Queries: {} \t Positives: Min {:.1f}, Mean {:.1f}, Max {:.1f} \t Negatives: Min {:.1f}, Mean {:.1f}, Max {:.1f}".format(num_queries, np.min(num_positives), np.mean(num_positives), np.max(num_positives), np.min(num_negatives), np.mean(num_negatives), np.max(num_negatives)))
-        logging.info("MRR@{}: {:.2f}".format(self.mrr_at_k, mean_mrr*100))
+        logger.info("Queries: {} \t Positives: Min {:.1f}, Mean {:.1f}, Max {:.1f} \t Negatives: Min {:.1f}, Mean {:.1f}, Max {:.1f}".format(num_queries, np.min(num_positives), np.mean(num_positives), np.max(num_positives), np.min(num_negatives), np.mean(num_negatives), np.max(num_negatives)))
+        logger.info("MRR@{}: {:.2f}".format(self.mrr_at_k, mean_mrr*100))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)

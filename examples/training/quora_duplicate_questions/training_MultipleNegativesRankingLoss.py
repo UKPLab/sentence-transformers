@@ -13,7 +13,7 @@ The model we get works well for duplicate questions mining and for duplicate que
 
 from torch.utils.data import DataLoader
 from sentence_transformers import losses, util
-from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer, evaluation
+from sentence_transformers import LoggingHandler, SentenceTransformer, evaluation
 from sentence_transformers.readers import InputExample
 import logging
 from datetime import datetime
@@ -27,6 +27,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 
@@ -48,7 +49,7 @@ os.makedirs(model_save_path, exist_ok=True)
 
 # Check if the dataset exists. If not, download and extract
 if not os.path.exists(dataset_path):
-    logging.info("Dataset not found. Download")
+    logger.info("Dataset not found. Download")
     zip_save_path = 'quora-IR-dataset.zip'
     util.http_get(url='https://sbert.net/datasets/quora-IR-dataset.zip', path=zip_save_path)
     with ZipFile(zip_save_path, 'r') as zip:
@@ -65,9 +66,8 @@ with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding
             train_samples.append(InputExample(texts=[row['question2'], row['question1']], label=1)) #if A is a duplicate of B, then B is a duplicate of A
 
 
-# After reading the train_samples, we create a SentencesDataset and a DataLoader
-train_dataset = SentencesDataset(train_samples, model=model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+# After reading the train_samples, we create a DataLoader
+train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.MultipleNegativesRankingLoss(model)
 
 
@@ -178,7 +178,7 @@ evaluators.append(ir_evaluator)
 seq_evaluator = evaluation.SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[-1])
 
 
-logging.info("Evaluate model without training")
+logger.info("Evaluate model without training")
 seq_evaluator(model, epoch=0, steps=0, output_path=model_save_path)
 
 

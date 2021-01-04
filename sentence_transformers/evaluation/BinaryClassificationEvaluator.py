@@ -8,6 +8,9 @@ import numpy as np
 from typing import List
 from ..readers import InputExample
 
+
+logger = logging.getLogger(__name__)
+
 class BinaryClassificationEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on the similarity of the embeddings by calculating the accuracy of identifying similar and
@@ -41,7 +44,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         self.name = name
         self.batch_size = batch_size
         if show_progress_bar is None:
-            show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
+            show_progress_bar = (logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
         self.show_progress_bar = show_progress_bar
 
         self.csv_file = "binary_classification_evaluation" + ("_"+name if name else '') + "_results.csv"
@@ -73,7 +76,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("Binary Accuracy Evaluation of the model on " + self.name + " dataset" + out_txt)
+        logger.info("Binary Accuracy Evaluation of the model on " + self.name + " dataset" + out_txt)
         embeddings1 = model.encode(self.sentences1, batch_size=self.batch_size,
                                    show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
         embeddings2 = model.encode(self.sentences2, batch_size=self.batch_size,
@@ -94,11 +97,11 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             f1, precision, recall, f1_threshold = self.find_best_f1_and_threshold(scores, labels, reverse)
             ap = average_precision_score(labels, scores * (1 if reverse else -1))
 
-            logging.info("Accuracy with {}:           {:.2f}\t(Threshold: {:.4f})".format(name, acc * 100, acc_threshold))
-            logging.info("F1 with {}:                 {:.2f}\t(Threshold: {:.4f})".format(name, f1 * 100, f1_threshold))
-            logging.info("Precision with {}:          {:.2f}".format(name, precision * 100))
-            logging.info("Recall with {}:             {:.2f}".format(name, recall * 100))
-            logging.info("Average Precision with {}:  {:.2f}\n".format(name, ap * 100))
+            logger.info("Accuracy with {}:           {:.2f}\t(Threshold: {:.4f})".format(name, acc * 100, acc_threshold))
+            logger.info("F1 with {}:                 {:.2f}\t(Threshold: {:.4f})".format(name, f1 * 100, f1_threshold))
+            logger.info("Precision with {}:          {:.2f}".format(name, precision * 100))
+            logger.info("Recall with {}:             {:.2f}".format(name, recall * 100))
+            logger.info("Average Precision with {}:  {:.2f}\n".format(name, ap * 100))
 
             file_output_data.extend([acc, acc_threshold, f1, precision, recall, f1_threshold, ap])
 

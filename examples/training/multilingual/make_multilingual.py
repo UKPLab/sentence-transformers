@@ -37,6 +37,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 
 
 teacher_model_name = 'bert-base-nli-stsb-mean-tokens'   #Our monolingual teacher model, we want to convert to multiple languages
@@ -77,8 +78,8 @@ def download_corpora(filepaths):
 
 
 # Here we define train train and dev corpora
-train_corpus = "../datasets/ted2020.tsv.gz"         # Transcripts of TED talks, crawled 2020
-sts_corpus = "../datasets/STS2017-extended.zip"     # Extended STS2017 dataset for more languages
+train_corpus = "datasets/ted2020.tsv.gz"         # Transcripts of TED talks, crawled 2020
+sts_corpus = "datasets/STS2017-extended.zip"     # Extended STS2017 dataset for more languages
 parallel_sentences_folder = "parallel-sentences/"
 
 # Check if the file exists. If not, they are downloaded
@@ -128,11 +129,11 @@ if len(files_to_create) > 0:
 
 
 ######## Start the extension of the teacher model to multiple languages ########
-logging.info("Load teacher model")
+logger.info("Load teacher model")
 teacher_model = SentenceTransformer(teacher_model_name)
 
 
-logging.info("Create student model from scratch")
+logger.info("Create student model from scratch")
 word_embedding_model = models.Transformer(student_model_name, max_seq_length=max_seq_length)
 # Apply mean pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
@@ -153,7 +154,7 @@ train_loss = losses.MSELoss(model=student_model)
 evaluators = []         #evaluators has a list of different evaluator classes we call periodically
 
 for dev_file in dev_files:
-    logging.info("Create evaluator for " + dev_file)
+    logger.info("Create evaluator for " + dev_file)
     src_sentences = []
     trg_sentences = []
     with gzip.open(dev_file, 'rt', encoding='utf8') as fIn:

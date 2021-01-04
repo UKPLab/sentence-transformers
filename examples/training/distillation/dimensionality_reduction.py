@@ -29,6 +29,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 #Model for which we apply dimensionality reduction
@@ -53,7 +54,7 @@ if not os.path.exists(sts_dataset_path):
 
 # We measure the performance of the original model
 # and later we will measure the performance with the reduces dimension size
-logging.info("Read STSbenchmark test dataset")
+logger.info("Read STSbenchmark test dataset")
 eval_examples = []
 with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -65,7 +66,7 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
 # Evaluate the original model on the STS benchmark dataset
 stsb_evaluator = evaluation.EmbeddingSimilarityEvaluator.from_input_examples(eval_examples, name='sts-benchmark-test')
 
-logging.info("Original model performance:")
+logger.info("Original model performance:")
 stsb_evaluator(model)
 
 ######## Reduce the embedding dimensions ########
@@ -97,7 +98,7 @@ dense.linear.weight = torch.nn.Parameter(torch.tensor(pca_comp))
 model.add_module('dense', dense)
 
 # Evaluate the model with the reduce embedding size
-logging.info("Model with {} dimensions:".format(new_dimension))
+logger.info("Model with {} dimensions:".format(new_dimension))
 stsb_evaluator(model)
 
 

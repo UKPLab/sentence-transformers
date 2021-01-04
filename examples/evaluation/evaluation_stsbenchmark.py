@@ -7,7 +7,7 @@ OR
 python evaluation_stsbenchmark.py model_name
 """
 from torch.utils.data import DataLoader
-from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler
+from sentence_transformers import SentenceTransformer,  LoggingHandler
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import STSBenchmarkDataReader
 import logging

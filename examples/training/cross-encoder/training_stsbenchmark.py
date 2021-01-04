@@ -25,6 +25,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
+logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 
@@ -48,7 +49,7 @@ model = CrossEncoder('distilroberta-base', num_labels=1)
 
 
 # Read STSb dataset
-logging.info("Read STSbenchmark train dataset")
+logger.info("Read STSbenchmark train dataset")
 
 train_samples = []
 dev_samples = []
@@ -78,7 +79,7 @@ evaluator = CECorrelationEvaluator.from_input_examples(dev_samples, name='sts-de
 
 # Configure the training
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logger.info("Warmup-steps: {}".format(warmup_steps))
 
 
 # Train the model

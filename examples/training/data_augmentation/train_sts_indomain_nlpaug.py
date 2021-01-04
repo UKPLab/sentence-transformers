@@ -31,7 +31,7 @@ python train_sts_indomain_nlpaug.py
 from torch.utils.data import DataLoader
 import torch
 import math
-from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses, models, util
+from sentence_transformers import SentenceTransformer, LoggingHandler, losses, models, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import STSBenchmarkDataReader, InputExample
 import nlpaug.augmenter.word as naw
@@ -142,8 +142,7 @@ logging.info("Number of silver pairs generated: {}".format(len(silver_samples)))
 ###################################################################
 
 logging.info("Read STSbenchmark (gold + silver) training dataset")
-train_dataset = SentencesDataset(gold_samples + silver_samples, model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
+train_dataloader = DataLoader(gold_samples + silver_samples, shuffle=True, batch_size=batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)
 
 
@@ -152,7 +151,7 @@ evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name='
 
 
 # Configure the training.
-warmup_steps = math.ceil(len(train_dataset) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 

@@ -10,9 +10,9 @@ python training_nli.py pretrained_transformer_model_name
 """
 from torch.utils.data import DataLoader
 import math
-from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses, models, util
+from sentence_transformers import SentenceTransformer,  LoggingHandler, losses, models, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers.readers import STSBenchmarkDataReader, InputExample
+from sentence_transformers.readers import InputExample
 import logging
 from datetime import datetime
 import sys
@@ -38,7 +38,7 @@ if not os.path.exists(sts_dataset_path):
 
 
 #You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
-model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-uncased'
+model_name = sys.argv[1] if len(sys.argv) > 1 else 'distilbert-base-uncased'
 
 # Read the dataset
 train_batch_size = 16
@@ -75,8 +75,8 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
         else:
             train_samples.append(inp_example)
 
-train_dataset = SentencesDataset(train_samples, model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+
+train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)
 
 
@@ -85,7 +85,7 @@ evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name='
 
 
 # Configure the training. We skip evaluation in this example
-warmup_steps = math.ceil(len(train_dataset) * num_epochs / train_batch_size * 0.1) #10% of train data for warm-up
+warmup_steps = math.ceil(len(train_dataloader) * num_epochs  * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 

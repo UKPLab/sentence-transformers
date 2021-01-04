@@ -8,6 +8,9 @@ import csv
 from ... import InputExample
 from ...evaluation import BinaryClassificationEvaluator
 
+
+logger = logging.getLogger(__name__)
+
 class CEBinaryClassificationEvaluator:
     """
     This evaluator can be used with the CrossEncoder class. Given sentence pairs and binary labels (0 and 1),
@@ -44,18 +47,18 @@ class CEBinaryClassificationEvaluator:
         else:
             out_txt = ":"
 
-        logging.info("CEBinaryClassificationEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
+        logger.info("CEBinaryClassificationEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
         pred_scores = model.predict(self.sentence_pairs, convert_to_numpy=True, show_progress_bar=False)
 
         acc, acc_threshold = BinaryClassificationEvaluator.find_best_acc_and_threshold(pred_scores, self.labels, True)
         f1, precision, recall, f1_threshold = BinaryClassificationEvaluator.find_best_f1_and_threshold(pred_scores, self.labels, True)
         ap = average_precision_score(self.labels, pred_scores)
 
-        logging.info("Accuracy:           {:.2f}\t(Threshold: {:.4f})".format(acc * 100, acc_threshold))
-        logging.info("F1:                 {:.2f}\t(Threshold: {:.4f})".format(f1 * 100, f1_threshold))
-        logging.info("Precision:          {:.2f}".format(precision * 100))
-        logging.info("Recall:             {:.2f}".format(recall * 100))
-        logging.info("Average Precision:  {:.2f}\n".format(ap * 100))
+        logger.info("Accuracy:           {:.2f}\t(Threshold: {:.4f})".format(acc * 100, acc_threshold))
+        logger.info("F1:                 {:.2f}\t(Threshold: {:.4f})".format(f1 * 100, f1_threshold))
+        logger.info("Precision:          {:.2f}".format(precision * 100))
+        logger.info("Recall:             {:.2f}".format(recall * 100))
+        logger.info("Average Precision:  {:.2f}\n".format(ap * 100))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)

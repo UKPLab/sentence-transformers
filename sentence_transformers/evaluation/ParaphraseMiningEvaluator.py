@@ -8,6 +8,9 @@ from typing import List, Tuple, Dict
 from collections import defaultdict
 
 
+logger = logging.getLogger(__name__)
+
+
 class ParaphraseMiningEvaluator(SentenceEvaluator):
     """
     Given a large set of sentences, this evaluator performs paraphrase (duplicate) mining and
@@ -78,13 +81,13 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("Paraphrase Mining Evaluation on " + self.name + " dataset" + out_txt)
+        logger.info("Paraphrase Mining Evaluation on " + self.name + " dataset" + out_txt)
 
         #Compute embedding for the sentences
         pairs_list = paraphrase_mining(model, self.sentences, self.show_progress_bar, self.batch_size,  self.query_chunk_size,  self.corpus_chunk_size, self.max_pairs, self.top_k )
 
 
-        logging.info("Number of candidate pairs: " + str(len(pairs_list)))
+        logger.info("Number of candidate pairs: " + str(len(pairs_list)))
 
         #Compute F1 score and Average Precision
         n_extract = n_correct = 0
@@ -114,11 +117,11 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
 
         average_precision = average_precision / self.total_num_duplicates
 
-        logging.info("Average Precision: {:.2f}".format(average_precision * 100))
-        logging.info("Optimal threshold: {:.4f}".format(threshold))
-        logging.info("Precision: {:.2f}".format(best_precision * 100))
-        logging.info("Recall: {:.2f}".format(best_recall * 100))
-        logging.info("F1: {:.2f}\n".format(best_f1 * 100))
+        logger.info("Average Precision: {:.2f}".format(average_precision * 100))
+        logger.info("Optimal threshold: {:.4f}".format(threshold))
+        logger.info("Precision: {:.2f}".format(best_precision * 100))
+        logger.info("Recall: {:.2f}".format(best_recall * 100))
+        logger.info("F1: {:.2f}\n".format(best_f1 * 100))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)

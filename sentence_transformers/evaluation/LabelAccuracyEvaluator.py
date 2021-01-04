@@ -7,6 +7,9 @@ from ..util import batch_to_device
 import os
 import csv
 
+
+logger = logging.getLogger(__name__)
+
 class LabelAccuracyEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on its accuracy on a labeled dataset
@@ -46,7 +49,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("Evaluation on the "+self.name+" dataset"+out_txt)
+        logger.info("Evaluation on the "+self.name+" dataset"+out_txt)
         self.dataloader.collate_fn = model.smart_batching_collate
         for step, batch in enumerate(tqdm(self.dataloader, desc="Evaluating")):
             features, label_ids = batch_to_device(batch, model.device)
@@ -57,7 +60,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
             correct += torch.argmax(prediction, dim=1).eq(label_ids).sum().item()
         accuracy = correct/total
 
-        logging.info("Accuracy: {:.4f} ({}/{})\n".format(accuracy, correct, total))
+        logger.info("Accuracy: {:.4f} ({}/{})\n".format(accuracy, correct, total))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)

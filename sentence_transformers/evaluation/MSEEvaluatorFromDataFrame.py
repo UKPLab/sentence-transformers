@@ -9,6 +9,9 @@ import os
 import csv
 
 
+logger = logging.getLogger(__name__)
+
+
 class MSEEvaluatorFromDataFrame(SentenceEvaluator):
     """
     Computes the mean squared error (x100) between the computed sentence embedding
@@ -36,7 +39,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps"]
         self.data = {}
 
-        logging.info("Compute teacher embeddings")
+        logger.info("Compute teacher embeddings")
         all_source_sentences = set()
         for src_lang, trg_lang in self.combinations:
             src_sentences = []
@@ -69,8 +72,8 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             mse *= 100
             mse_scores.append(mse)
 
-            logging.info("MSE evaluation on {} dataset - {}-{}:".format(self.name, src_lang, trg_lang))
-            logging.info("MSE (*100):\t{:4f}".format(mse))
+            logger.info("MSE evaluation on {} dataset - {}-{}:".format(self.name, src_lang, trg_lang))
+            logger.info("MSE (*100):\t{:4f}".format(mse))
 
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)
