@@ -152,7 +152,7 @@ class SentenceTransformer(nn.Sequential):
         """
         self.eval()
         if show_progress_bar is None:
-            show_progress_bar = (logger.getLogger().getEffectiveLevel()==logger.INFO or logger.getLogger().getEffectiveLevel()==logger.DEBUG)
+            show_progress_bar = (logger.getEffectiveLevel()==logger.INFO or logger.getEffectiveLevel()==logger.DEBUG)
 
         input_was_string = False
         if isinstance(sentences, str): #Cast an individual sentence to a list with length 1
