@@ -36,22 +36,40 @@ The models can be used like this:
 ```python
 from sentence_transformers import CrossEncoder
 model = CrossEncoder('model_name', max_length=512)
-scores = model.predict([('Query', 'Paragraph1'), ('Query', 'Paragraph2')])
+scores = model.predict([('Query1', 'Paragraph1'), ('Query2', 'Paragraph2')])
+
+#For Example
+scores = model.predict([('How many people live in Berlin?', 'Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers.'), 
+                        ('What is the size of New York?', 'New York City is famous for the Metropolitan Museum of Art.')])
 ```
 
 This returns a score 0...1 indicating if the paragraph is relevant for a given query.
 
+
+For details on the usage, see [Applications - Information Retrieval](../examples/applications/information-retrieval/README.md)
+
+
+### MS MARCO
+[MS MARCO Passage Retrieval](https://github.com/microsoft/MSMARCO-Passage-Ranking) is a large dataset with real user queries from Bing search engine with annotated relevant text passages.
 - **cross-encoder/ms-marco-TinyBERT-L-2** - MRR@10 on MS Marco Dev Set: 30.15
 - **cross-encoder/ms-marco-TinyBERT-L-4** - MRR@10 on MS Marco Dev Set: 34.50
 - **cross-encoder/ms-marco-TinyBERT-L-6** - MRR@10 on MS Marco Dev Set: 36.13
 - **cross-encoder/ms-marco-electra-base** - MRR@10 on MS Marco Dev Set: 36.41
 
-For details on the usage, see [Applications - Information Retrieval](../examples/applications/information-retrieval/README.md)
+### SQuAD (QNLI)
+
+QNLI is based on the [SQuAD dataset](https://rajpurkar.github.io/SQuAD-explorer/) and was introduced by the [GLUE Benchmar](https://arxiv.org/abs/1804.07461). Given a passage from Wikipedia, annotators created questions that are answerable by that passage.
+
+- **cross-encoder/qnli-distilroberta-base** - Accuracy on QNLI dev set: 90.96
+- **cross-encoder/qnli-electra-base** - Accuracy on QNLI dev set: 93.21
+
+
 
 ## NLI
-The following models were trained on the [SNLI](https://nlp.stanford.edu/projects/snli/) and [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) datasets.
+Given two sentences, are these contradicting each other, entailing one the other or are these netural? The following models were trained on the [SNLI](https://nlp.stanford.edu/projects/snli/) and [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) datasets.
 - **cross-encoder/nli-distilroberta-base** - Accuracy on MNLI mismatched set: 83.98
 - **cross-encoder/nli-roberta-base** - Accuracy on MNLI mismatched set: 87.47
+- **cross-encoder/nli-deberta-base** - Accuracy on MNLI mismatched set: 88.08
 
 ```python
 from sentence_transformers import CrossEncoder
@@ -62,3 +80,4 @@ scores = model.predict([('A man is eating pizza', 'A man eats something'), ('A b
 label_mapping = ['contradiction', 'entailment', 'neutral']
 labels = [label_mapping[score_max] for score_max in scores.argmax(axis=1)]
 ```
+
