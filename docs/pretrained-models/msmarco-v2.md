@@ -23,10 +23,11 @@ Performance is evaluated on [TREC-DL 2019](https://microsoft.github.io/TREC-2019
 
 As baseline we show the results for lexical search with BM25 using ElasticSearch.
 
-| Approach       | NDCG@10 (TREC DL 19) | MRR@10 (MS Marco Dev) |  
+| Approach       | NDCG@10 (TREC DL 19 Reranking) | MRR@10 (MS Marco Dev) |  
 | ------------- |:-------------: | :---: |
 | BM25 (ElasticSearch)   | 45.46 | 17.29  |
-| msmarco-distilroberta-base-v2   | |  28.55    |   
+| msmarco-distilroberta-base-v2   | 65.65 |  28.55    |  
+| msmarco-roberta-base-v2 | 67.18 | 29.17| 
 
 
 

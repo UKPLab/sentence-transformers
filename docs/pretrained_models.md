@@ -45,7 +45,8 @@ Available models:
 
 The following models were trained on [MSMARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking): Given a search query (which can be anything like key words, a sentence, a question), find the relevant passages. You can index the embeddings and use it for dense information retrieval, outperforming lexical approaches like BM25.
 
-- **msmarco-distilroberta-base-v2** 
+- **msmarco-distilroberta-base-v2**: MRR@10: 28.55 on MS MARCO dev set
+- **msmarco-roberta-base-v2**: MRR@10: 29.17 on MS MARCO dev set
 
 ```python
 from sentence_transformers import SentenceTransformer, util
