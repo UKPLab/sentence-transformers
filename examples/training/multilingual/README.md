@@ -3,6 +3,7 @@ The issue with multilingual BERT (mBERT) as well as with XLM-RoBERTa is that tho
 
 In my publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) I describe any easy approach to extend sentence embeddings to further languages.
 
+Chien Vu also wrote a nice blog article on this technique: [A complete guide to transfer learning from English to other Languages using Sentence Embeddings BERT Models](https://towardsdatascience.com/a-complete-guide-to-transfer-learning-from-english-to-other-languages-using-sentence-embeddings-8c427f8804a9)
 
 ## Available Pre-trained Models
 For a list of available models, see [Pretrained Models](https://www.sbert.net/docs/pretrained_models.html#multi-lingual-models).
