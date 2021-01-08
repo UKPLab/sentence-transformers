@@ -25,7 +25,7 @@ from collections import defaultdict
 from torch.utils.data import IterableDataset
 import torch
 
-random.seed(42)
+
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -109,19 +109,20 @@ with gzip.open(train_eval_filepath, 'rt') as fIn:
     for line in fIn:
         qid, pos_id, neg_id = line.strip().split()
 
-        dev_queries[qid] = queries[qid]
+        if len(dev_queries) <= num_dev_queries or qid in dev_queries:
+            dev_queries[qid] = queries[qid]
 
-        #Ensure the corpus has the positive
-        dev_corpus[pos_id] = corpus[pos_id]
+            #Ensure the corpus has the positive
+            dev_corpus[pos_id] = corpus[pos_id]
 
-        if qid not in dev_rel_docs:
-            dev_rel_docs[qid] = set()
+            if qid not in dev_rel_docs:
+                dev_rel_docs[qid] = set()
 
-        dev_rel_docs[qid].add(pos_id)
+            dev_rel_docs[qid].add(pos_id)
 
-        if num_negatives[qid] < num_max_dev_negatives:
-            dev_corpus[neg_id] = corpus[neg_id]
-            num_negatives[qid] += 1
+            if num_negatives[qid] < num_max_dev_negatives:
+                dev_corpus[neg_id] = corpus[neg_id]
+                num_negatives[qid] += 1
 
 logging.info("Dev queries: {}".format(len(dev_queries)))
 logging.info("Dev Corpus: {}".format(len(dev_corpus)))
@@ -161,7 +162,7 @@ class TripletsDataset(IterableDataset):
 
 # For training the SentenceTransformer model, we need a dataset, a dataloader, and a loss used for training.
 train_dataset = TripletsDataset(model=model, queries=queries, corpus=corpus, triplets_file=train_filepath)
-train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=train_batch_size, num_workers=1)
+train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=train_batch_size)
 train_loss = losses.MultipleNegativesRankingLoss(model=model)
 
 # Train the model
