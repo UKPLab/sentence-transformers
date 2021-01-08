@@ -14,7 +14,7 @@ Running this script:
 python train_bi-encoder.py
 """
 from torch.utils.data import DataLoader
-from sentence_transformers import SentenceTransformer, LoggingHandler, util, models, evaluation, losses
+from sentence_transformers import SentenceTransformer, LoggingHandler, util, models, evaluation, losses, InputExample
 import logging
 from datetime import datetime
 import gzip
@@ -147,15 +147,13 @@ class TripletsDataset(IterableDataset):
         self.triplets_file = triplets_file
 
     def __iter__(self):
-        label = torch.tensor(1, dtype=torch.long)
-
         with gzip.open(self.triplets_file, 'rt') as fIn:
             for line in fIn:
                 qid, pos_id, neg_id = line.strip().split()
                 query_text = self.queries[qid]
                 pos_text = self.corpus[pos_id]
                 neg_text = self.corpus[neg_id]
-                yield [self.model.tokenize(query_text), self.model.tokenize(pos_text), self.model.tokenize(neg_text)], label
+                yield InputExample(texts=[query_text, pos_text, neg_text])
 
     def __len__(self):
         return 397226027
