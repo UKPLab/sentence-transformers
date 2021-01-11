@@ -63,6 +63,7 @@ class CERerankingEvaluator:
             for rank, index in enumerate(pred_scores_argsort[0:self.mrr_at_k]):
                 if is_relevant[index]:
                     mrr_score = 1 / (rank+1)
+                    break
 
             all_mrr_scores.append(mrr_score)
 
