@@ -93,37 +93,37 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
     <td align="center"></td>
     </tr>
     <tr>
-    <td>bert-base-nli-mean-tokens</td>
+    <td>nli-bert-base</td>
     <td align="center">77.12</td>
     <td align="center">86.37</td>
     </tr>
     <tr>
-    <td>bert-large-nli-mean-tokens</td>
+    <td>nli-bert-large</td>
     <td align="center">79.19</td>
     <td align="center">87.78</td>
     </tr>
     <tr>
-    <td>bert-base-nli-stsb-mean-tokens</td>
+    <td>stsb-bert-base</td>
     <td align="center">85.14</td>
     <td align="center">86.07</td>
     </tr>
     <tr>
-    <td>bert-large-nli-stsb-mean-tokens</td>
+    <td>stsb-bert-large</td>
     <td align="center">85.29</td>
     <td align="center">86.66</td>
     </tr>
     <tr>
-    <td>roberta-base-nli-stsb-mean-tokens</td>
+    <td>stsb-roberta-base</td>
     <td align="center">85.44</td>
     <td align="center">-</td>
     </tr>
     <tr>
-    <td>roberta-large-nli-stsb-mean-tokens</td>
+    <td>stsb-roberta-large</td>
     <td align="center">86.39</td>
     <td align="center">-</td>
     </tr>
     <tr>
-    <td>distilbert-base-nli-stsb-mean-tokens</td>
+    <td>stsb-distilbert-base</td>
     <td align="center">85.16</td>
     <td align="center">-</td>
     </tr>

@@ -103,13 +103,13 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
 | InferSent - GloVe                 | 68.03  | 85.59  |
 | Universal Sentence Encoder        | 74.92  | 85.10  |
 |**Sentence Transformer Models**    ||
-| bert-base-nli-mean-tokens         | 77.12  | 86.37 |
-| bert-large-nli-mean-tokens        | 79.19  | 87.78 |
-| bert-base-nli-stsb-mean-tokens    | 85.14  | 86.07 |
-| bert-large-nli-stsb-mean-tokens   | 85.29 | 86.66|
-| roberta-base-nli-stsb-mean-tokens | 85.44 | - |
-| roberta-large-nli-stsb-mean-tokens | 86.39 | - |
-| distilbert-base-nli-stsb-mean-tokens | 85.16 | - |
+| nli-bert-base       | 77.12  | 86.37 |
+| nli-bert-large     | 79.19  | 87.78 |
+| stsb-bert-base    | 85.14  | 86.07 |
+| stsb-bert-large   | 85.29 | 86.66|
+| stsb-roberta-base | 85.44 | - |
+| stsb-roberta-large | 86.39 | - |
+| stsb-distilbert-base| 85.16 | - |
 
 
 
