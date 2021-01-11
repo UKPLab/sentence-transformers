@@ -47,6 +47,7 @@ The following models were trained on [MSMARCO Passage Ranking](https://github.co
 
 - **msmarco-distilroberta-base-v2**: MRR@10: 28.55 on MS MARCO dev set
 - **msmarco-roberta-base-v2**: MRR@10: 29.17 on MS MARCO dev set
+- **msmarco-distilbert-base-v2**: MRR@10: 30.77 on MS MARCO  dev set
 
 ```python
 from sentence_transformers import SentenceTransformer, util

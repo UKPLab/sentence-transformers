@@ -27,7 +27,8 @@ As baseline we show the results for lexical search with BM25 using ElasticSearch
 | ------------- |:-------------: | :---: |
 | BM25 (ElasticSearch)   | 45.46 | 17.29  |
 | msmarco-distilroberta-base-v2   | 65.65 |  28.55    |  
-| msmarco-roberta-base-v2 | 67.18 | 29.17| 
+| msmarco-roberta-base-v2 | 67.18 | 29.17 | 
+| msmarco-distilbert-base-v2 | 68.35 | 30.77 |
 
 
 
