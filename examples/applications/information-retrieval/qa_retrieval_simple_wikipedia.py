@@ -10,6 +10,8 @@ For semantic search, we use SentenceTransformer('msmarco-distilroberta-base-v2')
 Next, we use a more powerful CrossEncoder (cross_encoder = CrossEncoder('cross-encoder/ms-marco-TinyBERT-L-6')) that
 scores the query and all retrieved passages for their relevancy. The cross-encoder is neccessary to filter out certain noise
 that might be retrieved from the semantic search step.
+
+Google Colab Example: https://colab.research.google.com/drive/1l6stpYdRMmeDBK_vw0L5NitdiAuhdsAr?usp=sharing
 """
 import json
 from sentence_transformers import SentenceTransformer, CrossEncoder, util
@@ -18,7 +20,7 @@ import gzip
 import os
 
 #We use the Bi-Encoder to encode all passages, so that we can use it with sematic search
-bi_encoder = SentenceTransformer('msmarco-distilroberta-base-v2')
+bi_encoder = SentenceTransformer('msmarco-distilbert-base-v2')
 top_k = 100     #Number of passages we want to retrieve with the bi-encoder
 
 #The bi-encoder will retrieve 100 documents. We use a cross-encoder, to re-rank the results list to improve the quality
@@ -56,7 +58,6 @@ while True:
     question_embedding = bi_encoder.encode(query, convert_to_tensor=True)
     hits = util.semantic_search(question_embedding, corpus_embeddings, top_k=top_k)
     hits = hits[0]  # Get the hits for the first query
-    print("Hits", len(hits))
 
     #Now, score all retrieved passages with the cross_encoder
     cross_inp = [[query, passages[hit['corpus_id']]] for hit in hits]
