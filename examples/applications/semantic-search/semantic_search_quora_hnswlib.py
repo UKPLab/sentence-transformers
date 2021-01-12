@@ -42,11 +42,6 @@ embedding_cache_path = 'quora-embeddings-{}-size-{}.pkl'.format(model_name.repla
 embedding_size = 768    #Size of embeddings
 top_k_hits = 10         #Output k hits
 
-#Defining our hnswlib index
-#We use Inner Product (dot-product) as Index. We will normalize our vectors to unit length, then is Inner Product equal to cosine similarity
-index = hnswlib.Index(space = 'cosine', dim = embedding_size)
-
-
 #Check if embedding cache path exists
 if not os.path.exists(embedding_cache_path):
     # Check if the dataset exists. If not, download and extract
@@ -82,12 +77,24 @@ else:
         corpus_sentences = cache_data['sentences']
         corpus_embeddings = cache_data['embeddings']
 
-### Create the HNSWLIB index
-print("Start creating HNSWLIB index")
-index.init_index(max_elements = len(corpus_embeddings), ef_construction = 400, M = 64)
+#Defining our hnswlib index
+index_path = "./hnswlib.index"
+#We use Inner Product (dot-product) as Index. We will normalize our vectors to unit length, then is Inner Product equal to cosine similarity
+index = hnswlib.Index(space = 'cosine', dim = embedding_size)
 
-# Then we train the index to find a suitable clustering
-index.add_items(corpus_embeddings, list(range(len(corpus_embeddings))))
+if os.path.exists(index_path):
+    print("Loading index...")
+    index.load_index(index_path)
+else:
+    ### Create the HNSWLIB index
+    print("Start creating HNSWLIB index")
+    index.init_index(max_elements = len(corpus_embeddings), ef_construction = 400, M = 64)
+
+    # Then we train the index to find a suitable clustering
+    index.add_items(corpus_embeddings, list(range(len(corpus_embeddings))))
+
+    print("Saving index to:", index_path)
+    index.save_index(index_path)
 
 # Controlling the recall by setting ef:
 index.set_ef(50)  # ef should always be > top_k_hits
