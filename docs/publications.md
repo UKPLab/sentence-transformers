@@ -40,6 +40,19 @@ If you use the code for [data augmentation](https://github.com/UKPLab/sentence-t
 }
 ```
 
+If you use the models for [MS MARCO](pretrained-models/msmarco-v2.md), feel free to cite the paper: [The Curse of Dense Low-Dimensional Information Retrieval for Large Index Sizes](https://arxiv.org/abs/2012.14210)
+``` 
+@article{thakur-2020-AugSBERT,
+    title = "The Curse of Dense Low-Dimensional Information Retrieval for Large Index Sizes",
+    author = "Reimers, Nils and  Gurevych, Iryna", 
+    journal= "arXiv preprint arXiv:2012.14210",
+    month = "12",
+    year = "2020",
+    url = "https://arxiv.org/abs/2012.14210",
+}
+```
+
+
 **Repositories using SentenceTransformers**
 - **[Top2Vec](https://github.com/ddangelov/Top2Vec)** - Topic modeling
 - **[txtai](https://github.com/neuml/txtai)** - AI-powered search engine
@@ -47,6 +60,7 @@ If you use the code for [data augmentation](https://github.com/UKPLab/sentence-t
 - **[KeyBERT](https://github.com/MaartenGr/KeyBERT)** - Key phrase extraction using SBERT
 - **[contextualized-topic-models](https://github.com/MilaNLProc/contextualized-topic-models)** - Cross-Lingual Topic Modeling
 - **[covid-papers-browser](https://github.com/gsarti/covid-papers-browser)** - Semantic Search for Covid-19 papers
+- **[kiri](https://github.com/kiri-ai/kiri)** - Natural Language Engine that makes using state-of-the-art language models easy, accessible and scalable.
 
 
 **SentenceTransformers in Articles**
