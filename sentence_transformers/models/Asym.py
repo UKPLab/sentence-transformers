@@ -1,4 +1,3 @@
-
 from torch import Tensor
 from torch import nn
 from typing import List, Dict
@@ -6,6 +5,7 @@ import os
 import json
 from ..util import import_from_string
 from collections import OrderedDict
+from typing import List, Dict, Optional, Union, Tuple
 
 class Asym(nn.Sequential):
     def __init__(self, sub_modules: Dict[str, List[nn.Module]], allow_empty_key: bool = True):
@@ -81,6 +81,24 @@ class Asym(nn.Sequential):
             json.dump({'types': model_types, 'structure': model_structure,
                        'parameters': {'allow_empty_key': self.allow_empty_key}},
                       fOut, indent=2)
+
+    def tokenize(self, texts: Union[List[str], List[Tuple[str, str]]]):
+        """
+        Tokenizes a text and maps tokens to token-ids
+        """
+        if not isinstance(texts[0], dict):
+            raise AttributeError("Asym. model requires that texts are passed as dicts: {'key': 'text'}")
+
+
+        module_key = None
+
+        for lookup in texts:
+            text_key, text = next(iter(lookup.items()))
+            if module_key is None:
+                module_key = text_key
+
+            assert text_key == module_key   #Mixed batches are not allowed
+        return self.sub_modules[module_key][0].tokenize(texts)
 
 
     @staticmethod
