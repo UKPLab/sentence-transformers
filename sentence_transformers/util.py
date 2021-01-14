@@ -72,20 +72,13 @@ def paraphrase_mining(model,
     num_added = 0
 
     for corpus_start_idx in range(0, len(embeddings), corpus_chunk_size):
-        corpus_end_idx = min(corpus_start_idx + corpus_chunk_size, len(embeddings))
         for query_start_idx in range(0, len(embeddings), query_chunk_size):
-            query_end_idx = min(query_start_idx + query_chunk_size, len(embeddings))
-
-            #logger.info("Compute cosine similarities")
-            cos_scores = pytorch_cos_sim(embeddings[query_start_idx:query_end_idx],
-                                         embeddings[corpus_start_idx:corpus_end_idx]).cpu()
-
+            cos_scores = pytorch_cos_sim(embeddings[query_start_idx:query_start_idx+query_chunk_size], embeddings[corpus_start_idx:corpus_start_idx+corpus_chunk_size])
 
             cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(top_k, len(cos_scores[0])), dim=1, largest=True, sorted=False)
-            cos_scores_top_k_values = cos_scores_top_k_values.tolist()
-            cos_scores_top_k_idx = cos_scores_top_k_idx.tolist()
+            cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
+            cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
 
-            #logger.info("Find most similar pairs out of {} queries".format(len(cos_scores)))
             for query_itr in range(len(cos_scores)):
                 for top_k_idx, corpus_itr in enumerate(cos_scores_top_k_idx[query_itr]):
                     i = query_start_idx + query_itr
@@ -123,7 +116,7 @@ def information_retrieval(*args, **kwargs):
 def semantic_search(query_embeddings: Tensor,
                       corpus_embeddings: Tensor,
                       query_chunk_size: int = 100,
-                      corpus_chunk_size: int = 100000,
+                      corpus_chunk_size: int = 500000,
                       top_k: int = 10):
     """
     This function performs a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
@@ -151,8 +144,9 @@ def semantic_search(query_embeddings: Tensor,
         corpus_embeddings = torch.stack(corpus_embeddings)
 
     #Normalize scores, so that the dot-product is equivalent to cosine similarity
-    query_embeddings = query_embeddings / query_embeddings.norm(dim=1)[:, None]
-    corpus_embeddings = corpus_embeddings / corpus_embeddings.norm(dim=1)[:, None]
+    query_embeddings = torch.nn.functional.normalize(query_embeddings, p=2, dim=1)
+    corpus_embeddings = torch.nn.functional.normalize(corpus_embeddings, p=2, dim=1)
+
 
     if corpus_embeddings.device != query_embeddings.device:
         corpus_embeddings = corpus_embeddings.to(query_embeddings.device)
@@ -160,24 +154,20 @@ def semantic_search(query_embeddings: Tensor,
     queries_result_list = [[] for _ in range(len(query_embeddings))]
 
     for query_start_idx in range(0, len(query_embeddings), query_chunk_size):
-        query_end_idx = min(query_start_idx + query_chunk_size, len(query_embeddings))
-
         # Iterate over chunks of the corpus
         for corpus_start_idx in range(0, len(corpus_embeddings), corpus_chunk_size):
-            corpus_end_idx = min(corpus_start_idx + corpus_chunk_size, len(corpus_embeddings))
-
             # Compute cosine similarites
-            cos_scores = torch.mm(query_embeddings[query_start_idx:query_end_idx], corpus_embeddings[corpus_start_idx:corpus_end_idx].transpose(0, 1)).cpu().numpy()
-            cos_scores = np.nan_to_num(cos_scores)
+            cos_scores = torch.mm(query_embeddings[query_start_idx:query_start_idx+query_chunk_size], corpus_embeddings[corpus_start_idx:corpus_start_idx+corpus_chunk_size].transpose(0, 1))
 
-            # Partial sort scores
-            cos_score_argpartition = np.argpartition(-cos_scores, min(top_k, len(cos_scores[0])-1))[:, 0:top_k]
+            # Get top-k scores
+            cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(top_k, len(cos_scores[0])), dim=1, largest=True, sorted=False)
+            cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
+            cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
 
             for query_itr in range(len(cos_scores)):
-                for sub_corpus_id in cos_score_argpartition[query_itr]:
+                for sub_corpus_id, score in zip(cos_scores_top_k_idx[query_itr], cos_scores_top_k_values[query_itr]):
                     corpus_id = corpus_start_idx + sub_corpus_id
                     query_id = query_start_idx + query_itr
-                    score = cos_scores[query_itr][sub_corpus_id]
                     queries_result_list[query_id].append({'corpus_id': corpus_id, 'score': score})
 
     #Sort and strip to top_k results
