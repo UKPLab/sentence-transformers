@@ -5,7 +5,6 @@ As dataset, we use the Quora Duplicate Questions dataset, which contains about 5
 https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs
 
 
-
 As embeddings model, we use the SBERT model 'distilbert-multilingual-nli-stsb-quora-ranking',
 that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
 return the closest questions in the corpus (questions in the corpus are mainly in English).
@@ -65,6 +64,9 @@ else:
 
 ###############################
 print("Corpus loaded with {} sentences / embeddings".format(len(corpus_sentences)))
+
+#Move embeddings to the target device of the model
+corpus_embeddings = corpus_embeddings.to(model._target_device)
 
 while True:
     inp_question = input("Please enter a question: ")
