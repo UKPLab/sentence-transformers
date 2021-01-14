@@ -192,8 +192,7 @@ class SentenceTransformer(nn.Sequential):
 
                 embeddings = embeddings.detach()
 
-                # fixes for #522 and #487
-                # to avoid oom problems on gpu with large datasets
+                # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
                 if convert_to_numpy:
                     embeddings = embeddings.cpu()
 
