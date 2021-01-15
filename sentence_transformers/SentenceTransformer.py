@@ -144,9 +144,10 @@ class SentenceTransformer(nn.Sequential):
         :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings.
         :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
         :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from convert_to_numpy
-        :param is_pretokenized: DEPRECATED - No longer used
+        :param is_pretokenized: DEPRECATED - No longer used, will be removed in the future
         :param device: Which torch.device to use for the computation
-        :param num_workers: DEPRECATED - No longer used
+        :param num_workers: DEPRECATED - No longer used, will be removed in the future
+
         :return:
            By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
         """
@@ -171,11 +172,7 @@ class SentenceTransformer(nn.Sequential):
         length_sorted_idx = np.argsort([self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
 
-        iterator = range(0, len(sentences), batch_size)
-        if show_progress_bar:
-            iterator = tqdm(iterator, desc="Batches")
-
-        for start_index in iterator:
+        for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
             sentences_batch = sentences_sorted[start_index:start_index+batch_size]
             features = self.tokenize(sentences_batch)
             features = batch_to_device(features, device)
@@ -429,7 +426,7 @@ class SentenceTransformer(nn.Sequential):
             max_grad_norm: float = 1,
             use_amp: bool = False,
             callback: Callable[[float, int, int], None] = None,
-            output_path_ignore_not_empty: bool = False
+            show_progress_bar: bool = True
             ):
         """
         Train the model with the given training objective
@@ -454,7 +451,7 @@ class SentenceTransformer(nn.Sequential):
         :param callback: Callback function that is invoked after each evaluation.
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
-        :param output_path_ignore_not_empty: deprecated, no longer used
+        :param show_progress_bar: If True, output a tqdm progress bar
         """
 
         if use_amp:
@@ -508,14 +505,14 @@ class SentenceTransformer(nn.Sequential):
         num_train_objectives = len(train_objectives)
 
         skip_scheduler = False
-        for epoch in trange(epochs, desc="Epoch"):
+        for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
 
             for loss_model in loss_models:
                 loss_model.zero_grad()
                 loss_model.train()
 
-            for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05):
+            for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
                     optimizer = optimizers[train_idx]
