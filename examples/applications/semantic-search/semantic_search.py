@@ -29,7 +29,7 @@ queries = ['A man is eating pasta.', 'Someone in a gorilla costume is playing a 
 
 
 # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
-top_k = 5
+top_k = min(5, len(corpus))
 for query in queries:
     query_embedding = embedder.encode(query, convert_to_tensor=True)
     cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
