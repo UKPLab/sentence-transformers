@@ -16,7 +16,7 @@ For more details, see https://github.com/nmslib/hnswlib/
 As dataset, we use the Quora Duplicate Questions dataset, which contains about 500k questions (we only use 100k in this example):
 https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs
 
-As embeddings model, we use the SBERT model 'distilbert-multilingual-nli-stsb-quora-ranking',
+As embeddings model, we use the SBERT model 'quora-distilbert-multilingual',
 that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
 return the closest questions in the corpus (questions in the corpus are mainly in English).
 """
@@ -29,7 +29,7 @@ import hnswlib
 
 
 
-model_name = 'distilbert-multilingual-nli-stsb-quora-ranking'
+model_name = 'quora-distilbert-multilingual'
 model = SentenceTransformer(model_name)
 
 url = "http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv"

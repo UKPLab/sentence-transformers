@@ -5,9 +5,12 @@ As dataset, we use the Quora Duplicate Questions dataset, which contains about 5
 https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs
 
 
-As embeddings model, we use the SBERT model 'distilbert-multilingual-nli-stsb-quora-ranking',
+As embeddings model, we use the SBERT model 'quora-distilbert-multilingual',
 that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
 return the closest questions in the corpus (questions in the corpus are mainly in English).
+
+
+Google Colab example: https://colab.research.google.com/drive/12cn5Oo0v3HfQQ8Tv6-ukgxXSmT3zl35A?usp=sharing
 """
 from sentence_transformers import SentenceTransformer, util
 import os
@@ -16,7 +19,7 @@ import pickle
 import time
 
 
-model_name = 'distilbert-multilingual-nli-stsb-quora-ranking'
+model_name = 'quora-distilbert-multilingual'
 model = SentenceTransformer(model_name)
 
 url = "http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv"

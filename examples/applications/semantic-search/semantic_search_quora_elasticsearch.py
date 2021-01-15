@@ -13,7 +13,7 @@ cosine similarity.
 You need ElasticSearch (https://www.elastic.co/de/elasticsearch/) up and running. Further, you need the Python
 ElasticSearch Client installed: https://elasticsearch-py.readthedocs.io/en/master/
 
-As embeddings model, we use the SBERT model 'distilbert-multilingual-nli-stsb-quora-ranking',
+As embeddings model, we use the SBERT model 'quora-distilbert-multilingual',
 that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
 return the closest questions in the corpus (questions in the corpus are mainly in English).
 """
@@ -29,7 +29,7 @@ import tqdm.autonotebook
 
 es = Elasticsearch()
 
-model = SentenceTransformer('distilbert-multilingual-nli-stsb-quora-ranking')
+model = SentenceTransformer('quora-distilbert-multilingual')
 
 url = "http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv"
 dataset_path = "quora_duplicate_questions.tsv"
