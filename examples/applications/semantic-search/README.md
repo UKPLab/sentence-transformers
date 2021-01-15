@@ -12,7 +12,7 @@ At search time, the query is embedded into the same vector space and the closest
 
 ## Python
 
-For small corpora (up to about 100k entries) we can compute the cosine-similarity between the query and all entries in the corpus.
+For small corpora (up to about 1 million entries) we can compute the cosine-similarity between the query and all entries in the corpus.
 
 In the following example, we define a small corpus with few example sentences and compute the embeddings for the corpus as well as for our query.
 
@@ -42,7 +42,7 @@ By default, up to 100 queries are processes in parallel. Further, the corpus is 
 Depending on your real-time requirements, you can use this function for corpora up to 1 Million entries given you have enough memory.
 
 ## Similar Questions Retrieval
-[semantic_search_quora_pytorch.py](semantic_search_quora_pytorch.py) shows an example based on the [Quora duplicate questions](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs) dataset. The user can enter a question, and the code retrieves the most similar questions from the dataset using the *util.semantic_search* method. As model, we use *distilbert-multilingual-nli-stsb-quora-ranking*, which was trained to identify similar questions and supports 50+ languages.
+[semantic_search_quora_pytorch.py](semantic_search_quora_pytorch.py) [ [Colab version](https://colab.research.google.com/drive/12cn5Oo0v3HfQQ8Tv6-ukgxXSmT3zl35A?usp=sharing) ] shows an example based on the [Quora duplicate questions](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs) dataset. The user can enter a question, and the code retrieves the most similar questions from the dataset using the *util.semantic_search* method. As model, we use *distilbert-multilingual-nli-stsb-quora-ranking*, which was trained to identify similar questions and supports 50+ languages.
 
 
 ## ElasticSearch
