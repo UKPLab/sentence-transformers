@@ -29,7 +29,11 @@ queries = ['A man is eating pasta.', 'Someone in a gorilla costume is playing a 
 
 
 # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
-top_k = 5
+if len(corpus) > 5:
+    top_k = 5
+else:
+    top_k = len(corpus)
+
 for query in queries:
     query_embedding = embedder.encode(query, convert_to_tensor=True)
     cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
@@ -40,7 +44,7 @@ for query in queries:
 
     print("\n\n======================\n\n")
     print("Query:", query)
-    print("\nTop 5 most similar sentences in corpus:")
+    print("\nTop " + str(top_k) + " most similar sentences in corpus:")
 
     for score, idx in zip(top_results[0], top_results[1]):
         print(corpus[idx], "(Score: %.4f)" % (score))
