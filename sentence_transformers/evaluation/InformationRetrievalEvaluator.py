@@ -30,7 +30,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                  map_at_k: List[int] = [100],
                  show_progress_bar: bool = False,
                  batch_size: int = 32,
-                 name: str = ''):
+                 name: str = '',
+                 write_csv: bool = True
+                 ):
 
         self.queries_ids = []
         for qid in queries:
@@ -53,6 +55,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.show_progress_bar = show_progress_bar
         self.batch_size = batch_size
         self.name = name
+        self.write_csv = write_csv
 
         if name:
             name = "_" + name
@@ -130,7 +133,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         logger.info("Queries: {}".format(len(self.queries)))
         logger.info("Corpus: {}\n".format(len(self.corpus)))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
                 fOut = open(csv_path, mode="w", encoding="utf-8")

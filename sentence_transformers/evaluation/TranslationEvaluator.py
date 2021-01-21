@@ -17,7 +17,7 @@ class TranslationEvaluator(SentenceEvaluator):
     and assuming that fr_i is the translation of en_i.
     Checks if vec(en_i) has the highest similarity to vec(fr_i). Computes the accurarcy in both directions
     """
-    def __init__(self, source_sentences: List[str], target_sentences: List[str],  show_progress_bar: bool = False, batch_size: int = 16, name: str = '', print_wrong_matches: bool = False):
+    def __init__(self, source_sentences: List[str], target_sentences: List[str],  show_progress_bar: bool = False, batch_size: int = 16, name: str = '', print_wrong_matches: bool = False, write_csv: bool = True):
         """
         Constructs an evaluator based for the dataset
 
@@ -29,6 +29,8 @@ class TranslationEvaluator(SentenceEvaluator):
             List of sentences in target language
         :param print_wrong_matches:
             Prints incorrect matches
+        :param write_csv:
+            Write results to CSV file
         """
         self.source_sentences = source_sentences
         self.target_sentences = target_sentences
@@ -44,6 +46,7 @@ class TranslationEvaluator(SentenceEvaluator):
 
         self.csv_file = "translation_evaluation"+name+"_results.csv"
         self.csv_headers = ["epoch", "steps", "src2trg", "trg2src"]
+        self.write_csv = write_csv
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
@@ -95,7 +98,7 @@ class TranslationEvaluator(SentenceEvaluator):
         logger.info("Accuracy src2trg: {:.2f}".format(acc_src2trg*100))
         logger.info("Accuracy trg2src: {:.2f}".format(acc_trg2src*100))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:

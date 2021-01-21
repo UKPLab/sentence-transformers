@@ -19,7 +19,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
     The results are written in a CSV. If a CSV already exists, then values are appended.
     """
 
-    def __init__(self, dataloader: DataLoader, name: str = "", softmax_model = None):
+    def __init__(self, dataloader: DataLoader, name: str = "", softmax_model = None, write_csv: bool = True):
         """
         Constructs an evaluator for the given dataset
 
@@ -33,6 +33,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         if name:
             name = "_"+name
 
+        self.write_csv = write_csv
         self.csv_file = "accuracy_evaluation"+name+"_results.csv"
         self.csv_headers = ["epoch", "steps", "accuracy"]
 
@@ -62,7 +63,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
 
         logger.info("Accuracy: {:.4f} ({}/{})\n".format(accuracy, correct, total))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
                 with open(csv_path, mode="w", encoding="utf-8") as f:

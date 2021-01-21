@@ -14,13 +14,14 @@ class CECorrelationEvaluator:
     it compute the pearson & spearman correlation between the predicted score for the sentence pair
     and the gold score.
     """
-    def __init__(self, sentence_pairs: List[List[str]], scores: List[float], name: str=''):
+    def __init__(self, sentence_pairs: List[List[str]], scores: List[float], name: str='', write_csv: bool = True):
         self.sentence_pairs = sentence_pairs
         self.scores = scores
         self.name = name
 
         self.csv_file = "CECorrelationEvaluator" + ("_" + name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps", "Pearson_Correlation", "Spearman_Correlation"]
+        self.write_csv = write_csv
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -50,7 +51,7 @@ class CECorrelationEvaluator:
 
         logger.info("Correlation:\tPearson: {:.4f}\tSpearman: {:.4f}".format(eval_pearson, eval_spearman))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:

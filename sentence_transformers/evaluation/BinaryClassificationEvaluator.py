@@ -28,9 +28,10 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
     :param name: Name for the output
     :param batch_size: Batch size used to compute embeddings
     :param show_progress_bar: If true, prints a progress bar
+    :param write_csv: Write results to a CSV file
     """
 
-    def __init__(self, sentences1: List[str], sentences2: List[str], labels: List[int], name: str = '', batch_size: int = 32, show_progress_bar: bool = False):
+    def __init__(self, sentences1: List[str], sentences2: List[str], labels: List[int], name: str = '', batch_size: int = 32, show_progress_bar: bool = False, write_csv: bool = True):
         self.sentences1 = sentences1
         self.sentences2 = sentences2
         self.labels = labels
@@ -40,7 +41,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         for label in labels:
             assert (label == 0 or label == 1)
 
-
+        self.write_csv = write_csv
         self.name = name
         self.batch_size = batch_size
         if show_progress_bar is None:
@@ -108,7 +109,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             if main_score is None: #Use AveragePrecision with Cosine-Similarity as main score
                 main_score = ap
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
                 with open(csv_path, mode="w", encoding="utf-8") as f:

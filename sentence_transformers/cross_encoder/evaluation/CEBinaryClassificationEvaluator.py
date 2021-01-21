@@ -16,7 +16,7 @@ class CEBinaryClassificationEvaluator:
     This evaluator can be used with the CrossEncoder class. Given sentence pairs and binary labels (0 and 1),
     it compute the average precision and the best possible f1 score
     """
-    def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str=''):
+    def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str='', write_csv: bool = True):
         assert len(sentence_pairs) == len(labels)
         for label in labels:
             assert (label == 0 or label == 1)
@@ -27,6 +27,7 @@ class CEBinaryClassificationEvaluator:
 
         self.csv_file = "CEBinaryClassificationEvaluator" + ("_" + name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps", "Accuracy", "Accuracy_Threshold", "F1", "F1_Threshold", "Precision", "Recall", "Average_Precision"]
+        self.write_csv = write_csv
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -60,7 +61,7 @@ class CEBinaryClassificationEvaluator:
         logger.info("Recall:             {:.2f}".format(recall * 100))
         logger.info("Average Precision:  {:.2f}\n".format(ap * 100))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:

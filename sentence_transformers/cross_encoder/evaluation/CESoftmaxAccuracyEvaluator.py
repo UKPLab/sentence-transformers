@@ -15,13 +15,14 @@ class CESoftmaxAccuracyEvaluator:
     It is designed for CrossEncoders with 2 or more outputs. It measure the
     accuracy of the predict class vs. the gold labels.
     """
-    def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str=''):
+    def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str='', write_csv: bool = True):
         self.sentence_pairs = sentence_pairs
         self.labels = labels
         self.name = name
 
         self.csv_file = "CESoftmaxAccuracyEvaluator" + ("_" + name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps", "Accuracy"]
+        self.write_csv = write_csv
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -52,7 +53,7 @@ class CESoftmaxAccuracyEvaluator:
 
         logger.info("Accuracy: {:.2f}".format(acc*100))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:

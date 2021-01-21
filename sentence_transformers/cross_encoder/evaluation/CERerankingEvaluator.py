@@ -15,7 +15,7 @@ class CERerankingEvaluator:
     :param samples: Must be a list and each element is of the form: {'query': '', 'positive': [], 'negative': []}. Query is the search query,
      positive is a list of positive (relevant) documents, negative is a list of negative (irrelevant) documents.
     """
-    def __init__(self, samples, mrr_at_k: int = 10, name: str = ''):
+    def __init__(self, samples, mrr_at_k: int = 10, name: str = '', write_csv: bool = True):
         self.samples = samples
         self.name = name
         self.mrr_at_k = mrr_at_k
@@ -25,6 +25,7 @@ class CERerankingEvaluator:
 
         self.csv_file = "CERerankingEvaluator" + ("_" + name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps", "MRR@{}".format(mrr_at_k)]
+        self.write_csv = write_csv
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
@@ -71,7 +72,7 @@ class CERerankingEvaluator:
         logger.info("Queries: {} \t Positives: Min {:.1f}, Mean {:.1f}, Max {:.1f} \t Negatives: Min {:.1f}, Mean {:.1f}, Max {:.1f}".format(num_queries, np.min(num_positives), np.mean(num_positives), np.max(num_positives), np.min(num_negatives), np.mean(num_negatives), np.max(num_negatives)))
         logger.info("MRR@{}: {:.2f}".format(self.mrr_at_k, mean_mrr*100))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:

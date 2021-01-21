@@ -18,7 +18,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
      with a set of gold labels and computes the F1 score.
     """
 
-    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, duplicates_dict: Dict[str, Dict[str, bool]] = None, add_transitive_closure: bool = False, query_chunk_size:int = 5000, corpus_chunk_size:int = 100000, max_pairs: int = 500000, top_k: int = 100, show_progress_bar: bool = False, batch_size: int = 16, name: str = ''):
+    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, duplicates_dict: Dict[str, Dict[str, bool]] = None, add_transitive_closure: bool = False, query_chunk_size:int = 5000, corpus_chunk_size:int = 100000, max_pairs: int = 500000, top_k: int = 100, show_progress_bar: bool = False, batch_size: int = 16, name: str = '', write_csv: bool = True):
         """
 
         :param sentences_map: A dictionary that maps sentence-ids to sentences, i.e. sentences_map[id] => sentence.
@@ -32,6 +32,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         :param show_progress_bar: Output a progress bar
         :param batch_size: Batch size for computing sentence embeddings
         :param name: Name of the experiment
+        :param write_csv: Write results to CSV file
         """
         self.sentences = []
         self.ids = []
@@ -74,6 +75,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
 
         self.csv_file: str = "paraphrase_mining_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps", "precision", "recall", "f1", "threshold", "average_precision"]
+        self.write_csv = write_csv
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
@@ -123,7 +125,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         logger.info("Recall: {:.2f}".format(best_recall * 100))
         logger.info("F1: {:.2f}\n".format(best_f1 * 100))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
                 with open(csv_path, mode="w", encoding="utf-8") as f:

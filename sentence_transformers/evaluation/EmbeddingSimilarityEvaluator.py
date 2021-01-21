@@ -20,23 +20,21 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
     The results are written in a CSV. If a CSV already exists, then values are appended.
     """
-    def __init__(self, sentences1: List[str], sentences2: List[str], scores: List[float], batch_size: int = 16, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = False):
+    def __init__(self, sentences1: List[str], sentences2: List[str], scores: List[float], batch_size: int = 16, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = False, write_csv: bool = True):
         """
         Constructs an evaluator based for the dataset
 
         The labels need to indicate the similarity between the sentences.
 
-        :param sentences1:
-            List with the first sentence in a pair
-        :param sentences2:
-            List with the second sentence in a pair
-        :param scores:
-            Similarity score between sentences1[i] and sentences2[i]
-
+        :param sentences1:  List with the first sentence in a pair
+        :param sentences2: List with the second sentence in a pair
+        :param scores: Similarity score between sentences1[i] and sentences2[i]
+        :param write_csv: Write results to a CSV file
         """
         self.sentences1 = sentences1
         self.sentences2 = sentences2
         self.scores = scores
+        self.write_csv = write_csv
 
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.scores)
@@ -107,7 +105,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         logger.info("Dot-Product-Similarity:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
             eval_pearson_dot, eval_spearman_dot))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:

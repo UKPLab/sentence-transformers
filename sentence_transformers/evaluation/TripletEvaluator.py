@@ -13,7 +13,7 @@ class TripletEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on a triplet: (sentence, positive_example, negative_example). Checks if distance(sentence,positive_example) < distance(sentence, negative_example).
     """
-    def __init__(self, anchors: List[str], positives: List[str], negatives: List[str], main_distance_function: SimilarityFunction = None, name: str = '', batch_size: int = 16, show_progress_bar: bool = False):
+    def __init__(self, anchors: List[str], positives: List[str], negatives: List[str], main_distance_function: SimilarityFunction = None, name: str = '', batch_size: int = 16, show_progress_bar: bool = False, write_csv: bool = True):
         """
         Constructs an evaluator based for the dataset
 
@@ -22,6 +22,7 @@ class TripletEvaluator(SentenceEvaluator):
             the data for the evaluation
         :param main_similarity:
             the similarity metric that will be used for the returned score
+
         """
         self.anchors = anchors
         self.positives = positives
@@ -40,6 +41,7 @@ class TripletEvaluator(SentenceEvaluator):
 
         self.csv_file: str = "triplet_evaluation"+("_"+name if name else '')+"_results.csv"
         self.csv_headers = ["epoch", "steps", "accuracy_cosinus", "accuracy_manhatten", "accuracy_euclidean"]
+        self.write_csv = write_csv
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -107,7 +109,7 @@ class TripletEvaluator(SentenceEvaluator):
         logger.info("Accuracy Manhatten Distance:\t{:.2f}".format(accuracy_manhatten*100))
         logger.info("Accuracy Euclidean Distance:\t{:.2f}\n".format(accuracy_euclidean*100))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
                 with open(csv_path, mode="w", encoding="utf-8") as f:

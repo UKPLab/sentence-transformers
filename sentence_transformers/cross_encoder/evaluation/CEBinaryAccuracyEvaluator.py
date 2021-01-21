@@ -17,7 +17,7 @@ class CEBinaryAccuracyEvaluator:
 
     See CEBinaryClassificationEvaluator for an evaluator that determines automatically the optimal threshold.
     """
-    def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str='', threshold: float = 0.5):
+    def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str='', threshold: float = 0.5, write_csv: bool = True):
         self.sentence_pairs = sentence_pairs
         self.labels = labels
         self.name = name
@@ -25,6 +25,7 @@ class CEBinaryAccuracyEvaluator:
 
         self.csv_file = "CEBinaryAccuracyEvaluator" + ("_" + name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps", "Accuracy"]
+        self.write_csv = write_csv
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -55,7 +56,7 @@ class CEBinaryAccuracyEvaluator:
 
         logger.info("Accuracy: {:.2f}".format(acc*100))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:

@@ -25,7 +25,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         First entry in a tuple is the source language. The sentence in the respective language will be fetched from the dataframe and passed to the teacher model.
         Second entry in a tuple the the target language. Sentence will be fetched from the dataframe and passed to the student model
     """
-    def __init__(self, dataframe: List[Dict[str, str]], teacher_model: SentenceTransformer, combinations: List[Tuple[str, str]], batch_size: int = 8, name=''):
+    def __init__(self, dataframe: List[Dict[str, str]], teacher_model: SentenceTransformer, combinations: List[Tuple[str, str]], batch_size: int = 8, name='', write_csv: bool = True):
 
         self.combinations = combinations
         self.name = name
@@ -37,6 +37,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
 
         self.csv_file = "mse_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps"]
+        self.write_csv = write_csv
         self.data = {}
 
         logger.info("Compute teacher embeddings")
@@ -75,7 +76,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             logger.info("MSE evaluation on {} dataset - {}-{}:".format(self.name, src_lang, trg_lang))
             logger.info("MSE (*100):\t{:4f}".format(mse))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:
