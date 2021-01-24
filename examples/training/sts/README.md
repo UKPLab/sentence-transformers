@@ -7,7 +7,7 @@ Semantic Textual Similarity (STS) assigns a score on the similarity of two texts
  
 
 ## Training data
-In STS, we have sentence pairs annotated together with a score indicating the similarity. For the [STSbenchmark](https://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark), the scores ranges from 0 (the content of the two sentences are competely different) up to 5 (the two sentences are identical in terms of their meaning). To train our network, we need to normalize these scores to a range of 0-1. This is simply be done by dividing the score by 5.
+In STS, we have sentence pairs annotated together with a score indicating the similarity. For the [STSbenchmark](https://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark), the scores ranges from 0 (the content of the two sentences are competely different) up to 5 (the two sentences are identical in terms of their meaning). To train our network, we need to normalize these scores to a range of 0-1. This can simply be done by dividing the score by 5.
 
 To store our training data, we create a list with `InputExample` objects. Each `InputExample` contains the sentence pair together with the label (score) that ranges between 0 - 1. A simplified version how the training data has to look like is the following:
 
