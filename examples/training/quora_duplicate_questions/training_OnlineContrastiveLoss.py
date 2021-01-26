@@ -186,6 +186,5 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=seq_evaluator,
           epochs=num_epochs,
           warmup_steps=1000,
-          output_path=model_save_path,
-          output_path_ignore_not_empty=True
+          output_path=model_save_path
           )
