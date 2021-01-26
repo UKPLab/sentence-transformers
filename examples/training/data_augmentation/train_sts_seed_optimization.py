@@ -132,5 +132,4 @@ for seed in range(seed_count):
             steps_per_epoch=steps_per_epoch,
             evaluation_steps=1000,
             warmup_steps=warmup_steps,
-            output_path=model_save_path,
-            output_path_ignore_not_empty=True)
+            output_path=model_save_path)
