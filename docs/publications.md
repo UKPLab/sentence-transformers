@@ -81,6 +81,7 @@ Making BERT stretchy - Scalable Semantic Search on a Jupyter Notebook](https://m
 **SentenceTransformers used in Research**
 
 The following papers use SentenceTransformers in research:
+- **December 2020 - [Pivot Through English: Reliably Answering Multilingual Questions without Document Retrieval](https://arxiv.org/abs/2012.14094)**
 - **December 2020 - [Document Dating Using Sentence Embeddings
 at EVALITA 2020](http://ceur-ws.org/Vol-2765/paper106.pdf)**
 - **December 2020 - [Objective-Based Hierarchical Clustering of Deep Embedding Vectors](https://arxiv.org/pdf/2012.08466.pdf)**
