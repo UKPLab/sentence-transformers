@@ -194,6 +194,5 @@ student_model.fit(train_objectives=[(train_dataloader, train_loss)],
                   output_path=output_path,
                   save_best_model=True,
                   optimizer_params={'lr': 1e-4, 'eps': 1e-6, 'correct_bias': False},
-                  use_amp=True,
-                  output_path_ignore_not_empty=True)
+                  use_amp=True)
 
