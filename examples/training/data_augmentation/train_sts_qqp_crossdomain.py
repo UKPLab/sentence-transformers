@@ -207,8 +207,7 @@ bi_encoder.fit(train_objectives=[(train_dataloader, train_loss)],
           epochs=num_epochs,
           evaluation_steps=1000,
           warmup_steps=warmup_steps,
-          output_path=bi_encoder_path,
-          output_path_ignore_not_empty=True
+          output_path=bi_encoder_path
           )
 
 ###############################################################
