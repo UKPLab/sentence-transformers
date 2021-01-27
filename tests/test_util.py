@@ -7,6 +7,7 @@ import torch
 class UtilTest(unittest.TestCase):
 
     def test_normalize_embeddings(self):
+        """Tests the correct computation of util.normalize_embeddings"""
         embedding_size = 100
         a = torch.tensor(np.random.randn(50, embedding_size))
         a_norm = util.normalize_embeddings(a)
