@@ -24,8 +24,6 @@ from collections import defaultdict
 from torch.utils.data import IterableDataset
 
 
-
-
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',

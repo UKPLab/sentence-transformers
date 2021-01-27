@@ -37,9 +37,16 @@ The function accepts the following parameters:
 .. autofunction:: sentence_transformers.util.semantic_search
 ```
 
-By default, up to 100 queries are processes in parallel. Further, the corpus is chunked into set of up to 100k entries. You can increase *query_chunk_size* and *corpus_chunk_size*, which leads to and increased speed for large corpora, but also increases the memory requirement.
+By default, up to 100 queries are processes in parallel. Further, the corpus is chunked into set of up to 500k entries. You can increase *query_chunk_size* and *corpus_chunk_size*, which leads to increased speed for large corpora, but also increases the memory requirement.
 
-Depending on your real-time requirements, you can use this function for corpora up to 1 Million entries given you have enough memory.
+## Speed Optimization
+To get the optimal speed for the `util.semantic_search` method, it is advisable to have the `query_embeddings` as well as the `corpus_embeddings` on the same GPU-device. This significantly boost the performance:
+```python
+corpus_embeddings = corpus_embeddings.to('cuda')
+query_embeddings = query_embeddings.to('cuda')
+hits = util.semantic_search(query_embeddings, corpus_embeddings)
+```
+
 
 ## Similar Questions Retrieval
 [semantic_search_quora_pytorch.py](semantic_search_quora_pytorch.py) [ [Colab version](https://colab.research.google.com/drive/12cn5Oo0v3HfQQ8Tv6-ukgxXSmT3zl35A?usp=sharing) ] shows an example based on the [Quora duplicate questions](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs) dataset. The user can enter a question, and the code retrieves the most similar questions from the dataset using the *util.semantic_search* method. As model, we use *distilbert-multilingual-nli-stsb-quora-ranking*, which was trained to identify similar questions and supports 50+ languages.

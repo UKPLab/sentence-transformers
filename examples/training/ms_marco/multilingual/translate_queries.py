@@ -24,12 +24,12 @@ os.makedirs(output_folder, exist_ok=True)
 
 
 ## Does the output file exists? If yes, read it so we can continue the translation
-old_queries = set()
+translated_qids = set()
 if os.path.exists(output_filename):
     with open(output_filename, 'r', encoding='utf8') as fIn:
         for line in fIn:
             splits = line.strip().split("\t")
-            old_queries.add(splits[0])
+            translated_qids.add(splits[0])
 
 ### Now we read the MS Marco dataset
 data_folder = '../msmarco-data'
@@ -44,7 +44,8 @@ if not os.path.exists(qrels_train):
 with open(qrels_train) as fIn:
     for line in fIn:
         qid, _, pid, _ = line.strip().split()
-        train_queries[qid] = None
+        if qid not in translated_qids:
+            train_queries[qid] = None
 
 # Read all queries
 queries_filepath = os.path.join(data_folder, 'queries.train.tsv')
@@ -61,11 +62,12 @@ if not os.path.exists(queries_filepath):
 with open(queries_filepath, 'r', encoding='utf8') as fIn:
     for line in fIn:
         qid, query = line.strip().split("\t")
-        if qid in train_queries and query not in old_queries:
+        if qid in train_queries:
             train_queries[qid] = query.strip()
 
 
-queries = [query for query in train_queries.values() if query is not None]
+qids = [qid for qid in train_queries if train_queries[qid] is not None]
+queries = [train_queries[qid] for qid in qids]
 
 #Define our translation model
 translation_model = EasyNMT('opus-mt')
@@ -75,6 +77,6 @@ print("This can take a while. But you can stop this script at any point")
 
 
 with open(output_filename, 'a' if os.path.exists(output_filename) else 'w', encoding='utf8') as fOut:
-    for query, translated_query in zip(queries, translation_model.translate_stream(queries, source_lang='en', target_lang=target_lang, beam_size=2, perform_sentence_splitting=False, chunk_size=256, batch_size=64)):
-        fOut.write("{}\t{}\n".format(query.replace("\t", " "), translated_query.replace("\t", " ")))
+    for qid, query, translated_query in zip(qids, queries, translation_model.translate_stream(queries, source_lang='en', target_lang=target_lang, beam_size=2, perform_sentence_splitting=False, chunk_size=256, batch_size=64)):
+        fOut.write("{}\t{}\t{}\n".format(qid, query.replace("\t", " "), translated_query.replace("\t", " ")))
         fOut.flush()
