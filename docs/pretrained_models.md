@@ -118,6 +118,10 @@ We used the following languages for [Multilingual Knowledge Distillation](https:
 Extending a model to new languages is easy by following [the description here](https://www.sbert.net/examples/training/multilingual/README.html).
 
 
+## Scientific Publications
+[SPECTER](https://github.com/allenai/specter) is a model trained on scientific citations and can be used to estimate the similarity of two publications. We can also use it to find similar papers.
+
+- **allenai-specter** - [Semantic Search Python Example](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic-search/semantic_search_publications.py) / [Semantic Search Colab Example](https://colab.research.google.com/drive/12hfBveGHRsxhPIUMmJYrll2lFU4fOX06?usp=sharing)
 
 
 ## Average Word Embeddings Models
