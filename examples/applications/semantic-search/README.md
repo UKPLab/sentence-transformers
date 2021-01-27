@@ -40,11 +40,15 @@ The function accepts the following parameters:
 By default, up to 100 queries are processes in parallel. Further, the corpus is chunked into set of up to 500k entries. You can increase *query_chunk_size* and *corpus_chunk_size*, which leads to increased speed for large corpora, but also increases the memory requirement.
 
 ## Speed Optimization
-To get the optimal speed for the `util.semantic_search` method, it is advisable to have the `query_embeddings` as well as the `corpus_embeddings` on the same GPU-device. This significantly boost the performance:
+To get the optimal speed for the `util.semantic_search` method, it is advisable to have the `query_embeddings` as well as the `corpus_embeddings` on the same GPU-device. This significantly boost the performance.
+
+Further, we can normalize the corpus embeddings so that each corpus embeddings is of length 1. In that case, we must pass `corpus_normalized=True` to the `semantic_search` method.
 ```python
 corpus_embeddings = corpus_embeddings.to('cuda')
+corpus_embeddings = util.normalize_embeddings(corpus_embeddings)
+
 query_embeddings = query_embeddings.to('cuda')
-hits = util.semantic_search(query_embeddings, corpus_embeddings)
+hits = util.semantic_search(query_embeddings, corpus_embeddings, corpus_normalized=True)
 ```
 
 
