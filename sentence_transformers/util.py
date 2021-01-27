@@ -37,6 +37,12 @@ def pytorch_cos_sim(a: Tensor, b: Tensor):
     return torch.mm(a_norm, b_norm.transpose(0, 1))
 
 
+def normalize_embeddings(embedding: Tensor):
+    """
+    Normalizes the embeddings matrix, so that each sentence embedding has unit length
+    """
+    return torch.nn.functional.normalize(embedding, p=2, dim=1)
+
 
 def paraphrase_mining(model,
                       sentences: List[str],
@@ -114,10 +120,12 @@ def information_retrieval(*args, **kwargs):
 
 
 def semantic_search(query_embeddings: Tensor,
-                      corpus_embeddings: Tensor,
-                      query_chunk_size: int = 100,
-                      corpus_chunk_size: int = 500000,
-                      top_k: int = 10):
+                    corpus_embeddings: Tensor,
+                    query_chunk_size: int = 100,
+                    corpus_chunk_size: int = 500000,
+                    top_k: int = 10,
+                    queries_normalized: bool = False,
+                    corpus_normalized: bool = False):
     """
     This function performs a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
     It can be used for Information Retrieval / Semantic Search for corpora up to about 1 Million entries.
@@ -127,6 +135,8 @@ def semantic_search(query_embeddings: Tensor,
     :param query_chunk_size: Process 100 queries simultaneously. Increasing that value increases the speed, but requires more memory.
     :param corpus_chunk_size: Scans the corpus 100k entries at a time. Increasing that value increases the speed, but requires more memory.
     :param top_k: Retrieve top k matching entries.
+    :param queries_normalized: If true, we assume that all query embeddings have length 1. If this is the case, setting it to true can increase the speed as we can then use dot-product instead of cosine-similarty.
+    :param corpus_normalized: If true, we assume that all corpus embeddings have length 1. If this is the case, setting it to true can increase the speed as we can then use dot-product instead of cosine-similarty.
     :return: Returns a sorted list with decreasing cosine similarity scores. Entries are dictionaries with the keys 'corpus_id' and 'score'
     """
 
@@ -144,10 +154,12 @@ def semantic_search(query_embeddings: Tensor,
         corpus_embeddings = torch.stack(corpus_embeddings)
 
     #Normalize scores, so that the dot-product is equivalent to cosine similarity
-    query_embeddings = torch.nn.functional.normalize(query_embeddings, p=2, dim=1)
-    corpus_embeddings = torch.nn.functional.normalize(corpus_embeddings, p=2, dim=1)
+    if not queries_normalized:
+        query_embeddings = torch.nn.functional.normalize(query_embeddings, p=2, dim=1)
+    if not corpus_normalized:
+        corpus_embeddings = torch.nn.functional.normalize(corpus_embeddings, p=2, dim=1)
 
-
+    #Check that corpus and queries are on the same device
     if corpus_embeddings.device != query_embeddings.device:
         query_embeddings = query_embeddings.to(corpus_embeddings.device)
 

@@ -6,6 +6,17 @@ import torch
 
 class UtilTest(unittest.TestCase):
 
+    def test_normalize_embeddings(self):
+        embedding_size = 100
+        a = torch.tensor(np.random.randn(50, embedding_size))
+        a_norm = util.normalize_embeddings(a)
+
+        for embedding in a_norm:
+            assert len(embedding) == embedding_size
+            emb_norm = torch.norm(embedding)
+            assert abs(emb_norm.item() - 1) < 0.0001
+
+
     def test_pytorch_cos_sim(self):
         """Tests the correct computation of util.pytorch_cos_scores"""
         a = np.random.randn(50, 100)
