@@ -530,20 +530,6 @@ class SentenceTransformer(nn.Sequential):
                     features, labels = data
 
 
-                    """
-                    num_texts = len(data[0].texts)
-                    texts = [[] for _ in range(num_texts)]
-                    labels = []
-                    for example in data:
-                        labels.append(data.label)
-                        for idx in range(num_texts):
-                            texts[idx].append(example.texts[idx])
-
-                    features = self.tokenize(texts)
-                    features = batch_to_device(features, self._target_device)
-                    labels  = torch.stack(labels).to(self._target_device)
-                    """
-
                     if use_amp:
                         with autocast():
                             loss_value = loss_model(features, labels)

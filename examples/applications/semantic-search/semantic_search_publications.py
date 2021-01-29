@@ -6,7 +6,7 @@ into a vector space.
 
 When can then use util.semantic_search() to find the most similar papers.
 
-Colab example: https://colab.research.google.com/drive/12hfBveGHRsxhPIUMmJYrll2lFU4fOX06?usp=sharing
+Colab example: https://colab.research.google.com/drive/12hfBveGHRsxhPIUMmJYrll2lFU4fOX06
 """
 import json
 import os

@@ -119,9 +119,9 @@ Extending a model to new languages is easy by following [the description here](h
 
 
 ## Scientific Publications
-[SPECTER](https://github.com/allenai/specter) is a model trained on scientific citations and can be used to estimate the similarity of two publications. We can also use it to find similar papers.
+[SPECTER](https://arxiv.org/abs/2004.07180) is a model trained on scientific citations and can be used to estimate the similarity of two publications. We can use it to find similar papers.
 
-- **allenai-specter** - [Semantic Search Python Example](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic-search/semantic_search_publications.py) / [Semantic Search Colab Example](https://colab.research.google.com/drive/12hfBveGHRsxhPIUMmJYrll2lFU4fOX06?usp=sharing)
+- **allenai-specter** - [Semantic Search Python Example](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic-search/semantic_search_publications.py) / [Semantic Search Colab Example](https://colab.research.google.com/drive/12hfBveGHRsxhPIUMmJYrll2lFU4fOX06)
 
 
 ## Average Word Embeddings Models
