@@ -38,6 +38,7 @@ class SentenceTransformer(nn.Sequential):
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
             model_path = model_name_or_path
+            save_model_to = None
 
             if not os.path.isdir(model_path) and not model_path.startswith('http://') and not model_path.startswith('https://'):
                 logger.info("Did not find folder {}".format(model_path))
@@ -46,7 +47,7 @@ class SentenceTransformer(nn.Sequential):
                     raise AttributeError("Path {} not found".format(model_path))
 
                 model_path = __DOWNLOAD_SERVER__ + model_path + '.zip'
-                logger.info("Try to download model from server: {}".format(model_path))
+                logger.info("Search model on server: {}".format(model_path))
 
             if model_path.startswith('http://') or model_path.startswith('https://'):
                 model_url = model_path
@@ -65,8 +66,10 @@ class SentenceTransformer(nn.Sequential):
                 model_path = os.path.join(cache_folder, folder_name)
 
                 if not os.path.exists(model_path) or not os.listdir(model_path):
-                    if model_url[-1] == "/":
-                        model_url = model_url[:-1]
+                    if os.path.exists(model_path):
+                        os.remove(model_path)
+
+                    model_url = model_url.rstrip("/")
                     logger.info("Downloading sentence transformer model from {} and saving it at {}".format(model_url, model_path))
 
                     model_path_tmp = model_path.rstrip("/").rstrip("\\")+"_part"
@@ -79,15 +82,18 @@ class SentenceTransformer(nn.Sequential):
                         os.rename(model_path_tmp, model_path)
                     except requests.exceptions.HTTPError as e:
                         shutil.rmtree(model_path_tmp)
+                        if e.response.status_code == 429:
+                            raise Exception("Too many requests were detected from this IP for the model {}. Please contact info@nils-reimers.de for more information.".format(model_name_or_path))
+
                         if e.response.status_code == 404:
                             logger.warning('SentenceTransformer-Model {} not found. Try to create it from scratch'.format(model_url))
                             logger.warning('Try to create Transformer Model {} with mean pooling'.format(model_name_or_path))
 
+                            save_model_to = model_path
                             model_path = None
                             transformer_model = Transformer(model_name_or_path)
                             pooling_model = Pooling(transformer_model.get_word_embedding_dimension())
                             modules = [transformer_model, pooling_model]
-
                         else:
                             raise e
                     except Exception as e:
@@ -124,6 +130,10 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
+
+        #We created a new model from scratch based on a Transformer model. Save the SBERT model in the cache folder
+        if save_model_to is not None:
+            self.save(save_model_to)
 
 
     def encode(self, sentences: Union[str, List[str], List[int]],
