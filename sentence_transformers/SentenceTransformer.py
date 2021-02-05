@@ -179,7 +179,7 @@ class SentenceTransformer(nn.Sequential):
         self.to(device)
 
         all_embeddings = []
-        length_sorted_idx = np.argsort([self._text_length(sen) for sen in sentences])
+        length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
 
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
