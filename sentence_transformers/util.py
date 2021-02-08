@@ -1,7 +1,7 @@
 import requests
 from torch import Tensor, device
 from typing import List
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 import sys
 import importlib
 import os
