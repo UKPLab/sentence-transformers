@@ -1,10 +1,9 @@
-# Information Retrieval
-Given a *query*, we will search a large collection for matching documents. 
+# Retrieve & Re-Rank
+In [Semantic Search](../semantic-search/README.md) we have shown how to use SentenceTransformer to compute embeddings for queries, sentences, and paragraphs and how to use this for semantic search. 
 
+For complex search tasks, for example, for question answering retrieval, the search can significantly be improved by using **Retrieve & Re-Rank**.
 
-This articles focuses on the case where *query* is a search query or a question and the documents are paragraphs answering the search query / question. Also have look at [semantic search](../semantic-search/README.md) for the case where query and documents are of the same size.
-
-## Retrieval Pipeline
+## Retrieve & Re-Rank Pipeline
 
 A pipeline for information retrieval / question answering retrieval that works well is the following. All components are provided and explained in this article:
 
@@ -17,7 +16,7 @@ However, the retrieval system might retrieve documents that are not that relevan
 The output will be a ranked list of hits we can present to the user.
 
 ## Retrieval: Bi-Encoder
-For the retrieval of the candidate set, we can either use lexical search, e.g. with [ElasticSearch](https://www.elastic.co/elasticsearch/), or we can use a bi-encoder which is implemented in this repository.
+For the retrieval of the candidate set, we can either use lexical search (e.g. [ElasticSearch](https://www.elastic.co/elasticsearch/)), or we can use a bi-encoder which is implemented in this repository.
 
 Lexical search looks for literal matches of the query words in your document collection. It will not recognize synonyms, acronyms or spelling variations. In contrast, semantic search (or dense retrieval) encodes the search query into vector space and retrieves the document embeddings that are close in vector space. 
 
@@ -64,7 +63,7 @@ For more details how to compare the embeddings, see [semantic search](../semanti
 We provide pre-trained models based on:
 - **MS MARCO:** 500k real user queries from Bing search engine. See [MS MARCO models](https://www.sbert.net/docs/pretrained-models/msmarco-v2.html) 
 
-## Pre-trained Cross-Encoders (Re-ranker)
+## Pre-trained Cross-Encoders (Re-Ranker)
 
 Pre-trained models can be used like this:
 ```python
@@ -76,17 +75,17 @@ scores = model.predict([('Query', 'Paragraph1'), ('Query', 'Paragraph2') , ('Que
 In the following table, we provide various pre-trained Cross-Encoders together with their performance on the [TREC Deep Learning 2019](https://microsoft.github.io/TREC-2019-Deep-Learning/) and the [MS Marco Passage Reranking](https://github.com/microsoft/MSMARCO-Passage-Ranking/) dataset. 
 
 
-| Model-Name        | NDCG@10 (TREC DL 19) | MRR@10 (MS Marco Dev)  | Docs / Sec (BertTokenizerFast) | Docs / Sec |
-| ------------- |:-------------| -----| --- | --- |
-| cross-encoder/ms-marco-TinyBERT-L-2  | 67.43 | 30.15  | 9000 | 780
-| cross-encoder/ms-marco-TinyBERT-L-4  | 68.09 | 34.50  | 2900 | 760
-| cross-encoder/ms-marco-TinyBERT-L-6 |  69.57 | 36.13  | 680 | 660
-| cross-encoder/ms-marco-electra-base | 71.99 | 36.41 | 340 | 340
+| Model-Name        | NDCG@10 (TREC DL 19) | MRR@10 (MS Marco Dev)  | Docs / Sec |
+| ------------- |:-------------| -----| --- | 
+| cross-encoder/ms-marco-TinyBERT-L-2  | 67.43 | 30.15  | 9000 | 
+| cross-encoder/ms-marco-TinyBERT-L-4  | 68.09 | 34.50  | 2900 | 
+| cross-encoder/ms-marco-TinyBERT-L-6 |  69.57 | 36.13  | 680 | 
+| cross-encoder/ms-marco-electra-base | 71.99 | 36.41 | 340 | 
 | *Other models* | | | |
-| nboost/pt-tinybert-msmarco | 63.63 | 28.80 | 2900 | 760
-| nboost/pt-bert-base-uncased-msmarco | 70.94 | 34.75 | 340 | 340|
-| nboost/pt-bert-large-msmarco | 73.36 | 36.48 | 100 | 100 |
-| Capreolus/electra-base-msmarco | 71.23 | 36.89 | 340 | 340 |
-| amberoad/bert-multilingual-passage-reranking-msmarco | 68.40 | 35.54 | 330 | 330 
+| nboost/pt-tinybert-msmarco | 63.63 | 28.80 | 2900 | 
+| nboost/pt-bert-base-uncased-msmarco | 70.94 | 34.75 | 340 | 
+| nboost/pt-bert-large-msmarco | 73.36 | 36.48 | 100 |  
+| Capreolus/electra-base-msmarco | 71.23 | 36.89 | 340 | 
+| amberoad/bert-multilingual-passage-reranking-msmarco | 68.40 | 35.54 | 330 |  
  
- Note: Runtime was computed on a V100 GPU. A bottleneck for smaller models is the Python-based tokenizer from Huggingface that was used in Huggingface Version 3. Starting with Huggingface Version 4, fast tokenizer based on Rust is used.
+ Note: Runtime was computed on a V100 GPU with Huggingface Transformers v4. 

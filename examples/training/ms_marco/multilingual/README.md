@@ -1,6 +1,6 @@
 # MS MARCO - Multilingual Training
 
-This folder demonstrates how to train a multi-lingual SBERT model for [semantic search](https://www.sbert.net/examples/applications/semantic-search/README.html) / [information retrieval](https://www.sbert.net/examples/applications/information-retrieval/README.html).
+This folder demonstrates how to train a multi-lingual SBERT model for [semantic search](https://www.sbert.net/examples/applications/semantic-search/README.html) / [information retrieval](https://www.sbert.net/examples/applications/retrieve_rerank/README.html).
 
 As dataset, we use the [MS Marco Passage Ranking dataset](https://github.com/microsoft/MSMARCO-Passage-Ranking). It is a large dataset consisting of search queries from Bing search engine with the relevant text passage that answers the query.
 

@@ -46,7 +46,7 @@ scores = model.predict([('How many people live in Berlin?', 'Berlin had a popula
 This returns a score 0...1 indicating if the paragraph is relevant for a given query.
 
 
-For details on the usage, see [Applications - Information Retrieval](../examples/applications/information-retrieval/README.md)
+For details on the usage, see [Applications - Information Retrieval](../examples/applications/retrieve_rerank/README.md)
 
 
 ### MS MARCO
@@ -56,9 +56,11 @@ For details on the usage, see [Applications - Information Retrieval](../examples
 - **cross-encoder/ms-marco-TinyBERT-L-6** - MRR@10 on MS Marco Dev Set: 36.13
 - **cross-encoder/ms-marco-electra-base** - MRR@10 on MS Marco Dev Set: 36.41
 
+[More details](pretrained-models/ce-msmarco.md)
+
 ### SQuAD (QNLI)
 
-QNLI is based on the [SQuAD dataset](https://rajpurkar.github.io/SQuAD-explorer/) and was introduced by the [GLUE Benchmar](https://arxiv.org/abs/1804.07461). Given a passage from Wikipedia, annotators created questions that are answerable by that passage.
+QNLI is based on the [SQuAD dataset](https://rajpurkar.github.io/SQuAD-explorer/) and was introduced by the [GLUE Benchmark](https://arxiv.org/abs/1804.07461). Given a passage from Wikipedia, annotators created questions that are answerable by that passage.
 
 - **cross-encoder/qnli-distilroberta-base** - Accuracy on QNLI dev set: 90.96
 - **cross-encoder/qnli-electra-base** - Accuracy on QNLI dev set: 93.21

@@ -15,7 +15,7 @@ print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 ```
 
 
-For more details on the usage, see [Applications - Information Retrieval](../../examples/applications/information-retrieval/README.md)
+For more details on the usage, see [Applications - Information Retrieval](../../examples/applications/retrieve_rerank/README.md)
 
 
 ## Performance

@@ -123,7 +123,7 @@ You can use this framework for:
 - [Paraphrase Mining](https://www.sbert.net/examples/applications/paraphrase-mining/README.html)
  - [Translated Sentence Mining](https://www.sbert.net/examples/applications/parallel-sentence-mining/README.html)
  - [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html)
- - [Information Retrieval](https://www.sbert.net/examples/applications/information-retrieval/README.html) 
+ - [Retrieve & Re-Rank](https://www.sbert.net/examples/applications/retrieve_rerank/README.html) 
  - [Text Summarization](https://www.sbert.net/examples/applications/text-summarization/README.html) 
   
 and many more use-cases.

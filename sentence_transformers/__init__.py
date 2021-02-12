@@ -1,5 +1,5 @@
-__version__ = "0.4.1"
-__DOWNLOAD_SERVER__ = 'https://sbert.net/models/'
+__version__ = "0.4.2"
+__DOWNLOAD_SERVER__ = 'http://sbert.net/models/'
 from .datasets import SentencesDataset, ParallelSentencesDataset
 from .LoggingHandler import LoggingHandler
 from .SentenceTransformer import SentenceTransformer

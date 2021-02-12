@@ -51,7 +51,7 @@ For a full example, to score a query with all possible sentences in a corpus see
 ## Combining Bi- and Cross-Encoders
 Cross-Encoder achieve higher performance than Bi-Encoders, however, they do not scale well for large datasets. Here, it can make sense to combine Cross- and Bi-Encoders, for example in Information Retrieval / Semantic Search scenarios: First, you use an efficient Bi-Encoder to retrieve e.g. the top-100 most similar sentences for a query. Then, you use a Cross-Encoder to re-rank these 100 hits by computing the score for every (query, hit) combination.
 
-For more details on combing Bi- and Cross-Encoders, see [Application - Information Retrieval](../information-retrieval/README.md).
+For more details on combing Bi- and Cross-Encoders, see [Application - Information Retrieval](../retrieve_rerank/README.md).
 
 ## Training Cross-Encoders 
 See [Cross-Encoder Training](../../training/cross-encoder/README.md) how to train your own Cross-Encoder models.
