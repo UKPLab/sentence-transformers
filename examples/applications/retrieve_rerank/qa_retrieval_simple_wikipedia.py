@@ -18,9 +18,11 @@ from sentence_transformers import SentenceTransformer, CrossEncoder, util
 import time
 import gzip
 import os
+import torch
 
 #We use the Bi-Encoder to encode all passages, so that we can use it with sematic search
-bi_encoder = SentenceTransformer('msmarco-distilbert-base-v2')
+model_name = 'msmarco-distilbert-base-v2'
+bi_encoder = SentenceTransformer(model_name)
 top_k = 100     #Number of passages we want to retrieve with the bi-encoder
 
 #The bi-encoder will retrieve 100 documents. We use a cross-encoder, to re-rank the results list to improve the quality
@@ -41,11 +43,21 @@ with gzip.open(wikipedia_filepath, 'rt', encoding='utf8') as fIn:
         passages.extend(data['paragraphs'])
 
 #If you like, you can also limit the number of passages you want to use
-passages = passages[0:50000]
 print("Passages:", len(passages))
 
-#Now we encode all passages we have in our Simple Wikipedia corpus
-corpus_embeddings = bi_encoder.encode(passages, show_progress_bar=True)
+# To speed things up, pre-computed embeddings are downloaded.
+# The provided file encoded the passages with the model 'msmarco-distilbert-base-v2'
+if model_name == 'msmarco-distilbert-base-v2':
+  embeddings_filepath = 'simplewiki-2020-11-01-msmarco-distilbert-base-v2.pt'
+  if not os.path.exists(embeddings_filepath):
+      util.http_get('http://sbert.net/datasets/simplewiki-2020-11-01-msmarco-distilbert-base-v2.pt', embeddings_filepath)
+
+  corpus_embeddings = torch.load(embeddings_filepath)
+  corpus_embeddings = corpus_embeddings.float() #Convert embedding file to float
+  if torch.cuda.is_available():
+    corpus_embeddings = corpus_embeddings.to('cuda')
+else:   #Here, we compute the corpus_embeddings from scratch (which can take a while depending on the GPU)
+  corpus_embeddings = bi_encoder.encode(passages, convert_to_tensor=True, show_progress_bar=True)
 
 while True:
     query = input("Please enter a question: ")
