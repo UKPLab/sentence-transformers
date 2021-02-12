@@ -92,12 +92,16 @@ For all ANN methods, there is usually one or more parameters to tune that determ
 
 Three popular libraries for approximate nearest neighbor are [Annoy](https://github.com/spotify/annoy), [FAISS](https://github.com/facebookresearch/faiss), and [hnswlib](https://github.com/nmslib/hnswlib/). Personally I find hnswlib the most suitable library: It is easy to use, offers a great performance and has nice features included that are important for real applications.
 
-For an example how to use SentenceTransformers with HNSWLib, see: [semantic_search_quora_hnswlib.py](semantic_search_quora_hnswlib.py)
+Examples:
+- [semantic_search_quora_hnswlib.py](semantic_search_quora_hnswlib.py)
+- [semantic_search_quora_annoy.py](semantic_search_quora_annoy.py)
+- [semantic_search_quora_faiss.py](semantic_search_quora_faiss.py)
 
-For an example how to use SentenceTransformers with Annoy, see: [semantic_search_quora_annoy.py](semantic_search_quora_annoy.py)
+## Retrieve & Re-Rank
+For complex semantic search scenarios, a retrieve & re-rank pipeline is advisable:
+![InformationRetrieval](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/InformationRetrieval.png)
 
-For an example how to use SentenceTransformers with FAISS, see: [semantic_search_quora_faiss.py](semantic_search_quora_faiss.py)
-
+For further details, see [Retrieve & Re-rank](../retrieve_rerank/README.md).
 
 ## Examples
 
@@ -108,3 +112,6 @@ In the following we list examples for different use-cases.
 
 ### Similar Publication Retrieval
 [semantic_search_publications.py](semantic_search_publications.py) [ [Colab version](https://colab.research.google.com/drive/12hfBveGHRsxhPIUMmJYrll2lFU4fOX06?usp=sharing) ] shows an example how to find similar scientific publications. As corpus, we use all publications that have been presented at the EMNLP 2016 - 2018 conferences. As search query, we input the title and abstract of more recent publications and find related publications from our copurs. We use the [SPECTER](https://arxiv.org/abs/2004.07180) model. This is a **symmetric search task**, as the paper in the corpus consists of title & abstract and we search for title & abstract.
+
+### Question & Answer Retrieval
+[qa_retrieval_simple_wikipedia.py](../retrieve_rerank/qa_retrieval_simple_wikipedia.py) [ [Colab Version](https://colab.research.google.com/drive/1l6stpYdRMmeDBK_vw0L5NitdiAuhdsAr?usp=sharing) ]: This script uses the smaller [Simple English Wikipedia](https://simple.wikipedia.org/wiki/Main_Page) as document collection to provide answers to user questions / search queries. It uses the [Retrieve & Re-rank](../retrieve_rerank/README.md) strategy and is an example for an **asymmetric search task**. We split all Wikipedia articles into paragraphs and encode them with a bi-encoder. If a new query / question is entered, it is encoded by the same bi-encoder and the paragraphs with the highest cosine-similarity are retrieved (see [semantic search](../semantic-search/README.md)). Next, the retrieved candidates are scored by a Cross-Encoder re-ranker and the 5 passages with the highest score from the Cross-Encoder are presented to the user.

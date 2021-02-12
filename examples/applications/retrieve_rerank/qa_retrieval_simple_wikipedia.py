@@ -38,13 +38,10 @@ passages = []
 with gzip.open(wikipedia_filepath, 'rt', encoding='utf8') as fIn:
     for line in fIn:
         data = json.loads(line.strip())
-        paragraphs = data['text'].split("\n\n")
-        for p in paragraphs:
-            if len(p.strip()) > 20:
-                passages.append(p.strip()[0:5000])
+        passages.extend(data['paragraphs'])
 
 #If you like, you can also limit the number of passages you want to use
-#passages = passages[0:50000]
+passages = passages[0:50000]
 print("Passages:", len(passages))
 
 #Now we encode all passages we have in our Simple Wikipedia corpus
