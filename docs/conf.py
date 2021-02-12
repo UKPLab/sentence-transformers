@@ -19,11 +19,11 @@ from recommonmark.transform import AutoStructify
 import os
 import sys
 from sphinx.domains import Domain
-
+import datetime
 # -- Project information -----------------------------------------------------
 
 project = 'Sentence-Transformers'
-copyright = '2020, Nils Reimers'
+copyright = str(datetime.datetime.now().year)+', Nils Reimers'
 author = 'Nils Reimers'
 
 
