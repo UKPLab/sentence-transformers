@@ -1,4 +1,4 @@
-# Concact
+# Contact
 
 In case of questions, feel free to open a [Github Issue](https://github.com/UKPLab/sentence-transformers/issues) or write me an email: [info@nils-reimers.de](mailto:info@nils-reimers.de).
 
