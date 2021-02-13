@@ -41,9 +41,9 @@ Available models:
 - **quora-distilbert-base** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
 - **quora-distilbert-multilingual** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*. Fine-tuned with parallel data for 50+ languages. 
 
-## Information Retrieval 
+## Question-Answer Retrieval - MSMARCO
 
-The following models were trained on [MSMARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking): Given a search query (which can be anything like key words, a sentence, a question), find the relevant passages. You can index the embeddings and use it for dense information retrieval, outperforming lexical approaches like BM25.
+The following models were trained on [MSMARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking), a dataset with 500k real queries from Bing search. Given a search query, find the relevant passages. 
 
 - **msmarco-distilroberta-base-v2**: MRR@10: 28.55 on MS MARCO dev set
 - **msmarco-roberta-base-v2**: MRR@10: 29.17 on MS MARCO dev set
@@ -51,7 +51,7 @@ The following models were trained on [MSMARCO Passage Ranking](https://github.co
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('msmarco-distilroberta-base-v2')
+model = SentenceTransformer('msmarco-distilbert-base-v2')
 
 query_embedding = model.encode('How big is London')
 passage_embedding = model.encode('London has 9,787,426 inhabitants at the 2011 census')
@@ -62,6 +62,27 @@ print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 You can index the passages as shown [here](https://www.sbert.net/docs/usage/semantic_search.html).
 
 [More details](pretrained-models/msmarco-v2.md)
+
+## Question-Answer Retrieval - Natural Questions
+The following models were trained on [Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions), a dataset with 100k real queries from Google search together with the relevant passages from Wikipedia.
+
+- **nq-distilbert-base-v1**: MRR10: 72.36 on NQ dev set (small)
+
+```python
+from sentence_transformers import SentenceTransformer, util
+model = SentenceTransformer('nq-distilbert-base-v1')
+
+query_embedding = model.encode('How many people live in London?')
+
+#The passages are encoded as [ [title1, text1], [title2, text2], ...]
+passage_embedding = model.encode([['London', 'London has 9,787,426 inhabitants at the 2011 census.']])
+
+print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
+```
+
+You can index the passages as shown [here](https://www.sbert.net/docs/usage/semantic_search.html).
+
+[More details](pretrained-models/nq-v1.md)
 
 
 ## Multi-Lingual Models

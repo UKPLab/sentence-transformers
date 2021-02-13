@@ -184,3 +184,32 @@ With the first call, the model is downloaded and stored in the local torch cache
 
 ## Multitask Training
 This code allows multi-task learning with training data from different datasets and with different loss-functions. For an example, see [training_multi-task.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/other/training_multi-task.py).
+
+
+## Adding Special Tokens
+
+Depending on the task, you might want to special tokens to the tokenizer and the Transformer model. You can use the following code-snippet to achieve this:
+```python
+from sentence_transformers import SentenceTransformer, models
+word_embedding_model = models.Transformer('bert-base-uncased')
+
+tokens = ["[DOC]", "[QRY]"]
+word_embedding_model.tokenizer.add_tokens(tokens, special_tokens=True)
+word_embedding_model.auto_model.resize_token_embeddings(len(word_embedding_model.tokenizer))
+
+pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
+model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+```
+
+If you want to extend the vocabulary for an existent SentenceTransformer model, you can use the following code:
+```python
+from sentence_transformers import SentenceTransformer, models
+model = SentenceTransformer('paraphrase-distilroberta-base-v1')
+word_embedding_model = model._first_module()
+
+tokens = ["[DOC]", "[QRY]"]
+word_embedding_model.tokenizer.add_tokens(tokens, special_tokens=True)
+word_embedding_model.auto_model.resize_token_embeddings(len(word_embedding_model.tokenizer))
+```
+
+In the above example, the two new tokens `[DOC]` and `[QRY]` are added to the model. Their respective word embeddings are intialized randomly. It is advisable to then fine-tune the model on your downstream task.
