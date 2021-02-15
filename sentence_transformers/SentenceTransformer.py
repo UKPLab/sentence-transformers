@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import shutil
+from contextlib import nullcontext
 from collections import OrderedDict
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable
 from zipfile import ZipFile
@@ -145,7 +146,8 @@ class SentenceTransformer(nn.Sequential):
                convert_to_tensor: bool = False,
                is_pretokenized: bool = False,
                device: str = None,
-               num_workers: int = 0) -> Union[List[Tensor], ndarray, Tensor]:
+               num_workers: int = 0,
+               train_mode: bool = False) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings
 
@@ -158,11 +160,17 @@ class SentenceTransformer(nn.Sequential):
         :param is_pretokenized: DEPRECATED - No longer used, will be removed in the future
         :param device: Which torch.device to use for the computation
         :param num_workers: DEPRECATED - No longer used, will be removed in the future
+        :param train_mode: if true, sets the mode to train and enables gradient computation
 
         :return:
            By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
         """
-        self.eval()
+        if train_mode:
+            self.train()
+            convert_to_tensor = True
+        else:
+            self.eval()
+
         if show_progress_bar is None:
             show_progress_bar = (logger.getEffectiveLevel()==logging.INFO or logger.getEffectiveLevel()==logging.DEBUG)
 
@@ -188,7 +196,7 @@ class SentenceTransformer(nn.Sequential):
             features = self.tokenize(sentences_batch)
             features = batch_to_device(features, device)
 
-            with torch.no_grad():
+            with nullcontext() if train_mode else torch.no_grad():
                 out_features = self.forward(features)
                 embeddings = out_features[output_value]
 
@@ -198,7 +206,8 @@ class SentenceTransformer(nn.Sequential):
                     input_mask_expanded = input_mask.unsqueeze(-1).expand(embeddings.size()).float()
                     embeddings = embeddings * input_mask_expanded
 
-                embeddings = embeddings.detach()
+                if not train_mode:
+                    embeddings = embeddings.detach()
 
                 # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
                 if convert_to_numpy:
