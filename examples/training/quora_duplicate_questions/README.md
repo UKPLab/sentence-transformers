@@ -52,13 +52,9 @@ For an interactive example, see [Semantic Search](https://www.sbert.net/docs/usa
 Choosing the right loss function is crucial for getting well working sentence embeddings. For the given task, we two loss functions are especially suitable: **ConstrativeLoss** and **MultipleNegativesRankingLoss**
 
 ### Constrative Loss
-
-In the original dataset, we have questions given with a label of 0=not duplicate and 1=duplicate. In that case, we can use constrative loss: Similar pairs with label 1 are pulled together, so that they are close in vector space. Dissimilar pairs, that are closer than a defined margin, are pushed away in vector space.
-
-
-
 For the complete example, see [training_OnlineContrastiveLoss.py](training_OnlineContrastiveLoss.py).
 
+In the original dataset, we have questions given with a label of 0=not duplicate and 1=duplicate. In that case, we can use constrative loss: Similar pairs with label 1 are pulled together, so that they are close in vector space. Dissimilar pairs, that are closer than a defined margin, are pushed away in vector space.
 
 Choosing the distance function and especially choosing a sensible margin are quite important for the success of constrative loss. In the given example, we use cosine_distance (which is 1-cosine_similarity) with a margin of 0.5. I.e., non-duplicate questions should have a cosine_distance of at least 0.5 (which is equivalent to a 0.5 cosine similarity difference).
 
@@ -84,6 +80,8 @@ For each row in our train dataset, we create new InputExample objects and the tw
 
 
 ## MultipleNegativesRankingLoss
+For the complete example, see [training_MultipleNegativesRankingLoss.py](training_MultipleNegativesRankingLoss.py).
+
 *MultipleNegativesRankingLoss* is especially suitable for Information Retrieval / Semantic Search. A nice advantage of *MultipleNegativesRankingLoss* is that it only requires positive pairs, i.e., we only need examples of duplicate questions.
 
 From all pairs, we sample a mini-batch *(a_1, b_1), ..., (a_n, b_n)* where *(a_i, b_i)* is a duplicate question.
