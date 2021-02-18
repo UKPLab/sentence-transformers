@@ -35,7 +35,7 @@ class MSEEvaluator(SentenceEvaluator):
 
         self.csv_file = "mse_evaluation_" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps", "MSE"]
-        self.write_csv
+        self.write_csv = write_csv
 
     def __call__(self, model, output_path, epoch  = -1, steps = -1):
         if epoch != -1:
