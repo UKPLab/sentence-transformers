@@ -414,12 +414,15 @@ class SentenceTransformer(nn.Sequential):
         a list of ints (which means a single text as input), or a tuple of list of ints
         (representing several text inputs to the model).
         """
-        if isinstance(text, dict):
+
+        if isinstance(text, dict):              #{key: value} case
             return len(next(iter(text.values())))
-        elif len(text) == 0 or isinstance(text[0], int):
+        elif not hasattr(text, '__len__'):      #Object has no len() method
+            return 1
+        elif len(text) == 0 or isinstance(text[0], int):    #Empty string or list of ints
             return len(text)
         else:
-            return sum([len(t) for t in text])
+            return sum([len(t) for t in text])      #Sum of length of individual strings
 
     def fit(self,
             train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
@@ -575,6 +578,9 @@ class SentenceTransformer(nn.Sequential):
                         loss_model.train()
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+
+        if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
+            self.save(output_path)
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
         """
