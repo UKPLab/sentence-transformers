@@ -31,7 +31,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                  show_progress_bar: bool = False,
                  batch_size: int = 32,
                  name: str = '',
-                 write_csv: bool = True
+                 write_csv: bool = True,
+                 score_function = pytorch_cos_sim       #Score function, higher=more similar
                  ):
 
         self.queries_ids = []
@@ -56,6 +57,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.batch_size = batch_size
         self.name = name
         self.write_csv = write_csv
+        self.score_function = score_function
 
         if name:
             name = "_" + name
@@ -108,7 +110,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             sub_corpus_embeddings = model.encode(self.corpus[corpus_start_idx:corpus_end_idx], show_progress_bar=False, batch_size=self.batch_size, convert_to_tensor=True)
 
             #Compute cosine similarites
-            cos_scores = pytorch_cos_sim(query_embeddings, sub_corpus_embeddings)
+            cos_scores = self.score_function(query_embeddings, sub_corpus_embeddings)
             del sub_corpus_embeddings
 
             #Get top-k values
