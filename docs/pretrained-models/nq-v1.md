@@ -25,4 +25,4 @@ The models are evaluated on the Natural Questions development dataset using MRR@
 | ------------- |:-------------: |
 | nq-distilbert-base-v1 | 72.36 |
 | *Other models* | |
-| [DPR](https://huggingface.co/transformers/model_doc/dpr.html) | 48.88 |
+| [DPR](https://huggingface.co/transformers/model_doc/dpr.html) | 58.96 |
