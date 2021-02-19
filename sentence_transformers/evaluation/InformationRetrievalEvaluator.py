@@ -82,11 +82,14 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         for k in map_at_k:
             self.csv_headers.append("MAP@{}".format(k))
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, passage_model = None) -> float:
         if epoch != -1:
             out_txt = " after epoch {}:".format(epoch) if steps == -1 else " in epoch {} after {} steps:".format(epoch, steps)
         else:
             out_txt = ":"
+
+        if passage_model is None:
+            passage_model = model
 
         logger.info("Information Retrieval Evaluation on " + self.name + " dataset" + out_txt)
 
@@ -107,7 +110,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             corpus_end_idx = min(corpus_start_idx + self.corpus_chunk_size, len(self.corpus))
 
             #Encode chunk of corpus
-            sub_corpus_embeddings = model.encode(self.corpus[corpus_start_idx:corpus_end_idx], show_progress_bar=False, batch_size=self.batch_size, convert_to_tensor=True)
+            sub_corpus_embeddings = passage_model.encode(self.corpus[corpus_start_idx:corpus_end_idx], show_progress_bar=False, batch_size=self.batch_size, convert_to_tensor=True)
 
             #Compute cosine similarites
             cos_scores = self.score_function(query_embeddings, sub_corpus_embeddings)
