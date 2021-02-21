@@ -1,11 +1,13 @@
 from . import SentenceEvaluator
 import torch
+from torch import Tensor
 import logging
 from tqdm import tqdm, trange
-from ..util import pytorch_cos_sim
+from ..util import cos_sim, dot_score
 import os
 import numpy as np
-from typing import List, Tuple, Dict, Set
+from typing import List, Tuple, Dict, Set, Callable
+
 
 
 logger = logging.getLogger(__name__)
@@ -32,7 +34,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                  batch_size: int = 32,
                  name: str = '',
                  write_csv: bool = True,
-                 score_function = pytorch_cos_sim       #Score function, higher=more similar
+                 score_functions: List[Callable[[Tensor, Tensor], Tensor] ] = {'cos_sim': cos_sim, 'dot_score': dot_score},       #Score function, higher=more similar
+                 main_score_function: str = None
                  ):
 
         self.queries_ids = []
@@ -57,7 +60,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.batch_size = batch_size
         self.name = name
         self.write_csv = write_csv
-        self.score_function = score_function
+        self.score_functions = score_functions
+        self.score_function_names = sorted(list(self.score_functions.keys()))
+        self.main_score_function = main_score_function
 
         if name:
             name = "_" + name
@@ -65,31 +70,31 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.csv_file: str = "Information-Retrieval_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps"]
 
+        for score_name in self.score_function_names:
+            for k in accuracy_at_k:
+                self.csv_headers.append("{}-Accuracy@{}".format(score_name, k))
 
-        for k in accuracy_at_k:
-            self.csv_headers.append("Accuracy@{}".format(k))
+            for k in precision_recall_at_k:
+                self.csv_headers.append("{}-Precision@{}".format(score_name, k))
+                self.csv_headers.append("{}-Recall@{}".format(score_name, k))
 
-        for k in precision_recall_at_k:
-            self.csv_headers.append("Precision@{}".format(k))
-            self.csv_headers.append("Recall@{}".format(k))
+            for k in mrr_at_k:
+                self.csv_headers.append("{}-MRR@{}".format(score_name, k))
 
-        for k in mrr_at_k:
-            self.csv_headers.append("MRR@{}".format(k))
+            for k in ndcg_at_k:
+                self.csv_headers.append("{}-NDCG@{}".format(score_name, k))
 
-        for k in ndcg_at_k:
-            self.csv_headers.append("NDCG@{}".format(k))
+            for k in map_at_k:
+                self.csv_headers.append("{}-MAP@{}".format(score_name, k))
 
-        for k in map_at_k:
-            self.csv_headers.append("MAP@{}".format(k))
-
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, passage_model = None) -> float:
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, corpus_model = None, corpus_embeddings: Tensor = None) -> float:
         if epoch != -1:
             out_txt = " after epoch {}:".format(epoch) if steps == -1 else " in epoch {} after {} steps:".format(epoch, steps)
         else:
             out_txt = ":"
 
-        if passage_model is None:
-            passage_model = model
+        if corpus_model is None:
+            corpus_model = model
 
         logger.info("Information Retrieval Evaluation on " + self.name + " dataset" + out_txt)
 
@@ -98,7 +103,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         # Compute embedding for the queries
         query_embeddings = model.encode(self.queries, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_tensor=True)
 
-        queries_result_list = [[] for _ in range(len(query_embeddings))]
+        queries_result_list = {}
+        for name in self.score_functions:
+            queries_result_list[name] = [[] for _ in range(len(query_embeddings))]
 
         itr = range(0, len(self.corpus), self.corpus_chunk_size)
 
@@ -110,34 +117,38 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             corpus_end_idx = min(corpus_start_idx + self.corpus_chunk_size, len(self.corpus))
 
             #Encode chunk of corpus
-            sub_corpus_embeddings = passage_model.encode(self.corpus[corpus_start_idx:corpus_end_idx], show_progress_bar=False, batch_size=self.batch_size, convert_to_tensor=True)
+            if corpus_embeddings is None:
+                sub_corpus_embeddings = corpus_model.encode(self.corpus[corpus_start_idx:corpus_end_idx], show_progress_bar=False, batch_size=self.batch_size, convert_to_tensor=True)
+            else:
+                sub_corpus_embeddings = corpus_embeddings[corpus_start_idx:corpus_end_idx]
 
             #Compute cosine similarites
-            cos_scores = self.score_function(query_embeddings, sub_corpus_embeddings)
-            del sub_corpus_embeddings
+            for name, score_function in self.score_functions.items():
+                cos_scores = score_function(query_embeddings, sub_corpus_embeddings)
 
-            #Get top-k values
-            cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(max_k, len(cos_scores[0])), dim=1, largest=True, sorted=False)
-            cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
-            cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
-            del cos_scores
+                #Get top-k values
+                cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(max_k, len(cos_scores[0])), dim=1, largest=True, sorted=False)
+                cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
+                cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
 
-            for query_itr in range(len(query_embeddings)):
-                for sub_corpus_id, score in zip(cos_scores_top_k_idx[query_itr], cos_scores_top_k_values[query_itr]):
-                    corpus_id = self.corpus_ids[corpus_start_idx+sub_corpus_id]
-                    queries_result_list[query_itr].append({'corpus_id': corpus_id, 'score': score})
-
-
-        #Compute scores
-        scores = self.compute_metrics(queries_result_list)
-
-        #Output
-        self.output_scores(scores)
-
+                for query_itr in range(len(query_embeddings)):
+                    for sub_corpus_id, score in zip(cos_scores_top_k_idx[query_itr], cos_scores_top_k_values[query_itr]):
+                        corpus_id = self.corpus_ids[corpus_start_idx+sub_corpus_id]
+                        queries_result_list[name][query_itr].append({'corpus_id': corpus_id, 'score': score})
 
         logger.info("Queries: {}".format(len(self.queries)))
         logger.info("Corpus: {}\n".format(len(self.corpus)))
 
+        #Compute scores
+        scores = {name: self.compute_metrics(queries_result_list[name]) for name in self.score_functions}
+
+        #Output
+        for name in self.score_function_names:
+            logging.info("Score-Function: {}".format(name))
+            self.output_scores(scores[name])
+
+
+        #Write results to disc
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
@@ -149,27 +160,32 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 fOut = open(csv_path, mode="a", encoding="utf-8")
 
             output_data = [epoch, steps]
-            for k in self.accuracy_at_k:
-                output_data.append(scores['accuracy@k'][k])
+            for name in self.score_function_names:
+                for k in self.accuracy_at_k:
+                    output_data.append(scores[name]['accuracy@k'][k])
 
-            for k in self.precision_recall_at_k:
-                output_data.append(scores['precision@k'][k])
-                output_data.append(scores['recall@k'][k])
+                for k in self.precision_recall_at_k:
+                    output_data.append(scores[name]['precision@k'][k])
+                    output_data.append(scores[name]['recall@k'][k])
 
-            for k in self.mrr_at_k:
-                output_data.append(scores['mrr@k'][k])
+                for k in self.mrr_at_k:
+                    output_data.append(scores[name]['mrr@k'][k])
 
-            for k in self.ndcg_at_k:
-                output_data.append(scores['ndcg@k'][k])
+                for k in self.ndcg_at_k:
+                    output_data.append(scores[name]['ndcg@k'][k])
 
-            for k in self.map_at_k:
-                output_data.append(scores['map@k'][k])
+                for k in self.map_at_k:
+                    output_data.append(scores[name]['map@k'][k])
 
             fOut.write(",".join(map(str,output_data)))
             fOut.write("\n")
             fOut.close()
 
-        return scores['map@k'][max(self.map_at_k)]
+        if self.main_score_function is None:
+            return max([scores[name]['map@k'][max(self.map_at_k)] for name in self.score_function_names])
+        else:
+            return scores[self.main_score_function]['map@k'][max(self.map_at_k)]
+
 
 
     def compute_metrics(self, queries_result_list: List[object]):
