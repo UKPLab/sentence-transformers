@@ -12,8 +12,8 @@ import torch
 import torch.nn.functional as F
 from PIL import Image, ImageFile
 from torch import nn
-from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from tqdm.autonotebook import tqdm
+from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 
 
 class CLIPModel(nn.Module):
