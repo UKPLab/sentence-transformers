@@ -61,13 +61,14 @@ By default, up to 100 queries are processes in parallel. Further, the corpus is 
 ## Speed Optimization
 To get the optimal speed for the `util.semantic_search` method, it is advisable to have the `query_embeddings` as well as the `corpus_embeddings` on the same GPU-device. This significantly boost the performance.
 
-Further, we can normalize the corpus embeddings so that each corpus embeddings is of length 1. In that case, we must pass `corpus_normalized=True` to the `semantic_search` method.
+Further, we can normalize the corpus embeddings so that each corpus embeddings is of length 1. In that case, we can use dot-product for computing scores.
 ```python
 corpus_embeddings = corpus_embeddings.to('cuda')
 corpus_embeddings = util.normalize_embeddings(corpus_embeddings)
 
 query_embeddings = query_embeddings.to('cuda')
-hits = util.semantic_search(query_embeddings, corpus_embeddings, corpus_normalized=True)
+query_embeddings = util.normalize_embeddings(query_embeddings)
+hits = util.semantic_search(query_embeddings, corpus_embeddings, score_function=util.dot_score)
 ```
 
 
