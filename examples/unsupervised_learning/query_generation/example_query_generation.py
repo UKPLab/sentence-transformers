@@ -28,6 +28,7 @@ paragraphs = [
 # Here, we use a T5-large model was trained on the MS MARCO dataset
 tokenizer = T5Tokenizer.from_pretrained('BeIR/query-gen-msmarco-t5-large')
 model = T5ForConditionalGeneration.from_pretrained('BeIR/query-gen-msmarco-t5-large')
+model.eval()
 
 #Select the device
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -35,22 +36,23 @@ model.to(device)
 
 
 #Iterate over the paragraphs and generate for each some queries
-for para in paragraphs:
-    input_ids = tokenizer.encode(para, return_tensors='pt').to(device)
-    outputs = model.generate(
-        input_ids=input_ids,
-        max_length=64,
-        do_sample=True,
-        top_p=0.95,
-        num_return_sequences=3)
+with torch.no_grad():
+    for para in paragraphs:
+        input_ids = tokenizer.encode(para, return_tensors='pt').to(device)
+        outputs = model.generate(
+            input_ids=input_ids,
+            max_length=64,
+            do_sample=True,
+            top_p=0.95,
+            num_return_sequences=3)
 
-    print("\nParagraph:")
-    print(para)
+        print("\nParagraph:")
+        print(para)
 
-    print("\nGenerated Queries:")
-    for i in range(len(outputs)):
-        query = tokenizer.decode(outputs[i], skip_special_tokens=True)
-        print(f'{i + 1}: {query}')
+        print("\nGenerated Queries:")
+        for i in range(len(outputs)):
+            query = tokenizer.decode(outputs[i], skip_special_tokens=True)
+            print(f'{i + 1}: {query}')
 
 """
 Output of the script:

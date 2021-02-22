@@ -18,7 +18,7 @@ In this tutorial, we show to train such models if  **no training data is availab
 
 We use **synthethic query generation** to achieve our gold. We start with the passage from our document collection and create for these possible queries users might ask / might search for.
 
-![BiEncoder](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/query_generation.png)
+![Query Generation](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/query_generation.png)
 
 
 For example, we have the following text passage:
@@ -43,9 +43,38 @@ And train our SentenceTransformer bi-encoder with it.
 
 ## Query Generation
 
-https://github.com/castorini/docTTTTTquery
+In [BeIR](https://huggingface.co/BeIR) we provide different models that can be used for query generation. In this example, we use the T5 model that was trained by [docTTTTTquery](https://github.com/castorini/docTTTTTquery):
 
-https://huggingface.co/blog/how-to-generate
+```python
+from transformers import T5Tokenizer, T5ForConditionalGeneration
+import torch
+
+tokenizer = T5Tokenizer.from_pretrained('BeIR/query-gen-msmarco-t5-large')
+model = T5ForConditionalGeneration.from_pretrained('BeIR/query-gen-msmarco-t5-large')
+model.eval()
+
+para = "Python is an interpreted, high-level and general-purpose programming language. Python's design philosophy emphasizes code readability with its notable use of significant whitespace. Its language constructs and object-oriented approach aim to help programmers write clear, logical code for small and large-scale projects."
+
+input_ids = tokenizer.encode(para, return_tensors='pt')
+with torch.no_grad():
+    outputs = model.generate(
+        input_ids=input_ids,
+        max_length=64,
+        do_sample=True,
+        top_p=0.95,
+        num_return_sequences=3)
+
+print("Paragraph:")
+print(para)
+
+print("\nGenerated Queries:")
+for i in range(len(outputs)):
+    query = tokenizer.decode(outputs[i], skip_special_tokens=True)
+    print(f'{i + 1}: {query}')
+```
+
+In the above code, we use [Top-p (nucleus) sampling](https://huggingface.co/blog/how-to-generate) which will randomly pick a word from a collection of likely words. As a consequence, the model will generate different queries each time.
+
 
 ## Bi-Encoder Training
 
