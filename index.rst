@@ -216,6 +216,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    examples/applications/semantic-search/README
    examples/applications/retrieve_rerank/README
    examples/applications/cross-encoder/README
+   examples/applications/image-search/README
 
 .. toctree::
    :maxdepth: 2

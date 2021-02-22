@@ -23,7 +23,11 @@ The [paraphrase-mining](paraphrase-mining/) folder contains examples to find all
 ## Semantic Search
 The [semantic-search](semantic-search/) folder shows examples for semantic search: Given a sentence, find in a large collection semantically similar sentences. 
 
+## Retrieve & Rerank
+The [retrieve_rerank](retrieve_rerank/) folder shows how to combine a bi-encoder for semantic search retrieval and a more powerfull re-ranking stage with a cross-encoder.
+
+## Image Search
+The [image-search](image-search/) folder shows how to use the image&text-models, which can map images and text to the same vector space. This allows for an image search given a user query.
 
 ## Text Summarization
-
 The [text-summarization](text-summarization/) folder shows how SentenceTransformers can be used for extractive summarization: Give a long document, find the k sentences that give a good and short summary of the content.

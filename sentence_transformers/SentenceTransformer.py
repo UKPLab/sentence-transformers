@@ -14,7 +14,7 @@ from torch import nn, Tensor, device
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
-from tqdm.autonotebook import tqdm, trange
+from tqdm.autonotebook import trange
 import math
 import queue
 
@@ -170,7 +170,7 @@ class SentenceTransformer(nn.Sequential):
             convert_to_numpy = False
 
         input_was_string = False
-        if isinstance(sentences, str): #Cast an individual sentence to a list with length 1
+        if isinstance(sentences, str) or not hasattr(sentences, '__len__'): #Cast an individual sentence to a list with length 1
             sentences = [sentences]
             input_was_string = True
 
