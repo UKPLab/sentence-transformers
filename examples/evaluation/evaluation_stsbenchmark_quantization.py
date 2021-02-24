@@ -1,6 +1,6 @@
 """
 This examples loads a pre-trained model, and creates two instances of it.
-One model's weights are untouched and the others are quantized. Both are then evaluated on the STSbenchmark dataset
+One model's weights are untouched and the others are quantized. Both are then evaluated on the STSBenchmark dataset
 
 For more on quantization see https://pytorch.org/docs/stable/quantization.html
 Usage:
@@ -37,7 +37,7 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else 'paraphrase-distilroberta-bas
 # Load a named sentence model (based on BERT). This will download the model from our server.
 # Alternatively, you can also pass a filepath to SentenceTransformer()
 model = SentenceTransformer(model_name)
-q_model = SentenceTransformer(model_name,quantize_model=True)
+q_model = SentenceTransformer(model_name, quantize_model=True)
 
 sts_reader = STSBenchmarkDataReader(os.path.join(script_folder_path, '../datasets/stsbenchmark'))
 evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples("sts-test.csv"), name='sts-test')
@@ -46,7 +46,7 @@ logging.info("Starting regular model evaluation")
 model.evaluate(evaluator)
 
 
-logging.info("Starting quantized nodel evaluation")
+logging.info("Starting quantized model evaluation")
 q_model.evaluate(evaluator)
 
 

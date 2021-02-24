@@ -35,7 +35,7 @@ class SentenceTransformer(nn.Sequential):
     :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path, it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model from Huggingface models repository with that name.
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
-    :param quantize_model: This parameter controls whether a model's modules are dynamically quantized see https://pytorch.org/docs/stable/quantization.html for more details.
+    :param quantize_model: This bool parameter controls whether a model's modules are dynamically quantized see https://pytorch.org/docs/stable/quantization.html for more details.
     Quantization can deliver significant improvements in inference speed for models by storing tensors at lower bitwidths than floating point precision.
     Quantization is currently only supported by pytorch on cpu.
     """
