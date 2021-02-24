@@ -1,28 +1,30 @@
 import json
 import logging
+import math
 import os
+import queue
 import shutil
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable
+from typing import Callable, Dict, Iterable, List, Tuple, Type, Union
 from zipfile import ZipFile
-import requests
-import numpy as np
-from numpy import ndarray
-import transformers
-import torch
-from torch import nn, Tensor, device
-from torch.optim import Optimizer
-from torch.utils.data import DataLoader
-import torch.multiprocessing as mp
-from tqdm.autonotebook import trange
-import math
-import queue
 
-from . import __DOWNLOAD_SERVER__
+import numpy as np
+import requests
+import torch
+import torch.multiprocessing as mp
+import transformers
+from numpy import ndarray
+from torch import Tensor, device, nn
+from torch.nn import Embedding, Linear
+from torch.optim import Optimizer
+from torch.quantization import quantize_dynamic
+from torch.utils.data import DataLoader
+from tqdm.autonotebook import trange
+
+from . import __DOWNLOAD_SERVER__, __version__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, http_get
-from .models import Transformer, Pooling
-from . import __version__
+from .models import Pooling, Transformer
+from .util import batch_to_device, http_get, import_from_string
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +35,13 @@ class SentenceTransformer(nn.Sequential):
     :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path, it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model from Huggingface models repository with that name.
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
+    :param quantize_model: This parameter controls whether a model's modules are dynamically quantized see https://pytorch.org/docs/stable/quantization.html for more details.
+    Quantization can deliver significant improvements in inference speed for models by storing tensors at lower bitwidths than floating point precision.
+    Quantization is currently only supported by pytorch on cpu.
     """
-    def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
+    def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None, quantize_model: bool = False):
         save_model_to = None
-
+        self.quantize_model = quantize_model
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
             model_path = model_name_or_path
@@ -129,8 +134,15 @@ class SentenceTransformer(nn.Sequential):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
             logger.info("Use pytorch device: {}".format(device))
+        
 
         self._target_device = torch.device(device)
+
+        #### device must be cpu to quantize the models' modules
+        if self.quantize_model and str(self._target_device) == "cpu":
+            quantize_dynamic(self,{Linear, Embedding}, inplace=True)
+            
+
 
         #We created a new model from scratch based on a Transformer model. Save the SBERT model in the cache folder
         if save_model_to is not None:
