@@ -24,7 +24,7 @@ Suitable models for **symmetric semantic search**:
 - distiluse-base-multilingual-cased-v2     
 
 
-Suitable modesl for **asymmetric semantic search**:
+Suitable models for **asymmetric semantic search**:
 - msmarco-distilbert-base-v2
 
 See [Pretrained Models](../../../docs/pretrained_models.md) for further information.
