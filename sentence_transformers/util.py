@@ -189,7 +189,7 @@ def semantic_search(query_embeddings: Tensor,
         # Iterate over chunks of the corpus
         for corpus_start_idx in range(0, len(corpus_embeddings), corpus_chunk_size):
             # Compute cosine similarites
-            cos_scores = score_function(query_embeddings[query_start_idx:query_start_idx+query_chunk_size], corpus_embeddings[corpus_start_idx:corpus_start_idx+corpus_chunk_size].transpose(0, 1))
+            cos_scores = score_function(query_embeddings[query_start_idx:query_start_idx+query_chunk_size], corpus_embeddings[corpus_start_idx:corpus_start_idx+corpus_chunk_size])
 
             # Get top-k scores
             cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(top_k, len(cos_scores[0])), dim=1, largest=True, sorted=False)
