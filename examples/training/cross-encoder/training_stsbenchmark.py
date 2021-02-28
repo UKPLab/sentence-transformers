@@ -90,3 +90,8 @@ model.fit(train_dataloader=train_dataloader,
           output_path=model_save_path)
 
 
+##### Load model and eval on test set
+model = CrossEncoder(model_save_path)
+
+evaluator = CECorrelationEvaluator.from_input_examples(test_samples, name='sts-test')
+evaluator(model)
