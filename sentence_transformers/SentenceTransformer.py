@@ -143,9 +143,8 @@ class SentenceTransformer(nn.Sequential):
                output_value: str = 'sentence_embedding',
                convert_to_numpy: bool = True,
                convert_to_tensor: bool = False,
-               is_pretokenized: bool = False,
                device: str = None,
-               num_workers: int = 0) -> Union[List[Tensor], ndarray, Tensor]:
+               normalize_embeddings: bool = False) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings
 
@@ -155,9 +154,8 @@ class SentenceTransformer(nn.Sequential):
         :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings.
         :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
         :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from convert_to_numpy
-        :param is_pretokenized: DEPRECATED - No longer used, will be removed in the future
         :param device: Which torch.device to use for the computation
-        :param num_workers: DEPRECATED - No longer used, will be removed in the future
+        :param normalize_embeddings: If set to true, returned vectors will have length 1. In that case, the faster dot-product (util.dot_score) instead of cosine similarity can be used.
 
         :return:
            By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
@@ -199,6 +197,8 @@ class SentenceTransformer(nn.Sequential):
                     embeddings = embeddings * input_mask_expanded
 
                 embeddings = embeddings.detach()
+                if normalize_embeddings:
+                    embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
 
                 # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
                 if convert_to_numpy:

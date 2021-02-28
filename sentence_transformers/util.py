@@ -62,11 +62,11 @@ def dot_score(a: Tensor, b: Tensor):
     return torch.mm(a, b.transpose(0, 1))
 
 
-def normalize_embeddings(embedding: Tensor):
+def normalize_embeddings(embeddings: Tensor):
     """
     Normalizes the embeddings matrix, so that each sentence embedding has unit length
     """
-    return torch.nn.functional.normalize(embedding, p=2, dim=1)
+    return torch.nn.functional.normalize(embeddings, p=2, dim=1)
 
 
 def paraphrase_mining(model,
