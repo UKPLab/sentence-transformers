@@ -271,7 +271,10 @@ def import_from_string(dotted_path):
         msg = "%s doesn't look like a module path" % dotted_path
         raise ImportError(msg)
 
-    module = importlib.import_module(dotted_path)
+    try:
+        module = importlib.import_module(dotted_path)
+    except:
+        module = importlib.import_module(module_path)
 
     try:
         return getattr(module, class_name)
