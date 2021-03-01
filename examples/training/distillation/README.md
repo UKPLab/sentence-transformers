@@ -41,4 +41,9 @@ This dimensionality reduction technique can easily be applied to existent models
 
 Note: This technique neither improves the runtime, nor the memory requirement for running the model. It only reduces the needed space to store embeddings, for example, for [semantic search](https://www.sbert.net/docs/usage/semantic_search.html).
 
+## Quantization
+A [quantized model](https://pytorch.org/docs/stable/quantization.html) executes some or all of the operations with integers rather than floating point values. This allows for a more compact models and the use of high performance vectorized operations on many hardware platforms.
 
+For models that are run on **CPUs**, this can yield 40% smaller models and a faster inference time of 15-50%. Model quantization is (as of know) not supported for GPUs by PyTorch.
+
+For an example, see [model_quantization.py](model_quantization.py)

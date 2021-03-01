@@ -1,7 +1,7 @@
 """
-A quantized model executes some or all of the operations on tensors with integers rather than floating point values. This allows for a more compact model representation and the use of high performance vectorized operations on many hardware platforms.
+A quantized model executes some or all of the operations with integers rather than floating point values. This allows for a more compact models and the use of high performance vectorized operations on many hardware platforms.
 
-As a result, you get smaller and faster models. The model is about 40% smaller and the model runs about 15% faster.
+As a result, you get smaller and faster models. The model is about 40% smaller and the model runs about 15%-50% faster.
 
 Note: Quantized models are only available for CPUs. Use a GPU, if available, for optimal performance.
 
