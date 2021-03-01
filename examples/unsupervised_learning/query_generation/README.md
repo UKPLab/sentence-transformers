@@ -85,7 +85,7 @@ We train a semantic search model to search through Wikipedia
 articles about programming articles & technologies. 
 
 We use the text paragraphs from the following Wikipedia articles:
-Assembly language, C , C Sharp , C++, Go , Java , JavaScript, Keras, Laravel, MATLAB, Matplotlib, MongoDB, MySQL, Natural Language Toolkit, NumPy, pandas (software), Perl, PHP, PostgreSQL, Python , PyTorch, R , React, Rust , Scala , scikit-learn, SciPy, Swift , TensorFlow, Vue.js
+Assembly language, C , C# , C++, Go , Java , JavaScript, Keras, Laravel, MATLAB, Matplotlib, MongoDB, MySQL, Natural Language Toolkit, NumPy, pandas (software), Perl, PHP, PostgreSQL, Python , PyTorch, R , React, Rust , Scala , scikit-learn, SciPy, Swift , TensorFlow, Vue.js
 
 In:
 - [1_programming_query_generation.py](1_programming_query_generation.py) - We generate queries for all paragraphs from these articles
