@@ -48,10 +48,11 @@ The following models were trained on [MSMARCO Passage Ranking](https://github.co
 - **msmarco-distilroberta-base-v2**: MRR@10: 28.55 on MS MARCO dev set
 - **msmarco-roberta-base-v2**: MRR@10: 29.17 on MS MARCO dev set
 - **msmarco-distilbert-base-v2**: MRR@10: 30.77 on MS MARCO  dev set
+- **msmarco-distilbert-base-v3**: MRR@10: 33.13 on MS MARCO  dev set
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('msmarco-distilbert-base-v2')
+model = SentenceTransformer('msmarco-distilbert-base-v3')
 
 query_embedding = model.encode('How big is London')
 passage_embedding = model.encode('London has 9,787,426 inhabitants at the 2011 census')
@@ -61,7 +62,7 @@ print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 
 You can index the passages as shown [here](https://www.sbert.net/docs/usage/semantic_search.html).
 
-[More details](pretrained-models/msmarco-v2.md)
+[More details](pretrained-models/msmarco-v3.md)
 
 ## Question-Answer Retrieval - Natural Questions
 The following models were trained on [Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions), a dataset with 100k real queries from Google search together with the relevant passages from Wikipedia.

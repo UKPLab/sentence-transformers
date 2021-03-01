@@ -32,8 +32,13 @@ class ComputeEmbeddingsTest(unittest.TestCase):
         # Sentence list
         emb = self.model.encode(["Hello Word, a test sentence", "Here comes another sentence", "My final sentence"])
         assert emb.shape == (3, 768)
-        print(np.sum(emb))
         assert abs(np.sum(emb) - 22.968266) < 0.001
+
+    def test_encode_normalize(self):
+        emb = self.model.encode(["Hello Word, a test sentence", "Here comes another sentence", "My final sentence"], normalize_embeddings=True)
+        assert emb.shape == (3, 768)
+        for norm in np.linalg.norm(emb, axis=1):
+            assert abs(norm - 1) < 0.001
 
     def test_encode_tuple_sentences(self):
         # Input a sentence tuple
