@@ -1,3 +1,15 @@
+"""
+In this example we train a semantic search model to search through Wikipedia
+articles about programming articles & technologies.
+
+We use the text paragraphs from the following Wikipedia articles:
+Assembly language, C , C Sharp , C++, Go , Java , JavaScript, Keras, Laravel, MATLAB, Matplotlib, MongoDB, MySQL, Natural Language Toolkit, NumPy, pandas (software), Perl, PHP, PostgreSQL, Python , PyTorch, R , React, Rust , Scala , scikit-learn, SciPy, Swift , TensorFlow, Vue.js
+
+In:
+1_programming_query_generation.py - We generate queries for all paragraphs from these articles
+2_programming_train_bi-encoder.py - We train a SentenceTransformer bi-encoder with these generated queries. This results in a model we can then use for sematic search (for the given Wikipedia articles).
+3_programming_semantic_search.py - Shows how the trained model can be used for semantic search
+"""
 from sentence_transformers import SentenceTransformer, InputExample, losses, models
 from torch.utils.data import DataLoader
 import random
@@ -10,7 +22,10 @@ with open('generated_queries.tsv') as fIn:
         query, paragraph = line.strip().split('\t', maxsplit=1)
         train_examples.append(InputExample(texts=[query, paragraph]))
 
-
+# For the MultipleNegativesRankingLoss, it is important
+# that the batch does not contain duplicate entries, i.e.
+# no two equal queries and no two equal paragraphs.
+# To ensure this, we create a custom batch sampler
 class NoDuplicatesSampler:
     def __init__(self, train_examples, batch_size):
         self.train_examples = train_examples
@@ -48,15 +63,16 @@ class NoDuplicatesSampler:
     def __len__(self):
         return math.ceil(len(self.train_examples) / self.batch_size)
 
-
-
-
+# Our dataloader with custom batch_sampler
 train_dataloader = DataLoader(train_examples, batch_sampler=NoDuplicatesSampler(train_examples, batch_size=64))
 
+# Now we create a SentenceTransformer model from scratch
 word_emb = models.Transformer('distilbert-base-uncased')
 pooling = models.Pooling(word_emb.get_word_embedding_dimension())
 model = SentenceTransformer(modules=[word_emb, pooling])
 
+# MultipleNegativesRankingLoss requires input pairs (query, relevant_passage)
+# and trains the model so that is is suitable for semantic search
 train_loss = losses.MultipleNegativesRankingLoss(model)
 
 

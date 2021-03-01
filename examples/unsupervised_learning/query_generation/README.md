@@ -18,7 +18,7 @@ In this tutorial, we show to train such models if  **no training data is availab
 
 We use **synthethic query generation** to achieve our gold. We start with the passage from our document collection and create for these possible queries users might ask / might search for.
 
-![Query Generation](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/query_generation.png)
+![Query Generation](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/query-generation.png)
 
 
 For example, we have the following text passage:
@@ -78,4 +78,16 @@ In the above code, we use [Top-p (nucleus) sampling](https://huggingface.co/blog
 
 ## Bi-Encoder Training
 
-## Performance
+With the generated queries, we can then train a bi-encoder using the use [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/losses.html#multiplenegativesrankingloss).
+ 
+ ## Full Example
+We train a semantic search model to search through Wikipedia
+articles about programming articles & technologies. 
+
+We use the text paragraphs from the following Wikipedia articles:
+Assembly language, C , C Sharp , C++, Go , Java , JavaScript, Keras, Laravel, MATLAB, Matplotlib, MongoDB, MySQL, Natural Language Toolkit, NumPy, pandas (software), Perl, PHP, PostgreSQL, Python , PyTorch, R , React, Rust , Scala , scikit-learn, SciPy, Swift , TensorFlow, Vue.js
+
+In:
+- [1_programming_query_generation.py](1_programming_query_generation.py) - We generate queries for all paragraphs from these articles
+- [2_programming_train_bi-encoder.py](2_programming_train_bi-encoder.py) - We train a SentenceTransformer bi-encoder with these generated queries. This results in a model we can then use for sematic search (for the given Wikipedia articles).
+- [3_programming_semantic_search.py](3_programming_semantic_search.py) - Shows how the trained model can be used for semantic search.
