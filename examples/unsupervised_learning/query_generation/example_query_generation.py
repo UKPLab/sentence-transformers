@@ -26,8 +26,8 @@ paragraphs = [
 
 # For available models for query generation, see: https://huggingface.co/BeIR/
 # Here, we use a T5-large model was trained on the MS MARCO dataset
-tokenizer = T5Tokenizer.from_pretrained('BeIR/query-gen-msmarco-t5-large')
-model = T5ForConditionalGeneration.from_pretrained('BeIR/query-gen-msmarco-t5-large')
+tokenizer = T5Tokenizer.from_pretrained('BeIR/query-gen-msmarco-t5-large-v1')
+model = T5ForConditionalGeneration.from_pretrained('BeIR/query-gen-msmarco-t5-large-v1')
 model.eval()
 
 #Select the device
