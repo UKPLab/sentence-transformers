@@ -1,7 +1,7 @@
 """
 A quantized model executes some or all of the operations with integers rather than floating point values. This allows for a more compact models and the use of high performance vectorized operations on many hardware platforms.
 
-As a result, you get smaller and faster models. The model is about 40% smaller and the model runs about 15%-50% faster.
+As a result, you get about 40% smaller and faster models. The speed-up depends on your CPU and how PyTorch was build and can be anywhere between 10% speed-up and 300% speed-up.
 
 Note: Quantized models are only available for CPUs. Use a GPU, if available, for optimal performance.
 
