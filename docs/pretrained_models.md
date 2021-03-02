@@ -85,6 +85,16 @@ You can index the passages as shown [here](https://www.sbert.net/docs/usage/sema
 
 [More details](pretrained-models/nq-v1.md)
 
+### DPR-Models
+In [Dense Passage Retrieval  for Open-Domain Question Answering](https://arxiv.org/abs/2004.04906)  Karpukhin et al. trained models based on [Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions):
+- **facebook-dpr-ctx_encoder-single-nq-base** 
+- **facebook-dpr-question_encoder-single-nq-base**
+
+They also trained models on the combination of Natural Questions, TriviaQA, WebQuestions, and CuratedTREC.
+- **facebook-dpr-ctx_encoder-multiset-base** 
+- **facebook-dpr-question_encoder-multiset-base**
+
+[More details & usage of the DPR models](pretrained-models/dpr.md)
 
 ## Multi-Lingual Models
 The following models generate aligned vector spaces, i.e., similar inputs in different languages are mapped close in vector space. You do not need to specify the input language.  Details are in our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
