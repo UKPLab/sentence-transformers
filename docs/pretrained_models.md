@@ -155,6 +155,6 @@ The following models apply compute the average word embedding for some well-know
 - **average_word_embeddings_glove.840B.300d**
 
 
-## Image&Text-Models
-The following models can embed images and text into a joint vector space. See [Image Search](../examples/applications/image-search) for more details how to use it and how to embed images.
+## Image & Text-Models
+The following models can embed images and text into a joint vector space. See [Image Search](../examples/applications/image-search/README.md) for more details how to use it and how to embed images.
 - **clip-ViT-B-32** - [OpenAPI CLIP Model](https://github.com/openai/CLIP)

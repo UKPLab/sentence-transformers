@@ -2,16 +2,9 @@
 Computes embeddings
 """
 
-import csv
-import gzip
-import os
+
 import unittest
-
-from torch.utils.data import DataLoader
-
-from sentence_transformers import SentenceTransformer, SentencesDataset, losses, models, util
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers.readers import InputExample
+from sentence_transformers import SentenceTransformer
 import numpy as np
 
 class ComputeEmbeddingsTest(unittest.TestCase):
