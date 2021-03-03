@@ -61,7 +61,7 @@ class CrossEncoder():
 
         for example in batch:
             for idx, text in enumerate(example.texts):
-                texts[idx].append(text)
+                texts[idx].append(text.strip())
 
             labels.append(example.label)
 
@@ -78,7 +78,7 @@ class CrossEncoder():
 
         for example in batch:
             for idx, text in enumerate(example):
-                texts[idx].append(text)
+                texts[idx].append(text.strip())
 
         tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
 
