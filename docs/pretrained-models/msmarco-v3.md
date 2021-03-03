@@ -26,11 +26,16 @@ As baseline we show the results for lexical search with BM25 using ElasticSearch
 | Approach       | NDCG@10 (TREC DL 19 Reranking) | MRR@10 (MS Marco Dev) |  
 | ------------- |:-------------: | :---: |
 | msmarco-distilbert-base-v3| 69.02 | 33.13 |
+| msmarco-roberta-base-v3 | 69.08 | 33.01
+| msmarco-roberta-base-ance-fristp | 67.35 | 31.27
 | **Previous approaches** |  |  |
 | BM25 (ElasticSearch)   | 45.46 | 17.29  |
 | msmarco-distilroberta-base-v2   | 65.65 |  28.55    |  
 | msmarco-roberta-base-v2 | 67.18 | 29.17 | 
 | msmarco-distilbert-base-v2 | 68.35 | 30.77 |
+
+**Notes:**
+- **msmarco-roberta-base-ance-fristp** is the MSMARCO Dev Passage Retrieval ANCE(FirstP) 600K model from [https://github.com/microsoft/ANCE](ANCE). This model should be used with dot-product instead of cosine similarity.
 
 
 ## Changes in v3
