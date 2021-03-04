@@ -35,7 +35,7 @@ As baseline we show the results for lexical search with BM25 using ElasticSearch
 | msmarco-distilbert-base-v2 | 68.35 | 30.77 |
 
 **Notes:**
-- **msmarco-roberta-base-ance-fristp** is the MSMARCO Dev Passage Retrieval ANCE(FirstP) 600K model from [https://github.com/microsoft/ANCE](ANCE). This model should be used with dot-product instead of cosine similarity.
+- **msmarco-roberta-base-ance-fristp** is the MSMARCO Dev Passage Retrieval ANCE(FirstP) 600K model from [ANCE](https://github.com/microsoft/ANCE). This model should be used with dot-product instead of cosine similarity.
 
 
 ## Changes in v3
