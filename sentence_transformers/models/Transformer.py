@@ -14,17 +14,15 @@ class Transformer(nn.Module):
     :param model_args: Arguments (key, value pairs) passed to the Huggingface Transformers model
     :param cache_dir: Cache dir for Huggingface Transformers to store/load models
     :param tokenizer_args: Arguments (key, value pairs) passed to the Huggingface Tokenizer model
-    :param do_lower_case: Lowercase the input
+    :param do_lower_case: If true, lowercases the input (independet if the model is cased or not)
     """
-    def __init__(self, model_name_or_path: str, max_seq_length: int = 128,
+    def __init__(self, model_name_or_path: str, max_seq_length: Optional[int] = None,
                  model_args: Dict = {}, cache_dir: Optional[str] = None,
-                 tokenizer_args: Dict = {}, do_lower_case: Optional[bool] = None):
+                 tokenizer_args: Dict = {}, do_lower_case: bool = False):
         super(Transformer, self).__init__()
-        self.config_keys = ['max_seq_length']
+        self.config_keys = ['max_seq_length', 'do_lower_case']
         self.max_seq_length = max_seq_length
-
-        if do_lower_case is not None:
-            tokenizer_args['do_lower_case'] = do_lower_case
+        self.do_lower_case = do_lower_case
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
         self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
@@ -77,6 +75,9 @@ class Transformer(nn.Module):
                 batch1.append(text_tuple[0])
                 batch2.append(text_tuple[1])
             to_tokenize = [batch1, batch2]
+
+        if self.do_lower_case:
+            to_tokenize = [[s.lower() for s in col] for col in to_tokenize]
 
         output.update(self.tokenizer(*to_tokenize, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_seq_length))
         return output
