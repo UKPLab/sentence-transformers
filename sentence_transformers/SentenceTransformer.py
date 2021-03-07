@@ -52,7 +52,7 @@ class SentenceTransformer(nn.Sequential):
 
             if model_path.startswith('http://') or model_path.startswith('https://'):
                 model_url = model_path
-                folder_name = model_url.replace("https://", "").replace("http://", "").replace("/", "_")[:250].rstrip('.zip')
+                folder_name = model_url.replace("https://", "").replace("http://", "").replace("/", "_")[:250][0:-4] #remove .zip file end
 
                 cache_folder = os.getenv('SENTENCE_TRANSFORMERS_HOME')
                 if cache_folder is None:
