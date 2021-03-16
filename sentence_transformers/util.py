@@ -241,10 +241,19 @@ def batch_to_device(batch, target_device: device):
     """
     send a pytorch batch to a device (CPU/GPU)
     """
-    for key in batch:
-        if isinstance(batch[key], Tensor):
-            batch[key] = batch[key].to(target_device)
-    return batch
+    if isinstance(batch, dict):
+        for key in batch:
+            if isinstance(batch[key], Tensor):
+                batch[key] = batch[key].to(target_device)
+        return batch
+    elif isinstance(batch, tuple):
+        return tuple(map(lambda item: batch_to_device(item, target_device), batch))
+    elif isinstance(batch, list):
+        return list(map(lambda item: batch_to_device(item, target_device), batch))
+    elif isinstance(batch, Tensor):
+        return batch.to(target_device)
+    else:
+        raise ValueError("batch should be a dictionary, tuple, or list of tensors")
 
 
 
