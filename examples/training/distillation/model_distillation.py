@@ -153,10 +153,10 @@ dev_evaluator_sts = evaluation.EmbeddingSimilarityEvaluator.from_input_examples(
 logging.info("Teacher Performance:")
 dev_evaluator_sts(teacher_model)
 
-# Student Model has fewer dimension. Compute PCA for the teacher to reduce the dimensions
+# Student model has fewer dimensions. Compute PCA for the teacher to reduce the dimensions
 if student_model.get_sentence_embedding_dimension() < teacher_model.get_sentence_embedding_dimension():
-    logging.info("Student model has fewer dimensions that the teacher. Compute PCA for down projection")
-    pca_sentences = train_sentences_nli[0:25000]
+    logging.info("Student model has fewer dimensions than the teacher. Compute PCA for down projection")
+    pca_sentences = train_sentences_nli[0:20000] + train_sentences_wikipedia[0:20000]
     pca_embeddings = teacher_model.encode(pca_sentences, convert_to_numpy=True)
     pca = PCA(n_components=student_model.get_sentence_embedding_dimension())
     pca.fit(pca_embeddings)
