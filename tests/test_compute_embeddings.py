@@ -11,6 +11,19 @@ class ComputeEmbeddingsTest(unittest.TestCase):
     def setUp(self):
         self.model = SentenceTransformer('paraphrase-distilroberta-base-v1')
 
+
+    def test_encode_token_embeddings(self):
+        """
+        Test that encode(output_value='token_embeddings') works
+        :return:
+        """
+        sent = ["Hello Word, a test sentence", "Here comes another sentence", "My final sentence", "Sentences", "Sentence five five five five five five five"]
+        emb = self.model.encode(sent, output_value='token_embeddings', batch_size=2)
+        assert len(emb) == len(sent)
+        for s, e in zip(sent, emb):
+            assert len(self.model.tokenize([s])['input_ids'][0]) == e.shape[0]
+
+
     def test_encode_single_sentences(self):
         #Single sentence
         emb = self.model.encode("Hello Word, a test sentence")
