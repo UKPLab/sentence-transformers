@@ -18,7 +18,7 @@ Sadly there cannot exist a universal model that performs great on all possible t
 The following models **are recommended for various applications**, as they were trained on Millions of paraphrase examples. They create extremely good results for various similarity and retrieval tasks. They are currently under development, better versions and more details will be released in future. But they many tasks they work better than the NLI / STSb models.
 
 - **paraphrase-distilroberta-base-v1** - Trained on large scale paraphrase data.
-- **paraphrase-xlm-r-multilingual-v1** - Multilingual version of distilroberta-base-paraphrase-v1, trained on parallel data for 50+ languages. 
+- **paraphrase-xlm-r-multilingual-v1** - Multilingual version of paraphrase-distilroberta-base-v1, trained on parallel data for 50+ languages. (Teacher: paraphrase-distilroberta-base-v1, Student: xlm-r-base)
 
 ## Semantic Textual Similarity
 The following models were optimized for [Semantic Textual Similarity](usage/semantic_textual_similarity.md) (STS). They were trained on SNLI+MultiNLI and then fine-tuned on the STS benchmark train set.
@@ -39,7 +39,7 @@ The following models were trained for duplicate questions mining and duplicate q
 
 Available models:
 - **quora-distilbert-base** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
-- **quora-distilbert-multilingual** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*. Fine-tuned with parallel data for 50+ languages. 
+- **quora-distilbert-multilingual** - Multilingual version of *quora-distilbert-base*. Fine-tuned with parallel data for 50+ languages. 
 
 ## Question-Answer Retrieval - MSMARCO
 
@@ -105,10 +105,11 @@ Currently, there are models for two use-cases:
 
 These models find semantically similar sentences within one language or across languages:
 
-- **distiluse-base-multilingual-cased-v2**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). While the original mUSE model only supports 16 languages, this multilingual knowledge distilled version supports 50+ languages.
-- **paraphrase-xlm-r-multilingual-v1** - Multilingual version of distilroberta-base-paraphrase-v1, trained on parallel data for 50+ languages. 
-- **stsb-xlm-r-multilingual**: Produces similar embeddings as the bert-base-nli-stsb-mean-token model. Trained on parallel data for 50+ languages.
-- **quora-distilbert-multilingual** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*.  Fine-tuned with parallel data for 50+ languages. 
+- **distiluse-base-multilingual-cased-v1**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). Supports 15 languages:  Arabic, Chinese, Dutch, English, French, German, Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. 
+- **distiluse-base-multilingual-cased-v2**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). While v1 model supports 15 languages, this version supports 50+ languages. However, performance on the 15 languages mentioned above are reported to be a bit lower. 
+- **paraphrase-xlm-r-multilingual-v1** - Multilingual version of *paraphrase-distilroberta-base-v1*, trained on parallel data for 50+ languages. 
+- **stsb-xlm-r-multilingual**: Produces similar embeddings as the *stsb-bert-base* model. Trained on parallel data for 50+ languages.
+- **quora-distilbert-multilingual** - Multilingual version of *quora-distilbert-base*.  Fine-tuned with parallel data for 50+ languages. 
 - **T-Systems-onsite/cross-en-de-roberta-sentence-transformer** - Multilingual model for English an German. [[More]](https://huggingface.co/T-Systems-onsite/cross-en-de-roberta-sentence-transformer)
 
 **Bitext Mining** 
