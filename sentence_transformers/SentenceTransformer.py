@@ -167,6 +167,10 @@ class SentenceTransformer(nn.Sequential):
         if convert_to_tensor:
             convert_to_numpy = False
 
+        if output_value == 'token_embeddings':
+            convert_to_tensor = False
+            convert_to_numpy = False
+
         input_was_string = False
         if isinstance(sentences, str) or not hasattr(sentences, '__len__'): #Cast an individual sentence to a list with length 1
             sentences = [sentences]
@@ -180,10 +184,6 @@ class SentenceTransformer(nn.Sequential):
         all_embeddings = []
         length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
-
-        if output_value == 'token_embeddings':
-            convert_to_tensor = False
-            convert_to_numpy = False
 
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
             sentences_batch = sentences_sorted[start_index:start_index+batch_size]
