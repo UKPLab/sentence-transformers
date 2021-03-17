@@ -46,6 +46,7 @@ Available models:
 The following models were trained on [MSMARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking), a dataset with 500k real queries from Bing search. Given a search query, find the relevant passages. 
 
 - **msmarco-distilbert-base-v3**: MRR@10: 33.13 on MS MARCO  dev set
+- **msmarco-roberta-base-ance-fristp**: MRR@10: 33.03 on MS MARCO  dev set
 
 ```python
 from sentence_transformers import SentenceTransformer, util
