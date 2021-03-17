@@ -181,6 +181,10 @@ class SentenceTransformer(nn.Sequential):
         length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
 
+        if output_value == 'token_embeddings':
+            convert_to_tensor = False
+            convert_to_numpy = False
+
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
             sentences_batch = sentences_sorted[start_index:start_index+batch_size]
             features = self.tokenize(sentences_batch)
@@ -188,21 +192,24 @@ class SentenceTransformer(nn.Sequential):
 
             with torch.no_grad():
                 out_features = self.forward(features)
-                embeddings = out_features[output_value]
 
                 if output_value == 'token_embeddings':
-                    #Set token embeddings to 0 for padding tokens
-                    input_mask = out_features['attention_mask']
-                    input_mask_expanded = input_mask.unsqueeze(-1).expand(embeddings.size()).float()
-                    embeddings = embeddings * input_mask_expanded
+                    embeddings = []
+                    for token_emb, attention in zip(out_features[output_value], out_features['attention_mask']):
+                        last_mask_id = len(attention)-1
+                        while last_mask_id > 0 and attention[last_mask_id].item() == 0:
+                            last_mask_id -= 1
 
-                embeddings = embeddings.detach()
-                if normalize_embeddings:
-                    embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+                        embeddings.append(token_emb[0:last_mask_id+1])
+                else:   #Sentence embeddings
+                    embeddings = out_features[output_value]
+                    embeddings = embeddings.detach()
+                    if normalize_embeddings:
+                        embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
 
-                # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
-                if convert_to_numpy:
-                    embeddings = embeddings.cpu()
+                    # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
+                    if convert_to_numpy:
+                        embeddings = embeddings.cpu()
 
                 all_embeddings.extend(embeddings)
 
