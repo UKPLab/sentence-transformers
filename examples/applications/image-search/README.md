@@ -34,4 +34,4 @@ You can use the CLIP model for:
 - You can fine-tune it on your own image&text data with the regular SentenceTransformers training code. 
 
 ## Examples
-- [Image_Search.ipynb](Image_Search.ipynb) depicts a larger example for image-search using 25,000 free pictures from [Unsplash](https://unsplash.com/).
+- [Image_Search.ipynb](Image_Search.ipynb) ([Colab Version](https://colab.research.google.com/drive/16OdADinjAg3w3ceZy3-cOR9A-5ZW9BYr?usp=sharing)) depicts a larger example for image-search using 25,000 free pictures from [Unsplash](https://unsplash.com/).
