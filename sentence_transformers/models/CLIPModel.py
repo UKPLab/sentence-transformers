@@ -146,7 +146,7 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
-def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit=True):
+def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit=False):
     """Load a CLIP model
 
     Parameters
@@ -196,7 +196,8 @@ def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_a
     device_holder = torch.jit.trace(lambda: torch.ones([]).to(torch.device(device)), example_inputs=[])
     device_node = [n for n in device_holder.graph.findAllNodes("prim::Constant") if "Device" in repr(n)][-1]
 
-    def patch_device(module):
+    """
+    def patch_device(module):  #Issues with Pytorch 1.8
         graphs = [module.graph] if hasattr(module, "graph") else []
         if hasattr(module, "forward1"):
             graphs.append(module.forward1.graph)
@@ -205,10 +206,10 @@ def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_a
             for node in graph.findAllNodes("prim::Constant"):
                 if "value" in node.attributeNames() and str(node["value"]).startswith("cuda"):
                     node.copyAttributes(device_node)
-
-    model.apply(patch_device)
-    patch_device(model.encode_image)
-    patch_device(model.encode_text)
+    """
+    #model.apply(patch_device)
+    #patch_device(model.encode_image)
+    #patch_device(model.encode_text)
 
     # patch dtype to float32 on CPU
     if str(device) == "cpu":
