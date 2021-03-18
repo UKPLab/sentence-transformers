@@ -57,19 +57,6 @@ class ComputeEmbeddingsTest(unittest.TestCase):
         assert emb.shape == (3, 768)
         assert abs(np.sum(emb) - 32.14627) < 0.001
 
-    def test_multi_gpu_encode(self):
-        # Start the multi-process pool on all available CUDA devices
-        pool = self.model.start_multi_process_pool(['cpu', 'cpu'])
-
-        sentences = ["This is sentence {}".format(i) for i in range(1000)]
-
-        # Compute the embeddings using the multi-process pool
-        emb = self.model.encode_multi_process(sentences, pool, chunk_size=50)
-        assert emb.shape == (1000, 768)
-
-        emb_normal = self.model.encode(sentences)
-        diff = np.sum(np.abs(emb - emb_normal))
-        assert diff < 0.001
 
 
 
