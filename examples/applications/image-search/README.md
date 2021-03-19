@@ -34,4 +34,6 @@ You can use the CLIP model for:
 - You can fine-tune it on your own image&text data with the regular SentenceTransformers training code. 
 
 ## Examples
-- [Image_Search.ipynb](Image_Search.ipynb) ([Colab Version](https://colab.research.google.com/drive/16OdADinjAg3w3ceZy3-cOR9A-5ZW9BYr?usp=sharing)) depicts a larger example for image-search using 25,000 free pictures from [Unsplash](https://unsplash.com/).
+- [Image_Search.ipynb](Image_Search.ipynb) ([Colab Version](https://colab.research.google.com/drive/16OdADinjAg3w3ceZy3-cOR9A-5ZW9BYr?usp=sharing)) depicts a larger example for **text-to-image** and **image-to-image** search using 25,000 free pictures from [Unsplash](https://unsplash.com/).
+- [Image_Clustering.ipynb](Image_Clustering.ipynb) ([Colab Version](https://colab.research.google.com/drive/1T3gfEF7pkXgPPajNa9ZjurB25B0RJ3_X?usp=sharing)) shows how to perform **image clustering**. Given 25,000 free pictures from [Unsplash](https://unsplash.com/), we find clusters of similar images. You can control how sensitive the clustering should be.
+- [Image_Duplicates.ipynb](Image_Duplicates.ipynb) ([Colab Version](https://colab.research.google.com/drive/1wLiZNedMwlM-FxBVbp3aA353yohV_wJ1?usp=sharing)) shows an example how to find duplicate and near duplicate images in a large collection of photos.
