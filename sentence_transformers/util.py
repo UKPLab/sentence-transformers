@@ -73,11 +73,7 @@ def paraphrase_mining(model,
                       sentences: List[str],
                       show_progress_bar: bool = False,
                       batch_size:int = 32,
-                      query_chunk_size: int = 5000,
-                      corpus_chunk_size: int = 100000,
-                      max_pairs: int = 500000,
-                      top_k: int = 100,
-                      score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim):
+                      **kwargs):
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
     other sentences and returns a list with the pairs that have the highest cosine similarity score.
@@ -94,10 +90,32 @@ def paraphrase_mining(model,
     :return: Returns a list of triplets with the format [score, id1, id2]
     """
 
-    top_k += 1  #A sentence has the highest similarity to itself. Increase +1 as we are interest in distinct pairs
-
     # Compute embedding for the sentences
     embeddings = model.encode(sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True)
+
+    return paraphrase_mining_embeddings(embeddings, **kwargs)
+
+
+def paraphrase_mining_embeddings(embeddings: Tensor,
+                      query_chunk_size: int = 5000,
+                      corpus_chunk_size: int = 100000,
+                      max_pairs: int = 500000,
+                      top_k: int = 100,
+                      score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim):
+    """
+    Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
+    other sentences and returns a list with the pairs that have the highest cosine similarity score.
+
+    :param embeddings: A tensor with the embeddings
+    :param query_chunk_size: Search for most similar pairs for #query_chunk_size at the same time. Decrease, to lower memory footprint (increases run-time).
+    :param corpus_chunk_size: Compare a sentence simultaneously against #corpus_chunk_size other sentences. Decrease, to lower memory footprint (increases run-time).
+    :param max_pairs: Maximal number of text pairs returned.
+    :param top_k: For each sentence, we retrieve up to top_k other sentences
+    :param score_function: Funtion for computing scores. By default, cosine similarity.
+    :return: Returns a list of triplets with the format [score, id1, id2]
+    """
+
+    top_k += 1  # A sentence has the highest similarity to itself. Increase +1 as we are interest in distinct pairs
 
     # Mine for duplicates
     pairs = queue.PriorityQueue()
