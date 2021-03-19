@@ -1,6 +1,6 @@
 # Sentence Transformers: Multilingual Sentence Embeddings using BERT / RoBERTa / XLM-RoBERTa & Co. with PyTorch
 
-This framework provides an easy method to compute dense vector representations for sentences and paragraphs (also known as sentence embeddings). The models are based on transformer networks like BERT / RoBERTa / XLM-RoBERTa etc. and are tuned specificially meaningul sentence embeddings such that sentences with similar meanings are close in vector space.
+This framework provides an easy method to compute dense vector representations for sentences, paragraphs, and images. The models are based on transformer networks like BERT / RoBERTa / XLM-RoBERTa etc. and achieve state-of-the-art performance in various task. Text is embedding in vector space such that similar text is close and can efficiently be found using cosine similarity.
 
 
 We provide an increasing number of **[state-of-the-art pretrained models](https://www.sbert.net/docs/pretrained_models.html)** for more than 100 languages, fine-tuned for various use-cases.
@@ -11,7 +11,7 @@ Further, this framework allows an easy  **[fine-tuning of custom embeddings mode
 For the **full documentation**, see [www.SBERT.net](https://www.sbert.net), as well as our publications:
 - [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (EMNLP 2019)
 - [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) (EMNLP 2020)
-- [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240) (arXiv 2020)
+- [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240) (NAACL 2021)
 - [The Curse of Dense Low-Dimensional Information Retrieval for Large Index Sizes](https://arxiv.org/abs/2012.14210) (arXiv 2020)
 
 
@@ -125,7 +125,8 @@ You can use this framework for:
  - [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html)
  - [Retrieve & Re-Rank](https://www.sbert.net/examples/applications/retrieve_rerank/README.html) 
  - [Text Summarization](https://www.sbert.net/examples/applications/text-summarization/README.html) 
-  
+- [Image Search, Clustering & Duplicate Detection](https://www.sbert.net/examples/applications/image-search/README.html)
+
 and many more use-cases.
 
 
