@@ -263,8 +263,9 @@ def tokenize(tokenizer, texts: Union[str, List[str]], context_length: int = 77) 
     result = torch.zeros(len(all_tokens), context_length, dtype=torch.long)
 
     for i, tokens in enumerate(all_tokens):
-        if len(tokens) > context_length:
-            raise RuntimeError(f"Input {texts[i]} is too long for context length {context_length}")
+        tokens = tokens[0:context_length]
+        #if len(tokens) > context_length:
+        #    raise RuntimeError(f"Input {texts[i]} is too long for context length {context_length}")
         result[i, :len(tokens)] = torch.tensor(tokens)
 
     return result
