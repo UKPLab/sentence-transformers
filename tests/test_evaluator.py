@@ -34,8 +34,7 @@ class EvaluatorTest(unittest.TestCase):
         assert np.abs(max_acc - sklearn_acc) < 1e-6
 
     def test_LabelAccuracyEvaluator(self):
-
-
+        """Tests that the LabelAccuracyEvaluator can be loaded correctly"""
         model = SentenceTransformer('paraphrase-distilroberta-base-v1')
 
         nli_dataset_path = 'datasets/AllNLI.tsv.gz'
@@ -59,3 +58,11 @@ class EvaluatorTest(unittest.TestCase):
         evaluator = evaluation.LabelAccuracyEvaluator(dev_dataloader, softmax_model=train_loss)
         acc = evaluator(model)
         assert acc > 0.2
+
+    def test_ParaphraseMiningEvaluator(self):
+        """Tests that the ParaphraseMiningEvaluator can be loaded"""
+        model = SentenceTransformer('paraphrase-distilroberta-base-v1')
+        sentences = {0: "Hello World", 1: "Hello World!", 2: "The cat is on the table", 3: "On the table the cat is"}
+        data_eval = evaluation.ParaphraseMiningEvaluator(sentences, [(0,1), (2,3)])
+        score = data_eval(model)
+        assert score > 0.99

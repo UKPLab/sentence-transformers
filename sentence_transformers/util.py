@@ -73,6 +73,7 @@ def paraphrase_mining(model,
                       sentences: List[str],
                       show_progress_bar: bool = False,
                       batch_size:int = 32,
+                      *args,
                       **kwargs):
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
@@ -93,7 +94,7 @@ def paraphrase_mining(model,
     # Compute embedding for the sentences
     embeddings = model.encode(sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True)
 
-    return paraphrase_mining_embeddings(embeddings, **kwargs)
+    return paraphrase_mining_embeddings(embeddings, *args, **kwargs)
 
 
 def paraphrase_mining_embeddings(embeddings: Tensor,
