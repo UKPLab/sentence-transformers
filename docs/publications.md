@@ -54,13 +54,14 @@ If you use the models for [MS MARCO](pretrained-models/msmarco-v2.md), feel free
 
 
 **Repositories using SentenceTransformers**
+- **[haystack](https://github.com/deepset-ai/haystack)** - Neural Search / Q&A
 - **[Top2Vec](https://github.com/ddangelov/Top2Vec)** - Topic modeling
 - **[txtai](https://github.com/neuml/txtai)** - AI-powered search engine
 - **[BERTTopic](https://github.com/MaartenGr/BERTopic)** - Topic model using SBERT embeddings
 - **[KeyBERT](https://github.com/MaartenGr/KeyBERT)** - Key phrase extraction using SBERT
 - **[contextualized-topic-models](https://github.com/MilaNLProc/contextualized-topic-models)** - Cross-Lingual Topic Modeling
 - **[covid-papers-browser](https://github.com/gsarti/covid-papers-browser)** - Semantic Search for Covid-19 papers
-- **[kiri](https://github.com/kiri-ai/kiri)** - Natural Language Engine that makes using state-of-the-art language models easy, accessible and scalable.
+- **[backprop](https://github.com/backprop-ai/backprop)** - Natural Language Engine that makes using state-of-the-art language models easy, accessible and scalable.
 
 
 **SentenceTransformers in Articles**
@@ -80,35 +81,4 @@ Making BERT stretchy - Scalable Semantic Search on a Jupyter Notebook](https://m
 
 **SentenceTransformers used in Research**
 
-The following papers use SentenceTransformers in research:
-- **December 2020 - [Pivot Through English: Reliably Answering Multilingual Questions without Document Retrieval](https://arxiv.org/abs/2012.14094)**
-- **December 2020 - [Document Dating Using Sentence Embeddings
-at EVALITA 2020](http://ceur-ws.org/Vol-2765/paper106.pdf)**
-- **December 2020 - [Objective-Based Hierarchical Clustering of Deep Embedding Vectors](https://arxiv.org/pdf/2012.08466.pdf)**
-- **December 2020 - [Finding and Generating a Missing Part for Story Completion](https://www.aclweb.org/anthology/2020.latechclfl-1.19/)**
-- **October 2020 - [Identifying Similar Movie Characters Quickly but Effectively Using Non-exhaustive Pair-wise Attention](https://arxiv.org/abs/2010.12183)**
-- **October 2020 - [SciSummPip: An Unsupervised Scientific Paper Summarization Pipeline](https://arxiv.org/abs/2010.09190)**
-- **October 2020 - [Effective Distributed Representations for Academic Expert Search](https://arxiv.org/abs/2010.08269)**
-- **October 2020 - [Quality-Aware Ranking of Arguments](https://dl.acm.org/doi/abs/10.1145/3340531.3411960)**
-- **October 2020 - [Explainable Automated Fact-Checking for Public Health Claims](https://arxiv.org/abs/2010.09926)**
-- **September 2020** - **[End-to-End Neural Matching for Semantic Location Prediction of Tweets](https://dl.acm.org/doi/abs/10.1145/3415149)**
-- **August 2020 - [VisualSem: a high-quality knowledge graph for vision & language](https://arxiv.org/pdf/2008.09150.pdf)**
-- **August 2020 - [Contextualized moral inference](https://arxiv.org/pdf/2008.10762.pdf)**
-- **August 2020** - **[Using Natural Language
-Processing to Identify Similar
-Patent Documents](https://lup.lub.lu.se/luur/download?func=downloadFile&recordOId=9008699&fileOId=9026407)**
-- **August 2020** - **[Ranking Clarification Questions via Natural Language Inference](https://arxiv.org/pdf/2008.07688.pdf)**
-- **August 2020** - **[Searching Scientific Literature for Answers on COVID-19 Questions](https://openreview.net/pdf?id=eeYSJJGAkg1)**
-- **July 2020** - **[Learning Neural Textual Representations for Citation Recommendation](https://arxiv.org/abs/2007.04070)**
-- **July 2020** - **[CORD19STS: COVID-19 Semantic Textual Similarity Dataset](https://arxiv.org/abs/2007.02461)**
-- **July 2020** - **[IR-BERT: Leveraging BERT for Semantic Search in Background Linking for News Articles](https://arxiv.org/abs/2007.12603)** 
-- **July 2020 - [COVID-19 Knowledge Graph: Accelerating Information Retrieval and Discovery for Scientific Literature](https://arxiv.org/abs/2007.12731)**
-- **July 2020 - [CrossBERT: a Triplet Neural Architecture for
-Ranking Entity Properties](https://dl.acm.org/doi/pdf/10.1145/3397271.3401265)**
-- **June 2020 - [CO-Search: COVID-19 Information Retrieval with Semantic Search, Question Answering, and Abstractive Summarization](https://arxiv.org/abs/2006.09595)**
-- **May 2020 - [SUPERT: Towards New Frontiers in Unsupervised Evaluation Metrics for Multi-Document Summarization](https://arxiv.org/abs/2005.03724)**
-- **May 2020 - [A Recipe for Creating Multimodal Aligned Datasets for Sequential Tasks](https://arxiv.org/abs/2005.09606)**
-- **April 2020 - [PANDORA Talks: Personality and Demographics on Reddit](https://arxiv.org/abs/2004.04460)**
-
-
-Feel free to contact me (info@nils-reimers.de) to add you paper here. 
+SentenceTransformers is used in hundreds of research projects. For a list of publications, see [Google Scholar](https://scholar.google.com/scholar?oi=bibs&hl=de&cites=12599223809118664426) or [Semantic Scholar](https://www.semanticscholar.org/paper/Sentence-BERT%3A-Sentence-Embeddings-using-Siamese-Reimers-Gurevych/93d63ec754f29fa22572615320afe0521f7ec66d).
