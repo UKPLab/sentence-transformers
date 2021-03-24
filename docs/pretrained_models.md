@@ -165,5 +165,6 @@ The following models apply compute the average word embedding for some well-know
 
 
 ## Image & Text-Models
-The following models can embed images and text into a joint vector space. See [Image Search](../examples/applications/image-search/README.md) ([Colab Version](https://colab.research.google.com/drive/16OdADinjAg3w3ceZy3-cOR9A-5ZW9BYr?usp=sharing)) for more details how to use it and how to embed images.
+The following models can embed images and text into a joint vector space. See [Image Search](../examples/applications/image-search/README.md)  for more details how to use for text2image-search, image2image-search, image clustering, and zero-shot image classification.
 - **clip-ViT-B-32** - [OpenAPI CLIP Model](https://github.com/openai/CLIP)
+- **clip-ViT-B-32-multilingual-v1** - Multilingual text encoder for the CLIP model using [Multilingual Knowledge Distillation](https://arxiv.org/abs/2004.09813).
