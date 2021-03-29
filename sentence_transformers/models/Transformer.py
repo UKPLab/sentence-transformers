@@ -18,15 +18,17 @@ class Transformer(nn.Module):
     """
     def __init__(self, model_name_or_path: str, max_seq_length: Optional[int] = None,
                  model_args: Dict = {}, cache_dir: Optional[str] = None,
-                 tokenizer_args: Dict = {}, do_lower_case: bool = False):
+                 tokenizer_args: Dict = {}, do_lower_case: bool = False, tokenizer_name_or_path=None):
         super(Transformer, self).__init__()
+        if not tokenizer_name_or_path:
+            tokenizer_name_or_path = model_name_or_path
         self.config_keys = ['max_seq_length', 'do_lower_case']
         self.max_seq_length = max_seq_length
         self.do_lower_case = do_lower_case
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
         self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, cache_dir=cache_dir, **tokenizer_args)
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path, cache_dir=cache_dir, **tokenizer_args)
 
 
     def forward(self, features):
