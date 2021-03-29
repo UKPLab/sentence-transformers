@@ -15,10 +15,11 @@ class Transformer(nn.Module):
     :param cache_dir: Cache dir for Huggingface Transformers to store/load models
     :param tokenizer_args: Arguments (key, value pairs) passed to the Huggingface Tokenizer model
     :param do_lower_case: If true, lowercases the input (independet if the model is cased or not)
+    :param tokenizer_name_or_path: Huggingface tokenizer name. If None than derived from model name
     """
     def __init__(self, model_name_or_path: str, max_seq_length: Optional[int] = None,
                  model_args: Dict = {}, cache_dir: Optional[str] = None,
-                 tokenizer_args: Dict = {}, do_lower_case: bool = False, tokenizer_name_or_path=None):
+                 tokenizer_args: Dict = {}, do_lower_case: bool = False, tokenizer_name_or_path: str = None):
         super(Transformer, self).__init__()
         if not tokenizer_name_or_path:
             tokenizer_name_or_path = model_name_or_path
