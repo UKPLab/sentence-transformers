@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from PIL import Image, ImageFile
 from torch import nn
 from tqdm.autonotebook import tqdm
-from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
+from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize, InterpolationMode
 
 
 class CLIPModel(nn.Module):
@@ -137,7 +137,7 @@ def _download(url: str, root: str = os.path.expanduser("~/.cache/clip")):
 
 def _transform(n_px):
     return Compose([
-        Resize(n_px, interpolation=Image.BICUBIC),
+        Resize(n_px, interpolation=InterpolationMode.BICUBIC),
         CenterCrop(n_px),
         lambda image: image.convert("RGB"),
         ToTensor(),
