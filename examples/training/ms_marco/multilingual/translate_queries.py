@@ -3,12 +3,16 @@ This script translates the queries in the MS MARCO dataset to the defined target
 
 For machine translation, we use EasyNMT: https://github.com/UKPLab/EasyNMT
 You can install it via: pip install easynmt
+
+Usage:
+python translate_queries [target_language]
 """
 import os
 from sentence_transformers import LoggingHandler, util
 import logging
 import tarfile
 from easynmt import EasyNMT
+import sys
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -17,8 +21,10 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
-target_lang = 'de'
+target_lang = sys.argv[1]
 output_folder = 'multilingual-data'
+data_folder = '../msmarco-data'
+
 output_filename = os.path.join(output_folder, 'train_queries.en-{}.tsv'.format(target_lang))
 os.makedirs(output_folder, exist_ok=True)
 
@@ -32,7 +38,6 @@ if os.path.exists(output_filename):
             translated_qids.add(splits[0])
 
 ### Now we read the MS Marco dataset
-data_folder = '../msmarco-data'
 os.makedirs(data_folder, exist_ok=True)
 
 # Read qrels file for relevant positives per query
@@ -78,5 +83,5 @@ print("This can take a while. But you can stop this script at any point")
 
 with open(output_filename, 'a' if os.path.exists(output_filename) else 'w', encoding='utf8') as fOut:
     for qid, query, translated_query in zip(qids, queries, translation_model.translate_stream(queries, source_lang='en', target_lang=target_lang, beam_size=2, perform_sentence_splitting=False, chunk_size=256, batch_size=64)):
-        fOut.write("{}\t{}\t{}\n".format(qid, query.replace("\t", " "), translated_query.replace("\t", " ")))
+        fOut.write("{}\t{}\t{}\n".format(qid, translated_query.replace("\t", " ")))
         fOut.flush()
