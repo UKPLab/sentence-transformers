@@ -73,7 +73,11 @@ class CLIPModel(nn.Module):
         with open(os.path.join(output_path, 'config.json'), 'w') as fOut:
             json.dump({'model_name': model_name, 'tokenizer_name': tokenizer_name}, fOut, indent=2)
 
-        self.model.save(os.path.join(output_path, model_name))
+        ## Save model
+        torch.save(self.model.state_dict(), os.path.join(output_path, model_name))
+
+        ##Save tokenizer
+        self.tokenizer.save(output_path)
 
     @staticmethod
     def load(input_path: str):
