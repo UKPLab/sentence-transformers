@@ -45,8 +45,14 @@ Available models:
 
 The following models were trained on [MSMARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking), a dataset with 500k real queries from Bing search. Given a search query, find the relevant passages. 
 
+Models tuned to be used with **cosine-similarity**:
 - **msmarco-distilbert-base-v3**: MRR@10: 33.13 on MS MARCO  dev set
+
+Models tuned to be used with **dot-product**:
+- **msmarco-distilbert-base-dot-prod-v3**: MRR@10: 33.04 on MS MARCO dev set
 - **msmarco-roberta-base-ance-fristp**: MRR@10: 33.03 on MS MARCO  dev set
+
+Models tuned for cosine-similarity will prefer the retrieval of short documents, while models tuned for dot-product will prefer the retrieval of longer documents. Depending on your task, the models of the one or the other type are preferable.
 
 ```python
 from sentence_transformers import SentenceTransformer, util
