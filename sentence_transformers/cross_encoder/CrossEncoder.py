@@ -10,7 +10,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
-from .. import SentenceTransformer
+from .. import SentenceTransformer, util
 from ..evaluation import SentenceEvaluator
 
 
@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 class CrossEncoder():
-    def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, device:str = None, tokenizer_args:Dict = {}):
+    def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, device:str = None, tokenizer_args:Dict = {},
+                 default_activation_function = None):
         """
         A CrossEncoder takes exactly two sentences / texts as input and either predicts
         a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
@@ -31,6 +32,7 @@ class CrossEncoder():
         :param max_length: Max length for input sequences. Longer sequences will be truncated. If None, max length of the model will be used
         :param device: Device that should be used for the model. If None, it will use CUDA if available.
         :param tokenizer_args: Arguments passed to AutoTokenizer
+        :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1, else nn.Identity()
         """
 
         self.config = AutoConfig.from_pretrained(model_name)
@@ -54,6 +56,14 @@ class CrossEncoder():
             logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
+
+        if default_activation_function is not None:
+            self.default_activation_function = default_activation_function
+            self.config.sbert_ce_default_activation_function = util.fullname(self.default_activation_function)
+        elif hasattr(self.config, 'sbert_ce_default_activation_function') and self.config.sbert_ce_default_activation_function is not None:
+            self.default_activation_function = util.import_from_string(self.config.sbert_ce_default_activation_function)()
+        else:
+            self.default_activation_function = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
 
     def smart_batching_collate(self, batch):
         texts = [[] for _ in range(len(batch[0].texts))]
@@ -251,7 +261,7 @@ class CrossEncoder():
             iterator = tqdm(inp_dataloader, desc="Batches")
 
         if activation_fct is None:
-            activation_fct = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
+            activation_fct = self.default_activation_function
 
         pred_scores = []
         self.model.eval()
