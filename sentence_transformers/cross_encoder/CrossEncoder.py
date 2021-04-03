@@ -59,7 +59,10 @@ class CrossEncoder():
 
         if default_activation_function is not None:
             self.default_activation_function = default_activation_function
-            self.config.sbert_ce_default_activation_function = util.fullname(self.default_activation_function)
+            try:
+                self.config.sbert_ce_default_activation_function = util.fullname(self.default_activation_function)
+            except Exception as e:
+                logger.warning("Was not able to update config about the default_activation_function: {}".format(str(e)) )
         elif hasattr(self.config, 'sbert_ce_default_activation_function') and self.config.sbert_ce_default_activation_function is not None:
             self.default_activation_function = util.import_from_string(self.config.sbert_ce_default_activation_function)()
         else:
@@ -102,7 +105,7 @@ class CrossEncoder():
             evaluator: SentenceEvaluator = None,
             epochs: int = 1,
             loss_fct = None,
-            acitvation_fct = nn.Identity(),
+            activation_fct = nn.Identity(),
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
             optimizer_class: Type[Optimizer] = transformers.AdamW,
@@ -125,7 +128,7 @@ class CrossEncoder():
         :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
         :param epochs: Number of epochs for training
         :param loss_fct: Which loss function to use for training. If None, will use nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
-        :param acitvation_fct: Activation function applied on top of logits output of model.
+        :param activation_fct: Activation function applied on top of logits output of model.
         :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
         :param optimizer_class: Optimizer
@@ -182,7 +185,7 @@ class CrossEncoder():
                 if use_amp:
                     with autocast():
                         model_predictions = self.model(**features, return_dict=True)
-                        logits = acitvation_fct(model_predictions.logits)
+                        logits = activation_fct(model_predictions.logits)
                         if self.config.num_labels == 1:
                             logits = logits.view(-1)
                         loss_value = loss_fct(logits, labels)
@@ -197,7 +200,7 @@ class CrossEncoder():
                     skip_scheduler = scaler.get_scale() != scale_before_step
                 else:
                     model_predictions = self.model(**features, return_dict=True)
-                    logits = acitvation_fct(model_predictions.logits)
+                    logits = activation_fct(model_predictions.logits)
                     if self.config.num_labels == 1:
                         logits = logits.view(-1)
 
