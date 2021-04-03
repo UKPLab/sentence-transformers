@@ -43,11 +43,22 @@ class CrossEncoder():
         if num_labels is None and not classifier_trained:
             num_labels = 1
 
+        resize_num_labels = None
         if num_labels is not None:
-            self.config.num_labels = num_labels
+            if hasattr(self.config, 'num_labels') and self.config.num_labels is not None and self.config.num_labels != num_labels:
+                #Resize classifier head
+                resize_num_labels = num_labels
+            else:
+                self.config.num_labels = num_labels
 
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name, config=self.config)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, **tokenizer_args)
+
+        if resize_num_labels is not None:
+            print("Warning: Loaded model was trained for {} labels. Resize CrossEncoder to {} labels. You must re-train this model to get meaningful predictions".format(self.config.num_labels, resize_num_labels))
+            self.config.num_labels = resize_num_labels
+            self.model.config.num_labels = resize_num_labels
+            self.model.classifier = torch.nn.Linear(self.config.hidden_size, resize_num_labels)
 
         self.max_length = max_length
 
