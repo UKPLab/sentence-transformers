@@ -36,7 +36,7 @@ In the following table, we provide various pre-trained Cross-Encoders together w
 
 
 | Model-Name        | NDCG@10 (TREC DL 19) | MRR@10 (MS Marco Dev)  | Docs / Sec |
-| ------------- |:-------------| -----| --- | 
+| ------------- | :-------------: | :-----: | ---: | 
 | **Version 2 models** | | | 
 | cross-encoder/ms-marco-TinyBERT-L-2-v2 | 69.84 | 32.56 | 9000
 | cross-encoder/ms-marco-MiniLM-L-2-v2 | 71.01 | 34.85 | 4100

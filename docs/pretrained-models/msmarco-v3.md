@@ -23,14 +23,16 @@ Performance is evaluated on [TREC-DL 2019](https://microsoft.github.io/TREC-2019
 
 As baseline we show the results for lexical search with BM25 using ElasticSearch.
 
-| Approach       | NDCG@10 (TREC DL 19 Reranking) | MRR@10 (MS Marco Dev) |  
-| ------------- |:-------------: | :---: |
-| *Models tuned for cosine-similarity* | |
-| msmarco-distilbert-base-v3| 69.02 | 33.13 |
-| msmarco-roberta-base-v3 | 69.08 | 33.01
-| *Models tuned for dot-product* | |
-| msmarco-roberta-base-ance-fristp | 67.84 | 33.01
-| msmarco-distilbert-base-dot-prod-v3 | 68.42 | 33.04
+| Approach       | NDCG@10 (TREC DL 19 Reranking) | MRR@10 (MS Marco Dev) |  Queries (GPU / CPU per sec) | Docs (GPU / CPU per sec)
+| ------------- |:-------------: | :---: | :---: | :---: |
+| **Models tuned for cosine-similarity** | |
+| msmarco-distilbert-base-v3| 69.02 | 33.13 | 7,000 / 350 | 1,100 / 70
+| msmarco-roberta-base-v3 | 69.08 | 33.01 | 4,000 / 170 | 540 / 30
+| msmarco-MiniLM-L-6-v3 | 67.46 | 32.27 | 18,000 / 750 | 2,800 / 180
+| msmarco-MiniLM-L-12-v3 | 65.14 | 32.75 | 11,000 / 400 | 1,500 / 90
+| **Models tuned for dot-product** | |
+| msmarco-roberta-base-ance-fristp | 67.84 | 33.01 | 4,000 / 170 | 540 / 30
+| msmarco-distilbert-base-dot-prod-v3 | 68.42 | 33.04 | 7,000 / 350 | 1100 / 70
 | **Previous approaches** |  |  |
 | BM25 (ElasticSearch)   | 45.46 | 17.29  |
 | msmarco-distilroberta-base-v2   | 65.65 |  28.55    |  
@@ -41,6 +43,7 @@ As baseline we show the results for lexical search with BM25 using ElasticSearch
 - We provide two type of models, one tuned for **cosine-similarity**, the other for **dot-product**. Make sure to use the right method to compute the similarity between query and passages.
 - Models tuned for **cosine-similarity** will prefer the retrieval of shorter passages, while models for **dot-product** will prefer the retrieval of longer passages. Depending on your task, you might prefer the one or the other type of model.
 - **msmarco-roberta-base-ance-fristp** is the MSMARCO Dev Passage Retrieval ANCE(FirstP) 600K model from [ANCE](https://github.com/microsoft/ANCE). This model should be used with dot-product instead of cosine similarity.
+- Encoding speeds were measured on a V100 GPU and an 8 core Intel(R) Xeon(R) Platinum 8168 CPU @ 2.70GHz
 
 
 ## Changes in v3
