@@ -4,7 +4,7 @@
 
 The training data constist of over 500k examples, while the complete  corpus consist of over 8.8 Million passages.
 
-## Usage wit SentenceTransformers
+## Usage with SentenceTransformers
 Pre-trained models can be used like this:
 ```python
 from sentence_transformers import CrossEncoder
