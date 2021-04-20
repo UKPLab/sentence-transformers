@@ -173,18 +173,17 @@ If you use the code for [data augmentation](https://github.com/UKPLab/sentence-t
 }
 ```
 
-If you use the code for [data augmentation](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training/data_augmentation), feel free to cite our publication [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240):
+When you use the unsupervised learning example, please have a look at: [TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning](https://arxiv.org/abs/2104.06979):
 ```bibtex 
-@inproceedings{thakur-2020-AugSBERT,
-    title = "Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
-    author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes and  Gurevych, Iryna", 
-    booktitle = "Proceedings of the 2021 Conference of the North {A}merican Chapter of the Association for Computational Linguistics: Human Language Technologies",
-    month = "10",
-    year = "2020",
-    url = "https://arxiv.org/abs/2010.08240",
+@article{wang-2021-TSDAE,
+    title = "TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning",
+    author = "Wang, Kexin and Reimers, Nils and  Gurevych, Iryna", 
+    journal= "arXiv preprint arXiv:2104.06979",
+    month = "4",
+    year = "2021",
+    url = "https://arxiv.org/abs/2104.06979",
 }
 ```
-
 
 The main contributors of this repository are:
 - [Nils Reimers](https://github.com/nreimers)
