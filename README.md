@@ -134,7 +134,7 @@ For all examples, see [examples/applications](https://github.com/UKPLab/sentence
 
 ## Citing & Authors
 If you find this repository helpful, feel free to cite our publication [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084):
-``` 
+```bibtex 
 @inproceedings{reimers-2019-sentence-bert,
     title = "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
     author = "Reimers, Nils and Gurevych, Iryna",
@@ -148,7 +148,7 @@ If you find this repository helpful, feel free to cite our publication [Sentence
 
 
 If you use one of the multilingual models, feel free to cite our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
-``` 
+```bibtex
 @inproceedings{reimers-2020-multilingual-sentence-bert,
     title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
     author = "Reimers, Nils and Gurevych, Iryna",
@@ -162,11 +162,23 @@ If you use one of the multilingual models, feel free to cite our publication [Ma
 
 
 If you use the code for [data augmentation](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training/data_augmentation), feel free to cite our publication [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240):
-``` 
-@article{thakur-2020-AugSBERT,
+```bibtex 
+@inproceedings{thakur-2020-AugSBERT,
     title = "Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
     author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes and  Gurevych, Iryna", 
-    journal= "arXiv preprint arXiv:2010.08240",
+    booktitle = "Proceedings of the 2021 Conference of the North {A}merican Chapter of the Association for Computational Linguistics: Human Language Technologies",
+    month = "10",
+    year = "2020",
+    url = "https://arxiv.org/abs/2010.08240",
+}
+```
+
+If you use the code for [data augmentation](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training/data_augmentation), feel free to cite our publication [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240):
+```bibtex 
+@inproceedings{thakur-2020-AugSBERT,
+    title = "Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
+    author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes and  Gurevych, Iryna", 
+    booktitle = "Proceedings of the 2021 Conference of the North {A}merican Chapter of the Association for Computational Linguistics: Human Language Technologies",
     month = "10",
     year = "2020",
     url = "https://arxiv.org/abs/2010.08240",

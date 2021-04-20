@@ -74,7 +74,7 @@ If you use the code for augmented sbert, feel free to cite our publication [TSDA
 ```bibtex 
 @article{wang-2021-TSDAE,
     title = "TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning",
-    author = "Wang, Kexin andReimers, Nils and  Gurevych, Iryna", 
+    author = "Wang, Kexin and Reimers, Nils and  Gurevych, Iryna", 
     journal= "arXiv preprint arXiv:2104.06979",
     month = "4",
     year = "2021",
