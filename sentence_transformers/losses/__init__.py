@@ -6,6 +6,7 @@ from .MSELoss import *
 from .ContrastiveLoss import *
 from .OnlineContrastiveLoss import *
 from .MegaBatchMarginLoss import *
+from .DenoisingAutoEncoderLoss import *
 
 # Triplet losses
 from .BatchHardTripletLoss import *
