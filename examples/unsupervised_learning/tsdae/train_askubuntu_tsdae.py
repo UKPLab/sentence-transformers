@@ -1,8 +1,7 @@
 
 from sentence_transformers import SentenceTransformer, LoggingHandler
-from sentence_transformers import models, util, datasets, evaluation
+from sentence_transformers import models, util, datasets, evaluation, losses
 import logging
-from sentence_transformers.losses import DenoisingAutoEncoderLoss
 import os
 import gzip
 from torch.utils.data import DataLoader
@@ -86,7 +85,7 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 # We wrap our training sentences in the DenoisingAutoEncoderDataset to add deletion noise on the fly
 train_dataset = datasets.DenoisingAutoEncoderDataset(train_sentences)
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
-train_loss = DenoisingAutoEncoderLoss(model, decoder_name_or_path=model_name, tie_encoder_decoder=True)
+train_loss = losses.DenoisingAutoEncoderLoss(model, decoder_name_or_path=model_name, tie_encoder_decoder=True)
 
 # Create a dev evaluator
 dev_evaluator = evaluation.RerankingEvaluator(dev_dataset, name='AskUbuntu dev')
