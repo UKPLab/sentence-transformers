@@ -14,7 +14,7 @@ from sentence_transformers import SentenceTransformer, LoggingHandler
 from sentence_transformers import models, util, datasets, evaluation, losses
 from torch.utils.data import DataLoader
 
-# Define your sentence transformer model
+# Define your sentence transformer model using CLS pooling
 model_name = 'bert-base-uncased'
 word_embedding_model = models.Transformer(model_name)
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode_mean_tokens=False, pooling_mode_cls_token=True, pooling_mode_max_tokens=False)
