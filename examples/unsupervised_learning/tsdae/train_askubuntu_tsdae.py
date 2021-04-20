@@ -6,6 +6,8 @@ from sentence_transformers.losses import DenoisingAutoEncoderLoss
 import os
 import gzip
 from torch.utils.data import DataLoader
+from datetime import datetime
+import sys
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -17,7 +19,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 ################# Download AskUbuntu and extract training corpus  #################
 askubuntu_folder = 'askubuntu'
 training_corpus = os.path.join(askubuntu_folder, 'train.unsupervised.txt')
-result_folder = 'output/askubuntu-tsdae'
+result_folder = 'output/askubuntu-tsdae-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 batch_size = 8
 
 ## Download the AskUbuntu dataset from https://github.com/taolei87/askubuntu
@@ -71,7 +73,7 @@ for id, sentence in corpus.items():
 logging.info("{} train sentences".format(len(train_sentences)))
 
 ################# Intialize an SBERT model #################
-model_name = 'bert-base-uncased'  # could also be 'distilbert-base-uncased'
+model_name = sys.argv[1] if len(sys.argv) >= 2 else 'bert-base-uncased'  # could also be 'distilbert-base-uncased'
 word_embedding_model = models.Transformer(model_name)
 # Apply **cls** pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
@@ -87,7 +89,7 @@ train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True
 train_loss = DenoisingAutoEncoderLoss(model, decoder_name_or_path=model_name, tie_encoder_decoder=True)
 
 # Create a dev evaluator
-dev_evaluator = evaluation.RerankingEvaluator(dev_dataset)
+dev_evaluator = evaluation.RerankingEvaluator(dev_dataset, name='AskUbuntu dev')
 
 logging.info("Dev performance before training")
 dev_evaluator(model)
