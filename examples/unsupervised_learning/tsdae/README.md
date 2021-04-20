@@ -53,7 +53,7 @@ The [AskUbuntu dataset](https://github.com/taolei87/askubuntu) is a manually ann
 
 | Model | MAP-Score on test set |
 | ---- | :----: |
-| TSDAE | 59.4 |
+| TSDAE (bert-base-uncased) | 59.4 |
 | **pretrained SentenceTransformer models** | |
 | nli-bert-base | 50.7 |
 | paraphrase-distilroberta-base-v1 | 54.8 |
