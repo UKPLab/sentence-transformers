@@ -13,8 +13,8 @@ import torch.nn.functional as F
 from PIL import Image, ImageFile
 from torch import nn
 from tqdm.autonotebook import tqdm
-from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize, InterpolationMode
-
+from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
+#from torchvision.transforms import InterpolationMode
 
 class CLIPModel(nn.Module):
     def __init__(self, tokenizer_path: str, model_name: str = "ViT-B/32"):
@@ -31,6 +31,9 @@ class CLIPModel(nn.Module):
         for idx, data in enumerate(texts):
             if isinstance(data, ImageFile.ImageFile):       #An Image
                 image_features.append(self.preprocess(data).unsqueeze(0))
+                image_text_info.append(0)
+            elif isinstance(data, torch.Tensor):    #A preprocessed image
+                image_features.append(data.unsqueeze(0))
                 image_text_info.append(0)
             else:   #A text
                 text_features.append(tokenize(self.tokenizer, data))
@@ -137,7 +140,7 @@ def _download(url: str, root: str = os.path.expanduser("~/.cache/clip")):
 
 def _transform(n_px):
     return Compose([
-        Resize(n_px, interpolation=InterpolationMode.BICUBIC),
+        Resize(n_px, interpolation=Image.BICUBIC),  #InterpolationMode.BICUBIC
         CenterCrop(n_px),
         lambda image: image.convert("RGB"),
         ToTensor(),
