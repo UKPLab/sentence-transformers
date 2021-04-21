@@ -7,7 +7,12 @@ from nltk.tokenize.treebank import TreebankWordDetokenizer
 
 class DenoisingAutoEncoderDataset(Dataset):
     """
+    The DenoisingAutoEncoderDataset returns InputExamples in the format: texts=[noise_fn(sentence), sentence]
+    It is used in combination with the DenoisingAutoEncoderLoss: Here, a decoder tries to re-construct the
+    sentence without noise.
 
+    :param sentences: A list of sentences
+    :param noise_fn: A noise function: Given a string, it returns a string with noise, e.g. deleted words
     """
     def __init__(self, sentences: List[str], noise_fn=lambda s: DenoisingAutoEncoderDataset.delete(s)):
         self.sentences = sentences
