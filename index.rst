@@ -240,6 +240,14 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    examples/training/quora_duplicate_questions/README
    examples/training/ms_marco/README
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Unsupervised Learning
+
+   examples/unsupervised_learning/README
+   examples/unsupervised_learning/tsdae/README
+   examples/unsupervised_learning/SimCSE/README
+   examples/unsupervised_learning/query_generation/README
 
 .. toctree::
    :maxdepth: 1

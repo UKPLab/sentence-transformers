@@ -1,4 +1,4 @@
-# Tranformer-based Denoising AutoEncoder (TSDAE)
+# TSDAE
 
 This folder shows an example, how can we train an unsupervised [TSDAE (Tranformer-based Denoising AutoEncoder)](https://arxiv.org/abs/2104.06979) model with pure sentences as training data.
 

@@ -56,11 +56,23 @@ When you use the unsupervised learning example, please have a look at: [TSDAE: U
 ```bibtex 
 @article{wang-2021-TSDAE,
     title = "TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning",
-    author = "Wang, Kexin and Reimers, Nils and  Gurevych, Iryna", 
+    author = "Wang, Kexin and Reimers, Nils and Gurevych, Iryna", 
     journal= "arXiv preprint arXiv:2104.06979",
     month = "4",
     year = "2021",
     url = "https://arxiv.org/abs/2104.06979",
+}
+```
+
+When you use the GenQ learning example, please have a look at: [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663):
+```bibtex 
+@article{thakur-2021-BEIR,
+    title = "BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models",
+    author = "Thakur, Nandan and Reimers, Nils and R\"uckl\'{e}, Andreas and Srivastava, Abhishek and Gurevych, Iryna", 
+    journal= "arXiv preprint arXiv:2104.08663",
+    month = "4",
+    year = "2021",
+    url = "https://arxiv.org/abs/2104.08663",
 }
 ```
 

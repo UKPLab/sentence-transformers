@@ -18,15 +18,6 @@ class DenoisingAutoEncoderLoss(nn.Module):
         which is shown beneficial to model performance while limiting the amount of required memory.
         Only when the encoder and decoder are from the same architecture, can the flag 'tie_encoder_decoder' works.
         For more information, please refer to the TSDAE paper.
-        Example::
-            from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses
-            from sentence_transformers.readers import DenoisingAutoEncoderReader
-            import os
-            os.system('echo "Sentence 1\nSentence 2\nSentence 3\n" > corpus.txt')
-            model = SentenceTransformer('bert-base-uncased')
-            batch_size = 8
-            train_dataloader = DenoisingAutoEncoderReader('.', batch_size).get_train_dataloader('corpus.txt', model)
-            train_loss = DenoisingAutoEncoderLoss(model)
     """
     def __init__(
         self, 

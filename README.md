@@ -8,12 +8,15 @@ We provide an increasing number of **[state-of-the-art pretrained models](https:
 Further, this framework allows an easy  **[fine-tuning of custom embeddings models](https://www.sbert.net/docs/training/overview.html)**, to achieve maximal performance on your specific task.
 
 
-For the **full documentation**, see [www.SBERT.net](https://www.sbert.net), as well as our publications:
+For the **full documentation**, see **[www.SBERT.net](https://www.sbert.net)**.
+
+The following publications are integrated in this framework:
 - [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (EMNLP 2019)
 - [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) (EMNLP 2020)
 - [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240) (NAACL 2021)
 - [The Curse of Dense Low-Dimensional Information Retrieval for Large Index Sizes](https://arxiv.org/abs/2012.14210) (arXiv 2020)
-
+- [TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning](https://arxiv.org/abs/2104.06979) (arXiv 2021)
+- [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663) (arXiv 2021)
 
 
 ## Installation
@@ -160,36 +163,10 @@ If you use one of the multilingual models, feel free to cite our publication [Ma
 }
 ```
 
+Please have a look at [Publications](https://www.sbert.net/docs/publications.html) for our different publications that are integrated into SentenceTransformers.
 
-If you use the code for [data augmentation](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training/data_augmentation), feel free to cite our publication [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240):
-```bibtex 
-@inproceedings{thakur-2020-AugSBERT,
-    title = "Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
-    author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes and  Gurevych, Iryna", 
-    booktitle = "Proceedings of the 2021 Conference of the North {A}merican Chapter of the Association for Computational Linguistics: Human Language Technologies",
-    month = "10",
-    year = "2020",
-    url = "https://arxiv.org/abs/2010.08240",
-}
-```
 
-When you use the unsupervised learning example, please have a look at: [TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning](https://arxiv.org/abs/2104.06979):
-```bibtex 
-@article{wang-2021-TSDAE,
-    title = "TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning",
-    author = "Wang, Kexin and Reimers, Nils and  Gurevych, Iryna", 
-    journal= "arXiv preprint arXiv:2104.06979",
-    month = "4",
-    year = "2021",
-    url = "https://arxiv.org/abs/2104.06979",
-}
-```
-
-The main contributors of this repository are:
-- [Nils Reimers](https://github.com/nreimers)
-- [Gregor Geigle](https://github.com/aaronsom)
-
-Contact person: Nils Reimers, info@nils-reimers.de
+Contact person: [Nils Reimers](https://www.nils-reimers.de), [info@nils-reimers.de](mailto:info@nils-reimers.de)
 
 https://www.ukp.tu-darmstadt.de/
 
