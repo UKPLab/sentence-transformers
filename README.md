@@ -1,6 +1,6 @@
-# Sentence Transformers: Multilingual Sentence Embeddings using BERT / RoBERTa / XLM-RoBERTa & Co. with PyTorch
+# Sentence Transformers: Multilingual Sentence, Paragraphs, and Image Embeddings using BERT & Co.
 
-This framework provides an easy method to compute dense vector representations for sentences, paragraphs, and images. The models are based on transformer networks like BERT / RoBERTa / XLM-RoBERTa etc. and achieve state-of-the-art performance in various task. Text is embedding in vector space such that similar text is close and can efficiently be found using cosine similarity.
+This framework provides an easy method to compute dense vector representations for **sentences**, **paragraphs**, and **images**. The models are based on transformer networks like BERT / RoBERTa / XLM-RoBERTa etc. and achieve state-of-the-art performance in various task. Text is embedding in vector space such that similar text is close and can efficiently be found using cosine similarity.
 
 
 We provide an increasing number of **[state-of-the-art pretrained models](https://www.sbert.net/docs/pretrained_models.html)** for more than 100 languages, fine-tuned for various use-cases.
@@ -128,7 +128,7 @@ You can use this framework for:
  - [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html)
  - [Retrieve & Re-Rank](https://www.sbert.net/examples/applications/retrieve_rerank/README.html) 
  - [Text Summarization](https://www.sbert.net/examples/applications/text-summarization/README.html) 
-- [Image Search, Clustering & Duplicate Detection](https://www.sbert.net/examples/applications/image-search/README.html)
+- [Multilingual Image Search, Clustering & Duplicate Detection](https://www.sbert.net/examples/applications/image-search/README.html)
 
 and many more use-cases.
 
