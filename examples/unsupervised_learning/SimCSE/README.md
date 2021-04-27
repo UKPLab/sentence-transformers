@@ -43,6 +43,7 @@ model.fit(
 ``` 
 ## Training Examples
 - **[train_askubuntu_simcse.py](train_askubuntu_simcse.py)** - Shows the example how to train with SimCSE on the [AskUbuntu Questions dataset](https://github.com/taolei87/askubuntu).
+- **[train_stsb_simcse.py](train_stsb_simcse.py)** - This script uses 1 million sentences and evaluates SimCSE on the [STSbenchmark dataset](https://ixa2.si.ehu.eus/stswiki/index.php/STSbenchmark).
 
 ## Ablation Study
 We use the evaluation setup proposed in our [TSDAE paper](https://arxiv.org/abs/2104.06979).
