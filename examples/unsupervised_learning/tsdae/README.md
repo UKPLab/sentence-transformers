@@ -5,7 +5,7 @@ This folder shows an example, how can we train an unsupervised [TSDAE (Tranforme
 ## Background 
 During training, TSDAE encodes damaged sentences into fixed-sized vectors and requires the decoder to recon-struct  the  original  sentences  from  this  sentenceembeddings. For good reconstruction quality, thesemantics must be captured well in the sentenceembeddings from the encoder. Later, at inference,we only use the encoder for creating sentence embeddings. The architecture is illustrated in the figure below:
 
-![](TSDAE.png)
+![](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/TSDAE.png)
 
 ## Unsupervised Training with TSDAE
 Training with TSDAE is simple. You just need a set of sentences:
