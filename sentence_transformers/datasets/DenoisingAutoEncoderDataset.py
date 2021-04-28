@@ -32,9 +32,11 @@ class DenoisingAutoEncoderDataset(Dataset):
     def delete(text, del_ratio=0.6):
         words = nltk.word_tokenize(text)
         n = len(words)
-        keep_idx = np.random.choice(n)  # guarantee that at least one word remains
+        if n == 0:
+            return text
+
         keep_or_not = np.random.rand(n) > del_ratio
         if sum(keep_or_not) == 0:
-            keep_or_not[keep_idx] = True
+            keep_or_not[np.random.choice(n)] = True # guarantee that at least one word remains
         words_processed = TreebankWordDetokenizer().detokenize(np.array(words)[keep_or_not])
         return words_processed
