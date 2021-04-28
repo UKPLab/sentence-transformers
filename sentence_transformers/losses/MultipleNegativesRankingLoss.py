@@ -37,7 +37,7 @@ class MultipleNegativesRankingLoss(nn.Module):
             train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
             train_loss = losses.MultipleNegativesRankingLoss(model=model)
     """
-    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct = util.pytorch_cos_sim):
+    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct = util.cos_sim):
         """
         :param model: SentenceTransformer model
         :param scale: Output of similarity function is multiplied by scale value
@@ -52,22 +52,14 @@ class MultipleNegativesRankingLoss(nn.Module):
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
-        reps_a = reps[0]
-        reps_b = torch.cat(reps[1:])
-        return self.multiple_negatives_ranking_loss(reps_a, reps_b)
+        embeddings_a = reps[0]
+        embeddings_b = torch.cat(reps[1:])
 
-
-    def multiple_negatives_ranking_loss(self, embeddings_a: Tensor, embeddings_b: Tensor):
-        """
-        :param embeddings_a:
-            Tensor of shape (batch_size, embedding_dim)
-        :param embeddings_b:
-            Tensor of shape (batch_size, embedding_dim)
-        :return:
-            The scalar loss
-        """
         scores = self.similarity_fct(embeddings_a, embeddings_b) * self.scale
         labels = torch.tensor(range(len(scores)), dtype=torch.long, device=scores.device)  # Example a[i] should match with b[i]
         return self.cross_entropy_loss(scores, labels)
+
+
+
 
 
