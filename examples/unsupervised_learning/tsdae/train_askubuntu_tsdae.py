@@ -16,7 +16,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #### /print debug information to stdout
 
 ################# Download AskUbuntu and extract training corpus  #################
-askubuntu_folder = 'askubuntu'
+askubuntu_folder = 'datasets/askubuntu'
 result_folder = 'output/askubuntu-tsdae-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 batch_size = 8
 

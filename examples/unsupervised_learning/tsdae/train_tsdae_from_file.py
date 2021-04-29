@@ -23,19 +23,24 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
+# Train Parameters
+model_name = 'bert-base-uncased'
+batch_size = 8
+
+#Input file path (a text file, each line a sentence)
 if len(sys.argv) < 2:
     print("Run this script with: python {} path/to/sentences.txt".format(sys.argv[0]))
     exit()
 
 filepath = sys.argv[1]
+
+# Save path to store our model
 output_name = ''
 if len(sys.argv) >= 3:
     output_name = "-"+sys.argv[2].replace(" ", "_").replace("/", "_").replace("\\", "_")
 
 model_output_path = 'output/train_tsdae{}-{}'.format(output_name, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
-model_name = 'bert-base-uncased'
-batch_size = 8
 
 ################# Read the train corpus  #################
 train_sentences = []

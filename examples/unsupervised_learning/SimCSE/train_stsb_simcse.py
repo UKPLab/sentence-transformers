@@ -17,7 +17,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #### /print debug information to stdout
 
 # Training parameters
-model_name = 'distilroberta-base'
+model_name = 'distilbert-base-uncased'
 train_batch_size = 128
 num_epochs = 1
 
@@ -52,14 +52,19 @@ with open(wikipedia_dataset_path, 'r', encoding='utf8') as fIn:
 # Read STSbenchmark dataset and use it as development set
 logging.info("Read STSbenchmark dev dataset")
 dev_samples = []
+test_samples = []
 with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
     for row in reader:
+        score = float(row['score']) / 5.0  # Normalize score to range 0 ... 1
+
         if row['split'] == 'dev':
-            score = float(row['score']) / 5.0  # Normalize score to range 0 ... 1
             dev_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=score))
+        elif row['split'] == 'test':
+            test_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=score))
 
 dev_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, batch_size=train_batch_size, name='sts-dev')
+test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, batch_size=train_batch_size, name='sts-test')
 
 # We train our model using the MultipleNegativesRankingLoss
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size, drop_last=True)
@@ -74,13 +79,13 @@ dev_evaluator(model)
 
 # Train the model
 model.fit(train_objectives=[(train_dataloader, train_loss)],
-          evaluator=dev_evaluator,
+          evaluator=test_evaluator,
           epochs=num_epochs,
           evaluation_steps=evaluation_steps,
           warmup_steps=warmup_steps,
           output_path=model_save_path,
           optimizer_params={'lr': 5e-5},
-          use_amp=True
+          use_amp=True         #Set to True, if your GPU supports FP16 cores
           )
 
 ##############################################################################
@@ -89,15 +94,6 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
 #
 ##############################################################################
 
-# Read the STS test set
-test_samples = []
-with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
-    for row in reader:
-        if row['split'] == 'test':
-            score = float(row['score']) / 5.0  # Normalize score to range 0 ... 1
-            test_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=score))
 
 model = SentenceTransformer(model_save_path)
-test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, batch_size=train_batch_size, name='sts-test')
 test_evaluator(model, output_path=model_save_path)

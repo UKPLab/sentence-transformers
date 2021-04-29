@@ -40,7 +40,17 @@ model.fit(
     epochs=1,
     show_progress_bar=True
 )
+
+model.save('output/simcse-model')
 ``` 
+
+## SimCSE from Sentences File
+
+**[train_simcse_from_file.py](train_simcse_from_file.py)** loads sentences from a provided text file. It is expected, that the there is one sentence per line in that text file.
+
+SimCSE will be training using these sentences. Checkpoints are stored every 500 steps to the output folder.
+
+
 ## Training Examples
 - **[train_askubuntu_simcse.py](train_askubuntu_simcse.py)** - Shows the example how to train with SimCSE on the [AskUbuntu Questions dataset](https://github.com/taolei87/askubuntu).
 - **[train_stsb_simcse.py](train_stsb_simcse.py)** - This script uses 1 million sentences and evaluates SimCSE on the [STSbenchmark dataset](https://ixa2.si.ehu.eus/stswiki/index.php/STSbenchmark).
