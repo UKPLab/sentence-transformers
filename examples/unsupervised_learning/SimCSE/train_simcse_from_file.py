@@ -10,13 +10,10 @@ python train_simcse_from_file.py path/to/sentences.txt
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses
-from sentence_transformers import LoggingHandler, SentenceTransformer, util, InputExample
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+from sentence_transformers import LoggingHandler, SentenceTransformer, InputExample
 import logging
 from datetime import datetime
-import os
 import gzip
-import csv
 import sys
 import tqdm
 

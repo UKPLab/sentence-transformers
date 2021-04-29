@@ -8,7 +8,15 @@ During training, CT builds two independent encoders ('Model1' and 'Model2') with
 
 After training, the model 2 will be used for inference, which usually has better performance.
 
-## Training Examples 
+## CT from Sentences File
+
+**[train_ct_from_file.py](train_ct_from_file.py)** loads sentences from a provided text file. It is expected, that the there is one sentence per line in that text file.
+
+SimCSE will be training using these sentences. Checkpoints are stored every 500 steps to the output folder.
+
+
+
+## Further Training Examples 
 
 - **[train_stsb_ct.py](train_stsb_ct.py)**: This example uses 1 million sentences from Wikipedia to train with CT. It evaluate the performance on the  [STSbenchmark dataset](https://ixa2.si.ehu.eus/stswiki/index.php/STSbenchmark).
 - **[train_askubuntu_ct.py](train_askubuntu_ct.py)**: This example trains on [AskUbuntu Questions dataset](https://github.com/taolei87/askubuntu), a dataset with questions from the AskUbuntu Stackexchange forum.
