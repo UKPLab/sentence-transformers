@@ -13,6 +13,7 @@ class Pooling(nn.Module):
     You can concatenate multiple poolings together.
 
     :param word_embedding_dimension: Dimensions for the word embeddings
+    :param pooling_mode: Can be a string: mean/max/cls. If set, overwrites the other pooling_mode_* settings
     :param pooling_mode_cls_token: Use the first token (CLS token) as text representations
     :param pooling_mode_max_tokens: Use max in each dimension over all tokens.
     :param pooling_mode_mean_tokens: Perform mean-pooling
@@ -20,6 +21,7 @@ class Pooling(nn.Module):
     """
     def __init__(self,
                  word_embedding_dimension: int,
+                 pooling_mode: str = None,
                  pooling_mode_cls_token: bool = False,
                  pooling_mode_max_tokens: bool = False,
                  pooling_mode_mean_tokens: bool = True,
@@ -28,6 +30,13 @@ class Pooling(nn.Module):
         super(Pooling, self).__init__()
 
         self.config_keys = ['word_embedding_dimension',  'pooling_mode_cls_token', 'pooling_mode_mean_tokens', 'pooling_mode_max_tokens', 'pooling_mode_mean_sqrt_len_tokens']
+
+        if pooling_mode is not None:        #Set pooling mode by string
+            pooling_mode = pooling_mode.lower()
+            assert pooling_mode in ['mean', 'max', 'cls']
+            pooling_mode_cls_token = (pooling_mode == 'cls')
+            pooling_mode_max_tokens = (pooling_mode == 'max')
+            pooling_mode_mean_tokens = (pooling_mode == 'mean')
 
         self.word_embedding_dimension = word_embedding_dimension
         self.pooling_mode_cls_token = pooling_mode_cls_token
