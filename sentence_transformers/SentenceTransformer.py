@@ -447,7 +447,10 @@ class SentenceTransformer(nn.Sequential):
             max_grad_norm: float = 1,
             use_amp: bool = False,
             callback: Callable[[float, int, int], None] = None,
-            show_progress_bar: bool = True
+            show_progress_bar: bool = True,
+            checkpoint_path: str = None,
+            checkpoint_save_steps: int = 500,
+            checkpoint_save_total_limit: int = 1
             ):
         """
         Train the model with the given training objective
@@ -473,6 +476,9 @@ class SentenceTransformer(nn.Sequential):
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
         :param show_progress_bar: If True, output a tqdm progress bar
+        :param checkpoint_path: Folder to save checkpoints during training
+        :param checkpoint_save_steps: Will save a checkpoint after so many steps
+        :param checkpoint_save_total_limit: Total number of checkpoints to store
         """
 
         if use_amp:
@@ -584,10 +590,19 @@ class SentenceTransformer(nn.Sequential):
                         loss_model.zero_grad()
                         loss_model.train()
 
+                if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 and global_step % checkpoint_save_steps == 0:
+                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
+
+
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
         if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
             self.save(output_path)
+
+        if checkpoint_path is not None:
+            self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
+
+
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
         """
@@ -613,6 +628,20 @@ class SentenceTransformer(nn.Sequential):
                 if save_best_model:
                     self.save(output_path)
 
+    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step):
+        # Store new checkpoint
+        self.save(os.path.join(checkpoint_path, str(step)))
+
+        # Delete old checkpoints
+        if checkpoint_save_total_limit is not None and checkpoint_save_total_limit > 0:
+            old_checkpoints = []
+            for subdir in os.listdir(checkpoint_path):
+                if subdir.isdigit():
+                    old_checkpoints.append({'step': int(subdir), 'path': os.path.join(checkpoint_path, subdir)})
+
+            if len(old_checkpoints) > checkpoint_save_total_limit:
+                old_checkpoints = sorted(old_checkpoints, key=lambda x: x['step'])
+                shutil.rmtree(old_checkpoints[0]['path'])
 
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):

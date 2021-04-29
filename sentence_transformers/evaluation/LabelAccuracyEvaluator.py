@@ -2,7 +2,6 @@ from . import SentenceEvaluator
 import torch
 from torch.utils.data import DataLoader
 import logging
-from tqdm import tqdm
 from ..util import batch_to_device
 import os
 import csv
