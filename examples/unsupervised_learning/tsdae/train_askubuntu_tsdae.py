@@ -16,7 +16,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #### /print debug information to stdout
 
 ################# Download AskUbuntu and extract training corpus  #################
-askubuntu_folder = 'datasets/askubuntu'
+askubuntu_folder = 'data/askubuntu'
 result_folder = 'output/askubuntu-tsdae-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 batch_size = 8
 
@@ -67,6 +67,7 @@ train_sentences = []
 for id, sentence in corpus.items():
     if id not in dev_test_ids:
         train_sentences.append(sentence)
+
 
 logging.info("{} train sentences".format(len(train_sentences)))
 

@@ -28,7 +28,7 @@ model_save_path = 'output/train_stsb_ct-{}-{}'.format(model_name, datetime.now()
 
 ################# Train sentences #################
 # We use 1 Million sentences from Wikipedia to train our model
-wikipedia_dataset_path = 'datasets/wiki1m_for_simcse.txt'
+wikipedia_dataset_path = 'data/wiki1m_for_simcse.txt'
 if not os.path.exists(wikipedia_dataset_path):
     util.http_get('https://huggingface.co/datasets/princeton-nlp/datasets-for-simcse/resolve/main/wiki1m_for_simcse.txt', wikipedia_dataset_path)
 
@@ -41,7 +41,7 @@ with open(wikipedia_dataset_path, 'r', encoding='utf8') as fIn:
             train_sentences.append(line)
 
 ################# Download and load STSb #################
-data_folder = 'datasets/stsbenchmark'
+data_folder = 'data/stsbenchmark'
 sts_dataset_path = f'{data_folder}/stsbenchmark.tsv.gz'
 
 if not os.path.exists(sts_dataset_path):

@@ -26,7 +26,7 @@ max_seq_length = 32
 model_save_path = 'output/training_stsb_simcse-{}-{}-{}'.format(model_name, train_batch_size, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 # Check if dataset exsist. If not, download and extract  it
-sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
+sts_dataset_path = 'data/stsbenchmark.tsv.gz'
 
 if not os.path.exists(sts_dataset_path):
     util.http_get('https://sbert.net/datasets/stsbenchmark.tsv.gz', sts_dataset_path)
@@ -37,7 +37,7 @@ pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 # We use 1 Million sentences from Wikipedia to train our model
-wikipedia_dataset_path = 'datasets/wiki1m_for_simcse.txt'
+wikipedia_dataset_path = 'data/wiki1m_for_simcse.txt'
 if not os.path.exists(wikipedia_dataset_path):
     util.http_get('https://huggingface.co/datasets/princeton-nlp/datasets-for-simcse/resolve/main/wiki1m_for_simcse.txt', wikipedia_dataset_path)
 

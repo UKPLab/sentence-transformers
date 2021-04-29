@@ -23,7 +23,7 @@ max_seq_length = 32
 num_epochs = 1
 
 ################# Download AskUbuntu and extract training corpus  #################
-askubuntu_folder = 'datasets/askubuntu'
+askubuntu_folder = 'data/askubuntu'
 output_path = 'output/askubuntu-simcse-{}-{}-{}'.format(model_name, batch_size, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 ## Download the AskUbuntu dataset from https://github.com/taolei87/askubuntu

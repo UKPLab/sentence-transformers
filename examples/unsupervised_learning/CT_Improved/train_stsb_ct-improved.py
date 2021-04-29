@@ -28,7 +28,7 @@ model_save_path = 'output/training_stsb_ct-improved-{}-{}'.format(model_name, da
 
 ################# Train sentences #################
 # We use 1 Million sentences from Wikipedia to train our model
-wikipedia_dataset_path = 'datasets/wiki1m_for_simcse.txt'
+wikipedia_dataset_path = 'data/wiki1m_for_simcse.txt'
 if not os.path.exists(wikipedia_dataset_path):
     util.http_get('https://huggingface.co/datasets/princeton-nlp/datasets-for-simcse/resolve/main/wiki1m_for_simcse.txt', wikipedia_dataset_path)
 
@@ -39,7 +39,7 @@ with open(wikipedia_dataset_path, 'r', encoding='utf8') as fIn:
         train_sentences.append(InputExample(texts=[line.strip(), line.strip()]))
 
 ################# Download and load STSb #################
-data_folder = 'datasets/stsbenchmark'
+data_folder = 'data/stsbenchmark'
 sts_dataset_path = f'{data_folder}/stsbenchmark.tsv.gz'
 
 if not os.path.exists(sts_dataset_path):
@@ -83,7 +83,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
           warmup_steps=1000,
           output_path=model_save_path,
           optimizer_params={'lr': 5e-5},
-          use_amp=True
+          use_amp=True          #Set to True, if your GPU supports FP16 cores
           )
 
 ########### Load the model and evaluate on test set
