@@ -4,7 +4,11 @@ This page contains a collection of unsupervised learning methods to learn senten
 
 **Note:** Compared to supervised approaches with in-domain training data, unsupervised approaches  achieve low performances, especially for challenging tasks. But for many tasks training data is not available and would be expensive to create. 
 
-## TSDAE
+## Sentence-Based Approaches
+
+The following approaches only require sentences from your target domain.
+
+### TSDAE
 In our work [TSDAE (Tranformer-based Denoising AutoEncoder)](https://arxiv.org/abs/2104.06979) we present an unsupervised sentence embedding learning method based on denoising auto-encoders:
 
 ![](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/TSDAE.png)
@@ -13,7 +17,7 @@ We add noise to the input text, in our case, we delete about 60% of the words in
 
 See **[TSDAE](tsdae/README.md)** for more information and training examples.
 
-## SimCSE
+### SimCSE
 
 Gao et al. present in [SimCSE: Simple Contrastive Learning of Sentence Embeddings](https://arxiv.org/abs/2104.08821) a method that passes the same sentence twice to the sentence embedding encoder. Due to the drop-out, it will be encoded at slightly different positions in vector space. 
 
@@ -22,6 +26,26 @@ The distance between these two embeddings will be minized, while the distance to
 ![SimCSE working](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/SimCSE.png)
 
 See **[SimCSE](SimCSE/README.md)** for more information and training examples.
+
+### CT
+
+Carlsson et al. present in [Semantic Re-Tuning With Contrastive Tension (CT)](https://openreview.net/pdf?id=Ov_sMNau-PF) an unsupervised method that uses two models: If the same sentences are passed to Model1 and Model2, then the respective sentence embeddings should get a large dot-score. If the different sentences are passed, then the sentence embeddings should get a low score.
+
+![CT working](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/CT.jpg)
+
+See **[CT](CT/README.md)** for more information and training examples.
+
+### CT-Improved
+
+The CT method from Carlsson et al. provides sentence pairs to the two models. This can be improved by using in-batch negative sampling: Model1 and Model2 both encode the same set of sentences. We maximize the scores for matching indexes (i.e. Model1(S_i) and Model2(S_i)) while we minimize the scores for different indexes (i.e. Model1(S_i) and Model2(S_j) for i != j).
+
+See **[CT_Improved](CT_Improved/README.md)** for more information and training examples.
+
+### Performance Comparison
+Currently we conduct experiments which unsupervised sentence embedding methods yields the best results. In terms of run-time are SimCSE and CT-Improved quite fast to train, while TSDAE takes the longest to train.
+
+
+------------------------
 
 ## GenQ
 

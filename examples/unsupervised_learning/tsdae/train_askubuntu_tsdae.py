@@ -93,7 +93,6 @@ logging.info("Dev performance before training")
 dev_evaluator(model)
 
 total_steps = 20000
-
 logging.info("Start training")
 model.fit(
     train_objectives=[(train_dataloader, train_loss)],
