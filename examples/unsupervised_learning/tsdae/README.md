@@ -44,9 +44,18 @@ model.fit(
     optimizer_params={'lr': 3e-5},
     show_progress_bar=True
 )
+
+model.save('output/tsdae-model')
 ``` 
 
-## TSDAE on AskUbuntu
+## TSDAE from Sentences File
+
+**[train_tsdae_from_file.py](train_tsdae_from_file.py)** loads sentences from a provided text file. It is expected, that the there is one sentence per line in that text file.
+
+TSDAE will be training using these sentences. Checkpoints are stored every 500 steps to the output folder.
+
+
+## TSDAE on AskUbuntu Dataset
 The [AskUbuntu dataset](https://github.com/taolei87/askubuntu) is a manually annotated dataset for the [AskUbuntu forum](https://askubuntu.com/). For 400 questions, experts annotated for each question 20 other questions if they are related or not. The questions are split into train & development set.
 
 **[train_askubuntu_tsdae.py](train_askubuntu_tsdae.py)** - Shows an example how to train a model on AskUbuntu using only sentences without any labels. As sentences, we use the titles that are not used in the dev / test set. 
