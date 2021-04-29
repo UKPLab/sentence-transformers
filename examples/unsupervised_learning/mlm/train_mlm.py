@@ -4,6 +4,7 @@ Optionally, you can also provide a dev file.
 
 The fine-tuned model is stored in the output/model_name folder.
 
+Usage:
 python train_mlm.py model_name data/train_sentences.txt [data/dev_sentences.txt]
 """
 
@@ -13,6 +14,10 @@ from transformers import Trainer, TrainingArguments
 import sys
 import gzip
 from datetime import datetime
+
+if len(sys.argv) < 3:
+    print("Usage: python train_mlm.py model_name data/train_sentences.txt [data/dev_sentences.txt]")
+    exit()
 
 model_name = sys.argv[1]
 per_device_train_batch_size = 64

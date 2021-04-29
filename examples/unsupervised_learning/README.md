@@ -8,6 +8,8 @@ This page contains a collection of unsupervised learning methods to learn senten
 
 The following approaches only require sentences from your target domain.
 
+**Disclaimer:** Unsupervised Sentence Embedding methods are still an active research area and the results are not well predictable. In many cases, pre-trained models that use labeled data work better also for other (new) domains. 
+
 ### TSDAE
 In our work [TSDAE (Tranformer-based Denoising AutoEncoder)](https://arxiv.org/abs/2104.06979) we present an unsupervised sentence embedding learning method based on denoising auto-encoders:
 
@@ -43,6 +45,15 @@ See **[CT_Improved](CT_Improved/README.md)** for more information and training e
 
 ### Performance Comparison
 Currently we conduct experiments which unsupervised sentence embedding methods yields the best results. In terms of run-time are SimCSE and CT-Improved quite fast to train, while TSDAE takes the longest to train.
+
+---------------------
+
+## Pre-Training
+
+Pre-training methods are used to first adapt the transformer model to your domain on a large (unlabeled) corpus. Then, fine-tuning is used with labeled data. In our [TSDAE-paper](https://arxiv.org/abs/2104.06979) we showed the impact pre-training can have on the performance of supervised models.
+
+### Masked Language Model (MLM)
+BERT showed that Masked Language Model (MLM) is a powerful pre-training approach. It is advisable to first run MLM a large dataset from your domain before you do fine-tuning. See **[MLM](MLM/README.md)** for more information and training examples.
 
 
 ------------------------
