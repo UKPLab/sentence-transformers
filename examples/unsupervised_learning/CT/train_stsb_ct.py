@@ -36,7 +36,9 @@ if not os.path.exists(wikipedia_dataset_path):
 train_sentences = []
 with open(wikipedia_dataset_path, 'r', encoding='utf8') as fIn:
     for line in fIn:
-        train_sentences.append(line.strip())
+        line = line.strip()
+        if len(line) >= 10:
+            train_sentences.append(line)
 
 ################# Download and load STSb #################
 data_folder = 'datasets/stsbenchmark'
