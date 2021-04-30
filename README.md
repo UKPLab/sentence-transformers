@@ -98,22 +98,23 @@ Some highlights are:
 
 Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed.
 
-| Model    | STS benchmark | SentEval  |
-| ----------------------------------|:-----: |:---:   |
-| Avg. GloVe embeddings             | 58.02  | 81.52  |
-| BERT-as-a-service avg. embeddings | 46.35  | 84.04  |
-| BERT-as-a-service CLS-vector      | 16.50  | 84.66  |
-| InferSent - GloVe                 | 68.03  | 85.59  |
-| Universal Sentence Encoder        | 74.92  | 85.10  |
-|**Sentence Transformer Models**    ||
-| nli-bert-base       | 77.12  | 86.37 |
-| nli-bert-large     | 79.19  | 87.78 |
-| stsb-bert-base    | 85.14  | 86.07 |
-| stsb-bert-large   | 85.29 | 86.66|
-| stsb-roberta-base | 85.44 | - |
-| stsb-roberta-large | 86.39 | - |
-| stsb-distilbert-base| 85.16 | - |
+| Model    | STS benchmark | 
+| ----------------------------------|:-----: |
+| Avg. GloVe embeddings             | 58.02  | 
+| BERT-as-a-service avg. embeddings | 46.35  | 
+| BERT-as-a-service CLS-vector      | 16.50  | 
+| InferSent - GloVe                 | 68.03  |
+| Universal Sentence Encoder        | 74.92  | 
+|**Sentence Transformer Models (NLI + MNLI)**  | |
+| nli-distilroberta-base-v2 | 84.38 |
+| nli-roberta-base-v2 | 85.54 |
+|**Sentence Transformer Models (STS benchmark data)**  | |
+| stsb-distilroberta-base-v2 | 86.41 |
+| stsb-roberta-base-v2 | 87.21 |
 
+
+
+[» Full list of pretrained models](https://www.sbert.net/docs/pretrained_models.html)
 
 
 

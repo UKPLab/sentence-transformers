@@ -127,8 +127,13 @@ class NoDuplicatesSampler:
     def __len__(self):
         return math.ceil(len(self.train_examples) / self.batch_size)
 
+# Standard data loader
 #train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size, drop_last=True)
+
+# Special data loader that avoid duplicates within a batch
 train_dataloader = DataLoader(train_samples, batch_sampler=NoDuplicatesSampler(train_samples, batch_size=train_batch_size))
+
+# Our training loss
 train_loss = losses.MultipleNegativesRankingLoss(model)
 
 
