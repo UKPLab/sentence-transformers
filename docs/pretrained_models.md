@@ -24,8 +24,10 @@ The following models **are recommended for various applications**, as they were 
 The following models were optimized for [Semantic Textual Similarity](usage/semantic_textual_similarity.md) (STS). They were trained on SNLI+MultiNLI and then fine-tuned on the STS benchmark train set.
  
  The best available models for STS are:
+- **stsb-mpnet-base-v2** - STSb performance: 88.57
 - **stsb-roberta-base-v2** - STSb performance: 87.21
 - **stsb-distilroberta-base-v2** - STSb performance: 86.41
+- **nli-mpnet-base-v2** - STSb performance: 86.53 
 - **nli-roberta-base-v2** - STSb performance: 85.54
 - **nli-distilroberta-base-v2** - STSb performance: 84.38
 

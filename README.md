@@ -108,9 +108,11 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
 |**Sentence Transformer Models (NLI + MNLI)**  | |
 | nli-distilroberta-base-v2 | 84.38 |
 | nli-roberta-base-v2 | 85.54 |
-|**Sentence Transformer Models (STS benchmark data)**  | |
+| nli-mpnet-base-v2 | 86.53 |
+|**Sentence Transformer Models (NLI + STS benchmark)**  | |
 | stsb-distilroberta-base-v2 | 86.41 |
 | stsb-roberta-base-v2 | 87.21 |
+| stsb-mpnet-base-v2 | 88.57 |
 
 
 
