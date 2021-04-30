@@ -40,7 +40,8 @@ class NoDuplicatesSampler:
             texts_in_batch = set()
 
             while len(batch_idx) < self.batch_size:
-                example = self.train_examples[self.data_idx[self.data_pointer]]
+                idx = self.data_idx[self.data_pointer]
+                example = self.train_examples[idx]
 
                 valid_example = True
                 for text in example.texts:
@@ -49,7 +50,7 @@ class NoDuplicatesSampler:
                         break
 
                 if valid_example:
-                    batch_idx.add(self.data_pointer)
+                    batch_idx.add(idx)
                     for text in example.texts:
                         texts_in_batch.add(text.strip().lower())
 

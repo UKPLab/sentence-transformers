@@ -1,4 +1,4 @@
-# CT
+# CT-Improved
 Carlsson et al. present in [Semantic Re-Tuning With Contrastive Tension (CT)](https://openreview.net/pdf?id=Ov_sMNau-PF) an unsupervised learning approach for sentence embeddings that just requires sentences.
 
 ## Background
