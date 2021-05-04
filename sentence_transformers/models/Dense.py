@@ -20,13 +20,17 @@ class Dense(nn.Module):
     :param init_weight: Initial value for the matrix of the linear layer
     :param init_bias: Initial value for the bias of the linear layer
     """
-    def __init__(self, in_features: int, out_features: int, bias: bool = True, activation_function=nn.Tanh(), init_weight: Tensor = None, init_bias: Tensor = None):
+    def __init__(self, in_features: int, out_features: int, bias: bool = True, activation_function=nn.Tanh(), init_weight: Tensor = None, init_bias: Tensor = None, dropout: float = None):
         super(Dense, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.bias = bias
         self.activation_function = activation_function
         self.linear = nn.Linear(in_features, out_features, bias=bias)
+        if dropout:
+            self.dropout = nn.Dropout(dropout)
+        else:
+            self.dropout = None
 
         if init_weight is not None:
             self.linear.weight = nn.Parameter(init_weight)
@@ -35,7 +39,11 @@ class Dense(nn.Module):
             self.linear.bias = nn.Parameter(init_bias)
 
     def forward(self, features: Dict[str, Tensor]):
-        features.update({'sentence_embedding': self.activation_function(self.linear(features['sentence_embedding']))})
+        linear = self.linear(features['sentence_embedding'])
+        if self.dropout:
+            linear = self.dropout(linear)
+            
+        features.update({'sentence_embedding': self.activation_function(linear)})
         return features
 
     def get_sentence_embedding_dimension(self) -> int:
