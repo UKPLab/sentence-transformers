@@ -19,6 +19,7 @@ from tqdm.autonotebook import trange
 import math
 import queue
 
+from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, http_get
 from .models import Transformer, Pooling
@@ -47,8 +48,6 @@ class SentenceTransformer(nn.Sequential):
                 if '\\' in model_path or model_path.count('/') > 1:
                     raise AttributeError("Path {} not found".format(model_path))
 
-                logger.info("Search model on HugginFace Hub: https://huggingface.co/{}".format(model_name_or_path))
-
                 cache_folder = os.getenv('SENTENCE_TRANSFORMERS_HOME')
                 if cache_folder is None:
                     try:
@@ -64,16 +63,28 @@ class SentenceTransformer(nn.Sequential):
                 if not os.path.exists(model_path) or not os.listdir(model_path):
                     if os.path.exists(model_path):
                         os.remove(model_path)
+                    try:
+                        logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(model_name_or_path, model_path))
+                        model_path_tmp = snapshot_download(model_name_or_path, cache_dir=cache_folder)
+                    except requests.exceptions.HTTPError as e:
+                        if e.response.status_code == 404:
+                            sentence_transformer_repo_path = __MODEL_HUB_ORGANIZATION__+ "/" +model_name_or_path
+                            logger.info("Model not found in path {}. Trying to load model from organization {}", model_name_or_path, __MODEL_HUB_ORGANIZATION__)
+                            logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(sentence_transformer_repo_path, model_path))
 
-                    logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(model_name_or_path, model_path))
-                    model_path_tmp = snapshot_download(model_name_or_path, cache_dir=cache_folder)
+                            model_path_tmp = snapshot_download(sentence_transformer_repo_path, cache_dir=cache_folder)
+                        else:
+                            raise e
+                    except Exception as e:
+                        shutil.rmtree(model_path_tmp)
+                        raise e
                     os.rename(model_path_tmp, model_path)
 
-            #### Load from disk
-            if model_path is not None:
-                logger.info("Load SentenceTransformer from folder: {}".format(model_path))
+            logger.info("Load SentenceTransformer from folder: {}".format(model_path))
 
-                with open(os.path.join(model_path, 'modules.json')) as fIn:
+            modules_json_path = os.path.join(model_path, 'modules.json')
+            if os.path.isfile(modules_json_path):
+                with open(modules_json_path) as fIn:
                     contained_modules = json.load(fIn)
 
                 modules = OrderedDict()
@@ -81,7 +92,13 @@ class SentenceTransformer(nn.Sequential):
                     module_class = import_from_string(module_config['type'])
                     module = module_class.load(os.path.join(model_path, module_config['path']))
                     modules[module_config['name']] = module
+            else:
+                logger.warning("Adding mean pooling since modules.json is not specified.")
 
+                save_model_to = model_path
+                transformer_model = Transformer(model_path)
+                pooling_model = Pooling(transformer_model.get_word_embedding_dimension())
+                modules = [transformer_model, pooling_model]
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -92,6 +109,10 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
+
+        # We added a pool layer, so saving the SBERT model in the cache folder
+        if save_model_to is not None:
+            self.save(save_model_to)
 
 
     def encode(self, sentences: Union[str, List[str], List[int]],
@@ -330,7 +351,7 @@ class SentenceTransformer(nn.Sequential):
 
         for idx, name in enumerate(self._modules):
             module = self._modules[name]
-            model_path = path if idx == 0 else os.path.join(path, str(idx)+"_"+type(module).__name__)
+            model_path = path + "/" if idx == 0 else os.path.join(path, str(idx)+"_"+type(module).__name__)
             os.makedirs(model_path, exist_ok=True)
             module.save(model_path)
             contained_modules.append({'idx': idx, 'name': name, 'path': os.path.basename(model_path), 'type': type(module).__module__})

@@ -1,5 +1,5 @@
 __version__ = "1.1.0"
-__DOWNLOAD_SERVER__ = 'http://sbert.net/models/'
+__MODEL_HUB_ORGANIZATION__ = 'sentence-transformers'
 from .datasets import SentencesDataset, ParallelSentencesDataset
 from .LoggingHandler import LoggingHandler
 from .SentenceTransformer import SentenceTransformer
