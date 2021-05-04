@@ -330,7 +330,7 @@ class SentenceTransformer(nn.Sequential):
 
         for idx, name in enumerate(self._modules):
             module = self._modules[name]
-            model_path = os.path.join(path, str(idx)+"_"+type(module).__name__)
+            model_path = path if idx == 0 else os.path.join(path, str(idx)+"_"+type(module).__name__)
             os.makedirs(model_path, exist_ok=True)
             module.save(model_path)
             contained_modules.append({'idx': idx, 'name': name, 'path': os.path.basename(model_path), 'type': type(module).__module__})
