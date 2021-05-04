@@ -1,5 +1,5 @@
 # cross_encoder
-For an introduction to Cross-Encoders, see [Cross-Encoders](../usage/cross-encoder.md). 
+For an introduction to Cross-Encoders, see [Cross-Encoders](../../examples/applications/cross-encoder/README.md).
 ```eval_rst
 .. autoclass:: sentence_transformers.cross_encoder.CrossEncoder
    :members:
