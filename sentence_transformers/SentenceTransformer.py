@@ -9,6 +9,7 @@ import requests
 import numpy as np
 from numpy import ndarray
 import transformers
+from huggingface_hub import snapshot_download
 import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
@@ -18,7 +19,6 @@ from tqdm.autonotebook import trange
 import math
 import queue
 
-from . import __DOWNLOAD_SERVER__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, http_get
 from .models import Transformer, Pooling
@@ -47,12 +47,7 @@ class SentenceTransformer(nn.Sequential):
                 if '\\' in model_path or model_path.count('/') > 1:
                     raise AttributeError("Path {} not found".format(model_path))
 
-                model_path = __DOWNLOAD_SERVER__ + model_path + '.zip'
-                logger.info("Search model on server: {}".format(model_path))
-
-            if model_path.startswith('http://') or model_path.startswith('https://'):
-                model_url = model_path
-                folder_name = model_url.replace("https://", "").replace("http://", "").replace("/", "_")[:250][0:-4] #remove .zip file end
+                logger.info("Search model on HugginFace Hub: https://huggingface.co/{}".format(model_name_or_path))
 
                 cache_folder = os.getenv('SENTENCE_TRANSFORMERS_HOME')
                 if cache_folder is None:
@@ -64,53 +59,19 @@ class SentenceTransformer(nn.Sequential):
 
                     cache_folder = os.path.join(torch_cache_home, 'sentence_transformers')
 
+                folder_name = "sbert.net_models_" + model_path.replace("/", "_")
                 model_path = os.path.join(cache_folder, folder_name)
-
                 if not os.path.exists(model_path) or not os.listdir(model_path):
                     if os.path.exists(model_path):
                         os.remove(model_path)
 
-                    model_url = model_url.rstrip("/")
-                    logger.info("Downloading sentence transformer model from {} and saving it at {}".format(model_url, model_path))
-
-                    model_path_tmp = model_path.rstrip("/").rstrip("\\")+"_part"
-                    try:
-                        zip_save_path = os.path.join(model_path_tmp, 'model.zip')
-                        http_get(model_url, zip_save_path)
-                        with ZipFile(zip_save_path, 'r') as zip:
-                            zip.extractall(model_path_tmp)
-                        os.remove(zip_save_path)
-                        os.rename(model_path_tmp, model_path)
-                    except requests.exceptions.HTTPError as e:
-                        shutil.rmtree(model_path_tmp)
-                        if e.response.status_code == 429:
-                            raise Exception("Too many requests were detected from this IP for the model {}. Please contact info@nils-reimers.de for more information.".format(model_name_or_path))
-
-                        if e.response.status_code == 404:
-                            logger.warning('SentenceTransformer-Model {} not found. Try to create it from scratch'.format(model_url))
-                            logger.warning('Try to create Transformer Model {} with mean pooling'.format(model_name_or_path))
-
-                            save_model_to = model_path
-                            model_path = None
-                            transformer_model = Transformer(model_name_or_path)
-                            pooling_model = Pooling(transformer_model.get_word_embedding_dimension())
-                            modules = [transformer_model, pooling_model]
-                        else:
-                            raise e
-                    except Exception as e:
-                        shutil.rmtree(model_path)
-                        raise e
-
+                    logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(model_name_or_path, model_path))
+                    model_path_tmp = snapshot_download(model_name_or_path, cache_dir=cache_folder)
+                    os.rename(model_path_tmp, model_path)
 
             #### Load from disk
             if model_path is not None:
                 logger.info("Load SentenceTransformer from folder: {}".format(model_path))
-
-                if os.path.exists(os.path.join(model_path, 'config.json')):
-                    with open(os.path.join(model_path, 'config.json')) as fIn:
-                        config = json.load(fIn)
-                        if config['__version__'] > __version__:
-                            logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(config['__version__'], __version__))
 
                 with open(os.path.join(model_path, 'modules.json')) as fIn:
                     contained_modules = json.load(fIn)
@@ -131,10 +92,6 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
-
-        #We created a new model from scratch based on a Transformer model. Save the SBERT model in the cache folder
-        if save_model_to is not None:
-            self.save(save_model_to)
 
 
     def encode(self, sentences: Union[str, List[str], List[int]],
@@ -380,9 +337,6 @@ class SentenceTransformer(nn.Sequential):
 
         with open(os.path.join(path, 'modules.json'), 'w') as fOut:
             json.dump(contained_modules, fOut, indent=2)
-
-        with open(os.path.join(path, 'config.json'), 'w') as fOut:
-            json.dump({'__version__': __version__}, fOut, indent=2)
 
     def smart_batching_collate(self, batch):
         """
