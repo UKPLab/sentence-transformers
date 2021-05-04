@@ -10,7 +10,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
-from .. import SentenceTransformer
+from .. import SentenceTransformer, util
 from ..evaluation import SentenceEvaluator
 
 
@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 class CrossEncoder():
-    def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, device:str = None, tokenizer_args:Dict = {}):
+    def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, device:str = None, tokenizer_args:Dict = {},
+                 default_activation_function = None):
         """
         A CrossEncoder takes exactly two sentences / texts as input and either predicts
         a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
@@ -31,6 +32,7 @@ class CrossEncoder():
         :param max_length: Max length for input sequences. Longer sequences will be truncated. If None, max length of the model will be used
         :param device: Device that should be used for the model. If None, it will use CUDA if available.
         :param tokenizer_args: Arguments passed to AutoTokenizer
+        :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1, else nn.Identity()
         """
 
         self.config = AutoConfig.from_pretrained(model_name)
@@ -46,7 +48,6 @@ class CrossEncoder():
 
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name, config=self.config)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, **tokenizer_args)
-
         self.max_length = max_length
 
         if device is None:
@@ -54,6 +55,17 @@ class CrossEncoder():
             logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
+
+        if default_activation_function is not None:
+            self.default_activation_function = default_activation_function
+            try:
+                self.config.sbert_ce_default_activation_function = util.fullname(self.default_activation_function)
+            except Exception as e:
+                logger.warning("Was not able to update config about the default_activation_function: {}".format(str(e)) )
+        elif hasattr(self.config, 'sbert_ce_default_activation_function') and self.config.sbert_ce_default_activation_function is not None:
+            self.default_activation_function = util.import_from_string(self.config.sbert_ce_default_activation_function)()
+        else:
+            self.default_activation_function = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
 
     def smart_batching_collate(self, batch):
         texts = [[] for _ in range(len(batch[0].texts))]
@@ -92,7 +104,7 @@ class CrossEncoder():
             evaluator: SentenceEvaluator = None,
             epochs: int = 1,
             loss_fct = None,
-            acitvation_fct = nn.Identity(),
+            activation_fct = nn.Identity(),
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
             optimizer_class: Type[Optimizer] = transformers.AdamW,
@@ -115,7 +127,7 @@ class CrossEncoder():
         :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
         :param epochs: Number of epochs for training
         :param loss_fct: Which loss function to use for training. If None, will use nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
-        :param acitvation_fct: Activation function applied on top of logits output of model.
+        :param activation_fct: Activation function applied on top of logits output of model.
         :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
         :param optimizer_class: Optimizer
@@ -172,7 +184,7 @@ class CrossEncoder():
                 if use_amp:
                     with autocast():
                         model_predictions = self.model(**features, return_dict=True)
-                        logits = acitvation_fct(model_predictions.logits)
+                        logits = activation_fct(model_predictions.logits)
                         if self.config.num_labels == 1:
                             logits = logits.view(-1)
                         loss_value = loss_fct(logits, labels)
@@ -187,10 +199,9 @@ class CrossEncoder():
                     skip_scheduler = scaler.get_scale() != scale_before_step
                 else:
                     model_predictions = self.model(**features, return_dict=True)
-                    logits = acitvation_fct(model_predictions.logits)
+                    logits = activation_fct(model_predictions.logits)
                     if self.config.num_labels == 1:
                         logits = logits.view(-1)
-
                     loss_value = loss_fct(logits, labels)
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
@@ -251,7 +262,7 @@ class CrossEncoder():
             iterator = tqdm(inp_dataloader, desc="Batches")
 
         if activation_fct is None:
-            activation_fct = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
+            activation_fct = self.default_activation_function
 
         pred_scores = []
         self.model.eval()

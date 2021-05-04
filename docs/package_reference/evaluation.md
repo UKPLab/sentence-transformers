@@ -9,6 +9,7 @@
 .. autoclass:: sentence_transformers.evaluation.MSEEvaluator
 .. autoclass:: sentence_transformers.evaluation.MSEEvaluatorFromDataFrame
 .. autoclass:: sentence_transformers.evaluation.ParaphraseMiningEvaluator
+.. autoclass:: sentence_transformers.evaluation.RerankingEvaluator
 .. autoclass:: sentence_transformers.evaluation.SentenceEvaluator
 .. autoclass:: sentence_transformers.evaluation.SequentialEvaluator
 .. autoclass:: sentence_transformers.evaluation.TranslationEvaluator

@@ -14,7 +14,7 @@ from PIL import Image, ImageFile
 from torch import nn
 from tqdm.autonotebook import tqdm
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
-
+#from torchvision.transforms import InterpolationMode
 
 class CLIPModel(nn.Module):
     def __init__(self, tokenizer_path: str, model_name: str = "ViT-B/32"):
@@ -31,6 +31,9 @@ class CLIPModel(nn.Module):
         for idx, data in enumerate(texts):
             if isinstance(data, ImageFile.ImageFile):       #An Image
                 image_features.append(self.preprocess(data).unsqueeze(0))
+                image_text_info.append(0)
+            elif isinstance(data, torch.Tensor):    #A preprocessed image
+                image_features.append(data.unsqueeze(0))
                 image_text_info.append(0)
             else:   #A text
                 text_features.append(tokenize(self.tokenizer, data))
@@ -73,7 +76,11 @@ class CLIPModel(nn.Module):
         with open(os.path.join(output_path, 'config.json'), 'w') as fOut:
             json.dump({'model_name': model_name, 'tokenizer_name': tokenizer_name}, fOut, indent=2)
 
-        self.model.save(os.path.join(output_path, model_name))
+        ## Save model
+        torch.save(self.model.state_dict(), os.path.join(output_path, model_name))
+
+        ##Save tokenizer
+        self.tokenizer.save(output_path)
 
     @staticmethod
     def load(input_path: str):
@@ -133,7 +140,7 @@ def _download(url: str, root: str = os.path.expanduser("~/.cache/clip")):
 
 def _transform(n_px):
     return Compose([
-        Resize(n_px, interpolation=Image.BICUBIC),
+        Resize(n_px, interpolation=Image.BICUBIC),  #InterpolationMode.BICUBIC
         CenterCrop(n_px),
         lambda image: image.convert("RGB"),
         ToTensor(),
@@ -146,7 +153,7 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
-def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit=True):
+def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit=False):
     """Load a CLIP model
 
     Parameters
@@ -196,7 +203,8 @@ def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_a
     device_holder = torch.jit.trace(lambda: torch.ones([]).to(torch.device(device)), example_inputs=[])
     device_node = [n for n in device_holder.graph.findAllNodes("prim::Constant") if "Device" in repr(n)][-1]
 
-    def patch_device(module):
+    """
+    def patch_device(module):  #Issues with Pytorch 1.8
         graphs = [module.graph] if hasattr(module, "graph") else []
         if hasattr(module, "forward1"):
             graphs.append(module.forward1.graph)
@@ -205,10 +213,10 @@ def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_a
             for node in graph.findAllNodes("prim::Constant"):
                 if "value" in node.attributeNames() and str(node["value"]).startswith("cuda"):
                     node.copyAttributes(device_node)
-
-    model.apply(patch_device)
-    patch_device(model.encode_image)
-    patch_device(model.encode_text)
+    """
+    #model.apply(patch_device)
+    #patch_device(model.encode_image)
+    #patch_device(model.encode_text)
 
     # patch dtype to float32 on CPU
     if str(device) == "cpu":
@@ -262,8 +270,9 @@ def tokenize(tokenizer, texts: Union[str, List[str]], context_length: int = 77) 
     result = torch.zeros(len(all_tokens), context_length, dtype=torch.long)
 
     for i, tokens in enumerate(all_tokens):
-        if len(tokens) > context_length:
-            raise RuntimeError(f"Input {texts[i]} is too long for context length {context_length}")
+        tokens = tokens[0:context_length]
+        #if len(tokens) > context_length:
+        #    raise RuntimeError(f"Input {texts[i]} is too long for context length {context_length}")
         result[i, :len(tokens)] = torch.tensor(tokens)
 
     return result

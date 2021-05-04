@@ -130,7 +130,7 @@ evaluators.append(paraphrase_mining_evaluator)
 # in that corpus.
 
 # For faster processing, we limit the development corpus to only 10,000 sentences.
-max_corpus_size = 100000
+max_corpus_size = 10000
 
 ir_queries = {}             #Our queries (qid => question)
 ir_needed_qids = set()      #QIDs we need in the corpus

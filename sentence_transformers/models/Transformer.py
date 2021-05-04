@@ -76,8 +76,13 @@ class Transformer(nn.Module):
                 batch2.append(text_tuple[1])
             to_tokenize = [batch1, batch2]
 
+        #strip
+        to_tokenize = [[s.strip() for s in col] for col in to_tokenize]
+
+        #Lowercase
         if self.do_lower_case:
             to_tokenize = [[s.lower() for s in col] for col in to_tokenize]
+
 
         output.update(self.tokenizer(*to_tokenize, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_seq_length))
         return output

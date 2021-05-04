@@ -18,16 +18,19 @@ Sadly there cannot exist a universal model that performs great on all possible t
 The following models **are recommended for various applications**, as they were trained on Millions of paraphrase examples. They create extremely good results for various similarity and retrieval tasks. They are currently under development, better versions and more details will be released in future. But they many tasks they work better than the NLI / STSb models.
 
 - **paraphrase-distilroberta-base-v1** - Trained on large scale paraphrase data.
-- **paraphrase-xlm-r-multilingual-v1** - Multilingual version of distilroberta-base-paraphrase-v1, trained on parallel data for 50+ languages. 
+- **paraphrase-xlm-r-multilingual-v1** - Multilingual version of paraphrase-distilroberta-base-v1, trained on parallel data for 50+ languages. (Teacher: paraphrase-distilroberta-base-v1, Student: xlm-r-base)
 
 ## Semantic Textual Similarity
 The following models were optimized for [Semantic Textual Similarity](usage/semantic_textual_similarity.md) (STS). They were trained on SNLI+MultiNLI and then fine-tuned on the STS benchmark train set.
  
  The best available models for STS are:
-- **stsb-roberta-large** - STSb performance: 86.39
-- **stsb-roberta-base** - STSb performance: 85.44
-- **stsb-bert-large** - STSb performance: 85.29
-- **stsb-distilbert-base** - STSb performance:  85.16
+- **stsb-mpnet-base-v2** - STSb performance: 88.57
+- **stsb-roberta-base-v2** - STSb performance: 87.21
+- **stsb-distilroberta-base-v2** - STSb performance: 86.41
+- **nli-mpnet-base-v2** - STSb performance: 86.53 
+- **nli-roberta-base-v2** - STSb performance: 85.54
+- **nli-distilroberta-base-v2** - STSb performance: 84.38
+
 
 [» Full List of STS Models](https://docs.google.com/spreadsheets/d/14QplCdTCDwEmTqrn1LH4yrbKvdogK4oQvYO1K1aPR5M/edit#gid=0)
 
@@ -39,16 +42,20 @@ The following models were trained for duplicate questions mining and duplicate q
 
 Available models:
 - **quora-distilbert-base** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
-- **quora-distilbert-multilingual** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*. Fine-tuned with parallel data for 50+ languages. 
+- **quora-distilbert-multilingual** - Multilingual version of *quora-distilbert-base*. Fine-tuned with parallel data for 50+ languages. 
 
 ## Question-Answer Retrieval - MSMARCO
 
 The following models were trained on [MSMARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking), a dataset with 500k real queries from Bing search. Given a search query, find the relevant passages. 
 
-- **msmarco-distilroberta-base-v2**: MRR@10: 28.55 on MS MARCO dev set
-- **msmarco-roberta-base-v2**: MRR@10: 29.17 on MS MARCO dev set
-- **msmarco-distilbert-base-v2**: MRR@10: 30.77 on MS MARCO  dev set
+Models tuned to be used with **cosine-similarity**:
 - **msmarco-distilbert-base-v3**: MRR@10: 33.13 on MS MARCO  dev set
+
+Models tuned to be used with **dot-product**:
+- **msmarco-distilbert-base-dot-prod-v3**: MRR@10: 33.04 on MS MARCO dev set
+- **msmarco-roberta-base-ance-fristp**: MRR@10: 33.03 on MS MARCO  dev set
+
+Models tuned for cosine-similarity will prefer the retrieval of short documents, while models tuned for dot-product will prefer the retrieval of longer documents. Depending on your task, the models of the one or the other type are preferable.
 
 ```python
 from sentence_transformers import SentenceTransformer, util
@@ -105,10 +112,11 @@ Currently, there are models for two use-cases:
 
 These models find semantically similar sentences within one language or across languages:
 
-- **distiluse-base-multilingual-cased-v2**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). While the original mUSE model only supports 16 languages, this multilingual knowledge distilled version supports 50+ languages.
-- **paraphrase-xlm-r-multilingual-v1** - Multilingual version of distilroberta-base-paraphrase-v1, trained on parallel data for 50+ languages. 
-- **stsb-xlm-r-multilingual**: Produces similar embeddings as the bert-base-nli-stsb-mean-token model. Trained on parallel data for 50+ languages.
-- **quora-distilbert-multilingual** - Multilingual version of *distilbert-base-nli-stsb-quora-ranking*.  Fine-tuned with parallel data for 50+ languages. 
+- **distiluse-base-multilingual-cased-v1**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). Supports 15 languages:  Arabic, Chinese, Dutch, English, French, German, Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. 
+- **distiluse-base-multilingual-cased-v2**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). While v1 model supports 15 languages, this version supports 50+ languages. However, performance on the 15 languages mentioned above are reported to be a bit lower. 
+- **paraphrase-xlm-r-multilingual-v1** - Multilingual version of *paraphrase-distilroberta-base-v1*, trained on parallel data for 50+ languages. 
+- **stsb-xlm-r-multilingual**: Produces similar embeddings as the *stsb-bert-base* model. Trained on parallel data for 50+ languages.
+- **quora-distilbert-multilingual** - Multilingual version of *quora-distilbert-base*.  Fine-tuned with parallel data for 50+ languages. 
 - **T-Systems-onsite/cross-en-de-roberta-sentence-transformer** - Multilingual model for English an German. [[More]](https://huggingface.co/T-Systems-onsite/cross-en-de-roberta-sentence-transformer)
 
 **Bitext Mining** 
@@ -166,5 +174,6 @@ The following models apply compute the average word embedding for some well-know
 
 
 ## Image & Text-Models
-The following models can embed images and text into a joint vector space. See [Image Search](../examples/applications/image-search/README.md) for more details how to use it and how to embed images.
+The following models can embed images and text into a joint vector space. See [Image Search](../examples/applications/image-search/README.md)  for more details how to use for text2image-search, image2image-search, image clustering, and zero-shot image classification.
 - **clip-ViT-B-32** - [OpenAPI CLIP Model](https://github.com/openai/CLIP)
+- **clip-ViT-B-32-multilingual-v1** - Multilingual text encoder for the CLIP model using [Multilingual Knowledge Distillation](https://arxiv.org/abs/2004.09813).

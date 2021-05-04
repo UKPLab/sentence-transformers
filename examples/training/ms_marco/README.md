@@ -15,7 +15,7 @@ Cross-Encoder are only suitable for reranking a small set of passages. For retri
 
 ![BiEncoder](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/BiEncoder.png)
 
-To **train an bi-encoder** on the MS Marco dataset, see: **[train_bi-encoder.py](train_bi-encoder.py)**.
+To **train an bi-encoder** on the MS MARCO dataset, see: **[train_bi-encoder.py](train_bi-encoder.py)**.
 
 
 ## Cross-Encoder
@@ -25,4 +25,9 @@ A [Cross-Encoder](https://www.sbert.net/examples/applications/cross-encoder/READ
 
 Cross-Encoders are often used for **re-ranking:** Given a list with possible relevant passages for a query, for example retrieved from BM25 / ElasticSearch, the cross-encoder re-ranks this list so that the most relevant passages are the top of the result list. 
 
-To **train an cross-encoder** on the MS Marco dataset, see: **[train_cross-encoder.py](train_cross-encoder.py)**.
+To **train an cross-encoder** on the MS MARCO dataset, see: 
+- **[train_cross-encoder.py](train_cross-encoder.py)** trains a cross-encoder from scratch using the provided data from the MS MARCO dataset.
+  
+## Cross-Encoder Knowledge Distillation
+![](https://github.com/UKPLab/sentence-transformers/raw/master/docs/img/msmarco-training-ce-distillation.png)
+- **[train_cross-encoder-v2.py](train_cross-encoder-v2.py)** uses a knowledge distillation setup: [Hostätter et al.](https://arxiv.org/abs/2010.02666) trained an ensemble of 3 (large) models for the MS MARCO dataset and predicted the scores for various (query, passage)-pairs (50% positive, 50% negative). In this example, we use knowledge distillation with a small & fast model and learn the logits scores from the teacher ensemble. This yields performances comparable to  large models, while being 18 times faster.

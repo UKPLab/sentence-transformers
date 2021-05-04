@@ -53,10 +53,10 @@ class PretrainedSTSbTest(unittest.TestCase):
         self.pretrained_model_score('bert-large-nli-stsb-mean-tokens', 85.29)
 
     def test_roberta(self):
-        self.pretrained_model_score('roberta-base-nli-mean-tokens', 78.05)
-        self.pretrained_model_score('roberta-large-nli-mean-tokens', 79.25)
+        self.pretrained_model_score('roberta-base-nli-mean-tokens', 77.49)
+        self.pretrained_model_score('roberta-large-nli-mean-tokens', 78.69)
         self.pretrained_model_score('roberta-base-nli-stsb-mean-tokens', 85.30)
-        self.pretrained_model_score('roberta-large-nli-stsb-mean-tokens', 86.52)
+        self.pretrained_model_score('roberta-large-nli-stsb-mean-tokens', 86.39)
 
     def test_distilbert(self):
         self.pretrained_model_score('distilbert-base-nli-mean-tokens', 78.69)
@@ -69,6 +69,11 @@ class PretrainedSTSbTest(unittest.TestCase):
 
     def test_other_models(self):
         self.pretrained_model_score('average_word_embeddings_komninos', 61.56)
+
+    def test_msmarco(self):
+        self.pretrained_model_score('msmarco-roberta-base-ance-fristp', 77.0)
+        self.pretrained_model_score('msmarco-distilbert-base-v3', 78.85)
+
 
 if "__main__" == __name__:
     unittest.main()

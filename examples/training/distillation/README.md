@@ -44,6 +44,6 @@ Note: This technique neither improves the runtime, nor the memory requirement fo
 ## Quantization
 A [quantized model](https://pytorch.org/docs/stable/quantization.html) executes some or all of the operations with integers rather than floating point values. This allows for a more compact models and the use of high performance vectorized operations on many hardware platforms.
 
-For models that are run on **CPUs**, this can yield 40% smaller models and a faster inference time of 15-50%. Model quantization is (as of know) not supported for GPUs by PyTorch.
+For models that are run on **CPUs**, this can yield 40% smaller models and a faster inference time: Dependining on the CPU, speedup are between 15% and 400%. Model quantization is (as of now) not supported for GPUs by PyTorch.
 
 For an example, see [model_quantization.py](model_quantization.py)
