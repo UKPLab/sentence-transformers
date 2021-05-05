@@ -9,7 +9,7 @@ import requests
 import numpy as np
 from numpy import ndarray
 import transformers
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, hf_hub_url, cached_download
 import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
@@ -60,30 +60,59 @@ class SentenceTransformer(nn.Sequential):
 
                 folder_name = "sbert.net_models_" + model_path.replace("/", "_")
                 model_path = os.path.join(cache_folder, folder_name)
+                model_path_tmp = None
                 if not os.path.exists(model_path) or not os.listdir(model_path):
                     if os.path.exists(model_path):
                         os.remove(model_path)
                     try:
+                        #Step 1: Check if repository exists and is a sentence-transformers model (has a modules.json)
                         logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(model_name_or_path, model_path))
-                        model_path_tmp = snapshot_download(model_name_or_path, cache_dir=cache_folder)
-                    except requests.exceptions.HTTPError as e:
-                        if e.response.status_code == 404:
-                            sentence_transformer_repo_path = __MODEL_HUB_ORGANIZATION__+ "/" +model_name_or_path
-                            logger.info("Model not found in path {}. Trying to load model from organization {}", model_name_or_path, __MODEL_HUB_ORGANIZATION__)
-                            logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(sentence_transformer_repo_path, model_path))
 
-                            model_path_tmp = snapshot_download(sentence_transformer_repo_path, cache_dir=cache_folder)
+                        #Check if the model has a 'modules.json'
+                        cached_download(hf_hub_url(model_name_or_path, 'modules.json'),
+                                        cache_dir=cache_folder,
+                                        force_filename='modules.json',
+                                        library_name='sentence-transformers',
+                                        library_version=__version__)
+
+                        #Model has a modules.json, now download everything
+                        model_path_tmp = snapshot_download(model_name_or_path, cache_dir=cache_folder)
+
+                    except requests.exceptions.HTTPError as e:
+                        # Repository does not exist or is not a sentence-transformers model
+                        if e.response.status_code == 404:
+                            try_auto_model = True
+                            if '/' not in model_name_or_path:
+                                sentence_transformer_repo_path = __MODEL_HUB_ORGANIZATION__+ "/" +model_name_or_path
+                                logger.info("Model not found in path {}. Trying to load model from organization {}".format(model_name_or_path, __MODEL_HUB_ORGANIZATION__))
+                                logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(sentence_transformer_repo_path, model_path))
+
+                                try:
+                                    model_path_tmp = snapshot_download(sentence_transformer_repo_path, cache_dir=cache_folder)
+                                    try_auto_model = False
+                                except requests.exceptions.HTTPError as e:
+                                    pass
+
+                            if try_auto_model:
+                                # No such sentence-transformer model with that name
+                                # Create an auto-model with mean pooling
+                                logging.warning("No sentence-transformers model found with name {}. Try to create a new one with MEAN pooling.".format(model_name_or_path))
+                                transformer_model = Transformer(model_name_or_path)
+                                pooling_model = Pooling(transformer_model.get_word_embedding_dimension())
+                                modules = [transformer_model, pooling_model]
                         else:
                             raise e
                     except Exception as e:
                         shutil.rmtree(model_path_tmp)
                         raise e
-                    os.rename(model_path_tmp, model_path)
 
-            logger.info("Load SentenceTransformer from folder: {}".format(model_path))
+                    if model_path_tmp is not None:
+                        os.rename(model_path_tmp, model_path)
 
-            modules_json_path = os.path.join(model_path, 'modules.json')
-            if os.path.isfile(modules_json_path):
+            if modules is None:
+                logger.info("Load SentenceTransformer from folder: {}".format(model_path))
+
+                modules_json_path = os.path.join(model_path, 'modules.json')
                 with open(modules_json_path) as fIn:
                     contained_modules = json.load(fIn)
 
@@ -92,13 +121,7 @@ class SentenceTransformer(nn.Sequential):
                     module_class = import_from_string(module_config['type'])
                     module = module_class.load(os.path.join(model_path, module_config['path']))
                     modules[module_config['name']] = module
-            else:
-                logger.warning("Adding mean pooling since modules.json is not specified.")
 
-                save_model_to = model_path
-                transformer_model = Transformer(model_path)
-                pooling_model = Pooling(transformer_model.get_word_embedding_dimension())
-                modules = [transformer_model, pooling_model]
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -109,10 +132,6 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
-
-        # We added a pool layer, so saving the SBERT model in the cache folder
-        if save_model_to is not None:
-            self.save(save_model_to)
 
 
     def encode(self, sentences: Union[str, List[str], List[int]],
@@ -351,7 +370,11 @@ class SentenceTransformer(nn.Sequential):
 
         for idx, name in enumerate(self._modules):
             module = self._modules[name]
-            model_path = path + "/" if idx == 0 else os.path.join(path, str(idx)+"_"+type(module).__name__)
+            if idx == 0 and isinstance(module, Transformer):    #Save transformer model in the main folder
+                model_path = path + "/"
+            else:
+                model_path = os.path.join(path, str(idx)+"_"+type(module).__name__)
+
             os.makedirs(model_path, exist_ok=True)
             module.save(model_path)
             contained_modules.append({'idx': idx, 'name': name, 'path': os.path.basename(model_path), 'type': type(module).__module__})
@@ -462,8 +485,11 @@ class SentenceTransformer(nn.Sequential):
 
         self.to(self._target_device)
 
+        eval_path = output_path
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
+            eval_path = os.path.join(output_path, "eval")
+            os.makedirs(eval_path, exist_ok=True)
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
 
@@ -559,7 +585,7 @@ class SentenceTransformer(nn.Sequential):
                 global_step += 1
 
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(evaluator, output_path, save_best_model, epoch,
+                    self._eval_during_training(evaluator, eval_path, save_best_model, epoch,
                                                training_steps, callback)
                     for loss_model in loss_models:
                         loss_model.zero_grad()
@@ -569,7 +595,7 @@ class SentenceTransformer(nn.Sequential):
                     self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
 
-            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+            self._eval_during_training(evaluator, eval_path, save_best_model, epoch, -1, callback)
 
         if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
             self.save(output_path)
