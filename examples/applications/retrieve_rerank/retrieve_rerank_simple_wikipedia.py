@@ -11,7 +11,7 @@ Next, we use a more powerful CrossEncoder (cross_encoder = CrossEncoder('cross-e
 scores the query and all retrieved passages for their relevancy. The cross-encoder is neccessary to filter out certain noise
 that might be retrieved from the semantic search step.
 
-Google Colab Example: https://colab.research.google.com/drive/1l6stpYdRMmeDBK_vw0L5NitdiAuhdsAr?usp=sharing
+Google Colab Example: https://colab.research.google.com/github/UKPLab/sentence-transformers/blob/master/examples/applications/retrieve_rerank/retrieve_rerank_simple_wikipedia.ipynb
 """
 import json
 from sentence_transformers import SentenceTransformer, CrossEncoder, util
