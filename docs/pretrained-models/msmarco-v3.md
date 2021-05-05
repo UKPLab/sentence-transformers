@@ -33,6 +33,7 @@ As baseline we show the results for lexical search with BM25 using ElasticSearch
 | **Models tuned for dot-product** | |
 | msmarco-distilbert-base-dot-prod-v3 | 68.42 | 33.04 | 7,000 / 350 | 1100 / 70
 | msmarco-roberta-base-ance-fristp | 67.84 | 33.01 | 4,000 / 170 | 540 / 30
+| msmarco-distilbert-base-tas-b | 71.04 | 34.43 | 7,000 / 350 | 1100 / 70
 | **Previous approaches** |  |  |
 | BM25 (ElasticSearch)   | 45.46 | 17.29  |
 | msmarco-distilroberta-base-v2   | 65.65 |  28.55    |  
@@ -43,6 +44,7 @@ As baseline we show the results for lexical search with BM25 using ElasticSearch
 - We provide two type of models, one tuned for **cosine-similarity**, the other for **dot-product**. Make sure to use the right method to compute the similarity between query and passages.
 - Models tuned for **cosine-similarity** will prefer the retrieval of shorter passages, while models for **dot-product** will prefer the retrieval of longer passages. Depending on your task, you might prefer the one or the other type of model.
 - **msmarco-roberta-base-ance-fristp** is the MSMARCO Dev Passage Retrieval ANCE(FirstP) 600K model from [ANCE](https://github.com/microsoft/ANCE). This model should be used with dot-product instead of cosine similarity.
+- **msmarco-distilbert-base-tas-b** uses the model from [sebastian-hofstaetter/distilbert-dot-tas_b-b256-msmarco](https://huggingface.co/sebastian-hofstaetter/distilbert-dot-tas_b-b256-msmarco). See the linked documentation / paper for more details.
 - Encoding speeds are per second and were measured on a V100 GPU and an 8 core Intel(R) Xeon(R) Platinum 8168 CPU @ 2.70GHz
 
 
