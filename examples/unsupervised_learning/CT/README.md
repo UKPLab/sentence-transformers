@@ -11,7 +11,7 @@ The original CT paper uses batchs that contain multiple mini-batches. For the ex
 
 After training, the model 2 will be used for inference, which usually has better performance.
 
-In **[CT_Improved](../CT_Improved/README.md)** we propose an improvement to CT by using in-batch negative sampling.
+In **[CT_Improved](../CT_In-Batch_Negatives/README.md)** we propose an improvement to CT by using in-batch negative sampling.
 
 ## Performance
 In some preliminary experiments, we compate performance on the STSbenchmark dataset (trained with 1 million sentences from Wikipedia) and on the paraphrase mining task for the Quora duplicate questions dataset (trained with questions from Quora).

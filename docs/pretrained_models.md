@@ -38,7 +38,7 @@ The following models were optimized for [Semantic Textual Similarity](usage/sema
 
 ## Duplicate Questions Detection
 
-The following models were trained for duplicate questions mining and duplicate questions retrieval. You can use them to detect duplicate questions in a large corpus (see [paraphrase mining](usage/paraphrase_mining.md)) or to search for similar questions (see [semantic search](usage/semantic_search.md)). 
+The following models were trained for duplicate questions mining and duplicate questions retrieval. You can use them to detect duplicate questions in a large corpus (see [paraphrase mining](../examples/applications/paraphrase-mining/README.md)) or to search for similar questions (see [semantic search](../examples/applications/semantic-search/README.md)).
 
 Available models:
 - **quora-distilbert-base** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
@@ -67,7 +67,7 @@ passage_embedding = model.encode('London has 9,787,426 inhabitants at the 2011 c
 print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 ```
 
-You can index the passages as shown [here](https://www.sbert.net/docs/usage/semantic_search.html).
+You can index the passages as shown [here](../examples/applications/semantic-search/README.md).
 
 [More details](pretrained-models/msmarco-v3.md)
 
@@ -88,7 +88,7 @@ passage_embedding = model.encode([['London', 'London has 9,787,426 inhabitants a
 print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 ```
 
-You can index the passages as shown [here](https://www.sbert.net/docs/usage/semantic_search.html).
+You can index the passages as shown [here](../examples/applications/semantic-search/README.md).
 
 [More details](pretrained-models/nq-v1.md)
 
