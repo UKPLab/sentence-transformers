@@ -1,5 +1,5 @@
 # Cross-Encoders
-SentenceTransformers also supports the option to train Cross-Encoder for sentence pair score and sentence pair classification tasks. For the what Cross-Encoders are and the difference between Cross- and Bi-Encoders, see [Cross-Encoders](../../../docs/usage/cross-encoder.md).
+SentenceTransformers also supports the option to train Cross-Encoder for sentence pair score and sentence pair classification tasks. For the what Cross-Encoders are and the difference between Cross- and Bi-Encoders, see [Cross-Encoders](../../applications/cross-encoder/README.md).
 
 ## Examples
 See the following examples how to train Cross-Encoders:
