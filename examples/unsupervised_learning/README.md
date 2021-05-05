@@ -37,11 +37,11 @@ Carlsson et al. present in [Semantic Re-Tuning With Contrastive Tension (CT)](ht
 
 See **[CT](CT/README.md)** for more information and training examples.
 
-### CT-Improved
+### CT (In-Batch Negative Sampling)
 
 The CT method from Carlsson et al. provides sentence pairs to the two models. This can be improved by using in-batch negative sampling: Model1 and Model2 both encode the same set of sentences. We maximize the scores for matching indexes (i.e. Model1(S_i) and Model2(S_i)) while we minimize the scores for different indexes (i.e. Model1(S_i) and Model2(S_j) for i != j).
 
-See **[CT_Improved](CT_Improved/README.md)** for more information and training examples.
+See **[CT_In-Batch_Negatives](CT_In-Batch_Negatives/README.md)** for more information and training examples.
 
 ### Performance Comparison
 Currently we conduct experiments which unsupervised sentence embedding methods yields the best results. In terms of run-time are SimCSE and CT-Improved quite fast to train, while TSDAE takes the longest to train.
