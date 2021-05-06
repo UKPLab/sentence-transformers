@@ -22,7 +22,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 #Name of the SBERT model
 model_name = sys.argv[1]
 
-# You can limit the approx. max size of the corpus eg setting it to 100 => 100k docs
+# You can limit the approx. max size of the corpus. Pass 100 as second parameter and the corpus has a size of approx 100k docs
 corpus_max_size = int(sys.argv[2])*1000 if len(sys.argv) >= 3 else 0
 
 
