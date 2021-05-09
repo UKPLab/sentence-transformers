@@ -63,10 +63,6 @@ def add_to_samples(sent1, sent2, label):
     train_data[sent1][label].add(sent2)
 
 
-from transformers import AutoTokenizer
-tokenizer = AutoTokenizer.from_pretrained('distilroberta-base')
-
-label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
 train_data = {}
 with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -77,7 +73,6 @@ with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
 
             add_to_samples(sent1, sent2, row['label'])
             add_to_samples(sent2, sent1, row['label'])  #Also add the opposite
-
 
 
 train_samples = []
