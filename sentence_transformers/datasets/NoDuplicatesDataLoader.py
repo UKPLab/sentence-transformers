@@ -8,21 +8,19 @@ class NoDuplicatesDataLoader:
         A special data loader to be used with MultipleNegativesRankingLoss.
         The data loader ensures that there are no duplicate sentences within the same batch
         """
-        self.train_examples = train_examples
         self.batch_size = batch_size
-        self.data_idx = list(range(len(train_examples)))
         self.data_pointer = 0
         self.collate_fn = None
-        random.shuffle(self.data_idx)
+        self.train_examples = train_examples
+        random.shuffle(self.train_examples)
 
     def __iter__(self):
         for _ in range(self.__len__()):
-            batch_idx = set()
+            batch = []
             texts_in_batch = set()
 
-            while len(batch_idx) < self.batch_size:
-                idx = self.data_idx[self.data_pointer]
-                example = self.train_examples[idx]
+            while len(batch) < self.batch_size:
+                example = self.train_examples[self.data_pointer]
 
                 valid_example = True
                 for text in example.texts:
@@ -31,16 +29,15 @@ class NoDuplicatesDataLoader:
                         break
 
                 if valid_example:
-                    batch_idx.add(idx)
+                    batch.append(example)
                     for text in example.texts:
                         texts_in_batch.add(text.strip().lower())
 
                 self.data_pointer += 1
-                if self.data_pointer >= len(self.data_idx):
+                if self.data_pointer >= len(self.train_examples):
                     self.data_pointer = 0
-                    random.shuffle(self.data_idx)
+                    random.shuffle(self.train_examples)
 
-            batch = [self.train_examples[idx] for idx in batch_idx]
             yield self.collate_fn(batch) if self.collate_fn is not None else batch
 
     def __len__(self):
