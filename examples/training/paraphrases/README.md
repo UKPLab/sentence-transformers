@@ -14,18 +14,20 @@ You can find here: [sbert.net/datasets/paraphrases](http://sbert.net/datasets/pa
 
 | Name | Source | #Sentence-Pairs | STSb-dev |
 | --- | --- | :---: | :---: |
-| [AllNLI.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/AllNLI.tsv.gz) | [SNLI](https://nlp.stanford.edu/projects/snli/) + [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) | 277,230 | |
-| [altlex.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/altlex.tsv.gz) | [altlex](https://github.com/chridey/altlex/) | 112,696 |
-| [coco_captions.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/coco_captions.tsv.gz) | [COCO](https://cocodataset.org/) | 828,395 |
-| [quora_duplicates.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/quora_duplicates.tsv.gz) | [Quora](https://quoradata.quora.com/First-Quora-Dataset-Release-Question-Pairs) | 103,663 | |
-| [sentence-compression.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/sentence-compression.tsv.gz) | [sentence-compression](https://github.com/google-research-datasets/sentence-compression) | 180,000 | |
-| [SimpleWiki.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/SimpleWiki.tsv.gz) | [SimpleWiki](https://cs.pomona.edu/~dkauchak/simplification/) | 102,225 |
-| [wiki-atomic-edits.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/wiki-atomic-edits.tsv.gz) | [wiki-atomic-edits](https://github.com/google-research-datasets/wiki-atomic-edits) |   22,980,185
-| [wiki-split.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/wiki-split.tsv.gz) | [wiki-split](https://github.com/google-research-datasets/wiki-split) | 929,944
+| [AllNLI.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/AllNLI.tsv.gz) | [SNLI](https://nlp.stanford.edu/projects/snli/) + [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) | 277,230 | 86.54 |
+| [altlex.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/altlex.tsv.gz) | [altlex](https://github.com/chridey/altlex/) | 112,696 | 83.34 |
+| [coco_captions.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/coco_captions.tsv.gz) | [COCO](https://cocodataset.org/) | 828,395 | 82.25
+| [quora_duplicates.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/quora_duplicates.tsv.gz) | [Quora](https://quoradata.quora.com/First-Quora-Dataset-Release-Question-Pairs) | 103,663 | 82.55 |
+| [sentence-compression.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/sentence-compression.tsv.gz) | [sentence-compression](https://github.com/google-research-datasets/sentence-compression) | 180,000 | 84.36 |
+| [SimpleWiki.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/SimpleWiki.tsv.gz) | [SimpleWiki](https://cs.pomona.edu/~dkauchak/simplification/) | 102,225 | 84.26 |
+| [wiki-atomic-edits.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/wiki-atomic-edits.tsv.gz) | [wiki-atomic-edits](https://github.com/google-research-datasets/wiki-atomic-edits) |   22,980,185  | 79.58
+| [wiki-split.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/wiki-split.tsv.gz) | [wiki-split](https://github.com/google-research-datasets/wiki-split) | 929,944 | 76.59
 
 All datasets have a sample per line and the individual sentences are seperated by a tab (\t). Some datasets (like AllNLI) has three sentences per line: An anchor, a positive, and a hard negative.
 
-We measure for each dataset the performance on the STSb dataset after 10k training steps with a distilroberta-base model and a batch size of 256.
+We measure for each dataset the performance on the STSb development dataset after 2k training steps with a distilroberta-base model and a batch size of 256. 
+
+**Note**: We find that the STSb dataset is a suboptimal dataset to evaluate the quality of sentence embedding models. It consists mainly of rather simple sentences, it does not require any domain specific knowledge, and the included sentences are of rather high quality compared to noisy, user-written content. Please do not infer from the above numbers how the approaches will perform on your domain specific dataset.
 
 ## Training
 See [training.py](training.py) for the training script.
@@ -41,3 +43,4 @@ Training with this data is currently work-in-progress. Things that will be added
 - **More datasets**: Are you aware of more suitable training datasets? Let me know: [info@nils-reimers.de](mailto:info@nils-reimers.de)
 - **Optimized batching**: Currently batches are only drawn from one dataset. Future work might include also batches that are sampled across datasets
 - **Optimized loss function**: Currently the same parameters of MultipleNegativesRankingLoss is used for all datasets. Future work includes testing if the dataset benefit from individual loss functions.
+- **Pre-trained models**: Once all datasets are collected, we will train and release respective models.
