@@ -4,7 +4,7 @@
 
 In our paper [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) we showed that paraphrase dataset together with [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/losses.html#multiplenegativesrankingloss) is a powerful combination to learn sentence embeddings models.
 
-You can find here: [NLI - MultipleNegativesRankingLoss](https://www.sbert.net/examples/training/nli/README.html#multiplenegativesrankingloss) more information how the loss is be used.
+You can find here: [NLI - MultipleNegativesRankingLoss](https://www.sbert.net/examples/training/nli/README.html#multiplenegativesrankingloss) more information how the loss can be used.
 
 In this folder, we collect different datasets and scripts to train using paraphrase data.
 
@@ -15,7 +15,7 @@ You can find here: [sbert.net/datasets/paraphrases](http://sbert.net/datasets/pa
 | Name | Source | #Sentence-Pairs | STSb-dev |
 | --- | --- | :---: | :---: |
 | [AllNLI.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/AllNLI.tsv.gz) | [SNLI](https://nlp.stanford.edu/projects/snli/) + [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) | 277,230 | |
-| [altlex.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/altlex.tsv.gz) | [altlex](https://github.com/chridey/altlex/) | 1123696 |
+| [altlex.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/altlex.tsv.gz) | [altlex](https://github.com/chridey/altlex/) | 112,696 |
 | [coco_captions.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/coco_captions.tsv.gz) | [COCO](https://cocodataset.org/) | 828,395 |
 | [quora_duplicates.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/quora_duplicates.tsv.gz) | [Quora](https://quoradata.quora.com/First-Quora-Dataset-Release-Question-Pairs) | 103,663 | |
 | [sentence-compression.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/sentence-compression.tsv.gz) | [sentence-compression](https://github.com/google-research-datasets/sentence-compression) | 180,000 | |
@@ -33,3 +33,11 @@ See [training.py](training.py) for the training script.
 The training script allows to load one or multiple files. We construct batches by sampling examples from the respective dataset. So far, examples are not mixed between the datasets, i.e., a batch consists only of examples from a single dataset.
 
 As the dataset sizes are quite different in size, we perform a tempurate controlled sampling from the datasets: Smaller datasets are up-sampled, while larger datasets are down-sampled. This allows an effective training with very large and smaller datasets.
+
+
+## Working in Progress
+
+Training with this data is currently work-in-progress. Things that will be added in the next time:
+- **More datasets**: Are you aware of more suitable training datasets? Let me know: [info@nils-reimers.de](mailto:info@nils-reimers.de)
+- **Optimized batching**: Currently batches are only drawn from one dataset. Future work might include also batches that are sampled across datasets
+- **Optimized loss function**: Currently the same parameters of MultipleNegativesRankingLoss is used for all datasets. Future work includes testing if the dataset benefit from individual loss functions.
