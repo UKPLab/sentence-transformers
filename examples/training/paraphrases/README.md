@@ -28,7 +28,7 @@ You can find here: [sbert.net/datasets/paraphrases](http://sbert.net/datasets/pa
 | [wiki-atomic-edits.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/wiki-atomic-edits.tsv.gz) | [wiki-atomic-edits](https://github.com/google-research-datasets/wiki-atomic-edits) |   22,980,185  | 79.58
 | [wiki-split.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/wiki-split.tsv.gz) | [wiki-split](https://github.com/google-research-datasets/wiki-split) | 929,944 | 76.59
 
-
+See the respective linked source website for the dataset license.
 
 
 All datasets have a sample per line and the individual sentences are seperated by a tab (\t). Some datasets (like AllNLI) has three sentences per line: An anchor, a positive, and a hard negative.
