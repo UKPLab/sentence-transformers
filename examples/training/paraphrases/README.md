@@ -15,13 +15,21 @@ You can find here: [sbert.net/datasets/paraphrases](http://sbert.net/datasets/pa
 | Name | Source | #Sentence-Pairs | STSb-dev |
 | --- | --- | :---: | :---: |
 | [AllNLI.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/AllNLI.tsv.gz) | [SNLI](https://nlp.stanford.edu/projects/snli/) + [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) | 277,230 | 86.54 |
-| [altlex.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/altlex.tsv.gz) | [altlex](https://github.com/chridey/altlex/) | 112,696 | 83.34 |
-| [coco_captions.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/coco_captions.tsv.gz) | [COCO](https://cocodataset.org/) | 828,395 | 82.25
-| [quora_duplicates.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/quora_duplicates.tsv.gz) | [Quora](https://quoradata.quora.com/First-Quora-Dataset-Release-Question-Pairs) | 103,663 | 82.55 |
 | [sentence-compression.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/sentence-compression.tsv.gz) | [sentence-compression](https://github.com/google-research-datasets/sentence-compression) | 180,000 | 84.36 |
 | [SimpleWiki.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/SimpleWiki.tsv.gz) | [SimpleWiki](https://cs.pomona.edu/~dkauchak/simplification/) | 102,225 | 84.26 |
+| [altlex.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/altlex.tsv.gz) | [altlex](https://github.com/chridey/altlex/) | 112,696 | 83.34 |
+| [quora_duplicates.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/quora_duplicates.tsv.gz) | [Quora](https://quoradata.quora.com/First-Quora-Dataset-Release-Question-Pairs) | 103,663 | 82.55 |
+| [coco_captions.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/coco_captions.tsv.gz) | [COCO](https://cocodataset.org/) | 828,395 | 82.25
+| [yahoo_answers_title_question.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/yahoo_answers_title_question.tsv.gz) | [Yahoo Answers Dataset](https://www.kaggle.com/soumikrakshit/yahoo-answers-dataset) | 659,896 | 81.19 |
+| [S2ORC_citation_pairs.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/S2ORC_citation_pairs.tsv.gz) | [Semantic Scholar Open Research Corpus](http://s2-public-api-prod.us-west-2.elasticbeanstalk.com/corpus/) | 52,603,982 | 81.02 |
+| [yahoo_answers_title_answer.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/yahoo_answerstitle_answer.tsv.gz) | [Yahoo Answers Dataset](https://www.kaggle.com/soumikrakshit/yahoo-answers-dataset)  | 1,198,260 | 80.25 
+| [stackexchange_duplicate_questions.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/stackexchange_duplicate_questions.tsv.gz) | [Stackexchange](https://stackexchange.com/) | 169,438 | 80.37
+| [yahoo_answers_question_answer.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/yahoo_answers_question_answer.tsv.gz) | [Yahoo Answers Dataset](https://www.kaggle.com/soumikrakshit/yahoo-answers-dataset)  | 681,164 | 79.88 |
 | [wiki-atomic-edits.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/wiki-atomic-edits.tsv.gz) | [wiki-atomic-edits](https://github.com/google-research-datasets/wiki-atomic-edits) |   22,980,185  | 79.58
 | [wiki-split.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/wiki-split.tsv.gz) | [wiki-split](https://github.com/google-research-datasets/wiki-split) | 929,944 | 76.59
+
+
+
 
 All datasets have a sample per line and the individual sentences are seperated by a tab (\t). Some datasets (like AllNLI) has three sentences per line: An anchor, a positive, and a hard negative.
 
@@ -36,8 +44,14 @@ The training script allows to load one or multiple files. We construct batches b
 
 As the dataset sizes are quite different in size, we perform a tempurate controlled sampling from the datasets: Smaller datasets are up-sampled, while larger datasets are down-sampled. This allows an effective training with very large and smaller datasets.
 
+## Pre-Trained Models
+Have a look at [pre-trained models] to view all models. Models trained on these paraphrase datasets are:
 
-## Working in Progress
+- **paraphrase-distilroberta-base-v1** - Trained on the following datasets: AllNLI, sentence-compression, SimpleWiki, altlex, quora_duplicates, wiki-atomic-edits, wiki-split
+- **paraphrase-xlm-r-multilingual-v1** - Multilingual version of paraphrase-distilroberta-base-v1, trained on parallel data for 50+ languages. (Teacher: paraphrase-distilroberta-base-v1, Student: xlm-r-base)
+
+
+## Work in Progress
 
 Training with this data is currently work-in-progress. Things that will be added in the next time:
 - **More datasets**: Are you aware of more suitable training datasets? Let me know: [info@nils-reimers.de](mailto:info@nils-reimers.de)

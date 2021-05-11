@@ -39,7 +39,7 @@ model_save_path = 'output/training_paraphrases_'+model_name.replace("/", "-")+'-
 
 
 class MultiDatasetDataLoader:
-    def __init__(self, datasets, batch_size_pairs, batch_size_triplets = None, dataset_size_temp=5):
+    def __init__(self, datasets, batch_size_pairs, batch_size_triplets = None, dataset_size_temp=-1):
         self.allow_swap = True
         self.batch_size_pairs = batch_size_pairs
         self.batch_size_triplets = batch_size_pairs if batch_size_triplets is None else batch_size_triplets
@@ -49,9 +49,12 @@ class MultiDatasetDataLoader:
         self.dataset_lengths_sum = sum(self.dataset_lengths)
 
         weights = []
-        for dataset in datasets:
-            prob = len(dataset) / self.dataset_lengths_sum
-            weights.append(max(1, int(math.pow(prob, 1 / dataset_size_temp) * 1000)))
+        if dataset_size_temp > 0:   #Scale probability with dataset size
+            for dataset in datasets:
+                prob = len(dataset) / self.dataset_lengths_sum
+                weights.append(max(1, int(math.pow(prob, 1 / dataset_size_temp) * 1000)))
+        else:   #Equal weighting of all datasets
+            weights = [100] * len(datasets)
 
         logging.info("Dataset lenghts and weights: {}".format(list(zip(self.dataset_lengths, weights))))
 
