@@ -32,8 +32,8 @@ As baseline we show the results for lexical search with BM25 using ElasticSearch
 | msmarco-roberta-base-v3 | 69.08 | 33.01 | 4,000 / 170 | 540 / 30
 | **Models tuned for dot-product** | |
 | msmarco-distilbert-base-dot-prod-v3 | 68.42 | 33.04 | 7,000 / 350 | 1100 / 70
-| msmarco-roberta-base-ance-fristp | 67.84 | 33.01 | 4,000 / 170 | 540 / 30
-| msmarco-distilbert-base-tas-b | 71.04 | 34.43 | 7,000 / 350 | 1100 / 70
+| [msmarco-roberta-base-ance-fristp](https://github.com/microsoft/ANCE) | 67.84 | 33.01 | 4,000 / 170 | 540 / 30
+| [msmarco-distilbert-base-tas-b](https://huggingface.co/sebastian-hofstaetter/distilbert-dot-tas_b-b256-msmarco) | 71.04 | 34.43 | 7,000 / 350 | 1100 / 70
 | **Previous approaches** |  |  |
 | BM25 (ElasticSearch)   | 45.46 | 17.29  |
 | msmarco-distilroberta-base-v2   | 65.65 |  28.55    |  

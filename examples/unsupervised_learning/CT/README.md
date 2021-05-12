@@ -1,5 +1,5 @@
 # CT
-Carlsson et al. present in [Semantic Re-Tuning With Contrastive Tension (CT)](https://openreview.net/pdf?id=Ov_sMNau-PF) an unsupervised learning approach for sentence embeddings that just requires sentences.
+Carlsson et al. present in [Semantic Re-Tuning With Contrastive Tension (CT)](https://openreview.net/pdf?id=Ov_sMNau-PF)  ([Github](https://github.com/FreddeFrallan/Contrastive-Tension)) an unsupervised learning approach for sentence embeddings that just requires sentences.
 
 ## Background
 During training, CT builds two independent encoders ('Model1' and 'Model2') with intial parameters shared to encode a pair of sentences. If Model1 and Model2 encode the same sentence, then the dot-product of the two sentence embeddings should be large. If Model1 and Model2 encode different sentences, then their dot-product should be small.
@@ -35,3 +35,7 @@ SimCSE will be training using these sentences. Checkpoints are stored every 500 
 
 - **[train_stsb_ct.py](train_stsb_ct.py)**: This example uses 1 million sentences from Wikipedia to train with CT. It evaluate the performance on the  [STSbenchmark dataset](https://ixa2.si.ehu.eus/stswiki/index.php/STSbenchmark).
 - **[train_askubuntu_ct.py](train_askubuntu_ct.py)**: This example trains on [AskUbuntu Questions dataset](https://github.com/taolei87/askubuntu), a dataset with questions from the AskUbuntu Stackexchange forum.
+
+
+**Note:**
+This is a re-implementation of CT within sentence-transformers. For the official CT code, see: [FreddeFrallan/Contrastive-Tension](https://github.com/FreddeFrallan/Contrastive-Tension)

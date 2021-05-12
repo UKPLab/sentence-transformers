@@ -85,3 +85,5 @@ Using max_seq_length=32, distilroberta-base model, and 512 batch size.
 | Max pooling | 52.91 |
 
 
+**Note:**
+This is a re-implementation of SimCSE within sentence-transformers. For the official CT code, see: [princeton-nlp/SimCSE](https://github.com/princeton-nlp/SimCSE)
