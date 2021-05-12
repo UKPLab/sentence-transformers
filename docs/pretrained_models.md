@@ -94,7 +94,8 @@ You can index the passages as shown [here](../examples/applications/semantic-sea
 
 [More details](pretrained-models/nq-v1.md)
 
-### DPR-Models
+**DPR-Models**
+
 In [Dense Passage Retrieval  for Open-Domain Question Answering](https://arxiv.org/abs/2004.04906)  Karpukhin et al. trained models based on [Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions):
 - **facebook-dpr-ctx_encoder-single-nq-base** 
 - **facebook-dpr-question_encoder-single-nq-base**
