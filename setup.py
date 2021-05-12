@@ -21,6 +21,7 @@ setup(
         'transformers>=3.1.0,<5.0.0',
         'tqdm',
         'torch>=1.6.0',
+        'torchvision',
         'numpy',
         'scikit-learn',
         'scipy',

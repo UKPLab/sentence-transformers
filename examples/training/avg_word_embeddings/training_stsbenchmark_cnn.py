@@ -27,7 +27,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 # Read the dataset
 batch_size = 32
-model_save_path = 'output/training_stsbenchmark_bilstm-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+model_save_path = 'output/training_stsbenchmark_cnn-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 #Check if dataset exsist. If not, download and extract  it
