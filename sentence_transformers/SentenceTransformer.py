@@ -3,13 +3,13 @@ import logging
 import os
 import shutil
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
 from zipfile import ZipFile
 import requests
 import numpy as np
 from numpy import ndarray
 import transformers
-from huggingface_hub import snapshot_download, hf_hub_url, cached_download
+from huggingface_hub import HfApi, HfFolder, Repository, snapshot_download, hf_hub_url, cached_download
 import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
@@ -18,6 +18,8 @@ import torch.multiprocessing as mp
 from tqdm.autonotebook import trange
 import math
 import queue
+import tempfile
+from distutils.dir_util import copy_tree
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
@@ -381,6 +383,49 @@ class SentenceTransformer(nn.Sequential):
 
         with open(os.path.join(path, 'modules.json'), 'w') as fOut:
             json.dump(contained_modules, fOut, indent=2)
+
+    def push_to_hub(self,
+        repo_name: str,
+        organization: Optional[str] = None,
+        private: bool = None,
+        commit_message: str = "Add new SentenceTransformer model.",
+        local_model_path: Optional[str] = None):
+        """
+        Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
+
+        :param repo_name: Repository name for your model in the Hub.
+        :param organization:  Organization in which you want to push your model or tokenizer (you must be a member of this organization).
+        :param private: Encode sentences with batch size
+        :param commit_message: Message to commit while pushing.
+        :param local_model_path: Path of model locally. This is useful if yo
+        :return: The url of the commit of your model in the given repository..
+        """
+        token = HfFolder.get_token()
+        if token is None:
+            raise ValueError(
+                "You must login to the Hugging Face hub on this computer by typing `transformers-cli login`."
+            )
+        repo_url = HfApi(endpoint="https://huggingface.co").create_repo(
+                token,
+                repo_name,
+                organization=organization,
+                private=private,
+                repo_type=None,
+                exist_ok=True,
+            )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # First create the repo (and clone its content if it's nonempty).
+            repo = Repository(tmp_dir, clone_from=repo_url)
+
+            # If user provides local files, copy them.
+            if local_model_path:
+                copy_tree(local_model_path, tmp_dir)
+            # Else, save model directly into local repo.
+            if not local_model_path:
+                self.save(tmp_dir)
+
+            return repo.push_to_hub(commit_message=commit_message)
 
     def smart_batching_collate(self, batch):
         """
