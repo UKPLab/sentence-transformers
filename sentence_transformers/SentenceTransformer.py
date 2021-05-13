@@ -23,8 +23,9 @@ from distutils.dir_util import copy_tree
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, http_get
-from .models import Transformer, Pooling
+from .util import import_from_string, batch_to_device, http_get, list_tags
+from .models import Transformer, Pooling, Dense
+from .model_card_templates import __INTRO_SECTION__, __MORE_INFO__SECTION__, __SENTENCE_TRANSFORMERS_EXAMPLE__, __TRANSFORMERS_EXAMPLE__
 from . import __version__
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,6 @@ class SentenceTransformer(nn.Sequential):
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
             model_path = model_name_or_path
-
             if not os.path.isdir(model_path) and not model_path.startswith('http://') and not model_path.startswith('https://'):
                 logger.info("Did not find folder {}".format(model_path))
 
@@ -67,6 +67,7 @@ class SentenceTransformer(nn.Sequential):
                     if os.path.exists(model_path):
                         os.remove(model_path)
                     try:
+                        print("downloading models from my account")
                         #Step 1: Check if repository exists and is a sentence-transformers model (has a modules.json)
                         logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(model_name_or_path, model_path))
 
@@ -98,7 +99,7 @@ class SentenceTransformer(nn.Sequential):
                             if try_auto_model:
                                 # No such sentence-transformer model with that name
                                 # Create an auto-model with mean pooling
-                                logging.warning("No sentence-transformers model found with name {}. Try to create a new one with MEAN pooling.".format(model_name_or_path))
+                                logging.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
                                 transformer_model = Transformer(model_name_or_path)
                                 pooling_model = Pooling(transformer_model.get_word_embedding_dimension())
                                 modules = [transformer_model, pooling_model]
@@ -110,7 +111,6 @@ class SentenceTransformer(nn.Sequential):
 
                     if model_path_tmp is not None:
                         os.rename(model_path_tmp, model_path)
-
             if modules is None:
                 logger.info("Load SentenceTransformer from folder: {}".format(model_path))
 
@@ -384,6 +384,46 @@ class SentenceTransformer(nn.Sequential):
         with open(os.path.join(path, 'modules.json'), 'w') as fOut:
             json.dump(contained_modules, fOut, indent=2)
 
+        self._create_model_card(path)
+
+    def _create_model_card(self, path):
+        # Add necesary tags.
+        tags = ["sentence-transformers"]
+        # We can add license, datasets, metrics later on in the metadata as well.
+        metadata = list_tags("tags", tags)
+        model_card = f"---\n{metadata}---\n"
+
+        model_card += __INTRO_SECTION__
+
+        hf_transformers_compatible = True
+        for idx, name in enumerate(self._modules):
+            module = self._modules[name]
+            if idx == 0 and isinstance(module, Transformer):
+                base_type = type(module._modules["auto_model"]).__name__
+                model_card += f"\n(0) Base Transformer Type: {base_type}\n"
+            elif isinstance(module, Pooling):
+                model_card += f"({idx}) Pooling {module.pooling_mode_}\n"
+            elif isinstance(module, Dense):
+                in_features = module.in_features
+                out_features = module.out_features
+                model_card += f"({idx}) Dense {in_features}x{out_features}\n"
+                hf_transformers_compatible = False
+            else:
+                model_card += f"({idx}) Unknown - {type(module)}\n"
+                hf_transformers_compatible = False
+
+        # Usage with sentence-transformers
+        model_card += __SENTENCE_TRANSFORMERS_EXAMPLE__
+
+        # Usage with Transformers (transformer + pooling)
+        if hf_transformers_compatible:
+            model_card += __TRANSFORMERS_EXAMPLE__
+
+        model_card += __MORE_INFO__SECTION__
+
+        with open(os.path.join(path, "README.md"), "w") as f:
+            f.write(model_card)
+
     def push_to_hub(self,
         repo_name: str,
         organization: Optional[str] = None,
@@ -405,6 +445,8 @@ class SentenceTransformer(nn.Sequential):
             raise ValueError(
                 "You must login to the Hugging Face hub on this computer by typing `transformers-cli login`."
             )
+        print(token)
+        print(repo_name)
         repo_url = HfApi(endpoint="https://huggingface.co").create_repo(
                 token,
                 repo_name,
