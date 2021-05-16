@@ -3,5 +3,5 @@
 
 ```eval_rst
 .. automodule:: sentence_transformers.util
-   :members: pytorch_cos_sim, paraphrase_mining, semantic_search, http_get
+   :members: cos_sim, dot_score, paraphrase_mining, semantic_search, community_detection, http_get
 ```

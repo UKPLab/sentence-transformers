@@ -39,7 +39,7 @@ By default, the pretrained models output embeddings with size 768 (base-models) 
 
 This dimensionality reduction technique can easily be applied to existent models. We could even reduce the embeddings size to 32, reducing the storage requirment by factor 24 (performance decreases to 81.82). 
 
-Note: This technique neither improves the runtime, nor the memory requirement for running the model. It only reduces the needed space to store embeddings, for example, for [semantic search](https://www.sbert.net/docs/usage/semantic_search.html).
+Note: This technique neither improves the runtime, nor the memory requirement for running the model. It only reduces the needed space to store embeddings, for example, for [semantic search](../../applications/semantic-search/README.md).
 
 ## Quantization
 A [quantized model](https://pytorch.org/docs/stable/quantization.html) executes some or all of the operations with integers rather than floating point values. This allows for a more compact models and the use of high performance vectorized operations on many hardware platforms.

@@ -10,11 +10,9 @@ In:
 2_programming_train_bi-encoder.py - We train a SentenceTransformer bi-encoder with these generated queries. This results in a model we can then use for sematic search (for the given Wikipedia articles).
 3_programming_semantic_search.py - Shows how the trained model can be used for semantic search
 """
-from sentence_transformers import SentenceTransformer, InputExample, losses, models
-from torch.utils.data import DataLoader
-import random
+from sentence_transformers import SentenceTransformer, InputExample, losses, models, datasets
 import os
-import math
+
 
 train_examples = []
 with open('generated_queries.tsv') as fIn:
@@ -25,47 +23,8 @@ with open('generated_queries.tsv') as fIn:
 # For the MultipleNegativesRankingLoss, it is important
 # that the batch does not contain duplicate entries, i.e.
 # no two equal queries and no two equal paragraphs.
-# To ensure this, we create a custom batch sampler
-class NoDuplicatesSampler:
-    def __init__(self, train_examples, batch_size):
-        self.train_examples = train_examples
-        self.batch_size = batch_size
-        self.data_idx = list(range(len(train_examples)))
-        self.data_pointer = 0
-        random.shuffle(self.data_idx)
-
-    def __iter__(self):
-        for _ in range(self.__len__()):
-            batch_idx = set()
-            texts_in_batch = set()
-
-            while len(batch_idx) < self.batch_size:
-                idx = self.data_idx[self.data_pointer]
-                example = self.train_examples[idx]
-
-                valid_example = True
-                for text in example.texts:
-                    if text.strip().lower() in texts_in_batch:
-                        valid_example = False
-                        break
-
-                if valid_example:
-                    batch_idx.add(idx)
-                    for text in example.texts:
-                        texts_in_batch.add(text.strip().lower())
-
-                self.data_pointer += 1
-                if self.data_pointer >= len(self.data_idx):
-                    self.data_pointer = 0
-                    random.shuffle(self.data_idx)
-
-            yield list(batch_idx)
-
-    def __len__(self):
-        return math.ceil(len(self.train_examples) / self.batch_size)
-
-# Our dataloader with custom batch_sampler
-train_dataloader = DataLoader(train_examples, batch_sampler=NoDuplicatesSampler(train_examples, batch_size=64))
+# To ensure this, we use a special data loader
+train_dataloader = datasets.NoDuplicatesDataLoader(train_examples, batch_size=64)
 
 # Now we create a SentenceTransformer model from scratch
 word_emb = models.Transformer('distilbert-base-uncased')

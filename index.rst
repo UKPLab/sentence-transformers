@@ -61,77 +61,65 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
     <tr>
     <th>Model</th>
     <th align="center">STS benchmark</th>
-    <th align="center">SentEval</th>
     </tr>
     </thead>
     <tbody>
     <tr>
     <td>Avg. GloVe embeddings</td>
     <td align="center">58.02</td>
-    <td align="center">81.52</td>
     </tr>
     <tr>
     <td>BERT-as-a-service avg. embeddings</td>
     <td align="center">46.35</td>
-    <td align="center">84.04</td>
     </tr>
     <tr>
     <td>BERT-as-a-service CLS-vector</td>
     <td align="center">16.50</td>
-    <td align="center">84.66</td>
     </tr>
     <tr>
     <td>InferSent - GloVe</td>
     <td align="center">68.03</td>
-    <td align="center">85.59</td>
     </tr>
     <tr>
     <td>Universal Sentence Encoder</td>
     <td align="center">74.92</td>
-    <td align="center">85.10</td>
     </tr>
     <tr>
-    <td><strong>Sentence Transformer Models</strong></td>
-    <td align="center"></td>
+    <td><strong>Sentence Transformer Models (NLI + MNLI)</strong></td>
     <td align="center"></td>
     </tr>
     <tr>
-    <td>nli-bert-base</td>
-    <td align="center">77.12</td>
-    <td align="center">86.37</td>
+    <td>nli-distilroberta-base-v2</td>
+    <td align="center">84.38</td>
     </tr>
     <tr>
-    <td>nli-bert-large</td>
-    <td align="center">79.19</td>
-    <td align="center">87.78</td>
+    <td>nli-roberta-base-v2</td>
+    <td align="center">85.54</td>
     </tr>
     <tr>
-    <td>stsb-bert-base</td>
-    <td align="center">85.14</td>
-    <td align="center">86.07</td>
+    <td>nli-mpnet-base-v2</td>
+    <td align="center">86.53</td>
     </tr>
     <tr>
-    <td>stsb-bert-large</td>
-    <td align="center">85.29</td>
-    <td align="center">86.66</td>
+    <td><strong>Sentence Transformer Models (NLI + STS benchmark)</strong></td>
+    <td align="center"></td>
     </tr>
     <tr>
-    <td>stsb-roberta-base</td>
-    <td align="center">85.44</td>
-    <td align="center">-</td>
+    <td>stsb-distilroberta-base-v2</td>
+    <td align="center">86.41</td>
     </tr>
     <tr>
-    <td>stsb-roberta-large</td>
-    <td align="center">86.39</td>
-    <td align="center">-</td>
+    <td>stsb-roberta-base-v2</td>
+    <td align="center">87.21</td>
     </tr>
     <tr>
-    <td>stsb-distilbert-base</td>
-    <td align="center">85.16</td>
-    <td align="center">-</td>
+    <td>stsb-mpnet-base-v2</td>
+    <td align="center">88.57</td>
     </tr>
     </tbody>
     </table>
+
+
 
 
 Contact
@@ -237,6 +225,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
 
    examples/training/sts/README
    examples/training/nli/README
+   examples/training/paraphrases/README
    examples/training/quora_duplicate_questions/README
    examples/training/ms_marco/README
 
@@ -245,8 +234,11 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    :caption: Unsupervised Learning
 
    examples/unsupervised_learning/README
-   examples/unsupervised_learning/tsdae/README
+   examples/unsupervised_learning/TSDAE/README
    examples/unsupervised_learning/SimCSE/README
+   examples/unsupervised_learning/CT/README
+   examples/unsupervised_learning/CT_In-Batch_Negatives/README
+   examples/unsupervised_learning/MLM/README
    examples/unsupervised_learning/query_generation/README
 
 .. toctree::
