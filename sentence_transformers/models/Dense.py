@@ -19,6 +19,7 @@ class Dense(nn.Module):
     :param activation_function: Pytorch activation function applied on output
     :param init_weight: Initial value for the matrix of the linear layer
     :param init_bias: Initial value for the bias of the linear layer
+    :param dropout: Sets a dropout value for dense layer. None means no dropout.
     """
     def __init__(self, in_features: int, out_features: int, bias: bool = True, activation_function=nn.Tanh(), init_weight: Tensor = None, init_bias: Tensor = None, dropout: float = None):
         super(Dense, self).__init__()
@@ -51,7 +52,7 @@ class Dense(nn.Module):
 
     def save(self, output_path):
         with open(os.path.join(output_path, 'config.json'), 'w') as fOut:
-            json.dump({'in_features': self.in_features, 'out_features': self.out_features, 'bias': self.bias, 'activation_function': fullname(self.activation_function)}, fOut)
+            json.dump({'in_features': self.in_features, 'out_features': self.out_features, 'bias': self.bias, 'activation_function': fullname(self.activation_function), 'dropout': self.dropout}, fOut)
 
         torch.save(self.state_dict(), os.path.join(output_path, 'pytorch_model.bin'))
 
