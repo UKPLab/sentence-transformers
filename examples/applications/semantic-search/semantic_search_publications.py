@@ -27,7 +27,7 @@ print(len(papers), "papers loaded")
 model = SentenceTransformer('allenai-specter')
 
 #To encode the papers, we must combine the title and the abstracts to a single string
-paper_texts = [paper['title'] + ' ' + paper['abstract'] for paper in papers]
+paper_texts = [paper['title'] + '[SEP]' + paper['abstract'] for paper in papers]
 
 #Compute embeddings for all papers
 corpus_embeddings = model.encode(paper_texts, convert_to_tensor=True)
@@ -35,7 +35,7 @@ corpus_embeddings = model.encode(paper_texts, convert_to_tensor=True)
 
 #We define a function, given title & abstract, searches our corpus for relevant (similar) papers
 def search_papers(title, abstract):
-  query_embedding = model.encode(title+' '+abstract, convert_to_tensor=True)
+  query_embedding = model.encode(title+'[SEP]'+abstract, convert_to_tensor=True)
 
   search_hits = util.semantic_search(query_embedding, corpus_embeddings)
   search_hits = search_hits[0]  #Get the hits for the first query

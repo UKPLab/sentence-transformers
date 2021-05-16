@@ -38,7 +38,7 @@ The following models were optimized for [Semantic Textual Similarity](usage/sema
 
 ## Duplicate Questions Detection
 
-The following models were trained for duplicate questions mining and duplicate questions retrieval. You can use them to detect duplicate questions in a large corpus (see [paraphrase mining](usage/paraphrase_mining.md)) or to search for similar questions (see [semantic search](usage/semantic_search.md)). 
+The following models were trained for duplicate questions mining and duplicate questions retrieval. You can use them to detect duplicate questions in a large corpus (see [paraphrase mining](../examples/applications/paraphrase-mining/README.md)) or to search for similar questions (see [semantic search](../examples/applications/semantic-search/README.md)).
 
 Available models:
 - **quora-distilbert-base** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
@@ -53,7 +53,9 @@ Models tuned to be used with **cosine-similarity**:
 
 Models tuned to be used with **dot-product**:
 - **msmarco-distilbert-base-dot-prod-v3**: MRR@10: 33.04 on MS MARCO dev set
+- **msmarco-distilbert-base-tas-b**: MRR@10: 34.43 on MS MARCO dev set
 - **msmarco-roberta-base-ance-fristp**: MRR@10: 33.03 on MS MARCO  dev set
+
 
 Models tuned for cosine-similarity will prefer the retrieval of short documents, while models tuned for dot-product will prefer the retrieval of longer documents. Depending on your task, the models of the one or the other type are preferable.
 
@@ -67,7 +69,7 @@ passage_embedding = model.encode('London has 9,787,426 inhabitants at the 2011 c
 print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 ```
 
-You can index the passages as shown [here](https://www.sbert.net/docs/usage/semantic_search.html).
+You can index the passages as shown [here](../examples/applications/semantic-search/README.md).
 
 [More details](pretrained-models/msmarco-v3.md)
 
@@ -88,11 +90,12 @@ passage_embedding = model.encode([['London', 'London has 9,787,426 inhabitants a
 print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 ```
 
-You can index the passages as shown [here](https://www.sbert.net/docs/usage/semantic_search.html).
+You can index the passages as shown [here](../examples/applications/semantic-search/README.md).
 
 [More details](pretrained-models/nq-v1.md)
 
-### DPR-Models
+**DPR-Models**
+
 In [Dense Passage Retrieval  for Open-Domain Question Answering](https://arxiv.org/abs/2004.04906)  Karpukhin et al. trained models based on [Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions):
 - **facebook-dpr-ctx_encoder-single-nq-base** 
 - **facebook-dpr-question_encoder-single-nq-base**

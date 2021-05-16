@@ -15,7 +15,7 @@ Cross-Encoder are only suitable for reranking a small set of passages. For retri
 
 ![BiEncoder](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/BiEncoder.png)
 
-To **train an bi-encoder** on the MS MARCO dataset, see: **[train_bi-encoder.py](train_bi-encoder.py)**.
+To **train an bi-encoder** on the MS MARCO dataset, see: **[train_bi-encoder-v2.py](train_bi-encoder-v2.py)**.
 
 
 ## Cross-Encoder
@@ -26,7 +26,7 @@ A [Cross-Encoder](https://www.sbert.net/examples/applications/cross-encoder/READ
 Cross-Encoders are often used for **re-ranking:** Given a list with possible relevant passages for a query, for example retrieved from BM25 / ElasticSearch, the cross-encoder re-ranks this list so that the most relevant passages are the top of the result list. 
 
 To **train an cross-encoder** on the MS MARCO dataset, see: 
-- **[train_cross-encoder.py](train_cross-encoder.py)** trains a cross-encoder from scratch using the provided data from the MS MARCO dataset.
+- **[train_cross-encoder-v1.py](train_cross-encoder-v1.py)** trains a cross-encoder from scratch using the provided data from the MS MARCO dataset.
   
 ## Cross-Encoder Knowledge Distillation
 ![](https://github.com/UKPLab/sentence-transformers/raw/master/docs/img/msmarco-training-ce-distillation.png)

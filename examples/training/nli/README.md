@@ -26,9 +26,36 @@ In our experiments we combine [SNLI](https://arxiv.org/abs/1508.05326) and [Mult
 
 
 The softmax loss looks like this:
+
 ![SBERT SoftmaxLoss](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/SBERT_SoftmaxLoss.png "SBERT SoftmaxLoss")
 
 We pass the two sentences through our SentenceTransformer network and get the sentence embeddings *u* and *v*. We then concatenate u, v and |u-v| to form one, long vector. This vector is then passed to a softmax classifier, which predicts our three classes (entailnment, neutral, contradiction).
 
 This setup learns sentence embeddings, that can later be used for wide varity of tasks. 
 
+## MultipleNegativesRankingLoss
+
+That the softmax-loss with NLI data produces (relatively) good sentence embeddings is rather coincidental. The [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/losses.html#multiplenegativesrankingloss) is much more intuitive and produces also significantly better sentence representations.
+
+The training data for MultipleNegativesRankingLoss consists of sentence pairs [(a<sub>1</sub>, b<sub>1</sub>), ..., (a<sub>n</sub>, b<sub>n</sub>)] where we assume that (a<sub>i</sub>, b<sub>i</sub>) are similar sentences and (a<sub>i</sub>, b<sub>j</sub>) are dissimilar sentences for i != j. The minimizes the distance between (a<sub>i</sub>, b<sub>j</sub>) while it simultaneously maximizes the distance  (a<sub>i</sub>, b<sub>j</sub>) for all i != j.
+
+
+For example in the following picture:
+
+![](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/MultipleNegativeRankingLoss.png)
+
+The distance between (a<sub>1</sub>, b<sub>1</sub>) is reduced, while the distance between (a<sub>1</sub>, b<sub>2...5</sub>) will be increased. The same is done for a<sub>2</sub>, ..., a<sub>5</sub>.
+
+
+Using MultipleNegativeRankingLoss with NLI is rather easy: We define sentences that have an *entailment* label as positive pairs. E.g, we have pairs like (*"A soccer game with multiple males playing."*, *"Some men are playing a sport."*) and want that these pairs are close in vector space.
+
+### MultipleNegativesRankingLoss with Hard Negatives
+
+We can further improve MultipleNegativesRankingLoss by not only providing pairs, but by providing triplets: [(a<sub>1</sub>, b<sub>1</sub>, c<sub>1</sub>), ..., (a<sub>n</sub>, b<sub>n</sub>, c<sub>n</sub>)] 
+
+The entry for c<sub>i</sub> are so-called hard-negatives: On a lexical level, they are similar to a<sub>i</sub> and b<sub>i</sub>. But on a semantic level, they mean different things and should not be close in the vector space.
+
+For NLI data, we can use the contradiction-label to create such triplets with a hard negative. So our triplets look like this:
+("*A soccer game with multiple males playing."*, *"Some men are playing a sport."*, *"A group of men playing a baseball game."*).
+
+We want the sentences *"A soccer game with multiple males playing."* and *"Some men are playing a sport."* to be close in the vector space, while there should be a larger distance between *"A soccer game with multiple males playing."* and "*A group of men playing a baseball game."*.

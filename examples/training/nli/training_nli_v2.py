@@ -9,9 +9,8 @@ python training_nli_v2.py
 OR
 python training_nli_v2.py pretrained_transformer_model_name
 """
-from torch.utils.data import DataLoader
 import math
-from sentence_transformers import models, losses
+from sentence_transformers import models, losses, datasets
 from sentence_transformers import LoggingHandler, SentenceTransformer, util, InputExample
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 import logging
@@ -63,10 +62,6 @@ def add_to_samples(sent1, sent2, label):
     train_data[sent1][label].add(sent2)
 
 
-from transformers import AutoTokenizer
-tokenizer = AutoTokenizer.from_pretrained('distilroberta-base')
-
-label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
 train_data = {}
 with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -79,7 +74,6 @@ with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
             add_to_samples(sent2, sent1, row['label'])  #Also add the opposite
 
 
-
 train_samples = []
 for sent1, others in train_data.items():
     if len(others['entailment']) > 0 and len(others['contradiction']) > 0:
@@ -89,49 +83,10 @@ for sent1, others in train_data.items():
 logging.info("Train samples: {}".format(len(train_samples)))
 
 
-class NoDuplicatesSampler:
-    def __init__(self, train_examples, batch_size):
-        self.train_examples = train_examples
-        self.batch_size = batch_size
-        self.data_idx = list(range(len(train_examples)))
-        self.data_pointer = 0
-        random.shuffle(self.data_idx)
-
-    def __iter__(self):
-        for _ in range(self.__len__()):
-            batch_idx = set()
-            texts_in_batch = set()
-
-            while len(batch_idx) < self.batch_size:
-                idx = self.data_idx[self.data_pointer]
-                example = self.train_examples[idx]
-
-                valid_example = True
-                for text in example.texts:
-                    if text.strip().lower() in texts_in_batch:
-                        valid_example = False
-                        break
-
-                if valid_example:
-                    batch_idx.add(idx)
-                    for text in example.texts:
-                        texts_in_batch.add(text.strip().lower())
-
-                self.data_pointer += 1
-                if self.data_pointer >= len(self.data_idx):
-                    self.data_pointer = 0
-                    random.shuffle(self.data_idx)
-
-            yield list(batch_idx)
-
-    def __len__(self):
-        return math.ceil(len(self.train_examples) / self.batch_size)
-
-# Standard data loader
-#train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size, drop_last=True)
 
 # Special data loader that avoid duplicates within a batch
-train_dataloader = DataLoader(train_samples, batch_sampler=NoDuplicatesSampler(train_samples, batch_size=train_batch_size))
+train_dataloader = datasets.NoDuplicatesDataLoader(train_samples, batch_size=train_batch_size)
+
 
 # Our training loss
 train_loss = losses.MultipleNegativesRankingLoss(model)

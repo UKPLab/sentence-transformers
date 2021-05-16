@@ -1,4 +1,4 @@
-# CT-Improved
+# CT (In-Batch Negatives)
 Carlsson et al. present in [Semantic Re-Tuning With Contrastive Tension (CT)](https://openreview.net/pdf?id=Ov_sMNau-PF) an unsupervised learning approach for sentence embeddings that just requires sentences.
 
 ## Background
@@ -19,7 +19,7 @@ In some preliminary experiments, we compate performance on the STSbenchmark data
 | Method | STSb (Spearman) | Quora-Duplicate-Question (Avg. Precision) |
 | --- | :---: | :---:
 | CT | 75.7 | 36.5
-| CT-Improved | 78.5 | 40.1
+| CT (In-Batch Negatives) | 78.5 | 40.1
 
 
 Note: We used the code provided in this repository, not the official code from the authors.
