@@ -28,10 +28,11 @@ class Dense(nn.Module):
         self.bias = bias
         self.activation_function = activation_function
         self.linear = nn.Linear(in_features, out_features, bias=bias)
-        if dropout:
-            self.dropout = nn.Dropout(dropout)
+        self.dropout = dropout
+        if self.dropout:
+            self.dropout_layer = nn.Dropout(self.dropout)
         else:
-            self.dropout = None
+            self.dropout_layer = None
 
         if init_weight is not None:
             self.linear.weight = nn.Parameter(init_weight)
@@ -41,8 +42,8 @@ class Dense(nn.Module):
 
     def forward(self, features: Dict[str, Tensor]):
         linear = self.linear(features['sentence_embedding'])
-        if self.dropout:
-            linear = self.dropout(linear)
+        if self.dropout_layer:
+            linear = self.dropout_layer(linear)
             
         features.update({'sentence_embedding': self.activation_function(linear)})
         return features
