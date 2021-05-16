@@ -11,6 +11,19 @@ class ComputeEmbeddingsTest(unittest.TestCase):
     def setUp(self):
         self.model = SentenceTransformer('paraphrase-distilroberta-base-v1')
 
+
+    def test_encode_token_embeddings(self):
+        """
+        Test that encode(output_value='token_embeddings') works
+        :return:
+        """
+        sent = ["Hello Word, a test sentence", "Here comes another sentence", "My final sentence", "Sentences", "Sentence five five five five five five five"]
+        emb = self.model.encode(sent, output_value='token_embeddings', batch_size=2)
+        assert len(emb) == len(sent)
+        for s, e in zip(sent, emb):
+            assert len(self.model.tokenize([s])['input_ids'][0]) == e.shape[0]
+
+
     def test_encode_single_sentences(self):
         #Single sentence
         emb = self.model.encode("Hello Word, a test sentence")
@@ -44,19 +57,6 @@ class ComputeEmbeddingsTest(unittest.TestCase):
         assert emb.shape == (3, 768)
         assert abs(np.sum(emb) - 32.14627) < 0.001
 
-    def test_multi_gpu_encode(self):
-        # Start the multi-process pool on all available CUDA devices
-        pool = self.model.start_multi_process_pool(['cpu', 'cpu'])
-
-        sentences = ["This is sentence {}".format(i) for i in range(1000)]
-
-        # Compute the embeddings using the multi-process pool
-        emb = self.model.encode_multi_process(sentences, pool, chunk_size=50)
-        assert emb.shape == (1000, 768)
-
-        emb_normal = self.model.encode(sentences)
-        diff = np.sum(np.abs(emb - emb_normal))
-        assert diff < 0.001
 
 
 

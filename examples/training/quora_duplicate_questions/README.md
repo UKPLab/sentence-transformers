@@ -38,13 +38,13 @@ For details on the creation of the dataset, see [create_splits.py](create_splits
 
 ### Duplicate Questions Mining
 
-Given a large set of sentences (in this case questions), identify all pairs that are duplicates. See [Paraphrase Mining](https://www.sbert.net/docs/usage/paraphrase_mining.html) for an example how to use sentence transformers to mine for duplicate questions / paraphrases. This approach can be scaled to hundred thousands of sentences given you have enough memory.
+Given a large set of sentences (in this case questions), identify all pairs that are duplicates. See [Paraphrase Mining](../../applications/paraphrase-mining/README.md) for an example how to use sentence transformers to mine for duplicate questions / paraphrases. This approach can be scaled to hundred thousands of sentences given you have enough memory.
 
 ### Semantic Search
 
 The model can also be used for Information Retrieval / Semantic Search. Given a new question, search a large corpus of hundred thousands of questions for duplicate questions. Given you have enough memory, this approach works well to copora up in the Millions (depending on your real-time requirements).
 
-For an interactive example, see [Semantic Search](https://www.sbert.net/docs/usage/semantic_search.html).
+For an interactive example, see [Semantic Search](../../applications/semantic-search/README.md).
 
 
 ## Training

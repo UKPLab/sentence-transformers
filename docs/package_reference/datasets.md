@@ -15,3 +15,17 @@
 ```eval_rst
 .. autoclass:: sentence_transformers.datasets.SentenceLabelDataset
 ```
+
+## DenoisingAutoEncoderDataset
+`DenoisingAutoEncoderDataset` is used for unsupervised training with the TSDAE method.
+```eval_rst
+.. autoclass:: sentence_transformers.datasets.DenoisingAutoEncoderDataset
+```
+
+## NoDuplicatesDataLoader
+`NoDuplicatesDataLoader`can be used together with MultipleNegativeRankingLoss to ensure that no duplicates are within the same batch.
+```eval_rst
+.. autoclass:: sentence_transformers.datasets.NoDuplicatesDataLoader
+```
+
+

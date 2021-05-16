@@ -51,10 +51,12 @@ For details on the usage, see [Applications - Information Retrieval](../examples
 
 ### MS MARCO
 [MS MARCO Passage Retrieval](https://github.com/microsoft/MSMARCO-Passage-Ranking) is a large dataset with real user queries from Bing search engine with annotated relevant text passages.
-- **cross-encoder/ms-marco-TinyBERT-L-2** - MRR@10 on MS Marco Dev Set: 30.15
-- **cross-encoder/ms-marco-TinyBERT-L-4** - MRR@10 on MS Marco Dev Set: 34.50
-- **cross-encoder/ms-marco-TinyBERT-L-6** - MRR@10 on MS Marco Dev Set: 36.13
-- **cross-encoder/ms-marco-electra-base** - MRR@10 on MS Marco Dev Set: 36.41
+- **cross-encoder/ms-marco-TinyBERT-L-2-v2** - MRR@10 on MS Marco Dev Set: 32.56
+- **cross-encoder/ms-marco-MiniLM-L-2-v2** - MRR@10 on MS Marco Dev Set: 34.85
+- **cross-encoder/ms-marco-MiniLM-L-4-v2** - MRR@10 on MS Marco Dev Set: 37.70
+- **cross-encoder/ms-marco-MiniLM-L-6-v2** - MRR@10 on MS Marco Dev Set: 39.01
+- **cross-encoder/ms-marco-MiniLM-L-12-v2** - MRR@10 on MS Marco Dev Set: 39.02
+
 
 [More details](pretrained-models/ce-msmarco.md)
 

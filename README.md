@@ -1,6 +1,6 @@
-# Sentence Transformers: Multilingual Sentence Embeddings using BERT / RoBERTa / XLM-RoBERTa & Co. with PyTorch
+# Sentence Transformers: Multilingual Sentence, Paragraph, and Image Embeddings using BERT & Co.
 
-This framework provides an easy method to compute dense vector representations for sentences and paragraphs (also known as sentence embeddings). The models are based on transformer networks like BERT / RoBERTa / XLM-RoBERTa etc. and are tuned specificially meaningul sentence embeddings such that sentences with similar meanings are close in vector space.
+This framework provides an easy method to compute dense vector representations for **sentences**, **paragraphs**, and **images**. The models are based on transformer networks like BERT / RoBERTa / XLM-RoBERTa etc. and achieve state-of-the-art performance in various task. Text is embedding in vector space such that similar text is close and can efficiently be found using cosine similarity.
 
 
 We provide an increasing number of **[state-of-the-art pretrained models](https://www.sbert.net/docs/pretrained_models.html)** for more than 100 languages, fine-tuned for various use-cases.
@@ -8,12 +8,15 @@ We provide an increasing number of **[state-of-the-art pretrained models](https:
 Further, this framework allows an easy  **[fine-tuning of custom embeddings models](https://www.sbert.net/docs/training/overview.html)**, to achieve maximal performance on your specific task.
 
 
-For the **full documentation**, see [www.SBERT.net](https://www.sbert.net), as well as our publications:
+For the **full documentation**, see **[www.SBERT.net](https://www.sbert.net)**.
+
+The following publications are integrated in this framework:
 - [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (EMNLP 2019)
 - [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) (EMNLP 2020)
-- [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240) (arXiv 2020)
+- [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240) (NAACL 2021)
 - [The Curse of Dense Low-Dimensional Information Retrieval for Large Index Sizes](https://arxiv.org/abs/2012.14210) (arXiv 2020)
-
+- [TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning](https://arxiv.org/abs/2104.06979) (arXiv 2021)
+- [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663) (arXiv 2021)
 
 
 ## Installation
@@ -95,22 +98,25 @@ Some highlights are:
 
 Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed.
 
-| Model    | STS benchmark | SentEval  |
-| ----------------------------------|:-----: |:---:   |
-| Avg. GloVe embeddings             | 58.02  | 81.52  |
-| BERT-as-a-service avg. embeddings | 46.35  | 84.04  |
-| BERT-as-a-service CLS-vector      | 16.50  | 84.66  |
-| InferSent - GloVe                 | 68.03  | 85.59  |
-| Universal Sentence Encoder        | 74.92  | 85.10  |
-|**Sentence Transformer Models**    ||
-| nli-bert-base       | 77.12  | 86.37 |
-| nli-bert-large     | 79.19  | 87.78 |
-| stsb-bert-base    | 85.14  | 86.07 |
-| stsb-bert-large   | 85.29 | 86.66|
-| stsb-roberta-base | 85.44 | - |
-| stsb-roberta-large | 86.39 | - |
-| stsb-distilbert-base| 85.16 | - |
+| Model    | STS benchmark | 
+| ----------------------------------|:-----: |
+| Avg. GloVe embeddings             | 58.02  | 
+| BERT-as-a-service avg. embeddings | 46.35  | 
+| BERT-as-a-service CLS-vector      | 16.50  | 
+| InferSent - GloVe                 | 68.03  |
+| Universal Sentence Encoder        | 74.92  | 
+|**Sentence Transformer Models (NLI + MNLI)**  | |
+| nli-distilroberta-base-v2 | 84.38 |
+| nli-roberta-base-v2 | 85.54 |
+| nli-mpnet-base-v2 | 86.53 |
+|**Sentence Transformer Models (NLI + STS benchmark)**  | |
+| stsb-distilroberta-base-v2 | 86.41 |
+| stsb-roberta-base-v2 | 87.21 |
+| stsb-mpnet-base-v2 | 88.57 |
 
+
+
+[» Full list of pretrained models](https://www.sbert.net/docs/pretrained_models.html)
 
 
 
@@ -125,7 +131,8 @@ You can use this framework for:
  - [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html)
  - [Retrieve & Re-Rank](https://www.sbert.net/examples/applications/retrieve_rerank/README.html) 
  - [Text Summarization](https://www.sbert.net/examples/applications/text-summarization/README.html) 
-  
+- [Multilingual Image Search, Clustering & Duplicate Detection](https://www.sbert.net/examples/applications/image-search/README.html)
+
 and many more use-cases.
 
 
@@ -133,7 +140,7 @@ For all examples, see [examples/applications](https://github.com/UKPLab/sentence
 
 ## Citing & Authors
 If you find this repository helpful, feel free to cite our publication [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084):
-``` 
+```bibtex 
 @inproceedings{reimers-2019-sentence-bert,
     title = "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
     author = "Reimers, Nils and Gurevych, Iryna",
@@ -147,7 +154,7 @@ If you find this repository helpful, feel free to cite our publication [Sentence
 
 
 If you use one of the multilingual models, feel free to cite our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
-``` 
+```bibtex
 @inproceedings{reimers-2020-multilingual-sentence-bert,
     title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
     author = "Reimers, Nils and Gurevych, Iryna",
@@ -159,25 +166,10 @@ If you use one of the multilingual models, feel free to cite our publication [Ma
 }
 ```
 
-
-If you use the code for [data augmentation](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training/data_augmentation), feel free to cite our publication [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks](https://arxiv.org/abs/2010.08240):
-``` 
-@article{thakur-2020-AugSBERT,
-    title = "Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
-    author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes and  Gurevych, Iryna", 
-    journal= "arXiv preprint arXiv:2010.08240",
-    month = "10",
-    year = "2020",
-    url = "https://arxiv.org/abs/2010.08240",
-}
-```
+Please have a look at [Publications](https://www.sbert.net/docs/publications.html) for our different publications that are integrated into SentenceTransformers.
 
 
-The main contributors of this repository are:
-- [Nils Reimers](https://github.com/nreimers)
-- [Gregor Geigle](https://github.com/aaronsom)
-
-Contact person: Nils Reimers, info@nils-reimers.de
+Contact person: [Nils Reimers](https://www.nils-reimers.de), [info@nils-reimers.de](mailto:info@nils-reimers.de)
 
 https://www.ukp.tu-darmstadt.de/
 

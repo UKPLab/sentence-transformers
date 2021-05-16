@@ -14,7 +14,7 @@ from .tokenizer import WordTokenizer, WhitespaceTokenizer
 class CNN(nn.Module):
     """CNN-layer with multiple kernel-sizes over the word embeddings"""
 
-    def __init__(self, in_word_embedding_dimension: int, out_channels: int = 256, kernel_sizes: List[int] = [1, 3, 5]):
+    def __init__(self, in_word_embedding_dimension: int, out_channels: int = 256, kernel_sizes: List[int] = [1, 3, 5], stride_sizes: List[int] = None):
         nn.Module.__init__(self)
         self.config_keys = ['in_word_embedding_dimension', 'out_channels', 'kernel_sizes']
         self.in_word_embedding_dimension = in_word_embedding_dimension
@@ -25,9 +25,14 @@ class CNN(nn.Module):
         self.convs = nn.ModuleList()
 
         in_channels = in_word_embedding_dimension
-        for kernel_size in kernel_sizes:
+        if stride_sizes is None:
+            stride_sizes = [1] * len(kernel_sizes)
+
+        for kernel_size, stride in zip(kernel_sizes, stride_sizes):
             padding_size = int((kernel_size - 1) / 2)
-            conv = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
+            conv = nn.Conv1d(in_channels=in_channels, out_channels=out_channels,
+                             kernel_size=kernel_size,
+                             stride=stride,
                              padding=padding_size)
             self.convs.append(conv)
 

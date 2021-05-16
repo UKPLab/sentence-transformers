@@ -97,7 +97,7 @@ class GithubURLDomain(Domain):
     ROOT = "https://github.com/UKPLab/sentence-transformers/tree/master"
 
     def resolve_any_xref(self, env, fromdocname, builder, target, node, contnode):
-        if target.endswith('.py') and not target.startswith('http'):
+        if (target.endswith('.py') or target.endswith('.ipynb')) and not target.startswith('http'):
             from_folder = os.path.dirname(fromdocname)
             contnode["refuri"] = "/".join([self.ROOT, from_folder, target])
             return [("githuburl:any", contnode)]

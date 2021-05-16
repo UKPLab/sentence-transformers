@@ -1,5 +1,6 @@
-# Synthetic Query Generation
-This folder shows an example, how we can train an [asymmetric semantic search](../../applications/semantic-search/) without requiring training data.
+# GenQ
+
+In our paper [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663) we presented a method to learn (or adapt) model for[asymmetric semantic search](../../applications/semantic-search/) without requiring training data.
 
 ## Background
 In [asymmetric semantic search](../../applications/semantic-search/), the user provides a (short) query like some keywords or a question. We then want to retrieve a longer text passage that provides the answer.

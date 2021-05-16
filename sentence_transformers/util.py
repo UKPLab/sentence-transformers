@@ -73,11 +73,8 @@ def paraphrase_mining(model,
                       sentences: List[str],
                       show_progress_bar: bool = False,
                       batch_size:int = 32,
-                      query_chunk_size: int = 5000,
-                      corpus_chunk_size: int = 100000,
-                      max_pairs: int = 500000,
-                      top_k: int = 100,
-                      score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim):
+                      *args,
+                      **kwargs):
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
     other sentences and returns a list with the pairs that have the highest cosine similarity score.
@@ -94,10 +91,32 @@ def paraphrase_mining(model,
     :return: Returns a list of triplets with the format [score, id1, id2]
     """
 
-    top_k += 1  #A sentence has the highest similarity to itself. Increase +1 as we are interest in distinct pairs
-
     # Compute embedding for the sentences
     embeddings = model.encode(sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True)
+
+    return paraphrase_mining_embeddings(embeddings, *args, **kwargs)
+
+
+def paraphrase_mining_embeddings(embeddings: Tensor,
+                      query_chunk_size: int = 5000,
+                      corpus_chunk_size: int = 100000,
+                      max_pairs: int = 500000,
+                      top_k: int = 100,
+                      score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim):
+    """
+    Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
+    other sentences and returns a list with the pairs that have the highest cosine similarity score.
+
+    :param embeddings: A tensor with the embeddings
+    :param query_chunk_size: Search for most similar pairs for #query_chunk_size at the same time. Decrease, to lower memory footprint (increases run-time).
+    :param corpus_chunk_size: Compare a sentence simultaneously against #corpus_chunk_size other sentences. Decrease, to lower memory footprint (increases run-time).
+    :param max_pairs: Maximal number of text pairs returned.
+    :param top_k: For each sentence, we retrieve up to top_k other sentences
+    :param score_function: Funtion for computing scores. By default, cosine similarity.
+    :return: Returns a list of triplets with the format [score, id1, id2]
+    """
+
+    top_k += 1  # A sentence has the highest similarity to itself. Increase +1 as we are interest in distinct pairs
 
     # Mine for duplicates
     pairs = queue.PriorityQueue()
@@ -281,3 +300,66 @@ def import_from_string(dotted_path):
     except AttributeError:
         msg = 'Module "%s" does not define a "%s" attribute/class' % (module_path, class_name)
         raise ImportError(msg)
+
+
+def community_detection(embeddings, threshold=0.75, min_community_size=10, init_max_size=1000):
+    """
+    Function for Fast Community Detection
+
+    Finds in the embeddings all communities, i.e. embeddings that are close (closer than threshold).
+
+    Returns only communities that are larger than min_community_size. The communities are returned
+    in decreasing order. The first element in each list is the central point in the community.
+    """
+
+    # Compute cosine similarity scores
+    cos_scores = cos_sim(embeddings, embeddings)
+
+    # Minimum size for a community
+    top_k_values, _ = cos_scores.topk(k=min_community_size, largest=True)
+
+    # Filter for rows >= min_threshold
+    extracted_communities = []
+    for i in range(len(top_k_values)):
+        if top_k_values[i][-1] >= threshold:
+            new_cluster = []
+
+            # Only check top k most similar entries
+            top_val_large, top_idx_large = cos_scores[i].topk(k=init_max_size, largest=True)
+            top_idx_large = top_idx_large.tolist()
+            top_val_large = top_val_large.tolist()
+
+            if top_val_large[-1] < threshold:
+                for idx, val in zip(top_idx_large, top_val_large):
+                    if val < threshold:
+                        break
+
+                    new_cluster.append(idx)
+            else:
+                # Iterate over all entries (slow)
+                for idx, val in enumerate(cos_scores[i].tolist()):
+                    if val >= threshold:
+                        new_cluster.append(idx)
+
+            extracted_communities.append(new_cluster)
+
+    # Largest cluster first
+    extracted_communities = sorted(extracted_communities, key=lambda x: len(x), reverse=True)
+
+    # Step 2) Remove overlapping communities
+    unique_communities = []
+    extracted_ids = set()
+
+    for community in extracted_communities:
+        add_cluster = True
+        for idx in community:
+            if idx in extracted_ids:
+                add_cluster = False
+                break
+
+        if add_cluster:
+            unique_communities.append(community)
+            for idx in community:
+                extracted_ids.add(idx)
+
+    return unique_communities

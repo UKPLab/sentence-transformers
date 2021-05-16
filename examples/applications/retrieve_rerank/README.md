@@ -61,31 +61,9 @@ query_embedding = model.encode(query)
 For more details how to compare the embeddings, see [semantic search](../semantic-search/README.md).
 
 We provide pre-trained models based on:
-- **MS MARCO:** 500k real user queries from Bing search engine. See [MS MARCO models](https://www.sbert.net/docs/pretrained-models/msmarco-v2.html) 
+- **MS MARCO:** 500k real user queries from Bing search engine. See [MS MARCO models](https://www.sbert.net/docs/pretrained-models/msmarco-v3.html) 
 
 ## Pre-trained Cross-Encoders (Re-Ranker)
 
-Pre-trained models can be used like this:
-```python
-from sentence_transformers import CrossEncoder
-model = CrossEncoder('model_name', max_length=512)
-scores = model.predict([('Query', 'Paragraph1'), ('Query', 'Paragraph2') , ('Query', 'Paragraph3')])
-```
 
-In the following table, we provide various pre-trained Cross-Encoders together with their performance on the [TREC Deep Learning 2019](https://microsoft.github.io/TREC-2019-Deep-Learning/) and the [MS Marco Passage Reranking](https://github.com/microsoft/MSMARCO-Passage-Ranking/) dataset. 
-
-
-| Model-Name        | NDCG@10 (TREC DL 19) | MRR@10 (MS Marco Dev)  | Docs / Sec |
-| ------------- |:-------------| -----| --- | 
-| cross-encoder/ms-marco-TinyBERT-L-2  | 67.43 | 30.15  | 9000 | 
-| cross-encoder/ms-marco-TinyBERT-L-4  | 68.09 | 34.50  | 2900 | 
-| cross-encoder/ms-marco-TinyBERT-L-6 |  69.57 | 36.13  | 680 | 
-| cross-encoder/ms-marco-electra-base | 71.99 | 36.41 | 340 | 
-| *Other models* | | | |
-| nboost/pt-tinybert-msmarco | 63.63 | 28.80 | 2900 | 
-| nboost/pt-bert-base-uncased-msmarco | 70.94 | 34.75 | 340 | 
-| nboost/pt-bert-large-msmarco | 73.36 | 36.48 | 100 |  
-| Capreolus/electra-base-msmarco | 71.23 | 36.89 | 340 | 
-| amberoad/bert-multilingual-passage-reranking-msmarco | 68.40 | 35.54 | 330 |  
- 
- Note: Runtime was computed on a V100 GPU with Huggingface Transformers v4. 
+For pre-trained models, see: [MS MARCO Cross-Encoders](https://www.sbert.net/docs/pretrained-models/ce-msmarco.html)

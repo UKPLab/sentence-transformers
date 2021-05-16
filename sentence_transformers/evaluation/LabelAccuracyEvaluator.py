@@ -2,7 +2,6 @@ from . import SentenceEvaluator
 import torch
 from torch.utils.data import DataLoader
 import logging
-from tqdm import tqdm
 from ..util import batch_to_device
 import os
 import csv
@@ -52,7 +51,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
 
         logger.info("Evaluation on the "+self.name+" dataset"+out_txt)
         self.dataloader.collate_fn = model.smart_batching_collate
-        for step, batch in enumerate(tqdm(self.dataloader, desc="Evaluating")):
+        for step, batch in enumerate(self.dataloader):
             features, label_ids = batch
             for idx in range(len(features)):
                 features[idx] = batch_to_device(features[idx], model.device)
