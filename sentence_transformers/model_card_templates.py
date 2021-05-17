@@ -60,7 +60,7 @@ tokenizer = AutoTokenizer.from_pretrained(TODO)
 model = AutoModel.from_pretrained(TODO)
 
 # Tokenize sentences
-encoded_input = tokenizer(sentences, padding=True, truncation=True, max_length=128, return_tensors='pt'))
+encoded_input = tokenizer(sentences, padding=True, truncation=True, max_length=128, return_tensors='pt')
 
 # Compute token embeddings
 with torch.no_grad():
