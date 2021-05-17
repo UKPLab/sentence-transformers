@@ -388,7 +388,7 @@ class SentenceTransformer(nn.Sequential):
 
     def _create_model_card(self, path):
         # Add necesary tags.
-        tags = ["sentence-transformers"]
+        tags = ["sentence-transformers", "feature-extraction"]
         # We can add license, datasets, metrics later on in the metadata as well.
         metadata = list_tags("tags", tags)
         model_card = f"---\n{metadata}---\n"
@@ -400,16 +400,16 @@ class SentenceTransformer(nn.Sequential):
             module = self._modules[name]
             if idx == 0 and isinstance(module, Transformer):
                 base_type = type(module._modules["auto_model"]).__name__
-                model_card += f"\n(0) Base Transformer Type: {base_type}\n"
+                model_card += f"\n(0) Base Transformer Type: {base_type}\n\n"
             elif isinstance(module, Pooling):
-                model_card += f"({idx}) Pooling {module.pooling_mode_}\n"
+                model_card += f"({idx}) Pooling {module.pooling_mode_}\n\n"
             elif isinstance(module, Dense):
                 in_features = module.in_features
                 out_features = module.out_features
-                model_card += f"({idx}) Dense {in_features}x{out_features}\n"
+                model_card += f"({idx}) Dense {in_features}x{out_features}\n\n"
                 hf_transformers_compatible = False
             else:
-                model_card += f"({idx}) Unknown - {type(module)}\n"
+                model_card += f"({idx}) Unknown - {type(module)}\n\n"
                 hf_transformers_compatible = False
 
         # Usage with sentence-transformers
@@ -445,8 +445,6 @@ class SentenceTransformer(nn.Sequential):
             raise ValueError(
                 "You must login to the Hugging Face hub on this computer by typing `transformers-cli login`."
             )
-        print(token)
-        print(repo_name)
         repo_url = HfApi(endpoint="https://huggingface.co").create_repo(
                 token,
                 repo_name,
