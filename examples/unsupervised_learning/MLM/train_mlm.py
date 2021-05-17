@@ -113,10 +113,12 @@ trainer = Trainer(
     eval_dataset=dev_dataset
 )
 
+print("Save tokenizer to:", output_dir)
+tokenizer.save_pretrained(output_dir)
+
 trainer.train()
 
 print("Save model to:", output_dir)
 model.save_pretrained(output_dir)
-tokenizer.save_pretrained(output_dir)
 
 print("Training done")
