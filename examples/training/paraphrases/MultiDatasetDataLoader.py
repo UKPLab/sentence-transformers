@@ -57,16 +57,20 @@ class MultiDatasetDataLoader:
             while len(batch) < batch_size:
                 example = dataset['elements'][dataset['pointer']]
 
+                valid_example = True
                 # First check if one of the texts in already in the batch
                 for text in example.texts:
-                    texts_in_batch.add(text.strip().lower())
-                    if text.strip().lower() in texts_in_batch:
+                    text_norm = text.strip().lower()
+                    if text_norm in texts_in_batch:
                         valid_example = False
 
+                    texts_in_batch.add(text_norm)
+
                 # If the example has a label, check if label is in batch
-                if valid_example and example.guid is not None:
-                    valid_example = example.guid not in guid_in_batch
+                if example.guid is not None:
+                    valid_example = valid_example and example.guid not in guid_in_batch
                     guid_in_batch.add(example.guid)
+
 
                 if valid_example:
                     if self.allow_swap and random.random() > 0.5:

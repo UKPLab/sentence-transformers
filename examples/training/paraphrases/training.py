@@ -8,7 +8,7 @@ import sys
 import os
 import gzip
 import csv
-from .MultiDatasetDataLoader import MultiDatasetDataLoader
+from MultiDatasetDataLoader import MultiDatasetDataLoader
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
