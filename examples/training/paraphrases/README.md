@@ -20,7 +20,8 @@ You can find here: [sbert.net/datasets/paraphrases](http://sbert.net/datasets/pa
 | [altlex.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/altlex.tsv.gz) | [altlex](https://github.com/chridey/altlex/) | 112,696 | 83.34 |
 | [msmarco-triplets.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/msmarco-triplets.tsv.gz) | [MS MARCO Passages](https://microsoft.github.io/msmarco/) | 5,028,051 | 83.12 |
 | [quora_duplicates.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/quora_duplicates.tsv.gz) | [Quora](https://quoradata.quora.com/First-Quora-Dataset-Release-Question-Pairs) | 103,663 | 82.55 |
-| [coco_captions.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/coco_captions.tsv.gz) | [COCO](https://cocodataset.org/) | 828,395 | 82.25
+| [coco_captions-with-guid.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/coco_captions-with-guid.tsv.gz) | [COCO](https://cocodataset.org/) | 828,395 | 82.25
+| [flickr30k_captions-with-guid.csv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/flickr30k_captions-with-guid.csv.gz) | [Flickr 30k](https://shannon.cs.illinois.edu/DenotationGraph/) | 317,695 | 82.04
 | [yahoo_answers_title_question.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/yahoo_answers_title_question.tsv.gz) | [Yahoo Answers Dataset](https://www.kaggle.com/soumikrakshit/yahoo-answers-dataset) | 659,896 | 81.19 |
 | [S2ORC_citation_pairs.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/S2ORC_citation_pairs.tsv.gz) | [Semantic Scholar Open Research Corpus](http://s2-public-api-prod.us-west-2.elasticbeanstalk.com/corpus/) | 52,603,982 | 81.02 |
 | [yahoo_answers_title_answer.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/yahoo_answerstitle_answer.tsv.gz) | [Yahoo Answers Dataset](https://www.kaggle.com/soumikrakshit/yahoo-answers-dataset)  | 1,198,260 | 80.25 
@@ -28,6 +29,7 @@ You can find here: [sbert.net/datasets/paraphrases](http://sbert.net/datasets/pa
 | [yahoo_answers_question_answer.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/yahoo_answers_question_answer.tsv.gz) | [Yahoo Answers Dataset](https://www.kaggle.com/soumikrakshit/yahoo-answers-dataset)  | 681,164 | 79.88 |
 | [wiki-atomic-edits.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/wiki-atomic-edits.tsv.gz) | [wiki-atomic-edits](https://github.com/google-research-datasets/wiki-atomic-edits) |   22,980,185  | 79.58
 | [wiki-split.tsv.gz](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/wiki-split.tsv.gz) | [wiki-split](https://github.com/google-research-datasets/wiki-split) | 929,944 | 76.59
+
 
 See the respective linked source website for the dataset license.
 
