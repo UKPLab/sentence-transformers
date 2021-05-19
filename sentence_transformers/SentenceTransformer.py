@@ -397,7 +397,7 @@ class SentenceTransformer(nn.Sequential):
         :param organization:  Organization in which you want to push your model or tokenizer (you must be a member of this organization).
         :param private: Encode sentences with batch size
         :param commit_message: Message to commit while pushing.
-        :param local_model_path: Path of model locally. This is useful if yo
+        :param local_model_path: Path of model locally. This is useful if you want to copy files from a specific directory.
         :return: The url of the commit of your model in the given repository..
         """
         token = HfFolder.get_token()
@@ -422,7 +422,7 @@ class SentenceTransformer(nn.Sequential):
             if local_model_path:
                 copy_tree(local_model_path, tmp_dir)
             # Else, save model directly into local repo.
-            if not local_model_path:
+            else:
                 self.save(tmp_dir)
 
             return repo.push_to_hub(commit_message=commit_message)
