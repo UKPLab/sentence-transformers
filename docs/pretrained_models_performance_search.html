@@ -1,0 +1,286 @@
+
+
+<!-- Vue.js -->
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+<!-- Bootstrap -->
+<!--<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous"> -->
+
+<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+
+<!-- Axios -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<!-- Font-awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha512-iBBXm8fW90+nuLcSKlbmrPcLa0OT92xO1BIsZ+ywDWZCvqsWgccV3gFoRBv0z+8dLJgyAHIhR35VZc2oM/gI1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<!-- Lodash -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js" integrity="sha512-WFN04846sdKMIP5LKNphMaWzU7YpMyCU245etK3g/2ARYbPK9Ub18eG+ljU96qKRCWh+quCY7yefSmlkQw1ANQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<style>
+.fa-active {
+    color: #337ab7;
+}
+
+.header-cell {
+    cursor: pointer;
+}
+
+.models-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+    background-color: #ffffff;
+}
+
+.wy-table-responsive {
+    max-height: 500px;
+}
+
+.info-icon {
+    color: #007bff;
+}
+
+.info-icon:hover {
+    color: #0056b3;
+}
+
+.bs-popover-auto[x-placement^=bottom], .bs-popover-bottom {
+    margin-top: .5rem;
+}
+.popover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1060;
+    display: block;
+    max-width: 400px;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: left;
+    text-align: start;
+    text-decoration: none;
+    text-shadow: none;
+    text-transform: none;
+    letter-spacing: normal;
+    word-break: normal;
+    word-spacing: normal;
+    white-space: normal;
+    line-break: auto;
+    font-size: .875rem;
+    word-wrap: break-word;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0,0,0,.2);
+    border-radius: .3rem;
+}
+
+.popover-header {
+    padding: .5rem .75rem;
+    margin-bottom: 0;
+    font-size: 1rem;
+    background-color: #f7f7f7;
+    border-bottom: 1px solid #ebebeb;
+    border-top-left-radius: calc(.3rem - 1px);
+    border-top-right-radius: calc(.3rem - 1px);
+}
+
+.popover-body {
+    padding: .5rem .75rem;
+    color: #212529;
+}
+
+.fade {
+    transition: opacity .15s linear;
+}
+
+.text-center {
+    text-align: center;
+}
+</style>
+
+<div id="app">
+    <table class="docutils models-table">
+        <thead>
+            <tr>
+                <th class="header-cell" @click="sortAsc = (sortBy=='name') ? sortAsc = !sortAsc : false; sortBy='name'">
+                    <i class="fas fa-active" v-if="sortBy == 'name'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
+                    Model Name
+                </th>
+                <th class="header-cell text-center" @click="sortAsc = (sortBy=='stsb') ? sortAsc = !sortAsc : false; sortBy='stsb'">
+                    <i class="fas fa-active" v-if="sortBy == 'stsb'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
+                    STSb Performance
+                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="STSbenchmark" data-content="Spearman-rank correlation on the STSbenchmark test set. Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+
+
+                </th>
+                <th class="header-cell text-center" @click="sortAsc = (sortBy=='qqp') ? sortAsc = !sortAsc : false; sortBy='qqp'">
+                     <i class="fas fa-active" v-if="sortBy == 'qqp'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
+                    QQP
+                    <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Quora-Question-Pairs" data-content="Average-Precision on the Quora Duplicate Questions Pairs. Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+
+                </th>
+                <th class="header-cell text-center" @click="sortAsc = (sortBy=='speed') ? sortAsc = !sortAsc : false; sortBy='speed'">
+                    <i class="fas fa-active" v-if="sortBy == 'speed'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
+                    Speed
+                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Encoding Speed" data-content="Encoding speed (sentences / sec) on a V100 GPU. Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="item in sortedModels">
+                <td>
+                    {{ item.name }}
+                    <span class="info-icon" data-trigger="hover" data-toggle="popover" :title="item.name" :data-content="'<b>Base Model:</b> '+item.base_model+'<br><b>Pooling:</b> '+item.pooling+'<br><b>Training Data:</b> '+item.training_data" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+
+                </td>
+                <td class="text-center">{{ item.stsb ? item.stsb.toFixed(2) : '' }}</td>
+                <td class="text-center">{{ item.qqp ? item.qqp.toFixed(2) : '' }}</td>
+                <td class="text-center">{{ item.speed }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            models: [
+                {
+                    "name": "stsb-mpnet-base-v2",
+                    "base_model": "mpnet-base",
+                    "pooling": "Mean Pooling",
+                    "training_data": "NLI+STSb",
+                    "stsb": 88.57,
+                    "qqp": 76.96,
+                    "speed": 2800
+                },
+                {
+                    "name": "stsb-roberta-base-v2",
+                    "base_model": "roberta-base",
+                    "pooling": "Mean Pooling",
+                    "training_data": "NLI+STSb",
+                    "stsb": 87.21,
+                    "qqp": 76.42,
+                    "speed": 2300
+                },
+                {
+                    "name": "stsb-distilroberta-base-v2",
+                    "base_model": "distilroberta-base",
+                    "pooling": "Mean Pooling",
+                    "training_data": "NLI+STSb",
+                    "stsb": 86.41,
+                    "qqp": 74.20,
+                    "speed": 4000
+                },
+                {
+                    "name": "nli-mpnet-base-v2",
+                    "base_model": "mpnet-base",
+                    "pooling": "Mean Pooling",
+                    "training_data": "NLI",
+                    "stsb": 86.53,
+                    "qqp": 75.26,
+                    "speed": 2800
+                },
+                {
+                    "name": "nli-roberta-base-v2",
+                    "base_model": "roberta-base",
+                    "pooling": "Mean Pooling",
+                    "training_data": "NLI",
+                    "stsb": 85.54,
+                    "qqp": 73.95,
+                    "speed": 2300
+                },
+                {
+                    "name": "nli-distilroberta-base-v2",
+                    "base_model": "distilroberta-base",
+                    "pooling": "Mean Pooling",
+                    "training_data": "NLI",
+                    "stsb": 84.38,
+                    "qqp": 72.22,
+                    "speed": 4000
+                },
+                {
+                    "name": "average_word_embeddings_glove.6B.300d",
+                    "base_model": "Word Embeddings: GloVe",
+                    "pooling": "Mean Pooling",
+                    "training_data": "-",
+                    "stsb": 61.77,
+                    "qqp": 59.54,
+                    "speed": 34000
+                },
+                {
+                    "name": "average_word_embeddings_komninos",
+                    "base_model": "Word Embeddings: Komninos et al.",
+                    "pooling": "Mean Pooling",
+                    "training_data": "-",
+                    "stsb": 61.56,
+                    "qqp": 58.21,
+                    "speed": 22000
+                },
+                {
+                    "name": "average_word_embeddings_levy_dependency",
+                    "base_model": "Word Embeddings: Levy et al.",
+                    "pooling": "Mean Pooling",
+                    "training_data": "-",
+                    "stsb": 59.22,
+                    "qqp": 56.3,
+                    "speed": 22000
+                },
+                {
+                    "name": "average_word_embeddings_glove.840B.300d",
+                    "base_model": "Word Embeddings: GloVe",
+                    "pooling": "Mean Pooling",
+                    "training_data": "",
+                    "stsb": 52.54,
+                    "qqp": 60.36,
+                    "speed": 34000
+                },
+                {
+                    "name": "paraphrase-MiniLM-L12-v2",
+                    "base_model": "microsoft/MiniLM-L12-H384-uncased",
+                    "pooling": "Mean Pooling",
+                    "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
+                    "stsb": 87.65,
+                    "qqp": 75.80,
+                    "speed": 7500
+                },
+                 {
+                    "name": "paraphrase-distilroberta-base-v2",
+                    "base_model": "distilroberta-base",
+                    "pooling": "Mean Pooling",
+                    "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
+                    "stsb": 88.17,
+                    "qqp": 76.13,
+                    "speed": 4000
+                },
+
+            ],
+            sortBy: 'stsb',
+            sortAsc: false
+        },
+        methods: {
+
+        },
+        computed: {
+            sortedModels: function() {
+                return _.orderBy(this.models, (item) => item[this.sortBy] || (this.sortAsc ? 9999 : -9999), this.sortAsc ? 'asc' : 'desc')
+            }
+        }
+    })
+</script>
+
+<script>
+    $(function () {
+      $('[data-toggle="popover"]').popover()
+    })
+</script>
+
+
+
