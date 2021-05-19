@@ -48,8 +48,10 @@ The training script allows to load one or multiple files. We construct batches b
 As the dataset sizes are quite different in size, we perform a tempurate controlled sampling from the datasets: Smaller datasets are up-sampled, while larger datasets are down-sampled. This allows an effective training with very large and smaller datasets.
 
 ## Pre-Trained Models
-Have a look at [pre-trained models] to view all models. Models trained on these paraphrase datasets are:
+Have a look at [pre-trained models](https://www.sbert.net/docs/pretrained_models.html) to view all models that were trained on these paraphrase datasets.
 
+- **paraphrase-MiniLM-L12-v2** - Trained on the following datasets: AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits
+- **paraphrase-distilroberta-base-v2** - Trained on the following datasets: AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits
 - **paraphrase-distilroberta-base-v1** - Trained on the following datasets: AllNLI, sentence-compression, SimpleWiki, altlex, quora_duplicates, wiki-atomic-edits, wiki-split
 - **paraphrase-xlm-r-multilingual-v1** - Multilingual version of paraphrase-distilroberta-base-v1, trained on parallel data for 50+ languages. (Teacher: paraphrase-distilroberta-base-v1, Student: xlm-r-base)
 

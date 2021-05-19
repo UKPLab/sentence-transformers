@@ -94,5 +94,8 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluation_steps=evaluation_steps,
           warmup_steps=warmup_steps,
           output_path=model_save_path,
-          use_amp=use_amp          #Set to True, if your GPU supports FP16 operations
+          use_amp=use_amp,
+          checkpoint_path=model_save_path,
+          checkpoint_save_steps=1000,
+          checkpoint_save_total_limit=3
           )
