@@ -394,8 +394,8 @@ class SentenceTransformer(nn.Sequential):
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
         :param repo_name: Repository name for your model in the Hub.
-        :param organization:  Organization in which you want to push your model or tokenizer (you must be a member of this organization).
-        :param private: Encode sentences with batch size
+        :param organization: Organization in which you want to push your model (you must be a member of this organization).
+        :param private: Whether the repository is private.
         :param commit_message: Message to commit while pushing.
         :param local_model_path: Path of model locally. This is useful if you want to copy files from a specific directory.
         :return: The url of the commit of your model in the given repository..
@@ -403,7 +403,7 @@ class SentenceTransformer(nn.Sequential):
         token = HfFolder.get_token()
         if token is None:
             raise ValueError(
-                "You must login to the Hugging Face hub on this computer by typing `transformers-cli login`."
+                "You must login to the HuggingFace hub on this computer by typing `huggingface-cli login`."
             )
         repo_url = HfApi(endpoint="https://huggingface.co").create_repo(
                 token,
