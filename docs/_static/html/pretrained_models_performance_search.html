@@ -1,110 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SBERT.net Models</title>
+    <!-- Vue.js -->
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js" integrity="sha512-BKbSR+cfyxLdMAsE0naLReFSLg8/pjbgfxHh/k/kUC82Hy7r6HtR5hLhobaln2gcTvzkyyehrdREdjpsQwy2Jw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+            integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+            integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+            integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+            crossorigin="anonymous"></script>
+
+    <!-- Axios -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js" integrity="sha512-bZS47S7sPOxkjU/4Bt0zrhEtWx0y0CRkhEp8IckzK+ltifIIE9EMIMTuT/mEzoIMewUINruDBIR/jJnbguonqQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
+
+    <!-- Font-awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+          integrity="sha512-iBBXm8fW90+nuLcSKlbmrPcLa0OT92xO1BIsZ+ywDWZCvqsWgccV3gFoRBv0z+8dLJgyAHIhR35VZc2oM/gI1w=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+
+    <!-- Lodash -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"
+            integrity="sha512-WFN04846sdKMIP5LKNphMaWzU7YpMyCU245etK3g/2ARYbPK9Ub18eG+ljU96qKRCWh+quCY7yefSmlkQw1ANQ=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <style>
+        .fa-active {
+            color: #337ab7;
+        }
 
 
-<!-- Vue.js -->
-<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        .header-cell {
+            cursor: pointer;
+        }
 
-<!-- Bootstrap -->
-<!--<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous"> -->
+        .models-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background-color: #ffffff;
+        }
 
-<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
 
-<!-- Axios -->
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        .info-icon {
+            color: #007bff;
+        }
 
-<!-- Font-awesome -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha512-iBBXm8fW90+nuLcSKlbmrPcLa0OT92xO1BIsZ+ywDWZCvqsWgccV3gFoRBv0z+8dLJgyAHIhR35VZc2oM/gI1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        .info-icon:hover {
+            color: #0056b3;
+        }
 
-<!-- Lodash -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js" integrity="sha512-WFN04846sdKMIP5LKNphMaWzU7YpMyCU245etK3g/2ARYbPK9Ub18eG+ljU96qKRCWh+quCY7yefSmlkQw1ANQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        .info-icon-model {
+            padding-left: 10px;
+        }
 
-<style>
-.fa-active {
-    color: #337ab7;
-}
+        .bs-popover-auto[x-placement^=bottom], .bs-popover-bottom {
+            margin-top: .5rem;
+        }
 
-.header-cell {
-    cursor: pointer;
-}
-
-.models-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-    background-color: #ffffff;
-}
-
-.wy-table-responsive {
-    max-height: 500px;
-}
-
-.info-icon {
-    color: #007bff;
-}
-
-.info-icon:hover {
-    color: #0056b3;
-}
-
-.bs-popover-auto[x-placement^=bottom], .bs-popover-bottom {
-    margin-top: .5rem;
-}
-.popover {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1060;
-    display: block;
-    max-width: 400px;
-    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
-    font-style: normal;
-    font-weight: 400;
-    line-height: 1.5;
-    text-align: left;
-    text-align: start;
-    text-decoration: none;
-    text-shadow: none;
-    text-transform: none;
-    letter-spacing: normal;
-    word-break: normal;
-    word-spacing: normal;
-    white-space: normal;
-    line-break: auto;
-    font-size: .875rem;
-    word-wrap: break-word;
-    background-color: #fff;
-    background-clip: padding-box;
-    border: 1px solid rgba(0,0,0,.2);
-    border-radius: .3rem;
-}
-
-.popover-header {
-    padding: .5rem .75rem;
-    margin-bottom: 0;
-    font-size: 1rem;
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #ebebeb;
-    border-top-left-radius: calc(.3rem - 1px);
-    border-top-right-radius: calc(.3rem - 1px);
-}
-
-.popover-body {
-    padding: .5rem .75rem;
-    color: #212529;
-}
-
-.fade {
-    transition: opacity .15s linear;
-}
-
-.text-center {
-    text-align: center;
-}
-</style>
+        .popover {
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
 
 <div id="app">
-    <table class="docutils models-table">
+    <table class="table table-bordered table-sm">
         <thead>
             <tr>
                 <th class="header-cell" @click="sortAsc = (sortBy=='name') ? sortAsc = !sortAsc : false; sortBy='name'">
@@ -136,7 +108,7 @@
             <tr v-for="item in sortedModels">
                 <td>
                     {{ item.name }}
-                    <span class="info-icon" data-trigger="hover" data-toggle="popover" :title="item.name" :data-content="'<b>Base Model:</b> '+item.base_model+'<br><b>Pooling:</b> '+item.pooling+'<br><b>Training Data:</b> '+item.training_data" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+                    <span class="info-icon info-icon-model" data-trigger="hover" data-toggle="popover" :title="item.name" :data-content="'<b>Base Model:</b> '+item.base_model+'<br><b>Pooling:</b> '+item.pooling+'<br><b>Training Data:</b> '+item.training_data" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
 
                 </td>
                 <td class="text-center">{{ item.stsb ? item.stsb.toFixed(2) : '' }}</td>
@@ -247,7 +219,7 @@
                     "base_model": "microsoft/MiniLM-L12-H384-uncased",
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
-                    "stsb": 87.65,
+                    "stsb": 84.41,
                     "qqp": 75.80,
                     "speed": 7500
                 },
@@ -256,7 +228,7 @@
                     "base_model": "distilroberta-base",
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
-                    "stsb": 88.17,
+                    "stsb": 85.37,
                     "qqp": 76.13,
                     "speed": 4000
                 },
@@ -283,4 +255,5 @@
 </script>
 
 
-
+</body>
+</html>

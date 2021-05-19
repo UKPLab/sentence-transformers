@@ -9,40 +9,13 @@ model = SentenceTransformer('model_name')
 
 Alternatively, you can download and unzip them from [here](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/).
 
-## Choosing the Right Model
-Sadly there cannot exist a universal model that performs great on all possible tasks. Models strong on one task, will be weak for another task. Hence, it is important to select the right model for your task.
+## Sentence Embedding Models
+
+The following models have been tuned to embedded sentences and short paragraphs. In the tabels, we just show the models with the best performances.
 
 
-## Paraphrase Identification
+<iframe src="../_static/html/pretrained_models_performance_search.html" height="500" style="width:100%; border:none;" title="Iframe Example"></iframe>
 
-The following models **are recommended for various applications**, as they were trained on Millions of paraphrase examples. They create extremely good results for various similarity and retrieval tasks. They are currently under development, better versions and more details will be released in future. But they many tasks they work better than the NLI / STSb models.
-
-- **paraphrase-distilroberta-base-v1** - Trained on large scale paraphrase data.
-- **paraphrase-xlm-r-multilingual-v1** - Multilingual version of paraphrase-distilroberta-base-v1, trained on parallel data for 50+ languages. (Teacher: paraphrase-distilroberta-base-v1, Student: xlm-r-base)
-
-## Semantic Textual Similarity
-The following models were optimized for [Semantic Textual Similarity](usage/semantic_textual_similarity.md) (STS). They were trained on SNLI+MultiNLI and then fine-tuned on the STS benchmark train set.
- 
- The best available models for STS are:
-- **stsb-mpnet-base-v2** - STSb performance: 88.57
-- **stsb-roberta-base-v2** - STSb performance: 87.21
-- **stsb-distilroberta-base-v2** - STSb performance: 86.41
-- **nli-mpnet-base-v2** - STSb performance: 86.53 
-- **nli-roberta-base-v2** - STSb performance: 85.54
-- **nli-distilroberta-base-v2** - STSb performance: 84.38
-
-
-[» Full List of STS Models](https://docs.google.com/spreadsheets/d/14QplCdTCDwEmTqrn1LH4yrbKvdogK4oQvYO1K1aPR5M/edit#gid=0)
-
-
-
-## Duplicate Questions Detection
-
-The following models were trained for duplicate questions mining and duplicate questions retrieval. You can use them to detect duplicate questions in a large corpus (see [paraphrase mining](../examples/applications/paraphrase-mining/README.md)) or to search for similar questions (see [semantic search](../examples/applications/semantic-search/README.md)).
-
-Available models:
-- **quora-distilbert-base** - Model first tuned on NLI+STSb data, then fine-tune for Quora Duplicate Questions detection retrieval.
-- **quora-distilbert-multilingual** - Multilingual version of *quora-distilbert-base*. Fine-tuned with parallel data for 50+ languages. 
 
 ## Question-Answer Retrieval - MSMARCO
 
