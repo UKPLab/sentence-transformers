@@ -11,7 +11,7 @@ Alternatively, you can download and unzip them from [here](https://public.ukp.in
 
 ## Sentence Embedding Models
 
-The following models have been tuned to embedded sentences and short paragraphs. In the tabels, we just show the models with the best performances.
+The following models have been tuned to embed sentences and short paragraphs. The **paraphrase-MiniLM-L6-v2** model offers a great trade-off between performance and speed. 
 
 
 <iframe src="../_static/html/models_en_sentence_embeddings.html" height="500" style="width:100%; border:none;" title="Iframe Example"></iframe>

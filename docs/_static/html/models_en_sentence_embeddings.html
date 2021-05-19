@@ -87,19 +87,21 @@
                     <i class="fas fa-active" v-if="sortBy == 'stsb'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
                     STSb Performance
                      <span class="info-icon" data-trigger="hover" data-toggle="popover" title="STSbenchmark" data-content="Spearman-rank correlation on the STSbenchmark test set. Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
-
-
                 </th>
                 <th class="header-cell text-center" @click="sortAsc = (sortBy=='dupq') ? sortAsc = !sortAsc : false; sortBy='dupq'">
                      <i class="fas fa-active" v-if="sortBy == 'dupq'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
                     DupQ
                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Duplicate Questions" data-content="Combination of two datasets for duplicate questions:<br>Mean-Average-Precision on the Quora Duplicate Questions Semantic Search test set.<br>Average-Precision on the Sprint duplicate questions test set.<br> Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
-
+                </th>
+                <th class="header-cell text-center" @click="sortAsc = (sortBy=='final_score') ? sortAsc = !sortAsc : false; sortBy='final_score'">
+                    <i class="fas fa-active" v-if="sortBy == 'final_score'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
+                    Avg. Performance
+                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Average Performance" data-content="Average Performance over all tasks.<br>Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
                 </th>
                 <th class="header-cell text-center" @click="sortAsc = (sortBy=='speed') ? sortAsc = !sortAsc : false; sortBy='speed'">
                     <i class="fas fa-active" v-if="sortBy == 'speed'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
                     Speed
-                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Encoding Speed" data-content="Encoding speed (sentences / sec) on a V100 GPU. Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Encoding Speed" data-content="Encoding speed (sentences / sec) on a V100 GPU.<br>Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
 
                 </th>
             </tr>
@@ -113,6 +115,7 @@
                 </td>
                 <td class="text-center">{{ item.stsb ? item.stsb.toFixed(2) : '' }}</td>
                 <td class="text-center"><span :title="'Quora: '+item.qqp.toFixed(2)+' Sprint: '+item.sprint.toFixed(2)">{{ item.dupq ? item.dupq.toFixed(2) : '' }}</span></td>
+                <td class="text-center">{{ item.final_score.toFixed(2) }}</td>
                 <td class="text-center">{{ item.speed }}</td>
             </tr>
         </tbody>
@@ -256,7 +259,7 @@
                 },
 
             ],
-            sortBy: 'stsb',
+            sortBy: 'final_score',
             sortAsc: false
         },
         methods: {
@@ -266,6 +269,10 @@
             sortedModels: function() {
                 //Add avg. for duplicate questions
                 let models_ext = this.models.map(function(elem, index)  { elem.dupq = (elem.qqp + elem.sprint)/2.0; return elem;} );
+
+                //Final score
+                models_ext = models_ext.map(function(elem, index)  { elem.final_score = (elem.stsb + elem.dupq)/2.0; return elem;} );
+
                 return _.orderBy(models_ext, (item) => item[this.sortBy] || (this.sortAsc ? 9999 : -9999), this.sortAsc ? 'asc' : 'desc')
             }
         }
