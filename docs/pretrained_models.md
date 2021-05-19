@@ -14,7 +14,7 @@ Alternatively, you can download and unzip them from [here](https://public.ukp.in
 The following models have been tuned to embedded sentences and short paragraphs. In the tabels, we just show the models with the best performances.
 
 
-<iframe src="../_static/html/pretrained_models_performance_search.html" height="500" style="width:100%; border:none;" title="Iframe Example"></iframe>
+<iframe src="../_static/html/models_en_sentence_embeddings.html" height="500" style="width:100%; border:none;" title="Iframe Example"></iframe>
 
 
 ## Question-Answer Retrieval - MSMARCO
