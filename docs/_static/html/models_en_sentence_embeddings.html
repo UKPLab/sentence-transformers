@@ -93,6 +93,11 @@
                     DupQ
                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Duplicate Questions" data-content="Combination of two datasets for duplicate questions:<br>Mean-Average-Precision on the Quora Duplicate Questions Semantic Search test set.<br>Average-Precision on the Sprint duplicate questions test set.<br> Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
                 </th>
+                <th class="header-cell text-center" @click="sortAsc = (sortBy=='TwitterP') ? sortAsc = !sortAsc : false; sortBy='TwitterP'">
+                    <i class="fas fa-active" v-if="sortBy == 'TwitterP'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
+                    TwitterP
+                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Twitter Paraphrases" data-content="Average Precision over Tweet Paraphrases. Combination of the SemEval2015 Tweet paraphrase test set and the Twitter-URL-Corpus test set.<br> Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+                </th>
                 <th class="header-cell text-center" @click="sortAsc = (sortBy=='final_score') ? sortAsc = !sortAsc : false; sortBy='final_score'">
                     <i class="fas fa-active" v-if="sortBy == 'final_score'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
                     Avg. Performance
@@ -113,8 +118,9 @@
                     <span class="info-icon info-icon-model" data-trigger="hover" data-toggle="popover" :title="item.name" :data-content="'<b>Base Model:</b> '+item.base_model+'<br><b>Pooling:</b> '+item.pooling+'<br><b>Training Data:</b> '+item.training_data" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
 
                 </td>
-                <td class="text-center">{{ item.stsb ? item.stsb.toFixed(2) : '' }}</td>
-                <td class="text-center"><span :title="'Quora: '+item.qqp.toFixed(2)+' Sprint: '+item.sprint.toFixed(2)">{{ item.dupq ? item.dupq.toFixed(2) : '' }}</span></td>
+                <td class="text-center">{{ item.stsb.toFixed(2) }}</td>
+                <td class="text-center"><span :title="'Quora: '+item.qqp.toFixed(2)+' Sprint: '+item.sprint.toFixed(2)">{{ item.dupq.toFixed(2) }}</span></td>
+                <td class="text-center">{{ item.TwitterP.toFixed(2) }}</td>
                 <td class="text-center">{{ item.final_score.toFixed(2) }}</td>
                 <td class="text-center">{{ item.speed }}</td>
             </tr>
@@ -135,6 +141,7 @@
                     "stsb": 88.57,
                     "qqp": 79.74,
                     "sprint": 90.34,
+                    "TwitterP": 75.35,
                     "speed": 2800
                 },
                 {
@@ -145,6 +152,7 @@
                     "stsb": 87.21,
                     "qqp": 78.68,
                     "sprint": 86.42,
+                    "TwitterP": 73.44,
                     "speed": 2300
                 },
                 {
@@ -155,6 +163,7 @@
                     "stsb": 86.41,
                     "qqp": 78.13,
                     "sprint": 87.28,
+                    "TwitterP": 73.68,
                     "speed": 4000
                 },
                 {
@@ -165,6 +174,7 @@
                     "stsb": 86.53,
                     "qqp": 80.65,
                     "sprint": 85.79,
+                    "TwitterP": 76.24,
                     "speed": 2800
                 },
                 {
@@ -175,6 +185,7 @@
                     "stsb": 85.54,
                     "qqp": 78.73,
                     "sprint": 81.67,
+                    "TwitterP": 74.28,
                     "speed": 2300
                 },
                 {
@@ -185,6 +196,7 @@
                     "stsb": 84.38,
                     "qqp": 78.47,
                     "sprint": 83.03,
+                    "TwitterP": 73.86,
                     "speed": 4000
                 },
                 {
@@ -195,6 +207,7 @@
                     "stsb": 61.77,
                     "qqp": 69.18,
                     "sprint": 86.96,
+                    "TwitterP": 68.60,
                     "speed": 34000
                 },
                 {
@@ -205,6 +218,7 @@
                     "stsb": 61.56,
                     "qqp": 69.83,
                     "sprint": 85.55,
+                    "TwitterP": 71.23,
                     "speed": 22000
                 },
                 {
@@ -215,6 +229,7 @@
                     "stsb": 59.22,
                     "qqp": 64.62,
                     "sprint": 80.12,
+                    "TwitterP": 70.79,
                     "speed": 22000
                 },
                 {
@@ -225,6 +240,7 @@
                     "stsb": 52.54,
                     "qqp": 66.99,
                     "sprint": 68.33,
+                    "TwitterP": 55.19,
                     "speed": 34000
                 },
                 {
@@ -235,6 +251,7 @@
                     "stsb": 84.41,
                     "qqp":  84.64,
                     "sprint": 89.91,
+                    "TwitterP": 75.34,
                     "speed": 7500
                 },
                  {
@@ -245,6 +262,7 @@
                     "stsb": 84.12,
                     "qqp":  84.25,
                     "sprint": 90.21,
+                    "TwitterP": 76.32,
                     "speed": 14200
                 },
                 {
@@ -255,6 +273,7 @@
                     "stsb": 85.37,
                     "qqp": 84.31,
                     "sprint": 89.64,
+                    "TwitterP": 73.96,
                     "speed": 4000
                 },
                 {
@@ -265,6 +284,7 @@
                     "stsb": 86.99,
                     "qqp": 84.93,
                     "sprint": 90.67,
+                    "TwitterP": 76.05,
                     "speed": 2800
                 },
 
@@ -281,7 +301,7 @@
                 let models_ext = this.models.map(function(elem, index)  { elem.dupq = (elem.qqp + elem.sprint)/2.0; return elem;} );
 
                 //Final score
-                models_ext = models_ext.map(function(elem, index)  { elem.final_score = (elem.stsb + elem.dupq)/2.0; return elem;} );
+                models_ext = models_ext.map(function(elem, index)  { elem.final_score = (elem.stsb + elem.dupq + elem.TwitterP)/3.0; return elem;} );
 
                 return _.orderBy(models_ext, (item) => item[this.sortBy] || (this.sortAsc ? 9999 : -9999), this.sortAsc ? 'asc' : 'desc')
             }
