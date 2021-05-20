@@ -85,7 +85,7 @@
                 </th>
                 <th class="header-cell text-center" @click="sortAsc = (sortBy=='stsb') ? sortAsc = !sortAsc : false; sortBy='stsb'">
                     <i class="fas fa-active" v-if="sortBy == 'stsb'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
-                    STSb Performance
+                    STSb
                      <span class="info-icon" data-trigger="hover" data-toggle="popover" title="STSbenchmark" data-content="Spearman-rank correlation on the STSbenchmark test set. Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
                 </th>
                 <th class="header-cell text-center" @click="sortAsc = (sortBy=='dupq') ? sortAsc = !sortAsc : false; sortBy='dupq'">
@@ -129,7 +129,7 @@
             models: [
                 {
                     "name": "stsb-mpnet-base-v2",
-                    "base_model": "mpnet-base",
+                    "base_model": "microsoft/mpnet-base",
                     "pooling": "Mean Pooling",
                     "training_data": "NLI+STSb",
                     "stsb": 88.57,
@@ -159,7 +159,7 @@
                 },
                 {
                     "name": "nli-mpnet-base-v2",
-                    "base_model": "mpnet-base",
+                    "base_model": "microsoft/mpnet-base",
                     "pooling": "Mean Pooling",
                     "training_data": "NLI",
                     "stsb": 86.53,
@@ -247,7 +247,7 @@
                     "sprint": 90.21,
                     "speed": 14200
                 },
-                 {
+                {
                     "name": "paraphrase-distilroberta-base-v2",
                     "base_model": "distilroberta-base",
                     "pooling": "Mean Pooling",
@@ -256,6 +256,16 @@
                     "qqp": 84.31,
                     "sprint": 89.64,
                     "speed": 4000
+                },
+                {
+                    "name": "paraphrase-mpnet-base-v2",
+                    "base_model": "microsoft/mpnet-base",
+                    "pooling": "Mean Pooling",
+                    "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
+                    "stsb": 86.99,
+                    "qqp": 84.93,
+                    "sprint": 90.67,
+                    "speed": 2800
                 },
 
             ],
