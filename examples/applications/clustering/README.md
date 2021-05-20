@@ -18,27 +18,25 @@ You can configure the threshold of cosine-similarity for which we consider two s
 We apply it on the [Quora Duplicate Questions](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs) dataset and the output will looks something like this:
 
 ```
-Cluster 1, #109 Elements
-         How do I improve my English speaking?
-         How could I improve my English?
-         How can I improve my English speaking ability?
+Cluster 1, #83 Elements
+         What should I do to improve my English ?
+         What should I do to improve my spoken English?
+         Can I improve my English?
+         ...
 
-Cluster 2, #99 Elements
-         Will the decision to demonetize 500 and 1000 rupee notes help to curb black money?
-         The decision of Indian Government to demonetize ₹500 and ₹1000 notes? Is Right or wrong?
-         What do you think about Modi's new policy on the ban of Rs 500 and Rs 1000 notes?
-
-Cluster 3, #61 Elements
-         What are the best way of loose the weight?
-         What is the best method of losing weight?
-         What are the best simple ways to loose weight?
-
+Cluster 2, #79 Elements
+         How can I earn money online?
+         How do I earn money online?
+         Can I earn money online?
+         ...
+       
 ...
 
-Cluster 21, #25 Elements
-         Why is Saltwater Taffy candy imported in Portugal?
-         Why is saltwater taffy candy imported in Brazil?
-         Why is Saltwater taffy candy imported in Japan?
+Cluster 47, #25 Elements
+         What are some mind-blowing Mobile gadgets that exist that most people don't know about?
+         What are some mind-blowing gadgets and technologies that exist that most people don't know about?
+         What are some mind-blowing mobile technology tools that exist that most people don't know about?
+         ...
 ```
 
 
