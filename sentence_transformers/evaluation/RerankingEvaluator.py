@@ -6,6 +6,7 @@ import csv
 from ..util import cos_sim, dot_score
 import torch
 from sklearn.metrics import average_precision_score
+import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +20,13 @@ class RerankingEvaluator(SentenceEvaluator):
     :param samples: Must be a list and each element is of the form: {'query': '', 'positive': [], 'negative': []}. Query is the search query,
      positive is a list of positive (relevant) documents, negative is a list of negative (irrelevant) documents.
     """
-    def __init__(self, samples, mrr_at_k: int = 10, name: str = '', write_csv: bool = True, similarity_fct=cos_sim):
+    def __init__(self, samples, mrr_at_k: int = 10, name: str = '', write_csv: bool = True, similarity_fct=cos_sim, batch_size: int = 64, show_progress_bar: bool = False):
         self.samples = samples
         self.name = name
         self.mrr_at_k = mrr_at_k
-        self.similarity_fct = cos_sim
+        self.similarity_fct = similarity_fct
+        self.batch_size = batch_size
+        self.show_progress_bar = show_progress_bar
 
         if isinstance(self.samples, dict):
             self.samples = list(self.samples.values())
@@ -50,22 +53,23 @@ class RerankingEvaluator(SentenceEvaluator):
         num_queries = 0
         num_positives = []
         num_negatives = []
-        for instance in self.samples:
+        for instance in tqdm.tqdm(self.samples, disable=not self.show_progress_bar, desc="Samples"):
             query = instance['query']
             positive = list(instance['positive'])
             negative = list(instance['negative'])
-            docs = positive + negative
-            is_relevant = [True]*len(positive) + [False]*len(negative)
 
             if len(positive) == 0 or len(negative) == 0:
                 continue
+
+            docs = positive + negative
+            is_relevant = [True]*len(positive) + [False]*len(negative)
 
             num_queries += 1
             num_positives.append(len(positive))
             num_negatives.append(len(negative))
 
-            query_emb = model.encode(query, convert_to_tensor=True, show_progress_bar=False)
-            docs_emb = model.encode(docs, convert_to_tensor=True, show_progress_bar=False)
+            query_emb = model.encode(query, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
+            docs_emb = model.encode(docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
 
             pred_scores = self.similarity_fct(query_emb, docs_emb)
             if len(pred_scores.shape) > 1:
