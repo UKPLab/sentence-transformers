@@ -57,10 +57,7 @@ logging.info("{} train sentences".format(len(train_sentences)))
 
 word_embedding_model = models.Transformer(model_name)
 # Apply **cls** pooling to get one fixed sized sentence vector
-pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
-                               pooling_mode_mean_tokens=False,
-                               pooling_mode_cls_token=True,
-                               pooling_mode_max_tokens=False)
+pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), 'cls')
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 ################# Train and evaluate the model (it needs about 1 hour for one epoch of AskUbuntu) #################

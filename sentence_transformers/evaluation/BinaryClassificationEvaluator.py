@@ -78,10 +78,11 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             out_txt = ":"
 
         logger.info("Binary Accuracy Evaluation of the model on " + self.name + " dataset" + out_txt)
-        embeddings1 = model.encode(self.sentences1, batch_size=self.batch_size,
-                                   show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
-        embeddings2 = model.encode(self.sentences2, batch_size=self.batch_size,
-                                   show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
+        sentences = list(set(self.sentences1 + self.sentences2))
+        embeddings = model.encode(sentences, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
+        emb_dict = {sent: emb for sent, emb in zip(sentences, embeddings)}
+        embeddings1 = [emb_dict[sent] for sent in self.sentences1]
+        embeddings2 = [emb_dict[sent] for sent in self.sentences2]
 
         cosine_scores = 1-paired_cosine_distances(embeddings1, embeddings2)
         manhattan_distances = paired_manhattan_distances(embeddings1, embeddings2)

@@ -40,8 +40,8 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 logger = logging.getLogger(__name__)
 
 
-teacher_model_name = 'bert-base-nli-stsb-mean-tokens'   #Our monolingual teacher model, we want to convert to multiple languages
-student_model_name = 'xlm-roberta-base'                 #Multilingual base model we use to imitate the teacher model
+teacher_model_name = 'stsb-roberta-base-v2'   #Our monolingual teacher model, we want to convert to multiple languages
+student_model_name = 'xlm-roberta-base'       #Multilingual base model we use to imitate the teacher model
 
 max_seq_length = 128                #Student model max. lengths for inputs (number of word pieces)
 train_batch_size = 64               #Batch size for training

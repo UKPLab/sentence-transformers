@@ -17,7 +17,7 @@ In our work [TSDAE (Tranformer-based Denoising AutoEncoder)](https://arxiv.org/a
 
 We add noise to the input text, in our case, we delete about 60% of the words in the text. The encoder maps this input to a fixed-sized sentence embeddings. A decoder then tries to re-create the original text without the noise. Later, we use the encoder as the sentence embedding methods.
 
-See **[TSDAE](tsdae/README.md)** for more information and training examples.
+See **[TSDAE](TSDAE/README.md)** for more information and training examples.
 
 ### SimCSE
 

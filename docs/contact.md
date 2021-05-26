@@ -10,7 +10,7 @@ Technische Universität Darmstadt
 Hochschulstr. 10  
 64289 Darmstadt  
 Germany  
-[Website](https://www.informatik.tu-darmstadt.de/ukp/ukp_home/staff_ukp/detailseite_mitarbeiter_1_42112.en.jsp)
+[Website](https://www.informatik.tu-darmstadt.de/ukp/ukp_home/index.en.jsp)
 
 
 **Privacy Policy**  

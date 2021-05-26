@@ -95,7 +95,7 @@ training_args = TrainingArguments(
     output_dir=output_dir,
     overwrite_output_dir=True,
     num_train_epochs=num_train_epochs,
-    evaluation_strategy="steps",
+    evaluation_strategy="steps" if dev_dataset is not None else "no",
     per_device_train_batch_size=per_device_train_batch_size,
     eval_steps=save_steps,
     save_steps=save_steps,
@@ -113,10 +113,12 @@ trainer = Trainer(
     eval_dataset=dev_dataset
 )
 
+print("Save tokenizer to:", output_dir)
+tokenizer.save_pretrained(output_dir)
+
 trainer.train()
 
 print("Save model to:", output_dir)
 model.save_pretrained(output_dir)
-tokenizer.save_pretrained(output_dir)
 
 print("Training done")
