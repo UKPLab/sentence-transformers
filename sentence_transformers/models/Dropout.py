@@ -24,7 +24,7 @@ class Dropout(nn.Module):
         with open(os.path.join(output_path, 'config.json'), 'w') as fOut:
             json.dump({'dropout': self.dropout}, fOut)
 
-        torch.save(self.state_dict(), os.path.join(output_path, 'pytorch_model.bin'))
+
 
     @staticmethod
     def load(input_path):
@@ -32,5 +32,4 @@ class Dropout(nn.Module):
             config = json.load(fIn)
 
         model = Dropout(**config)
-        model.load_state_dict(torch.load(os.path.join(input_path, 'pytorch_model.bin'), map_location=torch.device('cpu')))
         return model
