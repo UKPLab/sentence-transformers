@@ -103,6 +103,11 @@
                     SciDocs
                      <span class="info-icon" data-trigger="hover" data-toggle="popover" title="SciDocs" data-content="A test to find similar scientific publications given a paper title. From SciDocs, we use the information which papers are often co-cited, co-read, or co-viewed. Performance is measured using MAP.<br> Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
                 </th>
+                <th class="header-cell text-center" @click="sortAsc = (sortBy=='clustering') ? sortAsc = !sortAsc : false; sortBy='clustering'">
+                    <i class="fas fa-active" v-if="sortBy == 'clustering'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
+                    Clustering
+                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Clustering" data-content="Here we test how well the embeddings can be used for clustering. We use three datasets: email subjects from 20NewsGroups, titles from 199 popular subreddits, questions from 121 StackExchanges. We cluster different sentence collections with sentences from 10-50 categories. Performance is measured using V-Measure. <br> Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+                </th>
                 <th class="header-cell text-center" @click="sortAsc = (sortBy=='final_score') ? sortAsc = !sortAsc : false; sortBy='final_score'">
                     <i class="fas fa-active" v-if="sortBy == 'final_score'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
                     Avg. Performance
@@ -126,7 +131,8 @@
                 <td class="text-center">{{ item.stsb.toFixed(2) }}</td>
                 <td class="text-center"><span :title="'Quora: '+item.qqp.toFixed(2)+' Sprint: '+item.sprint.toFixed(2)">{{ item.dupq.toFixed(2) }}</span></td>
                 <td class="text-center">{{ item.TwitterP.toFixed(2) }}</td>
-                <td class="text-center">{{ item.scidocs ? item.scidocs.toFixed(2) : '' }}</td>
+                <td class="text-center">{{ item.scidocs.toFixed(2) }}</td>
+                <td class="text-center"><span :title="'Newsgroups: '+item.newsgroups.toFixed(2)+' Reddit: '+item.reddit.toFixed(2)+' StackExchange: '+item.stackexchange.toFixed(2)">{{ item.clustering.toFixed(2) }}</span></td>
                 <td class="text-center">{{ item.final_score.toFixed(2) }}</td>
                 <td class="text-center">{{ item.speed }}</td>
             </tr>
@@ -149,6 +155,9 @@
                     "sprint": 90.34,
                     "TwitterP": 75.35,
                     "scidocs": 72.48,
+                    "newsgroups": 31.56,
+                    "reddit": 39.52,
+                    "stackexchange": 46.41,
                     "speed": 2800
                 },
                 {
@@ -161,6 +170,9 @@
                     "sprint": 86.42,
                     "TwitterP": 73.44,
                     "scidocs": 69.83,
+                    "newsgroups": 26.87,
+                    "reddit": 36.91,
+                    "stackexchange": 45.48,
                     "speed": 2300
                 },
                 {
@@ -173,6 +185,9 @@
                     "sprint": 87.28,
                     "TwitterP": 73.68,
                     "scidocs": 69.85,
+                    "newsgroups": 28.63,
+                    "reddit": 38.26,
+                    "stackexchange": 46.16,
                     "speed": 4000
                 },
                 {
@@ -185,6 +200,9 @@
                     "sprint": 85.79,
                     "TwitterP": 76.24,
                     "scidocs": 72.90,
+                    "newsgroups": 36.56,
+                    "reddit": 42.68,
+                    "stackexchange": 50.90,
                     "speed": 2800
                 },
                 {
@@ -197,6 +215,9 @@
                     "sprint": 81.67,
                     "TwitterP": 74.28,
                     "scidocs": 69.86,
+                    "newsgroups": 31.28,
+                    "reddit": 39.58,
+                    "stackexchange": 49.51,
                     "speed": 2300
                 },
                 {
@@ -209,6 +230,9 @@
                     "sprint": 83.03,
                     "TwitterP": 73.86,
                     "scidocs": 70.23,
+                    "newsgroups": 31.87,
+                    "reddit": 39.12,
+                    "stackexchange": 49.27,
                     "speed": 4000
                 },
                 {
@@ -221,6 +245,9 @@
                     "sprint": 86.96,
                     "TwitterP": 68.60,
                     "scidocs": 63.69,
+                    "newsgroups": 26.65,
+                    "reddit": 28.37,
+                    "stackexchange": 36.37,
                     "speed": 34000
                 },
                 {
@@ -233,6 +260,9 @@
                     "sprint": 85.55,
                     "TwitterP": 71.23,
                     "scidocs": 65.25,
+                    "newsgroups": 27.53,
+                    "reddit": 29.54,
+                    "stackexchange": 39.35,
                     "speed": 22000
                 },
                 {
@@ -245,6 +275,9 @@
                     "sprint": 80.12,
                     "TwitterP": 70.79,
                     "scidocs": 60.04 ,
+                    "newsgroups": 22.72,
+                    "reddit": 24.23,
+                    "stackexchange": 33.66,
                     "speed": 22000
                 },
                 {
@@ -257,6 +290,9 @@
                     "sprint": 89.91,
                     "TwitterP": 75.34,
                     "scidocs": 80.08,
+                    "newsgroups": 41.81,
+                    "reddit": 44.42,
+                    "stackexchange": 54.63,
                     "speed": 7500
                 },
                  {
@@ -269,6 +305,9 @@
                     "sprint": 90.21,
                     "TwitterP": 76.32,
                     "scidocs": 78.91,
+                    "newsgroups": 40.16,
+                    "reddit": 42.71,
+                    "stackexchange": 53.14,
                     "speed": 14200
                 },
                 {
@@ -281,6 +320,9 @@
                     "sprint": 89.64,
                     "TwitterP": 73.96,
                     "scidocs":  80.25,
+                    "newsgroups": 42.12,
+                    "reddit": 47.53,
+                    "stackexchange": 57.90,
                     "speed": 4000
                 },
                 {
@@ -293,6 +335,9 @@
                     "sprint": 90.67,
                     "TwitterP": 76.05,
                     "scidocs": 80.57,
+                    "newsgroups": 48.13,
+                    "reddit": 50.52,
+                    "stackexchange": 59.79,
                     "speed": 2800
                 },
 
@@ -308,8 +353,11 @@
                 //Add avg. for duplicate questions
                 let models_ext = this.models.map(function(elem, index)  { elem.dupq = (elem.qqp + elem.sprint)/2.0; return elem;} );
 
+                //Add avg. for clustering
+                models_ext = models_ext.map(function(elem, index)  { elem.clustering = (elem.newsgroups + elem.reddit + elem.stackexchange)/3.0; return elem;} );
+
                 //Final score
-                models_ext = models_ext.map(function(elem, index)  { elem.final_score = (elem.stsb + elem.dupq + elem.TwitterP + elem.scidocs)/ 4.0; return elem;} );
+                models_ext = models_ext.map(function(elem, index)  { elem.final_score = (elem.stsb + elem.dupq + elem.TwitterP + elem.scidocs + elem.clustering)/ 5.0; return elem;} );
 
                 return _.orderBy(models_ext, (item) => item[this.sortBy] || (this.sortAsc ? 9999 : -9999), this.sortAsc ? 'asc' : 'desc')
             }
