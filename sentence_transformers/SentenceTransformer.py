@@ -3,13 +3,13 @@ import logging
 import os
 import shutil
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
 from zipfile import ZipFile
 import requests
 import numpy as np
 from numpy import ndarray
 import transformers
-from huggingface_hub import snapshot_download, hf_hub_url, cached_download
+from huggingface_hub import HfApi, HfFolder, Repository, snapshot_download, hf_hub_url, cached_download
 import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
@@ -18,11 +18,14 @@ import torch.multiprocessing as mp
 from tqdm.autonotebook import trange
 import math
 import queue
+import tempfile
+from distutils.dir_util import copy_tree
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, http_get
-from .models import Transformer, Pooling
+from .util import import_from_string, batch_to_device, http_get, list_tags
+from .models import Transformer, Pooling, Dense
+from .model_card_templates import __INTRO_SECTION__, __MORE_INFO__SECTION__, __SENTENCE_TRANSFORMERS_EXAMPLE__, __TRANSFORMERS_EXAMPLE__
 from . import __version__
 
 logger = logging.getLogger(__name__)
@@ -41,7 +44,6 @@ class SentenceTransformer(nn.Sequential):
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
             model_path = model_name_or_path
-
             if not os.path.isdir(model_path) and not model_path.startswith('http://') and not model_path.startswith('https://'):
                 logger.info("Did not find folder {}".format(model_path))
 
@@ -65,6 +67,7 @@ class SentenceTransformer(nn.Sequential):
                     if os.path.exists(model_path):
                         os.remove(model_path)
                     try:
+                        print("downloading models from my account")
                         #Step 1: Check if repository exists and is a sentence-transformers model (has a modules.json)
                         logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(model_name_or_path, model_path))
 
@@ -96,7 +99,7 @@ class SentenceTransformer(nn.Sequential):
                             if try_auto_model:
                                 # No such sentence-transformer model with that name
                                 # Create an auto-model with mean pooling
-                                logging.warning("No sentence-transformers model found with name {}. Try to create a new one with MEAN pooling.".format(model_name_or_path))
+                                logging.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
                                 transformer_model = Transformer(model_name_or_path)
                                 pooling_model = Pooling(transformer_model.get_word_embedding_dimension())
                                 modules = [transformer_model, pooling_model]
@@ -108,7 +111,6 @@ class SentenceTransformer(nn.Sequential):
 
                     if model_path_tmp is not None:
                         os.rename(model_path_tmp, model_path)
-
             if modules is None:
                 logger.info("Load SentenceTransformer from folder: {}".format(model_path))
 
@@ -381,6 +383,89 @@ class SentenceTransformer(nn.Sequential):
 
         with open(os.path.join(path, 'modules.json'), 'w') as fOut:
             json.dump(contained_modules, fOut, indent=2)
+
+        self._create_model_card(path)
+
+    def _create_model_card(self, path):
+        # Add necesary tags.
+        tags = ["sentence-transformers", "feature-extraction"]
+        # We can add license, datasets, metrics later on in the metadata as well.
+        metadata = list_tags("tags", tags)
+        model_card = f"---\n{metadata}---\n"
+
+        model_card += __INTRO_SECTION__
+
+        hf_transformers_compatible = True
+        for idx, name in enumerate(self._modules):
+            module = self._modules[name]
+            if idx == 0 and isinstance(module, Transformer):
+                base_type = type(module._modules["auto_model"]).__name__
+                model_card += f"\n(0) Base Transformer Type: {base_type}\n\n"
+            elif isinstance(module, Pooling):
+                model_card += f"({idx}) Pooling {module.pooling_mode_}\n\n"
+            elif isinstance(module, Dense):
+                in_features = module.in_features
+                out_features = module.out_features
+                model_card += f"({idx}) Dense {in_features}x{out_features}\n\n"
+                hf_transformers_compatible = False
+            else:
+                model_card += f"({idx}) Unknown - {type(module)}\n\n"
+                hf_transformers_compatible = False
+
+        # Usage with sentence-transformers
+        model_card += __SENTENCE_TRANSFORMERS_EXAMPLE__
+
+        # Usage with Transformers (transformer + pooling)
+        if hf_transformers_compatible:
+            model_card += __TRANSFORMERS_EXAMPLE__
+
+        model_card += __MORE_INFO__SECTION__
+
+        with open(os.path.join(path, "README.md"), "w") as f:
+            f.write(model_card)
+
+    def push_to_hub(self,
+        repo_name: str,
+        organization: Optional[str] = None,
+        private: bool = None,
+        commit_message: str = "Add new SentenceTransformer model.",
+        local_model_path: Optional[str] = None):
+        """
+        Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
+
+        :param repo_name: Repository name for your model in the Hub.
+        :param organization:  Organization in which you want to push your model or tokenizer (you must be a member of this organization).
+        :param private: Encode sentences with batch size
+        :param commit_message: Message to commit while pushing.
+        :param local_model_path: Path of model locally. This is useful if yo
+        :return: The url of the commit of your model in the given repository..
+        """
+        token = HfFolder.get_token()
+        if token is None:
+            raise ValueError(
+                "You must login to the Hugging Face hub on this computer by typing `transformers-cli login`."
+            )
+        repo_url = HfApi(endpoint="https://huggingface.co").create_repo(
+                token,
+                repo_name,
+                organization=organization,
+                private=private,
+                repo_type=None,
+                exist_ok=True,
+            )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # First create the repo (and clone its content if it's nonempty).
+            repo = Repository(tmp_dir, clone_from=repo_url)
+
+            # If user provides local files, copy them.
+            if local_model_path:
+                copy_tree(local_model_path, tmp_dir)
+            # Else, save model directly into local repo.
+            if not local_model_path:
+                self.save(tmp_dir)
+
+            return repo.push_to_hub(commit_message=commit_message)
 
     def smart_batching_collate(self, batch):
         """
