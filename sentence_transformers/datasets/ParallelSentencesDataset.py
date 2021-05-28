@@ -50,7 +50,7 @@ class ParallelSentencesDataset(Dataset):
         Reads in a tab-seperated .txt/.csv/.tsv or .gz file. The different columns contain the different translations of the sentence in the first column
 
         :param filepath: Filepath to the file
-        :param weight: If more that one dataset is loaded with load_data: With which frequency should data be sampled from this dataset?
+        :param weight: If more than one dataset is loaded with load_data: With which frequency should data be sampled from this dataset?
         :param max_sentences: Max number of lines to be read from filepath
         :param max_sentence_length: Skip the example if one of the sentences is has more characters than max_sentence_length
         :param batch_size: Size for encoding parallel sentences
