@@ -326,6 +326,21 @@
                     "speed": 4000
                 },
                 {
+                    "name": "paraphrase-TinyBERT-L6-v2",
+                    "base_model": "https://huggingface.co/nreimers/TinyBERT_L-6_H-768_v2",
+                    "pooling": "Mean Pooling",
+                    "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
+                    "stsb": 84.91,
+                    "qqp": 84.23,
+                    "sprint": 89.62,
+                    "TwitterP": 75.39,
+                    "scidocs":  81.51,
+                    "newsgroups": 43.82,
+                    "reddit": 44.61,
+                    "stackexchange": 55.69,
+                    "speed": 4500
+                },
+                {
                     "name": "paraphrase-mpnet-base-v2",
                     "base_model": "microsoft/mpnet-base",
                     "pooling": "Mean Pooling",
@@ -340,6 +355,37 @@
                     "stackexchange": 59.79,
                     "speed": 2800
                 },
+                {
+                    "name": "distiluse-base-multilingual-cased-v1",
+                    "base_model": "distilbert-base-multilingual",
+                    "pooling": "Mean Pooling",
+                    "training_data": "Multi-Lingual model of Universal Sentence Encoder for 15 languages: Arabic, Chinese, Dutch, English, French, German, Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish.",
+                    "stsb": 80.62,
+                    "qqp": 81.10,
+                    "sprint": 88.54,
+                    "TwitterP": 76.24,
+                    "scidocs": 70.41,
+                    "newsgroups": 32.97,
+                    "reddit": 42.93,
+                    "stackexchange": 44.30,
+                    "speed": 4000
+                },
+                {
+                    "name": "distiluse-base-multilingual-cased-v2",
+                    "base_model": "distilbert-base-multilingual",
+                    "pooling": "Mean Pooling",
+                    "training_data": "Multi-Lingual model of Universal Sentence Encoder for 50 languages.",
+                    "stsb": 80.75,
+                    "qqp": 79.89,
+                    "sprint": 87.15,
+                    "TwitterP": 76.26,
+                    "scidocs": 70.39,
+                    "newsgroups": 29.96,
+                    "reddit": 39.95,
+                    "stackexchange": 41.19,
+                    "speed": 4000
+                },
+
 
             ],
             sortBy: 'final_score',
