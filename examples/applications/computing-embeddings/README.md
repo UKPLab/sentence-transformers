@@ -5,7 +5,7 @@
 The basic function to compute sentence embeddings looks like this:
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('paraphrase-MiniLM-L12-v2')
 
 #Our sentences we like to encode
 sentences = ['This framework generates embeddings for each input sentence',
@@ -54,7 +54,7 @@ By default, the provided methods use a limit fo 128 word pieces, longer inputs w
  
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('paraphrase-MiniLM-L12-v2')
 
 print("Max Sequence Length:", model.max_seq_length)
 
@@ -74,7 +74,7 @@ The easiest method is to use *pickle* to store pre-computed embeddings on disc a
 from sentence_transformers import SentenceTransformer
 import pickle
 
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('paraphrase-MiniLM-L12-v2')
 sentences = ['This framework generates embeddings for each input sentence',
     'Sentences are passed as a list of string.', 
     'The quick brown fox jumps over the lazy dog.']
@@ -127,8 +127,8 @@ sentences = ['This framework generates embeddings for each input sentence',
              'The quick brown fox jumps over the lazy dog.']
 
 #Load AutoModel from huggingface model repository
-tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/bert-base-nli-mean-tokens")
-model = AutoModel.from_pretrained("sentence-transformers/bert-base-nli-mean-tokens")
+tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/paraphrase-MiniLM-L12-v2")
+model = AutoModel.from_pretrained("sentence-transformers/paraphrase-MiniLM-L12-v2")
 
 #Tokenize sentences
 encoded_input = tokenizer(sentences, padding=True, truncation=True, max_length=128, return_tensors='pt')

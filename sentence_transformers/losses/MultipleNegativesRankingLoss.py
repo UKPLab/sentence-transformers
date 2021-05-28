@@ -41,7 +41,7 @@ class MultipleNegativesRankingLoss(nn.Module):
         """
         :param model: SentenceTransformer model
         :param scale: Output of similarity function is multiplied by scale value
-        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set sclae to 1)
+        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
         """
         super(MultipleNegativesRankingLoss, self).__init__()
         self.model = model

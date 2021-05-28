@@ -225,6 +225,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
 
    examples/training/sts/README
    examples/training/nli/README
+   examples/training/paraphrases/README
    examples/training/quora_duplicate_questions/README
    examples/training/ms_marco/README
 
@@ -233,7 +234,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    :caption: Unsupervised Learning
 
    examples/unsupervised_learning/README
-   examples/unsupervised_learning/tsdae/README
+   examples/unsupervised_learning/TSDAE/README
    examples/unsupervised_learning/SimCSE/README
    examples/unsupervised_learning/CT/README
    examples/unsupervised_learning/CT_In-Batch_Negatives/README

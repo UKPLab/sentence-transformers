@@ -82,7 +82,7 @@ class ContrastiveTensionDataLoader:
         sentence_idx = 0
         batch = []
 
-        while sentence_idx < len(self.sentences):
+        while sentence_idx + 1 < len(self.sentences):
             s1 = self.sentences[sentence_idx]
             if len(batch) % self.pos_neg_ratio > 0:    #Negative (different) pair
                 sentence_idx += 1
