@@ -67,7 +67,6 @@ class SentenceTransformer(nn.Sequential):
                     if os.path.exists(model_path):
                         os.remove(model_path)
                     try:
-                        print("downloading models from my account")
                         #Step 1: Check if repository exists and is a sentence-transformers model (has a modules.json)
                         logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(model_name_or_path, model_path))
 
@@ -402,7 +401,7 @@ class SentenceTransformer(nn.Sequential):
                 base_type = type(module._modules["auto_model"]).__name__
                 model_card += f"\n(0) Base Transformer Type: {base_type}\n\n"
             elif isinstance(module, Pooling):
-                model_card += f"({idx}) Pooling {module.pooling_mode_}\n\n"
+                model_card += f"({idx}) Pooling {module.get_pooling_mode_str()}\n\n"
             elif isinstance(module, Dense):
                 in_features = module.in_features
                 out_features = module.out_features
