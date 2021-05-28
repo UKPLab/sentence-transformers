@@ -23,9 +23,9 @@ from distutils.dir_util import copy_tree
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, http_get, list_tags
+from .util import import_from_string, batch_to_device, list_tags
 from .models import Transformer, Pooling, Dense
-from .model_card_templates import __INTRO_SECTION__, __MORE_INFO__SECTION__, __SENTENCE_TRANSFORMERS_EXAMPLE__, __TRANSFORMERS_EXAMPLE__
+from .model_card_templates import __INTRO_SECTION__, __MORE_INFO__SECTION__, __SENTENCE_TRANSFORMERS_EXAMPLE__, __TRANSFORMERS_EXAMPLE__, model_card_get_pooling_function
 from . import __version__
 
 logger = logging.getLogger(__name__)
@@ -395,13 +395,17 @@ class SentenceTransformer(nn.Sequential):
         model_card += __INTRO_SECTION__
 
         hf_transformers_compatible = True
+        pooling_mode = None
         for idx, name in enumerate(self._modules):
             module = self._modules[name]
             if idx == 0 and isinstance(module, Transformer):
                 base_type = type(module._modules["auto_model"]).__name__
                 model_card += f"\n(0) Base Transformer Type: {base_type}\n\n"
             elif isinstance(module, Pooling):
-                model_card += f"({idx}) Pooling {module.get_pooling_mode_str()}\n\n"
+                model_card += f"({idx}) {module.get_pooling_mode_str()} Pooling\n\n"
+                if module.get_pooling_mode_str() not in ['cls', 'max', 'mean']:
+                    hf_transformers_compatible = False
+                pooling_mode = module.get_pooling_mode_str()
             elif isinstance(module, Dense):
                 in_features = module.in_features
                 out_features = module.out_features
@@ -414,9 +418,11 @@ class SentenceTransformer(nn.Sequential):
         # Usage with sentence-transformers
         model_card += __SENTENCE_TRANSFORMERS_EXAMPLE__
 
-        # Usage with Transformers (transformer + pooling)
+        # Usage with Transformers (transformer + pooling)
         if hf_transformers_compatible:
-            model_card += __TRANSFORMERS_EXAMPLE__
+            transformer_example = __TRANSFORMERS_EXAMPLE__
+            pooling_fct_name, pooling_fct = model_card_get_pooling_function(pooling_mode)
+            model_card += transformer_example.replace("{POOLING_FUNCTION}", pooling_fct).replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
 
         model_card += __MORE_INFO__SECTION__
 
