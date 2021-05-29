@@ -125,7 +125,7 @@
             <tr v-for="item in sortedModels">
                 <td>
                     {{ item.name }}
-                    <span class="info-icon info-icon-model" data-trigger="hover" data-toggle="popover" :title="item.name" :data-content="'<b>Base Model:</b> '+item.base_model+'<br><b>Pooling:</b> '+item.pooling+'<br><b>Training Data:</b> '+item.training_data" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+                    <span class="info-icon info-icon-model" data-trigger="hover" data-toggle="popover" :title="item.name" :data-content="'<b>Base Model:</b> '+item.base_model+'<br><b>Pooling:</b> '+item.pooling+'<br><b>Training Data:</b> '+item.training_data+'<br><b>Dimensions:</b> '+item.dim+'<br><b>Size:</b> '+item.size+' MB'" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
 
                 </td>
                 <td class="text-center">{{ item.stsb.toFixed(2) }}</td>
@@ -158,7 +158,9 @@
                     "newsgroups": 31.56,
                     "reddit": 39.52,
                     "stackexchange": 46.41,
-                    "speed": 2800
+                    "speed": 2800,
+                    "size": 386,
+                    "dim": 768
                 },
                 {
                     "name": "stsb-roberta-base-v2",
@@ -173,7 +175,9 @@
                     "newsgroups": 26.87,
                     "reddit": 36.91,
                     "stackexchange": 45.48,
-                    "speed": 2300
+                    "speed": 2300,
+                    "size": 440,
+                    "dim": 768
                 },
                 {
                     "name": "stsb-distilroberta-base-v2",
@@ -188,7 +192,9 @@
                     "newsgroups": 28.63,
                     "reddit": 38.26,
                     "stackexchange": 46.16,
-                    "speed": 4000
+                    "speed": 4000,
+                    "size": 292,
+                    "dim": 768
                 },
                 {
                     "name": "nli-mpnet-base-v2",
@@ -203,7 +209,9 @@
                     "newsgroups": 36.56,
                     "reddit": 42.68,
                     "stackexchange": 50.90,
-                    "speed": 2800
+                    "speed": 2800,
+                    "size": 385,
+                    "dim": 768
                 },
                 {
                     "name": "nli-roberta-base-v2",
@@ -218,7 +226,9 @@
                     "newsgroups": 31.28,
                     "reddit": 39.58,
                     "stackexchange": 49.51,
-                    "speed": 2300
+                    "speed": 2300,
+                    "size": 440,
+                    "dim": 768
                 },
                 {
                     "name": "nli-distilroberta-base-v2",
@@ -233,7 +243,9 @@
                     "newsgroups": 31.87,
                     "reddit": 39.12,
                     "stackexchange": 49.27,
-                    "speed": 4000
+                    "speed": 4000,
+                    "size": 292,
+                    "dim": 768
                 },
                 {
                     "name": "average_word_embeddings_glove.6B.300d",
@@ -248,7 +260,9 @@
                     "newsgroups": 26.65,
                     "reddit": 28.37,
                     "stackexchange": 36.37,
-                    "speed": 34000
+                    "speed": 34000,
+                    "size": 422,
+                    "dim": 300
                 },
                 {
                     "name": "average_word_embeddings_komninos",
@@ -263,9 +277,11 @@
                     "newsgroups": 27.53,
                     "reddit": 29.54,
                     "stackexchange": 39.35,
-                    "speed": 22000
+                    "speed": 22000,
+                    "size": 237,
+                    "dim": 300
                 },
-                {
+                /*{
                     "name": "average_word_embeddings_levy_dependency",
                     "base_model": "Word Embeddings: Levy et al.",
                     "pooling": "Mean Pooling",
@@ -278,8 +294,10 @@
                     "newsgroups": 22.72,
                     "reddit": 24.23,
                     "stackexchange": 33.66,
-                    "speed": 22000
-                },
+                    "speed": 22000,
+                    "size": 186,
+                    "dim": 300
+                },*/
                 {
                     "name": "paraphrase-MiniLM-L12-v2",
                     "base_model": "microsoft/MiniLM-L12-H384-uncased",
@@ -293,7 +311,9 @@
                     "newsgroups": 41.81,
                     "reddit": 44.42,
                     "stackexchange": 54.63,
-                    "speed": 7500
+                    "speed": 7500,
+                    "size": 118,
+                    "dim": 384
                 },
                  {
                     "name": "paraphrase-MiniLM-L6-v2",
@@ -308,7 +328,9 @@
                     "newsgroups": 40.16,
                     "reddit": 42.71,
                     "stackexchange": 53.14,
-                    "speed": 14200
+                    "speed": 14200,
+                    "size": 80,
+                    "dim": 384
                 },
                 {
                     "name": "paraphrase-distilroberta-base-v2",
@@ -323,7 +345,9 @@
                     "newsgroups": 42.12,
                     "reddit": 47.53,
                     "stackexchange": 57.90,
-                    "speed": 4000
+                    "speed": 4000,
+                    "size": 292,
+                    "dim": 768
                 },
                 {
                     "name": "paraphrase-TinyBERT-L6-v2",
@@ -338,7 +362,9 @@
                     "newsgroups": 43.82,
                     "reddit": 44.61,
                     "stackexchange": 55.69,
-                    "speed": 4500
+                    "speed": 4500,
+                    "size": 238,
+                    "dim": 768
                 },
                 {
                     "name": "paraphrase-mpnet-base-v2",
@@ -353,7 +379,9 @@
                     "newsgroups": 48.13,
                     "reddit": 50.52,
                     "stackexchange": 59.79,
-                    "speed": 2800
+                    "speed": 2800,
+                    "size": 387,
+                    "dim": 768
                 },
                 {
                     "name": "distiluse-base-multilingual-cased-v1",
@@ -368,7 +396,9 @@
                     "newsgroups": 32.97,
                     "reddit": 42.93,
                     "stackexchange": 44.30,
-                    "speed": 4000
+                    "speed": 4000,
+                    "size": 482,
+                    "dim": 512
                 },
                 {
                     "name": "distiluse-base-multilingual-cased-v2",
@@ -383,7 +413,26 @@
                     "newsgroups": 29.96,
                     "reddit": 39.95,
                     "stackexchange": 41.19,
-                    "speed": 4000
+                    "speed": 4000,
+                    "size": 481,
+                    "dim": 512
+                },
+                 {
+                    "name": "paraphrases_albert-base-v2",
+                    "base_model": "albert-base-v2",
+                    "pooling": "Mean Pooling",
+                    "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
+                    "stsb": 83.38,
+                    "qqp": 83.28,
+                    "sprint": 90.45,
+                    "TwitterP": 74.83,
+                    "scidocs": 77.83,
+                    "newsgroups": 39.88,
+                    "reddit": 42.64,
+                    "stackexchange": 52.95,
+                    "speed": 2400,
+                     "size": 43,
+                     "dim": 768
                 },
 
 
