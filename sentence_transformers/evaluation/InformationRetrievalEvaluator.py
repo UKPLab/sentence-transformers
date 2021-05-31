@@ -180,7 +180,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
         #Output
         for name in self.score_function_names:
-            logging.info("Score-Function: {}".format(name))
+            logger.info("Score-Function: {}".format(name))
             self.output_scores(scores[name])
 
         return scores
