@@ -315,7 +315,7 @@
                     "size": 118,
                     "dim": 384
                 },
-                 {
+                {
                     "name": "paraphrase-MiniLM-L6-v2",
                     "base_model": "nreimers/MiniLM-L6-H384-uncased",
                     "pooling": "Mean Pooling",
@@ -330,6 +330,23 @@
                     "stackexchange": 53.14,
                     "speed": 14200,
                     "size": 80,
+                    "dim": 384
+                },
+                {
+                    "name": "paraphrase-MiniLM-L3-v2",
+                    "base_model": "nreimers/MiniLM-L3-H384-uncased",
+                    "pooling": "Mean Pooling",
+                    "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
+                    "stsb": 82.41,
+                    "qqp":  83.29,
+                    "sprint": 92.9,
+                    "TwitterP": 76.14,
+                    "scidocs": 77.71,
+                    "newsgroups": 37.73,
+                    "reddit": 41.18,
+                    "stackexchange": 51.25,
+                    "speed": 19000,
+                    "size": 61,
                     "dim": 384
                 },
                 {
@@ -383,6 +400,40 @@
                     "size": 387,
                     "dim": 768
                 },
+                /*{
+                    "name": "paraphrases-albert-base-v2",
+                    "base_model": "albert-base-v2",
+                    "pooling": "Mean Pooling",
+                    "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
+                    "stsb": 83.38,
+                    "qqp": 83.28,
+                    "sprint": 90.45,
+                    "TwitterP": 74.83,
+                    "scidocs": 77.83,
+                    "newsgroups": 39.88,
+                    "reddit": 42.64,
+                    "stackexchange": 52.95,
+                    "speed": 2400,
+                    "size": 43,
+                    "dim": 768
+                },*/
+                {
+                    "name": "paraphrases-albert-small-v2",
+                    "base_model": "nreimers/albert-small-v2",
+                    "pooling": "Mean Pooling",
+                    "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
+                    "stsb": 83.40,
+                    "qqp": 83.54,
+                    "sprint": 89.6,
+                    "TwitterP": 74.51,
+                    "scidocs": 80.28,
+                    "newsgroups": 40.54,
+                    "reddit": 41.54,
+                    "stackexchange": 52.74,
+                    "speed": 5000,
+                    "size": 43,
+                    "dim": 768
+                },
                 {
                     "name": "distiluse-base-multilingual-cased-v1",
                     "base_model": "distilbert-base-multilingual",
@@ -416,25 +467,7 @@
                     "speed": 4000,
                     "size": 481,
                     "dim": 512
-                },
-                 {
-                    "name": "paraphrases_albert-base-v2",
-                    "base_model": "albert-base-v2",
-                    "pooling": "Mean Pooling",
-                    "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
-                    "stsb": 83.38,
-                    "qqp": 83.28,
-                    "sprint": 90.45,
-                    "TwitterP": 74.83,
-                    "scidocs": 77.83,
-                    "newsgroups": 39.88,
-                    "reddit": 42.64,
-                    "stackexchange": 52.95,
-                    "speed": 2400,
-                     "size": 43,
-                     "dim": 768
-                },
-
+                }
 
             ],
             sortBy: 'final_score',
