@@ -19,7 +19,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 
 # Load pre-trained Sentence Transformer Model (based on DistilBERT). It will be downloaded automatically
-model = SentenceTransformer('average_word_embeddings_glove.6B.300d')
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
 # Embed a list of sentences
 sentences = ['This framework generates embeddings for each input sentence',

@@ -29,7 +29,7 @@ The usage is as simple as:
 .. code-block:: python
 
     from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer('paraphrase-distilroberta-base-v1')
+    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
     #Our sentences we like to encode
     sentences = ['This framework generates embeddings for each input sentence',
