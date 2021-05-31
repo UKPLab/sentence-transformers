@@ -25,7 +25,7 @@ class SoftmaxLoss(nn.Module):
         from sentence_transformers.readers import InputExample
 
         model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-        train_examples = [InputExample(InputExample(texts=['First pair, sent A', 'First pair, sent B'], label=0),
+        train_examples = [InputExample(texts=['First pair, sent A', 'First pair, sent B'], label=0),
             InputExample(texts=['Second Pair, sent A', 'Second Pair, sent B'], label=3)]
         train_dataset = SentencesDataset(train_examples, model)
         train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
