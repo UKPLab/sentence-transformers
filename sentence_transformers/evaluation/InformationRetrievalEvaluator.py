@@ -107,13 +107,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         for name in self.score_functions:
             queries_result_list[name] = [[] for _ in range(len(query_embeddings))]
 
-        itr = range(0, len(self.corpus), self.corpus_chunk_size)
-
-        if self.show_progress_bar:
-            itr = tqdm(itr, desc='Corpus Chunks')
 
         #Iterate over chunks of the corpus
-        for corpus_start_idx in itr:
+        for corpus_start_idx in trange(0, len(self.corpus), self.corpus_chunk_size, desc='Corpus Chunks', disable=not self.show_progress_bar):
             corpus_end_idx = min(corpus_start_idx + self.corpus_chunk_size, len(self.corpus))
 
             #Encode chunk of corpus
@@ -124,15 +120,15 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
             #Compute cosine similarites
             for name, score_function in self.score_functions.items():
-                cos_scores = score_function(query_embeddings, sub_corpus_embeddings)
+                pair_scores = score_function(query_embeddings, sub_corpus_embeddings)
 
                 #Get top-k values
-                cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(max_k, len(cos_scores[0])), dim=1, largest=True, sorted=False)
-                cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
-                cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
+                pair_scores_top_k_values, pair_scores_top_k_idx = torch.topk(pair_scores, min(max_k, len(pair_scores[0])), dim=1, largest=True, sorted=False)
+                pair_scores_top_k_values = pair_scores_top_k_values.cpu().tolist()
+                pair_scores_top_k_idx = pair_scores_top_k_idx.cpu().tolist()
 
                 for query_itr in range(len(query_embeddings)):
-                    for sub_corpus_id, score in zip(cos_scores_top_k_idx[query_itr], cos_scores_top_k_values[query_itr]):
+                    for sub_corpus_id, score in zip(pair_scores_top_k_idx[query_itr], pair_scores_top_k_values[query_itr]):
                         corpus_id = self.corpus_ids[corpus_start_idx+sub_corpus_id]
                         queries_result_list[name][query_itr].append({'corpus_id': corpus_id, 'score': score})
 
