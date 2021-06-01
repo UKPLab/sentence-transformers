@@ -94,7 +94,7 @@ class RerankingEvaluator(SentenceEvaluator):
             docs = positive + negative
             is_relevant = [True]*len(positive) + [False]*len(negative)
 
-            query_emb = model.encode(query, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
+            query_emb = model.encode([query], convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
             docs_emb = model.encode(docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
 
             pred_scores = self.similarity_fct(query_emb, docs_emb)
