@@ -31,6 +31,9 @@ class RerankingEvaluator(SentenceEvaluator):
         if isinstance(self.samples, dict):
             self.samples = list(self.samples.values())
 
+        ### Remove sample with empty positive / negative set
+        self.samples = [sample for sample in self.samples if len(sample['positive']) > 0 and len(sample['negative']) > 0]
+
 
         self.csv_file = "RerankingEvaluator" + ("_" + name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps", "MAP", "MRR@{}".format(mrr_at_k)]
@@ -47,12 +50,39 @@ class RerankingEvaluator(SentenceEvaluator):
 
         logger.info("RerankingEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
 
+
+        scores = self.compute_metrices(model)
+        mean_ap = scores['map']
+        mean_mrr = scores['mrr']
+
+        #### Some stats about the dataset
+        num_positives = [len(sample['positive']) for sample in self.samples]
+        num_negatives = [len(sample['negative']) for sample in self.samples]
+
+        logger.info("Queries: {} \t Positives: Min {:.1f}, Mean {:.1f}, Max {:.1f} \t Negatives: Min {:.1f}, Mean {:.1f}, Max {:.1f}".format(len(self.samples), np.min(num_positives), np.mean(num_positives),
+                                                                                                                                             np.max(num_positives), np.min(num_negatives),
+                                                                                                                                             np.mean(num_negatives), np.max(num_negatives)))
+        logger.info("MAP: {:.2f}".format(mean_ap * 100))
+        logger.info("MRR@{}: {:.2f}".format(self.mrr_at_k, mean_mrr * 100))
+
+        #### Write results to disc
+        if output_path is not None and self.write_csv:
+            csv_path = os.path.join(output_path, self.csv_file)
+            output_file_exists = os.path.isfile(csv_path)
+            with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:
+                writer = csv.writer(f)
+                if not output_file_exists:
+                    writer.writerow(self.csv_headers)
+
+                writer.writerow([epoch, steps, mean_ap, mean_mrr])
+
+        return mean_ap
+
+    def compute_metrices(self, model):
         all_mrr_scores = []
         all_ap_scores = []
 
-        num_queries = 0
-        num_positives = []
-        num_negatives = []
+
         for instance in tqdm.tqdm(self.samples, disable=not self.show_progress_bar, desc="Samples"):
             query = instance['query']
             positive = list(instance['positive'])
@@ -63,10 +93,6 @@ class RerankingEvaluator(SentenceEvaluator):
 
             docs = positive + negative
             is_relevant = [True]*len(positive) + [False]*len(negative)
-
-            num_queries += 1
-            num_positives.append(len(positive))
-            num_negatives.append(len(negative))
 
             query_emb = model.encode(query, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
             docs_emb = model.encode(docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
@@ -91,18 +117,5 @@ class RerankingEvaluator(SentenceEvaluator):
         mean_ap = np.mean(all_ap_scores)
         mean_mrr = np.mean(all_mrr_scores)
 
-        logger.info("Queries: {} \t Positives: Min {:.1f}, Mean {:.1f}, Max {:.1f} \t Negatives: Min {:.1f}, Mean {:.1f}, Max {:.1f}".format(num_queries, np.min(num_positives), np.mean(num_positives), np.max(num_positives), np.min(num_negatives), np.mean(num_negatives), np.max(num_negatives)))
-        logger.info("MAP: {:.2f}".format(mean_ap * 100))
-        logger.info("MRR@{}: {:.2f}".format(self.mrr_at_k, mean_mrr*100))
+        return {'map': mean_ap, 'mrr': mean_mrr}
 
-        if output_path is not None and self.write_csv:
-            csv_path = os.path.join(output_path, self.csv_file)
-            output_file_exists = os.path.isfile(csv_path)
-            with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:
-                writer = csv.writer(f)
-                if not output_file_exists:
-                    writer.writerow(self.csv_headers)
-
-                writer.writerow([epoch, steps, mean_ap, mean_mrr])
-
-        return mean_ap
