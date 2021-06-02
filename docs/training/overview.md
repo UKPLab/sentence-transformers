@@ -15,7 +15,7 @@ For sentence / text embeddings, we want to map a variable length input text to a
 ![SBERT  Network Architecture](../img/SBERT_Architecture.png "SBERT Siamese Architecture")
 
 
-We feed the input sentence or text into a transformer network like BERT. BERT produces contextualized word embeddings for all input tokens in our text. As we want a fixed-sized output representation (vector u), we need a pooling layer. Different pooling options are available, the most basic one is mean-pooling: We simply average all contextualized word embeddings BERT is giving us. This gives us a fixed 768 dimensional output vector independet how long our input text was.
+We feed the input sentence or text into a transformer network like BERT. BERT produces contextualized word embeddings for all input tokens in our text. As we want a fixed-sized output representation (vector u), we need a pooling layer. Different pooling options are available, the most basic one is mean-pooling: We simply average all contextualized word embeddings BERT is giving us. This gives us a fixed 768 dimensional output vector independent how long our input text was.
 
 The depicted architecture, consisting on a BERT layer and a pooling layer is one final SentenceTransformer model.
 
