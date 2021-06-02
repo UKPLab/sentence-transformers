@@ -96,6 +96,8 @@ These models find semantically similar sentences within one language or across l
 - **stsb-xlm-r-multilingual**: Produces similar embeddings as the *stsb-bert-base* model. Trained on parallel data for 50+ languages.
 - **quora-distilbert-multilingual** - Multilingual version of *quora-distilbert-base*.  Fine-tuned with parallel data for 50+ languages. 
 - **T-Systems-onsite/cross-en-de-roberta-sentence-transformer** - Multilingual model for English an German. [[More]](https://huggingface.co/T-Systems-onsite/cross-en-de-roberta-sentence-transformer)
+- **paraphrase-multilingual-MiniLM-L12-v2** - Multilingual version of *paraphrase-MiniLM-L12-v2*, trained on parallel data for 50+ languages. 
+- **paraphrase-multilingual-mpnet-base-v2** - Multilingual version of *paraphrase-mpnet-base-v2*, trained on parallel data for 50+ languages. 
 
 **Bitext Mining** 
 
