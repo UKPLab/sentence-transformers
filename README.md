@@ -55,7 +55,7 @@ See [Quickstart](https://www.sbert.net/docs/quickstart.html) in our documenation
 First download a pretrained model.
 ````python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('paraphrase-distilroberta-base-v1')
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 ````
 Then provide some sentences to the model.
 ````python
@@ -96,25 +96,7 @@ Some highlights are:
 
 ## Performance
 
-Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed.
-
-| Model    | STS benchmark | 
-| ----------------------------------|:-----: |
-| Avg. GloVe embeddings             | 58.02  | 
-| BERT-as-a-service avg. embeddings | 46.35  | 
-| BERT-as-a-service CLS-vector      | 16.50  | 
-| InferSent - GloVe                 | 68.03  |
-| Universal Sentence Encoder        | 74.92  | 
-|**Sentence Transformer Models (NLI + MNLI)**  | |
-| nli-distilroberta-base-v2 | 84.38 |
-| nli-roberta-base-v2 | 85.54 |
-| nli-mpnet-base-v2 | 86.53 |
-|**Sentence Transformer Models (NLI + STS benchmark)**  | |
-| stsb-distilroberta-base-v2 | 86.41 |
-| stsb-roberta-base-v2 | 87.21 |
-| stsb-mpnet-base-v2 | 88.57 |
-
-
+Our models are evaluated extensively on 15+ datasets including challening domains like Tweets, Reddit, emails. They achieve by far the **best performance** from all available sentence embedding methods. Further, we provide several **smaller models** that are **optimized for speed**.
 
 [» Full list of pretrained models](https://www.sbert.net/docs/pretrained_models.html)
 
