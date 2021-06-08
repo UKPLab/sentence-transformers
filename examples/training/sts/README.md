@@ -14,7 +14,7 @@ To store our training data, we create a list with `InputExample` objects. Each `
 ```python
 from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample, losses
 
-model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+model = SentenceTransformer('nli-distilroberta-base-v2')
 train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=0.8),
     InputExample(texts=['Another pair', 'Unrelated sentence'], label=0.3)]
 train_dataset = SentencesDataset(train_examples, model)

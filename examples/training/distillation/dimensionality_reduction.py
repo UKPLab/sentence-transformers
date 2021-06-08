@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 #Model for which we apply dimensionality reduction
-model = SentenceTransformer('roberta-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('paraphrase-distilroberta-base-v2')
 
 #New size for the embeddings
 new_dimension = 128
@@ -103,7 +103,7 @@ stsb_evaluator(model)
 
 
 # If you like, you can store the model on disc by uncommenting the following line
-#model.save('models/bert-base-nli-stsb-mean-tokens-128dim')
+#model.save('models/my-128dim-model')
 
 # You can then load the adapted model that produces 128 dimensional embeddings like this:
-#model = SentenceTransformer('models/bert-base-nli-stsb-mean-tokens-128dim')
+#model = SentenceTransformer('models/my-128dim-model')

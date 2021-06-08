@@ -8,7 +8,7 @@ For larger collections, *util* offers the *paraphrase_mining* function that can 
 ```python
 from sentence_transformers import SentenceTransformer, util
 
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
 # Single list of sentences - Possible tens of thousands of sentences
 sentences = ['The cat sits outside',

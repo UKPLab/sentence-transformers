@@ -16,7 +16,7 @@ import sys
 
 # We use a BiEncoder (SentenceTransformer) that produces embeddings for questions.
 # We then search for similar questions using cosine similarity and identify the top 100 most similar questions
-model_name = 'distilbert-multilingual-nli-stsb-quora-ranking'
+model_name = 'paraphrase-MiniLM-L6-v2'
 model = SentenceTransformer(model_name)
 num_candidates = 500
 

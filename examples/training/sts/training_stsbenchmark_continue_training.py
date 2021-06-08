@@ -1,5 +1,5 @@
 """
-This example loads the pre-trained SentenceTransformer model 'bert-base-nli-mean-tokens' from the server.
+This example loads the pre-trained SentenceTransformer model 'nli-distilroberta-base-v2' from the server.
 It then fine-tunes this model for some epochs on the STS benchmark dataset.
 
 Note: In this example, you must specify a SentenceTransformer model.
@@ -32,7 +32,7 @@ if not os.path.exists(sts_dataset_path):
 
 
 # Read the dataset
-model_name = 'bert-base-nli-mean-tokens'
+model_name = 'nli-distilroberta-base-v2'
 train_batch_size = 16
 num_epochs = 4
 model_save_path = 'output/training_stsbenchmark_continue_training-'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

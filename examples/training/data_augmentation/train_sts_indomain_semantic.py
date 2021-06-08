@@ -1,7 +1,6 @@
 """
 The script shows how to train Augmented SBERT (In-Domain) strategy for STSb dataset with Semantic Search Sampling.
-For Simplicity, we use a pre-trained SBERT (bert-base-nli-stsb-mean-tokens) for the example shown below. 
-In theory, you can also train a bi-encoder (SBERT) on STSb gold dataset and use for semantic search.
+
 
 Methodology:
 Three steps are followed for AugSBERT data-augmentation strategy with Semantic Search - 
@@ -153,7 +152,7 @@ duplicates = set((sent2idx[data.texts[0]], sent2idx[data.texts[1]]) for data in 
 
 
 # For simplicity we use a pretrained model
-semantic_model_name = 'bert-base-nli-stsb-mean-tokens'
+semantic_model_name = 'paraphrase-MiniLM-L6-v2'
 semantic_search_model = SentenceTransformer(semantic_model_name)
 logging.info("Encoding unique sentences with semantic search model: {}".format(semantic_model_name))
 

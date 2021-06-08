@@ -113,7 +113,7 @@ In our experiments we initiliazed the student model with the multilingual XLM-Ro
 ## Training 
 For a **fully automatic code example**, see [make_multilingual.py](make_multilingual.py). 
 
-This scripts downloads the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md?), a corpus with transcripts and translations from TED and TEDx talks. It than extends the monolingual `bert-base-nli-stsb-mean-tokens` model to several languages (en, de, es, it, fr, ar, tr). TED2020 contains parallel data for more than 100 languages, hence, you can simple change the script and train a multilingual model in your favorite languages.
+This scripts downloads the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md?), a corpus with transcripts and translations from TED and TEDx talks. It than extends a monolingual model to several languages (en, de, es, it, fr, ar, tr). TED2020 contains parallel data for more than 100 languages, hence, you can simple change the script and train a multilingual model in your favorite languages.
 
 
 

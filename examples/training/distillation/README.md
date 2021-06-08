@@ -19,7 +19,7 @@ Option 2) works usually better, as we keep most of the weights from the teacher.
 weights in the student from scratch.
 
 ## Speed - Performance Trade-Off
-Smaller models are faster, but show a (slightly) worse performance when evaluated on down stream tasks. To get an impression of this trade-off, we show some numbers of the *roberta-base-nli-stsb-mean-tokens* model with different number of layers:
+Smaller models are faster, but show a (slightly) worse performance when evaluated on down stream tasks. To get an impression of this trade-off, we show some numbers of the *stsb-roberta-base* model with different number of layers:
 
 | Layers | STSbenchmark Performance | Performance Decrease |Speed (Sent. / Sec. on V100-GPU) |
 | ---- |:----:|:----:|:----:|
