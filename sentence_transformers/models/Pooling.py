@@ -48,6 +48,9 @@ class Pooling(nn.Module):
         self.pooling_output_dimension = (pooling_mode_multiplier * word_embedding_dimension)
 
 
+    def __repr__(self):
+        return "Pooling({})".format(self.get_config_dict())
+
     def get_pooling_mode_str(self) -> str:
         """
         Returns the pooling mode as string

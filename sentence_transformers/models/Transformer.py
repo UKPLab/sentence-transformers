@@ -33,6 +33,9 @@ class Transformer(nn.Module):
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
+    def __repr__(self):
+        return "Transformer({})\n{}".format(self.get_config_dict(), super(Transformer, self).__repr__())
+
     def forward(self, features):
         """Returns token_embeddings, cls_token"""
         trans_features = {'input_ids': features['input_ids'], 'attention_mask': features['attention_mask']}

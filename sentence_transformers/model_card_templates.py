@@ -7,11 +7,20 @@ __INTRO_SECTION__ = """
 The model consists of the following layers:
 """
 
-__MORE_INFO__SECTION__ = """
-## Training Procedure
+__TRAINING_SECTION__ = """
+## Training
+The model was trained with the following loss functions:
+{loss_functions}
 
-<!--- Describe how your model was trained -->
+Evaluation was done with the following evaluator:
+{evaluator_name}
 
+Parameters of the fit()-Method:
+{fit_parameters}
+"""
+
+
+__MORE_INFO_SECTION__ = """
 ## Evaluation Results
 
 <!--- Describe how your model was evaluated -->
@@ -102,3 +111,9 @@ print(sentence_embeddings)
 ```
 \n
 """
+
+
+__FULL_MODEL_ARCHITECTURE__ = """## Full Model Architecture:
+```
+{full_model_str}
+```"""

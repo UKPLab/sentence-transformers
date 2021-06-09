@@ -25,7 +25,7 @@ from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, list_tags
 from .models import Transformer, Pooling, Dense
-from .model_card_templates import __INTRO_SECTION__, __MORE_INFO__SECTION__, __SENTENCE_TRANSFORMERS_EXAMPLE__, __TRANSFORMERS_EXAMPLE__, model_card_get_pooling_function
+from .model_card_templates import __INTRO_SECTION__, __MORE_INFO_SECTION__, __SENTENCE_TRANSFORMERS_EXAMPLE__, __TRANSFORMERS_EXAMPLE__, __TRAINING_SECTION__, __FULL_MODEL_ARCHITECTURE__, model_card_get_pooling_function
 from . import __version__
 
 logger = logging.getLogger(__name__)
@@ -39,8 +39,6 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     """
     def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
-        save_model_to = None
-
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
             model_path = model_name_or_path
@@ -115,10 +113,18 @@ class SentenceTransformer(nn.Sequential):
 
                 modules_json_path = os.path.join(model_path, 'modules.json')
                 with open(modules_json_path) as fIn:
-                    contained_modules = json.load(fIn)
+                    modules_config = json.load(fIn)
+
+                #Old modules.json file format was a list with the modules.
+                #Check and convert to new file format
+                if isinstance(modules_config, list):
+                    modules_config = {'modules': modules_config}
+
+                if '__version__' in modules_config and 'sentence_transformers' in modules_config['__version__'] and modules_config['__version__']['sentence_transformers'] > __version__:
+                    logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(modules_config['__version__']['sentence_transformers'], __version__))
 
                 modules = OrderedDict()
-                for module_config in contained_modules:
+                for module_config in modules_config['modules']:
                     module_class = import_from_string(module_config['type'])
                     module = module_class.load(os.path.join(model_path, module_config['path']))
                     modules[module_config['name']] = module
@@ -133,6 +139,7 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
+        self._model_card_info = {}
 
 
     def encode(self, sentences: Union[str, List[str], List[int]],
@@ -367,7 +374,16 @@ class SentenceTransformer(nn.Sequential):
         os.makedirs(path, exist_ok=True)
 
         logger.info("Save model to {}".format(path))
-        contained_modules = []
+        modules_config = {
+            '__version__': {
+                'sentence_transformers': __version__,  # Version of library
+                'transformers': transformers.__version__,  # Transformers version
+                'pytorch': torch.__version__,
+            },
+            'similarity': None,             #TODO: Recommended (list) of similarity function
+            'modules': []                   #List of modules
+            #TODO: Future tags to add: https://github.com/huggingface/huggingface_hub/pull/69#issuecomment-857747841
+        }
 
         for idx, name in enumerate(self._modules):
             module = self._modules[name]
@@ -378,10 +394,10 @@ class SentenceTransformer(nn.Sequential):
 
             os.makedirs(model_path, exist_ok=True)
             module.save(model_path)
-            contained_modules.append({'idx': idx, 'name': name, 'path': os.path.basename(model_path), 'type': type(module).__module__})
+            modules_config['modules'].append({'idx': idx, 'name': name, 'path': os.path.basename(model_path), 'type': type(module).__module__})
 
         with open(os.path.join(path, 'modules.json'), 'w') as fOut:
-            json.dump(contained_modules, fOut, indent=2)
+            json.dump(modules_config, fOut, indent=2)
 
         self._create_model_card(path)
 
@@ -421,8 +437,17 @@ class SentenceTransformer(nn.Sequential):
             pooling_fct_name, pooling_fct = model_card_get_pooling_function(pooling_mode)
             model_card += transformer_example.replace("{POOLING_FUNCTION}", pooling_fct).replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
             tags.append('transformers')
-        model_card += __MORE_INFO__SECTION__
 
+
+        # Add dynamic sections
+        for name, section in self._model_card_info.items():
+            model_card += section
+
+        # Footer
+        model_card += __MORE_INFO_SECTION__
+
+        # Print full model
+        model_card += __FULL_MODEL_ARCHITECTURE__.format(full_model_str=str(self))
 
         ##Add tags at the top
         # We can add license, datasets, metrics later on in the metadata as well.
@@ -571,6 +596,13 @@ class SentenceTransformer(nn.Sequential):
         :param checkpoint_save_steps: Will save a checkpoint after so many steps
         :param checkpoint_save_total_limit: Total number of checkpoints to store
         """
+
+        ##Add info to model card
+        info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
+        info_evaluator_name = str(evaluator)
+        info_fit_parameters = json.dumps({"epochs": epochs, "steps_per_epoch": steps_per_epoch, "scheduler": scheduler, "warmup_steps": warmup_steps, "optimizer_class": str(optimizer_class),  "optimizer_params": optimizer_params, "weight_decay": weight_decay, "evaluation_steps": evaluation_steps, "max_grad_norm": max_grad_norm, "callback": callback }, indent=4, sort_keys=True)
+        self._model_card_info['fit'] = __TRAINING_SECTION__.format(loss_functions=info_loss_functions, evaluator_name=info_evaluator_name, fit_parameters=info_fit_parameters)
+
 
         if use_amp:
             from torch.cuda.amp import autocast
