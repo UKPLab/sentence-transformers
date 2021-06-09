@@ -388,11 +388,8 @@ class SentenceTransformer(nn.Sequential):
     def _create_model_card(self, path):
         # Add necesary tags.
         tags = ["sentence-transformers", "feature-extraction"]
-        # We can add license, datasets, metrics later on in the metadata as well.
-        metadata = list_tags("tags", tags)
-        model_card = f"---\n{metadata}---\n"
 
-        model_card += __INTRO_SECTION__
+        model_card = __INTRO_SECTION__
 
         hf_transformers_compatible = True
         pooling_mode = None
@@ -423,8 +420,14 @@ class SentenceTransformer(nn.Sequential):
             transformer_example = __TRANSFORMERS_EXAMPLE__
             pooling_fct_name, pooling_fct = model_card_get_pooling_function(pooling_mode)
             model_card += transformer_example.replace("{POOLING_FUNCTION}", pooling_fct).replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
-
+            tags.append('transformers')
         model_card += __MORE_INFO__SECTION__
+
+
+        ##Add tags at the top
+        # We can add license, datasets, metrics later on in the metadata as well.
+        metadata = list_tags("tags", tags)
+        model_card = f"---\n{metadata}---\n"+model_card
 
         with open(os.path.join(path, "README.md"), "w") as f:
             f.write(model_card)
@@ -432,7 +435,7 @@ class SentenceTransformer(nn.Sequential):
     def push_to_hub(self,
         repo_name: str,
         organization: Optional[str] = None,
-        private: bool = None,
+        private: Optional[bool] = None,
         commit_message: str = "Add new SentenceTransformer model.",
         local_model_path: Optional[str] = None):
         """
@@ -440,10 +443,10 @@ class SentenceTransformer(nn.Sequential):
 
         :param repo_name: Repository name for your model in the Hub.
         :param organization:  Organization in which you want to push your model or tokenizer (you must be a member of this organization).
-        :param private: Encode sentences with batch size
+        :param private: Set to true, for hosting a prive model
         :param commit_message: Message to commit while pushing.
-        :param local_model_path: Path of model locally. This is useful if yo
-        :return: The url of the commit of your model in the given repository..
+        :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
+        :return: The url of the commit of your model in the given repository.
         """
         token = HfFolder.get_token()
         if token is None:
