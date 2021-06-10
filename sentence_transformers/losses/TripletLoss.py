@@ -48,6 +48,15 @@ class TripletLoss(nn.Module):
         self.triplet_margin = triplet_margin
 
 
+    def get_config_dict(self):
+        distance_metric_name = self.distance_metric.__name__
+        for name, value in vars(TripletDistanceMetric).items():
+            if value == self.distance_metric:
+                distance_metric_name = "TripletDistanceMetric.{}".format(name)
+                break
+
+        return {'distance_metric': distance_metric_name, 'triplet_margin': self.triplet_margin}
+
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
 
