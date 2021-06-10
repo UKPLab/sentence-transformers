@@ -2,9 +2,6 @@ __INTRO_SECTION__ = """
 # Name of Model
 
 <!--- Describe your model here -->
-
-## Model Description
-The model consists of the following layers:
 """
 
 __TRAINING_SECTION__ = """
@@ -25,9 +22,12 @@ __MORE_INFO_SECTION__ = """
 
 <!--- Describe how your model was evaluated -->
 
+For an automated evaluation of this model, see [seb.sbert.net](https://seb.sbert.net).
+
 ## Citing & Authors
 
 <!--- Describe where people can find more information -->
+
 """
 
 __SENTENCE_TRANSFORMERS_EXAMPLE__ = """
@@ -113,7 +113,7 @@ print(sentence_embeddings)
 """
 
 
-__FULL_MODEL_ARCHITECTURE__ = """## Full Model Architecture:
+__FULL_MODEL_ARCHITECTURE__ = """## Full Model Architecture
 ```
 {full_model_str}
 ```"""

@@ -407,26 +407,16 @@ class SentenceTransformer(nn.Sequential):
 
         model_card = __INTRO_SECTION__
 
-        hf_transformers_compatible = True
+        hf_transformers_compatible = False
         pooling_mode = None
-        for idx, name in enumerate(self._modules):
-            module = self._modules[name]
-            if idx == 0 and isinstance(module, Transformer):
-                base_type = type(module._modules["auto_model"]).__name__
-                model_card += f"\n(0) Base Transformer Type: {base_type}\n\n"
-            elif isinstance(module, Pooling):
-                model_card += f"({idx}) {module.get_pooling_mode_str()} Pooling\n\n"
-                if module.get_pooling_mode_str() not in ['cls', 'max', 'mean']:
-                    hf_transformers_compatible = False
-                pooling_mode = module.get_pooling_mode_str()
-            elif isinstance(module, Dense):
-                in_features = module.in_features
-                out_features = module.out_features
-                model_card += f"({idx}) Dense {in_features}x{out_features}\n\n"
+
+        if len(self._modules) == 2 and isinstance(self._first_module(), Transformer) and isinstance(self._last_module(), Pooling):
+            hf_transformers_compatible = True
+            pooling_module = self._last_module()
+            if pooling_module.get_pooling_mode_str() not in ['cls', 'max', 'mean']:
                 hf_transformers_compatible = False
-            else:
-                model_card += f"({idx}) Unknown - {type(module)}\n\n"
-                hf_transformers_compatible = False
+            pooling_mode = pooling_module.get_pooling_mode_str()
+
 
         # Usage with sentence-transformers
         model_card += __SENTENCE_TRANSFORMERS_EXAMPLE__

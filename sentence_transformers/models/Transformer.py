@@ -34,7 +34,7 @@ class Transformer(nn.Module):
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
     def __repr__(self):
-        return "Transformer({})\n{}".format(self.get_config_dict(), super(Transformer, self).__repr__())
+        return "Transformer({}) with Transformer model: {} ".format(self.get_config_dict(), self.auto_model.__class__.__name__)  #super(Transformer, self).__repr__()
 
     def forward(self, features):
         """Returns token_embeddings, cls_token"""
