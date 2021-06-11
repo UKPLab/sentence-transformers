@@ -31,8 +31,8 @@ class Transformer(nn.Module):
 
         #No max_seq_length set. Try to infer from model
         if max_seq_length is None:
-            if hasattr(self.auto_model, "config") and hasattr(self.auto_model.config, "max_position_embeddings"):
-                max_seq_length = self.auto_model.config.max_position_embeddings
+            if hasattr(self.auto_model, "config") and hasattr(self.auto_model.config, "max_position_embeddings") and hasattr(self.tokenizer, "model_max_length"):
+                max_seq_length = min(self.auto_model.config.max_position_embeddings, self.tokenizer.model_max_length)
 
         self.max_seq_length = max_seq_length
 
