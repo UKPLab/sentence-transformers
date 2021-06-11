@@ -112,13 +112,13 @@ class TripletEvaluator(SentenceEvaluator):
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
-                with open(csv_path, mode="w", encoding="utf-8") as f:
+                with open(csv_path, newline='', mode="w", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow(self.csv_headers)
                     writer.writerow([epoch, steps, accuracy_cos, accuracy_manhatten, accuracy_euclidean])
 
             else:
-                with open(csv_path, mode="a", encoding="utf-8") as f:
+                with open(csv_path, newline='', mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow([epoch, steps, accuracy_cos, accuracy_manhatten, accuracy_euclidean])
 
