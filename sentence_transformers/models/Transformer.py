@@ -23,12 +23,18 @@ class Transformer(nn.Module):
                  tokenizer_name_or_path : str = None):
         super(Transformer, self).__init__()
         self.config_keys = ['max_seq_length', 'do_lower_case']
-        self.max_seq_length = max_seq_length
         self.do_lower_case = do_lower_case
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
         self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path if tokenizer_name_or_path is not None else model_name_or_path, cache_dir=cache_dir, **tokenizer_args)
+
+        #No max_seq_length set. Try to infer from model
+        if max_seq_length is None:
+            if hasattr(self.auto_model, "config") and hasattr(self.auto_model.config, "max_position_embeddings"):
+                max_seq_length = self.auto_model.config.max_position_embeddings
+
+        self.max_seq_length = max_seq_length
 
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
