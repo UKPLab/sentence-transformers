@@ -1,28 +1,38 @@
+import logging
+
+from .util import fullname
+
 __INTRO_SECTION__ = """
 # Name of Model
 
 <!--- Describe your model here -->
 """
 
+__EVALUATION_SECTION__ = """
+## Evaluation Results
+
+<!--- Describe how your model was evaluated -->
+
+For an automated evaluation of this model, see the *Sentence Embeddings Benchmark*: [https://seb.sbert.net](https://seb.sbert.net)
+"""
+
 __TRAINING_SECTION__ = """
 ## Training
-The model was trained with the following loss functions:
+The model was trained with the parameters:
+
 {loss_functions}
 
 Evaluation was done with the following evaluator:
 {evaluator_name}
 
 Parameters of the fit()-Method:
+```
 {fit_parameters}
+```
 """
 
 
 __MORE_INFO_SECTION__ = """
-## Evaluation Results
-
-<!--- Describe how your model was evaluated -->
-
-For an automated evaluation of this model, see [seb.sbert.net](https://seb.sbert.net).
 
 ## Citing & Authors
 
@@ -50,6 +60,45 @@ embeddings = model.encode(sentences)
 print(embeddings)
 ```
 """
+
+__TRANSFORMERS_EXAMPLE__ = """\n
+## Usage (HuggingFace Transformers)
+
+```python
+from transformers import AutoTokenizer, AutoModel
+import torch
+
+{POOLING_FUNCTION}
+
+# Sentences we want sentence embeddings for
+sentences = ['This is an example sentence']
+
+# Load model from HuggingFace Hub
+tokenizer = AutoTokenizer.from_pretrained('model_name')
+model = AutoModel.from_pretrained('model_name')
+
+# Tokenize sentences
+encoded_input = tokenizer(sentences, padding=True, truncation=True, return_tensors='pt')
+
+# Compute token embeddings
+with torch.no_grad():
+    model_output = model(**encoded_input)
+
+# Perform pooling. In this case, max pooling.
+sentence_embeddings = {POOLING_FUNCTION_NAME}(model_output, encoded_input['attention_mask'])
+
+print("Sentence embeddings:")
+print(sentence_embeddings)
+```
+\n
+"""
+
+
+__FULL_MODEL_ARCHITECTURE__ = """## Full Model Architecture
+```
+{full_model_str}
+```"""
+
 
 def model_card_get_pooling_function(pooling_mode):
     if pooling_mode == 'max':
@@ -80,40 +129,31 @@ def cls_pooling(model_output, attention_mask):
 """
 
 
-__TRANSFORMERS_EXAMPLE__ = """\n
-## Usage (HuggingFace Transformers)
+def get_train_objective_info(dataloader, loss):
+    try:
+        if hasattr(dataloader, 'get_config_dict'):
+            train_loader = dataloader.get_config_dict()
+        else:
+            loader_params = {}
+            loader_params['batch_size'] = dataloader.batch_size if hasattr(dataloader, 'batch_size') else 'unknown'
+            if hasattr(dataloader, 'sampler'):
+                loader_params['sampler'] = fullname(dataloader.sampler)
+            if hasattr(dataloader, 'batch_sampler'):
+                loader_params['batch_sampler'] = fullname(dataloader.batch_sampler)
 
-```python
-from transformers import AutoTokenizer, AutoModel
-import torch
-
-{POOLING_FUNCTION}
-
-# Sentences we want sentence embeddings for
-sentences = ['This is an example sentence']
-
-# Load model from HuggingFace Hub
-tokenizer = AutoTokenizer.from_pretrained('model_name')
-model = AutoModel.from_pretrained('model_name')
-
-# Tokenize sentences
-encoded_input = tokenizer(sentences, padding=True, truncation=True, max_length=128, return_tensors='pt')
-
-# Compute token embeddings
-with torch.no_grad():
-    model_output = model(**encoded_input)
-
-# Perform pooling. In this case, max pooling.
-sentence_embeddings = {POOLING_FUNCTION_NAME}(model_output, encoded_input['attention_mask'])
-
-print("Sentence embeddings:")
-print(sentence_embeddings)
+        dataloader_str = """**DataLoader**:\n\n`{}` of length {} with parameters:
 ```
-\n
-"""
+{}
+```""".format(fullname(dataloader), len(dataloader), loader_params)
 
+        loss_str = "**Loss**:\n\n`{}` {}".format(fullname(loss),
+ """with parameters:
+  ```
+  {}
+  ```""".format(loss.get_config_dict()) if hasattr(loss, 'get_config_dict') else "")
 
-__FULL_MODEL_ARCHITECTURE__ = """## Full Model Architecture
-```
-{full_model_str}
-```"""
+        return [dataloader_str, loss_str]
+
+    except Exception as e:
+        logging.WARN("Exception when creating get_train_objective_info: {}".format(str(e)))
+        return ""

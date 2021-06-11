@@ -25,7 +25,8 @@ from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, list_tags
 from .models import Transformer, Pooling, Dense
-from .model_card_templates import __INTRO_SECTION__, __MORE_INFO_SECTION__, __SENTENCE_TRANSFORMERS_EXAMPLE__, __TRANSFORMERS_EXAMPLE__, __TRAINING_SECTION__, __FULL_MODEL_ARCHITECTURE__, model_card_get_pooling_function
+from .model_card_templates import __INTRO_SECTION__, __MORE_INFO_SECTION__, __SENTENCE_TRANSFORMERS_EXAMPLE__, __TRANSFORMERS_EXAMPLE__, __TRAINING_SECTION__, __FULL_MODEL_ARCHITECTURE__, __EVALUATION_SECTION__
+from .model_card_templates import model_card_get_pooling_function, get_train_objective_info
 from . import __version__
 
 logger = logging.getLogger(__name__)
@@ -428,6 +429,8 @@ class SentenceTransformer(nn.Sequential):
             model_card += transformer_example.replace("{POOLING_FUNCTION}", pooling_fct).replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
             tags.append('transformers')
 
+        # Eval section
+        model_card += __EVALUATION_SECTION__
 
         # Add dynamic sections
         for name, section in self._model_card_info.items():
@@ -588,8 +591,13 @@ class SentenceTransformer(nn.Sequential):
         """
 
         ##Add info to model card
-        info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
-        info_evaluator_name = str(evaluator)
+        #info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
+        info_loss_functions =  []
+        for dataloader, loss in train_objectives:
+            info_loss_functions.extend(get_train_objective_info(dataloader, loss))
+        info_loss_functions = "\n\n".join([text for text in info_loss_functions])
+
+        info_evaluator_name = repr(evaluator)
         info_fit_parameters = json.dumps({"epochs": epochs, "steps_per_epoch": steps_per_epoch, "scheduler": scheduler, "warmup_steps": warmup_steps, "optimizer_class": str(optimizer_class),  "optimizer_params": optimizer_params, "weight_decay": weight_decay, "evaluation_steps": evaluation_steps, "max_grad_norm": max_grad_norm, "callback": callback }, indent=4, sort_keys=True)
         self._model_card_info['fit'] = __TRAINING_SECTION__.format(loss_functions=info_loss_functions, evaluator_name=info_evaluator_name, fit_parameters=info_fit_parameters)
 
