@@ -2,9 +2,9 @@ import json
 import logging
 import os
 import shutil
+import stat
 from collections import OrderedDict
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
-from zipfile import ZipFile
 import requests
 import numpy as np
 from numpy import ndarray
@@ -23,7 +23,7 @@ from distutils.dir_util import copy_tree
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, list_tags
+from .util import import_from_string, batch_to_device, list_tags, fullname
 from .models import Transformer, Pooling, Dense
 from .model_card_templates import __INTRO_SECTION__, __MORE_INFO_SECTION__, __SENTENCE_TRANSFORMERS_EXAMPLE__, __TRANSFORMERS_EXAMPLE__, __TRAINING_SECTION__, __FULL_MODEL_ARCHITECTURE__, __EVALUATION_SECTION__
 from .model_card_templates import model_card_get_pooling_function, get_train_objective_info
@@ -40,6 +40,9 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     """
     def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
+        self._model_card_info = {}
+        self._model_card_text = None
+
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
             model_path = model_name_or_path
@@ -130,6 +133,14 @@ class SentenceTransformer(nn.Sequential):
                     module = module_class.load(os.path.join(model_path, module_config['path']))
                     modules[module_config['name']] = module
 
+                model_card_path = os.path.join(model_path, 'README.md')
+                if os.path.exists(model_card_path):
+                    try:
+                        with open(model_card_path, encoding='utf8') as fIn:
+                            self._model_card_text = fIn.read()
+                    except:
+                        pass
+
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -140,7 +151,7 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
-        self._model_card_info = {}
+
 
 
     def encode(self, sentences: Union[str, List[str], List[int]],
@@ -403,52 +414,58 @@ class SentenceTransformer(nn.Sequential):
         self._create_model_card(path)
 
     def _create_model_card(self, path):
-        # Add necesary tags.
-        tags = ["sentence-transformers", "feature-extraction"]
 
-        model_card = __INTRO_SECTION__
+        if self._model_card_text is not None and len(self._model_card_text) > 0:
+            model_card = self._model_card_text
 
-        hf_transformers_compatible = False
-        pooling_mode = None
+        else:
+            # Add necesary tags.
+            tags = ["sentence-transformers", "feature-extraction"]
 
-        if len(self._modules) == 2 and isinstance(self._first_module(), Transformer) and isinstance(self._last_module(), Pooling):
-            hf_transformers_compatible = True
-            pooling_module = self._last_module()
-            if pooling_module.get_pooling_mode_str() not in ['cls', 'max', 'mean']:
-                hf_transformers_compatible = False
-            pooling_mode = pooling_module.get_pooling_mode_str()
+            model_card = __INTRO_SECTION__
+
+            hf_transformers_compatible = False
+            pooling_mode = None
+
+            if len(self._modules) == 2 and isinstance(self._first_module(), Transformer) and isinstance(self._last_module(), Pooling):
+                hf_transformers_compatible = True
+                pooling_module = self._last_module()
+                if pooling_module.get_pooling_mode_str() not in ['cls', 'max', 'mean']:
+                    hf_transformers_compatible = False
+                pooling_mode = pooling_module.get_pooling_mode_str()
 
 
-        # Usage with sentence-transformers
-        model_card += __SENTENCE_TRANSFORMERS_EXAMPLE__
+            # Usage with sentence-transformers
+            model_card += __SENTENCE_TRANSFORMERS_EXAMPLE__
 
-        # Usage with Transformers (transformer + pooling)
-        if hf_transformers_compatible:
-            transformer_example = __TRANSFORMERS_EXAMPLE__
-            pooling_fct_name, pooling_fct = model_card_get_pooling_function(pooling_mode)
-            model_card += transformer_example.replace("{POOLING_FUNCTION}", pooling_fct).replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
-            tags.append('transformers')
+            # Usage with Transformers (transformer + pooling)
+            if hf_transformers_compatible:
+                transformer_example = __TRANSFORMERS_EXAMPLE__
+                pooling_fct_name, pooling_fct = model_card_get_pooling_function(pooling_mode)
+                model_card += transformer_example.replace("{POOLING_FUNCTION}", pooling_fct).replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
+                tags.append('transformers')
 
-        # Eval section
-        model_card += __EVALUATION_SECTION__
+            # Eval section
+            model_card += __EVALUATION_SECTION__
 
-        # Add dynamic sections
-        for name, section in self._model_card_info.items():
-            model_card += section
+            # Add dynamic sections
+            for name, section in self._model_card_info.items():
+                model_card += section
 
-        # Footer
-        model_card += __MORE_INFO_SECTION__
+            # Print full model
+            model_card += __FULL_MODEL_ARCHITECTURE__.format(full_model_str=str(self))
 
-        # Print full model
-        model_card += __FULL_MODEL_ARCHITECTURE__.format(full_model_str=str(self))
+            # Footer
+            model_card += __MORE_INFO_SECTION__
 
-        ##Add tags at the top
-        # We can add license, datasets, metrics later on in the metadata as well.
-        metadata = list_tags("tags", tags)
-        model_card = f"---\n{metadata}---\n"+model_card
 
-        with open(os.path.join(path, "README.md"), "w") as f:
-            f.write(model_card)
+            ##Add tags at the top
+            # We can add license, datasets, metrics later on in the metadata as well.
+            metadata = list_tags("tags", tags)
+            model_card = f"---\n{metadata}---\n"+model_card
+
+        with open(os.path.join(path, "README.md"), "w", encoding='utf8') as fOut:
+            fOut.write(model_card)
 
     def push_to_hub(self,
         repo_name: str,
@@ -482,16 +499,38 @@ class SentenceTransformer(nn.Sequential):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             # First create the repo (and clone its content if it's nonempty).
+            logging.info("Create repository and clone it if it exists")
             repo = Repository(tmp_dir, clone_from=repo_url)
 
             # If user provides local files, copy them.
             if local_model_path:
                 copy_tree(local_model_path, tmp_dir)
-            # Else, save model directly into local repo.
-            if not local_model_path:
+            else:  # Else, save model directly into local repo.
                 self.save(tmp_dir)
 
-            return repo.push_to_hub(commit_message=commit_message)
+            logging.info("Push model to the hub. This might take a while")
+            push_return = repo.push_to_hub(commit_message=commit_message)
+
+            def on_rm_error(func, path, exc_info):
+                # path contains the path of the file that couldn't be removed
+                # let's just assume that it's read-only and unlink it.
+                try:
+                    os.chmod(path, stat.S_IWRITE)
+                    os.unlink(path)
+                except:
+                    pass
+
+            # Remove .git folder. On Windows, the .git folder might be read-only and cannot be deleted
+            # Hence, try to set write permissions on error
+            try:
+                for f in os.listdir(tmp_dir):
+                    shutil.rmtree(os.path.join(tmp_dir, f), onerror=on_rm_error)
+            except Exception as e:
+                logging.warning("Error when deleting temp folder: {}".format(str(e)))
+                pass
+
+
+        return push_return
 
     def smart_batching_collate(self, batch):
         """
@@ -597,9 +636,9 @@ class SentenceTransformer(nn.Sequential):
             info_loss_functions.extend(get_train_objective_info(dataloader, loss))
         info_loss_functions = "\n\n".join([text for text in info_loss_functions])
 
-        info_evaluator_name = repr(evaluator)
-        info_fit_parameters = json.dumps({"epochs": epochs, "steps_per_epoch": steps_per_epoch, "scheduler": scheduler, "warmup_steps": warmup_steps, "optimizer_class": str(optimizer_class),  "optimizer_params": optimizer_params, "weight_decay": weight_decay, "evaluation_steps": evaluation_steps, "max_grad_norm": max_grad_norm, "callback": callback }, indent=4, sort_keys=True)
-        self._model_card_info['fit'] = __TRAINING_SECTION__.format(loss_functions=info_loss_functions, evaluator_name=info_evaluator_name, fit_parameters=info_fit_parameters)
+        info_fit_parameters = json.dumps({"evaluator": fullname(evaluator), "epochs": epochs, "steps_per_epoch": steps_per_epoch, "scheduler": scheduler, "warmup_steps": warmup_steps, "optimizer_class": str(optimizer_class),  "optimizer_params": optimizer_params, "weight_decay": weight_decay, "evaluation_steps": evaluation_steps, "max_grad_norm": max_grad_norm, "callback": callback }, indent=4, sort_keys=True)
+        self._model_card_text = None
+        self._model_card_info['fit'] = __TRAINING_SECTION__.format(loss_functions=info_loss_functions, fit_parameters=info_fit_parameters)
 
 
         if use_amp:
@@ -607,12 +646,6 @@ class SentenceTransformer(nn.Sequential):
             scaler = torch.cuda.amp.GradScaler()
 
         self.to(self._target_device)
-
-        eval_path = output_path
-        if output_path is not None:
-            os.makedirs(output_path, exist_ok=True)
-            eval_path = os.path.join(output_path, "eval")
-            os.makedirs(eval_path, exist_ok=True)
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
 
@@ -708,8 +741,8 @@ class SentenceTransformer(nn.Sequential):
                 global_step += 1
 
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(evaluator, eval_path, save_best_model, epoch,
-                                               training_steps, callback)
+                    self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
+
                     for loss_model in loss_models:
                         loss_model.zero_grad()
                         loss_model.train()
@@ -718,7 +751,7 @@ class SentenceTransformer(nn.Sequential):
                     self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
 
-            self._eval_during_training(evaluator, eval_path, save_best_model, epoch, -1, callback)
+            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
         if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
             self.save(output_path)
@@ -743,8 +776,14 @@ class SentenceTransformer(nn.Sequential):
 
     def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
         """Runs evaluation during the training"""
+        eval_path = output_path
+        if output_path is not None:
+            os.makedirs(output_path, exist_ok=True)
+            eval_path = os.path.join(output_path, "eval")
+            os.makedirs(eval_path, exist_ok=True)
+
         if evaluator is not None:
-            score = evaluator(self, output_path=output_path, epoch=epoch, steps=steps)
+            score = evaluator(self, output_path=eval_path, epoch=epoch, steps=steps)
             if callback is not None:
                 callback(score, epoch, steps)
             if score > self.best_score:
