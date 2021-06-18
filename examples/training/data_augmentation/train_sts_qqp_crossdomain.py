@@ -17,7 +17,7 @@ OR
 python train_sts_qqp_crossdomain.py pretrained_transformer_model_name
 """
 from torch.utils.data import DataLoader
-from sentence_transformers import models, losses, util
+from sentence_transformers import models, losses, util, LoggingHandler
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, BinaryClassificationEvaluator
