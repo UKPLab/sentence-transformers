@@ -352,7 +352,7 @@ class SentenceTransformer(nn.Sequential):
 
         return None
 
-    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]])
+    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]]):
         """
         Tokenizes the texts
         """
