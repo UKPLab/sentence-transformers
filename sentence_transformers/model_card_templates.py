@@ -3,7 +3,7 @@ import logging
 from .util import fullname
 
 __INTRO_SECTION__ = """
-# Name of Model
+# {model_name}
 
 <!--- Describe your model here -->
 """
@@ -21,9 +21,6 @@ __TRAINING_SECTION__ = """
 The model was trained with the parameters:
 
 {loss_functions}
-
-Evaluation was done with the following evaluator:
-{evaluator_name}
 
 Parameters of the fit()-Method:
 ```
@@ -55,7 +52,7 @@ Then you can use the model like this:
 from sentence_transformers import SentenceTransformer
 sentences = ["This is an example sentence", "Each sentence is converted"]
 
-model = SentenceTransformer('model_name')
+model = SentenceTransformer('{model_name}')
 embeddings = model.encode(sentences)
 print(embeddings)
 ```
@@ -74,8 +71,8 @@ import torch
 sentences = ['This is an example sentence']
 
 # Load model from HuggingFace Hub
-tokenizer = AutoTokenizer.from_pretrained('model_name')
-model = AutoModel.from_pretrained('model_name')
+tokenizer = AutoTokenizer.from_pretrained('{model_name}')
+model = AutoModel.from_pretrained('{model_name}')
 
 # Tokenize sentences
 encoded_input = tokenizer(sentences, padding=True, truncation=True, return_tensors='pt')
@@ -94,7 +91,8 @@ print(sentence_embeddings)
 """
 
 
-__FULL_MODEL_ARCHITECTURE__ = """## Full Model Architecture
+__FULL_MODEL_ARCHITECTURE__ = """
+## Full Model Architecture
 ```
 {full_model_str}
 ```"""
