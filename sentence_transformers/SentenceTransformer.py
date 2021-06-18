@@ -352,11 +352,11 @@ class SentenceTransformer(nn.Sequential):
 
         return None
 
-    def tokenize(self, text: str):
+    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]])
         """
-        Tokenizes the text
+        Tokenizes the texts
         """
-        return self._first_module().tokenize(text)
+        return self._first_module().tokenize(texts)
 
     def get_sentence_features(self, *features):
         return self._first_module().get_sentence_features(*features)

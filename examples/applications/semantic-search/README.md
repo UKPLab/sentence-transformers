@@ -1,11 +1,11 @@
 # Semantic Search
-Semantic search seeks to improve search accuracy by understanding the content of the search query. In contrast to traditional search engines, that only finds documents based on lexical matches, semantic search can also find synonyms.
+Semantic search seeks to improve search accuracy by understanding the content of the search query. In contrast to traditional search engines which only find documents based on lexical matches, semantic search can also find synonyms.
 
 
 ## Background
-The idea behind semantic search is to embedd all entries in your corpus, which can be sentences, paragraphs, or documents, into a vector space. 
+The idea behind semantic search is to embed all entries in your corpus, whether they be sentences, paragraphs, or documents, into a vector space. 
 
-At search time, the query is embedded into the same vector space and the closest embedding from your corpus are found. These entries should have a high semantic overlap with the query.
+At search time, the query is embedded into the same vector space and the closest embeddings from your corpus are found. These entries should have a high semantic overlap with the query.
 
 ![SemanticSearch](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/SemanticSearch.png) 
 
@@ -48,7 +48,7 @@ For a simple example, see [semantic_search.py](semantic_search.py):
 
 ## util.semantic_search
 
-Instead of implementing semantic search by your self, you can use the *util.semantic_search* function.
+Instead of implementing semantic search by yourself, you can use the *util.semantic_search* function.
 
 The function accepts the following parameters:
 
@@ -56,7 +56,7 @@ The function accepts the following parameters:
 .. autofunction:: sentence_transformers.util.semantic_search
 ```
 
-By default, up to 100 queries are processes in parallel. Further, the corpus is chunked into set of up to 500k entries. You can increase *query_chunk_size* and *corpus_chunk_size*, which leads to increased speed for large corpora, but also increases the memory requirement.
+By default, up to 100 queries are processed in parallel. Further, the corpus is chunked into set of up to 500k entries. You can increase *query_chunk_size* and *corpus_chunk_size*, which leads to increased speed for large corpora, but also increases the memory requirement.
 
 ## Speed Optimization
 To get the optimal speed for the `util.semantic_search` method, it is advisable to have the `query_embeddings` as well as the `corpus_embeddings` on the same GPU-device. This significantly boost the performance.
@@ -85,11 +85,11 @@ For further details, see [semantic_search_quora_elasticsearch.py](semantic_searc
 ## Approximate Nearest Neighbor
 Searching a large corpus with millions of embeddings can be time-consuming if exact nearest neighbor search is used (like it is used by *util.semantic_search*).
 
-In that case, Approximate Nearest Neighor (ANN) can be helpful. Here, the data is partitioned into smaller fractions of similar embeddings. This index can be search efficiently and the embeddings with the highest similarity (the nearest neighbors) can be retrieved within milliseconds, even if you have Millions of vectors.
+In that case, Approximate Nearest Neighor (ANN) can be helpful. Here, the data is partitioned into smaller fractions of similar embeddings. This index can be searched efficiently and the embeddings with the highest similarity (the nearest neighbors) can be retrieved within milliseconds, even if you have millions of vectors.
 
-However, the results are not necessarily exact: It can happen, that some vectors with high similarity are missed. That's the reason why it is called approximate nearest neighbor.
+However, the results are not necessarily exact. It is possible that some vectors with high similarity will be missed. That's the reason why it is called approximate nearest neighbor.
 
-For all ANN methods, there is usually one or more parameters to tune that determine the recall - speed trade-off. If you want the highest speed, you have a high chance of missing hits. If you want high recall, the search speed decreases.
+For all ANN methods, there are usually one or more parameters to tune that determine the recall-speed trade-off. If you want the highest speed, you have a high chance of missing hits. If you want high recall, the search speed decreases.
 
 Three popular libraries for approximate nearest neighbor are [Annoy](https://github.com/spotify/annoy), [FAISS](https://github.com/facebookresearch/faiss), and [hnswlib](https://github.com/nmslib/hnswlib/). Personally I find hnswlib the most suitable library: It is easy to use, offers a great performance and has nice features included that are important for real applications.
 
