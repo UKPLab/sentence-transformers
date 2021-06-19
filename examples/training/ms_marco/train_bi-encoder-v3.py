@@ -96,46 +96,6 @@ with open(queries_filepath, 'r', encoding='utf8') as fIn:
         queries[qid] = query
 
 
-# msmarco-qidpidtriples.rnd-shuf.train-eval.tsv.gz and msmarco-qidpidtriples.rnd-shuf.train.tsv.gz is a randomly
-# shuffled version of qidpidtriples.train.full.2.tsv.gz from the MS Marco website
-# We extracted in the train-eval split 500 random queries that can be used for evaluation during training
-train_eval_filepath = os.path.join(data_folder, 'msmarco-qidpidtriples.rnd-shuf.train-eval.tsv.gz')
-if not os.path.exists(train_eval_filepath):
-    logging.info("Download "+os.path.basename(train_eval_filepath))
-    util.http_get('https://sbert.net/datasets/msmarco-qidpidtriples.rnd-shuf.train-eval.tsv.gz', train_eval_filepath)
-
-dev_queries = {}
-dev_corpus = {}
-dev_rel_docs = {}
-
-num_negatives = defaultdict(int)
-
-with gzip.open(train_eval_filepath, 'rt') as fIn:
-    for line in fIn:
-        qid, pos_id, neg_id = line.strip().split()
-
-        if len(dev_queries) <= num_dev_queries or qid in dev_queries:
-            dev_queries[qid] = queries[qid]
-
-            #Ensure the corpus has the positive
-            dev_corpus[pos_id] = corpus[pos_id]
-
-            if qid not in dev_rel_docs:
-                dev_rel_docs[qid] = set()
-
-            dev_rel_docs[qid].add(pos_id)
-
-            if num_negatives[qid] < num_max_dev_negatives:
-                dev_corpus[neg_id] = corpus[neg_id]
-                num_negatives[qid] += 1
-
-logging.info("Dev Queries: {}".format(len(dev_queries)))
-logging.info("Dev Corpus: {}".format(len(dev_corpus)))
-
-
-# Create the evaluator that is called during training
-ir_evaluator = evaluation.InformationRetrievalEvaluator(dev_queries, dev_corpus, dev_rel_docs, name='ms-marco-train_eval')
-
 # Read our training file: msmarco-hard-negatives.jsonl.gz contains all queries and hard-negatives that were mined with different systems
 # For each positive and mined-hard negative passage, we have a Cross-Encoder score from the cross-encoder/ms-marco-MiniLM-L-6-v2 model
 # This  Cross-Encoder score allows to de-noise our hard-negatives by requiring that their CE-score is below a certain treshold
@@ -152,10 +112,6 @@ train_queries = {}
 with gzip.open(train_filepath, 'rt') as fIn:
     for line in tqdm.tqdm(fIn):
         data = json.loads(line)
-
-        #Skip if query is used for evaluation
-        if data['qid'] in dev_queries:
-            continue
 
         #Get the positive passage ids
         pos_pids = [item['pid'] for item in data['pos']]
@@ -219,13 +175,10 @@ train_loss = losses.MultipleNegativesRankingLoss(model=model)
 
 # Train the model
 model.fit(train_objectives=[(train_dataloader, train_loss)],
-          evaluator=ir_evaluator,
           epochs=num_epochs,
           warmup_steps=1000,
-          output_path=model_save_path,
-          evaluation_steps=int(len(train_dataloader)*0.5)+1,    #Evaluate every 50%
           use_amp=True
           )
 
-# Train latest model
-model.save(os.path.join(model_save_path, 'latest'))
+# Save the model
+model.save(model_save_path)
