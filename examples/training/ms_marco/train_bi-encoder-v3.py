@@ -43,7 +43,7 @@ train_batch_size = 100          #Increasing the train batch size improves the mo
 max_seq_length = 300            #Max length for passages. Increasing it, requires more GPU memory
 num_dev_queries = 500           #Number of queries we want to use to evaluate the performance while training
 num_max_dev_negatives = 200     #For every dev query, we use up to 200 hard negatives and add them to the dev corpus
-ce_score_margin = float(sys.argv[1])    #Margin for the CrossEncoder score between negative and positive passages
+ce_score_margin = 3             #Margin for the CrossEncoder score between negative and positive passages
 num_negs_per_system = 5         # We used different systems to mine hard negatives. Number of hard negatives to add from each system
 num_epochs = 10                 # Number of epochs we want to train
 
