@@ -115,24 +115,19 @@ class SentenceTransformer(nn.Sequential):
             if modules is None:
                 logger.info("Load SentenceTransformer from folder: {}".format(model_path))
 
-                modules_json_path = os.path.join(model_path, 'modules.json')
-                with open(modules_json_path) as fIn:
-                    modules_config = json.load(fIn)
+                # Check if the config_sentence_transformers.json file exists (exists since v2 of the framework)
+                config_sentence_transformers_json_path = os.path.join(model_path, 'config_sentence_transformers.json')
+                if os.path.exists(config_sentence_transformers_json_path):
+                    with open(config_sentence_transformers_json_path) as fIn:
+                        config_sentence_transformers = json.load(fIn)
 
-                #Old modules.json file format was a list with the modules.
-                #Check and convert to new file format
-                if isinstance(modules_config, list):
-                    modules_config = {'modules': modules_config}
+                    if '__version__' in config_sentence_transformers and 'sentence_transformers' in config_sentence_transformers['__version__'] and config_sentence_transformers['__version__'][
+                        'sentence_transformers'] > __version__:
+                        logger.warning(
+                            "You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(
+                                config_sentence_transformers['__version__']['sentence_transformers'], __version__))
 
-                if '__version__' in modules_config and 'sentence_transformers' in modules_config['__version__'] and modules_config['__version__']['sentence_transformers'] > __version__:
-                    logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(modules_config['__version__']['sentence_transformers'], __version__))
-
-                modules = OrderedDict()
-                for module_config in modules_config['modules']:
-                    module_class = import_from_string(module_config['type'])
-                    module = module_class.load(os.path.join(model_path, module_config['path']))
-                    modules[module_config['name']] = module
-
+                # Check if a readme exists
                 model_card_path = os.path.join(model_path, 'README.md')
                 if os.path.exists(model_card_path):
                     try:
@@ -140,6 +135,17 @@ class SentenceTransformer(nn.Sequential):
                             self._model_card_text = fIn.read()
                     except:
                         pass
+
+                # Load the modules of sentence transformer
+                modules_json_path = os.path.join(model_path, 'modules.json')
+                with open(modules_json_path) as fIn:
+                    modules_config = json.load(fIn)
+
+                modules = OrderedDict()
+                for module_config in modules_config:
+                    module_class = import_from_string(module_config['type'])
+                    module = module_class.load(os.path.join(model_path, module_config['path']))
+                    modules[module_config['name']] = module
 
 
         if modules is not None and not isinstance(modules, OrderedDict):
@@ -386,14 +392,14 @@ class SentenceTransformer(nn.Sequential):
         os.makedirs(path, exist_ok=True)
 
         logger.info("Save model to {}".format(path))
-        modules_config = {
+        modules_config = []
+        config_sentence_transformers = {
             '__version__': {
                 'sentence_transformers': __version__,  # Version of library
                 'transformers': transformers.__version__,  # Transformers version
                 'pytorch': torch.__version__,
             },
             'similarity': None,             #TODO: Recommended (list) of similarity function
-            'modules': []                   #List of modules
             #TODO: Future tags to add: https://github.com/huggingface/huggingface_hub/pull/69#issuecomment-857747841
         }
 
@@ -406,10 +412,13 @@ class SentenceTransformer(nn.Sequential):
 
             os.makedirs(model_path, exist_ok=True)
             module.save(model_path)
-            modules_config['modules'].append({'idx': idx, 'name': name, 'path': os.path.basename(model_path), 'type': type(module).__module__})
+            modules_config.append({'idx': idx, 'name': name, 'path': os.path.basename(model_path), 'type': type(module).__module__})
 
         with open(os.path.join(path, 'modules.json'), 'w') as fOut:
             json.dump(modules_config, fOut, indent=2)
+
+        with open(os.path.join(path, 'config_sentence_transformers.json'), 'w') as fOut:
+            json.dump(config_sentence_transformers, fOut, indent=2)
 
         self._create_model_card(path)
 
