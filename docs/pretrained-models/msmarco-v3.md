@@ -1,4 +1,4 @@
-# MSMARCO Models (Version 3)
+# MSMARCO Models 
 [MS MARCO](https://microsoft.github.io/msmarco/) is a large scale information retrieval corpus that was created based on real user search queries using Bing search engine. The provided models can be used for semantic search, i.e., given keywords / a search phrase / a question, the model will find passages that are relevant for the search query.
 
 The training data constist of over 500k examples, while the complete  corpus consist of over 8.8 Million passages.
@@ -29,12 +29,12 @@ As baseline we show the results for lexical search with BM25 using ElasticSearch
 | msmarco-MiniLM-L-6-v3 | 67.46 | 32.27 | 18,000 / 750 | 2,800 / 180
 | msmarco-MiniLM-L-12-v3 | 65.14 | 32.75 | 11,000 / 400 | 1,500 / 90
 | msmarco-distilbert-base-v3| 69.02 | 33.13 | 7,000 / 350 | 1,100 / 70
-| msmarco-distilbert-base-v4 | 70.24 | 33.79 | 7,000 / 350 | 1,100 / 70
+| msmarco-distilbert-base-v4 | **70.24** | **33.79**| 7,000 / 350 | 1,100 / 70
 | msmarco-roberta-base-v3 | 69.08 | 33.01 | 4,000 / 170 | 540 / 30
 | **Models tuned for dot-product** | |
 | msmarco-distilbert-base-dot-prod-v3 | 68.42 | 33.04 | 7,000 / 350 | 1100 / 70
 | [msmarco-roberta-base-ance-firstp](https://github.com/microsoft/ANCE) | 67.84 | 33.01 | 4,000 / 170 | 540 / 30
-| [msmarco-distilbert-base-tas-b](https://huggingface.co/sebastian-hofstaetter/distilbert-dot-tas_b-b256-msmarco) | 71.04 | 34.43 | 7,000 / 350 | 1100 / 70
+| [msmarco-distilbert-base-tas-b](https://huggingface.co/sebastian-hofstaetter/distilbert-dot-tas_b-b256-msmarco) | **71.04** | **34.43** | 7,000 / 350 | 1100 / 70
 | **Previous approaches** |  |  |
 | BM25 (ElasticSearch)   | 45.46 | 17.29  |
 | msmarco-distilroberta-base-v2   | 65.65 |  28.55    |  

@@ -13,7 +13,7 @@ __EVALUATION_SECTION__ = """
 
 <!--- Describe how your model was evaluated -->
 
-For an automated evaluation of this model, see the *Sentence Embeddings Benchmark*: [https://seb.sbert.net](https://seb.sbert.net)
+For an automated evaluation of this model, see the *Sentence Embeddings Benchmark*: [https://seb.sbert.net](https://seb.sbert.net?model_name={model_name})
 """
 
 __TRAINING_SECTION__ = """
@@ -40,7 +40,7 @@ __MORE_INFO_SECTION__ = """
 __SENTENCE_TRANSFORMERS_EXAMPLE__ = """
 ## Usage (Sentence-Transformers)
 
-Using this model becomes more convenient when you have [sentence-transformers](https://github.com/UKPLab/sentence-transformers) installed:
+Using this model becomes easy when you have [sentence-transformers](https://www.SBERT.net) installed:
 
 ```
 pip install -U sentence-transformers
@@ -60,6 +60,7 @@ print(embeddings)
 
 __TRANSFORMERS_EXAMPLE__ = """\n
 ## Usage (HuggingFace Transformers)
+Without [sentence-transformers](https://www.SBERT.net), you can use the model like this: First, you pass your input through the transformer model, then you have to apply the right pooling-operation on-top of the contextualized word embeddings.
 
 ```python
 from transformers import AutoTokenizer, AutoModel
@@ -106,8 +107,7 @@ def max_pooling(model_output, attention_mask):
     token_embeddings = model_output[0] #First element of model_output contains all token embeddings
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
     token_embeddings[input_mask_expanded == 0] = -1e9  # Set padding tokens to large negative value
-    max_over_time = torch.max(token_embeddings, 1)[0]
-    return max_over_time
+    return torch.max(token_embeddings, 1)[0]
 """
     elif pooling_mode == 'mean':
         return "mean_pooling", """
@@ -115,9 +115,7 @@ def max_pooling(model_output, attention_mask):
 def mean_pooling(model_output, attention_mask):
     token_embeddings = model_output[0] #First element of model_output contains all token embeddings
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-    sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
-    sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-    return sum_embeddings / sum_mask
+    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 """
 
     elif pooling_mode == 'cls':

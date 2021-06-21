@@ -472,7 +472,7 @@ class SentenceTransformer(nn.Sequential):
             # We can add license, datasets, metrics later on in the metadata as well.
             metadata = "pipeline_tag: sentence-similarity"
             metadata += "\n"+list_tags("tags", tags)
-            model_card = f"---\n{metadata}---\n"+model_card
+            model_card = "---\n{}---\n{}".format(metadata, model_card)
 
         with open(os.path.join(path, "README.md"), "w", encoding='utf8') as fOut:
             fOut.write(model_card)
@@ -497,9 +497,16 @@ class SentenceTransformer(nn.Sequential):
         """
         token = HfFolder.get_token()
         if token is None:
-            raise ValueError(
-                "You must login to the Hugging Face hub on this computer by typing `transformers-cli login`."
-            )
+            raise ValueError("You must login to the Hugging Face hub on this computer by typing `transformers-cli login`.")
+
+        if '/' in repo_name:
+            splits = repo_name.split('/', maxsplit=1)
+            if organization is None or organization == splits[0]:
+                organization = splits[0]
+                repo_name = splits[1]
+            else:
+                raise ValueError("You passed and invalid repository name: {}.".format(repo_name))
+
         endpoint = "https://huggingface.co"
         repo_url = HfApi(endpoint=endpoint).create_repo(
                 token,
