@@ -11,6 +11,8 @@ Negative passage are hard negative examples, that were mined using different den
 Each positive and negative passage comes with a score from a Cross-Encoder. This allows denoising, i.e. removing false negative
 passages that are actually relevant for the query.
 
+With a distilbert-base-uncased model, it should achieve a performance of about 33.79 MRR@10 on the MSMARCO Passages Dev-Corpus
+
 Running this script:
 python train_bi-encoder-v3.py
 """
