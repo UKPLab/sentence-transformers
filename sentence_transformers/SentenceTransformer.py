@@ -476,12 +476,12 @@ class SentenceTransformer(nn.Sequential):
         with open(os.path.join(path, "README.md"), "w", encoding='utf8') as fOut:
             fOut.write(model_card)
 
-    def push_to_hub(self,
-        repo_name: str,
-        organization: Optional[str] = None,
-        private: Optional[bool] = None,
-        commit_message: str = "Add new SentenceTransformer model.",
-        local_model_path: Optional[str] = None):
+    def save_to_hub(self,
+                    repo_name: str,
+                    organization: Optional[str] = None,
+                    private: Optional[bool] = None,
+                    commit_message: str = "Add new SentenceTransformer model.",
+                    local_model_path: Optional[str] = None):
         """
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
