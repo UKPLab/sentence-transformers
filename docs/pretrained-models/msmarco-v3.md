@@ -29,6 +29,7 @@ As baseline we show the results for lexical search with BM25 using ElasticSearch
 | msmarco-MiniLM-L-6-v3 | 67.46 | 32.27 | 18,000 / 750 | 2,800 / 180
 | msmarco-MiniLM-L-12-v3 | 65.14 | 32.75 | 11,000 / 400 | 1,500 / 90
 | msmarco-distilbert-base-v3| 69.02 | 33.13 | 7,000 / 350 | 1,100 / 70
+| msmarco-distilbert-base-v4 | 70.24 | 33.79 | 7,000 / 350 | 1,100 / 70
 | msmarco-roberta-base-v3 | 69.08 | 33.01 | 4,000 / 170 | 540 / 30
 | **Models tuned for dot-product** | |
 | msmarco-distilbert-base-dot-prod-v3 | 68.42 | 33.04 | 7,000 / 350 | 1100 / 70

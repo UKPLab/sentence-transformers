@@ -24,7 +24,7 @@ Use **paraphrase-mpnet-base-v2** for the best quality, and **paraphrase-MiniLM-L
 The following models were trained on [MSMARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking), a dataset with 500k real queries from Bing search. Given a search query, find the relevant passages. 
 
 Models tuned to be used with **cosine-similarity**:
-- **msmarco-distilbert-base-v3**: MRR@10: 33.13 on MS MARCO  dev set
+- **msmarco-distilbert-base-v4**: MRR@10: 33.79 on MS MARCO  dev set
 
 Models tuned to be used with **dot-product**:
 - **msmarco-distilbert-base-dot-prod-v3**: MRR@10: 33.04 on MS MARCO dev set
