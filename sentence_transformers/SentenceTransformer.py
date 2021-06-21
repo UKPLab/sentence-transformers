@@ -429,7 +429,7 @@ class SentenceTransformer(nn.Sequential):
 
         else:
             # Add necesary tags.
-            tags = ["sentence-transformers", "feature-extraction"]
+            tags = ["sentence-transformers", "feature-extraction", "sentence-similarity"]
 
             model_card = __INTRO_SECTION__
 
@@ -470,7 +470,8 @@ class SentenceTransformer(nn.Sequential):
 
             ##Add tags at the top
             # We can add license, datasets, metrics later on in the metadata as well.
-            metadata = list_tags("tags", tags)
+            metadata = "pipeline_tag: sentence-similarity"
+            metadata += "\n"+list_tags("tags", tags)
             model_card = f"---\n{metadata}---\n"+model_card
 
         with open(os.path.join(path, "README.md"), "w", encoding='utf8') as fOut:
@@ -481,7 +482,8 @@ class SentenceTransformer(nn.Sequential):
                     organization: Optional[str] = None,
                     private: Optional[bool] = None,
                     commit_message: str = "Add new SentenceTransformer model.",
-                    local_model_path: Optional[str] = None):
+                    local_model_path: Optional[str] = None,
+                    exist_ok: bool = False):
         """
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
@@ -490,6 +492,7 @@ class SentenceTransformer(nn.Sequential):
         :param private: Set to true, for hosting a prive model
         :param commit_message: Message to commit while pushing.
         :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
+        :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
         :return: The url of the commit of your model in the given repository.
         """
         token = HfFolder.get_token()
@@ -497,14 +500,16 @@ class SentenceTransformer(nn.Sequential):
             raise ValueError(
                 "You must login to the Hugging Face hub on this computer by typing `transformers-cli login`."
             )
-        repo_url = HfApi(endpoint="https://huggingface.co").create_repo(
+        endpoint = "https://huggingface.co"
+        repo_url = HfApi(endpoint=endpoint).create_repo(
                 token,
                 repo_name,
                 organization=organization,
                 private=private,
                 repo_type=None,
-                exist_ok=True,
+                exist_ok=exist_ok,
             )
+        full_model_name = repo_url[len(endpoint)+1:].strip("/")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             # First create the repo (and clone its content if it's nonempty).
@@ -517,8 +522,17 @@ class SentenceTransformer(nn.Sequential):
             else:  # Else, save model directly into local repo.
                 self.save(tmp_dir)
 
+            #Replace {model_name} with actual model name
+            readme_path = os.path.join(tmp_dir, 'README.md')
+            if os.path.exists(readme_path):
+                with open(readme_path, encoding='utf8') as fIn:
+                    readme = fIn.read()
+                with open(readme_path, 'w', encoding='utf8') as fOut:
+                    fOut.write(readme.replace("{model_name}", full_model_name))
+
             logging.info("Push model to the hub. This might take a while")
             push_return = repo.push_to_hub(commit_message=commit_message)
+            pass
 
             def on_rm_error(func, path, exc_info):
                 # path contains the path of the file that couldn't be removed
