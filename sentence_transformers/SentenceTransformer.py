@@ -630,7 +630,7 @@ class SentenceTransformer(nn.Sequential):
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
             checkpoint_save_steps: int = 500,
-            checkpoint_save_total_limit: int = 1
+            checkpoint_save_total_limit: int = 0
             ):
         """
         Train the model with the given training objective
