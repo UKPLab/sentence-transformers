@@ -381,11 +381,12 @@ class SentenceTransformer(nn.Sequential):
         """Returns the last module of this sequential embedder"""
         return self._modules[next(reversed(self._modules))]
 
-    def save(self, path: str, model_name: Optional[str] = None):
+    def save(self, path: str, model_name: Optional[str] = None, create_model_card: bool = True):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
         :param path: Path on disc
         :param model_name: Optional model name
+        :param create_model_card: If True, create a README.md with basic information about this model
         """
         if path is None:
             return
@@ -422,7 +423,8 @@ class SentenceTransformer(nn.Sequential):
             json.dump(modules_config, fOut, indent=2)
 
         # Create model card
-        self._create_model_card(path, model_name)
+        if create_model_card:
+            self._create_model_card(path, model_name)
 
     def _create_model_card(self, path: str, model_name: Optional[str] = None):
         """
@@ -471,7 +473,8 @@ class SentenceTransformer(nn.Sequential):
                     private: Optional[bool] = None,
                     commit_message: str = "Add new SentenceTransformer model.",
                     local_model_path: Optional[str] = None,
-                    exist_ok: bool = False):
+                    exist_ok: bool = False,
+                    replace_model_card: bool = False):
         """
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
@@ -481,6 +484,7 @@ class SentenceTransformer(nn.Sequential):
         :param commit_message: Message to commit while pushing.
         :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
         :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
+        :param replace_model_card: If true, replace an existing model card in the hub with the automatically created model card
         :return: The url of the commit of your model in the given repository.
         """
         token = HfFolder.get_token()
@@ -515,7 +519,8 @@ class SentenceTransformer(nn.Sequential):
             if local_model_path:
                 copy_tree(local_model_path, tmp_dir)
             else:  # Else, save model directly into local repo.
-                self.save(tmp_dir, model_name=full_model_name)
+                create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, 'README.md'))
+                self.save(tmp_dir, model_name=full_model_name, create_model_card=create_model_card)
 
             logging.info("Push model to the hub. This might take a while")
             push_return = repo.push_to_hub(commit_message=commit_message)

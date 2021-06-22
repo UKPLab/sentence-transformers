@@ -92,7 +92,7 @@ import torch
 {POOLING_FUNCTION}
 
 # Sentences we want sentence embeddings for
-sentences = ['This is an example sentence']
+sentences = ['This is an example sentence', 'Each sentence is converted']
 
 # Load model from HuggingFace Hub
 tokenizer = AutoTokenizer.from_pretrained('{MODEL_NAME}')
