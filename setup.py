@@ -26,10 +26,11 @@ setup(
         'scikit-learn',
         'scipy',
         'nltk',
-        'sentencepiece'
+        'sentencepiece',
+        'huggingface-hub>=0.0.10'
     ],
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3.6",
