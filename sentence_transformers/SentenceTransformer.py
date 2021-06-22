@@ -465,7 +465,7 @@ class SentenceTransformer(nn.Sequential):
             model_card = model_card.replace("{MODEL_NAME}", model_name.strip())
 
         with open(os.path.join(path, "README.md"), "w", encoding='utf8') as fOut:
-            fOut.write(model_card)
+            fOut.write(model_card.strip())
 
     def save_to_hub(self,
                     repo_name: str,
