@@ -382,9 +382,11 @@ class SentenceTransformer(nn.Sequential):
         """Returns the last module of this sequential embedder"""
         return self._modules[next(reversed(self._modules))]
 
-    def save(self, path):
+    def save(self, path: str, model_name: Optional[str] = None):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
+        :param path: Path on disc
+        :param model_name: Optional model name
         """
         if path is None:
             return
@@ -421,9 +423,9 @@ class SentenceTransformer(nn.Sequential):
             json.dump(modules_config, fOut, indent=2)
 
         # Create model card
-        self._create_model_card(path)
+        self._create_model_card(path, model_name)
 
-    def _create_model_card(self, path):
+    def _create_model_card(self, path: str, model_name: Optional[str] = None):
         """
         Create an automatic model and stores it in path
         """
@@ -475,6 +477,9 @@ class SentenceTransformer(nn.Sequential):
             metadata = "pipeline_tag: sentence-similarity"
             metadata += "\n"+list_tags("tags", tags)
             model_card = "---\n{}---\n{}".format(metadata, model_card)
+
+        if model_name is not None:
+            model_card = model_card.replace("{model_name}", model_name.strip())
 
         with open(os.path.join(path, "README.md"), "w", encoding='utf8') as fOut:
             fOut.write(model_card)
@@ -529,19 +534,10 @@ class SentenceTransformer(nn.Sequential):
             if local_model_path:
                 copy_tree(local_model_path, tmp_dir)
             else:  # Else, save model directly into local repo.
-                self.save(tmp_dir)
-
-            #Replace {model_name} with actual model name
-            readme_path = os.path.join(tmp_dir, 'README.md')
-            if os.path.exists(readme_path):
-                with open(readme_path, encoding='utf8') as fIn:
-                    readme = fIn.read()
-                with open(readme_path, 'w', encoding='utf8') as fOut:
-                    fOut.write(readme.replace("{model_name}", full_model_name))
+                self.save(tmp_dir, model_name=full_model_name)
 
             logging.info("Push model to the hub. This might take a while")
             push_return = repo.push_to_hub(commit_message=commit_message)
-            pass
 
             def on_rm_error(func, path, exc_info):
                 # path contains the path of the file that couldn't be removed
