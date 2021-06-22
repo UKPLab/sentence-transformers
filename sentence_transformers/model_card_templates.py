@@ -2,42 +2,28 @@ import logging
 
 from .util import fullname
 
-__INTRO_SECTION__ = """
-# {model_name}
+class ModelCardTemplate:
+    __TAGS__ = ["sentence-transformers", "feature-extraction", "sentence-similarity"]
+    __DEFAULT_VARS__ = {
+        "{PIPELINE_TAG}": "sentence-similarity",
+        "{MODEL_DESCRIPTION}": "<!--- Describe your model here -->",
+        "{TRAINING_SECTION}": "",
+        "{USAGE_TRANSFORMERS_SECTION}": "",
+        "{EVALUATION}": "<!--- Describe how your model was evaluated -->",
+        "{CITING}": "<!--- Describe where people can find more information -->"
+    }
 
-<!--- Describe your model here -->
-"""
+    __MODEL_CARD__ = """
+---
+pipeline_tag: {PIPELINE_TAG}
+tags:
+{TAGS}
+---
 
-__EVALUATION_SECTION__ = """
-## Evaluation Results
+# {MODEL_NAME}
 
-<!--- Describe how your model was evaluated -->
+{MODEL_DESCRIPTION}
 
-For an automated evaluation of this model, see the *Sentence Embeddings Benchmark*: [https://seb.sbert.net](https://seb.sbert.net?model_name={model_name})
-"""
-
-__TRAINING_SECTION__ = """
-## Training
-The model was trained with the parameters:
-
-{loss_functions}
-
-Parameters of the fit()-Method:
-```
-{fit_parameters}
-```
-"""
-
-
-__MORE_INFO_SECTION__ = """
-
-## Citing & Authors
-
-<!--- Describe where people can find more information -->
-
-"""
-
-__SENTENCE_TRANSFORMERS_EXAMPLE__ = """
 ## Usage (Sentence-Transformers)
 
 Using this model becomes easy when you have [sentence-transformers](https://www.SBERT.net) installed:
@@ -52,13 +38,48 @@ Then you can use the model like this:
 from sentence_transformers import SentenceTransformer
 sentences = ["This is an example sentence", "Each sentence is converted"]
 
-model = SentenceTransformer('{model_name}')
+model = SentenceTransformer('{MODEL_NAME}')
 embeddings = model.encode(sentences)
 print(embeddings)
 ```
+
+{USAGE_TRANSFORMERS_SECTION}
+
+## Evaluation Results
+
+{EVALUATION}
+
+For an automated evaluation of this model, see the *Sentence Embeddings Benchmark*: [https://seb.sbert.net](https://seb.sbert.net?model_name={MODEL_NAME})
+
+{TRAINING_SECTION}
+
+## Full Model Architecture
+```
+{FULL_MODEL_STR}
+```
+
+## Citing & Authors
+
+{CITING}
+
 """
 
-__TRANSFORMERS_EXAMPLE__ = """\n
+
+
+    __TRAINING_SECTION__ = """
+## Training
+The model was trained with the parameters:
+
+{LOSS_FUNCTIONS}
+
+Parameters of the fit()-Method:
+```
+{FIT_PARAMETERS}
+```
+"""
+
+
+    __USAGE_TRANSFORMERS__ = """\n
 ## Usage (HuggingFace Transformers)
 Without [sentence-transformers](https://www.SBERT.net), you can use the model like this: First, you pass your input through the transformer model, then you have to apply the right pooling-operation on-top of the contextualized word embeddings.
 
@@ -72,8 +93,8 @@ import torch
 sentences = ['This is an example sentence']
 
 # Load model from HuggingFace Hub
-tokenizer = AutoTokenizer.from_pretrained('{model_name}')
-model = AutoModel.from_pretrained('{model_name}')
+tokenizer = AutoTokenizer.from_pretrained('{MODEL_NAME}')
+model = AutoModel.from_pretrained('{MODEL_NAME}')
 
 # Tokenize sentences
 encoded_input = tokenizer(sentences, padding=True, truncation=True, return_tensors='pt')
@@ -88,20 +109,15 @@ sentence_embeddings = {POOLING_FUNCTION_NAME}(model_output, encoded_input['atten
 print("Sentence embeddings:")
 print(sentence_embeddings)
 ```
-\n
+
 """
 
 
-__FULL_MODEL_ARCHITECTURE__ = """
-## Full Model Architecture
-```
-{full_model_str}
-```"""
 
-
-def model_card_get_pooling_function(pooling_mode):
-    if pooling_mode == 'max':
-        return "max_pooling", """
+    @staticmethod
+    def model_card_get_pooling_function(pooling_mode):
+        if pooling_mode == 'max':
+            return "max_pooling", """
 # Max Pooling - Take the max value over time for every dimension. 
 def max_pooling(model_output, attention_mask):
     token_embeddings = model_output[0] #First element of model_output contains all token embeddings
@@ -109,8 +125,8 @@ def max_pooling(model_output, attention_mask):
     token_embeddings[input_mask_expanded == 0] = -1e9  # Set padding tokens to large negative value
     return torch.max(token_embeddings, 1)[0]
 """
-    elif pooling_mode == 'mean':
-        return "mean_pooling", """
+        elif pooling_mode == 'mean':
+            return "mean_pooling", """
 #Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(model_output, attention_mask):
     token_embeddings = model_output[0] #First element of model_output contains all token embeddings
@@ -118,38 +134,38 @@ def mean_pooling(model_output, attention_mask):
     return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 """
 
-    elif pooling_mode == 'cls':
-        return "cls_pooling", """
+        elif pooling_mode == 'cls':
+            return "cls_pooling", """
 def cls_pooling(model_output, attention_mask):
     return model_output[0][:,0]
 """
 
+    @staticmethod
+    def get_train_objective_info(dataloader, loss):
+        try:
+            if hasattr(dataloader, 'get_config_dict'):
+                train_loader = dataloader.get_config_dict()
+            else:
+                loader_params = {}
+                loader_params['batch_size'] = dataloader.batch_size if hasattr(dataloader, 'batch_size') else 'unknown'
+                if hasattr(dataloader, 'sampler'):
+                    loader_params['sampler'] = fullname(dataloader.sampler)
+                if hasattr(dataloader, 'batch_sampler'):
+                    loader_params['batch_sampler'] = fullname(dataloader.batch_sampler)
 
-def get_train_objective_info(dataloader, loss):
-    try:
-        if hasattr(dataloader, 'get_config_dict'):
-            train_loader = dataloader.get_config_dict()
-        else:
-            loader_params = {}
-            loader_params['batch_size'] = dataloader.batch_size if hasattr(dataloader, 'batch_size') else 'unknown'
-            if hasattr(dataloader, 'sampler'):
-                loader_params['sampler'] = fullname(dataloader.sampler)
-            if hasattr(dataloader, 'batch_sampler'):
-                loader_params['batch_sampler'] = fullname(dataloader.batch_sampler)
-
-        dataloader_str = """**DataLoader**:\n\n`{}` of length {} with parameters:
+            dataloader_str = """**DataLoader**:\n\n`{}` of length {} with parameters:
 ```
 {}
 ```""".format(fullname(dataloader), len(dataloader), loader_params)
 
-        loss_str = "**Loss**:\n\n`{}` {}".format(fullname(loss),
+            loss_str = "**Loss**:\n\n`{}` {}".format(fullname(loss),
  """with parameters:
   ```
   {}
   ```""".format(loss.get_config_dict()) if hasattr(loss, 'get_config_dict') else "")
 
-        return [dataloader_str, loss_str]
+            return [dataloader_str, loss_str]
 
-    except Exception as e:
-        logging.WARN("Exception when creating get_train_objective_info: {}".format(str(e)))
-        return ""
+        except Exception as e:
+            logging.WARN("Exception when creating get_train_objective_info: {}".format(str(e)))
+            return ""

@@ -302,17 +302,6 @@ def import_from_string(dotted_path):
         raise ImportError(msg)
 
 
-def list_tags(name, tags):
-    if tags is None:
-        return ""
-    if isinstance(tags, str):
-        tags = [tags]
-    if len(tags) == 0:
-        return ""
-    name_tags = [f"- {tag}" for tag in tags]
-    return f"{name}:\n" + "\n".join(name_tags) + "\n"
-
-
 def community_detection(embeddings, threshold=0.75, min_community_size=10, init_max_size=1000):
     """
     Function for Fast Community Detection

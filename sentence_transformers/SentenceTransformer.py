@@ -23,10 +23,9 @@ from distutils.dir_util import copy_tree
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, list_tags, fullname
+from .util import import_from_string, batch_to_device, fullname
 from .models import Transformer, Pooling, Dense
-from .model_card_templates import __INTRO_SECTION__, __MORE_INFO_SECTION__, __SENTENCE_TRANSFORMERS_EXAMPLE__, __TRANSFORMERS_EXAMPLE__, __TRAINING_SECTION__, __FULL_MODEL_ARCHITECTURE__, __EVALUATION_SECTION__
-from .model_card_templates import model_card_get_pooling_function, get_train_objective_info
+from .model_card_templates import ModelCardTemplate
 from . import __version__
 
 logger = logging.getLogger(__name__)
@@ -40,7 +39,7 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     """
     def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
-        self._model_card_info = {}
+        self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
 
@@ -432,54 +431,33 @@ class SentenceTransformer(nn.Sequential):
         if self._model_card_text is not None and len(self._model_card_text) > 0:
             model_card = self._model_card_text
         else:
-            # Add necesary tags.
-            tags = ["sentence-transformers", "feature-extraction", "sentence-similarity"]
+            tags = ModelCardTemplate.__TAGS__
+            model_card = ModelCardTemplate.__MODEL_CARD__
 
-            model_card = __INTRO_SECTION__
-
-            hf_transformers_compatible = False
-            pooling_mode = None
-
-            if len(self._modules) == 2 and isinstance(self._first_module(), Transformer) and isinstance(self._last_module(), Pooling):
-                hf_transformers_compatible = True
+            if len(self._modules) == 2 and isinstance(self._first_module(), Transformer) and isinstance(self._last_module(), Pooling) and self._last_module().get_pooling_mode_str() in ['cls', 'max', 'mean']:
                 pooling_module = self._last_module()
-                if pooling_module.get_pooling_mode_str() not in ['cls', 'max', 'mean']:
-                    hf_transformers_compatible = False
                 pooling_mode = pooling_module.get_pooling_mode_str()
-
-
-            # Usage with sentence-transformers
-            model_card += __SENTENCE_TRANSFORMERS_EXAMPLE__
-
-            # Usage with Transformers (transformer + pooling)
-            if hf_transformers_compatible:
-                transformer_example = __TRANSFORMERS_EXAMPLE__
-                pooling_fct_name, pooling_fct = model_card_get_pooling_function(pooling_mode)
-                model_card += transformer_example.replace("{POOLING_FUNCTION}", pooling_fct).replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
+                model_card = model_card.replace("{USAGE_TRANSFORMERS_SECTION}", ModelCardTemplate.__USAGE_TRANSFORMERS__)
+                pooling_fct_name, pooling_fct = ModelCardTemplate.model_card_get_pooling_function(pooling_mode)
+                model_card = model_card.replace("{POOLING_FUNCTION}", pooling_fct).replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
                 tags.append('transformers')
 
-            # Eval section
-            model_card += __EVALUATION_SECTION__
-
-            # Add dynamic sections
-            for name, section in self._model_card_info.items():
-                model_card += section
-
             # Print full model
-            model_card += __FULL_MODEL_ARCHITECTURE__.format(full_model_str=str(self))
+            model_card = model_card.replace("{FULL_MODEL_STR}", str(self))
 
-            # Footer
-            model_card += __MORE_INFO_SECTION__
+            # Add tags
+            model_card = model_card.replace("{TAGS}", "\n".join(["- "+t for t in tags]))
 
+            # Replace vars we created while using the model
+            for name, value in self._model_card_vars.items():
+                model_card = model_card.replace(name, value)
 
-            ##Add tags at the top
-            # We can add license, datasets, metrics later on in the metadata as well.
-            metadata = "pipeline_tag: sentence-similarity"
-            metadata += "\n"+list_tags("tags", tags)
-            model_card = "---\n{}---\n{}".format(metadata, model_card)
+            # Replace remaining vars with default values
+            for name, value in ModelCardTemplate.__DEFAULT_VARS__.items():
+                model_card = model_card.replace(name, value)
 
         if model_name is not None:
-            model_card = model_card.replace("{model_name}", model_name.strip())
+            model_card = model_card.replace("{MODEL_NAME}", model_name.strip())
 
         with open(os.path.join(path, "README.md"), "w", encoding='utf8') as fOut:
             fOut.write(model_card)
@@ -661,12 +639,12 @@ class SentenceTransformer(nn.Sequential):
         #info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
         info_loss_functions =  []
         for dataloader, loss in train_objectives:
-            info_loss_functions.extend(get_train_objective_info(dataloader, loss))
+            info_loss_functions.extend(ModelCardTemplate.get_train_objective_info(dataloader, loss))
         info_loss_functions = "\n\n".join([text for text in info_loss_functions])
 
         info_fit_parameters = json.dumps({"evaluator": fullname(evaluator), "epochs": epochs, "steps_per_epoch": steps_per_epoch, "scheduler": scheduler, "warmup_steps": warmup_steps, "optimizer_class": str(optimizer_class),  "optimizer_params": optimizer_params, "weight_decay": weight_decay, "evaluation_steps": evaluation_steps, "max_grad_norm": max_grad_norm, "callback": callback }, indent=4, sort_keys=True)
         self._model_card_text = None
-        self._model_card_info['fit'] = __TRAINING_SECTION__.format(loss_functions=info_loss_functions, fit_parameters=info_fit_parameters)
+        self._model_card_vars['{TRAINING_SECTION}'] = ModelCardTemplate.__TRAINING_SECTION__.replace("{LOSS_FUNCTIONS}", info_loss_functions).replace("{FIT_PARAMETERS}", info_fit_parameters)
 
 
         if use_amp:
