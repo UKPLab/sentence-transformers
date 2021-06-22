@@ -448,13 +448,16 @@ class SentenceTransformer(nn.Sequential):
             # Add tags
             model_card = model_card.replace("{TAGS}", "\n".join(["- "+t for t in tags]))
 
+            # Add dim info
+            self._model_card_vars["{NUM_DIMENSIONS}"] = self.get_sentence_embedding_dimension()
+
             # Replace vars we created while using the model
             for name, value in self._model_card_vars.items():
-                model_card = model_card.replace(name, value)
+                model_card = model_card.replace(name, str(value))
 
             # Replace remaining vars with default values
             for name, value in ModelCardTemplate.__DEFAULT_VARS__.items():
-                model_card = model_card.replace(name, value)
+                model_card = model_card.replace(name, str(value))
 
         if model_name is not None:
             model_card = model_card.replace("{MODEL_NAME}", model_name.strip())

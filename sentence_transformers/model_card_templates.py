@@ -22,6 +22,8 @@ tags:
 
 # {MODEL_NAME}
 
+This is a [sentence-transformers](https://www.SBERT.net) model: It can be used to map sentences & paragraphs to a {NUM_DIMENSIONS} dimensional dense vector space and be used for tasks like clustering or semantic search.
+
 {MODEL_DESCRIPTION}
 
 ## Usage (Sentence-Transformers)
