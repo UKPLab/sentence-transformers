@@ -106,12 +106,6 @@ class SentenceTransformer(nn.Sequential):
             if model_path is not None:
                 logger.info("Load SentenceTransformer from folder: {}".format(model_path))
 
-                if os.path.exists(os.path.join(model_path, 'config.json')):
-                    with open(os.path.join(model_path, 'config.json')) as fIn:
-                        config = json.load(fIn)
-                        if config['__version__'] > __version__:
-                            logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(config['__version__'], __version__))
-
                 with open(os.path.join(model_path, 'modules.json')) as fIn:
                     contained_modules = json.load(fIn)
 
