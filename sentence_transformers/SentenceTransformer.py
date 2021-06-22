@@ -42,6 +42,7 @@ class SentenceTransformer(nn.Sequential):
     def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
         self._model_card_info = {}
         self._model_card_text = None
+        self._model_config = {}
 
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
@@ -119,13 +120,12 @@ class SentenceTransformer(nn.Sequential):
                 config_sentence_transformers_json_path = os.path.join(model_path, 'config_sentence_transformers.json')
                 if os.path.exists(config_sentence_transformers_json_path):
                     with open(config_sentence_transformers_json_path) as fIn:
-                        config_sentence_transformers = json.load(fIn)
+                        self._model_config = json.load(fIn)
 
-                    if '__version__' in config_sentence_transformers and 'sentence_transformers' in config_sentence_transformers['__version__'] and config_sentence_transformers['__version__'][
-                        'sentence_transformers'] > __version__:
+                    if '__version__' in self._model_config and 'sentence_transformers' in self._model_config['__version__'] and self._model_config['__version__']['sentence_transformers'] > __version__:
                         logger.warning(
                             "You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(
-                                config_sentence_transformers['__version__']['sentence_transformers'], __version__))
+                                self._model_config['__version__']['sentence_transformers'], __version__))
 
                 # Check if a readme exists
                 model_card_path = os.path.join(model_path, 'README.md')
@@ -393,16 +393,19 @@ class SentenceTransformer(nn.Sequential):
 
         logger.info("Save model to {}".format(path))
         modules_config = []
-        config_sentence_transformers = {
-            '__version__': {
-                'sentence_transformers': __version__,  # Version of library
-                'transformers': transformers.__version__,  # Transformers version
-                'pytorch': torch.__version__,
-            },
-            'similarity': None,             #TODO: Recommended (list) of similarity function
-            #TODO: Future tags to add: https://github.com/huggingface/huggingface_hub/pull/69#issuecomment-857747841
-        }
 
+        #Save some model info
+        if '__version__' not in self._model_config:
+            self._model_config['__version__'] = {
+                    'sentence_transformers': __version__,
+                    'transformers': transformers.__version__,
+                    'pytorch': torch.__version__,
+                }
+
+        with open(os.path.join(path, 'config_sentence_transformers.json'), 'w') as fOut:
+            json.dump(self._model_config, fOut, indent=2)
+
+        #Save modules
         for idx, name in enumerate(self._modules):
             module = self._modules[name]
             if idx == 0 and isinstance(module, Transformer):    #Save transformer model in the main folder
@@ -417,16 +420,15 @@ class SentenceTransformer(nn.Sequential):
         with open(os.path.join(path, 'modules.json'), 'w') as fOut:
             json.dump(modules_config, fOut, indent=2)
 
-        with open(os.path.join(path, 'config_sentence_transformers.json'), 'w') as fOut:
-            json.dump(config_sentence_transformers, fOut, indent=2)
-
+        # Create model card
         self._create_model_card(path)
 
     def _create_model_card(self, path):
-
+        """
+        Create an automatic model and stores it in path
+        """
         if self._model_card_text is not None and len(self._model_card_text) > 0:
             model_card = self._model_card_text
-
         else:
             # Add necesary tags.
             tags = ["sentence-transformers", "feature-extraction", "sentence-similarity"]
