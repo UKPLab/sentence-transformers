@@ -90,7 +90,7 @@ class Transformer(nn.Module):
             to_tokenize = [batch1, batch2]
 
         #strip
-        to_tokenize = [[s.strip() for s in col] for col in to_tokenize]
+        to_tokenize = [[str(s).strip() for s in col] for col in to_tokenize]
 
         #Lowercase
         if self.do_lower_case:
