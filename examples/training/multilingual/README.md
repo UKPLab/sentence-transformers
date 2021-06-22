@@ -188,7 +188,7 @@ dev_trans_acc = evaluation.TranslationEvaluator(src_sentences, trg_sentences, na
 You can also measure the semantic textual similarity (STS) between sentence pairs in different languages:
 
 ```python
-sts_evaluator = evaluation.EmbeddingSimilarityEvaluatorFromList(sentences1, senteces2, scores)
+sts_evaluator = evaluation.EmbeddingSimilarityEvaluatorFromList(sentences1, sentences2, scores)
 ```
 
 Where `sentences1` and `sentences2` are lists of sentences and score is numeric value indicating the sematic similarity between `sentences1[i]` and `sentences2[i]`.
