@@ -433,7 +433,7 @@ class SentenceTransformer(nn.Sequential):
         if self._model_card_text is not None and len(self._model_card_text) > 0:
             model_card = self._model_card_text
         else:
-            tags = ModelCardTemplate.__TAGS__
+            tags = ModelCardTemplate.__TAGS__.copy()
             model_card = ModelCardTemplate.__MODEL_CARD__
 
             if len(self._modules) == 2 and isinstance(self._first_module(), Transformer) and isinstance(self._last_module(), Pooling) and self._last_module().get_pooling_mode_str() in ['cls', 'max', 'mean']:
@@ -521,6 +521,20 @@ class SentenceTransformer(nn.Sequential):
             else:  # Else, save model directly into local repo.
                 create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, 'README.md'))
                 self.save(tmp_dir, model_name=full_model_name, create_model_card=create_model_card)
+
+            #Find files larger 5M and track with git-lfs
+            large_files = []
+            for root, dirs, files in os.walk(tmp_dir):
+                for filename in files:
+                    file_path = os.path.join(root, filename)
+                    rel_path = os.path.relpath(file_path, tmp_dir)
+
+                    if os.path.getsize(file_path) > (5 * 1024 * 1024):
+                        large_files.append(rel_path)
+
+            if len(large_files) > 0:
+                logging.info("Track files with git lfs: {}".format(", ".join(large_files)))
+                repo.lfs_track(large_files)
 
             logging.info("Push model to the hub. This might take a while")
             push_return = repo.push_to_hub(commit_message=commit_message)
