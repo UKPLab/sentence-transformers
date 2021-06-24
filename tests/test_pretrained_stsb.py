@@ -66,12 +66,16 @@ class PretrainedSTSbTest(unittest.TestCase):
     def test_multiling(self):
         self.pretrained_model_score('distiluse-base-multilingual-cased', 80.75)
         self.pretrained_model_score('paraphrase-xlm-r-multilingual-v1', 83.50)
+        self.pretrained_model_score('paraphrase-multilingual-MiniLM-L12-v2', 84.42)
+
+    def test_mpnet(self):
+        self.pretrained_model_score('paraphrase-mpnet-base-v2', 86.99)
 
     def test_other_models(self):
         self.pretrained_model_score('average_word_embeddings_komninos', 61.56)
 
     def test_msmarco(self):
-        self.pretrained_model_score('msmarco-roberta-base-ance-fristp', 77.0)
+        self.pretrained_model_score('msmarco-roberta-base-ance-firstp', 77.0)
         self.pretrained_model_score('msmarco-distilbert-base-v3', 78.85)
 
 
