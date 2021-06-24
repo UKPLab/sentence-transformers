@@ -44,7 +44,7 @@ class CrossEncoderTest(unittest.TestCase):
         assert score > expected_score or abs(score-expected_score) < 0.1
 
     def test_pretrained_stsb(self):
-        model = CrossEncoder("sentence-transformers/ce-distilroberta-base-stsb")
+        model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
         self.evaluate_stsb_test(model, 87.92)
 
     def test_train_stsb(self):
@@ -53,7 +53,7 @@ class CrossEncoderTest(unittest.TestCase):
         model.fit(train_dataloader=train_dataloader,
                   epochs=1,
                   warmup_steps=int(len(train_dataloader)*0.1))
-        self.evaluate_stsb_test(model, 80)
+        self.evaluate_stsb_test(model, 75)
 
 
 
