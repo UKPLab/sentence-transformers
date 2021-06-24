@@ -383,7 +383,7 @@ def snapshot_download(
     library_name: Optional[str] = None,
     library_version: Optional[str] = None,
     user_agent: Union[Dict, str, None] = None,
-    ignore_files: List[str] = ['*.msgpack']
+    ignore_files: Optional[List[str]] = None
 ) -> str:
     """
     Method derived from huggingface_hub.

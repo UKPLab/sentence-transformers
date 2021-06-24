@@ -42,6 +42,7 @@ class SentenceTransformer(nn.Sequential):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
+        ignore_files_download = ['*.msgpack']
 
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
@@ -83,7 +84,8 @@ class SentenceTransformer(nn.Sequential):
                         model_path_tmp = snapshot_download(model_name_or_path,
                                                            cache_dir=cache_folder,
                                                            library_name='sentence-transformers',
-                                                           library_version=__version__)
+                                                           library_version=__version__,
+                                                           ignore_files=ignore_files_download)
 
                     except requests.exceptions.HTTPError as e:
                         # Repository does not exist or is not a sentence-transformers model
@@ -95,7 +97,11 @@ class SentenceTransformer(nn.Sequential):
                                 logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(sentence_transformer_repo_path, model_path))
 
                                 try:
-                                    model_path_tmp = snapshot_download(sentence_transformer_repo_path, cache_dir=cache_folder)
+                                    model_path_tmp = snapshot_download(sentence_transformer_repo_path,
+                                                                       cache_dir=cache_folder,
+                                                                       library_name='sentence-transformers',
+                                                                       library_version=__version__,
+                                                                       ignore_files=ignore_files_download)
                                     try_auto_model = False
                                 except requests.exceptions.HTTPError as e:
                                     pass
