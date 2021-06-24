@@ -37,124 +37,59 @@ class SentenceTransformer(nn.Sequential):
     :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path, it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model from Huggingface models repository with that name.
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
+    :param cache_folder: Path to store models
     """
-    def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None):
+    def __init__(self, model_name_or_path: Optional[str] = None, modules: Optional[Iterable[nn.Module]] = None, device: Optional[str] = None, cache_folder: Optional[str] = None):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
-        ignore_files_download = ['*.msgpack']
+
+        if cache_folder is None:
+            cache_folder = os.getenv('SENTENCE_TRANSFORMERS_HOME')
+            if cache_folder is None:
+                try:
+                    from torch.hub import _get_torch_home
+
+                    torch_cache_home = _get_torch_home()
+                except ImportError:
+                    torch_cache_home = os.path.expanduser(os.getenv('TORCH_HOME', os.path.join(os.getenv('XDG_CACHE_HOME', '~/.cache'), 'torch')))
+
+                cache_folder = os.path.join(torch_cache_home, 'sentence_transformers')
 
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
-            model_path = model_name_or_path
-            if not os.path.isdir(model_path) and not model_path.startswith('http://') and not model_path.startswith('https://'):
-                logger.info("Did not find folder {}".format(model_path))
 
-                if '\\' in model_path or model_path.count('/') > 1:
-                    raise AttributeError("Path {} not found".format(model_path))
+            #Old models that don't belong to any organization
+            basic_transformer_models = ['albert-base-v1', 'albert-base-v2', 'albert-large-v1', 'albert-large-v2', 'albert-xlarge-v1', 'albert-xlarge-v2', 'albert-xxlarge-v1', 'albert-xxlarge-v2', 'bert-base-cased-finetuned-mrpc', 'bert-base-cased', 'bert-base-chinese', 'bert-base-german-cased', 'bert-base-german-dbmdz-cased', 'bert-base-german-dbmdz-uncased', 'bert-base-multilingual-cased', 'bert-base-multilingual-uncased', 'bert-base-uncased', 'bert-large-cased-whole-word-masking-finetuned-squad', 'bert-large-cased-whole-word-masking', 'bert-large-cased', 'bert-large-uncased-whole-word-masking-finetuned-squad', 'bert-large-uncased-whole-word-masking', 'bert-large-uncased', 'camembert-base', 'ctrl', 'distilbert-base-cased-distilled-squad', 'distilbert-base-cased', 'distilbert-base-german-cased', 'distilbert-base-multilingual-cased', 'distilbert-base-uncased-distilled-squad', 'distilbert-base-uncased-finetuned-sst-2-english', 'distilbert-base-uncased', 'distilgpt2', 'distilroberta-base', 'gpt2-large', 'gpt2-medium', 'gpt2-xl', 'gpt2', 'openai-gpt', 'roberta-base-openai-detector', 'roberta-base', 'roberta-large-mnli', 'roberta-large-openai-detector', 'roberta-large', 't5-11b', 't5-3b', 't5-base', 't5-large', 't5-small', 'transfo-xl-wt103', 'xlm-clm-ende-1024', 'xlm-clm-enfr-1024', 'xlm-mlm-100-1280', 'xlm-mlm-17-1280', 'xlm-mlm-en-2048', 'xlm-mlm-ende-1024', 'xlm-mlm-enfr-1024', 'xlm-mlm-enro-1024', 'xlm-mlm-tlm-xnli15-1024', 'xlm-mlm-xnli15-1024', 'xlm-roberta-base', 'xlm-roberta-large-finetuned-conll02-dutch', 'xlm-roberta-large-finetuned-conll02-spanish', 'xlm-roberta-large-finetuned-conll03-english', 'xlm-roberta-large-finetuned-conll03-german', 'xlm-roberta-large', 'xlnet-base-cased', 'xlnet-large-cased']
 
-                cache_folder = os.getenv('SENTENCE_TRANSFORMERS_HOME')
-                if cache_folder is None:
-                    try:
-                        from torch.hub import _get_torch_home
-                        torch_cache_home = _get_torch_home()
-                    except ImportError:
-                        torch_cache_home = os.path.expanduser(os.getenv('TORCH_HOME', os.path.join(os.getenv('XDG_CACHE_HOME', '~/.cache'), 'torch')))
+            if os.path.exists(model_name_or_path):
+                #Load from path
+                model_path = model_name_or_path
+            else:
+                #Not a path, load from hub
+                if '\\' in model_name_or_path or model_name_or_path.count('/') > 1:
+                    raise ValueError("Path {} not found".format(model_name_or_path))
 
-                    cache_folder = os.path.join(torch_cache_home, 'sentence_transformers')
+                if '/' not in model_name_or_path and model_name_or_path.lower() not in basic_transformer_models:
+                    # A model from sentence-transformers
+                    model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
-                folder_name = "sbert.net_models_" + model_path.replace("/", "_")
-                model_path = os.path.join(cache_folder, folder_name)
-                model_path_tmp = None
-                if not os.path.exists(model_path) or not os.listdir(model_path):
-                    if os.path.exists(model_path):
-                        os.remove(model_path)
-                    try:
-                        #Step 1: Check if repository exists and is a sentence-transformers model (has a modules.json)
-                        logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(model_name_or_path, model_path))
+                model_path = os.path.join(cache_folder, model_name_or_path.replace("/", "_"))
 
-                        #Check if the model has a 'modules.json'
-                        cached_download(hf_hub_url(model_name_or_path, 'modules.json'),
-                                        cache_dir=cache_folder,
-                                        force_filename='modules.json',
-                                        library_name='sentence-transformers',
-                                        library_version=__version__)
+                if not os.path.exists(model_path):
+                    # Download from hub
+                    model_path_tmp = snapshot_download(model_name_or_path,
+                                                       cache_dir=cache_folder,
+                                                       library_name='sentence-transformers',
+                                                       library_version=__version__,
+                                                       ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'])
 
-                        #Model has a modules.json, now download everything
-                        model_path_tmp = snapshot_download(model_name_or_path,
-                                                           cache_dir=cache_folder,
-                                                           library_name='sentence-transformers',
-                                                           library_version=__version__,
-                                                           ignore_files=ignore_files_download)
+                    os.rename(model_path_tmp, model_path)
 
-                    except requests.exceptions.HTTPError as e:
-                        # Repository does not exist or is not a sentence-transformers model
-                        if e.response.status_code == 404:
-                            try_auto_model = True
-                            if '/' not in model_name_or_path:
-                                sentence_transformer_repo_path = __MODEL_HUB_ORGANIZATION__+ "/" +model_name_or_path
-                                logger.info("Model not found in path {}. Trying to load model from organization {}".format(model_name_or_path, __MODEL_HUB_ORGANIZATION__))
-                                logger.info("Downloading sentence transformer model from https://huggingface.co/{} and saving it at {}".format(sentence_transformer_repo_path, model_path))
-
-                                try:
-                                    model_path_tmp = snapshot_download(sentence_transformer_repo_path,
-                                                                       cache_dir=cache_folder,
-                                                                       library_name='sentence-transformers',
-                                                                       library_version=__version__,
-                                                                       ignore_files=ignore_files_download)
-                                    try_auto_model = False
-                                except requests.exceptions.HTTPError as e:
-                                    pass
-
-                            if try_auto_model:
-                                # No such sentence-transformer model with that name
-                                # Create an auto-model with mean pooling
-                                logging.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
-                                transformer_model = Transformer(model_name_or_path)
-                                pooling_model = Pooling(transformer_model.get_word_embedding_dimension())
-                                modules = [transformer_model, pooling_model]
-                        else:
-                            raise e
-                    except Exception as e:
-                        shutil.rmtree(model_path_tmp)
-                        raise e
-
-                    if model_path_tmp is not None:
-                        os.rename(model_path_tmp, model_path)
-            if modules is None:
-                logger.info("Load SentenceTransformer from folder: {}".format(model_path))
-
-                # Check if the config_sentence_transformers.json file exists (exists since v2 of the framework)
-                config_sentence_transformers_json_path = os.path.join(model_path, 'config_sentence_transformers.json')
-                if os.path.exists(config_sentence_transformers_json_path):
-                    with open(config_sentence_transformers_json_path) as fIn:
-                        self._model_config = json.load(fIn)
-
-                    if '__version__' in self._model_config and 'sentence_transformers' in self._model_config['__version__'] and self._model_config['__version__']['sentence_transformers'] > __version__:
-                        logger.warning(
-                            "You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(
-                                self._model_config['__version__']['sentence_transformers'], __version__))
-
-                # Check if a readme exists
-                model_card_path = os.path.join(model_path, 'README.md')
-                if os.path.exists(model_card_path):
-                    try:
-                        with open(model_card_path, encoding='utf8') as fIn:
-                            self._model_card_text = fIn.read()
-                    except:
-                        pass
-
-                # Load the modules of sentence transformer
-                modules_json_path = os.path.join(model_path, 'modules.json')
-                with open(modules_json_path) as fIn:
-                    modules_config = json.load(fIn)
-
-                modules = OrderedDict()
-                for module_config in modules_config:
-                    module_class = import_from_string(module_config['type'])
-                    module = module_class.load(os.path.join(model_path, module_config['path']))
-                    modules[module_config['name']] = module
-
+            if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
+                modules = self._load_sbert_model(model_path)
+            else:   #Load with AutoModel
+                modules = self._load_auto_model(model_path)
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -355,6 +290,7 @@ class SentenceTransformer(nn.Sequential):
                 results_queue.put([id, embeddings])
             except queue.Empty:
                 break
+
 
 
     def get_max_seq_length(self):
@@ -842,6 +778,53 @@ class SentenceTransformer(nn.Sequential):
             if len(old_checkpoints) > checkpoint_save_total_limit:
                 old_checkpoints = sorted(old_checkpoints, key=lambda x: x['step'])
                 shutil.rmtree(old_checkpoints[0]['path'])
+
+
+    def _load_auto_model(self, model_name_or_path):
+        """
+        Creates a simple Transformer + Mean Pooling model and returns the modules
+        """
+        logging.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
+        transformer_model = Transformer(model_name_or_path)
+        pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
+        return [transformer_model, pooling_model]
+
+    def _load_sbert_model(self, model_path):
+        """
+        Loads a full sentence-transformers model
+        """
+        # Check if the config_sentence_transformers.json file exists (exists since v2 of the framework)
+        config_sentence_transformers_json_path = os.path.join(model_path, 'config_sentence_transformers.json')
+        if os.path.exists(config_sentence_transformers_json_path):
+            with open(config_sentence_transformers_json_path) as fIn:
+                self._model_config = json.load(fIn)
+
+            if '__version__' in self._model_config and 'sentence_transformers' in self._model_config['__version__'] and self._model_config['__version__']['sentence_transformers'] > __version__:
+                logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(self._model_config['__version__']['sentence_transformers'], __version__))
+
+        # Check if a readme exists
+        model_card_path = os.path.join(model_path, 'README.md')
+        if os.path.exists(model_card_path):
+            try:
+                with open(model_card_path, encoding='utf8') as fIn:
+                    self._model_card_text = fIn.read()
+            except:
+                pass
+
+        # Load the modules of sentence transformer
+        modules_json_path = os.path.join(model_path, 'modules.json')
+        with open(modules_json_path) as fIn:
+            modules_config = json.load(fIn)
+
+        modules = OrderedDict()
+        for module_config in modules_config:
+            module_class = import_from_string(module_config['type'])
+            module = module_class.load(os.path.join(model_path, module_config['path']))
+            modules[module_config['name']] = module
+
+        return modules
+
+
 
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
