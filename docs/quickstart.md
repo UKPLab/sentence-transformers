@@ -2,7 +2,7 @@
 Once you have SentenceTransformers [installed](installation.md), the usage is simple:
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('paraphrase-distilroberta-base-v1')
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
 #Our sentences we like to encode
 sentences = ['This framework generates embeddings for each input sentence',
@@ -20,9 +20,9 @@ for sentence, embedding in zip(sentences, sentence_embeddings):
 ```
 
 
-With `SentenceTransformer('paraphrase-distilroberta-base-v1')` we define which sentence transformer model we like to load. In this example, we load *paraphrase-distilroberta-base-v1*, which is a DistilBERT-base-uncased model fine tuned on a large dataset of paraphrase sentences.
+With `SentenceTransformer('paraphrase-MiniLM-L6-v2')` we define which sentence transformer model we like to load. In this example, we load *paraphrase-MiniLM-L6-v2*, which is a MiniLM model fine tuned on a large dataset of paraphrase sentences.
 
-BERT (and other transformer networks) output for each token in our input text an embedding. In order to create a fixed-sized sentence embedding out of this, the model applies mean pooling, i.e., the output embeddings for all tokens are averaged to yield a 768-dimensional vector.
+BERT (and other transformer networks) output for each token in our input text an embedding. In order to create a fixed-sized sentence embedding out of this, the model applies mean pooling, i.e., the output embeddings for all tokens are averaged to yield a fixed-sized vector.
 
 ## Comparing Sentence Similarities
 
@@ -30,20 +30,20 @@ The sentences (texts) are mapped such that sentences with similar meanings are c
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('paraphrase-distilroberta-base-v1')
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
 #Sentences are encoded by calling model.encode()
 emb1 = model.encode("This is a red cat with a hat.")
 emb2 = model.encode("Have you seen my red cat?")
 
-cos_sim = util.pytorch_cos_sim(emb1, emb2)
+cos_sim = util.cos_sim(emb1, emb2)
 print("Cosine-Similarity:", cos_sim)
 ```
 
 If you have a list with more sentences, you can use the following code example:
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('paraphrase-distilroberta-base-v1')
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
 sentences = ['A man is eating food.',
           'A man is eating a piece of bread.',
@@ -60,7 +60,7 @@ sentences = ['A man is eating food.',
 embeddings = model.encode(sentences)
 
 #Compute cosine similarity between all pairs
-cos_sim = util.pytorch_cos_sim(embeddings, embeddings)
+cos_sim = util.cos_sim(embeddings, embeddings)
 
 #Add all pairs to a list with their cosine similarity score
 all_sentence_combinations = []

@@ -18,16 +18,12 @@ A **critical distinction** for your setup is *symmetric* vs. *asymmetric semanti
 
 It is critical **that you choose the right model** for your type of task.
 
-Suitable models for **symmetric semantic search**:
-- paraphrase-distilroberta-base-v1 / paraphrase-xlm-r-multilingual-v1
-- quora-distilbert-base / quora-distilbert-multilingual 
-- distiluse-base-multilingual-cased-v2     
+Suitable models for **symmetric semantic search**: [Pre-Trained Sentence Embedding Models](https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models)
 
 
-Suitable models for **asymmetric semantic search**:
-- msmarco-distilbert-base-v2
+Suitable models for **asymmetric semantic search**: [Pre-Trained MS MARCO Models](https://www.sbert.net/docs/pretrained-models/msmarco-v3.html)
 
-See [Pretrained Models](../../../docs/pretrained_models.md) for further information.
+
 
 ## Python
 

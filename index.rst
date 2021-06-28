@@ -51,73 +51,9 @@ The usage is as simple as:
 Performance
 =========================
 
-Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed.
+Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed. Have a look at [Pre-Trained Models](https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models) for an overview of available models and the respective performance on different tasks.
 
 
-.. raw:: html
-
-    <table class="docutils">
-    <thead>
-    <tr>
-    <th>Model</th>
-    <th align="center">STS benchmark</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-    <td>Avg. GloVe embeddings</td>
-    <td align="center">58.02</td>
-    </tr>
-    <tr>
-    <td>BERT-as-a-service avg. embeddings</td>
-    <td align="center">46.35</td>
-    </tr>
-    <tr>
-    <td>BERT-as-a-service CLS-vector</td>
-    <td align="center">16.50</td>
-    </tr>
-    <tr>
-    <td>InferSent - GloVe</td>
-    <td align="center">68.03</td>
-    </tr>
-    <tr>
-    <td>Universal Sentence Encoder</td>
-    <td align="center">74.92</td>
-    </tr>
-    <tr>
-    <td><strong>Sentence Transformer Models (NLI + MNLI)</strong></td>
-    <td align="center"></td>
-    </tr>
-    <tr>
-    <td>nli-distilroberta-base-v2</td>
-    <td align="center">84.38</td>
-    </tr>
-    <tr>
-    <td>nli-roberta-base-v2</td>
-    <td align="center">85.54</td>
-    </tr>
-    <tr>
-    <td>nli-mpnet-base-v2</td>
-    <td align="center">86.53</td>
-    </tr>
-    <tr>
-    <td><strong>Sentence Transformer Models (NLI + STS benchmark)</strong></td>
-    <td align="center"></td>
-    </tr>
-    <tr>
-    <td>stsb-distilroberta-base-v2</td>
-    <td align="center">86.41</td>
-    </tr>
-    <tr>
-    <td>stsb-roberta-base-v2</td>
-    <td align="center">87.21</td>
-    </tr>
-    <tr>
-    <td>stsb-mpnet-base-v2</td>
-    <td align="center">88.57</td>
-    </tr>
-    </tbody>
-    </table>
 
 
 
@@ -125,7 +61,7 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
 Contact
 =========================
 
-Contact person: Nils Reimers, reimers@ukp.informatik.tu-darmstadt.de
+Contact person: Nils Reimers, info@nils-reimers.de
 
 https://www.ukp.tu-darmstadt.de/
 
@@ -140,7 +76,7 @@ Citing & Authors
 
 If you find this repository helpful, feel free to cite our publication `Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks <https://arxiv.org/abs/1908.10084>`_:
 
- .. code-block:: javascript
+ .. code-block:: bibtex
 
   @inproceedings{reimers-2019-sentence-bert,
     title = "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
@@ -156,7 +92,7 @@ If you find this repository helpful, feel free to cite our publication `Sentence
 
 If you use one of the multilingual models, feel free to cite our publication `Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation <https://arxiv.org/abs/2004.09813>`_:
 
- .. code-block:: javascript
+ .. code-block:: bibtex
 
   @inproceedings{reimers-2020-multilingual-sentence-bert,
     title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
@@ -172,15 +108,18 @@ If you use one of the multilingual models, feel free to cite our publication `Ma
 
 If you use the code for `data augmentation <https://github.com/UKPLab/sentence-transformers/tree/master/examples/training/data_augmentation>`_, feel free to cite our publication `Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks <https://arxiv.org/abs/2010.08240>`_:
 
- .. code-block:: javascript
+ .. code-block:: bibtex
 
-  @article{thakur-2020-AugSBERT,
-    title = "Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
-    author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes and  Gurevych, Iryna",
-    journal= "arXiv preprint arXiv:2010.08240",
-    month = "10",
-    year = "2020",
-    url = "https://arxiv.org/abs/2010.08240",
+  @inproceedings{thakur-2020-AugSBERT,
+    title = "Augmented {SBERT}: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
+    author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes  and Gurevych, Iryna",
+    booktitle = "Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies",
+    month = jun,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/2021.naacl-main.28",
+    pages = "296--310",
   }
 
 
@@ -201,11 +140,11 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
 
    examples/applications/computing-embeddings/README
    docs/usage/semantic_textual_similarity
+   examples/applications/semantic-search/README
+   examples/applications/retrieve_rerank/README
    examples/applications/clustering/README
    examples/applications/paraphrase-mining/README
    examples/applications/parallel-sentence-mining/README
-   examples/applications/semantic-search/README
-   examples/applications/retrieve_rerank/README
    examples/applications/cross-encoder/README
    examples/applications/image-search/README
 

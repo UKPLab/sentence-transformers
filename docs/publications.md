@@ -32,10 +32,7 @@ If you use the code for [data augmentation](https://github.com/UKPLab/sentence-t
 ```bibtex 
 @inproceedings{thakur-2020-AugSBERT,
     title = "Augmented {SBERT}: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
-    author = "Thakur, Nandan  and
-      Reimers, Nils  and
-      Daxenberger, Johannes  and
-      Gurevych, Iryna",
+    author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes  and Gurevych, Iryna",
     booktitle = "Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies",
     month = jun,
     year = "2021",
@@ -71,10 +68,10 @@ When you use the unsupervised learning example, please have a look at: [TSDAE: U
 ```
 
 When you use the GenQ learning example, please have a look at: [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663):
-```bibtex 
+```bibtex  
 @article{thakur-2021-BEIR,
     title = "BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models",
-    author = "Thakur, Nandan and Reimers, Nils and R\"uckl\'{e}, Andreas and Srivastava, Abhishek and Gurevych, Iryna", 
+    author = {Thakur, Nandan and Reimers, Nils and R{\"{u}}ckl{\'{e}}, Andreas and Srivastava, Abhishek and Gurevych, Iryna}, 
     journal= "arXiv preprint arXiv:2104.08663",
     month = "4",
     year = "2021",
