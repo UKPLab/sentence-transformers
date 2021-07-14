@@ -66,7 +66,7 @@ class MultiDatasetDataLoader:
 
                     texts_in_batch.add(text_norm)
 
-                # If the example has a label, check if label is in batch
+                # If the example has a guid, check if guid is in batch
                 if example.guid is not None:
                     valid_example = valid_example and example.guid not in guid_in_batch
                     guid_in_batch.add(example.guid)
