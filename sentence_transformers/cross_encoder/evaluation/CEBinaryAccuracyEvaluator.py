@@ -46,7 +46,7 @@ class CEBinaryAccuracyEvaluator:
         else:
             out_txt = ":"
 
-        logger.info("CESoftmaxAccuracyEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
+        logger.info("CEBinaryAccuracyEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
         pred_scores = model.predict(self.sentence_pairs, convert_to_numpy=True, show_progress_bar=False)
         pred_labels = pred_scores > self.threshold
 
