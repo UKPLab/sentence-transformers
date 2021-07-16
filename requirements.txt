@@ -8,3 +8,5 @@ scipy
 nltk
 sentencepiece
 huggingface-hub
+sentence-transformers
+gradio
