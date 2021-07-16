@@ -4,8 +4,6 @@ import glob
 import torch
 import pickle
 import zipfile
-from IPython.display import display
-from IPython.display import Image as IPImage
 import os
 from tqdm.autonotebook import tqdm
 import gradio as gr
@@ -70,12 +68,7 @@ def search(query):
     # It then returns the top_k highest ranked images, which we output
     hits = util.semantic_search(query_emb, img_emb, top_k=1)[0]
     
-    print("Query:")
-    display(query)
     for hit in hits:
-        # print(img_names[hit['corpus_id']])
-        display(IPImage(os.path.join(img_folder, img_names[hit['corpus_id']]), width=200))
-        # print(os.path.join(img_folder, img_names[hit['corpus_id']]))
         return os.path.join(img_folder, img_names[hit['corpus_id']])
 
 title = "Multilingual Joint Image & Text Embeddings"
@@ -88,5 +81,14 @@ gr.Interface(
     gr.outputs.Image(type="file", label="Output"),
     title=title,
     description=description,
-    article=article
+    article=article,
+    examples=[
+        ['Two dogs playing in the snow'],
+        ['Eine Katze auf einem Stuhl'],
+        ['Muchos peces'],
+        ['棕榈树的沙滩'],
+        ['Закат на пляже'],
+        ['Parkta bir köpek'],
+        ['夜のニューヨーク']
+    ]
     ).launch()
