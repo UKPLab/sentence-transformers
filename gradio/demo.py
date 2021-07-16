@@ -71,8 +71,8 @@ def search(query):
     for hit in hits:
         return os.path.join(img_folder, img_names[hit['corpus_id']])
 
-title = "Multilingual Joint Image & Text Embeddings"
-description = "demo for Multilingual Joint Image & Text Embeddings using Sentence Transformers. To use it, simply add your text, or click one of the examples to load them. Read more at the links below."
+title = "Image Search"
+description = "demo for multilingual text2image search for 50+ languages. To use it, simply add your text, or click one of the examples to load them. Read more at the links below."
 article = "<p style='text-align: center'><a href='https://www.sbert.net/'>SentenceTransformers Documentation</a> | <a href='https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications/image-search'>Github Repo</a></p>"
 
 gr.Interface(
