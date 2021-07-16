@@ -7,6 +7,8 @@ We provide an increasing number of **[state-of-the-art pretrained models](https:
 
 Further, this framework allows an easy  **[fine-tuning of custom embeddings models](https://www.sbert.net/docs/training/overview.html)**, to achieve maximal performance on your specific task.
 
+***New***
+[Gradio Web Demo for Image Search](https://gradio.app/g/AK391/sentence-transformers)
 
 For the **full documentation**, see **[www.SBERT.net](https://www.sbert.net)**.
 
