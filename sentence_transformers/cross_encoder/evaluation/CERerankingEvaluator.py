@@ -50,8 +50,8 @@ class CERerankingEvaluator:
         num_positives = []
         num_negatives = []
         for instances in grouper(self.samples, n=self.batch_size):
+            queries = []
             docs = []
-            is_relevant = []
 
             for instance in instances:
                 if instance is None:
@@ -61,7 +61,7 @@ class CERerankingEvaluator:
                 positive = list(instance['positive'])
                 negative = list(instance['negative'])
                 docs += positive + negative
-                is_relevant += [True]*len(positive) + [False]*len(negative)
+                queries += [query] * (len(positive) + len(negative))
 
                 if len(positive) == 0 or len(negative) == 0:
                     continue
@@ -70,17 +70,32 @@ class CERerankingEvaluator:
                 num_positives.append(len(positive))
                 num_negatives.append(len(negative))
 
-            model_input = [[query, doc] for doc in docs]
+            model_input = [[query, doc] for (query, doc) in zip(queries, docs)]
             pred_scores = model.predict(model_input, convert_to_numpy=True, show_progress_bar=False)
-            pred_scores_argsort = np.argsort(-pred_scores)  #Sort in decreasing order
 
-            mrr_score = 0
-            for rank, index in enumerate(pred_scores_argsort[0:self.mrr_at_k]):
-                if is_relevant[index]:
-                    mrr_score = 1 / (rank+1)
+            start_idx = 0
+            for instance in instances:
+                if instance is None:
                     break
 
-            all_mrr_scores.append(mrr_score)
+                positive = list(instance['positive'])
+                negative = list(instance['negative'])
+                instance_count = len(positive) + len(negative)
+                is_relevant = [True]*len(positive) + [False]*len(negative)
+                instance_scores = pred_scores[start_idx:(start_idx + instance_count)]
+                start_idx += instance_count
+                pred_scores_argsort = np.argsort(-instance_scores)  #Sort in decreasing order
+                mrr_score = 0
+
+                if len(positive) == 0 or len(negative) == 0:
+                    continue
+
+                for rank, index in enumerate(pred_scores_argsort[0:self.mrr_at_k]):
+                    if is_relevant[index]:
+                        mrr_score = 1 / (rank+1)
+                        break
+
+                all_mrr_scores.append(mrr_score)
 
         mean_mrr = np.mean(all_mrr_scores)
         logger.info("Queries: {} \t Positives: Min {:.1f}, Mean {:.1f}, Max {:.1f} \t Negatives: Min {:.1f}, Mean {:.1f}, Max {:.1f}".format(num_queries, np.min(num_positives), np.mean(num_positives), np.max(num_positives), np.min(num_negatives), np.mean(num_negatives), np.max(num_negatives)))
