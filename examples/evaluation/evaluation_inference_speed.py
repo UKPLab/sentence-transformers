@@ -48,7 +48,7 @@ print("Number of sentences:", len(sentences))
 for i in range(3):
     print("Run", i)
     start_time = time.time()
-    emb = model.encode(sentences, num_workers=2, batch_size=32)
+    emb = model.encode(sentences, batch_size=32)
     end_time = time.time()
     diff_time = end_time - start_time
     print("Done after {:.2f} seconds".format(diff_time))
