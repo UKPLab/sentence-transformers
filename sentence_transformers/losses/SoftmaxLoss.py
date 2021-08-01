@@ -37,13 +37,15 @@ class SoftmaxLoss(nn.Module):
                  num_labels: int,
                  concatenation_sent_rep: bool = True,
                  concatenation_sent_difference: bool = True,
-                 concatenation_sent_multiplication: bool = False):
+                 concatenation_sent_multiplication: bool = False,
+                 weight = None):
         super(SoftmaxLoss, self).__init__()
         self.model = model
         self.num_labels = num_labels
         self.concatenation_sent_rep = concatenation_sent_rep
         self.concatenation_sent_difference = concatenation_sent_difference
         self.concatenation_sent_multiplication = concatenation_sent_multiplication
+        self.weight = weight
 
         num_vectors_concatenated = 0
         if concatenation_sent_rep:
@@ -73,7 +75,7 @@ class SoftmaxLoss(nn.Module):
         features = torch.cat(vectors_concat, 1)
 
         output = self.classifier(features)
-        loss_fct = nn.CrossEntropyLoss()
+        loss_fct = nn.CrossEntropyLoss(weight = self.weight)
 
         if labels is not None:
             loss = loss_fct(output, labels.view(-1))
