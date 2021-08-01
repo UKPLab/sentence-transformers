@@ -39,7 +39,7 @@ class SoftmaxLoss(nn.Module):
                  concatenation_sent_rep: bool = True,
                  concatenation_sent_difference: bool = True,
                  concatenation_sent_multiplication: bool = False,
-                 weight = None):
+                 weight: Tensor = None):
         super(SoftmaxLoss, self).__init__()
         self.model = model
         self.num_labels = num_labels
