@@ -18,6 +18,7 @@ class SoftmaxLoss(nn.Module):
     :param concatenation_sent_rep: Concatenate vectors u,v for the softmax classifier?
     :param concatenation_sent_difference: Add abs(u-v) for the softmax classifier?
     :param concatenation_sent_multiplication: Add u*v for the softmax classifier?
+    :param weight: 1D tensor assigning weight to each of the classes
 
     Example::
 
