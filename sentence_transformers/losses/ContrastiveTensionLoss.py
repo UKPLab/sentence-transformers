@@ -1,7 +1,8 @@
 import torch
 from torch import nn, Tensor
 from typing import Iterable, Dict
-from sentence_transformers import SentenceTransformer, util
+from ..SentenceTransformer import SentenceTransformer
+from .. import util
 import copy
 import random
 import math
