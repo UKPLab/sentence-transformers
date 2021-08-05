@@ -62,6 +62,34 @@ def dot_score(a: Tensor, b: Tensor):
     return torch.mm(a, b.transpose(0, 1))
 
 
+def pairwise_dot_score(a: Tensor, b: Tensor):
+    """
+   Computes the pairwise dot-product dot_prod(a[i], b[i])
+   :return: Vector with res[i] = dot_prod(a[i], b[i])
+   """
+    if not isinstance(a, torch.Tensor):
+        a = torch.tensor(a)
+
+    if not isinstance(b, torch.Tensor):
+        b = torch.tensor(b)
+
+    return (a * b).sum(dim=-1)
+
+
+def pairwise_cos_sim(a: Tensor, b: Tensor):
+    """
+   Computes the pairwise cossim cos_sim(a[i], b[i])
+   :return: Vector with res[i] = cos_sim(a[i], b[i])
+   """
+    if not isinstance(a, torch.Tensor):
+        a = torch.tensor(a)
+
+    if not isinstance(b, torch.Tensor):
+        b = torch.tensor(b)
+
+    return pairwise_dot_score(normalize_embeddings(a), normalize_embeddings(b))
+
+
 def normalize_embeddings(embeddings: Tensor):
     """
     Normalizes the embeddings matrix, so that each sentence embedding has unit length

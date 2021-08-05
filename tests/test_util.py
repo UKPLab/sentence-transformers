@@ -66,6 +66,14 @@ class UtilTest(unittest.TestCase):
                 assert (a,b) in [(0,1), (2,3), (2,4), (3,4), (5,6), (5,7), (6,7)]
 
 
+    def test_pairwise_scores(self):
+        a = np.random.randn(50, 100)
+        b = np.random.randn(50, 100)
+
+        #Pairwise cos
+        sklearn_pairwise = 1-sklearn.metrics.pairwise.paired_cosine_distances(a, b)
+        pytorch_cos_scores = util.pairwise_cos_sim(a, b).numpy()
+        assert np.allclose(sklearn_pairwise, pytorch_cos_scores)
 
 if "__main__" == __name__:
     unittest.main()
