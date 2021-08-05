@@ -8,7 +8,7 @@ class MarginMSELoss(nn.Module):
     By default, sim() is the dot-product.
     For more details, please refer to https://arxiv.org/abs/2010.02666.
     """
-    def __init__(self, model, similarity_fct = util.dot_score):
+    def __init__(self, model, similarity_fct = util.pairwise_dot_score):
         super(MarginMSELoss, self).__init__()
         self.model = model
         self.similarity_fct = similarity_fct
