@@ -27,7 +27,6 @@ from .util import import_from_string, batch_to_device, fullname, snapshot_downlo
 from .models import Transformer, Pooling, Dense
 from .model_card_templates import ModelCardTemplate
 from . import __version__
-
 logger = logging.getLogger(__name__)
 
 class SentenceTransformer(nn.Sequential):
@@ -43,6 +42,9 @@ class SentenceTransformer(nn.Sequential):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
+        self._optimizers: List[torch.optim.Optimizer] = None
+        self._schedulers: List[torch.optim.lr_scheduler.LambdaLR] = None
+        self._loaded_from_path = None
 
         if cache_folder is None:
             cache_folder = os.getenv('SENTENCE_TRANSFORMERS_HOME')
@@ -65,6 +67,7 @@ class SentenceTransformer(nn.Sequential):
             if os.path.exists(model_name_or_path):
                 #Load from path
                 model_path = model_name_or_path
+                self._loaded_from_path = model_path
             else:
                 #Not a path, load from hub
                 if '\\' in model_name_or_path or model_name_or_path.count('/') > 1:
@@ -570,6 +573,7 @@ class SentenceTransformer(nn.Sequential):
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
+            save_optimizer_scheduler: bool = False,
             checkpoint_save_steps: int = 500,
             checkpoint_save_total_limit: int = 0
             ):
@@ -638,23 +642,26 @@ class SentenceTransformer(nn.Sequential):
         num_train_steps = int(steps_per_epoch * epochs)
 
         # Prepare optimizers
-        optimizers = []
-        schedulers = []
-        for loss_model in loss_models:
-            param_optimizer = list(loss_model.named_parameters())
+        if self._optimizers is None and self._schedulers is None:
+            self._optimizers = []
+            self._schedulers = []
+            for loss_model in loss_models:
+                param_optimizer = list(loss_model.named_parameters())
 
-            no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-            optimizer_grouped_parameters = [
-                {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': weight_decay},
-                {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-            ]
+                no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+                optimizer_grouped_parameters = [
+                    {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': weight_decay},
+                    {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+                ]
 
-            optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
-            scheduler_obj = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps)
+                optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
+                scheduler_obj = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps)
+                self._optimizers.append(optimizer)
+                self._schedulers.append(scheduler_obj)
 
-            optimizers.append(optimizer)
-            schedulers.append(scheduler_obj)
-
+        # Reinstate state of optimizer and scheduler
+        if self._loaded_from_path:
+            self._load_optimizer_scheduler(self._loaded_from_path)
 
         global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
@@ -672,8 +679,8 @@ class SentenceTransformer(nn.Sequential):
             for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
-                    optimizer = optimizers[train_idx]
-                    scheduler = schedulers[train_idx]
+                    optimizer = self._optimizers[train_idx]
+                    scheduler = self._schedulers[train_idx]
                     data_iterator = data_iterators[train_idx]
 
                     try:
@@ -722,6 +729,8 @@ class SentenceTransformer(nn.Sequential):
 
                 if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 and global_step % checkpoint_save_steps == 0:
                     self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
+                    if save_optimizer_scheduler:
+                        self._fit_save_checkpoint(checkpoint_path, global_step)
 
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
@@ -764,6 +773,31 @@ class SentenceTransformer(nn.Sequential):
                 if save_best_model:
                     self.save(output_path)
 
+    def _fit_save_checkpoint(self, checkpoint_path, step):
+        path = os.path.join(checkpoint_path, str(step))
+        if path is None:
+            return
+        os.makedirs(path, exist_ok=True)
+        logger.info("Save Fit Optimizer and Scheduler state to {}".format(path))
+        optimizer_scheduler_info = {}
+        for index, data in enumerate(zip(self._optimizers, self._schedulers)):
+            optimizer, lr_scheduler = data
+            optimizer_file = "optimizer_{}.pt".format(index)
+            scheduler_file = "scheduler_{}.pt".format(index)
+            torch.save(optimizer.state_dict(), os.path.join(path, optimizer_file))
+            torch.save(lr_scheduler.state_dict(), os.path.join(path, scheduler_file))
+            optimizer_type = type(optimizer)
+            lr_scheduler_type = type(lr_scheduler)
+            optimizer_scheduler_info[index] = {"optimizer_class": ".".join([optimizer_type.__module__,
+                                                                            optimizer_type.__name__]),
+                                               "scheduler_class": ".".join([lr_scheduler_type.__module__,
+                                                                            lr_scheduler_type.__name__]),
+                                               "optimizer_state_file": optimizer_file,
+                                               "scheduler_state_file": scheduler_file,}
+        with open(os.path.join(path, "optimizer_schedule.info"), 'w') as fp:
+            json.dump(optimizer_scheduler_info, fp)
+
+
     def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step):
         # Store new checkpoint
         self.save(os.path.join(checkpoint_path, str(step)))
@@ -778,6 +812,30 @@ class SentenceTransformer(nn.Sequential):
             if len(old_checkpoints) > checkpoint_save_total_limit:
                 old_checkpoints = sorted(old_checkpoints, key=lambda x: x['step'])
                 shutil.rmtree(old_checkpoints[0]['path'])
+
+    def _load_optimizer_scheduler(self, model_path):
+        """
+        Loads the optimizer and scheduler if it was save with the model
+        """
+        if os.path.exists(os.path.join(model_path, "optimizer_schedule.info")):
+            with open(os.path.join(model_path, "optimizer_schedule.info")) as json_file:
+                optimizer_schedule_dict = json.load(json_file)
+                for index, optimizer_schedule_config in optimizer_schedule_dict.items():
+                    int_index = int(index)
+                    optimizer_module = optimizer_schedule_config["optimizer_class"]
+                    scheduler_module = optimizer_schedule_config["scheduler_class"]
+                    optimizer_type = type(self._optimizers[int_index])
+                    scheduler_type = type(self._schedulers[int_index])
+                    if ".".join([optimizer_type.__module__,
+                                 optimizer_type.__name__]) == optimizer_module:
+                        saved_optimizer = optimizer_schedule_config["optimizer_state_file"]
+                        op_state_dict = torch.load(os.path.join(model_path, saved_optimizer))
+                        self._optimizers[int_index].load_state_dict(op_state_dict)
+                    if ".".join([scheduler_type.__module__,
+                                 scheduler_type.__name__]) == scheduler_module:
+                        saved_scheduler = optimizer_schedule_config["scheduler_state_file"]
+                        lr_state_dict = torch.load(os.path.join(model_path, saved_scheduler))
+                        self._schedulers[int_index].load_state_dict(lr_state_dict)
 
 
     def _load_auto_model(self, model_name_or_path):
