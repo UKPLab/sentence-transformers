@@ -138,7 +138,7 @@ class Transformer(nn.Module):
             json.dump(self.get_config_dict(), fOut, indent=2)
 
     @staticmethod
-    def load(input_path: str):
+    def load(input_path: str, model_args: Optional[Dict] = None, tokenizer_args: Optional[Dict] = None):
         #Old classes used other config names than 'sentence_bert_config.json'
         for config_name in ['sentence_bert_config.json', 'sentence_roberta_config.json', 'sentence_distilbert_config.json', 'sentence_camembert_config.json', 'sentence_albert_config.json', 'sentence_xlm-roberta_config.json', 'sentence_xlnet_config.json']:
             sbert_config_path = os.path.join(input_path, config_name)
@@ -147,6 +147,11 @@ class Transformer(nn.Module):
 
         with open(sbert_config_path) as fIn:
             config = json.load(fIn)
+        # Override stored model and tokenizer arguments if specified
+        if model_args:
+            config["model_args"] = {**config.get("model_args", {}), **model_args}
+        if tokenizer_args:
+            config["tokenizer_args"] = {**config.get("tokenizer_args", {}), **tokenizer_args}
         return Transformer(model_name_or_path=input_path, **config)
 
 
