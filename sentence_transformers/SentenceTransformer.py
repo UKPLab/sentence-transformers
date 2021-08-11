@@ -794,13 +794,19 @@ class SentenceTransformer(nn.Sequential):
         Loads a full sentence-transformers model
         """
         # Check if the config_sentence_transformers.json file exists (exists since v2 of the framework)
+        # Before v2, models were saved with the sentence_transformers version in config.json
         config_sentence_transformers_json_path = os.path.join(model_path, 'config_sentence_transformers.json')
+        config_json_path = os.path.join(model_path, 'config.json')
         if os.path.exists(config_sentence_transformers_json_path):
             with open(config_sentence_transformers_json_path) as fIn:
                 self._model_config = json.load(fIn)
+        elif os.path.exists(config_json_path):
+            with open(config_json_path) as fIn:
+                old_config = json.load(fIn)
+            self._model_config = {"__version__": {"sentence_transformers": old_config["__version__"]}}
 
-            if '__version__' in self._model_config and 'sentence_transformers' in self._model_config['__version__'] and self._model_config['__version__']['sentence_transformers'] > __version__:
-                logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(self._model_config['__version__']['sentence_transformers'], __version__))
+        if '__version__' in self._model_config and 'sentence_transformers' in self._model_config['__version__'] and self._model_config['__version__']['sentence_transformers'] > __version__:
+            logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(self._model_config['__version__']['sentence_transformers'], __version__))
 
         # Check if a readme exists
         model_card_path = os.path.join(model_path, 'README.md')
