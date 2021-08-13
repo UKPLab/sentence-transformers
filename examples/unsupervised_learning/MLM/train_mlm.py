@@ -27,7 +27,7 @@ num_train_epochs = 3            #Number of epochs
 use_fp16 = False                #Set to True, if your GPU supports FP16 operations
 max_length = 100                #Max length for a text input
 do_whole_word_mask = True       #If set to true, whole words are masked
-mlm_prob = 15                   #Probability that a word is replaced by a [MASK] token
+mlm_prob = 0.15                 #Probability that a word is replaced by a [MASK] token
 
 # Load the model
 model = AutoModelForMaskedLM.from_pretrained(model_name)
