@@ -105,7 +105,7 @@ encoded_input = tokenizer(sentences, padding=True, truncation=True, return_tenso
 with torch.no_grad():
     model_output = model(**encoded_input)
 
-# Perform pooling. In this case, max pooling.
+# Perform pooling. In this case, {POOLING_MODE} pooling.
 sentence_embeddings = {POOLING_FUNCTION_NAME}(model_output, encoded_input['attention_mask'])
 
 print("Sentence embeddings:")
