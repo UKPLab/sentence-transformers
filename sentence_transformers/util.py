@@ -426,7 +426,7 @@ def snapshot_download(
     model_info = _api.model_info(repo_id=repo_id, revision=revision)
 
     storage_folder = os.path.join(
-        cache_dir, repo_id.replace("/", REPO_ID_SEPARATOR) + "." + model_info.sha
+        cache_dir, repo_id.replace("/", "_")
     )
 
     for model_file in model_info.siblings:
@@ -444,7 +444,6 @@ def snapshot_download(
             repo_id, filename=model_file.rfilename, revision=model_info.sha
         )
         relative_filepath = os.path.join(*model_file.rfilename.split("/"))
-
         # Create potential nested dir
         nested_dirname = os.path.dirname(
             os.path.join(storage_folder, relative_filepath)
