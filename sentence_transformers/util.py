@@ -444,6 +444,7 @@ def snapshot_download(
             repo_id, filename=model_file.rfilename, revision=model_info.sha
         )
         relative_filepath = os.path.join(*model_file.rfilename.split("/"))
+
         # Create potential nested dir
         nested_dirname = os.path.dirname(
             os.path.join(storage_folder, relative_filepath)
