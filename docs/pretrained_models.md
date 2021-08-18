@@ -7,19 +7,19 @@ from sentence_transformers import SentenceTransformer
 model = SentenceTransformer('model_name')
 ```
 
-Alternatively, you can download and unzip them from [here](https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/).
+Alternatively, you can download and unzip them from [here](https://sbert.net/models). All models are also on the [HuggingFace model hub](https://huggingface.co/sentence-transformers).
 
-## Sentence Embedding Models
+## General Purpose Models
 
-The following models have been tuned to embed sentences and short paragraphs up to a length of 128 word pieces.
+The following models have been tuned to embed sentences and short paragraphs up to a length of 128 word pieces. The general purpose models are balanced across many tasks and domains.
 
-Use **paraphrase-mpnet-base-v2** for the best quality, and **paraphrase-MiniLM-L6-v2** if you want a quick model with high quality.
+Use **all-roberta-large-v1** and **all-mpnet-base-v1** for the best quality, and **all-MiniLM-L6-v1** if you want a quick model with high quality.
 
 
 <iframe src="../_static/html/models_en_sentence_embeddings.html" height="500" style="width:100%; border:none;" title="Iframe Example"></iframe>
 
 
-## Question-Answer Retrieval - MSMARCO
+## Semantic Search
 
 The following models were trained on [MSMARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking), a dataset with 500k real queries from Bing search. Given a search query, find the relevant passages. 
 
@@ -48,38 +48,7 @@ You can index the passages as shown [here](../examples/applications/semantic-sea
 
 [More details](pretrained-models/msmarco-v3.md)
 
-## Question-Answer Retrieval - Natural Questions
-The following models were trained on [Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions), a dataset with 100k real queries from Google search together with the relevant passages from Wikipedia.
 
-- **nq-distilbert-base-v1**: MRR10: 72.36 on NQ dev set (small)
-
-```python
-from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('nq-distilbert-base-v1')
-
-query_embedding = model.encode('How many people live in London?')
-
-#The passages are encoded as [ [title1, text1], [title2, text2], ...]
-passage_embedding = model.encode([['London', 'London has 9,787,426 inhabitants at the 2011 census.']])
-
-print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
-```
-
-You can index the passages as shown [here](../examples/applications/semantic-search/README.md).
-
-[More details](pretrained-models/nq-v1.md)
-
-**DPR-Models**
-
-In [Dense Passage Retrieval  for Open-Domain Question Answering](https://arxiv.org/abs/2004.04906)  Karpukhin et al. trained models based on [Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions):
-- **facebook-dpr-ctx_encoder-single-nq-base** 
-- **facebook-dpr-question_encoder-single-nq-base**
-
-They also trained models on the combination of Natural Questions, TriviaQA, WebQuestions, and CuratedTREC.
-- **facebook-dpr-ctx_encoder-multiset-base** 
-- **facebook-dpr-question_encoder-multiset-base**
-
-[More details & usage of the DPR models](pretrained-models/dpr.md)
 
 ## Multi-Lingual Models
 The following models generate aligned vector spaces, i.e., similar inputs in different languages are mapped close in vector space. You do not need to specify the input language.  Details are in our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
@@ -138,22 +107,63 @@ We used the following languages for [Multilingual Knowledge Distillation](https:
 Extending a model to new languages is easy by following [the description here](https://www.sbert.net/examples/training/multilingual/README.html).
 
 
-## Scientific Publications
+## Image & Text-Models
+The following models can embed images and text into a joint vector space. See [Image Search](../examples/applications/image-search/README.md)  for more details how to use for text2image-search, image2image-search, image clustering, and zero-shot image classification.
+- **clip-ViT-B-32** - [OpenAPI CLIP Model](https://github.com/openai/CLIP)
+- **clip-ViT-B-32-multilingual-v1** - Multilingual text encoder for the CLIP model using [Multilingual Knowledge Distillation](https://arxiv.org/abs/2004.09813).
+
+
+
+## Other Models
+
+### Scientific Publications
 [SPECTER](https://arxiv.org/abs/2004.07180) is a model trained on scientific citations and can be used to estimate the similarity of two publications. We can use it to find similar papers.
 
 - **allenai-specter** - [Semantic Search Python Example](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/semantic-search/semantic_search_publications.py) / [Semantic Search Colab Example](https://colab.research.google.com/drive/12hfBveGHRsxhPIUMmJYrll2lFU4fOX06)
 
 
-## Average Word Embeddings Models
+
+
+
+### Natural Questions (NQ) Dataset Models
+The following models were trained on [Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions), a dataset with 100k real queries from Google search together with the relevant passages from Wikipedia.
+
+- **nq-distilbert-base-v1**: MRR10: 72.36 on NQ dev set (small)
+
+```python
+from sentence_transformers import SentenceTransformer, util
+model = SentenceTransformer('nq-distilbert-base-v1')
+
+query_embedding = model.encode('How many people live in London?')
+
+#The passages are encoded as [ [title1, text1], [title2, text2], ...]
+passage_embedding = model.encode([['London', 'London has 9,787,426 inhabitants at the 2011 census.']])
+
+print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
+```
+
+You can index the passages as shown [here](../examples/applications/semantic-search/README.md).
+
+[More details](pretrained-models/nq-v1.md)
+
+
+
+**DPR-Models**
+
+In [Dense Passage Retrieval  for Open-Domain Question Answering](https://arxiv.org/abs/2004.04906)  Karpukhin et al. trained models based on [Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions):
+- **facebook-dpr-ctx_encoder-single-nq-base** 
+- **facebook-dpr-question_encoder-single-nq-base**
+
+They also trained models on the combination of Natural Questions, TriviaQA, WebQuestions, and CuratedTREC.
+- **facebook-dpr-ctx_encoder-multiset-base** 
+- **facebook-dpr-question_encoder-multiset-base**
+
+[More details & usage of the DPR models](pretrained-models/dpr.md)
+
+### Average Word Embeddings Models
 
 The following models apply compute the average word embedding for some well-known word embedding methods. Their computation speed is much higher than the transformer based models, but the quality of the embeddings are worse.
 - **average_word_embeddings_glove.6B.300d**
 - **average_word_embeddings_komninos**
 - **average_word_embeddings_levy_dependency**
 - **average_word_embeddings_glove.840B.300d**
-
-
-## Image & Text-Models
-The following models can embed images and text into a joint vector space. See [Image Search](../examples/applications/image-search/README.md)  for more details how to use for text2image-search, image2image-search, image clustering, and zero-shot image classification.
-- **clip-ViT-B-32** - [OpenAPI CLIP Model](https://github.com/openai/CLIP)
-- **clip-ViT-B-32-multilingual-v1** - Multilingual text encoder for the CLIP model using [Multilingual Knowledge Distillation](https://arxiv.org/abs/2004.09813).
