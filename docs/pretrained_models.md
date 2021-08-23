@@ -13,42 +13,71 @@ Alternatively, you can download and unzip them from [here](https://sbert.net/mod
 
 The following models have been tuned to embed sentences and short paragraphs up to a length of 128 word pieces. The general purpose models are balanced across many tasks and domains.
 
-Use **all-roberta-large-v1** and **all-mpnet-base-v1** for the best quality, and **all-MiniLM-L6-v1** if you want a quick model with high quality.
+Use **all-mpnet-base-v1** for the best quality, and **all-MiniLM-L6-v1** if you want a quick model with high quality.
 
 
 <iframe src="../_static/html/models_en_sentence_embeddings.html" height="500" style="width:100%; border:none;" title="Iframe Example"></iframe>
 
+---
 
 ## Semantic Search
 
-The following models were trained on [MSMARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking), a dataset with 500k real queries from Bing search. Given a search query, find the relevant passages. 
+The following models have been specifically trained for **Semantic Search**: Given a question / search query, these models are able to find relevant text passages. For more details, see [Usage - Semantic Search](../examples/applications/semantic-search/README.md).
+
+```python
+from sentence_transformers import SentenceTransformer, util
+model = SentenceTransformer('msmarco-distilbert-base-tas-b')
+
+query_embedding = model.encode('How big is London')
+passage_embedding = model.encode(['London has 9,787,426 inhabitants at the 2011 census',
+                                  'London is known for its finacial district'])
+
+print("Similarity:", util.dot_score(query_embedding, passage_embedding))
+```
+
+
+
+### Multi-QA Models
+
+The following models have been trained on [215M question-answer pairs](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-dot-v1#training) from various sources and domains, including StackExchange, Yahoo Answers, Google & Bing search queries and many more. These model perform well across many search tasks and domains.
+
+
+Models tuned to be used dot-product:
+
+| Model | Performance | Queries (GPU / CPU) per sec. | 
+| --- | :---: | :---: |
+| [multi-qa-MiniLM-L6-dot-v1](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-dot-v1) | TBA | 18,000 / 750 |
+| [multi-qa-distilbert-dot-v1](https://huggingface.co/sentence-transformers/multi-qa-distilbert-dot-v1) | TBA | 7,000 / 350 |
+| [multi-qa-mpnet-base-dot-v1](https://huggingface.co/sentence-transformers/multi-qa-mpnet-base-dot-v1) | TBA | 4,000 / 170 |
+
+
+
+Models that produce normalized vectors of length 1, which can be used with dot-product, cosine-similarity and Euclidean distance:
+
+| Model | Performance | Queries (GPU / CPU) per sec. | 
+| --- | :---: | :---: |
+| [multi-qa-MiniLM-L6-cos-v1](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-cos-v1) | TBA | 18,000 / 750 |
+| [multi-qa-distilbert-cos-v1](https://huggingface.co/sentence-transformers/multi-qa-distilbert-cos-v1) | TBA | 7,000 / 350 |
+| [multi-qa-mpnet-base-cos-v1](https://huggingface.co/sentence-transformers/multi-qa-mpnet-base-cos-v1) | TBA | 4,000 / 170 |
+
+### MSMARCO Passage Models
+
+The [MSMARCO Passage Ranking Dataset](https://github.com/microsoft/MSMARCO-Passage-Ranking) contains 500k real queries from Bing search together with the relevant passages from various web sources. Given the diversity of the MSMARCO dataset, models also perform well on other domains. 
 
 Models tuned to be used with **cosine-similarity**:
 - **msmarco-distilbert-base-v4**: MRR@10: 33.79 on MS MARCO  dev set
 
 Models tuned to be used with **dot-product**:
-- **msmarco-distilbert-base-dot-prod-v3**: MRR@10: 33.04 on MS MARCO dev set
 - **msmarco-distilbert-base-tas-b**: MRR@10: 34.43 on MS MARCO dev set
-- **msmarco-roberta-base-ance-firstp**: MRR@10: 33.03 on MS MARCO  dev set
+
 
 
 Models tuned for cosine-similarity will prefer the retrieval of short documents, while models tuned for dot-product will prefer the retrieval of longer documents. Depending on your task, the models of the one or the other type are preferable.
 
-```python
-from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('msmarco-distilbert-base-v3')
 
-query_embedding = model.encode('How big is London')
-passage_embedding = model.encode('London has 9,787,426 inhabitants at the 2011 census')
+[MSMARCO Models - More details](pretrained-models/msmarco-v3.md)
 
-print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
-```
-
-You can index the passages as shown [here](../examples/applications/semantic-search/README.md).
-
-[More details](pretrained-models/msmarco-v3.md)
-
-
+---
 
 ## Multi-Lingual Models
 The following models generate aligned vector spaces, i.e., similar inputs in different languages are mapped close in vector space. You do not need to specify the input language.  Details are in our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
@@ -60,11 +89,7 @@ Currently, there are models for two use-cases:
 These models find semantically similar sentences within one language or across languages:
 
 - **distiluse-base-multilingual-cased-v1**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). Supports 15 languages:  Arabic, Chinese, Dutch, English, French, German, Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish. 
-- **distiluse-base-multilingual-cased-v2**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). While v1 model supports 15 languages, this version supports 50+ languages. However, performance on the 15 languages mentioned above are reported to be a bit lower. 
-- **paraphrase-xlm-r-multilingual-v1** - Multilingual version of *paraphrase-distilroberta-base-v1*, trained on parallel data for 50+ languages. 
-- **stsb-xlm-r-multilingual**: Produces similar embeddings as the *stsb-bert-base* model. Trained on parallel data for 50+ languages.
-- **quora-distilbert-multilingual** - Multilingual version of *quora-distilbert-base*.  Fine-tuned with parallel data for 50+ languages. 
-- **T-Systems-onsite/cross-en-de-roberta-sentence-transformer** - Multilingual model for English an German. [[More]](https://huggingface.co/T-Systems-onsite/cross-en-de-roberta-sentence-transformer)
+- **distiluse-base-multilingual-cased-v2**: Multilingual knowledge distilled version of [multilingual Universal Sentence Encoder](https://arxiv.org/abs/1907.04307). This version supports 50+ languages, but performs a bit weaker than the v1 model.
 - **paraphrase-multilingual-MiniLM-L12-v2** - Multilingual version of *paraphrase-MiniLM-L12-v2*, trained on parallel data for 50+ languages. 
 - **paraphrase-multilingual-mpnet-base-v2** - Multilingual version of *paraphrase-mpnet-base-v2*, trained on parallel data for 50+ languages. 
 
