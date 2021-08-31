@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SBERT.net Models</title>
     <!-- Vue.js -->
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js" integrity="sha512-BKbSR+cfyxLdMAsE0naLReFSLg8/pjbgfxHh/k/kUC82Hy7r6HtR5hLhobaln2gcTvzkyyehrdREdjpsQwy2Jw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js" integrity="sha512-BKbSR+cfyxLdMAsE0naLReFSLg8/pjbgfxHh/k/kUC82Hy7r6HtR5hLhobaln2gcTvzkyyehrdREdjpsQwy2Jw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
 
     <!-- Bootstrap -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
@@ -56,6 +57,10 @@
             color: #007bff;
         }
 
+        .info-icon-disabled {
+            color: #cccccc;
+        }
+
         .info-icon:hover {
             color: #0056b3;
         }
@@ -76,27 +81,32 @@
 <body>
 
 <div id="app">
-    <table class="table table-bordered table-sm">
+    <table class="table table-sm">
         <thead>
             <tr>
                 <th class="header-cell" @click="sortAsc = (sortBy=='name') ? sortAsc = !sortAsc : false; sortBy='name'">
                     <i class="fas fa-active" v-if="sortBy == 'name'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
                     Model Name
                 </th>
-                <th class="header-cell text-center" @click="sortAsc = (sortBy=='performance') ? sortAsc = !sortAsc : false; sortBy='performance'">
-                    <i class="fas fa-active" v-if="sortBy == 'performance'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
-                    Avg. Performance on 14 Datasets
-                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Average Performance" data-content="Average Performance over 14 diverse tasks from different domains.<br>Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+                <th class="header-cell text-center" @click="sortAsc = (sortBy=='sentence_performance') ? sortAsc = !sortAsc : false; sortBy='sentence_performance'">
+                    <i class="fas fa-active" v-if="sortBy == 'sentence_performance'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
+                     Performance Sentence Embeddings (14 Datasets)
+                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Performance Sentence Embeddings" data-content="Average performance on encoding sentences over 14 diverse tasks from different domains.<br>Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+                </th>
+                <th class="header-cell text-center" @click="sortAsc = (sortBy=='semantic_search') ? sortAsc = !sortAsc : false; sortBy='semantic_search'">
+                    <i class="fas fa-active" v-if="sortBy == 'semantic_search'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
+                    Performance Semantic Search (6 Datasets)
+                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Performance Semantic Search" data-content="Performance on 6 diverse tasks for semantic search: Encoding of queries / questions and paragraphs up to 512 word pieces.<br>Higher = Better." data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+                </th>
+                 <th class="header-cell text-center" @click="sortAsc = (sortBy=='avg_performance') ? sortAsc = !sortAsc : false; sortBy='avg_performance'">
+                    <i class="fas fa-active" v-if="sortBy == 'avg_performance'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
+                    Avg. Performance
+                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Average Performance" data-content="Average of sentence performance and semantic search performance.<br>Higher = Better." data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
                 </th>
                 <th class="header-cell text-center" @click="sortAsc = (sortBy=='speed') ? sortAsc = !sortAsc : false; sortBy='speed'">
                     <i class="fas fa-active" v-if="sortBy == 'speed'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
                     Speed
                      <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Encoding Speed" data-content="Encoding speed (sentences / sec) on a V100 GPU.<br>Higher = Better" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
-                </th>
-                <th class="header-cell text-center" @click="sortAsc = (sortBy=='dim') ? sortAsc = !sortAsc : false; sortBy='dim'">
-                    <i class="fas fa-active" v-if="sortBy == 'dim'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
-                    Dimensions
-                     <span class="info-icon" data-trigger="hover" data-toggle="popover" title="Dimensions" data-content="Number of dimensions for the text embeddings." data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
                 </th>
                 <th class="header-cell text-center" @click="sortAsc = (sortBy=='size') ? sortAsc = !sortAsc : false; sortBy='size'">
                     <i class="fas fa-active" v-if="sortBy == 'size'" v-bind:class="{ 'fa-sort-amount-up': !sortAsc, 'fa-sort-amount-down-alt': sortAsc }"></i>
@@ -106,17 +116,70 @@
             </tr>
         </thead>
         <tbody>
-            <tr v-for="item in sortedModels">
-                <td>
-                    {{ item.name }}
-                    <span class="info-icon info-icon-model" data-trigger="hover" data-toggle="popover" :title="item.name" :data-content="'<b>Base Model:</b> '+item.base_model+'<br><b>Pooling:</b> '+item.pooling+'<br><b>Training Data:</b> '+item.training_data+'<br><b>Dimensions:</b> '+item.dim+'<br><b>Size:</b> '+item.size+' MB'" data-html="true" data-placement="bottom"><i class="fas fa-info-circle"></i></span>
+            <template  v-for="item in sortedModels">
+                <tr v-on:click="item.show_details = !item.show_details" style="cursor: pointer">
+                    <td>
+                        {{ item.name }}
+                        <span class="info-icon-model" v-bind:class="{'info-icon': item.show_details, 'info-icon-disabled': !item.show_details}" ><i class="fas fa-info-circle"></i></span>
+                    </td>
+                    <td class="text-center">{{ item.sentence_performance.toFixed(2) }}</td>
+                    <td class="text-center">{{ item.semantic_search > 0 ? item.semantic_search.toFixed(2) : "" }}</td>
+                    <td class="text-center">{{ item.avg_performance.toFixed(2) }}</td>
+                    <td class="text-center">{{ item.speed }}</td>
+                    <td class="text-center">{{ item.size }} MB</td>
+                </tr>
+                <tr v-if="item.show_details">
+                    <td colspan="6" style="padding-left: 20px">
+                        <table class="table table-sm" style="width: 100%">
+                            <thead>
+                            <tr>
+                                <td colspan="2">
+                                    <b>{{ item.name }}</b>
+                                    <button title="Copy model name" type="button" class="btn btn-link p-0" v-on:click="copyClipboard(item.name)" data-toggle="tooltip" data-placement="bottom" data-trigger="hover" :id="item.name+'-copy-btn'">
+                                        <svg class="" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="currentColor" focusable="false" role="img" width="1em" height="1em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 32 32"><path d="M28,10V28H10V10H28m0-2H10a2,2,0,0,0-2,2V28a2,2,0,0,0,2,2H28a2,2,0,0,0,2-2V10a2,2,0,0,0-2-2Z" transform="translate(0)"></path><path d="M4,18H2V4A2,2,0,0,1,4,2H18V4H4Z" transform="translate(0)"></path><rect fill="none" width="32" height="32"></rect></svg>
+                                    </button>
 
-                </td>
-                <td class="text-center">{{ item.performance.toFixed(2) }}</td>
-                <td class="text-center">{{ item.speed }}</td>
-                <td class="text-center">{{ item.dim }}</td>
-                <td class="text-center">{{ item.size }} MB</td>
-            </tr>
+                                    <br>
+                                    {{item.description || ''}}
+
+                                </td>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <th>Base Model:</th>
+                                <td>{{item.base_model}}</td>
+                            </tr>
+                            <tr>
+                                <th>Max Sequence Length:</th>
+                                <td>{{item.max_seq_length || ''}}</td>
+                            </tr>
+                            <tr>
+                                <th>Pooling:</th>
+                                <td>{{item.pooling}}</td>
+                            </tr>
+                            <tr>
+                                <th>Training Data:</th>
+                                <td>{{item.training_data}}</td>
+                            </tr>
+                            <tr>
+                                <th>Dimensions:</th>
+                                <td>{{item.dim }}</td>
+                            </tr>
+                            <tr>
+                                <th>Size:</th>
+                                <td>{{item.size}} MB</td>
+                            </tr>
+                            <tr>
+                                <th colspan="2"><a :href="'https://huggingface.co/sentence-transformers/'+item.name" target="_blank"><i class="fas fa-external-link-alt"></i> Model card</a></th>
+                            </tr>
+                            </tbody>
+                        </table>
+
+                    </td>
+                </tr>
+            </template>
+
         </tbody>
     </table>
 </div>
@@ -126,12 +189,12 @@
         el: '#app',
         data: {
             models: [
-                {
+               /*{
                     "name": "stsb-mpnet-base-v2",
                     "base_model": "microsoft/mpnet-base",
                     "pooling": "Mean Pooling",
                     "training_data": "NLI+STSb",
-                    "performance": 63.28,
+                    "sentence_performance": 63.28,
                     "speed": 2800,
                     "size": 418,
                     "dim": 768
@@ -141,7 +204,7 @@
                     "base_model": "roberta-base",
                     "pooling": "Mean Pooling",
                     "training_data": "NLI+STSb",
-                    "performance": 60.81,
+                    "sentence_performance": 60.81,
                     "speed": 2300,
                     "size": 440,
                     "dim": 768
@@ -151,7 +214,7 @@
                     "base_model": "distilroberta-base",
                     "pooling": "Mean Pooling",
                     "training_data": "NLI+STSb",
-                    "performance": 60.52,
+                    "sentence_performance": 60.52,
                     "speed": 4000,
                     "size": 292,
                     "dim": 768
@@ -161,7 +224,7 @@
                     "base_model": "microsoft/mpnet-base",
                     "pooling": "Mean Pooling",
                     "training_data": "NLI",
-                    "performance": 62.49,
+                    "sentence_performance": 62.49,
                     "speed": 2800,
                     "size": 418,
                     "dim": 768
@@ -171,7 +234,7 @@
                     "base_model": "roberta-base",
                     "pooling": "Mean Pooling",
                     "training_data": "NLI",
-                    "performance": 59.99,
+                    "sentence_performance": 59.99,
                     "speed": 2300,
                     "size": 440,
                     "dim": 768
@@ -181,203 +244,304 @@
                     "base_model": "distilroberta-base",
                     "pooling": "Mean Pooling",
                     "training_data": "NLI",
-                    "performance": 59.82,
+                    "sentence_performance": 59.82,
                     "speed": 4000,
                     "size": 292,
                     "dim": 768
-                },
+                },*/
                 {
                     "name": "average_word_embeddings_glove.6B.300d",
                     "base_model": "Word Embeddings: GloVe",
                     "pooling": "Mean Pooling",
                     "training_data": "-",
-                    "performance": 49.79,
+                    "sentence_performance": 49.79,
+                    "semantic_search": 22.71,
                     "speed": 34000,
                     "size": 422,
-                    "dim": 300
+                    "dim": 300,
+                    "show_details": false
                 },
                 {
                     "name": "average_word_embeddings_komninos",
                     "base_model": "Word Embeddings: Komninos et al.",
                     "pooling": "Mean Pooling",
                     "training_data": "-",
-                    "performance": 51.13,
+                    "sentence_performance": 51.13,
+                    "semantic_search": 21.64,
                     "speed": 22000,
                     "size": 237,
-                    "dim": 300
+                    "dim": 300,
+                    "show_details": false
                 },
-                {
-                    "name": "paraphrase-MiniLM-L12-v2",
-                    "base_model": "microsoft/MiniLM-L12-H384-uncased",
+                 {
+                    "name": "paraphrase-MiniLM-L3-v2",
+                    "base_model": "nreimers/MiniLM-L3-H384-uncased",
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
-                    "performance": 66.01,
-                    "speed": 7500,
-                    "size": 118,
-                    "dim": 384
+                    "sentence_performance": 62.29,
+                    "semantic_search": 39.19,
+                    "speed": 19000,
+                    "size": 61,
+                    "dim": 384,
+                    "max_seq_length": 128,
+                    "show_details": false
                 },
                 {
                     "name": "paraphrase-MiniLM-L6-v2",
                     "base_model": "nreimers/MiniLM-L6-H384-uncased",
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
-                    "performance": 64.82,
+                    "sentence_performance": 64.82,
+                    "semantic_search": 40.31,
                     "speed": 14200,
                     "size": 80,
-                    "dim": 384
+                    "dim": 384,
+                    "max_seq_length": 128,
+                    "show_details": false
                 },
                 {
-                    "name": "paraphrase-MiniLM-L3-v2",
-                    "base_model": "nreimers/MiniLM-L3-H384-uncased",
+                    "name": "paraphrase-MiniLM-L12-v2",
+                    "base_model": "microsoft/MiniLM-L12-H384-uncased",
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
-                    "performance": 62.29,
-                    "speed": 19000,
-                    "size": 61,
-                    "dim": 384
+                    "sentence_performance": 66.01,
+                    "semantic_search": 43.01,
+                    "speed": 7500,
+                    "size": 118,
+                    "dim": 384,
+                    "max_seq_length": 256,
+                    "show_details": false
                 },
                 {
                     "name": "paraphrase-distilroberta-base-v2",
                     "base_model": "distilroberta-base",
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
-                    "performance": 66.27,
+                    "sentence_performance": 66.27,
+                    "semantic_search": 43.10,
                     "speed": 4000,
                     "size": 292,
-                    "dim": 768
+                    "dim": 768,
+                    "max_seq_length": 256,
+                    "show_details": false
                 },
                 {
                     "name": "paraphrase-TinyBERT-L6-v2",
                     "base_model": "https://huggingface.co/nreimers/TinyBERT_L-6_H-768_v2",
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
-                    "performance": 66.19,
+                    "sentence_performance": 66.19,
+                    "semantic_search": 41.07,
                     "speed": 4500,
                     "size": 238,
-                    "dim": 768
+                    "dim": 768,
+                    "max_seq_length": 128,
+                    "show_details": false
                 },
                 {
                     "name": "paraphrase-mpnet-base-v2",
                     "base_model": "microsoft/mpnet-base",
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
-                    "performance": 67.97,
+                    "sentence_performance": 67.97,
+                    "semantic_search": 47.43,
                     "speed": 2800,
                     "size": 418,
-                    "dim": 768
+                    "dim": 768,
+                    "max_seq_length": 512,
+                    "show_details": false
                 },
                 {
                     "name": "paraphrase-albert-small-v2",
                     "base_model": "nreimers/albert-small-v2",
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
-                    "performance": 64.46,
+                    "sentence_performance": 64.46,
+                    "semantic_search": 40.04,
                     "speed": 5000,
                     "size": 43,
-                    "dim": 768
+                    "dim": 768,
+                    "max_seq_length": 256,
+                    "show_details": false
                 },
                 {
                     "name": "paraphrase-multilingual-mpnet-base-v2",
                     "base_model": "Teacher: paraphrase-mpnet-base-v2; Student: xlm-roberta-base",
                     "pooling": "Mean Pooling",
                     "training_data": "Multi-lingual model of paraphrase-mpnet-base-v2, extended to 50+ languages.",
-                    "performance": 65.83,
+                    "sentence_performance": 65.83,
+                    "semantic_search": 41.68,
                     "speed": 2500,
                     "size": 969,
-                    "dim": 768
+                    "dim": 768,
+                    "max_seq_length": 128,
+                    "show_details": false
                 },
                 {
                     "name": "paraphrase-multilingual-MiniLM-L12-v2",
                     "base_model": "Teacher: paraphrase-MiniLM-L12-v2; Student: microsoft/Multilingual-MiniLM-L12-H384",
                     "pooling": "Mean Pooling",
                     "training_data": "Multi-lingual model of paraphrase-multilingual-MiniLM-L12-v2, extended to 50+ languages.",
-                    "performance": 64.25,
+                    "sentence_performance": 64.25,
+                    "semantic_search": 39.19,
                     "speed": 7500,
                     "size": 418,
-                    "dim": 384
+                    "dim": 384,
+                    "max_seq_length": 128,
+                    "show_details": false
                 },
                 {
                     "name": "distiluse-base-multilingual-cased-v1",
                     "base_model": "Teacher: mUSE; Student: distilbert-base-multilingual",
                     "pooling": "Mean Pooling",
                     "training_data": "Multi-Lingual model of Universal Sentence Encoder for 15 languages: Arabic, Chinese, Dutch, English, French, German, Italian, Korean, Polish, Portuguese, Russian, Spanish, Turkish.",
-                    "performance": 61.30,
+                    "sentence_performance": 61.30,
+                    "semantic_search": 29.87,
                     "speed": 4000,
                     "size": 482,
-                    "dim": 512
+                    "dim": 512,
+                    "max_seq_length": 128,
+                    "show_details": false
                 },
                 {
                     "name": "distiluse-base-multilingual-cased-v2",
                     "base_model": "Teacher: mUSE; Student: distilbert-base-multilingual",
                     "pooling": "Mean Pooling",
                     "training_data": "Multi-Lingual model of Universal Sentence Encoder for 50 languages.",
-                    "performance": 60.18,
+                    "sentence_performance": 60.18,
+                    "semantic_search": 27.35,
                     "speed": 4000,
-                    "size": 481,
-                    "dim": 512
+                    "size": 482,
+                    "dim": 512,
+                    "max_seq_length": 128,
+                    "show_details": false
                 },
                 {
                     "name": "all-distilroberta-v1",
                     "base_model": "distilroberta-base",
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
-                    "performance": 68.73,
+                    "sentence_performance": 68.73,
+                    "semantic_search": 50.94,
                     "speed": 4000,
                     "size": 292,
-                    "dim": 768
+                    "dim": 768,
+                    "max_seq_length": 512,
+                    "show_details": false
                 },
                 {
                     "name": "all-MiniLM-L6-v1",
                     "base_model": "nreimers/MiniLM-L6-H384-uncased",
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
-                    "performance": 68.03,
+                    "sentence_performance": 68.03,
+                    "semantic_search": 48.07,
                     "speed": 14200,
                     "size": 80,
-                    "dim": 384
+                    "dim": 384,
+                    "max_seq_length": 128,
+                    "show_details": false
+                },
+                {
+                    "name": "all-MiniLM-L6-v2",
+                    "base_model": "nreimers/MiniLM-L6-H384-uncased",
+                    "pooling": "Mean Pooling",
+                    "training_data": "1B+ training pairs. For details, see model card.",
+                    "sentence_performance": 68.06,
+                    "semantic_search": 49.54,
+                    "speed": 14200,
+                    "size": 80,
+                    "dim": 384,
+                    "max_seq_length": 256,
+                    "show_details": false
                 },
                 {
                     "name": "all-MiniLM-L12-v1",
                     "base_model": "microsoft/MiniLM-L12-H384-uncased",
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
-                    "performance": 68.83,
+                    "sentence_performance": 68.83,
+                    "semantic_search": 50.78,
                     "speed": 7500,
                     "size": 118,
-                    "dim": 384
+                    "dim": 384,
+                    "max_seq_length": 256,
+                    "show_details": false
+                },
+                {
+                    "name": "all-MiniLM-L12-v2",
+                    "base_model": "microsoft/MiniLM-L12-H384-uncased",
+                    "pooling": "Mean Pooling",
+                    "training_data": "1B+ training pairs. For details, see model card.",
+                    "sentence_performance": 68.7,
+                    "semantic_search": 50.82,
+                    "speed": 7500,
+                    "size": 118,
+                    "dim": 384,
+                    "max_seq_length": 256,
+                    "show_details": false
                 },
                 {
                     "name": "all-mpnet-base-v1",
                     "base_model": "microsoft/mpnet-base",
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
-                    "performance": 69.98,
+                    "sentence_performance": 69.98,
+                    "semantic_search": 54.69,
                     "speed": 2800,
                     "size": 418,
-                    "dim": 768
+                    "dim": 768,
+                    "max_seq_length": 512,
+                    "show_details": false
+                },
+                {
+                    "name": "all-mpnet-base-v2",
+                    "base_model": "microsoft/mpnet-base",
+                    "pooling": "Mean Pooling",
+                    "training_data": "1B+ training pairs. For details, see model card.",
+                    "sentence_performance": 69.57,
+                    "semantic_search": 57.02,
+                    "speed": 2800,
+                    "size": 418,
+                    "dim": 768,
+                    "max_seq_length": 384,
+                    "show_details": true
                 },
                 {
                     "name": "all-roberta-large-v1",
                     "base_model": "roberta-large",
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
-                    "performance": 70.23,
+                    "sentence_performance": 70.23,
+                    "semantic_search": 53.05,
                     "speed": 800,
                     "size": 1355,
-                    "dim": 1024
+                    "dim": 1024,
+                    "max_seq_length": 256,
+                    "show_details": false
                 }
-
-
             ],
-            sortBy: 'performance',
+            sortBy: 'avg_performance',
             sortAsc: false
         },
         methods: {
+            copyClipboard: function(msg) {
+                console.log(msg);
+                const clipboardData = window.clipboardData || navigator.clipboard;
+                clipboardData.writeText(msg);
+                const copy_btn = $("#"+msg+"-copy-btn")
 
+                copy_btn.tooltip('hide').attr('data-original-title', "Copied").tooltip('show');
+                //copy_btn.prop('title', 'your new title'); //.tooltip('show');
+                setTimeout(function(){ copy_btn.tooltip('hide').attr('data-original-title', "Copy model name"); }, 2000);
+            }
         },
         computed: {
             sortedModels: function() {
-                return _.orderBy(this.models, (item) => item[this.sortBy] || (this.sortAsc ? 9999 : -9999), this.sortAsc ? 'asc' : 'desc')
+                 //Add avg. of sentence and semantic search performance
+                let models_ext = this.models.map(function(elem, index)  { elem.avg_performance = (elem.sentence_performance + elem.semantic_search)/2.0; return elem;} );
+
+                return _.orderBy(models_ext, (item) => item[this.sortBy] || (this.sortAsc ? 9999 : -9999), this.sortAsc ? 'asc' : 'desc')
             }
         }
     })
@@ -386,6 +550,9 @@
 <script>
     $(function () {
       $('[data-toggle="popover"]').popover()
+    });
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip()
     })
 </script>
 
