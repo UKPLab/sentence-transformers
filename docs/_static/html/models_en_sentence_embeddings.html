@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SBERT.net Models</title>
     <!-- Vue.js -->
-   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js" integrity="sha512-BKbSR+cfyxLdMAsE0naLReFSLg8/pjbgfxHh/k/kUC82Hy7r6HtR5hLhobaln2gcTvzkyyehrdREdjpsQwy2Jw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js" integrity="sha512-BKbSR+cfyxLdMAsE0naLReFSLg8/pjbgfxHh/k/kUC82Hy7r6HtR5hLhobaln2gcTvzkyyehrdREdjpsQwy2Jw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
 
     <!-- Bootstrap -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
@@ -54,14 +54,14 @@
 
 
         .info-icon {
-            color: #007bff;
+            color: #cccccc;
         }
 
         .info-icon-disabled {
             color: #cccccc;
         }
 
-        .info-icon:hover {
+        .link-active, .toggle-active, .info-icon-active, .info-icon:hover {
             color: #0056b3;
         }
 
@@ -76,11 +76,33 @@
         .popover {
             max-width: 400px;
         }
+
+        .toggle-link {
+            text-decoration: none;
+            cursor: pointer;
+            padding: 10px;
+        }
+
+        .toggle-link:hover, .toggle-link:focus {
+            text-decoration: none;
+        }
+
+         .toggle-inactive, .toggle-inactive:hover, .toggle-inactive:focus {
+             color: #999999;
+         }
+
     </style>
 </head>
 <body>
 
 <div id="app">
+    <div class="text-right">
+        <span class="toggle-link" v-bind:class="{'toggle-active': show_all_models, 'toggle-inactive': !show_all_models}" @click="show_all_models = !show_all_models">
+            <span v-if="show_all_models">All models</span><span v-else>All models</span>
+            <i class="fas" v-bind:class="{'toggle-active': show_all_models, 'fa-toggle-on': show_all_models, 'fa-toggle-off': !show_all_models}"></i>
+        </span>
+    </div>
+
     <table class="table table-sm">
         <thead>
             <tr>
@@ -120,39 +142,67 @@
                 <tr v-on:click="item.show_details = !item.show_details" style="cursor: pointer">
                     <td>
                         {{ item.name }}
-                        <span class="info-icon-model" v-bind:class="{'info-icon': item.show_details, 'info-icon-disabled': !item.show_details}" ><i class="fas fa-info-circle"></i></span>
+                        <span class="info-icon-model" v-bind:class="{'info-icon-active': item.show_details, 'info-icon-disabled': !item.show_details}" ><i class="fas fa-info-circle"></i></span>
                     </td>
-                    <td class="text-center">{{ item.sentence_performance.toFixed(2) }}</td>
+                    <td class="text-center">{{ item.sentence_performance > 0 ? item.sentence_performance.toFixed(2) : "" }}</td>
                     <td class="text-center">{{ item.semantic_search > 0 ? item.semantic_search.toFixed(2) : "" }}</td>
-                    <td class="text-center">{{ item.avg_performance.toFixed(2) }}</td>
+                    <td class="text-center">{{ (item.sentence_performance > 0 && item.semantic_search > 0) ? item.avg_performance.toFixed(2) : "" }}</td>
                     <td class="text-center">{{ item.speed }}</td>
                     <td class="text-center">{{ item.size }} MB</td>
                 </tr>
                 <tr v-if="item.show_details">
                     <td colspan="6" style="padding-left: 20px">
-                        <table class="table table-sm" style="width: 100%">
+                        <table class="table table-sm" style="width: 100%; font-size: 0.9em;">
                             <thead>
                             <tr>
                                 <td colspan="2">
                                     <b>{{ item.name }}</b>
-                                    <button title="Copy model name" type="button" class="btn btn-link p-0" v-on:click="copyClipboard(item.name)" data-toggle="tooltip" data-placement="bottom" data-trigger="hover" :id="item.name+'-copy-btn'">
+                                    <button title="Copy model name" type="button" class="btn btn-link p-0" v-on:click="copyClipboard(item.name)" data-toggle="tooltip" data-placement="bottom" data-trigger="hover" :id="item.name+'-copy-btn'" style="border: 0;">
                                         <svg class="" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="currentColor" focusable="false" role="img" width="1em" height="1em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 32 32"><path d="M28,10V28H10V10H28m0-2H10a2,2,0,0,0-2,2V28a2,2,0,0,0,2,2H28a2,2,0,0,0,2-2V10a2,2,0,0,0-2-2Z" transform="translate(0)"></path><path d="M4,18H2V4A2,2,0,0,1,4,2H18V4H4Z" transform="translate(0)"></path><rect fill="none" width="32" height="32"></rect></svg>
                                     </button>
 
                                     <br>
-                                    {{item.description || ''}}
+
 
                                 </td>
                             </tr>
                             </thead>
                             <tbody>
+                            <tr v-if="item.hasOwnProperty('description')">
+                                <th>Description:</th>
+                                <td>{{item.description}}</td>
+                            </tr>
                             <tr>
                                 <th>Base Model:</th>
-                                <td>{{item.base_model}}</td>
+                                <td><span v-html="item.base_model"></span></td>
                             </tr>
                             <tr>
                                 <th>Max Sequence Length:</th>
                                 <td>{{item.max_seq_length || ''}}</td>
+                            </tr>
+                            <tr>
+                                <th>Dimensions:</th>
+                                <td>{{item.dim }}</td>
+                            </tr>
+                            <tr>
+                                <th style="width: 220px;">Normalized Embeddings:</th>
+                                <td>{{item.normalized_embeddings}}</td>
+                            </tr>
+                            <tr>
+                                <th>Suitable Score Functions:</th>
+                                <td>
+                                    <span v-html="getScoreFunction(item.score_functions)"></span>
+
+
+                                    <!--<span v-if="item.normalized_embeddings">dot-product (<code>util.dot_score</code>), cosine-similarity (<code>util.cos_sim</code>), and euclidean distance
+                                    </span>
+                                    <span v-else>Unclear</span> -->
+
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Size:</th>
+                                <td>{{item.size}} MB</td>
                             </tr>
                             <tr>
                                 <th>Pooling:</th>
@@ -163,15 +213,8 @@
                                 <td>{{item.training_data}}</td>
                             </tr>
                             <tr>
-                                <th>Dimensions:</th>
-                                <td>{{item.dim }}</td>
-                            </tr>
-                            <tr>
-                                <th>Size:</th>
-                                <td>{{item.size}} MB</td>
-                            </tr>
-                            <tr>
-                                <th colspan="2"><a :href="'https://huggingface.co/sentence-transformers/'+item.name" target="_blank"><i class="fas fa-external-link-alt"></i> Model card</a></th>
+                                <th>Model Card:</th>
+                                <td><a :href="'https://huggingface.co/sentence-transformers/'+item.name" target="_blank">https://huggingface.co/sentence-transformers/{{item.name}}</a></td>
                             </tr>
                             </tbody>
                         </table>
@@ -188,67 +231,8 @@
     var app = new Vue({
         el: '#app',
         data: {
+            show_all_models: false,
             models: [
-               /*{
-                    "name": "stsb-mpnet-base-v2",
-                    "base_model": "microsoft/mpnet-base",
-                    "pooling": "Mean Pooling",
-                    "training_data": "NLI+STSb",
-                    "sentence_performance": 63.28,
-                    "speed": 2800,
-                    "size": 418,
-                    "dim": 768
-                },
-                {
-                    "name": "stsb-roberta-base-v2",
-                    "base_model": "roberta-base",
-                    "pooling": "Mean Pooling",
-                    "training_data": "NLI+STSb",
-                    "sentence_performance": 60.81,
-                    "speed": 2300,
-                    "size": 440,
-                    "dim": 768
-                },
-                {
-                    "name": "stsb-distilroberta-base-v2",
-                    "base_model": "distilroberta-base",
-                    "pooling": "Mean Pooling",
-                    "training_data": "NLI+STSb",
-                    "sentence_performance": 60.52,
-                    "speed": 4000,
-                    "size": 292,
-                    "dim": 768
-                },
-                {
-                    "name": "nli-mpnet-base-v2",
-                    "base_model": "microsoft/mpnet-base",
-                    "pooling": "Mean Pooling",
-                    "training_data": "NLI",
-                    "sentence_performance": 62.49,
-                    "speed": 2800,
-                    "size": 418,
-                    "dim": 768
-                },
-                {
-                    "name": "nli-roberta-base-v2",
-                    "base_model": "roberta-base",
-                    "pooling": "Mean Pooling",
-                    "training_data": "NLI",
-                    "sentence_performance": 59.99,
-                    "speed": 2300,
-                    "size": 440,
-                    "dim": 768
-                },
-                {
-                    "name": "nli-distilroberta-base-v2",
-                    "base_model": "distilroberta-base",
-                    "pooling": "Mean Pooling",
-                    "training_data": "NLI",
-                    "sentence_performance": 59.82,
-                    "speed": 4000,
-                    "size": 292,
-                    "dim": 768
-                },*/
                 {
                     "name": "average_word_embeddings_glove.6B.300d",
                     "base_model": "Word Embeddings: GloVe",
@@ -259,7 +243,9 @@
                     "speed": 34000,
                     "size": 422,
                     "dim": 300,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"]
                 },
                 {
                     "name": "average_word_embeddings_komninos",
@@ -271,11 +257,13 @@
                     "speed": 22000,
                     "size": 237,
                     "dim": 300,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"]
                 },
                  {
                     "name": "paraphrase-MiniLM-L3-v2",
-                    "base_model": "nreimers/MiniLM-L3-H384-uncased",
+                    "base_model": '<a href="https://huggingface.co/nreimers/MiniLM-L6-H384-uncased" target="_blank">nreimers/MiniLM-L3-H384-uncased</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
                     "sentence_performance": 62.29,
@@ -284,11 +272,14 @@
                     "size": 61,
                     "dim": 384,
                     "max_seq_length": 128,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"],
+                     "recommended_model": true
                 },
                 {
                     "name": "paraphrase-MiniLM-L6-v2",
-                    "base_model": "nreimers/MiniLM-L6-H384-uncased",
+                    "base_model": '<a href="https://huggingface.co/nreimers/MiniLM-L6-H384-uncased" target="_blank">nreimers/MiniLM-L6-H384-uncased</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
                     "sentence_performance": 64.82,
@@ -297,11 +288,13 @@
                     "size": 80,
                     "dim": 384,
                     "max_seq_length": 128,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"]
                 },
                 {
                     "name": "paraphrase-MiniLM-L12-v2",
-                    "base_model": "microsoft/MiniLM-L12-H384-uncased",
+                    "base_model": '<a href="https://huggingface.co/microsoft/MiniLM-L12-H384-uncased" target="_blank">microsoft/MiniLM-L12-H384-uncased</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
                     "sentence_performance": 66.01,
@@ -310,11 +303,13 @@
                     "size": 118,
                     "dim": 384,
                     "max_seq_length": 256,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"]
                 },
                 {
                     "name": "paraphrase-distilroberta-base-v2",
-                    "base_model": "distilroberta-base",
+                    "base_model": '<a href="https://huggingface.co/distilroberta-base" target="_blank">distilroberta-base</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
                     "sentence_performance": 66.27,
@@ -323,11 +318,13 @@
                     "size": 292,
                     "dim": 768,
                     "max_seq_length": 256,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"]
                 },
                 {
                     "name": "paraphrase-TinyBERT-L6-v2",
-                    "base_model": "https://huggingface.co/nreimers/TinyBERT_L-6_H-768_v2",
+                    "base_model": '<a href="https://huggingface.co/nreimers/TinyBERT_L-6_H-768_v2" target="_blank">nreimers/TinyBERT_L-6_H-768_v2</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
                     "sentence_performance": 66.19,
@@ -336,11 +333,13 @@
                     "size": 238,
                     "dim": 768,
                     "max_seq_length": 128,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"]
                 },
                 {
                     "name": "paraphrase-mpnet-base-v2",
-                    "base_model": "microsoft/mpnet-base",
+                    "base_model": '<a href="https://huggingface.co/microsoft/mpnet-base" target="_blank">microsoft/mpnet-base</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
                     "sentence_performance": 67.97,
@@ -349,11 +348,13 @@
                     "size": 418,
                     "dim": 768,
                     "max_seq_length": 512,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"]
                 },
                 {
                     "name": "paraphrase-albert-small-v2",
-                    "base_model": "nreimers/albert-small-v2",
+                    "base_model": '<a href="https://huggingface.co/nreimers/albert-small-v2" target="_blank">nreimers/albert-small-v2</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "AllNLI, sentence-compression, SimpleWiki, altlex, msmarco-triplets, quora_duplicates, coco_captions,flickr30k_captions, yahoo_answers_title_question, S2ORC_citation_pairs, stackexchange_duplicate_questions, wiki-atomic-edits",
                     "sentence_performance": 64.46,
@@ -362,7 +363,10 @@
                     "size": 43,
                     "dim": 768,
                     "max_seq_length": 256,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"],
+                    "recommended_model": true
                 },
                 {
                     "name": "paraphrase-multilingual-mpnet-base-v2",
@@ -375,7 +379,10 @@
                     "size": 969,
                     "dim": 768,
                     "max_seq_length": 128,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"],
+                    "recommended_model": true
                 },
                 {
                     "name": "paraphrase-multilingual-MiniLM-L12-v2",
@@ -388,7 +395,10 @@
                     "size": 418,
                     "dim": 384,
                     "max_seq_length": 128,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"],
+                    "recommended_model": true
                 },
                 {
                     "name": "distiluse-base-multilingual-cased-v1",
@@ -401,7 +411,10 @@
                     "size": 482,
                     "dim": 512,
                     "max_seq_length": 128,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"],
+                    "recommended_model": true
                 },
                 {
                     "name": "distiluse-base-multilingual-cased-v2",
@@ -414,11 +427,15 @@
                     "size": 482,
                     "dim": 512,
                     "max_seq_length": 128,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["cos"],
+                    "recommended_model": true
                 },
                 {
                     "name": "all-distilroberta-v1",
-                    "base_model": "distilroberta-base",
+                    "description": "All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.",
+                    "base_model": '<a href="https://huggingface.co/distilroberta-base" target="_blank">distilroberta-base</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
                     "sentence_performance": 68.73,
@@ -427,11 +444,15 @@
                     "size": 292,
                     "dim": 768,
                     "max_seq_length": 512,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": true,
+                    "score_functions": ["dot", "cos", "eucl"],
+                    "recommended_model": true
                 },
                 {
                     "name": "all-MiniLM-L6-v1",
-                    "base_model": "nreimers/MiniLM-L6-H384-uncased",
+                    "description": "All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.",
+                    "base_model": '<a href="https://huggingface.co/nreimers/MiniLM-L6-H384-uncased" target="_blank">nreimers/MiniLM-L6-H384-uncased</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
                     "sentence_performance": 68.03,
@@ -440,11 +461,14 @@
                     "size": 80,
                     "dim": 384,
                     "max_seq_length": 128,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": true,
+                    "score_functions": ["dot", "cos", "eucl"]
                 },
                 {
                     "name": "all-MiniLM-L6-v2",
-                    "base_model": "nreimers/MiniLM-L6-H384-uncased",
+                    "description": "All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.",
+                    "base_model": '<a href="https://huggingface.co/nreimers/MiniLM-L6-H384-uncased" target="_blank">nreimers/MiniLM-L6-H384-uncased</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
                     "sentence_performance": 68.06,
@@ -453,11 +477,15 @@
                     "size": 80,
                     "dim": 384,
                     "max_seq_length": 256,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": true,
+                    "score_functions": ["dot", "cos", "eucl"],
+                    "recommended_model": true
                 },
                 {
                     "name": "all-MiniLM-L12-v1",
-                    "base_model": "microsoft/MiniLM-L12-H384-uncased",
+                    "description": "All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.",
+                    "base_model": '<a href="https://huggingface.co/microsoft/MiniLM-L12-H384-uncased" target="_blank">microsoft/MiniLM-L12-H384-uncased</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
                     "sentence_performance": 68.83,
@@ -466,11 +494,14 @@
                     "size": 118,
                     "dim": 384,
                     "max_seq_length": 256,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": true,
+                    "score_functions": ["dot", "cos", "eucl"]
                 },
                 {
                     "name": "all-MiniLM-L12-v2",
-                    "base_model": "microsoft/MiniLM-L12-H384-uncased",
+                    "description": "All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.",
+                    "base_model": '<a href="https://huggingface.co/microsoft/MiniLM-L12-H384-uncased" target="_blank">microsoft/MiniLM-L12-H384-uncased</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
                     "sentence_performance": 68.7,
@@ -479,11 +510,15 @@
                     "size": 118,
                     "dim": 384,
                     "max_seq_length": 256,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": true,
+                    "score_functions": ["dot", "cos", "eucl"],
+                    "recommended_model": true
                 },
                 {
                     "name": "all-mpnet-base-v1",
-                    "base_model": "microsoft/mpnet-base",
+                    "description": "All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.",
+                    "base_model": '<a href="https://huggingface.co/microsoft/mpnet-base" target="_blank">microsoft/mpnet-base</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
                     "sentence_performance": 69.98,
@@ -492,11 +527,14 @@
                     "size": 418,
                     "dim": 768,
                     "max_seq_length": 512,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": true,
+                    "score_functions": ["dot", "cos", "eucl"]
                 },
                 {
                     "name": "all-mpnet-base-v2",
-                    "base_model": "microsoft/mpnet-base",
+                    "description": "All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.",
+                    "base_model": '<a href="https://huggingface.co/microsoft/mpnet-base" target="_blank">microsoft/mpnet-base</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
                     "sentence_performance": 69.57,
@@ -505,11 +543,15 @@
                     "size": 418,
                     "dim": 768,
                     "max_seq_length": 384,
-                    "show_details": true
+                    "show_details": false,
+                    "normalized_embeddings": true,
+                    "score_functions": ["dot", "cos", "eucl"],
+                    "recommended_model": true
                 },
                 {
                     "name": "all-roberta-large-v1",
-                    "base_model": "roberta-large",
+                    "description": "All-round model tuned for many use-cases. Trained on a large and diverse dataset of over 1 billion training pairs.",
+                    "base_model": '<a href="https://huggingface.co/microsoft/roberta-large" target="_blank">roberta-large</a>',
                     "pooling": "Mean Pooling",
                     "training_data": "1B+ training pairs. For details, see model card.",
                     "sentence_performance": 70.23,
@@ -518,8 +560,161 @@
                     "size": 1355,
                     "dim": 1024,
                     "max_seq_length": 256,
-                    "show_details": false
+                    "show_details": false,
+                    "normalized_embeddings": true,
+                    "score_functions": ["dot", "cos", "eucl"]
+                },
+                {
+                    "name": "multi-qa-MiniLM-L6-dot-v1",
+                    "description": "This model was tuned for semantic search: Given a query/question, if can find relevant passages. It was trained on a large and diverse set of (question, answer) pairs.",
+                    "base_model": '<a href="https://huggingface.co/nreimers/MiniLM-L6-H384-uncased" target="_blank">nreimers/MiniLM-L6-H384-uncased</a>',
+                    "pooling": "CLS Pooling",
+                    "training_data": "215M (question, answer) pairs from diverse sources.",
+                    "sentence_performance": 63.90,
+                    "semantic_search": 49.19,
+                    "speed": 14200,
+                    "size": 80,
+                    "dim": 384,
+                    "max_seq_length": 512,
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["dot"]
+                },
+                {
+                    "name": "multi-qa-MiniLM-L6-cos-v1",
+                    "description": "This model was tuned for semantic search: Given a query/question, if can find relevant passages. It was trained on a large and diverse set of (question, answer) pairs.",
+                    "base_model": '<a href="https://huggingface.co/nreimers/MiniLM-L6-H384-uncased" target="_blank">nreimers/MiniLM-L6-H384-uncased</a>',
+                    "pooling": "Mean Pooling",
+                    "training_data": "215M (question, answer) pairs from diverse sources.",
+                    "sentence_performance": 64.33,
+                    "semantic_search": 51.83,
+                    "speed": 14200,
+                    "size": 80,
+                    "dim": 384,
+                    "max_seq_length": 512,
+                    "show_details": false,
+                    "normalized_embeddings": true,
+                    "score_functions": ["dot", "cos", "eucl"],
+                    "recommended_model": true
+                },
+                {
+                    "name": "multi-qa-distilbert-dot-v1",
+                    "description": "This model was tuned for semantic search: Given a query/question, if can find relevant passages. It was trained on a large and diverse set of (question, answer) pairs.",
+                    "base_model": '<a href="https://huggingface.co/distilbert-base" target="_blank">distilbert-base</a>',
+                    "pooling": "CLS Pooling",
+                    "training_data": "215M (question, answer) pairs from diverse sources.",
+                    "sentence_performance": 66.67,
+                    "semantic_search": 52.51,
+                    "speed": 4000,
+                    "size": 253,
+                    "dim": 768,
+                    "max_seq_length": 512,
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["dot"]
+                },
+                {
+                    "name": "multi-qa-distilbert-cos-v1",
+                    "description": "This model was tuned for semantic search: Given a query/question, if can find relevant passages. It was trained on a large and diverse set of (question, answer) pairs.",
+                    "base_model": '<a href="https://huggingface.co/distilbert-base" target="_blank">distilbert-base</a>',
+                    "pooling": "Mean Pooling",
+                    "training_data": "215M (question, answer) pairs from diverse sources.",
+                    "sentence_performance": 65.98,
+                    "semantic_search": 52.83,
+                    "speed": 4000,
+                    "size": 253,
+                    "dim": 768,
+                    "max_seq_length": 512,
+                    "show_details": false,
+                    "normalized_embeddings": true,
+                    "score_functions": ["dot", "cos", "eucl"],
+                    "recommended_model": true
+                },
+                {
+                    "name": "multi-qa-mpnet-base-dot-v1",
+                    "description": "This model was tuned for semantic search: Given a query/question, if can find relevant passages. It was trained on a large and diverse set of (question, answer) pairs.",
+                    "base_model": '<a href="https://huggingface.co/microsoft/mpnet-base" target="_blank"microsoft/mpnet-base</a>',
+                    "pooling": "CLS Pooling",
+                    "training_data": "215M (question, answer) pairs from diverse sources.",
+                    "sentence_performance": 66.76,
+                    "semantic_search": 57.60,
+                    "speed": 2800,
+                    "size": 418,
+                    "dim": 768,
+                    "max_seq_length": 512,
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["dot"],
+                    "recommended_model": true
+                },
+                {
+                    "name": "multi-qa-mpnet-base-cos-v1",
+                    "description": "This model was tuned for semantic search: Given a query/question, if can find relevant passages. It was trained on a large and diverse set of (question, answer) pairs.",
+                    "base_model": '<a href="https://huggingface.co/microsoft/mpnet-base" target="_blank">microsoft/mpnet-base</a>',
+                    "pooling": "Mean Pooling",
+                    "training_data": "215M (question, answer) pairs from diverse sources.",
+                    "sentence_performance": 66.29,
+                    "semantic_search": 57.46,
+                    "speed": 2800,
+                    "size": 418,
+                    "dim": 768,
+                    "max_seq_length": 512,
+                    "show_details": false,
+                    "normalized_embeddings": true,
+                    "score_functions": ["dot", "cos", "eucl"],
+                },
+                {
+                    "name": "msmarco-distilbert-dot-v4",
+                    "description": "This model was tuned for semantic search: Given a query/question, if can find relevant passages. It was trained on the MS MARCO passages dataset.",
+                    "base_model": '<a href="https://huggingface.co/distilbert-base" target="_blank">distilbert-base</a>',
+                    "pooling": "Mean Pooling",
+                    "training_data": "500k (query, answer) pairs from MS MARCO Passages dataset.",
+                    "sentence_performance": 61.84,
+                    "semantic_search": 49.47,
+                    "speed": 4000,
+                    "size": 253,
+                    "dim": 768,
+                    "max_seq_length": 512,
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["dot"],
+                },
+                {
+                    "name": "msmarco-bert-base-dot-v4",
+                    "description": "This model was tuned for semantic search: Given a query/question, if can find relevant passages. It was trained on the MS MARCO passages dataset.",
+                    "base_model": '<a href="https://huggingface.co/Luyu/co-condenser-marco" target="_blank">Luyu/co-condenser-marco</a>',
+                    "pooling": "Mean Pooling",
+                    "training_data": "500k (query, answer) pairs from MS MARCO Passages dataset.",
+                    "sentence_performance": 62.68,
+                    "semantic_search": 52.11,
+                    "speed": 2800,
+                    "size": 418,
+                    "dim": 768,
+                    "max_seq_length": 512,
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["dot"],
                 }
+                ,
+                {
+                    "name": "msmarco-distilbert-base-tas-b",
+                    "description": "This model was tuned for semantic search: Given a query/question, if can find relevant passages. It was trained on the MS MARCO passages dataset.",
+                    "base_model": '<a href="https://huggingface.co/distilbert-base" target="_blank">distilbert-base</a>',
+                    "pooling": "Mean Pooling",
+                    "training_data": "500k (query, answer) pairs from MS MARCO Passages dataset.",
+                    "sentence_performance": 62.57,
+                    "semantic_search": 49.25,
+                    "speed": 4000,
+                    "size": 253,
+                    "dim": 768,
+                    "max_seq_length": 512,
+                    "show_details": false,
+                    "normalized_embeddings": false,
+                    "score_functions": ["dot"],
+                }
+                //
+
+
             ],
             sortBy: 'avg_performance',
             sortAsc: false
@@ -530,16 +725,39 @@
                 const clipboardData = window.clipboardData || navigator.clipboard;
                 clipboardData.writeText(msg);
                 const copy_btn = $("#"+msg+"-copy-btn")
-
+                copy_btn.tooltip('show');
                 copy_btn.tooltip('hide').attr('data-original-title', "Copied").tooltip('show');
                 //copy_btn.prop('title', 'your new title'); //.tooltip('show');
-                setTimeout(function(){ copy_btn.tooltip('hide').attr('data-original-title', "Copy model name"); }, 2000);
+                setTimeout(function(){ copy_btn.tooltip('hide').attr('data-original-title', "Copy model name"); }, 1000);
+            },
+            getScoreFunction: function(score_fct) {
+                let output_html = [];
+                for(let fct of score_fct) {
+                    switch(fct) {
+                        case "dot":
+                            output_html.push("dot-product (<code>util.dot_score</code>)");
+                            break;
+                        case "cos":
+                            output_html.push("cosine-similarity (<code>util.cos_sim</code>)");
+                            break;
+                        case "eucl":
+                            output_html.push("euclidean distance")
+                            break;
+                        default:
+                            output_html.push(fct)
+                    }
+                }
+                return output_html.join(", ");
             }
         },
         computed: {
             sortedModels: function() {
                  //Add avg. of sentence and semantic search performance
                 let models_ext = this.models.map(function(elem, index)  { elem.avg_performance = (elem.sentence_performance + elem.semantic_search)/2.0; return elem;} );
+
+                if(!this.show_all_models) {
+                    models_ext = models_ext.filter(item => item.recommended_model);
+                }
 
                 return _.orderBy(models_ext, (item) => item[this.sortBy] || (this.sortAsc ? 9999 : -9999), this.sortAsc ? 'asc' : 'desc')
             }

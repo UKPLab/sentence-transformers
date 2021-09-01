@@ -9,14 +9,14 @@ model = SentenceTransformer('model_name')
 
 Alternatively, you can download and unzip them from [here](https://sbert.net/models). All models are also on the [HuggingFace model hub](https://huggingface.co/sentence-transformers).
 
-## General Purpose Models
+## Model Overview
 
-The following models have been tuned to embed sentences and short paragraphs up to a length of 128 word pieces. The general purpose models are balanced across many tasks and domains.
+The following table provides an overview of (selected) models. They have been extensively evaluated for their quality to embedded sentences (Performance Sentence Embeddings) and to embedded search queries & paragraphs (Performance Semantic Search).
 
-Use **all-mpnet-base-v1** for the best quality, and **all-MiniLM-L6-v1** if you want a quick model with high quality.
+The **all-*** models where trained on all available training data (more than 1 billion training pairs) and are designed as **general purpose** models. The **all-mpnet-base-v2** model provides the best quality, while **all-MiniLM-L6-v2** is 5 times faster and still offers good quality. Toggle *All models* to see all evaluated models or visit [HuggingFace Model Hub](https://huggingface.co/models?library=sentence-transformers) to view all existing sentence-transformers models. 
 
 
-<iframe src="../_static/html/models_en_sentence_embeddings.html" height="500" style="width:100%; border:none;" title="Iframe Example"></iframe>
+<iframe src="../_static/html/models_en_sentence_embeddings.html" height="600" style="width:100%; border:none;" title="Iframe Example"></iframe>
 
 ---
 
@@ -42,37 +42,36 @@ print("Similarity:", util.dot_score(query_embedding, passage_embedding))
 The following models have been trained on [215M question-answer pairs](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-dot-v1#training) from various sources and domains, including StackExchange, Yahoo Answers, Google & Bing search queries and many more. These model perform well across many search tasks and domains.
 
 
-Models tuned to be used dot-product:
+These models were tuned to be used with dot-product:
 
-| Model | Performance | Queries (GPU / CPU) per sec. | 
+| Model | Performance Semantic Search (6 Datasets) | Queries (GPU / CPU) per sec. | 
 | --- | :---: | :---: |
-| [multi-qa-MiniLM-L6-dot-v1](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-dot-v1) | TBA | 18,000 / 750 |
-| [multi-qa-distilbert-dot-v1](https://huggingface.co/sentence-transformers/multi-qa-distilbert-dot-v1) | TBA | 7,000 / 350 |
-| [multi-qa-mpnet-base-dot-v1](https://huggingface.co/sentence-transformers/multi-qa-mpnet-base-dot-v1) | TBA | 4,000 / 170 |
+| [multi-qa-MiniLM-L6-dot-v1](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-dot-v1) | 49.19 | 18,000 / 750 |
+| [multi-qa-distilbert-dot-v1](https://huggingface.co/sentence-transformers/multi-qa-distilbert-dot-v1) | 52.51  | 7,000 / 350 |
+| [multi-qa-mpnet-base-dot-v1](https://huggingface.co/sentence-transformers/multi-qa-mpnet-base-dot-v1) | 57.60 | 4,000 / 170 |
 
 
 
-Models that produce normalized vectors of length 1, which can be used with dot-product, cosine-similarity and Euclidean distance:
+These models produce normalized vectors of length 1, which can be used with dot-product, cosine-similarity and Euclidean distance:
 
-| Model | Performance | Queries (GPU / CPU) per sec. | 
+| Model | Performance Semantic Search (6 Datasets) | Queries (GPU / CPU) per sec. | 
 | --- | :---: | :---: |
-| [multi-qa-MiniLM-L6-cos-v1](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-cos-v1) | TBA | 18,000 / 750 |
-| [multi-qa-distilbert-cos-v1](https://huggingface.co/sentence-transformers/multi-qa-distilbert-cos-v1) | TBA | 7,000 / 350 |
-| [multi-qa-mpnet-base-cos-v1](https://huggingface.co/sentence-transformers/multi-qa-mpnet-base-cos-v1) | TBA | 4,000 / 170 |
+| [multi-qa-MiniLM-L6-cos-v1](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-cos-v1) | 51.83 | 18,000 / 750 |
+| [multi-qa-distilbert-cos-v1](https://huggingface.co/sentence-transformers/multi-qa-distilbert-cos-v1) |  52.83 | 7,000 / 350 |
+| [multi-qa-mpnet-base-cos-v1](https://huggingface.co/sentence-transformers/multi-qa-mpnet-base-cos-v1) | 57.46 | 4,000 / 170 |
 
 ### MSMARCO Passage Models
 
 The [MSMARCO Passage Ranking Dataset](https://github.com/microsoft/MSMARCO-Passage-Ranking) contains 500k real queries from Bing search together with the relevant passages from various web sources. Given the diversity of the MSMARCO dataset, models also perform well on other domains. 
 
-Models tuned to be used with **cosine-similarity**:
-- **msmarco-distilbert-base-v4**: MRR@10: 33.79 on MS MARCO  dev set
+Models tuned to be used with dot-product:
 
-Models tuned to be used with **dot-product**:
-- **msmarco-distilbert-base-tas-b**: MRR@10: 34.43 on MS MARCO dev set
+| Model | MSMARCO MRR@10 dev set | Performance Semantic Search (6 Datasets) | Queries (GPU / CPU) per sec. | 
+| --- | :---: | :---: | :---: |
+| [msmarco-distilbert-base-tas-b](https://huggingface.co/sentence-transformers/msmarco-distilbert-base-tas-b) | 34.43 | 49.25 | 18,000 / 750 |
+| [msmarco-distilbert-dot-v4](https://huggingface.co/sentence-transformers/msmarco-distilbert-dot-v4) | 37.25 | 49.47 | 18,000 / 750 |
+| [msmarco-bert-base-dot-v4](https://huggingface.co/sentence-transformers/msmarco-distilbert-base-tas-b) | 38.08 | 52.11 | 4,000 / 170 |
 
-
-
-Models tuned for cosine-similarity will prefer the retrieval of short documents, while models tuned for dot-product will prefer the retrieval of longer documents. Depending on your task, the models of the one or the other type are preferable.
 
 
 [MSMARCO Models - More details](pretrained-models/msmarco-v3.md)
@@ -80,9 +79,9 @@ Models tuned for cosine-similarity will prefer the retrieval of short documents,
 ---
 
 ## Multi-Lingual Models
-The following models generate aligned vector spaces, i.e., similar inputs in different languages are mapped close in vector space. You do not need to specify the input language.  Details are in our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
+The following models generate aligned vector spaces, i.e., similar inputs in different languages are mapped close in vector space. You do not need to specify the input language.  Details are in our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813). We used the following 50+ languages: ar, bg, ca, cs, da, de, el, es, et, fa, fi, fr, fr-ca, gl, gu, he, hi, hr, hu, hy, id, it, ja, ka, ko, ku, lt, lv, mk, mn, mr, ms, my, nb, nl, pl, pt, pt, pt-br, ro, ru, sk, sl, sq, sr, sv, th, tr, uk, ur, vi, zh-cn, zh-tw. 
 
-Currently, there are models for two use-cases: 
+
 
 **Semantic Similarity**
 
@@ -99,38 +98,9 @@ Bitext mining describes the process of finding translated sentence pairs in two 
 - **LaBSE** - [LaBSE](https://arxiv.org/abs/2007.01852) Model. Supports 109 languages. Works well for finding translation pairs in multiple languages. As detailed  [here](https://arxiv.org/abs/2004.09813), LaBSE works less well for assessing the similarity of sentence pairs that are not translations of each other.
 
 
-
----
-
-XLM-R models support the following 100 languages.
-
- Language | Language|Language |Language | Language
----|---|---|---|---
-Afrikaans | Albanian | Amharic | Arabic | Armenian 
-Assamese | Azerbaijani | Basque | Belarusian | Bengali 
-Bengali Romanize | Bosnian | Breton | Bulgarian | Burmese 
-Burmese zawgyi font | Catalan | Chinese (Simplified) | Chinese (Traditional) | Croatian 
-Czech | Danish | Dutch | English | Esperanto 
-Estonian | Filipino | Finnish | French | Galician
-Georgian | German | Greek | Gujarati | Hausa
-Hebrew | Hindi | Hindi Romanize | Hungarian | Icelandic
-Indonesian | Irish | Italian | Japanese | Javanese
-Kannada | Kazakh | Khmer | Korean | Kurdish (Kurmanji)
-Kyrgyz | Lao | Latin | Latvian | Lithuanian
-Macedonian | Malagasy | Malay | Malayalam | Marathi
-Mongolian | Nepali | Norwegian | Oriya | Oromo
-Pashto | Persian | Polish | Portuguese | Punjabi
-Romanian | Russian | Sanskrit | Scottish Gaelic | Serbian
-Sindhi | Sinhala | Slovak | Slovenian | Somali
-Spanish | Sundanese | Swahili | Swedish | Tamil
-Tamil Romanize | Telugu | Telugu Romanize | Thai | Turkish
-Ukrainian | Urdu | Urdu Romanize | Uyghur | Uzbek
-Vietnamese | Welsh | Western Frisian | Xhosa | Yiddish
-
-We used the following languages for [Multilingual Knowledge Distillation](https://arxiv.org/abs/2004.09813): ar, bg, ca, cs, da, de, el, es, et, fa, fi, fr, fr-ca, gl, gu, he, hi, hr, hu, hy, id, it, ja, ka, ko, ku, lt, lv, mk, mn, mr, ms, my, nb, nl, pl, pt, pt, pt-br, ro, ru, sk, sl, sq, sr, sv, th, tr, uk, ur, vi, zh-cn, zh-tw. 
-
 Extending a model to new languages is easy by following [the description here](https://www.sbert.net/examples/training/multilingual/README.html).
 
+----
 
 ## Image & Text-Models
 The following models can embed images and text into a joint vector space. See [Image Search](../examples/applications/image-search/README.md)  for more details how to use for text2image-search, image2image-search, image clustering, and zero-shot image classification.
@@ -138,6 +108,7 @@ The following models can embed images and text into a joint vector space. See [I
 - **clip-ViT-B-32-multilingual-v1** - Multilingual text encoder for the CLIP model using [Multilingual Knowledge Distillation](https://arxiv.org/abs/2004.09813).
 
 
+---
 
 ## Other Models
 
@@ -169,6 +140,8 @@ print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 
 You can index the passages as shown [here](../examples/applications/semantic-search/README.md).
 
+**Note:** The NQ model doesn't perform well. Use the above mentioned Multi-QA models to achieve the optimal performance.
+
 [More details](pretrained-models/nq-v1.md)
 
 
@@ -182,6 +155,8 @@ In [Dense Passage Retrieval  for Open-Domain Question Answering](https://arxiv.o
 They also trained models on the combination of Natural Questions, TriviaQA, WebQuestions, and CuratedTREC.
 - **facebook-dpr-ctx_encoder-multiset-base** 
 - **facebook-dpr-question_encoder-multiset-base**
+
+**Note:** The DPR models perform comparabily bad. Use the above mentioned Multi-QA models to achieve the optimal performance.
 
 [More details & usage of the DPR models](pretrained-models/dpr.md)
 
