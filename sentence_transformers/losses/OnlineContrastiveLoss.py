@@ -8,8 +8,8 @@ from sentence_transformers.SentenceTransformer import SentenceTransformer
 class OnlineContrastiveLoss(nn.Module):
     """
     Online Contrastive loss. Similar to ConstrativeLoss, but it selects hard positive (positives that are far apart)
-     and hard negative pairs (negatives that are close) and computes the loss only for these pairs. Often yields
-     better performances than  ConstrativeLoss.
+    and hard negative pairs (negatives that are close) and computes the loss only for these pairs. Often yields
+    better performances than  ConstrativeLoss.
 
     :param model: SentenceTransformer model
     :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
