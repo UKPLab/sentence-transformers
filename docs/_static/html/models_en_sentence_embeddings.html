@@ -88,7 +88,7 @@
         }
 
          .toggle-inactive, .toggle-inactive:hover, .toggle-inactive:focus {
-             color: #999999;
+             color: #333;
          }
 
     </style>
@@ -96,7 +96,7 @@
 <body>
 
 <div id="app">
-    <div class="text-right">
+    <div class="text-right  p-2">
         <span class="toggle-link" v-bind:class="{'toggle-active': show_all_models, 'toggle-inactive': !show_all_models}" @click="show_all_models = !show_all_models">
             <span v-if="show_all_models">All models</span><span v-else>All models</span>
             <i class="fas" v-bind:class="{'toggle-active': show_all_models, 'fa-toggle-on': show_all_models, 'fa-toggle-off': !show_all_models}"></i>
@@ -140,7 +140,7 @@
         <tbody>
             <template  v-for="item in sortedModels">
                 <tr v-on:click="item.show_details = !item.show_details" style="cursor: pointer">
-                    <td>
+                    <td style="white-space: nowrap;">
                         {{ item.name }}
                         <span class="info-icon-model" v-bind:class="{'info-icon-active': item.show_details, 'info-icon-disabled': !item.show_details}" ><i class="fas fa-info-circle"></i></span>
                     </td>
@@ -664,7 +664,7 @@
                     "score_functions": ["dot", "cos", "eucl"],
                 },
                 {
-                    "name": "msmarco-distilbert-dot-v4",
+                    "name": "msmarco-distilbert-dot-v5",
                     "description": "This model was tuned for semantic search: Given a query/question, if can find relevant passages. It was trained on the MS MARCO passages dataset.",
                     "base_model": '<a href="https://huggingface.co/distilbert-base" target="_blank">distilbert-base</a>',
                     "pooling": "Mean Pooling",
@@ -680,7 +680,7 @@
                     "score_functions": ["dot"],
                 },
                 {
-                    "name": "msmarco-bert-base-dot-v4",
+                    "name": "msmarco-bert-base-dot-v5",
                     "description": "This model was tuned for semantic search: Given a query/question, if can find relevant passages. It was trained on the MS MARCO passages dataset.",
                     "base_model": '<a href="https://huggingface.co/Luyu/co-condenser-marco" target="_blank">Luyu/co-condenser-marco</a>',
                     "pooling": "Mean Pooling",

@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 model = SentenceTransformer('model_name')
 ```
 
-Alternatively, you can download and unzip them from [here](https://sbert.net/models). All models are also on the [HuggingFace model hub](https://huggingface.co/sentence-transformers).
+All models are hosted on the [HuggingFace Model Hub](https://huggingface.co/sentence-transformers).
 
 ## Model Overview
 
@@ -26,7 +26,7 @@ The following models have been specifically trained for **Semantic Search**: Giv
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('msmarco-distilbert-base-tas-b')
+model = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1')
 
 query_embedding = model.encode('How big is London')
 passage_embedding = model.encode(['London has 9,787,426 inhabitants at the 2011 census',
@@ -68,13 +68,20 @@ Models tuned to be used with dot-product:
 
 | Model | MSMARCO MRR@10 dev set | Performance Semantic Search (6 Datasets) | Queries (GPU / CPU) per sec. | 
 | --- | :---: | :---: | :---: |
-| [msmarco-distilbert-base-tas-b](https://huggingface.co/sentence-transformers/msmarco-distilbert-base-tas-b) | 34.43 | 49.25 | 18,000 / 750 |
-| [msmarco-distilbert-dot-v4](https://huggingface.co/sentence-transformers/msmarco-distilbert-dot-v4) | 37.25 | 49.47 | 18,000 / 750 |
-| [msmarco-bert-base-dot-v4](https://huggingface.co/sentence-transformers/msmarco-distilbert-base-tas-b) | 38.08 | 52.11 | 4,000 / 170 |
+| [msmarco-distilbert-base-tas-b](https://huggingface.co/sentence-transformers/msmarco-distilbert-base-tas-b) | 34.43 | 49.25 | 7,000 / 350 |
+| [msmarco-distilbert-dot-v5](https://huggingface.co/sentence-transformers/msmarco-distilbert-dot-v5) | 37.25 | 49.47 | 7,000 / 350 |
+| [msmarco-bert-base-dot-v5](https://huggingface.co/sentence-transformers/msmarco-bert-base-dot-v5) | 38.08 | 52.11 | 4,000 / 170 |
 
 
+These models produce normalized vectors of length 1, which can be used with dot-product, cosine-similarity and Euclidean distance:
 
-[MSMARCO Models - More details](pretrained-models/msmarco-v3.md)
+| Model | MSMARCO MRR@10 dev set | Performance Semantic Search (6 Datasets) | Queries (GPU / CPU) per sec. | 
+| --- | :---: | :---: | :---: |
+| [msmarco-MiniLM-L6-cos-v5](https://huggingface.co/sentence-transformers/msmarco-MiniLM-L6-cos-v5) | 32.27 | 42.16 | 18,000 / 750 |
+| [msmarco-MiniLM-L12-cos-v5](https://huggingface.co/sentence-transformers/msmarco-MiniLM-L12-cos-v5) | 32.75 | 43.89 | 11,000 / 400 |
+| [msmarco-distilbert-cos-v5](https://huggingface.co/sentence-transformers/msmarco-distilbert-cos-v5) | 33.79 | 44.98 | 7,000 / 350 |
+
+[MSMARCO Models - More details](pretrained-models/msmarco-v5.md)
 
 ---
 
