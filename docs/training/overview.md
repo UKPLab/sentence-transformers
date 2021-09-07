@@ -204,7 +204,7 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 If you want to extend the vocabulary for an existent SentenceTransformer model, you can use the following code:
 ```python
 from sentence_transformers import SentenceTransformer, models
-model = SentenceTransformer('paraphrase-distilroberta-base-v1')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 word_embedding_model = model._first_module()
 
 tokens = ["[DOC]", "[QRY]"]

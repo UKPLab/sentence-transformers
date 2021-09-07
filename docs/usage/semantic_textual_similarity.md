@@ -4,7 +4,7 @@ Once you have  [sentence embeddings computed](../../examples/applications/comput
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('paraphrase-MiniLM-L12-v2')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Two lists of sentences
 sentences1 = ['The cat sits outside',
@@ -36,7 +36,7 @@ You can use this function also to find out the pairs with the highest cosine sim
 ```python
 from sentence_transformers import SentenceTransformer, util
 
-model = SentenceTransformer('paraphrase-MiniLM-L12-v2')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Single list of sentences
 sentences = ['The cat sits outside',

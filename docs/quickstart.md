@@ -2,7 +2,7 @@
 Once you have SentenceTransformers [installed](installation.md), the usage is simple:
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 #Our sentences we like to encode
 sentences = ['This framework generates embeddings for each input sentence',
@@ -20,7 +20,7 @@ for sentence, embedding in zip(sentences, sentence_embeddings):
 ```
 
 
-With `SentenceTransformer('paraphrase-MiniLM-L6-v2')` we define which sentence transformer model we like to load. In this example, we load *paraphrase-MiniLM-L6-v2*, which is a MiniLM model fine tuned on a large dataset of paraphrase sentences.
+With `SentenceTransformer('all-MiniLM-L6-v2')` we define which sentence transformer model we like to load. In this example, we load *all-MiniLM-L6-v2*, which is a MiniLM model fine tuned on a large dataset of over 1 billion training pairs.
 
 BERT (and other transformer networks) output for each token in our input text an embedding. In order to create a fixed-sized sentence embedding out of this, the model applies mean pooling, i.e., the output embeddings for all tokens are averaged to yield a fixed-sized vector.
 
@@ -30,7 +30,7 @@ The sentences (texts) are mapped such that sentences with similar meanings are c
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 #Sentences are encoded by calling model.encode()
 emb1 = model.encode("This is a red cat with a hat.")
@@ -43,7 +43,7 @@ print("Cosine-Similarity:", cos_sim)
 If you have a list with more sentences, you can use the following code example:
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 sentences = ['A man is eating food.',
           'A man is eating a piece of bread.',
