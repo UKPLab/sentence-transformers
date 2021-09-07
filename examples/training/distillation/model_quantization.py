@@ -42,7 +42,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     level=logging.INFO)
 ### /print debug information to stdout
 
-model_name = 'paraphrase-distilroberta-base-v1'
+model_name = 'all-distilroberta-v1'
 
 # Load a named sentence model (based on BERT). This will download the model from our server.
 # Alternatively, you can also pass a filepath to SentenceTransformer()

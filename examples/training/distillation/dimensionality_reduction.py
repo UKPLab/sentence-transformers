@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 #### /print debug information to stdout
 
 #Model for which we apply dimensionality reduction
-model = SentenceTransformer('paraphrase-distilroberta-base-v2')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 #New size for the embeddings
 new_dimension = 128

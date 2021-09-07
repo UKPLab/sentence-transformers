@@ -116,7 +116,7 @@ def triplets_from_labeled_dataset(input_examples):
 
 
 # You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
-model_name = 'paraphrase-distilroberta-base-v1'
+model_name = 'all-distilroberta-v1'
 
 ### Create a torch.DataLoader that passes training batch instances to our model
 train_batch_size = 32
