@@ -6,12 +6,13 @@ The training data constist of over 500k examples, while the complete  corpus con
 ## Usage
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('msmarco-distilroberta-base-v3')
+model = SentenceTransformer('msmarco-distilbert-dot-v5')
 
 query_embedding = model.encode('How big is London')
-passage_embedding = model.encode('London has 9,787,426 inhabitants at the 2011 census')
+passage_embedding = model.encode(['London has 9,787,426 inhabitants at the 2011 census',
+                                  'London is known for its finacial district'])
 
-print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
+print("Similarity:", util.dot_score(query_embedding, passage_embedding))
 ```
 
 
@@ -19,35 +20,33 @@ For more details on the usage, see [Applications - Information Retrieval](../../
 
 
 ## Performance
-Performance is evaluated on [TREC-DL 2019](https://microsoft.github.io/TREC-2019-Deep-Learning/), which is a query-passage retrieval task where multiple queries have been annotated as with their relevance with respect to the given query.  Further, we evaluate on the [MS Marco Passage Retrieval](https://github.com/microsoft/MSMARCO-Passage-Ranking/) dataset. 
+Performance is evaluated on [TREC-DL 2019](https://microsoft.github.io/msmarco/TREC-Deep-Learning-2019) and [TREC-DL 2020](https://microsoft.github.io/msmarco/TREC-Deep-Learning-2020), which are a query-passage retrieval task where multiple queries have been annotated as with their relevance with respect to the given query.  Further, we evaluate on the [MS Marco Passage Retrieval](https://github.com/microsoft/MSMARCO-Passage-Ranking/) dataset. 
 
-As baseline we show the results for lexical search with BM25 using ElasticSearch.
 
-| Approach       | NDCG@10 (TREC DL 19 Reranking) | MRR@10 (MS Marco Dev) |  Queries (GPU / CPU) | Docs (GPU / CPU)
-| ------------- |:-------------: | :---: | :---: | :---: |
-| **Models tuned for cosine-similarity** | |
-| msmarco-MiniLM-L-6-v3 | 67.46 | 32.27 | 18,000 / 750 | 2,800 / 180
-| msmarco-MiniLM-L-12-v3 | 65.14 | 32.75 | 11,000 / 400 | 1,500 / 90
-| msmarco-distilbert-base-v3| 69.02 | 33.13 | 7,000 / 350 | 1,100 / 70
-| msmarco-distilbert-base-v4 | **70.24** | **33.79**| 7,000 / 350 | 1,100 / 70
-| msmarco-roberta-base-v3 | 69.08 | 33.01 | 4,000 / 170 | 540 / 30
+| Approach       | MRR@10 (MS Marco Dev) | NDCG@10 (TREC DL 19 Reranking) | NDCG@10 (TREC DL 20 Reranking) |   Queries (GPU / CPU) | Docs (GPU / CPU)
+| ------------- | :-------------: | :-------------: | :---: | :---: | :---: |
+| **Models tuned with normalized embeddings** | |
+| [msmarco-MiniLM-L6-cos-v5](https://huggingface.co/sentence-transformers/msmarco-MiniLM-L6-cos-v5) | 32.27 | 67.46 | 64.73 | 18,000 / 750 | 2,800 / 180
+| [msmarco-MiniLM-L12-cos-v5](https://huggingface.co/sentence-transformers/msmarco-MiniLM-L12-cos-v5) | 32.75 | 65.14 | 67.48 | 11,000 / 400 | 1,500 / 90
+| [msmarco-distilbert-cos-v5](https://huggingface.co/sentence-transformers/msmarco-distilbert-cos-v5) | 33.79 | 70.24 | 66.24  | 7,000 / 350 | 1,100 / 70
 | **Models tuned for dot-product** | |
-| msmarco-distilbert-base-dot-prod-v3 | 68.42 | 33.04 | 7,000 / 350 | 1100 / 70
-| [msmarco-roberta-base-ance-firstp](https://github.com/microsoft/ANCE) | 67.84 | 33.01 | 4,000 / 170 | 540 / 30
-| [msmarco-distilbert-base-tas-b](https://huggingface.co/sebastian-hofstaetter/distilbert-dot-tas_b-b256-msmarco) | **71.04** | **34.43** | 7,000 / 350 | 1100 / 70
-| **Previous approaches** |  |  |
-| BM25 (ElasticSearch)   | 45.46 | 17.29  |
-| msmarco-distilroberta-base-v2   | 65.65 |  28.55    |  
-| msmarco-roberta-base-v2 | 67.18 | 29.17 | 
-| msmarco-distilbert-base-v2 | 68.35 | 30.77 |
+| [msmarco-distilbert-base-tas-b](https://huggingface.co/sentence-transformers/msmarco-distilbert-base-tas-b) | 34.43 | 71.04 | 69.78  | 7,000 / 350 | 1100 / 70
+| [msmarco-distilbert-dot-v5](https://huggingface.co/sentence-transformers/msmarco-distilbert-dot-v5) | 37.25 | 70.14 | 71.08 | 7,000 / 350 | 1100 / 70
+| [msmarco-bert-base-dot-v5](https://huggingface.co/sentence-transformers/msmarco-bert-base-dot-v5) | 38.08 | 70.51	| 73.45 | 4,000 / 170 |  540 / 30
+
 
 **Notes:**
-- We provide two type of models, one tuned for **cosine-similarity**, the other for **dot-product**. Make sure to use the right method to compute the similarity between query and passages.
-- Models tuned for **cosine-similarity** will prefer the retrieval of shorter passages, while models for **dot-product** will prefer the retrieval of longer passages. Depending on your task, you might prefer the one or the other type of model.
-- **msmarco-roberta-base-ance-firstp** is the MSMARCO Dev Passage Retrieval ANCE(FirstP) 600K model from [ANCE](https://github.com/microsoft/ANCE). This model should be used with dot-product instead of cosine similarity.
-- **msmarco-distilbert-base-tas-b** uses the model from [sebastian-hofstaetter/distilbert-dot-tas_b-b256-msmarco](https://huggingface.co/sebastian-hofstaetter/distilbert-dot-tas_b-b256-msmarco). See the linked documentation / paper for more details.
+- We provide two type of models: One that produces **normalized embedding** and can be used with dot-product, cosine-similarity or euclidean distance (all three scoring function will produce the same results). The models tuned for **dot-product** will produce embeddings of different lengths and must be used with dot-product to find close items in a vector space.
+- Models with normalized embeddings will prefer the retrieval of shorter passages, while models tuned for **dot-product** will prefer the retrieval of longer passages. Depending on your task, you might prefer the one or the other type of model.
 - Encoding speeds are per second and were measured on a V100 GPU and an 8 core Intel(R) Xeon(R) Platinum 8168 CPU @ 2.70GHz
 
+
+## Changes in v5
+- Models with normalized embeddings were added: These are the v3 cosine-similarity models, but with an additional normalize layer on-top.
+- New models trained with MarginMSE loss trained: msmarco-distilbert-dot-v5 and msmarco-bert-base-dot-v5
+
+## Changes in v4
+- Just one new model was trained with better hard negatives, leading to a small improvement compared to v3
 
 ## Changes in v3
 The models from v2 have been used for find for all training queries similar passages. An [MS MARCO Cross-Encoder](ce-msmarco.md) based on the electra-base-model has been then used to classify if these retrieved passages answer the question.
@@ -59,5 +58,6 @@ We then trained the v2 models with these new hard negatives.
 ## Version Histroy 
 As we work on the topic, we will publish updated (and improved) models.
 
+- [Version 3](msmarco-v3.md)
 - [Version 2](msmarco-v2.md)
 - [Version 1](msmarco-v1.md)
