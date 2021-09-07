@@ -13,7 +13,7 @@ class MSELoss(nn.Module):
     """
     def __init__(self, model):
         """
-        :param model: Model to tune
+        :param model: SentenceTransformerModel
         """
         super(MSELoss, self).__init__()
         self.model = model
