@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.cluster import AgglomerativeClustering
 import numpy as np
 
-embedder = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+embedder = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Corpus with example sentences
 corpus = ['A man is eating food.',

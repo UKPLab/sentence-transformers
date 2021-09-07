@@ -18,7 +18,7 @@ import time
 
 
 # Model for computing sentence embeddings. We use one trained for similar questions detection
-model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # We donwload the Quora Duplicate Questions Dataset (https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs)
 # and find similar question in it

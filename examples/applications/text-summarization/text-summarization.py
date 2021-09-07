@@ -22,7 +22,7 @@ from LexRank import degree_centrality_scores
 
 
 
-model = SentenceTransformer('paraphrase-distilroberta-base-v1')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Our input document we want to summarize
 # As example, we take the first section from Wikipedia

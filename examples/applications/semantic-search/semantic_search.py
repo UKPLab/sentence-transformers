@@ -9,7 +9,7 @@ This script outputs for various queries the top 5 most similar sentences in the 
 from sentence_transformers import SentenceTransformer, util
 import torch
 
-embedder = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+embedder = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Corpus with example sentences
 corpus = ['A man is eating food.',
