@@ -9,6 +9,10 @@ class MarginMSELoss(nn.Module):
     For more details, please refer to https://arxiv.org/abs/2010.02666.
     """
     def __init__(self, model, similarity_fct = util.pairwise_dot_score):
+        """
+        :param model: Model to tune
+        :param similarity_fct:  Which similarity function to use.
+        """
         super(MarginMSELoss, self).__init__()
         self.model = model
         self.similarity_fct = similarity_fct
