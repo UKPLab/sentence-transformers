@@ -107,6 +107,7 @@ class CrossEncoder():
             activation_fct = nn.Identity(),
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
+            accumulation_steps: int = 1,
             optimizer_class: Type[Optimizer] = transformers.AdamW,
             optimizer_params: Dict[str, object] = {'lr': 2e-5},
             weight_decay: float = 0.01,
@@ -130,6 +131,7 @@ class CrossEncoder():
         :param activation_fct: Activation function applied on top of logits output of model.
         :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
+        :param accumulation_steps: Number of steps to accumulate before performing a backward pass
         :param optimizer_class: Optimizer
         :param optimizer_params: Optimizer parameters
         :param weight_decay: Weight decay for model parameters
@@ -180,7 +182,7 @@ class CrossEncoder():
             self.model.zero_grad()
             self.model.train()
 
-            for features, labels in tqdm(train_dataloader, desc="Iteration", smoothing=0.05):
+            for i, (features, labels) in tqdm(enumerate(train_dataloader), total=(len(train_dataloader) // accumulation_steps), desc="Iteration", smoothing=0.05):
                 if use_amp:
                     with autocast():
                         model_predictions = self.model(**features, return_dict=True)
@@ -188,13 +190,16 @@ class CrossEncoder():
                         if self.config.num_labels == 1:
                             logits = logits.view(-1)
                         loss_value = loss_fct(logits, labels)
+                        loss_value /= accumulation_steps
 
                     scale_before_step = scaler.get_scale()
                     scaler.scale(loss_value).backward()
-                    scaler.unscale_(optimizer)
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
-                    scaler.step(optimizer)
-                    scaler.update()
+                    if (i + 1) % accumulation_steps == 0:
+                        scaler.unscale_(optimizer)
+                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
+                        scaler.step(optimizer)
+                        scaler.update()
+                        optimizer.zero_grad()
 
                     skip_scheduler = scaler.get_scale() != scale_before_step
                 else:
@@ -203,13 +208,14 @@ class CrossEncoder():
                     if self.config.num_labels == 1:
                         logits = logits.view(-1)
                     loss_value = loss_fct(logits, labels)
+                    loss_value /= accumulation_steps
                     loss_value.backward()
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
-                    optimizer.step()
+                    if (i + 1) % accumulation_steps == 0:
+                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
+                        optimizer.step()
+                        optimizer.zero_grad()
 
-                optimizer.zero_grad()
-
-                if not skip_scheduler:
+                if not skip_scheduler and (i + 1) % accumulation_steps == 0:
                     scheduler.step()
 
                 training_steps += 1
@@ -317,4 +323,3 @@ class CrossEncoder():
         Same function as save
         """
         return self.save(path)
-
