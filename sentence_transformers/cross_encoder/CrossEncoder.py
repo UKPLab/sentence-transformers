@@ -116,6 +116,7 @@ class CrossEncoder():
             max_grad_norm: float = 1,
             use_amp: bool = False,
             callback: Callable[[float, int, int], None] = None,
+            show_progress_bar: bool = True
             ):
         """
         Train the model with the given training objective
@@ -141,6 +142,7 @@ class CrossEncoder():
         :param callback: Callback function that is invoked after each evaluation.
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
+        :param show_progress_bar: If True, output a tqdm progress bar
         """
         train_dataloader.collate_fn = self.smart_batching_collate
 
@@ -175,12 +177,12 @@ class CrossEncoder():
 
 
         skip_scheduler = False
-        for epoch in trange(epochs, desc="Epoch"):
+        for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
             self.model.zero_grad()
             self.model.train()
 
-            for features, labels in tqdm(train_dataloader, desc="Iteration", smoothing=0.05):
+            for features, labels in tqdm(train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
                 if use_amp:
                     with autocast():
                         model_predictions = self.model(**features, return_dict=True)
