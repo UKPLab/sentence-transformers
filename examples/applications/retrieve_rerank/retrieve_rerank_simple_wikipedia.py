@@ -25,7 +25,7 @@ from sentence_transformers import SentenceTransformer, CrossEncoder, util
 
 import gzip
 import os
-import torch
+
 
 
 # We use the Bi-Encoder to encode all passages, so that we can use it with sematic search
