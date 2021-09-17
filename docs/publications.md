@@ -34,7 +34,7 @@ If you use the code for [data augmentation](https://github.com/UKPLab/sentence-t
     title = "Augmented {SBERT}: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks",
     author = "Thakur, Nandan and Reimers, Nils and Daxenberger, Johannes  and Gurevych, Iryna",
     booktitle = "Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies",
-    month = jun,
+    month = "6",
     year = "2021",
     address = "Online",
     publisher = "Association for Computational Linguistics",
@@ -45,13 +45,17 @@ If you use the code for [data augmentation](https://github.com/UKPLab/sentence-t
 
 If you use the models for [MS MARCO](pretrained-models/msmarco-v2.md), feel free to cite the paper: [The Curse of Dense Low-Dimensional Information Retrieval for Large Index Sizes](https://arxiv.org/abs/2012.14210)
 ```bibtex
-@article{reimers-2020-Curse_Dense_Retrieval,
+@inproceedings{reimers-2020-Curse_Dense_Retrieval,
     title = "The Curse of Dense Low-Dimensional Information Retrieval for Large Index Sizes",
-    author = "Reimers, Nils and  Gurevych, Iryna", 
-    journal= "arXiv preprint arXiv:2012.14210",
-    month = "12",
-    year = "2020",
-    url = "https://arxiv.org/abs/2012.14210",
+    author = "Reimers, Nils  and Gurevych, Iryna",
+    booktitle = "Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 2: Short Papers)",
+    month = "8",
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.acl-short.77",
+    doi = "10.18653/v1/2021.acl-short.77",
+    pages = "605--611",
 }
 ```
 
