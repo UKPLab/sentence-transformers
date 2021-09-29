@@ -114,7 +114,7 @@ class SentenceTransformer(nn.Sequential):
         :param sentences: the sentences to embed
         :param batch_size: the batch size used for the computation
         :param show_progress_bar: Output a progress bar when encode sentences
-        :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings.
+        :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings. Set to None, to get all output values
         :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
         :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from convert_to_numpy
         :param device: Which torch.device to use for the computation
@@ -130,7 +130,7 @@ class SentenceTransformer(nn.Sequential):
         if convert_to_tensor:
             convert_to_numpy = False
 
-        if output_value == 'token_embeddings':
+        if output_value != 'sentence_embedding':
             convert_to_tensor = False
             convert_to_numpy = False
 
@@ -164,6 +164,11 @@ class SentenceTransformer(nn.Sequential):
                             last_mask_id -= 1
 
                         embeddings.append(token_emb[0:last_mask_id+1])
+                elif output_value is None:  #Return all outputs
+                    embeddings = []
+                    for sent_idx in range(len(out_features['sentence_embedding'])):
+                        row =  {name: out_features[name][sent_idx] for name in out_features}
+                        embeddings.append(row)
                 else:   #Sentence embeddings
                     embeddings = out_features[output_value]
                     embeddings = embeddings.detach()
