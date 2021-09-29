@@ -3,6 +3,7 @@ import transformers
 import torch
 from PIL import ImageFile
 
+
 class CLIPModel(nn.Module):
     def __init__(self,  model_name: str = "openai/clip-vit-base-patch32", processor_name = None):
         super(CLIPModel, self).__init__()
@@ -15,9 +16,6 @@ class CLIPModel(nn.Module):
 
     def __repr__(self):
         return "CLIPModel()"
-
-    def get_word_embedding_dimension(self) -> int:
-        return self.auto_model.config.hidden_size
 
     def forward(self, features):
         image_embeds = []
