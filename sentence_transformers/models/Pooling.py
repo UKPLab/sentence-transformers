@@ -69,12 +69,12 @@ class Pooling(nn.Module):
 
     def forward(self, features: Dict[str, Tensor]):
         token_embeddings = features['token_embeddings']
-        cls_token = features['cls_token_embeddings']
         attention_mask = features['attention_mask']
 
         ## Pooling strategy
         output_vectors = []
         if self.pooling_mode_cls_token:
+            cls_token = features.get('cls_token_embeddings', token_embeddings[:, 0])  # Take first token by default
             output_vectors.append(cls_token)
         if self.pooling_mode_max_tokens:
             input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
