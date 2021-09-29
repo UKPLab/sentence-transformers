@@ -20,6 +20,7 @@ import math
 import queue
 import tempfile
 from distutils.dir_util import copy_tree
+from accelerate import Accelerator
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
@@ -602,6 +603,8 @@ class SentenceTransformer(nn.Sequential):
         :param checkpoint_save_total_limit: Total number of checkpoints to store
         """
 
+        # accelerate setup
+        accelerator = Accelerator()
         ##Add info to model card
         #info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
         info_loss_functions =  []
@@ -618,7 +621,8 @@ class SentenceTransformer(nn.Sequential):
             from torch.cuda.amp import autocast
             scaler = torch.cuda.amp.GradScaler()
 
-        self.to(self._target_device)
+        # accelerate modif
+        # self.to(self._target_device)
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
 
@@ -627,8 +631,9 @@ class SentenceTransformer(nn.Sequential):
             dataloader.collate_fn = self.smart_batching_collate
 
         loss_models = [loss for _, loss in train_objectives]
-        for loss_model in loss_models:
-            loss_model.to(self._target_device)
+        # accelerate modif
+        # for loss_model in loss_models:
+        #     loss_model.to(self._target_device)
 
         self.best_score = -9999999
 
@@ -655,9 +660,13 @@ class SentenceTransformer(nn.Sequential):
             optimizers.append(optimizer)
             schedulers.append(scheduler_obj)
 
+        loss_models = [accelerator.prepare(loss_model) for loss_model in loss_models]
+        optimizers = [accelerator.prepare(optimizer) for optimizer in optimizers]
+        dataloaders = [accelerator.prepare(dataloader) for dataloader in dataloaders]
 
         global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
+
 
         num_train_objectives = len(train_objectives)
 
@@ -692,7 +701,9 @@ class SentenceTransformer(nn.Sequential):
                             loss_value = loss_model(features, labels)
 
                         scale_before_step = scaler.get_scale()
-                        scaler.scale(loss_value).backward()
+                        # accelerate modif
+                        # scaler.scale(loss_value).backward()
+                        accelerator.backward(scaler.scale(loss_value))
                         scaler.unscale_(optimizer)
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
                         scaler.step(optimizer)
@@ -701,7 +712,9 @@ class SentenceTransformer(nn.Sequential):
                         skip_scheduler = scaler.get_scale() != scale_before_step
                     else:
                         loss_value = loss_model(features, labels)
-                        loss_value.backward()
+                        # accelerate modif
+                        # loss_value.backward()
+                        accelerator.backward(loss_value)
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
                         optimizer.step()
 
