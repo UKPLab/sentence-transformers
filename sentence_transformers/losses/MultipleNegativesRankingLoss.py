@@ -27,14 +27,13 @@ class MultipleNegativesRankingLoss(nn.Module):
 
         Example::
 
-            from sentence_transformers import SentenceTransformer,  SentencesDataset, LoggingHandler, losses
-            from sentence_transformers.readers import InputExample
+            from sentence_transformers import SentenceTransformer, losses, InputExample
+            from torch.utils.data import DataLoader
 
-            model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+            model = SentenceTransformer('distilbert-base-uncased')
             train_examples = [InputExample(texts=['Anchor 1', 'Positive 1']),
                 InputExample(texts=['Anchor 2', 'Positive 2'])]
-            train_dataset = SentencesDataset(train_examples, model)
-            train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+            train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
             train_loss = losses.MultipleNegativesRankingLoss(model=model)
     """
     def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct = util.cos_sim):
