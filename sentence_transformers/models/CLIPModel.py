@@ -1,7 +1,7 @@
 from torch import nn
 import transformers
 import torch
-from PIL import ImageFile
+from PIL import Image
 
 
 class CLIPModel(nn.Module):
@@ -56,7 +56,7 @@ class CLIPModel(nn.Module):
         image_text_info = []
 
         for idx, data in enumerate(texts):
-            if isinstance(data, ImageFile.ImageFile):  # An Image
+            if isinstance(data, Image.Image):  # An Image
                 images.append(data)
                 image_text_info.append(0)
             else:  # A text
