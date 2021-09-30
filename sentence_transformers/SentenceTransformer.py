@@ -40,7 +40,7 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models
     """
-    def __init__(self, model_name_or_path: Optional[str] = None, modules: Optional[Iterable[nn.Module]] = None, device: Optional[str] = None, cache_folder: Optional[str] = None):
+    def __init__(self, model_name_or_path: Optional[str] = None, modules: Optional[Iterable[nn.Module]] = None, device: Optional[str] = None, cache_folder: Optional[str] = None, **auto_model_kwargs):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -90,7 +90,7 @@ class SentenceTransformer(nn.Sequential):
             if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
                 modules = self._load_sbert_model(model_path)
             else:   #Load with AutoModel
-                modules = self._load_auto_model(model_path)
+                modules = self._load_auto_model(model_path, **auto_model_kwargs)
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -793,12 +793,12 @@ class SentenceTransformer(nn.Sequential):
                 shutil.rmtree(old_checkpoints[0]['path'])
 
 
-    def _load_auto_model(self, model_name_or_path):
+    def _load_auto_model(self, model_name_or_path, **auto_model_kwargs):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
         logging.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
-        transformer_model = Transformer(model_name_or_path)
+        transformer_model = Transformer(model_name_or_path, **auto_model_kwargs)
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
         return [transformer_model, pooling_model]
 
