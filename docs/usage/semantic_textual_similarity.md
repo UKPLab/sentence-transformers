@@ -19,12 +19,12 @@ sentences2 = ['The dog plays in the garden',
 embeddings1 = model.encode(sentences1, convert_to_tensor=True)
 embeddings2 = model.encode(sentences2, convert_to_tensor=True)
 
-#Compute cosine-similarits
+#Compute cosine-similarities
 cosine_scores = util.pytorch_cos_sim(embeddings1, embeddings2)
 
 #Output the pairs with their score
-for i in range(len(sentences1)):
-    print("{} \t\t {} \t\t Score: {:.4f}".format(sentences1[i], sentences2[i], cosine_scores[i][i]))
+for i, (sentence1, sentence2) in enumerate(zip(sentences1, sentences2)):
+    print(f"{sentence1:<20} {sentence2:<20} Score: {cosine_scores[i][i]:.4f}")
 ```
 
 We pass the `convert_to_tensor=True` parameter to the encode function. This will return a pytorch tensor containing our embeddings. We can then call `util.pytorch_cos_sim(A, B)` which computes the cosine similarity between all vectors in *A* and all vectors in *B*. 
@@ -55,17 +55,23 @@ embeddings = model.encode(sentences, convert_to_tensor=True)
 cosine_scores = util.pytorch_cos_sim(embeddings, embeddings)
 
 #Find the pairs with the highest cosine similarity scores
-pairs = []
-for i in range(len(cosine_scores)-1):
-    for j in range(i+1, len(cosine_scores)):
-        pairs.append({'index': [i, j], 'score': cosine_scores[i][j]})
+pairs = [
+    {'index': (i, j), 'score': cosine_scores[i][j]}
+    for i in range(len(cosine_scores)-1)
+    for j in range(i+1, len(cosine_scores))
+]
 
 #Sort scores in decreasing order
 pairs = sorted(pairs, key=lambda x: x['score'], reverse=True)
 
+# Compution padding length for printing
+max_length = max(len(s) for s in sentences)
+padding = max_length + 5
+
+#Print the top-10 results
 for pair in pairs[0:10]:
     i, j = pair['index']
-    print("{} \t\t {} \t\t Score: {:.4f}".format(sentences[i], sentences[j], pair['score']))
+    print(f"{sentences[i]:<{padding}} {sentences[j]:<{padding}} Score: {pair['score']:.4f}")
 ```
 
 Note, in the above approach we use a brute-force approach to find the highest scoring pairs, which has a quadratic complexity. For long lists of sentences, this might be infeasible. If you want find the highest scoring pairs in a long list of sentences, have a look at [Paraphrase Mining](../../examples/applications/paraphrase-mining/README.md).
