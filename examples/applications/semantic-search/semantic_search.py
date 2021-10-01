@@ -42,12 +42,16 @@ for query in queries:
     print("\nTop 5 most similar sentences in corpus:")
 
     for score, idx in zip(top_results[0], top_results[1]):
-        print(corpus[idx], "(Score: {:.4f})".format(score))
+        print(corpus[idx], f"(Score: {score:.4f})")
 
-    """
-    # Alternatively, we can also use util.semantic_search to perform cosine similarty + topk
-    hits = util.semantic_search(query_embedding, corpus_embeddings, top_k=5)
-    hits = hits[0]      #Get the hits for the first query
+"""
+# Alternatively, we can also use util.semantic_search to perform cosine similarty + topk
+query_embedding = embedder.encode(queries, convert_to_tensor=True)
+query_hits = util.semantic_search(query_embedding, corpus_embeddings, top_k=5)
+for i, hits in enumerate(query_hits):
+    print("\n\n======================\n\n")
+    print(f'Query: {queries[i]}')
+    print("\nTop 5 most similar sentences in corpus:")
     for hit in hits:
-        print(corpus[hit['corpus_id']], "(Score: {:.4f})".format(hit['score']))
-    """
+        print(corpus[hit['corpus_id']], f"(Score: {hit['score']:.4f})")
+"""
