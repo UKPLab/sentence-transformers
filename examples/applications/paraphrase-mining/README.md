@@ -24,7 +24,7 @@ paraphrases = util.paraphrase_mining(model, sentences)
 
 for paraphrase in paraphrases[0:10]:
     score, i, j = paraphrase
-    print("{} \t\t {} \t\t Score: {:.4f}".format(sentences[i], sentences[j], score))
+    print(f"{sentences[i]} \t\t {sentences[j]} \t\t Score: {score:.4f}")
 ```
 
 The **paraphrase_mining()**-method accepts the following parameters:
