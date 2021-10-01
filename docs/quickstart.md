@@ -63,17 +63,18 @@ embeddings = model.encode(sentences)
 cos_sim = util.cos_sim(embeddings, embeddings)
 
 #Add all pairs to a list with their cosine similarity score
-all_sentence_combinations = []
-for i in range(len(cos_sim)-1):
-    for j in range(i+1, len(cos_sim)):
-        all_sentence_combinations.append([cos_sim[i][j], i, j])
+all_sentence_combinations = [
+    [cos_sim[i][j], i, j]
+    for i in range(len(cos_sim)-1)
+    for j in range(i+1, len(cos_sim))
+]
 
 #Sort list by the highest cosine similarity score
 all_sentence_combinations = sorted(all_sentence_combinations, key=lambda x: x[0], reverse=True)
 
 print("Top-5 most similar pairs:")
 for score, i, j in all_sentence_combinations[0:5]:
-    print("{} \t {} \t {:.4f}".format(sentences[i], sentences[j], cos_sim[i][j]))
+    print(f"{sentences[i]} \t {sentences[j]} \t {cos_sim[i][j]:.4f}")
 ```
 
 See on the left the *Usage* sections for more examples how to use SentenceTransformers.
