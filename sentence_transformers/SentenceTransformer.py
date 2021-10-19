@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import stat
+import warnings
 from collections import OrderedDict
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
 import requests
@@ -560,6 +561,7 @@ class SentenceTransformer(nn.Sequential):
             steps_per_epoch = None,
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
+            gradient_accumulation: int = 1,
             optimizer_class: Type[Optimizer] = transformers.AdamW,
             optimizer_params : Dict[str, object]= {'lr': 2e-5},
             weight_decay: float = 0.01,
@@ -586,6 +588,7 @@ class SentenceTransformer(nn.Sequential):
         :param steps_per_epoch: Number of training steps per epoch. If set to None (default), one epoch is equal the DataLoader size from train_objectives.
         :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
+        :param gradient_accumulation: number of steps to take before gradient updates
         :param optimizer_class: Optimizer
         :param optimizer_params: Optimizer parameters
         :param weight_decay: Weight decay for model parameters
@@ -603,8 +606,6 @@ class SentenceTransformer(nn.Sequential):
         :param checkpoint_save_total_limit: Total number of checkpoints to store
         """
 
-        # accelerate setup
-        accelerator = Accelerator()
         ##Add info to model card
         #info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
         info_loss_functions =  []
@@ -616,13 +617,12 @@ class SentenceTransformer(nn.Sequential):
         self._model_card_text = None
         self._model_card_vars['{TRAINING_SECTION}'] = ModelCardTemplate.__TRAINING_SECTION__.replace("{LOSS_FUNCTIONS}", info_loss_functions).replace("{FIT_PARAMETERS}", info_fit_parameters)
 
+        # accelerate setup
+        accelerator = Accelerator()
 
         if use_amp:
             from torch.cuda.amp import autocast
             scaler = torch.cuda.amp.GradScaler()
-
-        # accelerate modif
-        # self.to(self._target_device)
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
 
@@ -631,9 +631,6 @@ class SentenceTransformer(nn.Sequential):
             dataloader.collate_fn = self.smart_batching_collate
 
         loss_models = [loss for _, loss in train_objectives]
-        # accelerate modif
-        # for loss_model in loss_models:
-        #     loss_model.to(self._target_device)
 
         self.best_score = -9999999
 
@@ -678,7 +675,7 @@ class SentenceTransformer(nn.Sequential):
                 loss_model.zero_grad()
                 loss_model.train()
 
-            for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
+            for _ in trange(steps_per_epoch * gradient_accumulation, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
                     optimizer = optimizers[train_idx]
@@ -692,39 +689,38 @@ class SentenceTransformer(nn.Sequential):
                         data_iterators[train_idx] = data_iterator
                         data = next(data_iterator)
 
-
                     features, labels = data
-
 
                     if use_amp:
                         with autocast():
                             loss_value = loss_model(features, labels)
 
                         scale_before_step = scaler.get_scale()
-                        # accelerate modif
-                        # scaler.scale(loss_value).backward()
                         accelerator.backward(scaler.scale(loss_value))
+                        training_steps += 1
                         scaler.unscale_(optimizer)
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
-                        scaler.step(optimizer)
-                        scaler.update()
 
-                        skip_scheduler = scaler.get_scale() != scale_before_step
+                        if training_steps % gradient_accumulation == 0:
+                            scaler.step(optimizer)
+                            scaler.update()
+                            skip_scheduler = scaler.get_scale() != scale_before_step
+                            optimizer.zero_grad()
+                            if not skip_scheduler:
+                                scheduler.step()
+                            global_step += 1
                     else:
                         loss_value = loss_model(features, labels)
-                        # accelerate modif
-                        # loss_value.backward()
                         accelerator.backward(loss_value)
+                        training_steps += 1
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
-                        optimizer.step()
+                        if training_steps % gradient_accumulation == 0:
+                            optimizer.step()
 
-                    optimizer.zero_grad()
-
-                    if not skip_scheduler:
-                        scheduler.step()
-
-                training_steps += 1
-                global_step += 1
+                            optimizer.zero_grad()
+                            if not skip_scheduler:
+                                scheduler.step()
+                            global_step += 1
 
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)

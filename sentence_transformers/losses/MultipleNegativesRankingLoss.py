@@ -55,14 +55,21 @@ class MultipleNegativesRankingLoss(nn.Module):
         embeddings_a = reps[0]
         embeddings_b = torch.cat(reps[1:])
 
-        scores = self.similarity_fct(embeddings_a, embeddings_b) * self.scale
-        labels = torch.tensor(range(len(scores)), dtype=torch.long, device=scores.device)  # Example a[i] should match with b[i]
-        return self.cross_entropy_loss(scores, labels)
+        if torch.distributed.is_initialized():
+            full_embeddings_b = [torch.zeros_like(embeddings_b) for _ in range(torch.distributed.get_world_size())]
+            torch.distributed.all_gather(full_embeddings_b, embeddings_b)
+            full_embeddings_b = torch.cat(full_embeddings_b)
+
+            scores = self.similarity_fct(embeddings_a, full_embeddings_b) * self.scale
+            labels = torch.tensor(range(len(scores)), dtype=torch.long, device=scores.device)\
+                     + len(scores) * torch.distributed.get_rank()
+            return self.cross_entropy_loss(scores, labels)
+        else:
+            scores = self.similarity_fct(embeddings_a, embeddings_b) * self.scale
+            labels = torch.tensor(range(len(scores)), dtype=torch.long,
+                                  device=scores.device)  # Example a[i] should match with b[i]
+
+            return self.cross_entropy_loss(scores, labels)
 
     def get_config_dict(self):
         return {'scale': self.scale, 'similarity_fct': self.similarity_fct.__name__}
-
-
-
-
-
