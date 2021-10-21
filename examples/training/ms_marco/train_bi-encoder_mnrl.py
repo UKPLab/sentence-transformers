@@ -167,7 +167,7 @@ with gzip.open(hard_negatives_filepath, 'rt') as fIn:
                 negs_to_use = args.negs_to_use.split(",")
             else:   #Use all systems
                 negs_to_use = list(data['neg'].keys())
-            logging.info("Using negatives from the following systems:", negs_to_use)
+            logging.info("Using negatives from the following systems: {}".format(", ".join(negs_to_use)))
 
         for system_name in negs_to_use:
             if system_name not in data['neg']:
