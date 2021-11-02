@@ -1,10 +1,10 @@
 # Wikipedia Sections Models
-The `wikipedia-sections-models` implement the idea from Dor et al., 2018, [Learning Thematic Similarity Metric Using Triplet Networks](https://aclweb.org/anthology/P18-2009).
+The `wikipedia-sections-models` implement the idea from Ein Dor et al., 2018, [Learning Thematic Similarity Metric Using Triplet Networks](https://aclweb.org/anthology/P18-2009).
 
 It was trained with a triplet-loss: The anchor and the positive example were sentences from the same section from an wikipedia article, for example, from the History section of the London article. The negative example came from a different section from the same article, for example, from the Education section of the London article.
 
 # Dataset
-We use dataset from Dor et al., 2018, [Learning Thematic Similarity Metric Using Triplet Networks](https://aclweb.org/anthology/P18-2009).
+We use dataset from Ein Dor et al., 2018, [Learning Thematic Similarity Metric Using Triplet Networks](https://aclweb.org/anthology/P18-2009).
 
 See [examples/training_wikipedia_sections.py](../../examples/training_wikipedia_sections.py) for how to train on this dataset.
 
