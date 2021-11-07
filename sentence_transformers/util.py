@@ -340,6 +340,9 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, init_
     in decreasing order. The first element in each list is the central point in the community.
     """
 
+    # Maximum size for community
+    init_max_size = min(init_max_size, len(embeddings))
+
     # Compute cosine similarity scores
     cos_scores = cos_sim(embeddings, embeddings)
 
