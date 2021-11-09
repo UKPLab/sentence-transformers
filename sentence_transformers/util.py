@@ -209,7 +209,7 @@ def semantic_search(query_embeddings: Tensor,
     :param corpus_chunk_size: Scans the corpus 100k entries at a time. Increasing that value increases the speed, but requires more memory.
     :param top_k: Retrieve top k matching entries.
     :param score_function: Function for computing scores. By default, cosine similarity.
-    :return: Returns a sorted list with decreasing cosine similarity scores. Entries are dictionaries with the keys 'corpus_id' and 'score'
+    :return: Returns a list with one entry for each query. Each entry is a list of dictionaries with the keys 'corpus_id' and 'score', sorted by decreasing cosine similarity scores.
     """
 
     if isinstance(query_embeddings, (np.ndarray, np.generic)):
