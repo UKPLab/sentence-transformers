@@ -115,7 +115,7 @@ def paraphrase_mining(model,
     :param corpus_chunk_size: Compare a sentence simultaneously against #corpus_chunk_size other sentences. Decrease, to lower memory footprint (increases run-time).
     :param max_pairs: Maximal number of text pairs returned.
     :param top_k: For each sentence, we retrieve up to top_k other sentences
-    :param score_function: Funtion for computing scores. By default, cosine similarity.
+    :param score_function: Function for computing scores. By default, cosine similarity.
     :return: Returns a list of triplets with the format [score, id1, id2]
     """
 
@@ -140,7 +140,7 @@ def paraphrase_mining_embeddings(embeddings: Tensor,
     :param corpus_chunk_size: Compare a sentence simultaneously against #corpus_chunk_size other sentences. Decrease, to lower memory footprint (increases run-time).
     :param max_pairs: Maximal number of text pairs returned.
     :param top_k: For each sentence, we retrieve up to top_k other sentences
-    :param score_function: Funtion for computing scores. By default, cosine similarity.
+    :param score_function: Function for computing scores. By default, cosine similarity.
     :return: Returns a list of triplets with the format [score, id1, id2]
     """
 
@@ -189,7 +189,7 @@ def paraphrase_mining_embeddings(embeddings: Tensor,
 
 
 def information_retrieval(*args, **kwargs):
-    """This function is decprecated. Use semantic_search insted"""
+    """This function is deprecated. Use semantic_search instead"""
     return semantic_search(*args, **kwargs)
 
 
@@ -208,8 +208,8 @@ def semantic_search(query_embeddings: Tensor,
     :param query_chunk_size: Process 100 queries simultaneously. Increasing that value increases the speed, but requires more memory.
     :param corpus_chunk_size: Scans the corpus 100k entries at a time. Increasing that value increases the speed, but requires more memory.
     :param top_k: Retrieve top k matching entries.
-    :param score_function: Funtion for computing scores. By default, cosine similarity.
-    :return: Returns a sorted list with decreasing cosine similarity scores. Entries are dictionaries with the keys 'corpus_id' and 'score'
+    :param score_function: Function for computing scores. By default, cosine similarity.
+    :return: Returns a list with one entry for each query. Each entry is a list of dictionaries with the keys 'corpus_id' and 'score', sorted by decreasing cosine similarity scores.
     """
 
     if isinstance(query_embeddings, (np.ndarray, np.generic)):
@@ -235,7 +235,7 @@ def semantic_search(query_embeddings: Tensor,
     for query_start_idx in range(0, len(query_embeddings), query_chunk_size):
         # Iterate over chunks of the corpus
         for corpus_start_idx in range(0, len(corpus_embeddings), corpus_chunk_size):
-            # Compute cosine similarites
+            # Compute cosine similarities
             cos_scores = score_function(query_embeddings[query_start_idx:query_start_idx+query_chunk_size], corpus_embeddings[corpus_start_idx:corpus_start_idx+corpus_chunk_size])
 
             # Get top-k scores
