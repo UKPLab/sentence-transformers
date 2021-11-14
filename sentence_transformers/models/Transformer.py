@@ -40,7 +40,7 @@ class Transformer(nn.Module):
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
     def __repr__(self):
-        return "Transformer({}) with Transformer model: {} ".format(self.get_config_dict(), self.auto_model.__class__.__name__)  #super(Transformer, self).__repr__()
+        return "Transformer({}) with Transformer model: {} ".format(self.get_config_dict(), self.auto_model.__class__.__name__)
 
     def forward(self, features):
         """Returns token_embeddings, cls_token"""
@@ -51,8 +51,7 @@ class Transformer(nn.Module):
         output_states = self.auto_model(**trans_features, return_dict=False)
         output_tokens = output_states[0]
 
-        cls_tokens = output_tokens[:, 0, :]  # CLS token is first token
-        features.update({'token_embeddings': output_tokens, 'cls_token_embeddings': cls_tokens, 'attention_mask': features['attention_mask']})
+        features.update({'token_embeddings': output_tokens, 'attention_mask': features['attention_mask']})
 
         if self.auto_model.config.output_hidden_states:
             all_layer_idx = 2

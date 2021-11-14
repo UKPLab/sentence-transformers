@@ -12,7 +12,7 @@ The [clustering](clustering/) folder shows how SentenceTransformers can be used 
 
 ## Cross-Encoder
 
-SentenceTransformers also support training and inference of [Cross-Encoders](cross-encoders/). There, two sentences are presented simultaneously to the transformer network and a score (0...1) is derived indicating the similarity or a label.  
+SentenceTransformers also support training and inference of [Cross-Encoders](cross-encoder/). There, two sentences are presented simultaneously to the transformer network and a score (0...1) is derived indicating the similarity or a label.  
 
 ## Parallel Sentence Mining
 The [parallel-sentence-mining](parallel-sentence-mining/) folder contains examples how parallel (translated) sentences can be found in two corpora of different language. For example, you take the English and the Spanish Wikipedia and the script finds and returns all translated English-Spanisch sentence pairs.

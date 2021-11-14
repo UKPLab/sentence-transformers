@@ -37,7 +37,7 @@ This setup learns sentence embeddings, that can later be used for wide varity of
 
 That the softmax-loss with NLI data produces (relatively) good sentence embeddings is rather coincidental. The [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/losses.html#multiplenegativesrankingloss) is much more intuitive and produces also significantly better sentence representations.
 
-The training data for MultipleNegativesRankingLoss consists of sentence pairs [(a<sub>1</sub>, b<sub>1</sub>), ..., (a<sub>n</sub>, b<sub>n</sub>)] where we assume that (a<sub>i</sub>, b<sub>i</sub>) are similar sentences and (a<sub>i</sub>, b<sub>j</sub>) are dissimilar sentences for i != j. The minimizes the distance between (a<sub>i</sub>, b<sub>j</sub>) while it simultaneously maximizes the distance  (a<sub>i</sub>, b<sub>j</sub>) for all i != j.
+The training data for MultipleNegativesRankingLoss consists of sentence pairs [(a<sub>1</sub>, b<sub>1</sub>), ..., (a<sub>n</sub>, b<sub>n</sub>)] where we assume that (a<sub>i</sub>, b<sub>i</sub>) are similar sentences and (a<sub>i</sub>, b<sub>j</sub>) are dissimilar sentences for i != j. The minimizes the distance between (a<sub>i</sub>, b<sub>i</sub>) while it simultaneously maximizes the distance  (a<sub>i</sub>, b<sub>j</sub>) for all i != j.
 
 
 For example in the following picture:
