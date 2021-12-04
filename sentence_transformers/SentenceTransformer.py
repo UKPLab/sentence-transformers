@@ -20,6 +20,7 @@ import math
 import queue
 import tempfile
 from distutils.dir_util import copy_tree
+from itertools import islice
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
@@ -328,10 +329,11 @@ class SentenceTransformer(nn.Sequential):
         """Returns the last module of this sequential embedder"""
         return self._modules[next(reversed(self._modules))]
 
-    def save(self, path: str, model_name: Optional[str] = None, create_model_card: bool = True):
+    def save(self, path: str, checkpoint: dict, model_name: Optional[str] = None, create_model_card: bool = True):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
         :param path: Path on disc
+        :param checkpoint: The state at the present moment
         :param model_name: Optional model name
         :param create_model_card: If True, create a README.md with basic information about this model
         """
@@ -372,6 +374,8 @@ class SentenceTransformer(nn.Sequential):
         # Create model card
         if create_model_card:
             self._create_model_card(path, model_name)
+
+        torch.save(checkpoint, path + 'checkpoint.pt')
 
     def _create_model_card(self, path: str, model_name: Optional[str] = None):
         """
@@ -573,7 +577,8 @@ class SentenceTransformer(nn.Sequential):
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
             checkpoint_save_steps: int = 500,
-            checkpoint_save_total_limit: int = 0
+            checkpoint_save_total_limit: int = 0,
+            resume_training: bool = False,
             ):
         """
         Train the model with the given training objective
@@ -602,6 +607,7 @@ class SentenceTransformer(nn.Sequential):
         :param checkpoint_path: Folder to save checkpoints during training
         :param checkpoint_save_steps: Will save a checkpoint after so many steps
         :param checkpoint_save_total_limit: Total number of checkpoints to store
+        :param resume_training: Whether to resume training or not
         """
 
         ##Add info to model card
@@ -658,20 +664,39 @@ class SentenceTransformer(nn.Sequential):
             schedulers.append(scheduler_obj)
 
 
-        global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
 
         num_train_objectives = len(train_objectives)
 
+        if resume_training:
+            logger.info("Load the checkpoint state to resume tranining")
+            if not os.path.exists(checkpoint_path + 'checkpoint.pt'):
+                raise Exception('checkpoint.pt does not exist.')
+            checkpoint = torch.load(checkpoint_path + 'checkpoint.pt')
+            global_step = checkpoint['global_step']
+            start_epoch = checkpoint['epoch']
+            start_trainig_step = checkpoint['trainig_step']
+            self.best_score = checkpoint['best_score']
+            loss_models = [loss_model.load_state_dict(checkpoint[f'loss_model_{idx}']) for idx, loss_model in enumerate(loss_models)]
+            optimizers = [optimizer.load_state_dict(checkpoint[f'optimizer_{idx}']) for idx, optimizer in enumerate(optimizers)]
+            schedulers = [scheduler.load_state_dict(checkpoint[f'scheduler_{idx}']) for idx, scheduler in enumerate(schedulers)]
+            data_iterators = [islice(iter(dataloader), start_trainig_step, steps_per_epoch) for dataloader in dataloaders]
+
+        else:
+            global_step = 0
+            start_epoch = 0
+            start_trainig_step = 0
+
         skip_scheduler = False
-        for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
-            training_steps = 0
+        is_first_loop = True
+        for epoch in trange(start_epoch, epochs, desc="Epoch", disable=not show_progress_bar):
+            training_steps = start_trainig_step if is_first_loop else 0
 
             for loss_model in loss_models:
                 loss_model.zero_grad()
                 loss_model.train()
 
-            for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
+            for _ in trange(start_trainig_step, steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
                     optimizer = optimizers[train_idx]
@@ -723,17 +748,30 @@ class SentenceTransformer(nn.Sequential):
                         loss_model.train()
 
                 if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 and global_step % checkpoint_save_steps == 0:
-                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
+                    loss_models_ckpt = {f'loss_model_{idx}':loss_model.state_dict() for idx, loss_model in enumerate(loss_models)}
+                    optimizers_ckpt = {f'optimizer_{idx}':optimizer.state_dict() for idx, optimizer in enumerate(optimizers)}
+                    schedulers_ckpt = {f'scheduler_{idx}':scheduler.state_dict() for idx, scheduler in enumerate(schedulers)}
+                    ckpt_inf = {
+                        "global_step": global_step,
+                        "epoch": epoch,
+                        "training_steps": training_steps,
+                        "best_epoch": self.best_epoch,
+                    }
+                    checkpoint = {}
+                    for ckpt in (loss_models_ckpt, optimizers_ckpt, schedulers_ckpt, ckpt_inf):
+                        checkpoint.update(ckpt)
+
+                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step, checkpoint)
 
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+            is_first_loop = False
 
         if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
             self.save(output_path)
 
         if checkpoint_path is not None:
             self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
-
 
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
@@ -766,7 +804,7 @@ class SentenceTransformer(nn.Sequential):
                 if save_best_model:
                     self.save(output_path)
 
-    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step):
+    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step, checkpoint):
         # Store new checkpoint
         self.save(os.path.join(checkpoint_path, str(step)))
 
@@ -825,7 +863,6 @@ class SentenceTransformer(nn.Sequential):
             modules[module_config['name']] = module
 
         return modules
-
 
 
     @staticmethod
