@@ -329,7 +329,7 @@ class SentenceTransformer(nn.Sequential):
         """Returns the last module of this sequential embedder"""
         return self._modules[next(reversed(self._modules))]
 
-    def save(self, path: str, checkpoint: dict, model_name: Optional[str] = None, create_model_card: bool = True):
+    def save(self, path: str, checkpoint: Optional[dict] = None, model_name: Optional[str] = None, create_model_card: bool = True):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
         :param path: Path on disc
@@ -375,7 +375,8 @@ class SentenceTransformer(nn.Sequential):
         if create_model_card:
             self._create_model_card(path, model_name)
 
-        torch.save(checkpoint, path + 'checkpoint.pt')
+        if checkpoint is not None:
+            torch.save(checkpoint, os.path.join(path, 'checkpoint.pt'))
 
     def _create_model_card(self, path: str, model_name: Optional[str] = None):
         """
@@ -578,6 +579,7 @@ class SentenceTransformer(nn.Sequential):
             checkpoint_path: str = None,
             checkpoint_save_steps: int = 500,
             checkpoint_save_total_limit: int = 0,
+            checkpoint_path_to_resume: str = None,
             resume_training: bool = False,
             ):
         """
@@ -670,16 +672,18 @@ class SentenceTransformer(nn.Sequential):
 
         if resume_training:
             logger.info("Load the checkpoint state to resume tranining")
-            if not os.path.exists(checkpoint_path + 'checkpoint.pt'):
-                raise Exception('checkpoint.pt does not exist.')
-            checkpoint = torch.load(checkpoint_path + 'checkpoint.pt')
+            if not os.path.exists(os.path.join(checkpoint_path_to_resume, 'checkpoint.pt')):
+                raise Exception(f'checkpoint.pt does not exist at {checkpoint_path_to_resume}.')
+            checkpoint = torch.load(os.path.join(checkpoint_path_to_resume, 'checkpoint.pt'))
             global_step = checkpoint['global_step']
             start_epoch = checkpoint['epoch']
-            start_trainig_step = checkpoint['trainig_step']
+            start_trainig_step = checkpoint['training_steps']
             self.best_score = checkpoint['best_score']
-            loss_models = [loss_model.load_state_dict(checkpoint[f'loss_model_{idx}']) for idx, loss_model in enumerate(loss_models)]
-            optimizers = [optimizer.load_state_dict(checkpoint[f'optimizer_{idx}']) for idx, optimizer in enumerate(optimizers)]
-            schedulers = [scheduler.load_state_dict(checkpoint[f'scheduler_{idx}']) for idx, scheduler in enumerate(schedulers)]
+            for idx, t in enumerate(zip(loss_models, optimizers, schedulers)):
+                loss_model, optimizer, scheduler = t
+                loss_model.load_state_dict(checkpoint[f'loss_model_{idx}'])
+                optimizer.load_state_dict(checkpoint[f'optimizer_{idx}'])
+                scheduler.load_state_dict(checkpoint[f'scheduler_{idx}'])
             data_iterators = [islice(iter(dataloader), start_trainig_step, steps_per_epoch) for dataloader in dataloaders]
 
         else:
@@ -755,7 +759,7 @@ class SentenceTransformer(nn.Sequential):
                         "global_step": global_step,
                         "epoch": epoch,
                         "training_steps": training_steps,
-                        "best_epoch": self.best_epoch,
+                        "best_score": self.best_score,
                     }
                     checkpoint = {}
                     for ckpt in (loss_models_ckpt, optimizers_ckpt, schedulers_ckpt, ckpt_inf):
@@ -804,9 +808,9 @@ class SentenceTransformer(nn.Sequential):
                 if save_best_model:
                     self.save(output_path)
 
-    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step, checkpoint):
+    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step, checkpoint=None):
         # Store new checkpoint
-        self.save(os.path.join(checkpoint_path, str(step)))
+        self.save(os.path.join(checkpoint_path, str(step)), checkpoint)
 
         # Delete old checkpoints
         if checkpoint_save_total_limit is not None and checkpoint_save_total_limit > 0:
