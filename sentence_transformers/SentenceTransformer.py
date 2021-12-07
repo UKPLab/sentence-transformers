@@ -38,8 +38,18 @@ class SentenceTransformer(nn.Sequential):
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models
+    :param custom_hf_params: An optional dict with Huggingface model params, used when loading with AutoModel
+                             This can, for instance, be useful when using DDP for multi-GPU training, where we
+                             need to disable the unused Huggingface transformer pooling layer, e.g.:
+                             
+                             { "add_pooling_layer": False }
     """
-    def __init__(self, model_name_or_path: Optional[str] = None, modules: Optional[Iterable[nn.Module]] = None, device: Optional[str] = None, cache_folder: Optional[str] = None):
+    def __init__(self,
+                 model_name_or_path: Optional[str] = None,
+                 modules: Optional[Iterable[nn.Module]] = None,
+                 device: Optional[str] = None,
+                 cache_folder: Optional[str] = None,
+                 custom_hf_params: Optional[dict] = None):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -86,7 +96,7 @@ class SentenceTransformer(nn.Sequential):
             if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
                 modules = self._load_sbert_model(model_path)
             else:   #Load with AutoModel
-                modules = self._load_auto_model(model_path)
+                modules = self._load_auto_model(model_path, custom_hf_params)
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -782,12 +792,18 @@ class SentenceTransformer(nn.Sequential):
                 shutil.rmtree(old_checkpoints[0]['path'])
 
 
-    def _load_auto_model(self, model_name_or_path):
+    def _load_auto_model(self, model_name_or_path, custom_hf_params=None):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
+        if custom_hf_params is None:
+            custom_hf_params = {}
+
         logging.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
-        transformer_model = Transformer(model_name_or_path)
+        if len(custom_hf_params) > 0:
+            logging.info(f"Using custom Huggingface transformer model params: {custom_hf_params}")
+
+        transformer_model = Transformer(model_name_or_path, custom_hf_params)
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
         return [transformer_model, pooling_model]
 

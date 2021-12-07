@@ -16,17 +16,26 @@ class Transformer(nn.Module):
     :param tokenizer_args: Arguments (key, value pairs) passed to the Huggingface Tokenizer model
     :param do_lower_case: If true, lowercases the input (independent if the model is cased or not)
     :param tokenizer_name_or_path: Name or path of the tokenizer. When None, then model_name_or_path is used
+    :param custom_hf_params: An optional dict with custom Huggingface model params
     """
     def __init__(self, model_name_or_path: str, max_seq_length: Optional[int] = None,
                  model_args: Dict = {}, cache_dir: Optional[str] = None,
                  tokenizer_args: Dict = {}, do_lower_case: bool = False,
-                 tokenizer_name_or_path : str = None):
+                 tokenizer_name_or_path: str = None,
+                 custom_hf_params: Optional[dict] = None):
         super(Transformer, self).__init__()
+
+        if custom_hf_params is None:
+            custom_hf_params = {}
+
         self.config_keys = ['max_seq_length', 'do_lower_case']
         self.do_lower_case = do_lower_case
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
-        self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
+        self.auto_model = AutoModel.from_pretrained(model_name_or_path,
+                                                    config=config,
+                                                    cache_dir=cache_dir,
+                                                    **custom_hf_params)
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path if tokenizer_name_or_path is not None else model_name_or_path, cache_dir=cache_dir, **tokenizer_args)
 
         #No max_seq_length set. Try to infer from model
