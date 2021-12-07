@@ -24,7 +24,7 @@ from distutils.dir_util import copy_tree
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, fullname, snapshot_download
-from .models import Transformer, Pooling, Dense
+from .models import Transformer, TransformerParallel, Pooling, Dense
 from .model_card_templates import ModelCardTemplate
 from . import __version__
 
@@ -39,7 +39,8 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models
     """
-    def __init__(self, model_name_or_path: Optional[str] = None, modules: Optional[Iterable[nn.Module]] = None, device: Optional[str] = None, cache_folder: Optional[str] = None):
+    def __init__(self, model_name_or_path: Optional[str] = None, modules: Optional[Iterable[nn.Module]] = None, device: Optional[str] = None, 
+                 cache_folder: Optional[str] = None, parallelize: bool = False):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -787,8 +788,12 @@ class SentenceTransformer(nn.Sequential):
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
         logging.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
-        transformer_model = Transformer(model_name_or_path)
-        pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
+        if self.parallelize:
+            transformer_model = TransformerParallel(model_name_or_path)
+            pooling_model = nn.DataParallel(Pooling(transformer_model.get_word_embedding_dimension(), 'mean'))
+        else:
+            transformer_model = Transformer(model_name_or_path)
+            pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
         return [transformer_model, pooling_model]
 
     def _load_sbert_model(self, model_path):
