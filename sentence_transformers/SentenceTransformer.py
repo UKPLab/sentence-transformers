@@ -38,10 +38,10 @@ class SentenceTransformer(nn.Sequential):
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models
-    :param custom_hf_params: An optional dict with Huggingface model params, used when loading with AutoModel
-                             This can, for instance, be useful when using DDP for multi-GPU training, where we
-                             need to disable the unused Huggingface transformer pooling layer, e.g.:
-                             
+    :param custom_hf_params: An optional dict with Huggingface model params. This can, for instance, be useful when
+                             using DDP for multi-GPU training, where we need to disable the unused
+                             Huggingface transformer pooling layer, e.g.:
+
                              { "add_pooling_layer": False }
     """
     def __init__(self,
@@ -93,8 +93,11 @@ class SentenceTransformer(nn.Sequential):
                                     library_version=__version__,
                                     ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'])
 
+            if custom_hf_params is not None:
+                logging.info(f"Using custom Huggingface transformer model params: {custom_hf_params}")
+
             if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
-                modules = self._load_sbert_model(model_path)
+                modules = self._load_sbert_model(model_path, custom_hf_params)
             else:   #Load with AutoModel
                 modules = self._load_auto_model(model_path, custom_hf_params)
 
@@ -796,21 +799,17 @@ class SentenceTransformer(nn.Sequential):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
-        if custom_hf_params is None:
-            custom_hf_params = {}
-
         logging.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
-        if len(custom_hf_params) > 0:
-            logging.info(f"Using custom Huggingface transformer model params: {custom_hf_params}")
 
         transformer_model = Transformer(model_name_or_path, custom_hf_params)
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
         return [transformer_model, pooling_model]
 
-    def _load_sbert_model(self, model_path):
+    def _load_sbert_model(self, model_path, custom_hf_params=None):
         """
         Loads a full sentence-transformers model
         """
+
         # Check if the config_sentence_transformers.json file exists (exists since v2 of the framework)
         config_sentence_transformers_json_path = os.path.join(model_path, 'config_sentence_transformers.json')
         if os.path.exists(config_sentence_transformers_json_path):
@@ -837,7 +836,12 @@ class SentenceTransformer(nn.Sequential):
         modules = OrderedDict()
         for module_config in modules_config:
             module_class = import_from_string(module_config['type'])
-            module = module_class.load(os.path.join(model_path, module_config['path']))
+
+            if module_class is Transformer:
+                module = module_class.load(os.path.join(model_path, module_config['path']),
+                                           custom_hf_params=custom_hf_params)
+            else:
+                module = module_class.load(os.path.join(model_path, module_config['path']))
             modules[module_config['name']] = module
 
         return modules

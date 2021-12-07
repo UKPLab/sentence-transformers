@@ -120,7 +120,7 @@ class Transformer(nn.Module):
             json.dump(self.get_config_dict(), fOut, indent=2)
 
     @staticmethod
-    def load(input_path: str):
+    def load(input_path: str, custom_hf_params=None):
         #Old classes used other config names than 'sentence_bert_config.json'
         for config_name in ['sentence_bert_config.json', 'sentence_roberta_config.json', 'sentence_distilbert_config.json', 'sentence_camembert_config.json', 'sentence_albert_config.json', 'sentence_xlm-roberta_config.json', 'sentence_xlnet_config.json']:
             sbert_config_path = os.path.join(input_path, config_name)
@@ -129,7 +129,7 @@ class Transformer(nn.Module):
 
         with open(sbert_config_path) as fIn:
             config = json.load(fIn)
-        return Transformer(model_name_or_path=input_path, **config)
+        return Transformer(model_name_or_path=input_path, **config, custom_hf_params=custom_hf_params)
 
 
 
