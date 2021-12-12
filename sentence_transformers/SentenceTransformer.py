@@ -560,12 +560,12 @@ class SentenceTransformer(nn.Sequential):
             train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
             evaluator: SentenceEvaluator = None,
             epochs: int = 1,
-            steps_per_epoch = None,
+            steps_per_epoch: int = None,
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
             gradient_accumulation: int = 1,
             optimizer_class: Type[Optimizer] = transformers.AdamW,
-            optimizer_params : Dict[str, object]= {'lr': 2e-5},
+            optimizer_params: Dict[str, object] = None,
             weight_decay: float = 0.01,
             evaluation_steps: int = 0,
             output_path: str = None,
@@ -608,13 +608,16 @@ class SentenceTransformer(nn.Sequential):
         :param checkpoint_save_total_limit: Total number of checkpoints to store
         """
 
+        # replacing mutable arguments
+        if optimizer_params is None:
+            optimizer_params = {'lr': 2e-5}
+
         ##Add info to model card
         #info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
-        info_loss_functions =  []
+        info_loss_functions = []
         for dataloader, loss in train_objectives:
             info_loss_functions.extend(ModelCardTemplate.get_train_objective_info(dataloader, loss))
         info_loss_functions = "\n\n".join([text for text in info_loss_functions])
-
         info_fit_parameters = json.dumps({"evaluator": fullname(evaluator), "epochs": epochs, "steps_per_epoch": steps_per_epoch, "scheduler": scheduler, "warmup_steps": warmup_steps, "optimizer_class": str(optimizer_class),  "optimizer_params": optimizer_params, "weight_decay": weight_decay, "evaluation_steps": evaluation_steps, "max_grad_norm": max_grad_norm }, indent=4, sort_keys=True)
         self._model_card_text = None
         self._model_card_vars['{TRAINING_SECTION}'] = ModelCardTemplate.__TRAINING_SECTION__.replace("{LOSS_FUNCTIONS}", info_loss_functions).replace("{FIT_PARAMETERS}", info_fit_parameters)
