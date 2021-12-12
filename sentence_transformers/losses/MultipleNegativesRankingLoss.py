@@ -63,9 +63,11 @@ class MultipleNegativesRankingLoss(nn.Module):
             torch.distributed.all_gather(full_embeddings_b, embeddings_b)
             full_embeddings_b = torch.cat(full_embeddings_b)
 
-            dim_0_sizes = torch.tensor([embeddings_n.shape[0]], dtype=torch.int64, device="cpu")
-            sizes = torch.distributed.all_gather(dim_0_sizes)
-            full_embeddings_n = [torch.zeros([size] + embeddings_n.shape[1:], device=embeddings_n.device, dtype=embeddings_n.dtype) for size in sizes]
+            dim_0_size = torch.tensor([embeddings_n.shape[0]], dtype=torch.int64, device="cuda")
+            sizes = [torch.zeros_like(dim_0_size) for _ in range(torch.distributed.get_world_size())]
+            torch.distributed.all_gather(sizes, dim_0_size)
+            sizes = torch.cat(sizes).cpu().tolist()
+            full_embeddings_n = [torch.zeros([size] + list(embeddings_n.shape[1:]), device=embeddings_n.device, dtype=embeddings_n.dtype) for size in sizes]
             torch.distributed.all_gather(full_embeddings_n, embeddings_n)
             full_embeddings_n = torch.cat(full_embeddings_n)
 
