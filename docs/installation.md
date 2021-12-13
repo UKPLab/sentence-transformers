@@ -15,6 +15,7 @@ pip install -U sentence-transformers
 ```
 
 **Install with conda**
+
 Apple silicon Installation of *sentence-transformers*
 ```
 conda install -c conda-forge sentence-transformers
