@@ -3,7 +3,9 @@ import logging
 import os
 import shutil
 import stat
+import warnings
 from collections import OrderedDict
+from functools import partial
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
 import requests
 import numpy as np
@@ -20,6 +22,7 @@ import math
 import queue
 import tempfile
 from distutils.dir_util import copy_tree
+from accelerate import Accelerator
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
@@ -39,7 +42,7 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models
     """
-    def __init__(self, model_name_or_path: Optional[str] = None, modules: Optional[Iterable[nn.Module]] = None, device: Optional[str] = None, cache_folder: Optional[str] = None):
+    def __init__(self, model_name_or_path: Optional[str] = None, modules: Optional[Iterable[nn.Module]] = None, device: Optional[str] = None, cache_folder: Optional[str] = None, **auto_model_kwargs):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -86,7 +89,7 @@ class SentenceTransformer(nn.Sequential):
             if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
                 modules = self._load_sbert_model(model_path)
             else:   #Load with AutoModel
-                modules = self._load_auto_model(model_path)
+                modules = self._load_auto_model(model_path, **auto_model_kwargs)
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -107,7 +110,8 @@ class SentenceTransformer(nn.Sequential):
                convert_to_numpy: bool = True,
                convert_to_tensor: bool = False,
                device: str = None,
-               normalize_embeddings: bool = False) -> Union[List[Tensor], ndarray, Tensor]:
+               normalize_embeddings: bool = False,
+               num_proc=None) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings
 
@@ -117,8 +121,9 @@ class SentenceTransformer(nn.Sequential):
         :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings. Set to None, to get all output values
         :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
         :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from convert_to_numpy
-        :param device: Which torch.device to use for the computation
+        :param device: Which torch.device to use for the computation. By default, with
         :param normalize_embeddings: If set to true, returned vectors will have length 1. In that case, the faster dot-product (util.dot_score) instead of cosine similarity can be used.
+        :param num_proc: How many processes to distribute the computation through. With `device=None`, will distribute the computation through all available GPUs.
 
         :return:
            By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
@@ -139,47 +144,33 @@ class SentenceTransformer(nn.Sequential):
             sentences = [sentences]
             input_was_string = True
 
-        if device is None:
-            device = self._target_device
-
-        self.to(device)
-
-        all_embeddings = []
         length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
+        all_embeddings = []
 
-        for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
-            sentences_batch = sentences_sorted[start_index:start_index+batch_size]
-            features = self.tokenize(sentences_batch)
-            features = batch_to_device(features, device)
-
-            with torch.no_grad():
-                out_features = self.forward(features)
-
-                if output_value == 'token_embeddings':
-                    embeddings = []
-                    for token_emb, attention in zip(out_features[output_value], out_features['attention_mask']):
-                        last_mask_id = len(attention)-1
-                        while last_mask_id > 0 and attention[last_mask_id].item() == 0:
-                            last_mask_id -= 1
-
-                        embeddings.append(token_emb[0:last_mask_id+1])
-                elif output_value is None:  #Return all outputs
-                    embeddings = []
-                    for sent_idx in range(len(out_features['sentence_embedding'])):
-                        row =  {name: out_features[name][sent_idx] for name in out_features}
-                        embeddings.append(row)
-                else:   #Sentence embeddings
-                    embeddings = out_features[output_value]
-                    embeddings = embeddings.detach()
-                    if normalize_embeddings:
-                        embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
-
-                    # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
-                    if convert_to_numpy:
-                        embeddings = embeddings.cpu()
-
+        if num_proc is None or num_proc == 1:
+            if device is None:
+                device = self._target_device
+            self.to(device)
+            for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
+                sentences_batch = sentences_sorted[start_index:start_index + batch_size]
+                embeddings = self._encode(sentences_batch, device=device, output_value=output_value,
+                                          convert_to_numpy=convert_to_numpy, normalize_embeddings=normalize_embeddings,
+                                          multiprocessing=False)
                 all_embeddings.extend(embeddings)
+        else:
+                # Allows for several CUDA processes
+            cuda_compatible_multiprocess = mp.get_context("spawn")
+            with cuda_compatible_multiprocess.Pool(num_proc) as p:
+                sentences_batches = [sentences_sorted[start_index:start_index + batch_size]
+                                     for start_index in trange(0, len(sentences), batch_size)]
+                for result in p.map(partial(self._encode,
+                                            device=device,
+                                            output_value=output_value,
+                                            convert_to_numpy=convert_to_numpy,
+                                            normalize_embeddings=normalize_embeddings),
+                                    sentences_batches):
+                    all_embeddings.extend(result)
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
@@ -193,7 +184,45 @@ class SentenceTransformer(nn.Sequential):
 
         return all_embeddings
 
+    def _encode(self, sentences_batch, device, output_value: str = 'sentence_embedding', convert_to_numpy: bool = False,
+                normalize_embeddings: bool = False, multiprocessing=False):
 
+        if multiprocessing:
+            rank = mp.current_process()._identity[0]
+            if device is None and torch.cuda.is_available():
+                device = f"cuda:{rank % torch.cuda.device_count()}"
+
+        self.to(device)
+        features = self.tokenize(sentences_batch)
+        features = batch_to_device(features, device)
+
+        with torch.no_grad():
+            out_features = self.forward(features)
+
+            if output_value == 'token_embeddings':
+                embeddings = []
+                for token_emb, attention in zip(out_features[output_value], out_features['attention_mask']):
+                    last_mask_id = len(attention) - 1
+                    while last_mask_id > 0 and attention[last_mask_id].item() == 0:
+                        last_mask_id -= 1
+
+                    embeddings.append(token_emb[0:last_mask_id + 1])
+            elif output_value is None:  # Return all outputs
+                embeddings = []
+                for sent_idx in range(len(out_features['sentence_embedding'])):
+                    row = {name: out_features[name][sent_idx] for name in out_features}
+                    embeddings.append(row)
+            else:  # Sentence embeddings
+                embeddings = out_features[output_value]
+                embeddings = embeddings.detach()
+                if normalize_embeddings:
+                    embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+
+                # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
+                if convert_to_numpy:
+                    embeddings = embeddings.cpu()
+
+        return embeddings
 
     def start_multi_process_pool(self, target_devices: List[str] = None):
         """
@@ -558,11 +587,12 @@ class SentenceTransformer(nn.Sequential):
             train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
             evaluator: SentenceEvaluator = None,
             epochs: int = 1,
-            steps_per_epoch = None,
+            steps_per_epoch: int = None,
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
+            gradient_accumulation: int = 1,
             optimizer_class: Type[Optimizer] = transformers.AdamW,
-            optimizer_params : Dict[str, object]= {'lr': 2e-5},
+            optimizer_params: Dict[str, object] = None,
             weight_decay: float = 0.01,
             evaluation_steps: int = 0,
             output_path: str = None,
@@ -587,6 +617,7 @@ class SentenceTransformer(nn.Sequential):
         :param steps_per_epoch: Number of training steps per epoch. If set to None (default), one epoch is equal the DataLoader size from train_objectives.
         :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
+        :param gradient_accumulation: number of steps to take before gradient updates
         :param optimizer_class: Optimizer
         :param optimizer_params: Optimizer parameters
         :param weight_decay: Weight decay for model parameters
@@ -604,23 +635,26 @@ class SentenceTransformer(nn.Sequential):
         :param checkpoint_save_total_limit: Total number of checkpoints to store
         """
 
+        # replacing mutable arguments
+        if optimizer_params is None:
+            optimizer_params = {'lr': 2e-5}
+
         ##Add info to model card
         #info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
-        info_loss_functions =  []
+        info_loss_functions = []
         for dataloader, loss in train_objectives:
             info_loss_functions.extend(ModelCardTemplate.get_train_objective_info(dataloader, loss))
         info_loss_functions = "\n\n".join([text for text in info_loss_functions])
-
         info_fit_parameters = json.dumps({"evaluator": fullname(evaluator), "epochs": epochs, "steps_per_epoch": steps_per_epoch, "scheduler": scheduler, "warmup_steps": warmup_steps, "optimizer_class": str(optimizer_class),  "optimizer_params": optimizer_params, "weight_decay": weight_decay, "evaluation_steps": evaluation_steps, "max_grad_norm": max_grad_norm }, indent=4, sort_keys=True)
         self._model_card_text = None
         self._model_card_vars['{TRAINING_SECTION}'] = ModelCardTemplate.__TRAINING_SECTION__.replace("{LOSS_FUNCTIONS}", info_loss_functions).replace("{FIT_PARAMETERS}", info_fit_parameters)
 
+        # accelerate setup
+        accelerator = Accelerator()
 
         if use_amp:
             from torch.cuda.amp import autocast
             scaler = torch.cuda.amp.GradScaler()
-
-        self.to(self._target_device)
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
 
@@ -629,8 +663,6 @@ class SentenceTransformer(nn.Sequential):
             dataloader.collate_fn = self.smart_batching_collate
 
         loss_models = [loss for _, loss in train_objectives]
-        for loss_model in loss_models:
-            loss_model.to(self._target_device)
 
         self.best_score = -9999999
 
@@ -657,9 +689,13 @@ class SentenceTransformer(nn.Sequential):
             optimizers.append(optimizer)
             schedulers.append(scheduler_obj)
 
+        loss_models = [accelerator.prepare(loss_model) for loss_model in loss_models]
+        optimizers = [accelerator.prepare(optimizer) for optimizer in optimizers]
+        dataloaders = [accelerator.prepare(dataloader) for dataloader in dataloaders]
 
         global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
+
 
         num_train_objectives = len(train_objectives)
 
@@ -671,7 +707,7 @@ class SentenceTransformer(nn.Sequential):
                 loss_model.zero_grad()
                 loss_model.train()
 
-            for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
+            for _ in trange(steps_per_epoch * gradient_accumulation, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
                     optimizer = optimizers[train_idx]
@@ -685,35 +721,38 @@ class SentenceTransformer(nn.Sequential):
                         data_iterators[train_idx] = data_iterator
                         data = next(data_iterator)
 
-
                     features, labels = data
-
 
                     if use_amp:
                         with autocast():
                             loss_value = loss_model(features, labels)
 
                         scale_before_step = scaler.get_scale()
-                        scaler.scale(loss_value).backward()
+                        accelerator.backward(scaler.scale(loss_value))
+                        training_steps += 1
                         scaler.unscale_(optimizer)
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
-                        scaler.step(optimizer)
-                        scaler.update()
 
-                        skip_scheduler = scaler.get_scale() != scale_before_step
+                        if training_steps % gradient_accumulation == 0:
+                            scaler.step(optimizer)
+                            scaler.update()
+                            skip_scheduler = scaler.get_scale() != scale_before_step
+                            optimizer.zero_grad()
+                            if not skip_scheduler:
+                                scheduler.step()
+                            global_step += 1
                     else:
                         loss_value = loss_model(features, labels)
-                        loss_value.backward()
+                        accelerator.backward(loss_value)
+                        training_steps += 1
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
-                        optimizer.step()
+                        if training_steps % gradient_accumulation == 0:
+                            optimizer.step()
 
-                    optimizer.zero_grad()
-
-                    if not skip_scheduler:
-                        scheduler.step()
-
-                training_steps += 1
-                global_step += 1
+                            optimizer.zero_grad()
+                            if not skip_scheduler:
+                                scheduler.step()
+                            global_step += 1
 
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
@@ -782,12 +821,12 @@ class SentenceTransformer(nn.Sequential):
                 shutil.rmtree(old_checkpoints[0]['path'])
 
 
-    def _load_auto_model(self, model_name_or_path):
+    def _load_auto_model(self, model_name_or_path, **auto_model_kwargs):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
         logging.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
-        transformer_model = Transformer(model_name_or_path)
+        transformer_model = Transformer(model_name_or_path, **auto_model_kwargs)
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
         return [transformer_model, pooling_model]
 
