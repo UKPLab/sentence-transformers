@@ -5,6 +5,7 @@ import shutil
 import stat
 import warnings
 from collections import OrderedDict
+from functools import partial
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
 import requests
 import numpy as np
@@ -21,6 +22,7 @@ import math
 import queue
 import tempfile
 from distutils.dir_util import copy_tree
+import multiprocessing as mp
 from accelerate import Accelerator
 
 from . import __MODEL_HUB_ORGANIZATION__
@@ -109,7 +111,8 @@ class SentenceTransformer(nn.Sequential):
                convert_to_numpy: bool = True,
                convert_to_tensor: bool = False,
                device: str = None,
-               normalize_embeddings: bool = False) -> Union[List[Tensor], ndarray, Tensor]:
+               normalize_embeddings: bool = False,
+               num_proc=None) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings
 
@@ -119,8 +122,9 @@ class SentenceTransformer(nn.Sequential):
         :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings. Set to None, to get all output values
         :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
         :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from convert_to_numpy
-        :param device: Which torch.device to use for the computation
+        :param device: Which torch.device to use for the computation. By default, with
         :param normalize_embeddings: If set to true, returned vectors will have length 1. In that case, the faster dot-product (util.dot_score) instead of cosine similarity can be used.
+        :param num_proc: How many processes to distribute the computation through. With `device=None`, will distribute the computation through all available GPUs.
 
         :return:
            By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
@@ -141,47 +145,32 @@ class SentenceTransformer(nn.Sequential):
             sentences = [sentences]
             input_was_string = True
 
-        if device is None:
-            device = self._target_device
-
-        self.to(device)
-
-        all_embeddings = []
         length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
+        all_embeddings = []
 
-        for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
-            sentences_batch = sentences_sorted[start_index:start_index+batch_size]
-            features = self.tokenize(sentences_batch)
-            features = batch_to_device(features, device)
-
-            with torch.no_grad():
-                out_features = self.forward(features)
-
-                if output_value == 'token_embeddings':
-                    embeddings = []
-                    for token_emb, attention in zip(out_features[output_value], out_features['attention_mask']):
-                        last_mask_id = len(attention)-1
-                        while last_mask_id > 0 and attention[last_mask_id].item() == 0:
-                            last_mask_id -= 1
-
-                        embeddings.append(token_emb[0:last_mask_id+1])
-                elif output_value is None:  #Return all outputs
-                    embeddings = []
-                    for sent_idx in range(len(out_features['sentence_embedding'])):
-                        row =  {name: out_features[name][sent_idx] for name in out_features}
-                        embeddings.append(row)
-                else:   #Sentence embeddings
-                    embeddings = out_features[output_value]
-                    embeddings = embeddings.detach()
-                    if normalize_embeddings:
-                        embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
-
-                    # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
-                    if convert_to_numpy:
-                        embeddings = embeddings.cpu()
-
+        if num_proc is None or num_proc == 1:
+            if device is None:
+                device = self._target_device
+            self.to(device)
+            for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
+                sentences_batch = sentences_sorted[start_index:start_index + batch_size]
+                embeddings = self._encode(sentences_batch, device=device, output_value=output_value,
+                                          convert_to_numpy=convert_to_numpy, normalize_embeddings=normalize_embeddings)
                 all_embeddings.extend(embeddings)
+        else:
+                # Allows for several CUDA processes
+            cuda_compatible_multiprocess = mp.get_context("spawn")
+            with cuda_compatible_multiprocess.Pool(num_proc) as p:
+                sentences_batches = [sentences_sorted[start_index:start_index + batch_size]
+                                     for start_index in trange(0, len(sentences), batch_size)]
+                for result in p.map(partial(self._encode,
+                                            device=device,
+                                            output_value=output_value,
+                                            convert_to_numpy=convert_to_numpy,
+                                            normalize_embeddings=normalize_embeddings),
+                                    sentences_batches):
+                    all_embeddings.extend(result)
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
@@ -195,7 +184,45 @@ class SentenceTransformer(nn.Sequential):
 
         return all_embeddings
 
+    def _encode(self, sentences_batch, device, output_value: str = 'sentence_embedding', convert_to_numpy: bool = False,
+                normalize_embeddings: bool = False):
 
+        rank = mp.current_process()._identity[0]
+
+        if device is None and torch.cuda.is_available():
+            device = f"cuda:{rank % torch.cuda.device_count()}"
+
+        self.to(device)
+        features = self.tokenize(sentences_batch)
+        features = batch_to_device(features, device)
+
+        with torch.no_grad():
+            out_features = self.forward(features)
+
+            if output_value == 'token_embeddings':
+                embeddings = []
+                for token_emb, attention in zip(out_features[output_value], out_features['attention_mask']):
+                    last_mask_id = len(attention) - 1
+                    while last_mask_id > 0 and attention[last_mask_id].item() == 0:
+                        last_mask_id -= 1
+
+                    embeddings.append(token_emb[0:last_mask_id + 1])
+            elif output_value is None:  # Return all outputs
+                embeddings = []
+                for sent_idx in range(len(out_features['sentence_embedding'])):
+                    row = {name: out_features[name][sent_idx] for name in out_features}
+                    embeddings.append(row)
+            else:  # Sentence embeddings
+                embeddings = out_features[output_value]
+                embeddings = embeddings.detach()
+                if normalize_embeddings:
+                    embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+
+                # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
+                if convert_to_numpy:
+                    embeddings = embeddings.cpu()
+
+        return embeddings
 
     def start_multi_process_pool(self, target_devices: List[str] = None):
         """
