@@ -5,7 +5,7 @@ MS MARCO dev dataset and reports different performances metrices for cossine sim
 Usage:
 python eval_msmarco.py model_name [max_corpus_size_in_thousands]
 """
-
+import torch.cuda
 from sentence_transformers import  LoggingHandler, SentenceTransformer, evaluation, util, models
 import logging
 import sys
@@ -104,4 +104,4 @@ ir_evaluator = evaluation.InformationRetrievalEvaluator(dev_queries, corpus, dev
                                                         precision_recall_at_k=[10, 100],
                                                         name="msmarco dev")
 
-ir_evaluator(model)
+ir_evaluator(model, num_proc=torch.cuda.device_count())

@@ -26,6 +26,7 @@ import random
 import tarfile
 from datetime import datetime
 
+import torch.cuda
 import tqdm
 from sentence_transformers import SentenceTransformer, LoggingHandler, util, models, losses, InputExample, evaluation
 from torch.utils.data import DataLoader
@@ -302,5 +303,5 @@ ir_evaluator = evaluation.InformationRetrievalEvaluator(dev_queries, dev_corpus,
                                                         show_progress_bar=True,
                                                         corpus_chunk_size=100000,
                                                         precision_recall_at_k=[10],
-                                                        name="msmarco dev",)
-ir_evaluator(model)
+                                                        name="msmarco dev")
+ir_evaluator(model, num_proc=torch.cuda.device_count())
