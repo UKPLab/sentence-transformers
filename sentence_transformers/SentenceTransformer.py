@@ -22,7 +22,6 @@ import math
 import queue
 import tempfile
 from distutils.dir_util import copy_tree
-import multiprocessing as mp
 from accelerate import Accelerator
 
 from . import __MODEL_HUB_ORGANIZATION__
@@ -156,7 +155,8 @@ class SentenceTransformer(nn.Sequential):
             for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
                 sentences_batch = sentences_sorted[start_index:start_index + batch_size]
                 embeddings = self._encode(sentences_batch, device=device, output_value=output_value,
-                                          convert_to_numpy=convert_to_numpy, normalize_embeddings=normalize_embeddings)
+                                          convert_to_numpy=convert_to_numpy, normalize_embeddings=normalize_embeddings,
+                                          multiprocessing=False)
                 all_embeddings.extend(embeddings)
         else:
                 # Allows for several CUDA processes
@@ -185,12 +185,12 @@ class SentenceTransformer(nn.Sequential):
         return all_embeddings
 
     def _encode(self, sentences_batch, device, output_value: str = 'sentence_embedding', convert_to_numpy: bool = False,
-                normalize_embeddings: bool = False):
+                normalize_embeddings: bool = False, multiprocessing=False):
 
-        rank = mp.current_process()._identity[0]
-
-        if device is None and torch.cuda.is_available():
-            device = f"cuda:{rank % torch.cuda.device_count()}"
+        if multiprocessing:
+            rank = mp.current_process()._identity[0]
+            if device is None and torch.cuda.is_available():
+                device = f"cuda:{rank % torch.cuda.device_count()}"
 
         self.to(device)
         features = self.tokenize(sentences_batch)
