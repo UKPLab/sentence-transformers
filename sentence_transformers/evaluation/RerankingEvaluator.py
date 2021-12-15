@@ -39,7 +39,7 @@ class RerankingEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "MAP", "MRR@{}".format(mrr_at_k)]
         self.write_csv = write_csv
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, num_proc: int = None) -> float:
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)
@@ -51,7 +51,7 @@ class RerankingEvaluator(SentenceEvaluator):
         logger.info("RerankingEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
 
 
-        scores = self.compute_metrices(model)
+        scores = self.compute_metrices(model, num_proc=num_proc)
         mean_ap = scores['map']
         mean_mrr = scores['mrr']
 
@@ -78,7 +78,7 @@ class RerankingEvaluator(SentenceEvaluator):
 
         return mean_ap
 
-    def compute_metrices(self, model):
+    def compute_metrices(self, model, num_proc: int = None):
         all_mrr_scores = []
         all_ap_scores = []
 
@@ -95,7 +95,7 @@ class RerankingEvaluator(SentenceEvaluator):
             is_relevant = [True]*len(positive) + [False]*len(negative)
 
             query_emb = model.encode([query], convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
-            docs_emb = model.encode(docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
+            docs_emb = model.encode(docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False, num_proc=num_proc)
 
             pred_scores = self.similarity_fct(query_emb, docs_emb)
             if len(pred_scores.shape) > 1:

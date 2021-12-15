@@ -1,5 +1,4 @@
 import torch
-from accelerate import Accelerator
 from torch import nn, Tensor
 from typing import Iterable, Dict
 from ..SentenceTransformer import SentenceTransformer

@@ -68,7 +68,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             scores.append(example.label)
         return cls(sentences1, sentences2, scores, **kwargs)
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, num_proc: int = None) -> float:
 
         if epoch != -1:
             if steps == -1:
@@ -80,7 +80,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
 
         logger.info("Binary Accuracy Evaluation of the model on " + self.name + " dataset" + out_txt)
 
-        scores = self.compute_metrices(model)
+        scores = self.compute_metrices(model, num_proc=num_proc)
 
 
         #Main score is the max of Average Precision (AP)
@@ -108,9 +108,9 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         return main_score
 
 
-    def compute_metrices(self, model):
+    def compute_metrices(self, model, num_proc: int = None):
         sentences = list(set(self.sentences1 + self.sentences2))
-        embeddings = model.encode(sentences, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True)
+        embeddings = model.encode(sentences, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True, num_proc=num_proc)
         emb_dict = {sent: emb for sent, emb in zip(sentences, embeddings)}
         embeddings1 = [emb_dict[sent] for sent in self.sentences1]
         embeddings2 = [emb_dict[sent] for sent in self.sentences2]

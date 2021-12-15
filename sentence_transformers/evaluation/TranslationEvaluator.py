@@ -48,7 +48,7 @@ class TranslationEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "src2trg", "trg2src"]
         self.write_csv = write_csv
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, num_proc: int = None) -> float:
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)
@@ -59,8 +59,8 @@ class TranslationEvaluator(SentenceEvaluator):
 
         logger.info("Evaluating translation matching Accuracy on "+self.name+" dataset"+out_txt)
 
-        embeddings1 = torch.stack(model.encode(self.source_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_numpy=False))
-        embeddings2 = torch.stack(model.encode(self.target_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_numpy=False))
+        embeddings1 = torch.stack(model.encode(self.source_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_numpy=False, num_proc=num_proc))
+        embeddings2 = torch.stack(model.encode(self.target_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_numpy=False, num_proc=num_proc))
 
 
         cos_sims = pytorch_cos_sim(embeddings1, embeddings2).detach().cpu().numpy()

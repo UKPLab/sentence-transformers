@@ -36,7 +36,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         self.csv_file = "accuracy_evaluation"+name+"_results.csv"
         self.csv_headers = ["epoch", "steps", "accuracy"]
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, num_proc: int = None) -> float:
         model.eval()
         total = 0
         correct = 0

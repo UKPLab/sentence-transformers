@@ -24,9 +24,10 @@ class MSEEvaluator(SentenceEvaluator):
     :param batch_size: Batch size to compute sentence embeddings
     :param name: Name of the evaluator
     :param write_csv: Write results to CSV file
+    :param num_proc: number of procs for multiprocessing/multi-GPU encoding, both at initialization and evaluation time
     """
-    def __init__(self, source_sentences: List[str], target_sentences: List[str], teacher_model = None, show_progress_bar: bool = False, batch_size: int = 32, name: str = '', write_csv: bool = True):
-        self.source_embeddings = teacher_model.encode(source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True)
+    def __init__(self, source_sentences: List[str], target_sentences: List[str], teacher_model = None, show_progress_bar: bool = False, batch_size: int = 32, name: str = '', write_csv: bool = True, num_proc: int = None):
+        self.source_embeddings = teacher_model.encode(source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True, num_proc=num_proc)
 
         self.target_sentences = target_sentences
         self.show_progress_bar = show_progress_bar
@@ -37,7 +38,7 @@ class MSEEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "MSE"]
         self.write_csv = write_csv
 
-    def __call__(self, model, output_path, epoch  = -1, steps = -1):
+    def __call__(self, model, output_path, epoch = -1, steps = -1, num_proc: int = None):
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)
@@ -46,7 +47,7 @@ class MSEEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        target_embeddings = model.encode(self.target_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_numpy=True)
+        target_embeddings = model.encode(self.target_sentences, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_numpy=True, num_proc=num_proc)
 
         mse = ((self.source_embeddings - target_embeddings)**2).mean()
         mse *= 100

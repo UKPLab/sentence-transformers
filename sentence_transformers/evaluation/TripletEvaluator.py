@@ -70,7 +70,7 @@ class TripletEvaluator(SentenceEvaluator):
             negatives.append(example.texts[2])
         return cls(anchors, positives, negatives, **kwargs)
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, num_proc: int = None) -> float:
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)
@@ -85,13 +85,13 @@ class TripletEvaluator(SentenceEvaluator):
         num_correct_cos_triplets, num_correct_manhatten_triplets, num_correct_euclidean_triplets = 0, 0, 0
 
         embeddings_anchors = model.encode(
-            self.anchors, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True
+            self.anchors, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True, num_proc=num_proc
         )
         embeddings_positives = model.encode(
-            self.positives, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True
+            self.positives, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True, num_proc=num_proc
         )
         embeddings_negatives = model.encode(
-            self.negatives, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True
+            self.negatives, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True, num_proc=num_proc
         )
 
         # Cosine distance

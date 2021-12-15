@@ -77,7 +77,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "precision", "recall", "f1", "threshold", "average_precision"]
         self.write_csv = write_csv
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, num_proc: int = None) -> float:
         if epoch != -1:
             out_txt = f" after epoch {epoch}:" if steps == -1 else f" in epoch {epoch} after {steps} steps:"
         else:

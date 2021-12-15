@@ -25,7 +25,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         First entry in a tuple is the source language. The sentence in the respective language will be fetched from the dataframe and passed to the teacher model.
         Second entry in a tuple the the target language. Sentence will be fetched from the dataframe and passed to the student model
     """
-    def __init__(self, dataframe: List[Dict[str, str]], teacher_model: SentenceTransformer, combinations: List[Tuple[str, str]], batch_size: int = 8, name='', write_csv: bool = True):
+    def __init__(self, dataframe: List[Dict[str, str]], teacher_model: SentenceTransformer, combinations: List[Tuple[str, str]], batch_size: int = 8, name='', write_csv: bool = True, num_proc: int = None):
 
         self.combinations = combinations
         self.name = name
@@ -56,10 +56,10 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             self.csv_headers.append("{}-{}".format(src_lang, trg_lang))
 
         all_source_sentences = list(all_source_sentences)
-        all_src_embeddings = teacher_model.encode(all_source_sentences, batch_size=self.batch_size)
+        all_src_embeddings = teacher_model.encode(all_source_sentences, batch_size=self.batch_size, num_proc=num_proc)
         self.teacher_embeddings = {sent: emb for sent, emb in zip(all_source_sentences, all_src_embeddings)}
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int  = -1):
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int  = -1, num_proc: int = None):
         model.eval()
 
         mse_scores = []
@@ -67,7 +67,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             src_sentences, trg_sentences = self.data[(src_lang, trg_lang)]
 
             src_embeddings = np.asarray([self.teacher_embeddings[sent] for sent in src_sentences])
-            trg_embeddings = np.asarray(model.encode(trg_sentences, batch_size=self.batch_size))
+            trg_embeddings = np.asarray(model.encode(trg_sentences, batch_size=self.batch_size, num_proc=num_proc))
 
             mse = ((src_embeddings - trg_embeddings) ** 2).mean()
             mse *= 100

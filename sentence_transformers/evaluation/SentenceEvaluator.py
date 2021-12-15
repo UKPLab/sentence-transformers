@@ -5,7 +5,7 @@ class SentenceEvaluator:
     Extend this class and implement __call__ for custom evaluators.
     """
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, num_proc: int = None) -> float:
         """
         This is called during training to evaluate the model.
         It returns a score for the evaluation with a higher score indicating a better result.
@@ -22,6 +22,9 @@ class SentenceEvaluator:
             the steps in the current epoch at time of the evaluation.
             This is used for the file prefixes.
             If this is -1, then we assume evaluation at the end of the epoch.
+        :return: a score for the evaluation with a higher score indicating a better result
+        :param num_proc
+            the number of processes to use for evaluation. Allows for multi-GPU evaluation
         :return: a score for the evaluation with a higher score indicating a better result
         """
         pass

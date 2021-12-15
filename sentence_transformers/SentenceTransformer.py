@@ -603,7 +603,8 @@ class SentenceTransformer(nn.Sequential):
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
             checkpoint_save_steps: int = 500,
-            checkpoint_save_total_limit: int = 0
+            checkpoint_save_total_limit: int = 0,
+            accelerator: Accelerator = None
             ):
         """
         Train the model with the given training objective
@@ -620,7 +621,393 @@ class SentenceTransformer(nn.Sequential):
         :param gradient_accumulation: number of steps to take before gradient updates
         :param optimizer_class: Optimizer
         :param optimizer_params: Optimizer parameters
-        :param weight_decay: Weight decay for model parameters
+        :param weight_decay: Weight decay for model parameters#!/bin/bash
+#SBATCH --job-name=1B3-pile-no-dropout.slurm
+#SBATCH --qos=qos_gpu-t3
+#SBATCH --nodes=64
+#SBATCH --ntasks-per-node=1          # crucial - only 1 task per dist per node!
+#SBATCH --cpus-per-task=40           # number of cores per tasks
+#SBATCH --hint=nomultithread         # we get physical cores not logical
+#SBATCH --gres=gpu:4                 # number of gpus
+#SBATCH --time 20:00:00              # maximum execution time (HH:MM:SS)
+#SBATCH --output=%x-%a-%j.out        # output file name
+#SBATCH --error=%x-%a-%j.out         # error file name (same to watch just one file)
+#SBATCH --account=six@gpu
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=victor@huggingface.co
+
+set -x -e
+
+
+ROUND=2
+TESTING=0
+
+EXPERIMENT_NAME=tr3o-1B3-pile-no-dropout
+OUTPUT_PATH=$six_ALL_CCFRSCRATCH/synched_exps/$EXPERIMENT_NAME/
+CHECKPOINT_PATH=$OUTPUT_PATH/checkpoints
+REPO_PATH=$OUTPUT_PATH/$EXPERIMENT_NAME-logs
+TENSORBOARD_PATH=$REPO_PATH/tensorboard
+CODECARBON_PATH=$REPO_PATH/codecarbon
+LOGS_PATH=$REPO_PATH/logs
+
+MEGATRON_DEEPSPEED_REPO=$ALL_CCFRWORK/code/Megatron-DeepSpeed
+
+VOCAB_FILE=$MEGATRON_DEEPSPEED_REPO/data/gpt2-vocab.json
+MERGE_FILE=$MEGATRON_DEEPSPEED_REPO/data/gpt2-merges.txt
+DATA_PATH=$six_ALL_CCFRWORK/datasets/pile/pile_text_document
+
+# defining the right environment variables
+source $six_ALL_CCFRWORK/start-prod
+export TRANSFORMERS_CACHE=$six_ALL_CCFRWORK/models
+export HF_DATASETS_CACHE=$six_ALL_CCFRWORK/datasets
+export HF_MODULES_CACHE=$six_ALL_CCFRWORK/modules
+export HF_METRICS_CACHE=$six_ALL_CCFRWORK/metrics
+export HF_DATASETS_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+cd $MEGATRON_DEEPSPEED_REPO
+
+# so processes know who to talk to
+MASTER_ADDR=`scontrol show hostnames $SLURM_JOB_NODELIST | head -n 1`
+MASTER_PORT=6000
+
+# adjust depending on the number of the nodes
+
+# XXX: edit me
+GPUS_PER_NODE=4
+NNODES=64
+PP_SIZE=4 # NLAYERS must be a multiple of PP_SIZE here
+TP_SIZE=4 # always fixed to the size of a single node
+DP_SIZE=$((NNODES*GPUS_PER_NODE/(PP_SIZE*TP_SIZE))) # will get derived automatically by trainer
+
+MICRO_BATCH_SIZE=8
+GLOBAL_BATCH_SIZE=512
+TRAIN_ITER=146_484_375
+
+NLAYERS=24
+NHIDDEN=2048
+NHEADS=16
+FFN_HIDDEN_SIZE=8192
+SEQ_LEN=2048
+
+if   [[ ${ROUND} == 1 ]]; then  EXIT_INTERVAL=100    SAVE_INTERVAL=10
+elif [[ ${ROUND} == 2 ]]; then  SAVE_INTERVAL=1500
+else echo "invalid ROUND: $ROUND"
+fi
+
+OPTIMIZER_ARGS=" \
+    --optimizer adam \
+    --adam-beta1 0.9 \
+    --adam-beta2 0.999 \
+    --adam-eps 1e-8 \
+    --lr 2e-4 \
+    --min-lr 1e-5 \
+    --lr-decay-style cosine \
+    --lr-decay-samples 146_484_375 \
+    --lr-warmup-samples 183_105 \
+    --clip-grad 1.0 \
+    --hidden-dropout 0.0 \
+    --attention-dropout 0.0 \
+    --weight-decay 1e-1 \
+    "
+
+EXIT_OPTS=" \
+    --exit-duration-in-mins 1190 \
+    "
+
+GPT_ARGS=" \
+    --num-layers $NLAYERS \
+    --hidden-size $NHIDDEN \
+    --num-attention-heads $NHEADS \
+    --ffn-hidden-size $FFN_HIDDEN_SIZE \
+    --seq-length $SEQ_LEN \
+    --max-position-embeddings $SEQ_LEN \
+    --micro-batch-size $MICRO_BATCH_SIZE \
+    --global-batch-size $GLOBAL_BATCH_SIZE \
+    --rampup-batch-size 32 32 2_000_000 \
+    --train-samples $TRAIN_ITER \
+    --vocab-file $VOCAB_FILE \
+    --merge-file $MERGE_FILE \
+    --loss-scale 12 \
+    --clip-grad 1.0 \
+    --fp16 \
+    --checkpoint-activations \
+    $OPTIMIZER_ARGS \
+    $EXIT_OPTS \
+    "
+
+OUTPUT_ARGS=" \
+    --log-interval 200 \
+    --save-interval $SAVE_INTERVAL \
+    --eval-interval 1000 \
+    --eval-iters 100 \
+    --tensorboard-dir $TENSORBOARD_PATH \
+    --tensorboard-queue-size 5 \
+    --log-timers-to-tensorboard \
+    --log-batch-size-to-tensorboard \
+    --log-validation-ppl-to-tensorboard \
+    "
+
+ZERO_STAGE=1
+
+config_json="./ds_config.$SLURM_JOBID.json"
+
+# Deepspeed figures out GAS dynamically from dynamic GBS via set_train_batch_size()
+cat <<EOT > $config_json
+{
+  "train_micro_batch_size_per_gpu": $MICRO_BATCH_SIZE,
+  "train_batch_size": $GLOBAL_BATCH_SIZE,
+  "gradient_clipping": 1.0,
+  "zero_optimization": {
+    "stage": $ZERO_STAGE
+  },
+  "fp16": {
+    "enabled": true,
+    "loss_scale": 0,
+    "loss_scale_window": 500,
+    "hysteresis": 2,
+    "min_loss_scale": 1,
+    "initial_scale_power": 12
+  },
+  "steps_per_print": 2000,
+  "wall_clock_breakdown": false
+}
+EOT
+
+
+DEEPSPEED_ARGS=" \
+    --deepspeed \
+    --deepspeed_config ${config_json} \
+    --zero-stage ${ZERO_STAGE} \
+    --deepspeed-activation-checkpointing \
+    "
+
+export LAUNCHER="python -u -m torch.distributed.launch \
+    --nproc_per_node $GPUS_PER_NODE \
+    --nnodes $NNODES \
+    --master_addr $MASTER_ADDR \
+    --master_port $MASTER_PORT \
+    "
+
+export CMD=" \
+    `pwd`/pretrain_gpt.py \#!/bin/bash
+#SBATCH --job-name=1B3-pile-no-dropout.slurm
+#SBATCH --qos=qos_gpu-t3
+#SBATCH --nodes=64
+#SBATCH --ntasks-per-node=1          # crucial - only 1 task per dist per node!
+#SBATCH --cpus-per-task=40           # number of cores per tasks
+#SBATCH --hint=nomultithread         # we get physical cores not logical
+#SBATCH --gres=gpu:4                 # number of gpus
+#SBATCH --time 20:00:00              # maximum execution time (HH:MM:SS)
+#SBATCH --output=%x-%a-%j.out        # output file name
+#SBATCH --error=%x-%a-%j.out         # error file name (same to watch just one file)
+#SBATCH --account=six@gpu
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=victor@huggingface.co
+
+set -x -e
+
+
+ROUND=2
+TESTING=0
+
+EXPERIMENT_NAME=tr3o-1B3-pile-no-dropout
+OUTPUT_PATH=$six_ALL_CCFRSCRATCH/synched_exps/$EXPERIMENT_NAME/
+CHECKPOINT_PATH=$OUTPUT_PATH/checkpoints
+REPO_PATH=$OUTPUT_PATH/$EXPERIMENT_NAME-logs
+TENSORBOARD_PATH=$REPO_PATH/tensorboard
+CODECARBON_PATH=$REPO_PATH/codecarbon
+LOGS_PATH=$REPO_PATH/logs
+
+MEGATRON_DEEPSPEED_REPO=$ALL_CCFRWORK/code/Megatron-DeepSpeed
+
+VOCAB_FILE=$MEGATRON_DEEPSPEED_REPO/data/gpt2-vocab.json
+MERGE_FILE=$MEGATRON_DEEPSPEED_REPO/data/gpt2-merges.txt
+DATA_PATH=$six_ALL_CCFRWORK/datasets/pile/pile_text_document
+
+# defining the right environment variables
+source $six_ALL_CCFRWORK/start-prod
+export TRANSFORMERS_CACHE=$six_ALL_CCFRWORK/models
+export HF_DATASETS_CACHE=$six_ALL_CCFRWORK/datasets
+export HF_MODULES_CACHE=$six_ALL_CCFRWORK/modules
+export HF_METRICS_CACHE=$six_ALL_CCFRWORK/metrics
+export HF_DATASETS_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+cd $MEGATRON_DEEPSPEED_REPO
+
+# so processes know who to talk to
+MASTER_ADDR=`scontrol show hostnames $SLURM_JOB_NODELIST | head -n 1`
+MASTER_PORT=6000
+
+# adjust depending on the number of the nodes
+
+# XXX: edit me
+GPUS_PER_NODE=4
+NNODES=64
+PP_SIZE=4 # NLAYERS must be a multiple of PP_SIZE here
+TP_SIZE=4 # always fixed to the size of a single node
+DP_SIZE=$((NNODES*GPUS_PER_NODE/(PP_SIZE*TP_SIZE))) # will get derived automatically by trainer
+
+MICRO_BATCH_SIZE=8
+GLOBAL_BATCH_SIZE=512
+TRAIN_ITER=146_484_375
+
+NLAYERS=24
+NHIDDEN=2048
+NHEADS=16
+FFN_HIDDEN_SIZE=8192
+SEQ_LEN=2048
+
+if   [[ ${ROUND} == 1 ]]; then  EXIT_INTERVAL=100    SAVE_INTERVAL=10
+elif [[ ${ROUND} == 2 ]]; then  SAVE_INTERVAL=1500
+else echo "invalid ROUND: $ROUND"
+fi
+
+OPTIMIZER_ARGS=" \
+    --optimizer adam \
+    --adam-beta1 0.9 \
+    --adam-beta2 0.999 \
+    --adam-eps 1e-8 \
+    --lr 2e-4 \
+    --min-lr 1e-5 \
+    --lr-decay-style cosine \
+    --lr-decay-samples 146_484_375 \
+    --lr-warmup-samples 183_105 \
+    --clip-grad 1.0 \
+    --hidden-dropout 0.0 \
+    --attention-dropout 0.0 \
+    --weight-decay 1e-1 \
+    "
+
+EXIT_OPTS=" \
+    --exit-duration-in-mins 1190 \
+    "
+
+GPT_ARGS=" \
+    --num-layers $NLAYERS \
+    --hidden-size $NHIDDEN \
+    --num-attention-heads $NHEADS \
+    --ffn-hidden-size $FFN_HIDDEN_SIZE \
+    --seq-length $SEQ_LEN \
+    --max-position-embeddings $SEQ_LEN \
+    --micro-batch-size $MICRO_BATCH_SIZE \
+    --global-batch-size $GLOBAL_BATCH_SIZE \
+    --rampup-batch-size 32 32 2_000_000 \
+    --train-samples $TRAIN_ITER \
+    --vocab-file $VOCAB_FILE \
+    --merge-file $MERGE_FILE \
+    --loss-scale 12 \
+    --clip-grad 1.0 \
+    --fp16 \
+    --checkpoint-activations \
+    $OPTIMIZER_ARGS \
+    $EXIT_OPTS \
+    "
+
+OUTPUT_ARGS=" \
+    --log-interval 200 \
+    --save-interval $SAVE_INTERVAL \
+    --eval-interval 1000 \
+    --eval-iters 100 \
+    --tensorboard-dir $TENSORBOARD_PATH \
+    --tensorboard-queue-size 5 \
+    --log-timers-to-tensorboard \
+    --log-batch-size-to-tensorboard \
+    --log-validation-ppl-to-tensorboard \
+    "
+
+ZERO_STAGE=1
+
+config_json="./ds_config.$SLURM_JOBID.json"
+
+# Deepspeed figures out GAS dynamically from dynamic GBS via set_train_batch_size()
+cat <<EOT > $config_json
+{
+  "train_micro_batch_size_per_gpu": $MICRO_BATCH_SIZE,
+  "train_batch_size": $GLOBAL_BATCH_SIZE,
+  "gradient_clipping": 1.0,
+  "zero_optimization": {
+    "stage": $ZERO_STAGE
+  },
+  "fp16": {
+    "enabled": true,
+    "loss_scale": 0,
+    "loss_scale_window": 500,
+    "hysteresis": 2,
+    "min_loss_scale": 1,
+    "initial_scale_power": 12
+  },
+  "steps_per_print": 2000,
+  "wall_clock_breakdown": false
+}
+EOT
+
+
+DEEPSPEED_ARGS=" \
+    --deepspeed \
+    --deepspeed_config ${config_json} \
+    --zero-stage ${ZERO_STAGE} \
+    --deepspeed-activation-checkpointing \
+    "
+
+export LAUNCHER="python -u -m torch.distributed.launch \
+    --nproc_per_node $GPUS_PER_NODE \
+    --nnodes $NNODES \
+    --master_addr $MASTER_ADDR \
+    --master_port $MASTER_PORT \
+    "
+
+export CMD=" \
+    `pwd`/pretrain_gpt.py \
+    --tensor-model-parallel-size $TP_SIZE \
+    --pipeline-model-parallel-size $PP_SIZE \
+    $GPT_ARGS \
+    $OUTPUT_ARGS \
+    --save $CHECKPOINT_PATH \
+    --load $CHECKPOINT_PATH \
+    --data-path $DATA_PATH \
+    --data-impl mmap \
+    --split 949,50,1 \
+    --distributed-backend nccl \
+     $DEEPSPEED_ARGS \
+    "
+
+
+# # clear old checkpoint as it'd mismatch while we sort things out
+#     rm -rf $SAVE_CHECKPOINT_PATH
+
+
+echo $CMD
+
+# We create the folder where the logs and codecarbon will be stored.
+mkdir -p $LOGS_PATH
+# to debug - add echo (it exits and prints what it would have launched)
+srun --jobid $SLURM_JOBID bash -c '$LAUNCHER --node_rank $SLURM_PROCID $CMD' 2>&1 | tee -a $LOGS_PATH/main_log.txt
+
+    --tensor-model-parallel-size $TP_SIZE \
+    --pipeline-model-parallel-size $PP_SIZE \
+    $GPT_ARGS \
+    $OUTPUT_ARGS \
+    --save $CHECKPOINT_PATH \
+    --load $CHECKPOINT_PATH \
+    --data-path $DATA_PATH \
+    --data-impl mmap \
+    --split 949,50,1 \
+    --distributed-backend nccl \
+     $DEEPSPEED_ARGS \
+    "
+
+
+# # clear old checkpoint as it'd mismatch while we sort things out
+#     rm -rf $SAVE_CHECKPOINT_PATH
+
+
+echo $CMD
+
+# We create the folder where the logs and codecarbon will be stored.
+mkdir -p $LOGS_PATH
+# to debug - add echo (it exits and prints what it would have launched)
+srun --jobid $SLURM_JOBID bash -c '$LAUNCHER --node_rank $SLURM_PROCID $CMD' 2>&1 | tee -a $LOGS_PATH/main_log.txt
+
         :param evaluation_steps: If > 0, evaluate the model using evaluator after each number of training steps
         :param output_path: Storage path for the model and evaluation files
         :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
@@ -633,6 +1020,7 @@ class SentenceTransformer(nn.Sequential):
         :param checkpoint_path: Folder to save checkpoints during training
         :param checkpoint_save_steps: Will save a checkpoint after so many steps
         :param checkpoint_save_total_limit: Total number of checkpoints to store
+        :param accelerator: Allows you to pass your own accelerator object defined beforehand.
         """
 
         # replacing mutable arguments
@@ -650,7 +1038,8 @@ class SentenceTransformer(nn.Sequential):
         self._model_card_vars['{TRAINING_SECTION}'] = ModelCardTemplate.__TRAINING_SECTION__.replace("{LOSS_FUNCTIONS}", info_loss_functions).replace("{FIT_PARAMETERS}", info_fit_parameters)
 
         # accelerate setup
-        accelerator = Accelerator()
+        if accelerator is None:
+            accelerator = Accelerator()
 
         if use_amp:
             from torch.cuda.amp import autocast
