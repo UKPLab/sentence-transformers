@@ -664,8 +664,10 @@ class SentenceTransformer(nn.Sequential):
         # Use smart batching
         for dataloader in dataloaders:
             dataloader.collate_fn = self.smart_batching_collate
+        dataloaders = [accelerator.prepare(dataloader) for dataloader in dataloaders]
 
         loss_models = [loss for _, loss in train_objectives]
+        loss_models = [accelerator.prepare(loss_model) for loss_model in loss_models]
 
         self.best_score = -9999999
 
@@ -692,9 +694,7 @@ class SentenceTransformer(nn.Sequential):
             optimizers.append(optimizer)
             schedulers.append(scheduler_obj)
 
-        loss_models = [accelerator.prepare(loss_model) for loss_model in loss_models]
         optimizers = [accelerator.prepare(optimizer) for optimizer in optimizers]
-        dataloaders = [accelerator.prepare(dataloader) for dataloader in dataloaders]
 
         global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
