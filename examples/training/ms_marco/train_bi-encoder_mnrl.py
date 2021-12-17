@@ -93,11 +93,11 @@ collection_filepath = os.path.join(data_folder, 'collection.tsv')
 queries_filepath = os.path.join(data_folder, 'queries.train.tsv')
 ce_scores_file = os.path.join(data_folder, 'cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz')
 hard_negatives_filepath = os.path.join(data_folder, 'msmarco-hard-negatives.jsonl.gz')
+corpus = {}  # dict in the format: passage_id -> passage. Stores all existent passages
 
 if accelerator.is_main_process:
     # Downloads
     #### Read the corpus files, that contain all the passages. Store them in the corpus dict
-    corpus = {}  # dict in the format: passage_id -> passage. Stores all existent passages
     if not os.path.exists(collection_filepath):
         tar_filepath = os.path.join(data_folder, 'collection.tar.gz')
         if not os.path.exists(tar_filepath):
