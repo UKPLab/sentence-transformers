@@ -89,11 +89,15 @@ model_save_path = 'output/train_bi-encoder-mnrl-{}-margin_{:.1f}-{}'.format(mode
 ### Now we read the MS Marco dataset
 data_folder = 'msmarco-data'
 
+collection_filepath = os.path.join(data_folder, 'collection.tsv')
+queries_filepath = os.path.join(data_folder, 'queries.train.tsv')
+ce_scores_file = os.path.join(data_folder, 'cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz')
+hard_negatives_filepath = os.path.join(data_folder, 'msmarco-hard-negatives.jsonl.gz')
+
 if accelerator.is_main_process:
     # Downloads
     #### Read the corpus files, that contain all the passages. Store them in the corpus dict
     corpus = {}  # dict in the format: passage_id -> passage. Stores all existent passages
-    collection_filepath = os.path.join(data_folder, 'collection.tsv')
     if not os.path.exists(collection_filepath):
         tar_filepath = os.path.join(data_folder, 'collection.tar.gz')
         if not os.path.exists(tar_filepath):
@@ -103,7 +107,6 @@ if accelerator.is_main_process:
         with tarfile.open(tar_filepath, "r:gz") as tar:
             tar.extractall(path=data_folder)
 
-    queries_filepath = os.path.join(data_folder, 'queries.train.tsv')
     if not os.path.exists(queries_filepath):
         tar_filepath = os.path.join(data_folder, 'queries.tar.gz')
         if not os.path.exists(tar_filepath):
@@ -115,7 +118,6 @@ if accelerator.is_main_process:
 
     # Load a dict (qid, pid) -> ce_score that maps query-ids (qid) and paragraph-ids (pid)
     # to the CrossEncoder score computed by the cross-encoder/ms-marco-MiniLM-L-6-v2 model
-    ce_scores_file = os.path.join(data_folder, 'cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz')
     if not os.path.exists(ce_scores_file):
         logging.info("Download cross-encoder scores file")
         util.http_get(
@@ -123,7 +125,6 @@ if accelerator.is_main_process:
             ce_scores_file)
 
     # As training data we use hard-negatives that have been mined using various systems
-    hard_negatives_filepath = os.path.join(data_folder, 'msmarco-hard-negatives.jsonl.gz')
     if not os.path.exists(hard_negatives_filepath):
         logging.info("Download cross-encoder scores file")
         util.http_get(
