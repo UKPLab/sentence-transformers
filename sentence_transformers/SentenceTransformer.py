@@ -757,24 +757,26 @@ class SentenceTransformer(nn.Sequential):
                                 scheduler.step()
                             global_step += 1
 
-                if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
+                if accelerator.is_main_process:
+                    if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
+                        self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
 
-                    for loss_model in loss_models:
-                        loss_model.zero_grad()
-                        loss_model.train()
+                        for loss_model in loss_models:
+                            loss_model.zero_grad()
+                            loss_model.train()
 
-                if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 and global_step % checkpoint_save_steps == 0:
-                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
+                    if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 and global_step % checkpoint_save_steps == 0:
+                        self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
+            if accelerator.is_main_process:
+                self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
-            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+        if accelerator.is_main_process:
+            if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
+                self.save(output_path)
 
-        if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
-            self.save(output_path)
-
-        if checkpoint_path is not None:
-            self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
+            if checkpoint_path is not None:
+                self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
 
 
