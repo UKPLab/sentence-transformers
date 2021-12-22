@@ -38,7 +38,7 @@ If you use the code for [data augmentation](https://github.com/UKPLab/sentence-t
     year = "2021",
     address = "Online",
     publisher = "Association for Computational Linguistics",
-    url = "https://www.aclweb.org/anthology/2021.naacl-main.28",
+    url = "https://arxiv.org/abs/2010.08240",
     pages = "296--310",
 }
 ```
@@ -53,33 +53,47 @@ If you use the models for [MS MARCO](pretrained-models/msmarco-v2.md), feel free
     year = "2021",
     address = "Online",
     publisher = "Association for Computational Linguistics",
-    url = "https://aclanthology.org/2021.acl-short.77",
-    doi = "10.18653/v1/2021.acl-short.77",
+    url = "https://arxiv.org/abs/2012.14210",
     pages = "605--611",
 }
 ```
 
 When you use the unsupervised learning example, please have a look at: [TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning](https://arxiv.org/abs/2104.06979):
 ```bibtex 
-@article{wang-2021-TSDAE,
+@inproceedings{wang-2021-TSDAE,
     title = "TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning",
     author = "Wang, Kexin and Reimers, Nils and Gurevych, Iryna", 
-    journal= "arXiv preprint arXiv:2104.06979",
-    month = "4",
+    booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2021",
+    month = nov,
     year = "2021",
+    address = "Punta Cana, Dominican Republic",
+    publisher = "Association for Computational Linguistics",
+    pages = "671--688",
     url = "https://arxiv.org/abs/2104.06979",
 }
 ```
 
 When you use the GenQ learning example, please have a look at: [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663):
 ```bibtex  
-@article{thakur-2021-BEIR,
+@inproceedings{thakur-2021-BEIR,
     title = "BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models",
     author = {Thakur, Nandan and Reimers, Nils and R{\"{u}}ckl{\'{e}}, Andreas and Srivastava, Abhishek and Gurevych, Iryna}, 
-    journal= "arXiv preprint arXiv:2104.08663",
+    booktitle={Thirty-fifth Conference on Neural Information Processing Systems (NeurIPS 2021) - Datasets and Benchmarks Track (Round 2)},
     month = "4",
     year = "2021",
     url = "https://arxiv.org/abs/2104.08663",
+}
+```
+
+When  you use GPL, please have a look at: [GPL: Generative Pseudo Labeling for Unsupervised Domain Adaptation of Dense Retrieval](https://arxiv.org/abs/2112.07577):
+```bibtex  
+@inproceedings{wang-2021-GPL,
+    title = "GPL: Generative Pseudo Labeling for Unsupervised Domain Adaptation of Dense Retrieval",
+    author = "Wang, Kexin and Thakur, Nandan and Reimers, Nils and Gurevych, Iryna", 
+    journal= "arXiv preprint arXiv:2112.07577",
+    month = "12",
+    year = "2021",
+    url = "https://arxiv.org/abs/2112.07577",
 }
 ```
 
@@ -97,6 +111,8 @@ When you use the GenQ learning example, please have a look at: [BEIR: A Heteroge
 **SentenceTransformers in Articles**
 
 In the following you find a (selective) list of articles / applications using SentenceTransformers to do amazing stuff. Feel free to contact me (info@nils-reimers.de) to add you application here. 
+- **December 2021 - [Sentence Transformer Fine-Tuning (SetFit): Outperforming GPT-3 on few-shot Text-Classification while being 1600 times smaller](https://towardsdatascience.com/sentence-transformer-fine-tuning-setfit-outperforms-gpt-3-on-few-shot-text-classification-while-d9a3788f0b4e?gi=4bdbaff416e3)**
+- **October 2021: [Natural Language Processing (NLP) for Semantic Search](https://www.pinecone.io/learn/nlp)**
 - **January 2021 - [Advance BERT model via transferring knowledge from Cross-Encoders to Bi-Encoders](https://towardsdatascience.com/advance-nlp-model-via-transferring-knowledge-from-cross-encoders-to-bi-encoders-3e0fc564f554)**
 - **November 2020 - [How to Build a Semantic Search Engine With Transformers and Faiss](https://towardsdatascience.com/how-to-build-a-semantic-search-engine-with-transformers-and-faiss-dcbea307a0e8)**
 - **October 2020 - [Topic Modeling with BERT](https://towardsdatascience.com/topic-modeling-with-bert-779f7db187e6)**

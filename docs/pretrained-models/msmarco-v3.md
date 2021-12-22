@@ -11,7 +11,7 @@ model = SentenceTransformer('msmarco-distilroberta-base-v3')
 query_embedding = model.encode('How big is London')
 passage_embedding = model.encode('London has 9,787,426 inhabitants at the 2011 census')
 
-print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
+print("Similarity:", util.cos_sim(query_embedding, passage_embedding))
 ```
 
 
