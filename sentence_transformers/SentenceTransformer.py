@@ -783,19 +783,20 @@ class SentenceTransformer(nn.Sequential):
                                 scheduler.step()
                             global_step += 1
 
-                if accelerator.is_main_process:
-                    if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                        self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
+                if evaluation_steps > 0 and global_step % evaluation_steps == 0:
+                    self._eval_during_training(evaluator, output_path, save_best_model, epoch, global_step, callback,
+                                               main_process=accelerator.is_main_process)
 
-                        for loss_model in loss_models:
-                            loss_model.zero_grad()
-                            loss_model.train()
+                    for loss_model in loss_models:
+                        loss_model.zero_grad()
+                        loss_model.train()
 
-                    if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 and global_step % checkpoint_save_steps == 0:
-                        self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
+                if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 \
+                        and global_step % checkpoint_save_steps == 0 and accelerator.is_main_process:
+                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
-            if accelerator.is_main_process:
-                self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback,
+                                        main_process=accelerator.is_main_process)
 
         if accelerator.is_main_process:
             if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
@@ -819,7 +820,7 @@ class SentenceTransformer(nn.Sequential):
             os.makedirs(output_path, exist_ok=True)
         return evaluator(self, output_path)
 
-    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
+    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback, main_process=True):
         """Runs evaluation during the training"""
         eval_path = output_path
         if output_path is not None:
@@ -829,9 +830,9 @@ class SentenceTransformer(nn.Sequential):
 
         if evaluator is not None:
             score = evaluator(self, output_path=eval_path, epoch=epoch, steps=steps)
-            if callback is not None:
+            if callback is not None and main_process:
                 callback(score, epoch, steps)
-            if score > self.best_score:
+            if score > self.best_score and main_process:
                 self.best_score = score
                 if save_best_model:
                     self.save(output_path)
