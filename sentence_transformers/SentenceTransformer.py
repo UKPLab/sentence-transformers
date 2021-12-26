@@ -148,29 +148,55 @@ class SentenceTransformer(nn.Sequential):
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
         all_embeddings = []
 
-        if num_proc is None or num_proc == 1:
+        # For distributed training
+        if torch.distributed.is_initialized():
+            world_size = torch.distributed.get_world_size()
+            rank = torch.distributed.get_rank()
             if device is None:
                 device = self._target_device
-            self.to(device)
-            for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
-                sentences_batch = sentences_sorted[start_index:start_index + batch_size]
-                embeddings = self._encode(sentences_batch, device=device, output_value=output_value,
-                                          convert_to_numpy=convert_to_numpy, normalize_embeddings=normalize_embeddings,
-                                          multiprocessing=False)
-                all_embeddings.extend(embeddings)
+            # defining the 0-dim sizes of the batches
+            sizes = [len(sentences_sorted) // world_size + 1 if rank < len(sentences_sorted) % world_size else 0
+                     for rank in range(world_size)]
+            # dividing the list of sentences into batches
+            limits = np.cumsum([0] + sizes)
+            sentences_batch = sentences_sorted[limits[rank]:limits[rank+1]]
+            # embedding
+            embeddings = self._encode(sentences_batch, device=device, output_value=output_value,
+                                      convert_to_numpy=convert_to_numpy, normalize_embeddings=normalize_embeddings,
+                                      multiprocessing=False)
+            # gathering everything thanks to the size information from earlier
+            all_embeddings = [torch.zeros([size] + list(embeddings.shape[1:]),
+                                          device=embeddings.device, dtype=embeddings.dtype) for size in sizes]
+            torch.distributed.all_gather(all_embeddings, embeddings)
+            all_embeddings = torch.cat(all_embeddings)
+
+        # Otherwise
         else:
+            # Single-GPU/single-process
+            if num_proc is None or num_proc == 1:
+                if device is None:
+                    device = self._target_device
+                self.to(device)
+                for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
+                    sentences_batch = sentences_sorted[start_index:start_index + batch_size]
+                    embeddings = self._encode(sentences_batch, device=device, output_value=output_value,
+                                              convert_to_numpy=convert_to_numpy, normalize_embeddings=normalize_embeddings,
+                                              multiprocessing=False)
+                    all_embeddings.extend(embeddings)
+            # Multi-GPU/multi-process
+            else:
                 # Allows for several CUDA processes
-            cuda_compatible_multiprocess = mp.get_context("spawn")
-            with cuda_compatible_multiprocess.Pool(num_proc) as p:
-                sentences_batches = [sentences_sorted[start_index:start_index + batch_size]
-                                     for start_index in trange(0, len(sentences), batch_size)]
-                for result in p.map(partial(self._encode,
-                                            device=device,
-                                            output_value=output_value,
-                                            convert_to_numpy=convert_to_numpy,
-                                            normalize_embeddings=normalize_embeddings),
-                                    sentences_batches):
-                    all_embeddings.extend(result)
+                cuda_compatible_multiprocess = mp.get_context("spawn")
+                with cuda_compatible_multiprocess.Pool(num_proc) as p:
+                    sentences_batches = [sentences_sorted[start_index:start_index + batch_size]
+                                         for start_index in trange(0, len(sentences), batch_size)]
+                    for result in p.map(partial(self._encode,
+                                                device=device,
+                                                output_value=output_value,
+                                                convert_to_numpy=convert_to_numpy,
+                                                normalize_embeddings=normalize_embeddings),
+                                        sentences_batches):
+                        all_embeddings.extend(result)
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
