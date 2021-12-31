@@ -19,7 +19,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'transformers>=4.6.0,<5.0.0',
-        'tokenizers>=0.10.3',
+        'tokenizers>=0.10.3,<0.11',
         'tqdm',
         'torch>=1.6.0',
         'torchvision',
