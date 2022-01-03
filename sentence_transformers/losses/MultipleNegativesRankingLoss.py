@@ -3,6 +3,8 @@ from torch import nn, Tensor
 from typing import Iterable, Dict
 from ..SentenceTransformer import SentenceTransformer
 from .. import util
+from ..util import mismatched_sizes_all_gather
+
 
 class MultipleNegativesRankingLoss(nn.Module):
     """
@@ -53,23 +55,16 @@ class MultipleNegativesRankingLoss(nn.Module):
         embeddings_a = reps[0]
 
         if torch.distributed.is_initialized():
+
             embeddings_b = reps[1]
             if len(reps) > 2:
                 embeddings_n = torch.cat(reps[2:])
             else:
                 embeddings_n = embeddings_b[:0, :]
-            full_embeddings_b = [torch.zeros_like(embeddings_b) for _ in range(torch.distributed.get_world_size())]
-            torch.distributed.all_gather(full_embeddings_b, embeddings_b)
+            full_embeddings_b = mismatched_sizes_all_gather(embeddings_b)
             full_embeddings_b = torch.cat(full_embeddings_b)
-
-            dim_0_size = torch.tensor([embeddings_n.shape[0]], dtype=torch.int64, device="cuda")
-            sizes = [torch.zeros_like(dim_0_size) for _ in range(torch.distributed.get_world_size())]
-            torch.distributed.all_gather(sizes, dim_0_size)
-            sizes = torch.cat(sizes).cpu().tolist()
-            full_embeddings_n = [torch.zeros([size] + list(embeddings_n.shape[1:]), device=embeddings_n.device, dtype=embeddings_n.dtype) for size in sizes]
-            torch.distributed.all_gather(full_embeddings_n, embeddings_n)
+            full_embeddings_n = mismatched_sizes_all_gather(embeddings_n)
             full_embeddings_n = torch.cat(full_embeddings_n)
-
             candidates = torch.cat([full_embeddings_b, full_embeddings_n])
 
             scores = self.similarity_fct(embeddings_a, candidates) * self.scale
@@ -82,7 +77,6 @@ class MultipleNegativesRankingLoss(nn.Module):
             scores = self.similarity_fct(embeddings_a, candidates) * self.scale
             labels = torch.tensor(range(len(scores)), dtype=torch.long,
                                   device=scores.device)  # Example a[i] should match with b[i]
-
             return self.cross_entropy_loss(scores, labels)
 
     def get_config_dict(self):

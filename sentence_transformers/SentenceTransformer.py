@@ -26,7 +26,7 @@ from accelerate import Accelerator
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, fullname, snapshot_download
+from .util import import_from_string, batch_to_device, fullname, snapshot_download, mismatched_sizes_all_gather
 from .models import Transformer, Pooling, Dense
 from .model_card_templates import ModelCardTemplate
 from . import __version__
@@ -155,19 +155,22 @@ class SentenceTransformer(nn.Sequential):
             if device is None:
                 device = self._target_device
             # defining the 0-dim sizes of the batches
-            sizes = [len(sentences_sorted) // world_size + 1 if rank < len(sentences_sorted) % world_size else 0
+            sizes = [len(sentences_sorted) // world_size + (1 if rank < len(sentences_sorted) % world_size else 0)
                      for rank in range(world_size)]
             # dividing the list of sentences into batches
             limits = np.cumsum([0] + sizes)
-            sentences_batch = sentences_sorted[limits[rank]:limits[rank+1]]
+            local_sentences = sentences_sorted[limits[rank]:limits[rank+1]]
             # embedding
-            embeddings = self._encode(sentences_batch, device=device, output_value=output_value,
-                                      convert_to_numpy=convert_to_numpy, normalize_embeddings=normalize_embeddings,
-                                      multiprocessing=False)
+            local_embeddings = []
+            for start_index in trange(0, len(local_sentences), batch_size, desc="Batches", disable=not show_progress_bar):
+                sentences_batch = local_sentences[start_index:start_index + batch_size]
+                batch_embeddings = self._encode(sentences_batch, device=device, output_value=output_value,
+                                          convert_to_numpy=convert_to_numpy, normalize_embeddings=normalize_embeddings,
+                                          multiprocessing=False)
+                local_embeddings.extend(batch_embeddings)
+            local_embeddings = torch.stack(local_embeddings)
             # gathering everything thanks to the size information from earlier
-            all_embeddings = [torch.zeros([size] + list(embeddings.shape[1:]),
-                                          device=embeddings.device, dtype=embeddings.dtype) for size in sizes]
-            torch.distributed.all_gather(all_embeddings, embeddings)
+            all_embeddings = mismatched_sizes_all_gather(local_embeddings)
             all_embeddings = torch.cat(all_embeddings)
 
         # Otherwise
@@ -680,13 +683,13 @@ class SentenceTransformer(nn.Sequential):
         # accelerate setup
         if accelerator is None:
             accelerator = Accelerator()
+        # self.to(self._target_device)
 
         if use_amp:
             from torch.cuda.amp import autocast
             scaler = torch.cuda.amp.GradScaler()
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
-
         # Use smart batching
         for dataloader in dataloaders:
             dataloader.collate_fn = self.smart_batching_collate
@@ -694,6 +697,8 @@ class SentenceTransformer(nn.Sequential):
 
         loss_models = [loss for _, loss in train_objectives]
         loss_models = [accelerator.prepare(loss_model) for loss_model in loss_models]
+        # for loss_model in loss_models:
+        #     loss_model.to(self._target_device)
 
         self.best_score = -9999999
 
@@ -758,6 +763,8 @@ class SentenceTransformer(nn.Sequential):
 
                         scale_before_step = scaler.get_scale()
                         accelerator.backward(scaler.scale(loss_value))
+                        # scaler.scale(loss_value).backward()
+                        print(f"loss value: {loss_value}")
                         training_steps += 1
                         scaler.unscale_(optimizer)
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
@@ -773,15 +780,14 @@ class SentenceTransformer(nn.Sequential):
                     else:
                         loss_value = loss_model(features, labels)
                         accelerator.backward(loss_value)
-                        training_steps += 1
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
                         if training_steps % gradient_accumulation == 0:
                             optimizer.step()
-
                             optimizer.zero_grad()
                             if not skip_scheduler:
                                 scheduler.step()
                             global_step += 1
+                        training_steps += 1
 
                 if evaluation_steps > 0 and global_step % evaluation_steps == 0:
                     self._eval_during_training(evaluator, output_path, save_best_model, epoch, global_step, callback,
