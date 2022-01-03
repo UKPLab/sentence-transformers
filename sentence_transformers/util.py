@@ -295,6 +295,34 @@ def batch_to_device(batch, target_device: device):
     return batch
 
 
+# from https://github.com/vlkit/vlkit/blob/master/vlkit/ops/distributed.py
+class AllGather(torch.autograd.Function):
+    """
+    all_gather with gradient back-propagation
+    """
+    @staticmethod
+    def forward(ctx, tensor_list, tensor, group, async_op):
+        torch.distributed.all_gather(tensor_list, tensor, group=group, async_op=async_op)
+        return tuple(tensor_list)
+
+    @staticmethod
+    def backward(ctx, *grad_list):
+        grad_list = list(grad_list)
+        rank = torch.distributed.get_rank()
+
+        dist_ops = [
+            torch.distributed.reduce(grad_list[i], i, async_op=True) for i in range(torch.distributed.get_world_size())
+        ]
+
+        for op in dist_ops:
+            op.wait()
+
+        return None, grad_list[rank], None, None
+
+
+all_gather_with_grad = AllGather.apply
+
+
 def mismatched_sizes_all_gather(tensor: Tensor, group=None, async_op=False):
     # all_gather doesn't support tensor lists where the first dimension is mismatched. This does.
     assert torch.distributed.is_initialized(), "torch.distributed not initialized"
@@ -310,7 +338,7 @@ def mismatched_sizes_all_gather(tensor: Tensor, group=None, async_op=False):
     padded[:tensor.shape[0], :] = tensor
     # gather the padded tensors
     tensor_list = [torch.zeros(padded.shape, device=padded.device, dtype=padded.dtype) for _ in range(world_size)]
-    torch.distributed.all_gather(tensor_list, padded, group=group, async_op=async_op)
+    all_gather_with_grad(tensor_list, padded, group, async_op)
     # trim off the padding
     for rank in range(world_size):
         assert not tensor_list[rank][sizes[rank]:, :].count_nonzero().is_nonzero(), \
