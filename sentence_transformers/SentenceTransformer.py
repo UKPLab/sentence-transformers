@@ -763,8 +763,6 @@ class SentenceTransformer(nn.Sequential):
 
                         scale_before_step = scaler.get_scale()
                         accelerator.backward(scaler.scale(loss_value))
-                        # scaler.scale(loss_value).backward()
-                        print(f"loss value: {loss_value}")
                         training_steps += 1
                         scaler.unscale_(optimizer)
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
