@@ -683,7 +683,6 @@ class SentenceTransformer(nn.Sequential):
         # accelerate setup
         if accelerator is None:
             accelerator = Accelerator()
-        # self.to(self._target_device)
 
         if use_amp:
             from torch.cuda.amp import autocast
@@ -693,20 +692,15 @@ class SentenceTransformer(nn.Sequential):
         # Use smart batching
         for dataloader in dataloaders:
             dataloader.collate_fn = self.smart_batching_collate
-        dataloaders = [accelerator.prepare(dataloader) for dataloader in dataloaders]
-
-        loss_models = [loss for _, loss in train_objectives]
-        loss_models = [accelerator.prepare(loss_model) for loss_model in loss_models]
-        # for loss_model in loss_models:
-        #     loss_model.to(self._target_device)
-
-        self.best_score = -9999999
-
+        # Calculate number of steps
         if steps_per_epoch is None or steps_per_epoch == 0:
-            steps_per_epoch = min([len(dataloader) for dataloader in dataloaders])
-
+            steps_per_epoch = min([len(dataloader) for dataloader in dataloaders]) / gradient_accumulation
+            if torch.distributed.is_initialized():
+                steps_per_epoch = steps_per_epoch / torch.distributed.get_world_size()
+            steps_per_epoch = math.ceil(steps_per_epoch)
         num_train_steps = int(steps_per_epoch * epochs)
 
+        loss_models = [loss for _, loss in train_objectives]
         # Prepare optimizers
         optimizers = []
         schedulers = []
@@ -725,12 +719,16 @@ class SentenceTransformer(nn.Sequential):
             optimizers.append(optimizer)
             schedulers.append(scheduler_obj)
 
-        optimizers = [accelerator.prepare(optimizer) for optimizer in optimizers]
+        n_dataloaders, n_loss_models, n_optimizers = len(dataloaders), len(loss_models), len(optimizers)
+        prepared = accelerator.prepare(*dataloaders, *loss_models, *optimizers)
+        dataloaders = prepared[0:n_dataloaders]
+        loss_models = prepared[n_dataloaders:n_dataloaders + n_loss_models]
+        optimizers = prepared[n_dataloaders + n_loss_models:len(prepared)]
+
+        self.best_score = -9999999
 
         global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
-
-
         num_train_objectives = len(train_objectives)
 
         skip_scheduler = False
