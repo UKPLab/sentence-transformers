@@ -32,7 +32,7 @@ import tqdm
 from sentence_transformers import SentenceTransformer, LoggingHandler, util, models, losses, InputExample, evaluation
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-from accelerate import Accelerator
+from accelerate import Accelerator, DistributedDataParallelKwargs
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -65,6 +65,7 @@ parser.add_argument("--seed", default=0, type=int)
 parser.add_argument("--no_training", action="store_true")
 parser.add_argument("--use_amp", action="store_true")
 parser.add_argument("--local_rank", type=int, default=-1)
+parser.add_argument("--find_unused_parameters", action="store_true")
 args = parser.parse_args()
 print(args)
 
@@ -72,7 +73,13 @@ torch.manual_seed(args.seed)
 random.seed(args.seed)
 np.random.seed(args.seed)
 
-accelerator = Accelerator()
+if args.find_unused_parameters:
+    kwargs = [DistributedDataParallelKwargs(dim=0, broadcast_buffers=True, bucket_cap_mb=25,
+                                           find_unused_parameters=True, check_reduction=False,
+                                           gradient_as_bucket_view=False)]
+else:
+    kwargs = []
+accelerator = Accelerator(kwargs_handlers=kwargs)
 
 # The  model we want to fine-tune
 model_name = args.model_name
