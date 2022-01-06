@@ -51,7 +51,7 @@ The usage is as simple as:
 Performance
 =========================
 
-Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed. Have a look at [Pre-Trained Models](https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models) for an overview of available models and the respective performance on different tasks.
+Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed. Have a look at `Pre-Trained Models <https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models/>`_ for an overview of available models and the respective performance on different tasks.
 
 
 
