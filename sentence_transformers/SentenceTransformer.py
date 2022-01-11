@@ -172,6 +172,8 @@ class SentenceTransformer(nn.Sequential):
             # gathering everything thanks to the size information from earlier
             all_embeddings = mismatched_sizes_all_gather(local_embeddings)
             all_embeddings = torch.cat(all_embeddings)
+            if convert_to_numpy:
+                all_embeddings = all_embeddings.cpu()
 
         # Otherwise
         else:
