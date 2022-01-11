@@ -165,7 +165,7 @@ class SentenceTransformer(nn.Sequential):
             for start_index in trange(0, len(local_sentences), batch_size, desc="Batches", disable=not show_progress_bar):
                 sentences_batch = local_sentences[start_index:start_index + batch_size]
                 batch_embeddings = self._encode(sentences_batch, device=device, output_value=output_value,
-                                          convert_to_numpy=convert_to_numpy, normalize_embeddings=normalize_embeddings,
+                                          convert_to_numpy=False, normalize_embeddings=normalize_embeddings,
                                           multiprocessing=False)
                 local_embeddings.extend(batch_embeddings)
             local_embeddings = torch.stack(local_embeddings)
@@ -598,19 +598,18 @@ class SentenceTransformer(nn.Sequential):
 
     def _text_length(self, text: Union[List[int], List[List[int]]]):
         """
-        Help function to get the length for the input text. Text can be either
-        a list of ints (which means a single text as input), or a tuple of list of ints
+        Help function to get the length for the input text. Text can be either a string (which means a single text)
+        a list of ints (which means a single tokenized text), or a tuple of list of ints
         (representing several text inputs to the model).
         """
-
-        if isinstance(text, dict):              #{key: value} case
-            return len(next(iter(text.values())))
-        elif not hasattr(text, '__len__'):      #Object has no len() method
-            return 1
-        elif len(text) == 0 or isinstance(text[0], int):    #Empty string or list of ints
+        if isinstance(text, str) or isinstance(text[0], int) or len(text) == 0:     #Single text, list of ints, or empty
             return len(text)
+        if isinstance(text, dict):                                                  #{key: value} case
+            return len(next(iter(text.values())))
+        elif not hasattr(text, '__len__'):                                          #Object has no len() method
+            return 1
         else:
-            return sum([len(t) for t in text])      #Sum of length of individual strings
+            return sum([len(t) for t in text])                                      #Sum of length of individual strings
 
     def fit(self,
             train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
