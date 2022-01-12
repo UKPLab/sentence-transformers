@@ -61,14 +61,13 @@ class MultipleNegativesRankingLoss(nn.Module):
                 embeddings_n = torch.cat(reps[2:])
             else:
                 embeddings_n = embeddings_b[:0, :]
-            scores_b = self.similarity_fct(embeddings_a, embeddings_b) * self.scale
-            scores_n = self.similarity_fct(embeddings_a, embeddings_n) * self.scale
-            full_scores_b = mismatched_sizes_all_gather(scores_b, mismatched_axis=1)
-            full_scores_b = torch.cat(full_scores_b, dim=1)
-            full_scores_n = mismatched_sizes_all_gather(scores_n, mismatched_axis=1)
-            full_scores_n = torch.cat(full_scores_n, dim=1)
-            scores = torch.cat([full_scores_b, full_scores_n], dim=1)
+            full_embeddings_b = mismatched_sizes_all_gather(embeddings_b)
+            full_embeddings_b = torch.cat(full_embeddings_b)
+            full_embeddings_n = mismatched_sizes_all_gather(embeddings_n)
+            full_embeddings_n = torch.cat(full_embeddings_n)
+            candidates = torch.cat([full_embeddings_b, full_embeddings_n])
 
+            scores = self.similarity_fct(embeddings_a, candidates) * self.scale
             labels = torch.tensor(range(len(scores)), dtype=torch.long, device=scores.device)\
                      + len(scores) * torch.distributed.get_rank()
             return self.cross_entropy_loss(scores, labels)
