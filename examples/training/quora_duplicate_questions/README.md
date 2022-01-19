@@ -49,7 +49,7 @@ For an interactive example, see [Semantic Search](../../applications/semantic-se
 
 ## Training
 
-Choosing the right loss function is crucial for getting well working sentence embeddings. For the given task, we two loss functions are especially suitable: **ConstrativeLoss** and **MultipleNegativesRankingLoss**
+Choosing the right loss function is crucial for getting well working sentence embeddings. For the given task, two loss functions are especially suitable: **ConstrativeLoss** and **MultipleNegativesRankingLoss**
 
 ### Constrative Loss
 For the complete example, see [training_OnlineContrastiveLoss.py](training_OnlineContrastiveLoss.py).
