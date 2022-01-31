@@ -875,7 +875,7 @@ class SentenceTransformer(nn.Sequential):
     @tokenizer.setter
     def tokenizer(self, value):
         """
-        Property to set the tokenizer that is should used by this model
+        Property to set the tokenizer that should be used by this model
         """
         self._first_module().tokenizer = value
 
