@@ -38,8 +38,14 @@ class SentenceTransformer(nn.Sequential):
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models
+    :param use_auth_token: HuggingFace authentication token to download private models.
     """
-    def __init__(self, model_name_or_path: Optional[str] = None, modules: Optional[Iterable[nn.Module]] = None, device: Optional[str] = None, cache_folder: Optional[str] = None):
+    def __init__(self, model_name_or_path: Optional[str] = None,
+                 modules: Optional[Iterable[nn.Module]] = None,
+                 device: Optional[str] = None,
+                 cache_folder: Optional[str] = None,
+                 use_auth_token: Union[bool, str, None] = None
+                 ):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -81,7 +87,8 @@ class SentenceTransformer(nn.Sequential):
                                     cache_dir=cache_folder,
                                     library_name='sentence-transformers',
                                     library_version=__version__,
-                                    ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'])
+                                    ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'],
+                                    use_auth_token=use_auth_token)
 
             if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
                 modules = self._load_sbert_model(model_path)

@@ -414,7 +414,8 @@ def snapshot_download(
     library_name: Optional[str] = None,
     library_version: Optional[str] = None,
     user_agent: Union[Dict, str, None] = None,
-    ignore_files: Optional[List[str]] = None
+    ignore_files: Optional[List[str]] = None,
+    use_auth_token: Union[bool, str, None] = None
 ) -> str:
     """
     Method derived from huggingface_hub.
@@ -461,6 +462,7 @@ def snapshot_download(
             library_name=library_name,
             library_version=library_version,
             user_agent=user_agent,
+            use_auth_token=use_auth_token,
         )
 
         if os.path.exists(path + ".lock"):
