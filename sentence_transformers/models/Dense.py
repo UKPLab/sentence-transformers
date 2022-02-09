@@ -52,6 +52,7 @@ class Dense(nn.Module):
 
     def __repr__(self):
         return "Dense({})".format(self.get_config_dict())
+
     @staticmethod
     def load(input_path):
         with open(os.path.join(input_path, 'config.json')) as fIn:
