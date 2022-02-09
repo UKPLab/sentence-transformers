@@ -14,6 +14,13 @@ Install the *sentence-transformers* with `pip`:
 pip install -U sentence-transformers
 ```
 
+**Install with conda**
+
+Apple silicon Installation of *sentence-transformers*
+```
+conda install -c conda-forge sentence-transformers
+```
+
 **Install from sources**
 
 Alternatively, you can also clone the latest version from the [repository](https://github.com/UKPLab/sentence-transformers) and install it directly from the source code:
