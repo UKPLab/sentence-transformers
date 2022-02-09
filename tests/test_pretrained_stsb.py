@@ -78,6 +78,8 @@ class PretrainedSTSbTest(unittest.TestCase):
         self.pretrained_model_score('msmarco-roberta-base-ance-firstp', 77.0)
         self.pretrained_model_score('msmarco-distilbert-base-v3', 78.85)
 
+    def test_sentence_t5(self):
+        self.pretrained_model_score('sentence-t5-base', 85.53)
 
 if "__main__" == __name__:
     unittest.main()
