@@ -228,6 +228,7 @@
 </div>
 
 <script>
+
     var app = new Vue({
         el: '#app',
         data: {
@@ -830,7 +831,7 @@
                     "pooling": "Mean Pooling",
                     "training_data": "3B question-answer pairs from diverse online communities and then on MS-MARCO.",
                     "sentence_performance": 70.73,
-                    "semantic_search": 56.05,
+                    "semantic_search": 55.76,
                     "speed": 50,
                     "size": 9230,
                     "dim": 768,
@@ -875,6 +876,13 @@
                 }
                 return output_html.join(", ");
             }
+        },
+        created: function() {
+            let uri = window.location.search.substring(1);
+            let params = new URLSearchParams(uri);
+            if(params.get("model_name") !== null) {
+				this.show_all_models = true;
+			}
         },
         computed: {
             sortedModels: function() {
