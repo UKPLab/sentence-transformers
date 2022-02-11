@@ -213,3 +213,27 @@ word_embedding_model.auto_model.resize_token_embeddings(len(word_embedding_model
 ```
 
 In the above example, the two new tokens `[DOC]` and `[QRY]` are added to the model. Their respective word embeddings are intialized randomly. It is advisable to then fine-tune the model on your downstream task.
+
+
+# Best Transformer Model
+The quality of your text embedding model depends on which transformer model you choose. Sadly we cannot infer from a better performance on e.g. the GLUE or SuperGLUE benchmark that this model will also yield better representations.
+
+To test the suitability of transformer models, I use the [training_nli_v2.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/nli/training_nli_v2.py) script and train on 560k (anchor, positive, negative)-triplets for 1 epoch with batch size 64. I then evaluate on 14 diverse text similarity tasks (clustering, sematic search, duplicate decection etc.) from various domains.
+
+In the following table you find the performance for different models and their performance on this benchmark:
+
+| Model | Performance (14 sentence similarity tasks) |
+| --- | :---: |
+| [microsoft/mpnet-base](https://huggingface.co/microsoft/mpnet-base) |	60.99 |
+| [nghuyong/ernie-2.0-en](https://huggingface.co/nghuyong/ernie-2.0-en) |	60.73 |
+| [microsof/deberta-base](https://huggingface.co/microsof/deberta-base) |	60.21 |
+| [roberta-base](https://huggingface.co/roberta-base) |	59.63 |
+| [t5-base](https://huggingface.co/t5-base) |	59.21 |
+| [bert-base-uncased](https://huggingface.co/bert-base-uncased) |	59.17 |
+| [distilbert-base-uncased](https://huggingface.co/distilbert-base-uncased) |	59.03 |
+| [nreimers/TinyBERT_L-6_H-768_v2](https://huggingface.co/nreimers/TinyBERT_L-6_H-768_v2) |	58.27 |
+| [google/t5-v1_1-base](https://huggingface.co/google/t5-v1_1-base) |	57.63 |
+| [nreimers/MiniLMv2-L6-H768-distilled-from-BERT-Large](https://huggingface.co/nreimers/MiniLMv2-L6-H768-distilled-from-BERT-Large) |	57.31 |
+| [albert-base-v2](https://huggingface.co/albert-base-v2) |	57.14 |
+| [microsoft/MiniLM-L12-H384-uncased](https://huggingface.co/microsoft/MiniLM-L12-H384-uncased) |	56.79 |
+| [microsoft/deberta-v3-base](https://huggingface.co/microsoft/deberta-v3-base) |	54.46 |
