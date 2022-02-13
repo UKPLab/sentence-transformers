@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class CrossEncoder():
     def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, device:str = None, tokenizer_args:Dict = {},
-                  automodel_args:Dict = {}, default_activation_function = None):
+                  automodel_args:Dict = {}, autoconfig_args:Dict = {}, default_activation_function = None):
         """
         A CrossEncoder takes exactly two sentences / texts as input and either predicts
         a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
@@ -33,10 +33,11 @@ class CrossEncoder():
         :param device: Device that should be used for the model. If None, it will use CUDA if available.
         :param tokenizer_args: Arguments passed to AutoTokenizer
         :param automodel_args: Arguments passed to AutoModelForSequenceClassification
+        :param autoconfig_args: Arguments passed to AutoConfig
         :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1, else nn.Identity()
         """
 
-        self.config = AutoConfig.from_pretrained(model_name)
+        self.config = AutoConfig.from_pretrained(model_name, **autoconfig_args)
         classifier_trained = True
         if self.config.architectures is not None:
             classifier_trained = any([arch.endswith('ForSequenceClassification') for arch in self.config.architectures])
