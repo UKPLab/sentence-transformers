@@ -29,7 +29,7 @@ class LSTM(nn.Module):
         token_embeddings = features['token_embeddings']
         sentence_lengths = torch.clamp(features['sentence_lengths'], min=1)
 
-        packed = nn.utils.rnn.pack_padded_sequence(token_embeddings, sentence_lengths, batch_first=True, enforce_sorted=False)
+        packed = nn.utils.rnn.pack_padded_sequence(token_embeddings, sentence_lengths.cpu(), batch_first=True, enforce_sorted=False)
         packed = self.encoder(packed)
         unpack = nn.utils.rnn.pad_packed_sequence(packed[0], batch_first=True)[0]
         features.update({'token_embeddings': unpack})
