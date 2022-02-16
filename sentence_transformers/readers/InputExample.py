@@ -13,7 +13,7 @@ class InputExample:
         :param guid
             id for the example
         :param texts
-            the texts for the example. Note, str.strip() is called on the texts
+            the texts for the example.
         :param label
             the label for the example
         """
