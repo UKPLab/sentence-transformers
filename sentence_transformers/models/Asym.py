@@ -72,7 +72,7 @@ class Asym(nn.Sequential):
         return batch
 
     def get_sentence_embedding_dimension(self) -> int:
-        raise NotImplementedError()
+        return {m: m.get_sentence_embedding_dimension() for m in self.sub_modules}
 
     def save(self, output_path):
         model_lookup = {}
