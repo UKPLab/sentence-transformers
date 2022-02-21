@@ -489,19 +489,15 @@ def batch_collator(features: List[Dict[str, Any]]) -> Dict[str, Any]:
     first = features[0]
     batch = {}
 
-    # special casing: input embeddings are superseded by sentence embeddings
-    if 'sentence_embedding' in first.keys():
-        batch['sentence_embedding'] = torch.stack([f['sentence_embedding'] for f in features])
-    else:
-        # We will use the first element to figure out which key/values are not None for this model.
-        for k, v in first.items():
-            if v is not None and not isinstance(v, str):
-                if isinstance(v, torch.Tensor):
-                    batch[k] = torch.stack([f[k] for f in features])
+    # We will use the first element to figure out which key/values are not None for this model.
+    for k, v in first.items():
+        if v is not None and not isinstance(v, str):
+            if isinstance(v, torch.Tensor):
+                batch[k] = torch.stack([f[k] for f in features])
+            else:
+                if isinstance(v, (list, tuple)) and isinstance(v[0],str):
+                    batch[k] = [f[k] for f in features]
                 else:
-                    if isinstance(v, (list, tuple)) and isinstance(v[0],str):
-                        batch[k] = [f[k] for f in features]
-                    else:
-                        batch[k] = torch.tensor([f[k] for f in features])
+                    batch[k] = torch.tensor([f[k] for f in features])
 
     return batch
