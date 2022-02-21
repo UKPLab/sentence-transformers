@@ -1,21 +1,25 @@
 from torch import Tensor
 from torch import nn
+import torch
 from typing import List, Dict
 import os
 import json
 from ..util import import_from_string
 from collections import OrderedDict
 from typing import List, Dict, Optional, Union, Tuple
+from ..util import batch_collator
 
 class Asym(nn.Sequential):
-    def __init__(self, sub_modules: Dict[str, List[nn.Module]], allow_empty_key: bool = True):
+    def __init__(self, sub_modules: Dict[str, List[nn.Module]],
+        allow_empty_key: bool = True):
         """
         This model allows to create asymmetric SentenceTransformer models, that apply different models depending on the specified input key.
 
         In the below example, we create two different Dense models for 'query' and 'doc'. Text that is passed as {'query': 'My query'} will
         be passed along along the first Dense model, and text that will be passed as {'doc': 'My document'} will use the other Dense model.
 
-        Note, that when you call encode(), that only inputs of the same type can be encoded. Mixed-Types cannot be encoded.
+        When you call encode() with mixed types, the returned sentence embedding dimensions of the individual models are concatenated
+        in the order they are defined in the constructor.
 
         Example::
             word_embedding_model = models.Transformer(model_name)
@@ -25,6 +29,9 @@ class Asym(nn.Sequential):
 
             model.encode([{'query': 'Q1'}, {'query': 'Q2'}]
             model.encode([{'doc': 'Doc1'}, {'doc': 'Doc2'}]
+
+            # mixed types
+            model.encode([{'query': Q1, 'doc': 'Doc1'}])
 
             #You can train it with InputExample like this. Note, that the order must always be the same:
             train_example = InputExample(texts=[{'query': 'Train query', 'doc': 'Doc query'}], label=1)
@@ -47,14 +54,22 @@ class Asym(nn.Sequential):
 
 
     def forward(self, features: Dict[str, Tensor]):
-        if 'text_keys' in features and len(features['text_keys']) > 0:
-            text_key = features['text_keys'][0]
-            for model in self.sub_modules[text_key]:
-                features = model(features)
-        elif not self.allow_empty_key:
-            raise ValueError('Input did not specify any keys and allow_empty_key is False')
+        if not isinstance(features, (list, tuple)):
+            features = [features]
 
-        return features
+        for i,elem in enumerate(features):
+            for text_key in elem:
+                for model in self.sub_modules[text_key]:
+                    features[i][text_key] = model(features[i][text_key])
+            if len(elem) == 0 and not self.allow_empty_key:
+                raise ValueError('Input did not specify any keys and allow_empty_key is False')
+
+        # concatenate outputs for different keys
+        features = [{'sentence_embedding': torch.cat([f[text_key]['sentence_embedding']
+            for text_key in self.sub_modules if text_key in f],-1)} for f in features]
+        batch = batch_collator(features)
+
+        return batch
 
     def get_sentence_embedding_dimension(self) -> int:
         raise NotImplementedError()
@@ -89,16 +104,12 @@ class Asym(nn.Sequential):
         if not isinstance(texts[0], dict):
             raise AttributeError("Asym. model requires that texts are passed as dicts: {'key': 'text'}")
 
-
-        module_key = None
-
+        encodings = []
         for lookup in texts:
-            text_key, text = next(iter(lookup.items()))
-            if module_key is None:
-                module_key = text_key
+            encoding = { text_key: self.sub_modules[text_key][0].tokenize(text) for text_key, text in lookup.items() }
+            encodings.append(encoding)
 
-            assert text_key == module_key   #Mixed batches are not allowed
-        return self.sub_modules[module_key][0].tokenize(texts)
+        return encodings
 
 
     @staticmethod
@@ -120,3 +131,4 @@ class Asym(nn.Sequential):
 
         model = Asym(model_structure, **config['parameters'])
         return model
+

@@ -1,6 +1,6 @@
 import requests
 from torch import Tensor, device
-from typing import List, Callable
+from typing import List, Callable, Any
 from tqdm.autonotebook import tqdm
 import sys
 import importlib
@@ -283,17 +283,24 @@ def http_get(url, path):
     os.rename(download_filepath, path)
     progress.close()
 
-
 def batch_to_device(batch, target_device: device):
     """
     send a pytorch batch to a device (CPU/GPU)
     """
-    for key in batch:
-        if isinstance(batch[key], Tensor):
-            batch[key] = batch[key].to(target_device)
-    return batch
+    return_list = True
+    if not isinstance(batch, (list, tuple)):
+        batch = [batch]
+        return_list = False
 
+    for elem in batch:
+        for key in elem:
+            if isinstance(elem[key], Tensor):
+                elem[key] = elem[key].to(target_device)
+            elif isinstance(elem[key], dict):
+                # recursive
+                elem[key] = batch_to_device(elem[key], target_device)
 
+    return batch if return_list else batch[0]
 
 def fullname(o):
   """
@@ -469,3 +476,32 @@ def snapshot_download(
             os.remove(path + ".lock")
 
     return storage_folder
+
+def batch_collator(features: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Collate a list of batches (dicts, or BatchEncodings) into a single one.
+    """
+
+    import torch
+
+    if not isinstance(features[0], dict):
+        features = [vars(f) for f in features]
+    first = features[0]
+    batch = {}
+
+    # special casing: input embeddings are superseded by sentence embeddings
+    if 'sentence_embedding' in first.keys():
+        batch['sentence_embedding'] = torch.stack([f['sentence_embedding'] for f in features])
+    else:
+        # We will use the first element to figure out which key/values are not None for this model.
+        for k, v in first.items():
+            if v is not None and not isinstance(v, str):
+                if isinstance(v, torch.Tensor):
+                    batch[k] = torch.stack([f[k] for f in features])
+                else:
+                    if isinstance(v, (list, tuple)) and isinstance(v[0],str):
+                        batch[k] = [f[k] for f in features]
+                    else:
+                        batch[k] = torch.tensor([f[k] for f in features])
+
+    return batch
