@@ -381,17 +381,19 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, init_
     unique_communities = []
     extracted_ids = set()
 
-    for community in extracted_communities:
-        add_cluster = True
+    for cluster_id, community in enumerate(extracted_communities):
+        community = sorted(community)
+        non_overlapped_community = []
         for idx in community:
-            if idx in extracted_ids:
-                add_cluster = False
-                break
+            if idx not in extracted_ids:
+                non_overlapped_community.append(idx)
 
-        if add_cluster:
-            unique_communities.append(community)
-            for idx in community:
+        if non_overlapped_community and len(non_overlapped_community) >= min_community_size:
+            unique_communities.append(non_overlapped_community)
+            for idx in non_overlapped_community:
                 extracted_ids.add(idx)
+    
+    unique_communities = sorted(unique_communities, key=lambda x: len(x), reverse=True)
 
     return unique_communities
 
