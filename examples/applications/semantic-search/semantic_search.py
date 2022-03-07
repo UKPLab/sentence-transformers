@@ -34,7 +34,7 @@ for query in queries:
     query_embedding = embedder.encode(query, convert_to_tensor=True)
 
     # We use cosine-similarity and torch.topk to find the highest 5 scores
-    cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
+    cos_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
     top_results = torch.topk(cos_scores, k=top_k)
 
     print("\n\n======================\n\n")

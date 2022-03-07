@@ -165,7 +165,7 @@ logging.info("Retrieve top-{} with semantic search model: {}".format(top_k, sema
 progress = tqdm.tqdm(unit="docs", total=len(sent2idx))
 for idx in range(len(sentences)):
     sentence_embedding = embeddings[idx]
-    cos_scores = util.pytorch_cos_sim(sentence_embedding, embeddings)[0]
+    cos_scores = util.cos_sim(sentence_embedding, embeddings)[0]
     cos_scores = cos_scores.cpu()
     progress.update(1)
 

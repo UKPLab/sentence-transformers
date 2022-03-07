@@ -38,17 +38,18 @@ class SentenceTransformer(nn.Sequential):
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models
+    :param use_auth_token: HuggingFace authentication token to download private models.
     :param custom_hf_params: An optional dict with Huggingface model params. This can, for instance, be useful when
                              using DDP for multi-GPU training, where we need to disable the unused
                              Huggingface transformer pooling layer, e.g.:
 
                              { "add_pooling_layer": False }
     """
-    def __init__(self,
-                 model_name_or_path: Optional[str] = None,
+    def __init__(self, model_name_or_path: Optional[str] = None,
                  modules: Optional[Iterable[nn.Module]] = None,
                  device: Optional[str] = None,
                  cache_folder: Optional[str] = None,
+                 use_auth_token: Union[bool, str, None] = None,
                  custom_hf_params: Optional[dict] = None):
         self._model_card_vars = {}
         self._model_card_text = None
@@ -91,7 +92,8 @@ class SentenceTransformer(nn.Sequential):
                                     cache_dir=cache_folder,
                                     library_name='sentence-transformers',
                                     library_version=__version__,
-                                    ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'])
+                                    ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'],
+                                    use_auth_token=use_auth_token)
 
             if custom_hf_params is not None:
                 logging.info(f"Using custom Huggingface transformer model params: {custom_hf_params}")
@@ -895,7 +897,7 @@ class SentenceTransformer(nn.Sequential):
     @tokenizer.setter
     def tokenizer(self, value):
         """
-        Property to set the tokenizer that is should used by this model
+        Property to set the tokenizer that should be used by this model
         """
         self._first_module().tokenizer = value
 

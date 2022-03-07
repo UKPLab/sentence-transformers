@@ -18,7 +18,7 @@ You can install it using pip:
    pip install -U sentence-transformers
 
 
-We recommand **Python 3.6** or higher, and at least **PyTorch 1.6.0**. See `installation <docs/installation.html>`_ for further installation options, especially if you want to use a GPU.
+We recommend **Python 3.6** or higher, and at least **PyTorch 1.6.0**. See `installation <docs/installation.html>`_ for further installation options, especially if you want to use a GPU.
 
 
 
@@ -51,7 +51,7 @@ The usage is as simple as:
 Performance
 =========================
 
-Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed. Have a look at [Pre-Trained Models](https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models) for an overview of available models and the respective performance on different tasks.
+Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed. Have a look at `Pre-Trained Models <https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models/>`_ for an overview of available models and the respective performance on different tasks.
 
 
 

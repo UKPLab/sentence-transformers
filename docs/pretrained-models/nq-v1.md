@@ -12,7 +12,7 @@ query_embedding = model.encode('How many people live in London?')
 #The passages are encoded as [ [title1, text1], [title2, text2], ...]
 passage_embedding = model.encode([['London', 'London has 9,787,426 inhabitants at the 2011 census.']])
 
-print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
+print("Similarity:", util.cos_sim(query_embedding, passage_embedding))
 ```
 
 Note: For the passage, we have to encode the Wikipedia article title together with a text paragraph from that article.

@@ -65,10 +65,13 @@ Note: The model don't work for question similarity. The question *How to learn J
 
 ## NLI
 Given two sentences, are these contradicting each other, entailing one the other or are these netural? The following models were trained on the [SNLI](https://nlp.stanford.edu/projects/snli/) and [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) datasets.
-- **cross-encoder/nli-distilroberta-base** - Accuracy on MNLI mismatched set: 83.98
-- **cross-encoder/nli-MiniLM2-L6-H768** - Accuracy on MNLI mismatched set: 86.89  
-- **cross-encoder/nli-roberta-base** - Accuracy on MNLI mismatched set: 87.47
+- **cross-encoder/nli-deberta-v3-base** - Accuracy on MNLI mismatched set: 90.04
 - **cross-encoder/nli-deberta-base** - Accuracy on MNLI mismatched set: 88.08
+- **cross-encoder/nli-deberta-v3-xsmall** - Accuracy on MNLI mismatched set:  87.77
+- **cross-encoder/nli-deberta-v3-small** - Accuracy on MNLI mismatched set: 87.55
+- **cross-encoder/nli-roberta-base** - Accuracy on MNLI mismatched set: 87.47
+- **cross-encoder/nli-MiniLM2-L6-H768** - Accuracy on MNLI mismatched set: 86.89  
+- **cross-encoder/nli-distilroberta-base** - Accuracy on MNLI mismatched set: 83.98
 
 ```python
 from sentence_transformers import CrossEncoder

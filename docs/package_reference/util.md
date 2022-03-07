@@ -1,5 +1,5 @@
 # util
-`sentence_transformers.util` defines different helpful functions to work with text embediddings.
+`sentence_transformers.util` defines different helpful functions to work with text embeddings.
 
 ```eval_rst
 .. automodule:: sentence_transformers.util
