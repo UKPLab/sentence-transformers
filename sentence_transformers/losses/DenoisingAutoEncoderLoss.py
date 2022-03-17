@@ -80,7 +80,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
     def retokenize(self, sentence_features):
         input_ids = sentence_features['input_ids']
         device = input_ids.device
-        sentences_decoded = self.tokenizer_decoder.batch_decode(
+        sentences_decoded = self.tokenizer_encoder.batch_decode(
             input_ids,
             skip_special_tokens=True,
             clean_up_tokenization_spaces=True
