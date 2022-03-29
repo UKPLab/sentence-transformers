@@ -55,7 +55,7 @@ class TripletEvaluator(SentenceEvaluator):
         self.show_progress_bar = show_progress_bar
 
         self.csv_file: str = "triplet_evaluation" + ("_" + name if name else "") + "_results.csv"
-        self.csv_headers = ["epoch", "steps", "accuracy_cosinus", "accuracy_manhatten", "accuracy_euclidean"]
+        self.csv_headers = ["epoch", "steps", "accuracy_cosinus", "accuracy_manhattan", "accuracy_euclidean"]
         self.write_csv = write_csv
 
     @classmethod
@@ -82,7 +82,7 @@ class TripletEvaluator(SentenceEvaluator):
         logger.info("TripletEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
 
         num_triplets = 0
-        num_correct_cos_triplets, num_correct_manhatten_triplets, num_correct_euclidean_triplets = 0, 0, 0
+        num_correct_cos_triplets, num_correct_manhattan_triplets, num_correct_euclidean_triplets = 0, 0, 0
 
         embeddings_anchors = model.encode(
             self.anchors, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True
@@ -113,13 +113,13 @@ class TripletEvaluator(SentenceEvaluator):
                 num_correct_cos_triplets += 1
 
             if pos_manhattan_distance[idx] < neg_manhattan_distances[idx]:
-                num_correct_manhatten_triplets += 1
+                num_correct_manhattan_triplets += 1
 
             if pos_euclidean_distance[idx] < neg_euclidean_distances[idx]:
                 num_correct_euclidean_triplets += 1
 
         accuracy_cos = num_correct_cos_triplets / num_triplets
-        accuracy_manhattan = num_correct_manhatten_triplets / num_triplets
+        accuracy_manhattan = num_correct_manhattan_triplets / num_triplets
         accuracy_euclidean = num_correct_euclidean_triplets / num_triplets
 
         logger.info("Accuracy Cosine Distance:   \t{:.2f}".format(accuracy_cos * 100))
