@@ -5,6 +5,9 @@
 		},
 	],
 	"settings": {
+		"editor.rulers": [
+			160
+		],
 		"remote.autoForwardPorts": false,
 		"editor.codeActionsOnSave": {
 			"source.organizeImports": false,
@@ -13,6 +16,9 @@
 		"python.linting.flake8Path": "flake8",
 		"python.linting.flake8Args": [
 			"--config=.flake8"
+		],
+		"python.formatting.blackArgs": [
+			"--line-length 160"
 		],
 		"python.formatting.provider": "black",
 		"python.formatting.blackPath": "black",
