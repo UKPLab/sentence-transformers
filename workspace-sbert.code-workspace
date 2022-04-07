@@ -1,0 +1,35 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+	],
+	"settings": {
+		"remote.autoForwardPorts": false,
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": false,
+		},
+		"python.linting.flake8Enabled": true,
+		"python.linting.flake8Path": "flake8",
+		"python.linting.flake8Args": [
+			"--config=.flake8"
+		],
+		"python.formatting.provider": "black",
+		"python.formatting.blackPath": "black",
+		"editor.formatOnSave": false,
+		"python.pythonPath": "/home/mircea/miniconda3/envs/v39/bin/python",
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Python: Current File",
+				"type": "python",
+				"request": "launch",
+				"program": "${file}",
+				"console": "integratedTerminal",
+				"justMyCode": false,
+			}
+		]
+	},
+}
