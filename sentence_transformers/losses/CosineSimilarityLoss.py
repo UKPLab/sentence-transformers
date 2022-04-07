@@ -45,7 +45,7 @@ class CosineSimilarityLoss(nn.Module):
         output = self.cos_score_transformation(torch.cosine_similarity(embeddings[0], embeddings[1]))
         loss = self.loss_fct(output, labels.view(-1))
 
-        acc = torch.mean(((output > 0.55) == (labels.view(-1) > 0.55)).float())
+        acc = torch.mean(((output > 0.5) == (labels.view(-1) > 0.5)).float())
         self.acc_loss.append(loss.detach().cpu())
         self.acc_acc.append(acc)
         if len(self.acc_acc) >= 100:
