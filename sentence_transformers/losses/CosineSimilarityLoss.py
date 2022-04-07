@@ -2,6 +2,10 @@ import torch
 from torch import nn, Tensor
 from typing import Iterable, Dict
 from ..SentenceTransformer import SentenceTransformer
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class CosineSimilarityLoss(nn.Module):
@@ -33,10 +37,20 @@ class CosineSimilarityLoss(nn.Module):
         self.model = model
         self.loss_fct = loss_fct
         self.cos_score_transformation = cos_score_transformation
-
+        self.acc_loss = []
+        self.acc_acc = []
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         embeddings = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
         output = self.cos_score_transformation(torch.cosine_similarity(embeddings[0], embeddings[1]))
-        return self.loss_fct(output, labels.view(-1))
+        loss = self.loss_fct(output, labels.view(-1))
 
+        acc = torch.mean(((output > 0.55) == (labels.view(-1) > 0.55)).float())
+        self.acc_loss.append(loss.detach().cpu())
+        self.acc_acc.append(acc)
+        if len(self.acc_acc) >= 100:
+            logger.info("\r\n")
+            logger.info(f"Train loss={torch.mean(torch.tensor(self.acc_loss)):.04f} acc={torch.mean(torch.tensor(self.acc_acc)):.02f}")
+            self.acc_loss, self.acc_acc = [], []
+
+        return loss

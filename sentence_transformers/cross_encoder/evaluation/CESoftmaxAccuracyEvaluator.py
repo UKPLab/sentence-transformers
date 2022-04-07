@@ -51,7 +51,7 @@ class CESoftmaxAccuracyEvaluator:
 
         acc = np.sum(pred_labels == self.labels) / len(self.labels)
 
-        logger.info("Accuracy: {:.2f}".format(acc*100))
+        logger.info("dev_accuracy: {:.04f}".format(acc * 100))
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

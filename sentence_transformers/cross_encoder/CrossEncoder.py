@@ -183,6 +183,10 @@ class CrossEncoder():
             self.model.zero_grad()
             self.model.train()
 
+            train_losses = []
+            train_preds = []
+            it = 0
+
             for features, labels in tqdm(train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
                 if use_amp:
                     with autocast():
@@ -206,6 +210,17 @@ class CrossEncoder():
                     if self.config.num_labels == 1:
                         logits = logits.view(-1)
                     loss_value = loss_fct(logits, labels)
+
+                    preds_ = np.argmax(logits.cpu().detach().numpy(), axis=1)
+                    labels_ = np.array(labels.detach().cpu().numpy())
+                    train_preds.extend(labels_ == preds_)
+                    train_losses.append(float(loss_value.cpu()))
+
+                    it += 1
+                    if it % 100 == 0:
+                        train_acc = np.average(train_preds[-1000:])
+                        logger.info(f"train acc={train_acc:.02f} train_loss={np.average(train_losses[-50:]):.04f}")
+
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     optimizer.step()
@@ -222,6 +237,8 @@ class CrossEncoder():
 
                     self.model.zero_grad()
                     self.model.train()
+
+            logger.info(f"training_loss={np.average(train_losses):.04f} training_acc={np.average(train_preds):.04f}")
 
             if evaluator is not None:
                 self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
