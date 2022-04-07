@@ -183,6 +183,7 @@ class CrossEncoder():
             self.model.zero_grad()
             self.model.train()
 
+            # collect metrics
             train_losses = []
             train_preds = []
             it = 0
@@ -211,6 +212,7 @@ class CrossEncoder():
                         logits = logits.view(-1)
                     loss_value = loss_fct(logits, labels)
 
+                    # append loss and accuracy
                     preds_ = np.argmax(logits.cpu().detach().numpy(), axis=1)
                     labels_ = np.array(labels.detach().cpu().numpy())
                     train_preds.extend(labels_ == preds_)
@@ -218,6 +220,7 @@ class CrossEncoder():
 
                     it += 1
                     if it % 100 == 0:
+                        # every 100 steps show a smoothed running average
                         train_acc = np.average(train_preds[-1000:])
                         logger.info(f"train acc={train_acc:.02f} train_loss={np.average(train_losses[-50:]):.04f}")
 
