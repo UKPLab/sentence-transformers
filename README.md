@@ -1,19 +1,22 @@
 <!--- BADGES: START --->
+
 [![GitHub - License](https://img.shields.io/github/license/UKPLab/sentence-transformers?logo=github&style=flat&color=green)][#github-license]
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sentence-transformers?logo=pypi&style=flat&color=blue)][#pypi-package]
 [![PyPI - Package Version](https://img.shields.io/pypi/v/sentence-transformers?logo=pypi&style=flat&color=orange)][#pypi-package]
 [![Conda - Platform](https://img.shields.io/conda/pn/conda-forge/sentence-transformers?logo=anaconda&style=flat)][#conda-forge-package]
 [![Conda (channel only)](https://img.shields.io/conda/vn/conda-forge/sentence-transformers?logo=anaconda&style=flat&color=orange)][#conda-forge-package]
 [![Docs - GitHub.io](https://img.shields.io/static/v1?logo=github&style=flat&color=pink&label=docs&message=sentence-transformers)][#docs-package]
-<!--- 
+
+<!---
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/sentence-transformers?logo=pypi&style=flat&color=green)][#pypi-package]
-[![Conda](https://img.shields.io/conda/dn/conda-forge/sentence-transformers?logo=anaconda)][#conda-forge-package] 
+[![Conda](https://img.shields.io/conda/dn/conda-forge/sentence-transformers?logo=anaconda)][#conda-forge-package]
 --->
 
 [#github-license]: https://github.com/UKPLab/sentence-transformers/blob/master/LICENSE
 [#pypi-package]: https://pypi.org/project/sentence-transformers/
 [#conda-forge-package]: https://anaconda.org/conda-forge/sentence-transformers
 [#docs-package]: https://www.sbert.net/
+
 <!--- BADGES: END --->
 
 # Sentence Transformers: Multilingual Sentence, Paragraph, and Image Embeddings using BERT & Co.
@@ -22,7 +25,7 @@ This framework provides an easy method to compute dense vector representations f
 
 We provide an increasing number of **[state-of-the-art pretrained models](https://www.sbert.net/docs/pretrained_models.html)** for more than 100 languages, fine-tuned for various use-cases.
 
-Further, this framework allows an easy  **[fine-tuning of custom embeddings models](https://www.sbert.net/docs/training/overview.html)**, to achieve maximal performance on your specific task.
+Further, this framework allows an easy **[fine-tuning of custom embeddings models](https://www.sbert.net/docs/training/overview.html)**, to achieve maximal performance on your specific task.
 
 For the **full documentation**, see **[www.SBERT.net](https://www.sbert.net)**.
 
@@ -41,7 +44,7 @@ We recommend **Python 3.6** or higher, **[PyTorch 1.6.0](https://pytorch.org/get
 
 **Install with pip**
 
-Install the *sentence-transformers* with `pip`:
+Install the _sentence-transformers_ with `pip`:
 
 ```
 pip install -U sentence-transformers
@@ -49,7 +52,7 @@ pip install -U sentence-transformers
 
 **Install with conda**
 
-You can install the *sentence-transformers* with `conda`:
+You can install the _sentence-transformers_ with `conda`:
 
 ```
 conda install -c conda-forge sentence-transformers
@@ -59,9 +62,9 @@ conda install -c conda-forge sentence-transformers
 
 Alternatively, you can also clone the latest version from the [repository](https://github.com/UKPLab/sentence-transformers) and install it directly from the source code:
 
-````
+```
 pip install -e .
-```` 
+```
 
 **PyTorch with CUDA**
 
@@ -76,42 +79,46 @@ See [Quickstart](https://www.sbert.net/docs/quickstart.html) in our documenation
 
 First download a pretrained model.
 
-````python
+```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('all-MiniLM-L6-v2')
-````
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+```
 
 Then provide some sentences to the model.
 
-````python
-sentences = ['This framework generates embeddings for each input sentence',
-    'Sentences are passed as a list of string.', 
-    'The quick brown fox jumps over the lazy dog.']
+```python
+sentences = [
+    "This framework generates embeddings for each input sentence",
+    "Sentences are passed as a list of string.",
+    "The quick brown fox jumps over the lazy dog.",
+]
 sentence_embeddings = model.encode(sentences)
-````
+```
 
 And that's it already. We now have a list of numpy arrays with the embeddings.
 
-````python
+```python
 for sentence, embedding in zip(sentences, sentence_embeddings):
     print("Sentence:", sentence)
     print("Embedding:", embedding)
     print("")
-````
+```
 
 ## Pre-Trained Models
 
 We provide a large list of [Pretrained Models](https://www.sbert.net/docs/pretrained_models.html) for more than 100 languages. Some models are general purpose models, while others produce embeddings for specific use cases. Pre-trained models can be loaded by just passing the model name: `SentenceTransformer('model_name')`.
 
-[»  Full list of pretrained models](https://www.sbert.net/docs/pretrained_models.html)
+[» Full list of pretrained models](https://www.sbert.net/docs/pretrained_models.html)
 
 ## Training
 
-This framework allows you to fine-tune your own sentence embedding methods, so that you get task-specific sentence embeddings. You have various options to choose from in order to get perfect sentence embeddings for your specific task. 
+This framework allows you to fine-tune your own sentence embedding methods, so that you get task-specific sentence embeddings. You have various options to choose from in order to get perfect sentence embeddings for your specific task.
 
 See [Training Overview](https://www.sbert.net/docs/training/overview.html) for an introduction how to train your own embedding models. We provide [various examples](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training) how to train models on various datasets.
 
 Some highlights are:
+
 - Support of various transformer networks including BERT, RoBERTa, XLM-R, DistilBERT, Electra, BART, ...
 - Multi-Lingual and multi-task learning
 - Evaluation during training to find optimal model
@@ -131,10 +138,10 @@ You can use this framework for:
 - [Semantic Textual Similarity](https://www.sbert.net/docs/usage/semantic_textual_similarity.html)
 - [Clustering](https://www.sbert.net/examples/applications/clustering/README.html)
 - [Paraphrase Mining](https://www.sbert.net/examples/applications/paraphrase-mining/README.html)
- - [Translated Sentence Mining](https://www.sbert.net/examples/applications/parallel-sentence-mining/README.html)
- - [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html)
- - [Retrieve & Re-Rank](https://www.sbert.net/examples/applications/retrieve_rerank/README.html) 
- - [Text Summarization](https://www.sbert.net/examples/applications/text-summarization/README.html) 
+- [Translated Sentence Mining](https://www.sbert.net/examples/applications/parallel-sentence-mining/README.html)
+- [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html)
+- [Retrieve & Re-Rank](https://www.sbert.net/examples/applications/retrieve_rerank/README.html)
+- [Text Summarization](https://www.sbert.net/examples/applications/text-summarization/README.html)
 - [Multilingual Image Search, Clustering & Duplicate Detection](https://www.sbert.net/examples/applications/image-search/README.html)
 
 and many more use-cases.
@@ -145,7 +152,7 @@ For all examples, see [examples/applications](https://github.com/UKPLab/sentence
 
 If you find this repository helpful, feel free to cite our publication [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084):
 
-```bibtex 
+```bibtex
 @inproceedings{reimers-2019-sentence-bert,
     title = "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
     author = "Reimers, Nils and Gurevych, Iryna",

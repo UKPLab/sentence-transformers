@@ -12,11 +12,18 @@ In STS, we have sentence pairs annotated together with a score indicating the si
 To store our training data, we create a list with `InputExample` objects. Each `InputExample` contains the sentence pair together with the label (score) that ranges between 0 - 1. A simplified version how the training data has to look like is the following:
 
 ```python
-from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample, losses
+from sentence_transformers import (
+    SentenceTransformer,
+    SentencesDataset,
+    InputExample,
+    losses,
+)
 
-model = SentenceTransformer('nli-distilroberta-base-v2')
-train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=0.8),
-    InputExample(texts=['Another pair', 'Unrelated sentence'], label=0.3)]
+model = SentenceTransformer("nli-distilroberta-base-v2")
+train_examples = [
+    InputExample(texts=["My first sentence", "My second sentence"], label=0.8),
+    InputExample(texts=["Another pair", "Unrelated sentence"], label=0.3),
+]
 train_dataset = SentencesDataset(train_examples, model)
 ```
 

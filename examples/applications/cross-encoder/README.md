@@ -32,9 +32,9 @@ Bi-Encoders (see [Computing Sentence Embeddings](../computing-embeddings/README.
 Using Cross-Encoders is quite easy:
 ```python
 from sentence_transformers.cross_encoder import CrossEncoder
-model = CrossEncoder('model_name_or_path')
-scores = model.predict([["My first", "sentence pair"],  
-                        ["Second text", "pair"]])
+
+model = CrossEncoder("model_name_or_path")
+scores = model.predict([["My first", "sentence pair"], ["Second text", "pair"]])
 ```
 
 You pass to `model.predict` a list of sentence **pairs**. Note, Cross-Encoder do not work on individual sentence, you have to pass sentence pairs.

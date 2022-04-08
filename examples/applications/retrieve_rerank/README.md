@@ -49,9 +49,13 @@ The bi-encoder produces embeddings independently for your paragraphs and for you
 
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('model_name')
 
-docs = ["My first paragraph. That contains information", "Python is a programming language."]
+model = SentenceTransformer("model_name")
+
+docs = [
+    "My first paragraph. That contains information",
+    "Python is a programming language.",
+]
 document_embeddings = model.encode(docs)
 
 query = "What is Python?"
