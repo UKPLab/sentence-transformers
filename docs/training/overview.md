@@ -48,7 +48,7 @@ dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_dime
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dense_model])
 ```
 
-Here, we add a on top of the pooling layer a fully connected dense layer with Tanh activation, which performs a down-project to 256 dimensions. Hence, embeddings by this model will only have 256 instead of 768 dimensions.
+Here, we add on top of the pooling layer a fully connected dense layer with Tanh activation, which performs a down-project to 256 dimensions. Hence, embeddings by this model will only have 256 instead of 768 dimensions.
 
 For all available building blocks see [» Models Package Reference](../package_reference/models.md)
 
