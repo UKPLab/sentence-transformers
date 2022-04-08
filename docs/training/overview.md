@@ -108,7 +108,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_st
 ```
 
 
-We tune the model by calling model.fit(). We pass a list of `train_objectives`, which constist of tuples `(dataloader, loss_function)`. We can pass more than one tuple in order to perform multi-task learning on several datasets with different loss functions.
+We tune the model by calling model.fit(). We pass a list of `train_objectives`, which consist of tuples `(dataloader, loss_function)`. We can pass more than one tuple in order to perform multi-task learning on several datasets with different loss functions.
 
 The `fit` method accepts the following parameter:
 
