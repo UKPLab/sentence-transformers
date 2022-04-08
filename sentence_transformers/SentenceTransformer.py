@@ -737,7 +737,7 @@ class SentenceTransformer(nn.Sequential):
                     self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
 
-            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+            self._eval_during_training(evaluator, output_path, save_best_model, epoch, global_step, callback)
 
         if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
             self.save(output_path)

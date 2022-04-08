@@ -39,4 +39,3 @@ class CosineSimilarityLoss(nn.Module):
         embeddings = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
         output = self.cos_score_transformation(torch.cosine_similarity(embeddings[0], embeddings[1]))
         return self.loss_fct(output, labels.view(-1))
-
