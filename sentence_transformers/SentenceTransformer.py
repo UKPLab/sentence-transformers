@@ -678,7 +678,8 @@ class SentenceTransformer(nn.Sequential):
                 loss_model.zero_grad()
                 loss_model.train()
 
-            for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
+            pbar = trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar)
+            for _ in pbar:
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
                     optimizer = optimizers[train_idx]
@@ -695,6 +696,8 @@ class SentenceTransformer(nn.Sequential):
 
                     features, labels = data
 
+                    loss_model.lr = optimizer.state_dict()["param_groups"][0]["lr"]
+                    loss_model.step = global_step
 
                     if use_amp:
                         with autocast():
@@ -721,9 +724,10 @@ class SentenceTransformer(nn.Sequential):
 
                 training_steps += 1
                 global_step += 1
+                pbar.set_description(getattr(loss_model, "display", "Iteration"))
 
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
+                    self._eval_during_training(evaluator, output_path, save_best_model, epoch, global_step, callback)
 
                     for loss_model in loss_models:
                         loss_model.zero_grad()
