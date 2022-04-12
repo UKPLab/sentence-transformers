@@ -227,13 +227,13 @@ class CrossEncoder():
                 pbar.set_description(getattr(loss_fct, "display", "Iteration"))
 
                 if evaluator is not None and evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
+                    self._eval_during_training(evaluator, output_path, save_best_model, epoch, global_step, callback)
 
                     self.model.zero_grad()
                     self.model.train()
 
             if evaluator is not None:
-                self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+                self._eval_during_training(evaluator, output_path, save_best_model, epoch, global_step, callback)
 
 
 
