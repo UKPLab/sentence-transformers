@@ -173,12 +173,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    :caption: Unsupervised Learning
 
    examples/unsupervised_learning/README
-   examples/unsupervised_learning/TSDAE/README
-   examples/unsupervised_learning/SimCSE/README
-   examples/unsupervised_learning/CT/README
-   examples/unsupervised_learning/CT_In-Batch_Negatives/README
-   examples/unsupervised_learning/MLM/README
-   examples/unsupervised_learning/query_generation/README
+   examples/domain_adaptation/README
 
 .. toctree::
    :maxdepth: 1

@@ -111,8 +111,15 @@ Extending a model to new languages is easy by following [the description here](h
 
 ## Image & Text-Models
 The following models can embed images and text into a joint vector space. See [Image Search](../examples/applications/image-search/README.md)  for more details how to use for text2image-search, image2image-search, image clustering, and zero-shot image classification.
-- **clip-ViT-B-32** - [OpenAPI CLIP Model](https://github.com/openai/CLIP)
-- **clip-ViT-B-32-multilingual-v1** - Multilingual text encoder for the CLIP model using [Multilingual Knowledge Distillation](https://arxiv.org/abs/2004.09813).
+
+| Model | Top 1 Performance |
+| --- | :---: |
+| [clip-ViT-B-32](https://huggingface.co/sentence-transformers/clip-ViT-B-32) | 63.3 |
+| [clip-ViT-B-16](https://huggingface.co/sentence-transformers/clip-ViT-B-16) | 68.1 |
+| [clip-ViT-L-14](https://huggingface.co/sentence-transformers/clip-ViT-L-14) | 75.4 |
+
+We further provide this multilingual text-image model:
+- **clip-ViT-B-32-multilingual-v1** - Multilingual text encoder for the [clip-ViT-B-32](https://huggingface.co/sentence-transformers/clip-ViT-B-32)   model using [Multilingual Knowledge Distillation](https://arxiv.org/abs/2004.09813). This model can encode text in 50+ languages to match the image vectors from the [clip-ViT-B-32](https://huggingface.co/sentence-transformers/clip-ViT-B-32)  model.
 
 
 ---
