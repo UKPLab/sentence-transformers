@@ -32,7 +32,7 @@ The **paraphrase_mining()**-method accepts the following parameters:
 .. autofunction:: sentence_transformers.util.paraphrase_mining
 ```
 
-Instead of computing all pairwise cosine scores and ranking all possible, combintations, the approach is a bit more complex (and hence efficient). We chunk our corpus into smaller pieces, which is defined by *query_chunk_size* and *corpus_chunk_size*. For example, if we set *query_chunk_size=1000*, we search paraphrases for 1,000 sentences at a time in the remaining corpus (all other sentences). However, the remaining corpus is also chunked, for example, if we set *query_chunk_size=10000*, we look for paraphrases in 10k sentences at a time.
+Instead of computing all pairwise cosine scores and ranking all possible, combintations, the approach is a bit more complex (and hence efficient). We chunk our corpus into smaller pieces, which is defined by *query_chunk_size* and *corpus_chunk_size*. For example, if we set *query_chunk_size=1000*, we search paraphrases for 1,000 sentences at a time in the remaining corpus (all other sentences). However, the remaining corpus is also chunked, for example, if we set *corpus_chunk_size=10000*, we look for paraphrases in 10k sentences at a time.
 
 If we pass a list of 20k sentences, we will chunk it to 20x1000 sentences, and each of the query is compared first against sentences 0-10k and then 10k-20k.
 
