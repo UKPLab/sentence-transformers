@@ -17,6 +17,7 @@ from ..evaluation import SentenceEvaluator
 logger = logging.getLogger(__name__)
 
 
+
 class CrossEncoder():
     def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, device:str = None, tokenizer_args:Dict = {},
                   automodel_args:Dict = {}, default_activation_function = None):
@@ -176,19 +177,19 @@ class CrossEncoder():
         if loss_fct is None:
             loss_fct = nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
 
-
+        global_step = 0
         skip_scheduler = False
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
             self.model.zero_grad()
             self.model.train()
 
-            # collect metrics
-            train_losses = []
-            train_preds = []
-            it = 0
-
-            for features, labels in tqdm(train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
+            pbar = tqdm(train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar)
+            for features, labels in pbar:
+                
+                loss_fct.lr = optimizer.state_dict()["param_groups"][0]["lr"]
+                loss_fct.step = global_step
+                
                 if use_amp:
                     with autocast():
                         model_predictions = self.model(**features, return_dict=True)
@@ -212,18 +213,6 @@ class CrossEncoder():
                         logits = logits.view(-1)
                     loss_value = loss_fct(logits, labels)
 
-                    # append loss and accuracy
-                    preds_ = np.argmax(logits.cpu().detach().numpy(), axis=1)
-                    labels_ = np.array(labels.detach().cpu().numpy())
-                    train_preds.extend(labels_ == preds_)
-                    train_losses.append(float(loss_value.cpu()))
-
-                    it += 1
-                    if it % 100 == 0:
-                        # every 100 steps show a smoothed running average
-                        train_acc = np.average(train_preds[-1000:])
-                        logger.info(f"train acc={train_acc:.02f} train_loss={np.average(train_losses[-50:]):.04f}")
-
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     optimizer.step()
@@ -234,14 +223,14 @@ class CrossEncoder():
                     scheduler.step()
 
                 training_steps += 1
+                global_step += 1
+                pbar.set_description(getattr(loss_fct, "display", "Iteration"))
 
                 if evaluator is not None and evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
 
                     self.model.zero_grad()
                     self.model.train()
-
-            logger.info(f"training_loss={np.average(train_losses):.04f} training_acc={np.average(train_preds):.04f}")
 
             if evaluator is not None:
                 self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
