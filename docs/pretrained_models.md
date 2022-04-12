@@ -112,6 +112,8 @@ Extending a model to new languages is easy by following [the description here](h
 ## Image & Text-Models
 The following models can embed images and text into a joint vector space. See [Image Search](../examples/applications/image-search/README.md)  for more details how to use for text2image-search, image2image-search, image clustering, and zero-shot image classification.
 
+The following models are available with their respective Top 1 accuracy on zero-shot ImageNet validation dataset.
+
 | Model | Top 1 Performance |
 | --- | :---: |
 | [clip-ViT-B-32](https://huggingface.co/sentence-transformers/clip-ViT-B-32) | 63.3 |
