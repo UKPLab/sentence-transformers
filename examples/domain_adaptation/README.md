@@ -13,13 +13,13 @@ A much better approach is domain adaptation: Here you have an unlabeled corpus f
 
 When using adaptive pre-training, you first pre-train on your target corpus using e.g. [Masked Language Modeling](../unsupervised_learning/MLM/README.md) or [TSDAE](../unsupervised_learning/TSDAE/README.md) and then you fine-tune on an existing training dataset (see [embedding-training-data](https://huggingface.co/datasets/sentence-transformers/embedding-training-data)). 
 
-![Adaptive Fine-Tuning](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/adaptive_fine-tuning.png) 
+![Adaptive Pre-Training](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/adaptive_pre-training.png) 
 
 In our paper [TSDAE](https://arxiv.org/abs/2104.06979) we evaluated several methods for domain adaptation on 4 domain specific sentence embedding tasks:  
 
 | Approach | AskUbuntu | CQADupStack | Twitter | SciDocs | Avg |
 | -------- | :-------: | :---------: | :-----: | :-----: | :---: |
-| Pre-trained model | 54.5 | 12.9 | 72.2 | 69.4 | 52.3 |
+| Zero-Shot Model | 54.5 | 12.9 | 72.2 | 69.4 | 52.3 |
 | TSDAE | 59.4 | **14.4** | **74.5** | **77.6** | **56.5** |
 | MLM | **60.6** | 14.3 | 71.8 |  76.9 | 55.9 |
 | CT | 56.4 | 13.4 | 72.4 |  69.7 | 53.0 |
@@ -31,7 +31,7 @@ In  [GPL](https://arxiv.org/abs/2112.07577) we evaluate these methods for semant
 
 | Approach | FiQA  | SciFact | BioASQ | TREC-COVID | CQADupStack | Robust04 | Avg |
 | -------- | :---: | :-----: | :----: | :--------: | :---------: | :------: | :---: |
-| Pre-trained model | 26.7 | 57.1 | 52.9 | 66.1 | 29.6 | 39.0 | 45.2 |
+| Zero-Shot Model | 26.7 | 57.1 | 52.9 | 66.1 | 29.6 | 39.0 | 45.2 |
 | TSDAE | 29.3 | **62.8** | **55.5** | **76.1** | **31.8** | **39.4** | **49.2** |
 | MLM | **30.2** | 60.0 | 51.3 | 69.5 | 30.4 | 38.8 | 46.7 |
 | ICT | 27.0 | 58.3 | 55.3 | 69.7 | 31.3 | 37.4 | 46.5 |
@@ -74,11 +74,13 @@ The following tables gives an overview of GPL in comparison to adaptive pre-trai
 
 | Approach | FiQA  | SciFact | BioASQ | TREC-COVID | CQADupStack | Robust04 | Avg |
 | -------- | :---: | :-----: | :----: | :--------: | :---------: | :------: | :---: |
-| Pre-trained model | 26.7 | 57.1 | 52.9 | 66.1 | 29.6 | 39.0 | 45.2 |
-| TSDAE | 29.3 | 62.8 | 55.5 | 76.1 | 31.8 | 39.4 | 49.2 |
-| MLM | 30.2 | 60.0 | 51.3 | 69.5 | 30.4 | 38.8 | 46.7 |
+| Zero-Shot model | 26.7 | 57.1 | 52.9 | 66.1 | 29.6 | 39.0 | 45.2 |
+| TSDAE + GPL | **33.3** | **67.3** | **62.8** | 74.0 | **35.1** | **42.1** | **52.4** |
 | GPL | 33.1 | 65.2 | 61.6 | 71.7 | 34.4 | **42.1** | 51.4 |
-| TSDAE + GPL | **33.3** | **67.3** | **62.8** | **74.0** | **35.1** | **42.1** | **52.4** |
+| TSDAE | 29.3 | 62.8 | 55.5 | **76.1** | 31.8 | 39.4 | 49.2 |
+| MLM | 30.2 | 60.0 | 51.3 | 69.5 | 30.4 | 38.8 | 46.7 |
+
+
 
 ### GPL Code
 You can find the code for GPL here: [https://github.com/UKPLab/gpl](https://github.com/UKPLab/gpl)
