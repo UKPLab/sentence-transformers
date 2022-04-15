@@ -10,6 +10,7 @@ import numpy as np
 import queue
 import logging
 
+from .hf_api import HfFolder
 
 logger = logging.getLogger(__name__)
 
@@ -427,7 +428,13 @@ def snapshot_download(
         cache_dir = str(cache_dir)
 
     _api = HfApi()
-    model_info = _api.model_info(repo_id=repo_id, revision=revision)
+
+    if isinstance(use_auth_token, str):
+        token = use_auth_token
+    elif use_auth_token:
+        token = HfFolder.get_token()
+        
+    model_info = _api.model_info(repo_id=repo_id, revision=revision, token=token)
 
     storage_folder = os.path.join(
         cache_dir, repo_id.replace("/", "_")
