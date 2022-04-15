@@ -10,7 +10,7 @@ import numpy as np
 import queue
 import logging
 
-from .hf_api import HfFolder
+from huggingface_hub import HfFolder
 
 logger = logging.getLogger(__name__)
 
