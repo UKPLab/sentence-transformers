@@ -428,7 +428,8 @@ def snapshot_download(
         cache_dir = str(cache_dir)
 
     _api = HfApi()
-
+    
+    token = None 
     if isinstance(use_auth_token, str):
         token = use_auth_token
     elif use_auth_token:
