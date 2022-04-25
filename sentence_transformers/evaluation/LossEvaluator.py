@@ -10,15 +10,15 @@ import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
-from sentence_transformers import InputExample
-from sentence_transformers.evaluation import SentenceEvaluator
+from . import SentenceEvaluator
+from ..readers import InputExample
 
 
 logger = logging.getLogger(__name__)
 
 class LossEvaluator(SentenceEvaluator):
 
-    def __init__(self, loader, loss_model: nn.Module = None, name: str = '', show_progress_bar: bool = False, write_csv: bool = True):
+    def __init__(self, loader, loss_model: nn.Module = None, name: str = '', log_dir: str = None, show_progress_bar: bool = False, write_csv: bool = True):
         
         """
         Evaluate a model based on the loss function.
@@ -27,12 +27,14 @@ class LossEvaluator(SentenceEvaluator):
         :param loader: Data loader object
         :param loss_model: loss module object
         :param name: Name for the output
+        :param log_dir: path for tensorboard logs 
         :param show_progress_bar: If true, prints a progress bar
         :param write_csv: Write results to a CSV file
         """
         
         self.loader = loader
         self.write_csv = write_csv
+        self.summarywriter = SummaryWriter(log_dir=log_dir)
         self.name = name
         self.loss_model = loss_model
         if show_progress_bar is None:
@@ -55,8 +57,10 @@ class LossEvaluator(SentenceEvaluator):
         model.eval()
         
         loss_value = 0
+        self.loader.collate_fn = model.smart_batching_collate
         num_batches = len(self.loader)
         data_iterator = iter(self.loader)
+        
         with torch.no_grad():
             for _ in trange(num_batches, desc="Iteration", smoothing=0.05):
                 sentence_features, labels = next(data_iterator)
@@ -67,7 +71,6 @@ class LossEvaluator(SentenceEvaluator):
 
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
-            tensor_writer = SummaryWriter(os.path.join(output_path,'runs'))
             
             with open(csv_path, newline='', mode="a" if output_file_exists else 'w', encoding="utf-8") as f:
                 writer = csv.writer(f)
@@ -77,7 +80,7 @@ class LossEvaluator(SentenceEvaluator):
                 writer.writerow([epoch, steps, final_loss])
                 
             # ...log the running loss
-            tensor_writer.add_scalar('validation loss',
+            self.summarywriter.add_scalar('val_loss',
                             final_loss,
                             epoch)
         

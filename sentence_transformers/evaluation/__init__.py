@@ -2,6 +2,7 @@ from .SentenceEvaluator import SentenceEvaluator
 from .SimilarityFunction import SimilarityFunction
 from .BinaryClassificationEvaluator import BinaryClassificationEvaluator
 from .EmbeddingSimilarityEvaluator import EmbeddingSimilarityEvaluator
+from .LossEvaluator import LossEvaluator
 from .InformationRetrievalEvaluator import InformationRetrievalEvaluator
 from .LabelAccuracyEvaluator import LabelAccuracyEvaluator
 from .MSEEvaluator import MSEEvaluator

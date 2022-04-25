@@ -14,6 +14,7 @@ import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 import torch.multiprocessing as mp
 from tqdm.autonotebook import trange
 import math
@@ -576,6 +577,7 @@ class SentenceTransformer(nn.Sequential):
             save_best_model: bool = True,
             max_grad_norm: float = 1,
             use_amp: bool = False,
+            tensorboard: bool = True,
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
@@ -602,6 +604,7 @@ class SentenceTransformer(nn.Sequential):
         :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
         :param max_grad_norm: Used for gradient normalization.
         :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
+        :param tensorboard: If true, log the training loss in output_path/logs
         :param callback: Callback function that is invoked after each evaluation.
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
@@ -622,7 +625,9 @@ class SentenceTransformer(nn.Sequential):
         self._model_card_text = None
         self._model_card_vars['{TRAINING_SECTION}'] = ModelCardTemplate.__TRAINING_SECTION__.replace("{LOSS_FUNCTIONS}", info_loss_functions).replace("{FIT_PARAMETERS}", info_fit_parameters)
 
-
+        if tensorboard:
+            summarywriter = SummaryWriter(os.path.join(output_path,'logs', 'train'))
+        
         if use_amp:
             from torch.cuda.amp import autocast
             scaler = torch.cuda.amp.GradScaler()
@@ -679,6 +684,7 @@ class SentenceTransformer(nn.Sequential):
                 loss_model.train()
 
             for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
+                losses_values = {}
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
                     optimizer = optimizers[train_idx]
@@ -713,18 +719,25 @@ class SentenceTransformer(nn.Sequential):
                         loss_value.backward()
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
                         optimizer.step()
-
+                        
+                    losses_values[loss_model.__class__.__name__] = loss_value.item()
                     optimizer.zero_grad()
-
+                    
                     if not skip_scheduler:
                         scheduler.step()
-
+                        
+                
                 training_steps += 1
                 global_step += 1
-
+                
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
-
+                    
+                    if tensorboard:
+                        summarywriter.add_scalars('train_loss',
+                                                    losses_values,
+                                                    global_step)
+        
                     for loss_model in loss_models:
                         loss_model.zero_grad()
                         loss_model.train()
@@ -740,7 +753,7 @@ class SentenceTransformer(nn.Sequential):
 
         if checkpoint_path is not None:
             self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
-
+        
 
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
