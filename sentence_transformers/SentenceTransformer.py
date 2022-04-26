@@ -578,6 +578,7 @@ class SentenceTransformer(nn.Sequential):
             max_grad_norm: float = 1,
             use_amp: bool = False,
             tensorboard: bool = True,
+            logging_steps: int = 0,
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
@@ -604,7 +605,8 @@ class SentenceTransformer(nn.Sequential):
         :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
         :param max_grad_norm: Used for gradient normalization.
         :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
-        :param tensorboard: If true, log the training loss in output_path/logs
+        :param tensorboard: If true, log the training loss in output_path/logs.
+        :param logging_steps: If>0, and tensordboard is True, log the training loss.
         :param callback: Callback function that is invoked after each evaluation.
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
@@ -730,13 +732,13 @@ class SentenceTransformer(nn.Sequential):
                 training_steps += 1
                 global_step += 1
                 
+                if tensorboard and logging_steps > 0 and training_steps % logging_steps == 0:
+                    summarywriter.add_scalars('train_loss',
+                                                losses_values,
+                                                global_step)
+                        
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
-                    
-                    if tensorboard:
-                        summarywriter.add_scalars('train_loss',
-                                                    losses_values,
-                                                    global_step)
         
                     for loss_model in loss_models:
                         loss_model.zero_grad()
