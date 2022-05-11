@@ -534,12 +534,11 @@ class SentenceTransformer(nn.Sequential):
 
             labels.append(example.label)
 
-        labels = torch.tensor(labels).to(self._target_device)
+        labels = torch.tensor(labels)
 
         sentence_features = []
         for idx in range(num_texts):
             tokenized = self.tokenize(texts[idx])
-            batch_to_device(tokenized, self._target_device)
             sentence_features.append(tokenized)
 
         return sentence_features, labels
@@ -694,7 +693,8 @@ class SentenceTransformer(nn.Sequential):
 
 
                     features, labels = data
-
+                    labels = labels.to(self._target_device)
+                    features = list(map(lambda batch: batch_to_device(batch, self._target_device), features))
 
                     if use_amp:
                         with autocast():
