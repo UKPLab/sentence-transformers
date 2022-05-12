@@ -27,7 +27,7 @@ class Asym(nn.Sequential):
             model.encode([{'doc': 'Doc1'}, {'doc': 'Doc2'}]
 
             #You can train it with InputExample like this. Note, that the order must always be the same:
-            train_example = InputExample(texts=[{'query': 'Train query', 'doc': 'Doc query'}], label=1)
+            train_example = InputExample(texts=[{'query': 'Train query'}, {'doc': 'Document'}], label=1)
 
 
         :param sub_modules: Dict in the format str -> List[models]. The models in the specified list will be applied for input marked with the respective key.
