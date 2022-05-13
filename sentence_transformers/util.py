@@ -2,6 +2,8 @@ import requests
 from torch import Tensor, device
 from typing import List, Callable
 from tqdm.autonotebook import tqdm
+import matplotlib.pyplot as plt
+import seaborn as sns
 import sys
 import importlib
 import os
@@ -10,8 +12,8 @@ import numpy as np
 import queue
 import logging
 
-
 logger = logging.getLogger(__name__)
+
 
 def pytorch_cos_sim(a: Tensor, b: Tensor):
     """
@@ -19,6 +21,7 @@ def pytorch_cos_sim(a: Tensor, b: Tensor):
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
     """
     return cos_sim(a, b)
+
 
 def cos_sim(a: Tensor, b: Tensor):
     """
@@ -100,7 +103,7 @@ def normalize_embeddings(embeddings: Tensor):
 def paraphrase_mining(model,
                       sentences: List[str],
                       show_progress_bar: bool = False,
-                      batch_size:int = 32,
+                      batch_size: int = 32,
                       *args,
                       **kwargs):
     """
@@ -120,17 +123,18 @@ def paraphrase_mining(model,
     """
 
     # Compute embedding for the sentences
-    embeddings = model.encode(sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True)
+    embeddings = model.encode(sentences, show_progress_bar=show_progress_bar, batch_size=batch_size,
+                              convert_to_tensor=True)
 
     return paraphrase_mining_embeddings(embeddings, *args, **kwargs)
 
 
 def paraphrase_mining_embeddings(embeddings: Tensor,
-                      query_chunk_size: int = 5000,
-                      corpus_chunk_size: int = 100000,
-                      max_pairs: int = 500000,
-                      top_k: int = 100,
-                      score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim):
+                                 query_chunk_size: int = 5000,
+                                 corpus_chunk_size: int = 100000,
+                                 max_pairs: int = 500000,
+                                 top_k: int = 100,
+                                 score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim):
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
     other sentences and returns a list with the pairs that have the highest cosine similarity score.
@@ -153,9 +157,11 @@ def paraphrase_mining_embeddings(embeddings: Tensor,
 
     for corpus_start_idx in range(0, len(embeddings), corpus_chunk_size):
         for query_start_idx in range(0, len(embeddings), query_chunk_size):
-            scores = score_function(embeddings[query_start_idx:query_start_idx+query_chunk_size], embeddings[corpus_start_idx:corpus_start_idx+corpus_chunk_size])
+            scores = score_function(embeddings[query_start_idx:query_start_idx + query_chunk_size],
+                                    embeddings[corpus_start_idx:corpus_start_idx + corpus_chunk_size])
 
-            scores_top_k_values, scores_top_k_idx = torch.topk(scores, min(top_k, len(scores[0])), dim=1, largest=True, sorted=False)
+            scores_top_k_values, scores_top_k_idx = torch.topk(scores, min(top_k, len(scores[0])), dim=1, largest=True,
+                                                               sorted=False)
             scores_top_k_values = scores_top_k_values.cpu().tolist()
             scores_top_k_idx = scores_top_k_idx.cpu().tolist()
 
@@ -225,8 +231,7 @@ def semantic_search(query_embeddings: Tensor,
     elif isinstance(corpus_embeddings, list):
         corpus_embeddings = torch.stack(corpus_embeddings)
 
-
-    #Check that corpus and queries are on the same device
+    # Check that corpus and queries are on the same device
     if corpus_embeddings.device != query_embeddings.device:
         query_embeddings = query_embeddings.to(corpus_embeddings.device)
 
@@ -236,10 +241,12 @@ def semantic_search(query_embeddings: Tensor,
         # Iterate over chunks of the corpus
         for corpus_start_idx in range(0, len(corpus_embeddings), corpus_chunk_size):
             # Compute cosine similarities
-            cos_scores = score_function(query_embeddings[query_start_idx:query_start_idx+query_chunk_size], corpus_embeddings[corpus_start_idx:corpus_start_idx+corpus_chunk_size])
+            cos_scores = score_function(query_embeddings[query_start_idx:query_start_idx + query_chunk_size],
+                                        corpus_embeddings[corpus_start_idx:corpus_start_idx + corpus_chunk_size])
 
             # Get top-k scores
-            cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(top_k, len(cos_scores[0])), dim=1, largest=True, sorted=False)
+            cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(top_k, len(cos_scores[0])),
+                                                                       dim=1, largest=True, sorted=False)
             cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
             cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
 
@@ -249,7 +256,7 @@ def semantic_search(query_embeddings: Tensor,
                     query_id = query_start_idx + query_itr
                     queries_result_list[query_id].append({'corpus_id': corpus_id, 'score': score})
 
-    #Sort and strip to top_k results
+    # Sort and strip to top_k results
     for idx in range(len(queries_result_list)):
         queries_result_list[idx] = sorted(queries_result_list[idx], key=lambda x: x['score'], reverse=True)
         queries_result_list[idx] = queries_result_list[idx][0:top_k]
@@ -270,13 +277,13 @@ def http_get(url, path):
         req.raise_for_status()
         return
 
-    download_filepath = path+"_part"
+    download_filepath = path + "_part"
     with open(download_filepath, "wb") as file_binary:
         content_length = req.headers.get('Content-Length')
         total = int(content_length) if content_length is not None else None
         progress = tqdm(unit="B", total=total, unit_scale=True)
         for chunk in req.iter_content(chunk_size=1024):
-            if chunk: # filter out keep-alive new chunks
+            if chunk:  # filter out keep-alive new chunks
                 progress.update(len(chunk))
                 file_binary.write(chunk)
 
@@ -294,18 +301,18 @@ def batch_to_device(batch, target_device: device):
     return batch
 
 
-
 def fullname(o):
-  """
+    """
   Gives a full name (package_name.class_name) for a class / object in Python. Will
   be used to load the correct classes from JSON files
   """
 
-  module = o.__class__.__module__
-  if module is None or module == str.__class__.__module__:
-    return o.__class__.__name__  # Avoid reporting __builtin__
-  else:
-    return module + '.' + o.__class__.__name__
+    module = o.__class__.__module__
+    if module is None or module == str.__class__.__module__:
+        return o.__class__.__name__  # Avoid reporting __builtin__
+    else:
+        return module + '.' + o.__class__.__name__
+
 
 def import_from_string(dotted_path):
     """
@@ -407,15 +414,16 @@ from huggingface_hub import HfApi, hf_hub_url, cached_download
 from huggingface_hub.snapshot_download import REPO_ID_SEPARATOR
 import fnmatch
 
+
 def snapshot_download(
-    repo_id: str,
-    revision: Optional[str] = None,
-    cache_dir: Union[str, Path, None] = None,
-    library_name: Optional[str] = None,
-    library_version: Optional[str] = None,
-    user_agent: Union[Dict, str, None] = None,
-    ignore_files: Optional[List[str]] = None,
-    use_auth_token: Union[bool, str, None] = None
+        repo_id: str,
+        revision: Optional[str] = None,
+        cache_dir: Union[str, Path, None] = None,
+        library_name: Optional[str] = None,
+        library_version: Optional[str] = None,
+        user_agent: Union[Dict, str, None] = None,
+        ignore_files: Optional[List[str]] = None,
+        use_auth_token: Union[bool, str, None] = None
 ) -> str:
     """
     Method derived from huggingface_hub.
@@ -435,7 +443,7 @@ def snapshot_download(
 
     for model_file in model_info.siblings:
         if ignore_files is not None:
-            skip_download  = False
+            skip_download = False
             for pattern in ignore_files:
                 if fnmatch.fnmatch(model_file.rfilename, pattern):
                     skip_download = True
@@ -469,3 +477,53 @@ def snapshot_download(
             os.remove(path + ".lock")
 
     return storage_folder
+
+
+def plot_grad_flow(named_parameters: iter) -> plt.figure:
+    """
+    source: https://github.com/MLAlex1/bert_tensorboard/blob/42b8e58c3d4465f0df51c4c347050904dc0a5696/utils_bert.py#L12
+    Plots the gradients flowing through different layers in the net during training.
+    Can be used for checking for possible gradient vanishing / exploding problems.
+    skip_prob : skip some random layers for better visualization if there are a lot of layers
+    seed : random seed to skip layers
+    """
+
+    name_replace = {"encoder": "enc", "layer": "l"}
+    plt.rcParams["figure.figsize"] = (20, 12)
+
+    mean_grads, max_grads, zero_grads, stds = [], [], [], []
+    name_layers = []
+    for (n, p) in named_parameters:
+        if p.requires_grad and p.grad is not None:
+            name_layers.append(
+                '.'.join([name_replace.get(el, el) for el in n.split(".") if el not in ['weight', 'bert', 'self']]))
+            mean_grads.append(p.grad.abs().mean().detach().cpu().item())
+            max_grads.append(p.grad.abs().max().detach().cpu().item())
+            stds.append(p.grad.abs().std().detach().cpu().item())
+            zero_grads.append(torch.sum(p.grad.abs() == 0.).detach().cpu().item() / p.grad.nelement())
+
+    sns.set_style("darkgrid", {"axes.facecolor": ".9"})
+    sns.set(font_scale=1.2)
+    fig, ax = plt.subplots(3)
+    sns.barplot(x=name_layers, y=max_grads, palette=['b'] * len(name_layers), alpha=0.9, ax=ax[2], label="max grads", )
+    sns.barplot(x=name_layers, y=mean_grads, palette=['r'] * len(name_layers), alpha=0.9, ax=ax[2],
+                label="mean grads", )
+
+    sns.barplot(x=name_layers, y=zero_grads, palette=['k'] * len(name_layers), alpha=0.9, ax=ax[0],
+                label="percentage zero grads")
+
+    sns.barplot(x=name_layers, y=stds, palette=['c'] * len(name_layers), alpha=0.9, ax=ax[1],
+                label="standard dev grads")
+
+    ax[2].set_ylim([-0.005, 0.05])
+    ax[1].set_ylim([-0.005, 0.1])
+    ax[0].set_ylim([-0.005, 1.05])
+    ax[2] = ax[2].set_xticklabels(ax[2].get_xticklabels(), rotation=90)
+    ax[0].set(xticklabels=[])
+    ax[1].set(xticklabels=[])
+
+    ax[0].legend()
+    ax[1].legend()
+    plt.legend()
+    plt.close()
+    return fig

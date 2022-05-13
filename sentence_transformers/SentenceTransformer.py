@@ -24,7 +24,7 @@ from distutils.dir_util import copy_tree
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, fullname, snapshot_download
+from .util import import_from_string, batch_to_device, fullname, snapshot_download, plot_grad_flow
 from .models import Transformer, Pooling, Dense
 from .model_card_templates import ModelCardTemplate
 from . import __version__
@@ -160,7 +160,7 @@ class SentenceTransformer(nn.Sequential):
         self.eval()
         if show_progress_bar is None:
             show_progress_bar = (
-                        logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
+                    logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
 
         if convert_to_tensor:
             convert_to_numpy = False
@@ -607,8 +607,8 @@ class SentenceTransformer(nn.Sequential):
             save_best_model: bool = True,
             max_grad_norm: float = 1,
             use_amp: bool = False,
-            tensorboard: bool = True,
-            logging_steps: int = 0,
+            tensorboard_params: Dict[str, object] = {'log': True, 'steps': 0, 'loss': True, 'lr': False,
+                                                     'grad_hist': False, 'grad_stats': False},
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
@@ -635,8 +635,7 @@ class SentenceTransformer(nn.Sequential):
         :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
         :param max_grad_norm: Used for gradient normalization.
         :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
-        :param tensorboard: If true, log the training loss in output_path/logs.
-        :param logging_steps: If>0, and tensordboard is True, log the training loss.
+        :param tensorboard_params: tensorboard logging parameters
         :param callback: Callback function that is invoked after each evaluation.
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
@@ -663,8 +662,8 @@ class SentenceTransformer(nn.Sequential):
                                                                                                      info_loss_functions).replace(
             "{FIT_PARAMETERS}", info_fit_parameters)
 
-        if tensorboard:
-            summarywriter = SummaryWriter(os.path.join(output_path, 'logs', 'train'))
+        if tensorboard_params['log']:
+            logs_writer = SummaryWriter(os.path.join(output_path, 'logs', 'train'))
 
         if use_amp:
             from torch.cuda.amp import autocast
@@ -701,7 +700,6 @@ class SentenceTransformer(nn.Sequential):
                  'weight_decay': weight_decay},
                 {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
             ]
-
             optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
             scheduler_obj = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps,
                                                 t_total=num_train_steps)
@@ -715,7 +713,9 @@ class SentenceTransformer(nn.Sequential):
         num_train_objectives = len(train_objectives)
 
         skip_scheduler = False
-        losses_values = {}
+        running_loss = 0
+        total_norm = 0
+        name_replace = {"encoder": "enc", "layer": "l"}
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
 
@@ -751,14 +751,52 @@ class SentenceTransformer(nn.Sequential):
                         scaler.update()
 
                         skip_scheduler = scaler.get_scale() != scale_before_step
+
                     else:
                         loss_value = loss_model(features, labels)
                         loss_value.backward()
+                        running_loss += loss_value.item()
+
+                        if tensorboard_params['log'] and tensorboard_params['steps'] > 0 and training_steps % \
+                                tensorboard_params['steps'] == 0:
+
+                            if tensorboard_params['loss']:
+                                logs_writer.add_scalar(f'train_loss_{loss_model.__class__.__name__}',
+                                                       running_loss / tensorboard_params['steps'],
+                                                       global_step)
+                            if tensorboard_params['lr']:
+                                logs_writer.add_scalar(f'lr_{loss_model.__class__.__name__}',
+                                                       scheduler.get_last_lr()[0],
+                                                       global_step)
+
+                            if tensorboard_params['grad_stats']:
+                                hist_fig = plot_grad_flow(loss_model.named_parameters())
+                                logs_writer.add_figure(f"gradients_{loss_model.__class__.__name__}", hist_fig,
+                                                       global_step=global_step, close=True)
+
+                            if tensorboard_params['grad_hist']:
+                                for (name, param) in loss_model.named_parameters():
+                                    if param.requires_grad and param.grad is not None:
+                                        name = '.'.join(
+                                            [name_replace.get(el, el) for el in name.split(".") if el not in
+                                             ['weight', 'bert', 'self', 'model', 'auto_model']])
+                                        logs_writer.add_histogram(f'{loss_model.__class__.__name__}.{name}.grad',
+                                                                  param.grad.detach(), global_step)
+
+                                        param_norm = param.grad.detach().data.norm(2)
+                                        total_norm += param_norm.item() ** 2
+                                total_norm = total_norm ** 0.5
+
+                                logs_writer.add_scalar(f'global_norm_{loss_model.__class__.__name__}',
+                                                       total_norm,
+                                                       global_step)
+
+                            running_loss = 0
+                            total_norm = 0
+
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
                         optimizer.step()
 
-                    losses_values[loss_model.__class__.__name__] = losses_values.get(loss_model.__class__.__name__,
-                                                                                     0) + loss_value.item()
                     optimizer.zero_grad()
 
                     if not skip_scheduler:
@@ -766,13 +804,6 @@ class SentenceTransformer(nn.Sequential):
 
                 training_steps += 1
                 global_step += 1
-
-                if tensorboard and logging_steps > 0 and training_steps % logging_steps == 0:
-                    losses_values = {k: v / logging_steps for k, v in losses_values.items()}
-                    summarywriter.add_scalars('train_loss',
-                                              losses_values,
-                                              global_step)
-                    losses_values = {}
 
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
