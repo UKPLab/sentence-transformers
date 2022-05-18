@@ -56,7 +56,7 @@ class LossEvaluator(SentenceEvaluator):
         data_iterator = iter(self.loader)
 
         with torch.no_grad():
-            for _ in trange(num_batches, desc="Iteration", smoothing=0.05, disable=True):
+            for _ in trange(num_batches, desc="Iteration", smoothing=0.05, disable=not self.show_progress_bar):
                 sentence_features, labels = next(data_iterator)
                 loss_value += self.loss_model(sentence_features, labels).item()
 
