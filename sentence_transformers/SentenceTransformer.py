@@ -568,7 +568,7 @@ class SentenceTransformer(nn.Sequential):
             steps_per_epoch = None,
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
-            optimizer_class: Type[Optimizer] = transformers.AdamW,
+            optimizer_class: Type[Optimizer] = torch.optim.AdamW,
             optimizer_params : Dict[str, object]= {'lr': 2e-5},
             weight_decay: float = 0.01,
             evaluation_steps: int = 0,
