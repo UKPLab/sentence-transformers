@@ -466,7 +466,7 @@ class SentenceTransformer(nn.Sequential):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             # First create the repo (and clone its content if it's nonempty).
-            logging.info("Create repository and clone it if it exists")
+            logger.info("Create repository and clone it if it exists")
             repo = Repository(tmp_dir, clone_from=repo_url)
 
             # If user provides local files, copy them.
@@ -487,10 +487,10 @@ class SentenceTransformer(nn.Sequential):
                         large_files.append(rel_path)
 
             if len(large_files) > 0:
-                logging.info("Track files with git lfs: {}".format(", ".join(large_files)))
+                logger.info("Track files with git lfs: {}".format(", ".join(large_files)))
                 repo.lfs_track(large_files)
 
-            logging.info("Push model to the hub. This might take a while")
+            logger.info("Push model to the hub. This might take a while")
             push_return = repo.push_to_hub(commit_message=commit_message)
 
             def on_rm_error(func, path, exc_info):
@@ -508,7 +508,7 @@ class SentenceTransformer(nn.Sequential):
                 for f in os.listdir(tmp_dir):
                     shutil.rmtree(os.path.join(tmp_dir, f), onerror=on_rm_error)
             except Exception as e:
-                logging.warning("Error when deleting temp folder: {}".format(str(e)))
+                logger.warning("Error when deleting temp folder: {}".format(str(e)))
                 pass
 
 
@@ -793,7 +793,7 @@ class SentenceTransformer(nn.Sequential):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
-        logging.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
+        logger.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
         transformer_model = Transformer(model_name_or_path)
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
         return [transformer_model, pooling_model]
