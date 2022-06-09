@@ -2,7 +2,7 @@
 
 The goal of **Domain Adaptation** is to adapt text embedding models to your specific text domain without the need to labeled training data.
 
-Domain adaptation is still an activate research field and there exists no perfect solution yet. However, in our two recent papers [TSDAE](https://arxiv.org/abs/2104.06979) and [GPL](https://arxiv.org/abs/2112.07577) we evaluated several methods how text embeddings model can be adapted to your specific domain. You can find an overview of these methods in my [talk on unsupervised domain adaptation](https://youtu.be/xbdLowiQTlk).
+Domain adaptation is still an active research field and there exists no perfect solution yet. However, in our two recent papers [TSDAE](https://arxiv.org/abs/2104.06979) and [GPL](https://arxiv.org/abs/2112.07577) we evaluated several methods how text embeddings model can be adapted to your specific domain. You can find an overview of these methods in my [talk on unsupervised domain adaptation](https://youtu.be/xbdLowiQTlk).
 
 ## Domain Adaptation vs. Unsupervised Learning
 There exists methods for [unsupervised text embedding learning](../unsupervised_learning/README.md), however, they generally perform rather badly: They are not really able to learn domain specific concepts. 
@@ -66,7 +66,7 @@ GPL works in three phases:
 - **Training**: Once we have the triplets *(generated query, positive passage, mined negative passage)* and the Cross-Encoder socres for *(query, positive)* and *(query, negative)* we can start training the text embedding model using [MarginMSELoss](https://www.sbert.net/docs/package_reference/losses.html#marginmseloss).
 
 
-The **pseudo labeling** step is quite important and which results in the increased performance compared to the previous method QGen, which treated passages just as positive (1) or negative (0). As we see in the following picture, for a generate query (*"what is futures conrtact"*), the negative mining step retrieves passages that are partly or highly relevant to the generated query. Using MarginMSELoss and the Cross-Encoder, we can identify these passages and teach the text embedding model that these passages are also relevant for the given query.
+The **pseudo labeling** step is quite important and which results in the increased performance compared to the previous method QGen, which treated passages just as positive (1) or negative (0). As we see in the following picture, for a generate query (*"what is futures contract"*), the negative mining step retrieves passages that are partly or highly relevant to the generated query. Using MarginMSELoss and the Cross-Encoder, we can identify these passages and teach the text embedding model that these passages are also relevant for the given query.
 ![GPL Architecture](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/gpl_negatives.jpg) 
 
 
