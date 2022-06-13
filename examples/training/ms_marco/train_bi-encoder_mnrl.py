@@ -188,6 +188,8 @@ with gzip.open(hard_negatives_filepath, 'rt') as fIn:
         if args.use_all_queries or (len(pos_pids) > 0 and len(neg_pids) > 0):
             train_queries[data['qid']] = {'qid': data['qid'], 'query': queries[data['qid']], 'pos': pos_pids, 'neg': neg_pids}
 
+del ce_scores
+
 logging.info("Train queries: {}".format(len(train_queries)))
 
 
