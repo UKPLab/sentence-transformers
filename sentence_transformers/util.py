@@ -404,7 +404,6 @@ from typing import Dict, Optional, Union
 from pathlib import Path
 from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
 from huggingface_hub import HfApi, hf_hub_url, cached_download
-from huggingface_hub.snapshot_download import REPO_ID_SEPARATOR
 import fnmatch
 
 def snapshot_download(
