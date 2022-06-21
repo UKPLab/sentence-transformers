@@ -18,7 +18,6 @@ class ModelCardTemplate:
 pipeline_tag: {PIPELINE_TAG}
 tags:
 {TAGS}
-datasets:
 {DATASETS}
 ---
 

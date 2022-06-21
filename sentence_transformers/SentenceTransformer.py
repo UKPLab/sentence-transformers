@@ -406,8 +406,11 @@ class SentenceTransformer(nn.Sequential):
             # Add tags
             model_card = model_card.replace("{TAGS}", "\n".join(["- "+t for t in tags]))
 
+            datasets_str = ""
             if train_datasets is not None:
-                model_card = model_card.replace("{DATASETS}", "\n".join(["- " + d for d in train_datasets]))
+                datasets_str = "datasets:\n"+"\n".join(["- " + d for d in train_datasets])
+            model_card = model_card.replace("{DATASETS}", datasets_str)
+
 
             # Add dim info
             self._model_card_vars["{NUM_DIMENSIONS}"] = self.get_sentence_embedding_dimension()
