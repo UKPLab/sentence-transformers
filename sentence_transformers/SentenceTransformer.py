@@ -81,14 +81,15 @@ class SentenceTransformer(nn.Sequential):
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
                 model_path = os.path.join(cache_folder, model_name_or_path.replace("/", "_"))
-
-                # Download from hub with caching
-                snapshot_download(model_name_or_path,
-                                    cache_dir=cache_folder,
-                                    library_name='sentence-transformers',
-                                    library_version=__version__,
-                                    ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'],
-                                    use_auth_token=use_auth_token)
+                
+                if not os.path.exists(os.path.join(model_path, 'modules.json')):
+                    # Download from hub with caching
+                    snapshot_download(model_name_or_path,
+                                        cache_dir=cache_folder,
+                                        library_name='sentence-transformers',
+                                        library_version=__version__,
+                                        ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'],
+                                        use_auth_token=use_auth_token)
 
             if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
                 modules = self._load_sbert_model(model_path)
