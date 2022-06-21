@@ -692,7 +692,6 @@ class SentenceTransformer(nn.Sequential):
                         data_iterators[train_idx] = data_iterator
                         data = next(data_iterator)
 
-
                     features, labels = data
                     labels = labels.to(self._target_device)
                     features = list(map(lambda batch: batch_to_device(batch, self._target_device), features))
