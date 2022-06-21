@@ -842,7 +842,9 @@ class SentenceTransformer(nn.Sequential):
 
         return modules
 
-
+    @staticmethod
+    def load(input_path):
+        return SentenceTransformer(input_path)
 
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
