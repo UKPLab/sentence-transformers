@@ -2,8 +2,6 @@ import requests
 from torch import Tensor, device
 from typing import List, Callable
 from tqdm.autonotebook import tqdm
-import matplotlib.pyplot as plt
-import seaborn as sns
 import sys
 import importlib
 import os
@@ -11,7 +9,6 @@ import torch
 import numpy as np
 import queue
 import logging
-
 
 from huggingface_hub import HfFolder
 
@@ -306,9 +303,9 @@ def batch_to_device(batch, target_device: device):
 
 def fullname(o):
     """
-  Gives a full name (package_name.class_name) for a class / object in Python. Will
-  be used to load the correct classes from JSON files
-  """
+    Gives a full name (package_name.class_name) for a class / object in Python. Will
+    be used to load the correct classes from JSON files
+    """
 
     module = o.__class__.__module__
     if module is None or module == str.__class__.__module__:
@@ -437,13 +434,13 @@ def snapshot_download(
         cache_dir = str(cache_dir)
 
     _api = HfApi()
-    
-    token = None 
+
+    token = None
     if isinstance(use_auth_token, str):
         token = use_auth_token
     elif use_auth_token:
         token = HfFolder.get_token()
-        
+
     model_info = _api.model_info(repo_id=repo_id, revision=revision, token=token)
 
     storage_folder = os.path.join(
