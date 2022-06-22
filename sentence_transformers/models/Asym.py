@@ -57,7 +57,10 @@ class Asym(nn.Sequential):
         return features
 
     def get_sentence_embedding_dimension(self) -> int:
-        raise NotImplementedError()
+        for name in self.sub_modules:
+            if hasattr(self.sub_modules[name][0], "get_sentence_embedding_dimension"):
+                return self.sub_modules[name][0].get_sentence_embedding_dimension()
+        return None
 
     def save(self, output_path):
         model_lookup = {}
