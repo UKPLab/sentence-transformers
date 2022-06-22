@@ -476,4 +476,3 @@ def snapshot_download(
             os.remove(path + ".lock")
 
     return storage_folder
-
