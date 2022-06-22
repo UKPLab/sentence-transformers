@@ -24,7 +24,7 @@ from distutils.dir_util import copy_tree
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, fullname, snapshot_download, plot_grad_flow
+from .util import import_from_string, batch_to_device, fullname, snapshot_download
 from .models import Transformer, Pooling, Dense
 from .model_card_templates import ModelCardTemplate
 from . import __version__
@@ -608,7 +608,7 @@ class SentenceTransformer(nn.Sequential):
             max_grad_norm: float = 1,
             use_amp: bool = False,
             tensorboard_params: Dict[str, object] = {'log': True, 'steps': 0, 'loss': True, 'lr': False,
-                                                     'grad_hist': False, 'grad_stats': False},
+                                                     'grad_hist': False,},
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
@@ -768,11 +768,6 @@ class SentenceTransformer(nn.Sequential):
                                 logs_writer.add_scalar(f'lr_{loss_model.__class__.__name__}',
                                                        scheduler.get_last_lr()[0],
                                                        global_step)
-
-                            if tensorboard_params['grad_stats']:
-                                hist_fig = plot_grad_flow(loss_model.named_parameters())
-                                logs_writer.add_figure(f"gradients_{loss_model.__class__.__name__}", hist_fig,
-                                                       global_step=global_step, close=True)
 
                             if tensorboard_params['grad_hist']:
                                 for (name, param) in loss_model.named_parameters():
