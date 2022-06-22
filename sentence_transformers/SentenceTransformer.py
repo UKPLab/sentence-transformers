@@ -114,11 +114,11 @@ class SentenceTransformer(nn.Sequential):
                 if not os.path.exists(os.path.join(model_path, 'modules.json')):
                     # Download from hub with caching
                     snapshot_download(model_name_or_path,
-                                        cache_dir=cache_folder,
-                                        library_name='sentence-transformers',
-                                        library_version=__version__,
-                                        ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'],
-                                        use_auth_token=use_auth_token)
+                                      cache_dir=cache_folder,
+                                      library_name='sentence-transformers',
+                                      library_version=__version__,
+                                      ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'],
+                                      use_auth_token=use_auth_token)
 
             if os.path.exists(os.path.join(model_path, 'modules.json')):  # Load as SentenceTransformer model
                 modules = self._load_sbert_model(model_path)
@@ -161,7 +161,7 @@ class SentenceTransformer(nn.Sequential):
         self.eval()
         if show_progress_bar is None:
             show_progress_bar = (
-                    logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
+                        logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
 
         if convert_to_tensor:
             convert_to_numpy = False
@@ -362,7 +362,8 @@ class SentenceTransformer(nn.Sequential):
         """Returns the last module of this sequential embedder"""
         return self._modules[next(reversed(self._modules))]
 
-    def save(self, path: str, model_name: Optional[str] = None, create_model_card: bool = True, train_datasets: Optional[List[str]] = None):
+    def save(self, path: str, model_name: Optional[str] = None, create_model_card: bool = True,
+             train_datasets: Optional[List[str]] = None):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
         :param path: Path on disc
@@ -409,7 +410,8 @@ class SentenceTransformer(nn.Sequential):
         if create_model_card:
             self._create_model_card(path, model_name, train_datasets)
 
-    def _create_model_card(self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = None):
+    def _create_model_card(self, path: str, model_name: Optional[str] = None,
+                           train_datasets: Optional[List[str]] = None):
         """
         Create an automatic model and stores it in path
         """
@@ -440,9 +442,8 @@ class SentenceTransformer(nn.Sequential):
 
             datasets_str = ""
             if train_datasets is not None:
-                datasets_str = "datasets:\n"+"\n".join(["- " + d for d in train_datasets])
+                datasets_str = "datasets:\n" + "\n".join(["- " + d for d in train_datasets])
             model_card = model_card.replace("{DATASETS}", datasets_str)
-
 
             # Add dim info
             self._model_card_vars["{NUM_DIMENSIONS}"] = self.get_sentence_embedding_dimension()
@@ -517,7 +518,8 @@ class SentenceTransformer(nn.Sequential):
                 copy_tree(local_model_path, tmp_dir)
             else:  # Else, save model directly into local repo.
                 create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, 'README.md'))
-                self.save(tmp_dir, model_name=full_model_name, create_model_card=create_model_card, train_datasets=train_datasets)
+                self.save(tmp_dir, model_name=full_model_name, create_model_card=create_model_card,
+                          train_datasets=train_datasets)
 
             # Find files larger 5M and track with git-lfs
             large_files = []
@@ -609,7 +611,7 @@ class SentenceTransformer(nn.Sequential):
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
             optimizer_class: Type[Optimizer] = torch.optim.AdamW,
-            optimizer_params : Dict[str, object]= {'lr': 2e-5},
+            optimizer_params: Dict[str, object] = {'lr': 2e-5},
             weight_decay: float = 0.01,
             evaluation_steps: int = 0,
             output_path: str = None,
@@ -617,7 +619,7 @@ class SentenceTransformer(nn.Sequential):
             max_grad_norm: float = 1,
             use_amp: bool = False,
             tensorboard_params: Dict[str, object] = {'log': True, 'steps': 0, 'loss': True, 'lr': False,
-                                                     'grad_hist': False,},
+                                                     'grad_hist': False, },
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
@@ -709,6 +711,7 @@ class SentenceTransformer(nn.Sequential):
                  'weight_decay': weight_decay},
                 {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
             ]
+
             optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
             scheduler_obj = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps,
                                                 t_total=num_train_steps)
@@ -762,7 +765,6 @@ class SentenceTransformer(nn.Sequential):
                         scaler.update()
 
                         skip_scheduler = scaler.get_scale() != scale_before_step
-
                     else:
                         loss_value = loss_model(features, labels)
                         loss_value.backward()
@@ -878,8 +880,9 @@ class SentenceTransformer(nn.Sequential):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
-
-        logger.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
+        logger.warning(
+            "No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(
+                model_name_or_path))
         transformer_model = Transformer(model_name_or_path)
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
         return [transformer_model, pooling_model]
@@ -921,7 +924,6 @@ class SentenceTransformer(nn.Sequential):
             modules[module_config['name']] = module
 
         return modules
-
 
     @staticmethod
     def load(input_path):
