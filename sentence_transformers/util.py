@@ -9,6 +9,8 @@ import torch
 import numpy as np
 import queue
 import logging
+import math
+import gc
 
 from huggingface_hub import HfFolder
 
@@ -331,7 +333,7 @@ def import_from_string(dotted_path):
         raise ImportError(msg)
 
 
-def community_detection(embeddings, threshold=0.75, min_community_size=10, init_max_size=1000):
+def community_detection(embeddings, threshold=0.75, min_community_size=10, init_max_size=1000, n_batches=1):
     """
     Function for Fast Community Detection
 
@@ -339,41 +341,60 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, init_
 
     Returns only communities that are larger than min_community_size. The communities are returned
     in decreasing order. The first element in each list is the central point in the community.
+
+    n_batches is the number of batches in which the embeddings are processed
+    Increasing it would lead to longer run time but less memory usage
+    Default: 1, increase if running out of memory
     """
 
+    #Find batch size
+    batch_size = math.floor(len(embeddings)/n_batches)
+    
     # Maximum size for community
     init_max_size = min(init_max_size, len(embeddings))
 
-    # Compute cosine similarity scores
-    cos_scores = cos_sim(embeddings, embeddings)
-
-    # Minimum size for a community
-    top_k_values, _ = cos_scores.topk(k=min_community_size, largest=True)
-
-    # Filter for rows >= min_threshold
     extracted_communities = []
-    for i in range(len(top_k_values)):
-        if top_k_values[i][-1] >= threshold:
-            new_cluster = []
 
-            # Only check top k most similar entries
-            top_val_large, top_idx_large = cos_scores[i].topk(k=init_max_size, largest=True)
-            top_idx_large = top_idx_large.tolist()
-            top_val_large = top_val_large.tolist()
+    for batch in range(n_batches):
 
-            if top_val_large[-1] < threshold:
-                for idx, val in zip(top_idx_large, top_val_large):
-                    if val < threshold:
-                        break
+        # Compute cosine similarity scores for batch
+        if batch != n_batches-1:
+            cos_scores = cos_sim(embeddings[batch*batch_size:(batch+1)*batch_size,:], embeddings)
+        else:
+            cos_scores = cos_sim(embeddings[batch*batch_size:len(embeddings),:], embeddings)
+            
+        # Minimum size for a community
+        top_k_values, _ = cos_scores.topk(k=min_community_size, largest=True)
 
-                    new_cluster.append(idx)
-            else:
-                # Iterate over all entries (slow)
-                for idx, val in enumerate(cos_scores[i].tolist()):
-                    if val >= threshold:
+        # Filter for rows >= min_threshold
+        for i in range(len(top_k_values)):
+            if top_k_values[i][-1] >= threshold:
+                new_cluster = []
+                
+                # Only check top k most similar entries
+                top_val_large, top_idx_large = cos_scores[i].topk(k=init_max_size, largest=True)
+                top_idx_large = top_idx_large.tolist()
+                top_val_large = top_val_large.tolist()
+
+                if top_val_large[-1] < threshold:
+                    for idx, val in zip(top_idx_large, top_val_large):
+                        if val < threshold:
+                            break
+
                         new_cluster.append(idx)
-
-            extracted_communities.append(new_cluster)
+                else:
+                    # Iterate over all entries (slow)
+                    for idx, val in enumerate(cos_scores[i].tolist()):
+                        if val >= threshold:
+                            new_cluster.append(idx)
+                            
+                extracted_communities.append(new_cluster)
+                
+        #Delete tensors once the batch is processed & free up memory
+        del cos_scores
+        del top_k_values
+        gc.collect()
+        torch.cuda.empty_cache()
 
     # Largest cluster first
     extracted_communities = sorted(extracted_communities, key=lambda x: len(x), reverse=True)
