@@ -61,7 +61,7 @@ class SentenceTransformer(nn.Sequential):
                 except ImportError:
                     torch_cache_home = os.path.expanduser(os.getenv('TORCH_HOME', os.path.join(os.getenv('XDG_CACHE_HOME', '~/.cache'), 'torch')))
 
-                cache_folder = os.path.join(torch_cache_home, '')
+                cache_folder = os.path.join(torch_cache_home, 'sentence_transformers')
 
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
@@ -427,7 +427,7 @@ class SentenceTransformer(nn.Sequential):
         if model_name is not None:
             model_card = model_card.replace("{MODEL_NAME}", model_name.strip())
 
-        with open(os.path.join(path, "../README.md"), "w", encoding='utf8') as fOut:
+        with open(os.path.join(path, "README.md"), "w", encoding='utf8') as fOut:
             fOut.write(model_card.strip())
 
     def save_to_hub(self,
@@ -484,7 +484,7 @@ class SentenceTransformer(nn.Sequential):
             if local_model_path:
                 copy_tree(local_model_path, tmp_dir)
             else:  # Else, save model directly into local repo.
-                create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, '../README.md'))
+                create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, 'README.md'))
                 self.save(tmp_dir, model_name=full_model_name, create_model_card=create_model_card, train_datasets=train_datasets)
 
             #Find files larger 5M and track with git-lfs
@@ -864,7 +864,7 @@ class SentenceTransformer(nn.Sequential):
                 logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(self._model_config['__version__']['sentence_transformers'], __version__))
 
         # Check if a readme exists
-        model_card_path = os.path.join(model_path, '../README.md')
+        model_card_path = os.path.join(model_path, 'README.md')
         if os.path.exists(model_card_path):
             try:
                 with open(model_card_path, encoding='utf8') as fIn:
@@ -953,4 +953,3 @@ class SentenceTransformer(nn.Sequential):
         Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
         """
         self._first_module().max_seq_length = value
-
