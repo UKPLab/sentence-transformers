@@ -27,7 +27,7 @@ setup(
         'scipy',
         'nltk',
         'sentencepiece',
-        'huggingface-hub'
+        'huggingface-hub>=0.8.1'
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

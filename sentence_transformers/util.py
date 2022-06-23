@@ -404,7 +404,7 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, init_
 from typing import Dict, Optional, Union
 from pathlib import Path
 from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
-from huggingface_hub import HfApi, hf_hub_url, cached_download
+from huggingface_hub import HfApi, hf_hub_url, cached_download, hf_hub_download
 import fnmatch
 
 def snapshot_download(
@@ -440,9 +440,17 @@ def snapshot_download(
         cache_dir, repo_id.replace("/", "_")
     )
 
-    for model_file in model_info.siblings:
+    all_files = model_info.siblings
+    #Download modules.json as the last file
+    for idx, repofile in enumerate(all_files):
+        if repofile.rfilename == "modules.json":
+            del all_files[idx]
+            all_files.append(repofile)
+            break
+
+    for model_file in all_files:
         if ignore_files is not None:
-            skip_download  = False
+            skip_download = False
             for pattern in ignore_files:
                 if fnmatch.fnmatch(model_file.rfilename, pattern):
                     skip_download = True
@@ -470,6 +478,7 @@ def snapshot_download(
             library_version=library_version,
             user_agent=user_agent,
             use_auth_token=use_auth_token,
+            legacy_cache_layout=True
         )
 
         if os.path.exists(path + ".lock"):
