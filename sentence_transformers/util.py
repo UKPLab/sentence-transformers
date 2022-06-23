@@ -331,49 +331,51 @@ def import_from_string(dotted_path):
         raise ImportError(msg)
 
 
-def community_detection(embeddings, threshold=0.75, min_community_size=10, init_max_size=1000):
+def community_detection(embeddings, threshold=0.75, min_community_size=10, batch_size=1024):
     """
     Function for Fast Community Detection
-
     Finds in the embeddings all communities, i.e. embeddings that are close (closer than threshold).
-
     Returns only communities that are larger than min_community_size. The communities are returned
     in decreasing order. The first element in each list is the central point in the community.
     """
 
-    # Maximum size for community
-    init_max_size = min(init_max_size, len(embeddings))
+    threshold = torch.tensor(threshold, device=embeddings.device)
 
-    # Compute cosine similarity scores
-    cos_scores = cos_sim(embeddings, embeddings)
-
-    # Minimum size for a community
-    top_k_values, _ = cos_scores.topk(k=min_community_size, largest=True)
-
-    # Filter for rows >= min_threshold
     extracted_communities = []
-    for i in range(len(top_k_values)):
-        if top_k_values[i][-1] >= threshold:
-            new_cluster = []
 
-            # Only check top k most similar entries
-            top_val_large, top_idx_large = cos_scores[i].topk(k=init_max_size, largest=True)
-            top_idx_large = top_idx_large.tolist()
-            top_val_large = top_val_large.tolist()
+    # Maximum size for community
+    min_community_size = min(min_community_size, len(embeddings))
+    sort_max_size = min(max(2 * min_community_size, 50), len(embeddings))
 
-            if top_val_large[-1] < threshold:
-                for idx, val in zip(top_idx_large, top_val_large):
+    for start_idx in range(0, len(embeddings), batch_size):
+        # Compute cosine similarity scores
+        cos_scores = cos_sim(embeddings[start_idx:start_idx + batch_size], embeddings)
+
+        # Minimum size for a community
+        top_k_values, _ = cos_scores.topk(k=min_community_size, largest=True)
+
+        # Filter for rows >= min_threshold
+        for i in range(len(top_k_values)):
+            if top_k_values[i][-1] >= threshold:
+                new_cluster = []
+
+                # Only check top k most similar entries
+                top_val_large, top_idx_large = cos_scores[i].topk(k=sort_max_size, largest=True)
+
+                # Check if we need to increase sort_max_size
+                while top_val_large[-1] > threshold:
+                    sort_max_size = min(2 * sort_max_size, len(embeddings))
+                    top_val_large, top_idx_large = cos_scores[i].topk(k=sort_max_size, largest=True)
+
+                for idx, val in zip(top_idx_large.tolist(), top_val_large):
                     if val < threshold:
                         break
 
                     new_cluster.append(idx)
-            else:
-                # Iterate over all entries (slow)
-                for idx, val in enumerate(cos_scores[i].tolist()):
-                    if val >= threshold:
-                        new_cluster.append(idx)
 
-            extracted_communities.append(new_cluster)
+                extracted_communities.append(new_cluster)
+
+        del cos_scores
 
     # Largest cluster first
     extracted_communities = sorted(extracted_communities, key=lambda x: len(x), reverse=True)
@@ -382,17 +384,18 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, init_
     unique_communities = []
     extracted_ids = set()
 
-    for community in extracted_communities:
-        add_cluster = True
+    for cluster_id, community in enumerate(extracted_communities):
+        community = sorted(community)
+        non_overlapped_community = []
         for idx in community:
-            if idx in extracted_ids:
-                add_cluster = False
-                break
+            if idx not in extracted_ids:
+                non_overlapped_community.append(idx)
 
-        if add_cluster:
-            unique_communities.append(community)
-            for idx in community:
-                extracted_ids.add(idx)
+        if len(non_overlapped_community) >= min_community_size:
+            unique_communities.append(non_overlapped_community)
+            extracted_ids.update(non_overlapped_community)
+
+    unique_communities = sorted(unique_communities, key=lambda x: len(x), reverse=True)
 
     return unique_communities
 
@@ -404,7 +407,7 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, init_
 from typing import Dict, Optional, Union
 from pathlib import Path
 from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
-from huggingface_hub import HfApi, hf_hub_url, cached_download, hf_hub_download
+from huggingface_hub import HfApi, hf_hub_url, cached_download
 import fnmatch
 
 def snapshot_download(
