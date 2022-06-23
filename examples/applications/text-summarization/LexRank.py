@@ -5,6 +5,8 @@ Source: https://github.com/crabcamp/lexrank/tree/dev
 
 import numpy as np
 from scipy.sparse.csgraph import connected_components
+from scipy.special import softmax
+
 
 def degree_centrality_scores(
     similarity_matrix,
@@ -39,7 +41,7 @@ def degree_centrality_scores(
     return scores
 
 
-def _power_method(transition_matrix, increase_power=True):
+def _power_method(transition_matrix, increase_power=True, max_iter=10000):
     eigenvector = np.ones(len(transition_matrix))
 
     if len(eigenvector) == 1:
@@ -47,7 +49,7 @@ def _power_method(transition_matrix, increase_power=True):
 
     transition = transition_matrix.transpose()
 
-    while True:
+    for _ in range(max_iter):
         eigenvector_next = np.dot(transition, eigenvector)
 
         if np.allclose(eigenvector_next, eigenvector):
@@ -57,6 +59,8 @@ def _power_method(transition_matrix, increase_power=True):
 
         if increase_power:
             transition = np.dot(transition, transition)
+    else:
+        raise ArithmeticError("Maximum number of iterations for power method exceeded without convergence!")
 
 
 def connected_nodes(matrix):
@@ -78,6 +82,10 @@ def create_markov_matrix(weights_matrix):
 
     row_sum = weights_matrix.sum(axis=1, keepdims=True)
 
+    # normalize probability distribution differently if we have negative transition values
+    if np.min(weights_matrix) <= 0:
+        return softmax(weights_matrix, axis=1)
+
     return weights_matrix / row_sum
 
 
@@ -87,20 +95,6 @@ def create_markov_matrix_discrete(weights_matrix, threshold):
     discrete_weights_matrix[ixs] = 1
 
     return create_markov_matrix(discrete_weights_matrix)
-
-
-def graph_nodes_clusters(transition_matrix, increase_power=True):
-    clusters = connected_nodes(transition_matrix)
-    clusters.sort(key=len, reverse=True)
-
-    centroid_scores = []
-
-    for group in clusters:
-        t_matrix = transition_matrix[np.ix_(group, group)]
-        eigenvector = _power_method(t_matrix, increase_power=increase_power)
-        centroid_scores.append(eigenvector / len(group))
-
-    return clusters, centroid_scores
 
 
 def stationary_distribution(
