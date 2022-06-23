@@ -6,7 +6,9 @@ Source: https://github.com/crabcamp/lexrank/tree/dev
 import numpy as np
 from scipy.sparse.csgraph import connected_components
 from scipy.special import softmax
+import logging
 
+logger = logging.getLogger(__name__)
 
 def degree_centrality_scores(
     similarity_matrix,
@@ -59,8 +61,9 @@ def _power_method(transition_matrix, increase_power=True, max_iter=10000):
 
         if increase_power:
             transition = np.dot(transition, transition)
-    else:
-        raise ArithmeticError("Maximum number of iterations for power method exceeded without convergence!")
+
+    logger.warning("Maximum number of iterations for power method exceeded without convergence!")
+    return eigenvector_next
 
 
 def connected_nodes(matrix):
