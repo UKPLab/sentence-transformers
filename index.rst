@@ -133,6 +133,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    docs/pretrained_models
    docs/pretrained_cross-encoders
    docs/publications
+   docs/hugging_face
 
 .. toctree::
    :maxdepth: 2
