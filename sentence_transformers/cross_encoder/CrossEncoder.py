@@ -226,7 +226,7 @@ class CrossEncoder():
                     try:
                         logger_callback(training_steps, scheduler.get_last_lr(), loss_value.item())
                     except Exception as e:
-                        logger.warning(("Logging error encountered. Ignoring..")
+                        logger.warning("Logging error encountered. Ignoring..")
                 if evaluator is not None and evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
 
