@@ -50,7 +50,7 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dense_
 
 Here, we add on top of the pooling layer a fully connected dense layer with Tanh activation, which performs a down-project to 256 dimensions. Hence, embeddings by this model will only have 256 instead of 768 dimensions.
 
-For all available building blocks see [» Models Package Reference](../package_reference/models.md)
+For all available building blocks see [» Models Package Reference](https://www.sbert.net/docs/package_reference/models.html)
 
 ## Training Data 
  
@@ -119,7 +119,7 @@ The `fit` method accepts the following parameter:
 
 ## Evaluators
 
-During training, we usually want to measure the performance to see if the performance improves. For this, the *[sentence_transformers.evaluation](../package_reference/evaluation)* package exists. It contains various evaluators which we can pass to the `fit`-method. These evaluators are run periodically during training. Further, they return a score and only the model with the highest score will be stored on disc.
+During training, we usually want to measure the performance to see if the performance improves. For this, the *[sentence_transformers.evaluation](https://www.sbert.net/docs/package_reference/evaluation.html)* package exists. It contains various evaluators which we can pass to the `fit`-method. These evaluators are run periodically during training. Further, they return a score and only the model with the highest score will be stored on disc.
 
 The usage is simple:
 ```python

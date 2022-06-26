@@ -22,7 +22,7 @@ In our experiments we combine [SNLI](https://arxiv.org/abs/1508.05326) and [Mult
 
 
 ## SoftmaxLoss
-[Conneau et al.](https://arxiv.org/abs/1705.02364) described how a softmax classifier on top of a siamese network can be used to learn meaningful sentence representation. We can achieve this by using the  [losses.SoftmaxLoss](../../../docs/package_reference/losses.html#softmaxloss) package.
+[Conneau et al.](https://arxiv.org/abs/1705.02364) described how a softmax classifier on top of a siamese network can be used to learn meaningful sentence representation. We can achieve this by using the  [losses.SoftmaxLoss](https://www.sbert.net/docs/package_reference/losses.html#softmaxloss) package.
 
 
 The softmax loss looks like this:
