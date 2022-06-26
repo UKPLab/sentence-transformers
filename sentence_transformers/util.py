@@ -9,8 +9,14 @@ import torch
 import numpy as np
 import queue
 import logging
+from typing import Dict, Optional, Union
+from pathlib import Path
 
-from huggingface_hub import HfFolder
+import huggingface_hub
+from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
+from huggingface_hub import HfApi, hf_hub_url, cached_download, HfFolder
+import fnmatch
+from packaging import version
 
 logger = logging.getLogger(__name__)
 
@@ -404,11 +410,7 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, batch
 #
 ######################
 
-from typing import Dict, Optional, Union
-from pathlib import Path
-from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
-from huggingface_hub import HfApi, hf_hub_url, cached_download
-import fnmatch
+
 
 def snapshot_download(
     repo_id: str,
@@ -473,16 +475,20 @@ def snapshot_download(
         )
         os.makedirs(nested_dirname, exist_ok=True)
 
-        path = cached_download(
-            url,
-            cache_dir=storage_folder,
-            force_filename=relative_filepath,
-            library_name=library_name,
-            library_version=library_version,
-            user_agent=user_agent,
-            use_auth_token=use_auth_token,
-            legacy_cache_layout=True
-        )
+        cached_download_args = {'url': url,
+            'cache_dir': storage_folder,
+            'force_filename': relative_filepath,
+            'library_name': library_name,
+            'library_version': library_version,
+            'user_agent': user_agent,
+            'use_auth_token': use_auth_token}
+
+        if version.parse(huggingface_hub.__version__) >= version.parse("0.8.1"):
+            # huggingface_hub v0.8.1 introduces a new cache layout. We sill use a manual layout
+            # And need to pass legacy_cache_layout=True to avoid that a warning will be printed
+            cached_download_args['legacy_cache_layout'] = True
+
+        path = cached_download(**cached_download_args)
 
         if os.path.exists(path + ".lock"):
             os.remove(path + ".lock")
