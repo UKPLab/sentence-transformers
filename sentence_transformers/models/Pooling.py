@@ -19,7 +19,7 @@ class Pooling(nn.Module):
     :param pooling_mode_mean_tokens: Perform mean-pooling
     :param pooling_mode_mean_sqrt_len_tokens: Perform mean-pooling, but devide by sqrt(input_length).
     :param pooling_mode_weightedmean_tokens: Perform (position) weighted mean pooling, see https://arxiv.org/abs/2202.08904
-    :param pooling_mode_lasttoken_tokens: Perform last token pooling, see https://arxiv.org/abs/2202.08904 & https://arxiv.org/abs/2201.10005
+    :param pooling_mode_lasttoken: Perform last token pooling, see https://arxiv.org/abs/2202.08904 & https://arxiv.org/abs/2201.10005
     """
     def __init__(self,
                  word_embedding_dimension: int,
@@ -29,12 +29,12 @@ class Pooling(nn.Module):
                  pooling_mode_mean_tokens: bool = True,
                  pooling_mode_mean_sqrt_len_tokens: bool = False,
                  pooling_mode_weightedmean_tokens: bool = False,
-                 pooling_mode_lasttoken_tokens: bool = False,
+                 pooling_mode_lasttoken: bool = False,
                  ):
         super(Pooling, self).__init__()
 
         self.config_keys = ['word_embedding_dimension', 'pooling_mode_cls_token', 'pooling_mode_mean_tokens', 'pooling_mode_max_tokens',
-                            'pooling_mode_mean_sqrt_len_tokens', 'pooling_mode_weightedmean_tokens', 'pooling_mode_lasttoken_tokens']
+                            'pooling_mode_mean_sqrt_len_tokens', 'pooling_mode_weightedmean_tokens', 'pooling_mode_lasttoken']
 
         if pooling_mode is not None:        #Set pooling mode by string
             pooling_mode = pooling_mode.lower()
@@ -43,7 +43,7 @@ class Pooling(nn.Module):
             pooling_mode_max_tokens = (pooling_mode == 'max')
             pooling_mode_mean_tokens = (pooling_mode == 'mean')
             pooling_mode_weightedmean_tokens = (pooling_mode == 'weightedmean')
-            pooling_mode_lasttoken_tokens = (pooling_mode == 'lasttoken')
+            pooling_mode_lasttoken = (pooling_mode == 'lasttoken')
 
         self.word_embedding_dimension = word_embedding_dimension
         self.pooling_mode_cls_token = pooling_mode_cls_token
@@ -51,10 +51,10 @@ class Pooling(nn.Module):
         self.pooling_mode_max_tokens = pooling_mode_max_tokens
         self.pooling_mode_mean_sqrt_len_tokens = pooling_mode_mean_sqrt_len_tokens
         self.pooling_mode_weightedmean_tokens = pooling_mode_weightedmean_tokens
-        self.pooling_mode_lasttoken_tokens = pooling_mode_lasttoken_tokens
+        self.pooling_mode_lasttoken = pooling_mode_lasttoken
 
         pooling_mode_multiplier = sum([pooling_mode_cls_token, pooling_mode_max_tokens, pooling_mode_mean_tokens, 
-            pooling_mode_mean_sqrt_len_tokens, pooling_mode_weightedmean_tokens, pooling_mode_lasttoken_tokens])
+            pooling_mode_mean_sqrt_len_tokens, pooling_mode_weightedmean_tokens, pooling_mode_lasttoken])
         self.pooling_output_dimension = (pooling_mode_multiplier * word_embedding_dimension)
 
 
@@ -76,7 +76,7 @@ class Pooling(nn.Module):
             modes.append('mean_sqrt_len_tokens')
         if self.pooling_mode_weightedmean_tokens:
             modes.append('weightedmean')
-        if self.pooling_mode_lasttoken_tokens:
+        if self.pooling_mode_lasttoken:
             modes.append('lasttoken')
 
         return "+".join(modes)
@@ -134,7 +134,7 @@ class Pooling(nn.Module):
 
             sum_mask = torch.clamp(sum_mask, min=1e-9)
             output_vectors.append(sum_embeddings / sum_mask)
-        if self.pooling_mode_lasttoken_tokens:
+        if self.pooling_mode_lasttoken:
             bs, seq_len, hidden_dim = token_embeddings.shape
             # attention_mask shape: (bs, seq_len)
             # Get shape [bs] indices of the last token (i.e. the last token for each batch item)
