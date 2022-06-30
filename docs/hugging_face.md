@@ -2,7 +2,7 @@
 
 ## The Hugging Face Hub
 
-In addition to the official [pre-trained models](https://www.sbert.net/docs/pretrained_models.html), you can find over 500 `sentence-transformer` models on the [Hugging Face Hub](http://hf.co/models?library=sentence-transformers&sort=downloads) covering a range of tasks. You can filter to find particular models, such as searching for [`feature-extraction`](https://huggingface.co/models?library=sentence-transformers&pipeline_tag=feature-extraction&sort=downloads) for models for generating embeddings, or [`sentence-similarity`](https://huggingface.co/models?library=sentence-transformers&pipeline_tag=sentence-similarity&sort=downloads) for sentence similarity models.
+In addition to the official [pre-trained models](https://www.sbert.net/docs/pretrained_models.html), you can find over 500 `sentence-transformer` models on the [Hugging Face Hub](http://hf.co/models?library=sentence-transformers&sort=downloads).
 
 All models on the Hugging Face Hub come with the following:
 1. An [automatically generated model card](https://huggingface.co/docs/hub/models-cards#what-are-model-cards) with a description, example code snippets, architecture overview, and more. 
@@ -60,7 +60,14 @@ print(util.semantic_search(query_embedding, corpus_embeddings))
 
 ## Sharing your models
 
-You can share your SentenceTransformers models by using the [`save_to_hub` method](https://www.sbert.net/docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.save_to_hub) from a trained model.
+Once you've installed the [Hub Client Library](https://huggingface.co/docs/huggingface_hub/quick-start), you can login through your terminal with your Hugging Face account.
+
+```bash
+pip install huggingface_hub
+huggingface-cli login
+```
+
+Then, you can share your SentenceTransformers models by calling the [`save_to_hub` method](https://www.sbert.net/docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.save_to_hub) from a trained model. By default, the model will be uploaded to your account, but you can upload to an [organization](https://huggingface.co/docs/hub/organizations) by passing setting an `organization` parameter. `save_to_hub` automatically generates a model card, an inference widget, example code snippets, and more.
 
 ```py
 from sentence_transformers import SentenceTransformer
@@ -69,8 +76,11 @@ from sentence_transformers import SentenceTransformer
 model.save_to_hub("my_new_model")
 ```
 
-This command creates a [Hugging Face repository](https://huggingface.co/docs/hub/repositories) with an automatically generated model card, an inference widget, example code snippets, and more! [Here](https://huggingface.co/osanseviero/my_new_model) is an example.
+You can automatically add to the Hub's model card a list of datasets you used to train the model with the argument `train_datasets: Optional[List[str]] = None)`. See the "Datasets used to train" section in the [ITESM/sentece-embeddings-BETO](https://huggingface.co/ITESM/sentece-embeddings-BETO) model for an example of the final result.
 
+```py
+model.save_to_hub("my_new_model", train_datasets=["GEM/wiki_lingua", "code_search_net"])
+```
 
 ## Sharing your embeddings
 
