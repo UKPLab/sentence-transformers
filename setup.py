@@ -14,8 +14,8 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     license="Apache License 2.0",
-    url="https://github.com/UKPLab/sentence-transformers",
-    download_url="https://github.com/UKPLab/sentence-transformers/archive/v2.2.1.zip",
+    url="https://www.SBERT.net",
+    download_url="https://github.com/UKPLab/sentence-transformers/",
     packages=find_packages(),
     python_requires=">=3.6.0",
     install_requires=[
