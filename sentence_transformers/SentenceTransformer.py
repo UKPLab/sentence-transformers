@@ -2,14 +2,12 @@ import json
 import logging
 import os
 import shutil
-import stat
 from collections import OrderedDict
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
-import requests
 import numpy as np
 from numpy import ndarray
 import transformers
-from huggingface_hub import HfApi, HfFolder, Repository, hf_hub_url, cached_download
+from huggingface_hub import HfApi, HfFolder, upload_folder
 import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
@@ -39,16 +37,19 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models
     :param use_auth_token: HuggingFace authentication token to download private models.
+    :param hub_parameters: Parameters for save_to_hub, used to push checkpoints to the HuggingFace Hub.
     """
     def __init__(self, model_name_or_path: Optional[str] = None,
                  modules: Optional[Iterable[nn.Module]] = None,
                  device: Optional[str] = None,
                  cache_folder: Optional[str] = None,
-                 use_auth_token: Union[bool, str, None] = None
+                 use_auth_token: Union[bool, str, None] = None,
+                 hub_parameters: Dict[str, str] = None,
                  ):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
+        self.hub_parameters = hub_parameters
 
         if cache_folder is None:
             cache_folder = os.getenv('SENTENCE_TRANSFORMERS_HOME')
@@ -475,10 +476,6 @@ class SentenceTransformer(nn.Sequential):
         full_model_name = repo_url[len(endpoint)+1:].strip("/")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            # First create the repo (and clone its content if it's nonempty).
-            logger.info("Create repository and clone it if it exists")
-            repo = Repository(tmp_dir, clone_from=repo_url)
-
             # If user provides local files, copy them.
             if local_model_path:
                 copy_tree(local_model_path, tmp_dir)
@@ -486,41 +483,13 @@ class SentenceTransformer(nn.Sequential):
                 create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, 'README.md'))
                 self.save(tmp_dir, model_name=full_model_name, create_model_card=create_model_card, train_datasets=train_datasets)
 
-            #Find files larger 5M and track with git-lfs
-            large_files = []
-            for root, dirs, files in os.walk(tmp_dir):
-                for filename in files:
-                    file_path = os.path.join(root, filename)
-                    rel_path = os.path.relpath(file_path, tmp_dir)
-
-                    if os.path.getsize(file_path) > (5 * 1024 * 1024):
-                        large_files.append(rel_path)
-
-            if len(large_files) > 0:
-                logger.info("Track files with git lfs: {}".format(", ".join(large_files)))
-                repo.lfs_track(large_files)
-
-            logger.info("Push model to the hub. This might take a while")
-            push_return = repo.push_to_hub(commit_message=commit_message)
-
-            def on_rm_error(func, path, exc_info):
-                # path contains the path of the file that couldn't be removed
-                # let's just assume that it's read-only and unlink it.
-                try:
-                    os.chmod(path, stat.S_IWRITE)
-                    os.unlink(path)
-                except:
-                    pass
-
-            # Remove .git folder. On Windows, the .git folder might be read-only and cannot be deleted
-            # Hence, try to set write permissions on error
-            try:
-                for f in os.listdir(tmp_dir):
-                    shutil.rmtree(os.path.join(tmp_dir, f), onerror=on_rm_error)
-            except Exception as e:
-                logger.warning("Error when deleting temp folder: {}".format(str(e)))
-                pass
-
+            logger.info("Pushing model to the hub. This might take a while")
+            push_return = upload_folder(
+                folder_path=tmp_dir,
+                path_in_repo="",
+                repo_id=full_model_name,
+                commit_message=commit_message
+            )
 
         return push_return
 
@@ -589,7 +558,8 @@ class SentenceTransformer(nn.Sequential):
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
             checkpoint_save_steps: int = 500,
-            checkpoint_save_total_limit: int = 0
+            checkpoint_save_total_limit: int = 0,
+            push_checkpoints_to_hub: bool = False,
             ):
         """
         Train the model with the given training objective
@@ -618,7 +588,11 @@ class SentenceTransformer(nn.Sequential):
         :param checkpoint_path: Folder to save checkpoints during training
         :param checkpoint_save_steps: Will save a checkpoint after so many steps
         :param checkpoint_save_total_limit: Total number of checkpoints to store
+        :param push_checkpoints_to_hub: If true, each checkpoint will be pushed to the Hugging Face Hub
         """
+
+        if push_checkpoints_to_hub and self.hub_parameters is None:
+            raise ValueError("You must provide `hub_parameters` to `SentenceTransformer` in order to push checkpoints to Hugging Face.")
 
         ##Add info to model card
         #info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
@@ -739,8 +713,7 @@ class SentenceTransformer(nn.Sequential):
                         loss_model.train()
 
                 if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 and global_step % checkpoint_save_steps == 0:
-                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
-
+                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step, push_checkpoints_to_hub)
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
@@ -748,9 +721,7 @@ class SentenceTransformer(nn.Sequential):
             self.save(output_path)
 
         if checkpoint_path is not None:
-            self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
-
-
+            self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step, push_checkpoints_to_hub)
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
         """
@@ -782,7 +753,7 @@ class SentenceTransformer(nn.Sequential):
                 if save_best_model:
                     self.save(output_path)
 
-    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step):
+    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step, save_to_hub=False):
         # Store new checkpoint
         self.save(os.path.join(checkpoint_path, str(step)))
 
@@ -796,6 +767,9 @@ class SentenceTransformer(nn.Sequential):
             if len(old_checkpoints) > checkpoint_save_total_limit:
                 old_checkpoints = sorted(old_checkpoints, key=lambda x: x['step'])
                 shutil.rmtree(old_checkpoints[0]['path'])
+
+        if save_to_hub:
+            self.save_to_hub(**self.hub_parameters, exist_ok=True, commit_message="Push new training checkpoint.")
 
 
     def _load_auto_model(self, model_name_or_path):
