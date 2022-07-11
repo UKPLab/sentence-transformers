@@ -344,6 +344,8 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, batch
     Returns only communities that are larger than min_community_size. The communities are returned
     in decreasing order. The first element in each list is the central point in the community.
     """
+    if not isinstance(embeddings, torch.Tensor):
+        embeddings = torch.tensor(embeddings)
 
     threshold = torch.tensor(threshold, device=embeddings.device)
 
