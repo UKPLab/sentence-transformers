@@ -37,7 +37,7 @@ class SentenceTransformer(nn.Sequential):
     :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path, it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model from Huggingface models repository with that name.
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
-    :param cache_folder: Path to store models
+    :param cache_folder: Path to store models. Can be also set by SENTENCE_TRANSFORMERS_HOME enviroment variable.
     :param use_auth_token: HuggingFace authentication token to download private models.
     """
     def __init__(self, model_name_or_path: Optional[str] = None,
