@@ -2,12 +2,14 @@ import json
 import logging
 import os
 import shutil
+import stat
 from collections import OrderedDict
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
+import requests
 import numpy as np
 from numpy import ndarray
 import transformers
-from huggingface_hub import HfApi, HfFolder, upload_folder
+from huggingface_hub import HfApi, HfFolder, Repository, hf_hub_url, cached_download
 import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
@@ -28,6 +30,27 @@ from . import __version__
 
 logger = logging.getLogger(__name__)
 
+
+class HubParameters:
+    def __init__(self, repo_name: str,
+                 organization: Optional[str] = None,
+                 private: Optional[bool] = None,
+                 local_model_path: Optional[str] = None,
+                 replace_model_card: bool = False,
+                 train_datasets: Optional[List[str]] = None,
+                 local_repo_path: Optional[str] = None,
+                 ):
+        self.parameters = {
+            "repo_name": repo_name,
+            "organization": organization,
+            "private": private,
+            "local_model_path": local_model_path,
+            "replace_model_card": replace_model_card,
+            "train_datasets": train_datasets,
+            "local_repo_path": local_repo_path
+        }
+
+
 class SentenceTransformer(nn.Sequential):
     """
     Loads or create a SentenceTransformer model, that can be used to map sentences / text to embeddings.
@@ -39,12 +62,13 @@ class SentenceTransformer(nn.Sequential):
     :param use_auth_token: HuggingFace authentication token to download private models.
     :param hub_parameters: Parameters for save_to_hub, used to push checkpoints to the HuggingFace Hub.
     """
+
     def __init__(self, model_name_or_path: Optional[str] = None,
                  modules: Optional[Iterable[nn.Module]] = None,
                  device: Optional[str] = None,
                  cache_folder: Optional[str] = None,
                  use_auth_token: Union[bool, str, None] = None,
-                 hub_parameters: Dict[str, str] = None,
+                 hub_parameters: HubParameters = None
                  ):
         self._model_card_vars = {}
         self._model_card_text = None
@@ -106,8 +130,6 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
-
-
 
     def encode(self, sentences: Union[str, List[str]],
                batch_size: int = 32,
@@ -202,8 +224,6 @@ class SentenceTransformer(nn.Sequential):
 
         return all_embeddings
 
-
-
     def start_multi_process_pool(self, target_devices: List[str] = None):
         """
         Starts multi process to process the encoding with several, independent processes.
@@ -233,7 +253,6 @@ class SentenceTransformer(nn.Sequential):
             processes.append(p)
 
         return {'input': input_queue, 'output': output_queue, 'processes': processes}
-
 
     @staticmethod
     def stop_multi_process_pool(pool):
@@ -301,8 +320,6 @@ class SentenceTransformer(nn.Sequential):
                 results_queue.put([id, embeddings])
             except queue.Empty:
                 break
-
-
 
     def get_max_seq_length(self):
         """
@@ -412,7 +429,6 @@ class SentenceTransformer(nn.Sequential):
                 datasets_str = "datasets:\n"+"\n".join(["- " + d for d in train_datasets])
             model_card = model_card.replace("{DATASETS}", datasets_str)
 
-
             # Add dim info
             self._model_card_vars["{NUM_DIMENSIONS}"] = self.get_sentence_embedding_dimension()
 
@@ -438,7 +454,8 @@ class SentenceTransformer(nn.Sequential):
                     local_model_path: Optional[str] = None,
                     exist_ok: bool = False,
                     replace_model_card: bool = False,
-                    train_datasets: Optional[List[str]] = None):
+                    train_datasets: Optional[List[str]] = None,
+                    local_repo_path: Optional[str] = None):
         """
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
@@ -450,6 +467,7 @@ class SentenceTransformer(nn.Sequential):
         :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
         :param replace_model_card: If true, replace an existing model card in the hub with the automatically created model card
         :param train_datasets: Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
+        :param local_repo_path: Local path where the model repo will be stored. If not provided, a temporary directory will be created.
         :return: The url of the commit of your model in the given repository.
         """
         token = HfFolder.get_token()
@@ -475,21 +493,51 @@ class SentenceTransformer(nn.Sequential):
             )
         full_model_name = repo_url[len(endpoint)+1:].strip("/")
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            # If user provides local files, copy them.
-            if local_model_path:
-                copy_tree(local_model_path, tmp_dir)
-            else:  # Else, save model directly into local repo.
-                create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, 'README.md'))
-                self.save(tmp_dir, model_name=full_model_name, create_model_card=create_model_card, train_datasets=train_datasets)
+        repo_dir = local_repo_path
 
-            logger.info("Pushing model to the hub. This might take a while")
-            push_return = upload_folder(
-                folder_path=tmp_dir,
-                path_in_repo="",
-                repo_id=full_model_name,
-                commit_message=commit_message
-            )
+        if local_repo_path is None:
+            repo_dir = tempfile.mkdtemp()
+
+        # First create the repo (and clone its content if it's nonempty).
+        logger.info("Create repository and clone it if it exists")
+        repo = Repository(repo_dir, clone_from=repo_url)
+
+        # If user provides local files, copy them.
+        if local_model_path:
+            copy_tree(local_model_path, repo_dir)
+        else:  # Else, save model directly into local repo.
+            create_model_card = replace_model_card or not os.path.exists(os.path.join(repo_dir, 'README.md'))
+            self.save(repo_dir, model_name=full_model_name, create_model_card=create_model_card,
+                      train_datasets=train_datasets)
+
+        # Find files larger 5M and track with git-lfs
+        large_files = []
+        for root, dirs, files in os.walk(repo_dir):
+            for filename in files:
+                file_path = os.path.join(root, filename)
+                rel_path = os.path.relpath(file_path, repo_dir)
+
+                if os.path.getsize(file_path) > (5 * 1024 * 1024):
+                    large_files.append(rel_path)
+
+        if len(large_files) > 0:
+            logger.info("Track files with git lfs: {}".format(", ".join(large_files)))
+            repo.lfs_track(large_files)
+
+        logger.info("Push model to the hub. This might take a while")
+        push_return = repo.push_to_hub(commit_message=commit_message)
+
+        def on_rm_error(func, path, exc_info):
+            # path contains the path of the file that couldn't be removed
+            # let's just assume that it's read-only and unlink it.
+            try:
+                os.chmod(path, stat.S_IWRITE)
+                os.unlink(path)
+            except:
+                pass
+
+        if local_repo_path is None:
+            shutil.rmtree(repo_dir)
 
         return push_return
 
@@ -521,7 +569,6 @@ class SentenceTransformer(nn.Sequential):
             sentence_features.append(tokenized)
 
         return sentence_features, labels
-
 
     def _text_length(self, text: Union[List[int], List[List[int]]]):
         """
@@ -588,11 +635,15 @@ class SentenceTransformer(nn.Sequential):
         :param checkpoint_path: Folder to save checkpoints during training
         :param checkpoint_save_steps: Will save a checkpoint after so many steps
         :param checkpoint_save_total_limit: Total number of checkpoints to store
-        :param push_checkpoints_to_hub: If true, each checkpoint will be pushed to the Hugging Face Hub
+        :param push_checkpoints_to_hub: If True, each checkpoint will be pushed to the Hugging Face Hub
         """
 
-        if push_checkpoints_to_hub and self.hub_parameters is None:
-            raise ValueError("You must provide `hub_parameters` to `SentenceTransformer` in order to push checkpoints to Hugging Face.")
+        if push_checkpoints_to_hub:
+            if checkpoint_path is None or checkpoint_save_steps is None:
+                raise ValueError(
+                    "You must set both checkpoint_path and checkpoint_save_steps in order to push checkpoints to the Hugging Face Hub.")
+            if self.hub_parameters is None:
+                raise ValueError("You must provide `hub_parameters` to `SentenceTransformer` in order to push checkpoints to Hugging Face.")
 
         ##Add info to model card
         #info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
@@ -646,7 +697,6 @@ class SentenceTransformer(nn.Sequential):
 
             optimizers.append(optimizer)
             schedulers.append(scheduler_obj)
-
 
         global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
@@ -769,8 +819,7 @@ class SentenceTransformer(nn.Sequential):
                 shutil.rmtree(old_checkpoints[0]['path'])
 
         if save_to_hub:
-            self.save_to_hub(**self.hub_parameters, exist_ok=True, commit_message="Push new training checkpoint.")
-
+            self.save_to_hub(**self.hub_parameters.parameters, exist_ok=True, commit_message="Push new training checkpoint.")
 
     def _load_auto_model(self, model_name_or_path):
         """
