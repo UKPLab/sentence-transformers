@@ -205,7 +205,8 @@ def semantic_search(query_embeddings: Tensor,
                     query_chunk_size: int = 100,
                     corpus_chunk_size: int = 500000,
                     top_k: int = 10,
-                    score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim):
+                    score_function: Callable[[Tensor, Tensor], Tensor] = None,
+                    model = None):
     """
     This function performs a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
     It can be used for Information Retrieval / Semantic Search for corpora up to about 1 Million entries.
@@ -215,9 +216,22 @@ def semantic_search(query_embeddings: Tensor,
     :param query_chunk_size: Process 100 queries simultaneously. Increasing that value increases the speed, but requires more memory.
     :param corpus_chunk_size: Scans the corpus 100k entries at a time. Increasing that value increases the speed, but requires more memory.
     :param top_k: Retrieve top k matching entries.
-    :param score_function: Function for computing scores. By default, cosine similarity.
+    :param score_function: Function for computing scores. If a model isn't passed (or if it has no score_function in its config) then this will be set to cosine_similarity.
+    :param model: A SentenceTransformer model. If available, and if the score_function parameter isn't set, semantic_search will fetch the score_function from the model's config.
     :return: Returns a list with one entry for each query. Each entry is a list of dictionaries with the keys 'corpus_id' and 'score', sorted by decreasing cosine similarity scores.
     """
+
+    if score_function is None:
+        if model is not None:
+            score_function_config = model.score_function
+            if score_function_config == "cos_sim":
+                score_function = cos_sim
+            elif score_function_config == "dot":
+                score_function = dot_score
+            else:
+                raise ValueError(f"Score function must be one of cos_sim or dot. Received: {score_function_config} from config_sentence_transformers.json")
+        else:
+            score_function = cos_sim
 
     if isinstance(query_embeddings, (np.ndarray, np.generic)):
         query_embeddings = torch.from_numpy(query_embeddings)
@@ -242,16 +256,15 @@ def semantic_search(query_embeddings: Tensor,
     for query_start_idx in range(0, len(query_embeddings), query_chunk_size):
         # Iterate over chunks of the corpus
         for corpus_start_idx in range(0, len(corpus_embeddings), corpus_chunk_size):
-            # Compute cosine similarities
-            cos_scores = score_function(query_embeddings[query_start_idx:query_start_idx+query_chunk_size], corpus_embeddings[corpus_start_idx:corpus_start_idx+corpus_chunk_size])
+            scores = score_function(query_embeddings[query_start_idx:query_start_idx+query_chunk_size], corpus_embeddings[corpus_start_idx:corpus_start_idx+corpus_chunk_size])
 
             # Get top-k scores
-            cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(top_k, len(cos_scores[0])), dim=1, largest=True, sorted=False)
-            cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
-            cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
+            scores_top_k_values, scores_top_k_idx = torch.topk(scores, min(top_k, len(scores[0])), dim=1, largest=True, sorted=False)
+            scores_top_k_values = scores_top_k_values.cpu().tolist()
+            cos_scores_top_k_idx = scores_top_k_idx.cpu().tolist()
 
-            for query_itr in range(len(cos_scores)):
-                for sub_corpus_id, score in zip(cos_scores_top_k_idx[query_itr], cos_scores_top_k_values[query_itr]):
+            for query_itr in range(len(scores)):
+                for sub_corpus_id, score in zip(cos_scores_top_k_idx[query_itr], scores_top_k_values[query_itr]):
                     corpus_id = corpus_start_idx + sub_corpus_id
                     query_id = query_start_idx + query_itr
                     queries_result_list[query_id].append({'corpus_id': corpus_id, 'score': score})
