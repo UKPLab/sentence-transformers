@@ -203,21 +203,22 @@ class SentenceTransformer(nn.Sequential):
 
 
 
-    def start_multi_process_pool(self, target_devices: List[str] = None):
+    def start_multi_process_pool(self, target_devices: List[str] = None, num_cpus: int = 4):
         """
         Starts multi process to process the encoding with several, independent processes.
         This method is recommended if you want to encode on multiple GPUs. It is advised
         to start only one process per GPU. This method works together with encode_multi_process
 
         :param target_devices: PyTorch target devices, e.g. cuda:0, cuda:1... If None, all available CUDA devices will be used
+        :param num_cpus: Number of CPUs to use for multiprocess encoding. Only used if not using CUDA or target_devices.
         :return: Returns a dict with the target processes, an input queue and and output queue.
         """
         if target_devices is None:
             if torch.cuda.is_available():
                 target_devices = ['cuda:{}'.format(i) for i in range(torch.cuda.device_count())]
             else:
-                logger.info("CUDA is not available. Start 4 CPU worker")
-                target_devices = ['cpu']*4
+                logger.info(f"CUDA is not available. Start {num_cpus} CPU workers")
+                target_devices = ['cpu'] * num_cpus
 
         logger.info("Start multi-process pool on devices: {}".format(', '.join(map(str, target_devices))))
 
