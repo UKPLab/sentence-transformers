@@ -106,11 +106,11 @@ class WordEmbeddings(nn.Module):
                 word = split[0]
 
                 if len(split) == 2:
-                    embedding_dimension = int(split[1])
+                    embeddings_dimension = int(split[1])
+                    WordEmbeddings._add_padding_token(vocab, embeddings, embeddings_dimension)
                 elif embeddings_dimension == None:
                     embeddings_dimension = len(split) - 1
-                    vocab.append("PADDING_TOKEN")
-                    embeddings.append(np.zeros(embeddings_dimension))
+                    WordEmbeddings._add_padding_token(vocab, embeddings, embeddings_dimension)
 
                 if (len(split) - 1) != embeddings_dimension:  # Assure that all lines in the embeddings file are of the same length
                     logger.error("ERROR: A line in the embeddings file had more or less  dimensions than expected. Skip token.")
@@ -128,3 +128,7 @@ class WordEmbeddings(nn.Module):
             tokenizer.set_vocab(vocab)
             return WordEmbeddings(tokenizer=tokenizer, embedding_weights=embeddings, update_embeddings=update_embeddings)
 
+    @staticmethod
+    def _add_padding_token(vocab, embeddings, embeddings_dimension):
+        vocab.append("PADDING_TOKEN")
+        embeddings.append(np.zeros(embeddings_dimension))
