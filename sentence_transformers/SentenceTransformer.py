@@ -9,7 +9,7 @@ import requests
 import numpy as np
 from numpy import ndarray
 import transformers
-from huggingface_hub import HfApi, HfFolder, Repository, hf_hub_url, cached_download
+from huggingface_hub import HfApi, HfFolder, Repository, create_repo, hf_hub_url, cached_download
 import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
@@ -31,7 +31,7 @@ from . import __version__
 logger = logging.getLogger(__name__)
 
 
-class HubParameters:
+class HubTrainingArguments:
     def __init__(self, repo_name: str,
                  organization: Optional[str] = None,
                  private: Optional[bool] = None,
@@ -47,7 +47,8 @@ class HubParameters:
             "local_model_path": local_model_path,
             "replace_model_card": replace_model_card,
             "train_datasets": train_datasets,
-            "local_repo_path": local_repo_path
+            "local_repo_path": local_repo_path,
+            "exist_ok": True
         }
 
 
@@ -60,7 +61,6 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models. Can be also set by SENTENCE_TRANSFORMERS_HOME enviroment variable.
     :param use_auth_token: HuggingFace authentication token to download private models.
-    :param hub_parameters: Parameters for save_to_hub, used to push checkpoints to the HuggingFace Hub.
     """
 
     def __init__(self, model_name_or_path: Optional[str] = None,
@@ -68,12 +68,10 @@ class SentenceTransformer(nn.Sequential):
                  device: Optional[str] = None,
                  cache_folder: Optional[str] = None,
                  use_auth_token: Union[bool, str, None] = None,
-                 hub_parameters: HubParameters = None
                  ):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
-        self.hub_parameters = hub_parameters
 
         if cache_folder is None:
             cache_folder = os.getenv('SENTENCE_TRANSFORMERS_HOME')
@@ -506,8 +504,7 @@ class SentenceTransformer(nn.Sequential):
         if local_repo_path is None:
             repo_dir = tempfile.mkdtemp()
 
-        # First create the repo (and clone its content if it's nonempty).
-        logger.info("Create repository and clone it if it exists")
+        logger.info("Clone the repository")
         repo = Repository(repo_dir, clone_from=repo_url)
 
         # If user provides local files, copy them.
@@ -616,6 +613,7 @@ class SentenceTransformer(nn.Sequential):
             checkpoint_save_steps: int = 500,
             checkpoint_save_total_limit: int = 0,
             push_checkpoints_to_hub: bool = False,
+            hub_training_arguments: HubTrainingArguments = None,
             ):
         """
         Train the model with the given training objective
@@ -645,14 +643,13 @@ class SentenceTransformer(nn.Sequential):
         :param checkpoint_save_steps: Will save a checkpoint after so many steps
         :param checkpoint_save_total_limit: Total number of checkpoints to store
         :param push_checkpoints_to_hub: If True, each checkpoint will be pushed to the Hugging Face Hub
+        :param hub_training_arguments: Parameters used to push checkpoints to the Hugging Face Hub.
         """
 
         if push_checkpoints_to_hub:
-            if checkpoint_path is None or checkpoint_save_steps is None:
+            if checkpoint_path is None or checkpoint_save_steps is None or hub_training_arguments is None:
                 raise ValueError(
-                    "You must set both checkpoint_path and checkpoint_save_steps in order to push checkpoints to the Hugging Face Hub.")
-            if self.hub_parameters is None:
-                raise ValueError("You must provide `hub_parameters` to `SentenceTransformer` in order to push checkpoints to Hugging Face.")
+                    "You must set checkpoint_path checkpoint_save_steps, and hub_training_arguments in order to push checkpoints to the Hugging Face Hub.")
 
         ##Add info to model card
         #info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
@@ -773,7 +770,7 @@ class SentenceTransformer(nn.Sequential):
                         loss_model.train()
 
                 if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 and global_step % checkpoint_save_steps == 0:
-                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step, push_checkpoints_to_hub)
+                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step, push_checkpoints_to_hub, hub_training_arguments)
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
@@ -781,7 +778,7 @@ class SentenceTransformer(nn.Sequential):
             self.save(output_path)
 
         if checkpoint_path is not None:
-            self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step, push_checkpoints_to_hub)
+            self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step, push_checkpoints_to_hub, hub_training_arguments)
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
         """
@@ -813,7 +810,7 @@ class SentenceTransformer(nn.Sequential):
                 if save_best_model:
                     self.save(output_path)
 
-    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step, save_to_hub=False):
+    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step, save_to_hub=False, hub_training_arguments=None):
         # Store new checkpoint
         self.save(os.path.join(checkpoint_path, str(step)))
 
@@ -829,7 +826,10 @@ class SentenceTransformer(nn.Sequential):
                 shutil.rmtree(old_checkpoints[0]['path'])
 
         if save_to_hub:
-            self.save_to_hub(**self.hub_parameters.parameters, exist_ok=True, commit_message="Push new training checkpoint.")
+            if hub_training_arguments is None:
+                raise ValueError("hub_training_arguments must be provided in order to save checkpoint to Hugging Face.")
+
+            self.save_to_hub(**hub_training_arguments.parameters, commit_message="Push new training checkpoint.")
 
     def _load_auto_model(self, model_name_or_path):
         """
