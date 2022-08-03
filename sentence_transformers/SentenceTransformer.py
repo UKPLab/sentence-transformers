@@ -5,6 +5,7 @@ import shutil
 import stat
 from collections import OrderedDict
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
+from dataclasses import asdict, dataclass, field
 import requests
 import numpy as np
 from numpy import ndarray
@@ -31,24 +32,27 @@ from . import __version__
 logger = logging.getLogger(__name__)
 
 
+@dataclass
 class HubTrainingArguments:
-    def __init__(self, repo_name: str,
-                 organization: Optional[str] = None,
-                 private: Optional[bool] = None,
-                 local_model_path: Optional[str] = None,
-                 replace_model_card: Optional[bool] = True,
-                 train_datasets: Optional[List[str]] = None,
-                 local_repo_path: Optional[str] = None,
-                 ):
-        self.parameters = {
-            "repo_name": repo_name,
-            "organization": organization,
-            "private": private,
-            "local_model_path": local_model_path,
-            "replace_model_card": replace_model_card,
-            "train_datasets": train_datasets,
-            "local_repo_path": local_repo_path,
-            "exist_ok": True
+    repo_name: str = field()
+    organization: Optional[str] = field(default=None)
+    private: Optional[bool] = field(default=None, metadata={"help": "Specifies the model repo's visibility"})
+    local_model_path: Optional[str] = field(default=None, metadata={"help": "Local path to a model checkpoint"})
+    replace_model_card: Optional[bool] = field(default=None, metadata={"help": "Controls whether the existing model card is replaced with a new one"})
+    train_datasets: Optional[List[str]] = field(default=None, metadata={"help": "List of datasets used for training, included in the model card"})
+    local_repo_path: Optional[str] = field(default=None, metadata={"help": "Local path to use to initialize a repo"})
+
+    @property
+    def parameters(self):
+        return {
+            "repo_name": self.repo_name,
+            "organization": self.organization,
+            "private": self.private,
+            "local_model_path": self.local_model_path,
+            "replace_model_card": self.replace_model_card,
+            "train_datasets": self.train_datasets,
+            "local_repo_path": self.local_repo_path,
+            "exist_ok": True,
         }
 
 
