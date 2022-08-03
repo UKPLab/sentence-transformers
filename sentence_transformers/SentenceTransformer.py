@@ -36,7 +36,7 @@ class HubParameters:
                  organization: Optional[str] = None,
                  private: Optional[bool] = None,
                  local_model_path: Optional[str] = None,
-                 replace_model_card: bool = False,
+                 replace_model_card: Optional[bool] = True,
                  train_datasets: Optional[List[str]] = None,
                  local_repo_path: Optional[str] = None,
                  ):
@@ -131,6 +131,8 @@ class SentenceTransformer(nn.Sequential):
 
         self._target_device = torch.device(device)
 
+
+
     def encode(self, sentences: Union[str, List[str]],
                batch_size: int = 32,
                show_progress_bar: bool = None,
@@ -224,6 +226,8 @@ class SentenceTransformer(nn.Sequential):
 
         return all_embeddings
 
+
+
     def start_multi_process_pool(self, target_devices: List[str] = None):
         """
         Starts multi process to process the encoding with several, independent processes.
@@ -253,6 +257,7 @@ class SentenceTransformer(nn.Sequential):
             processes.append(p)
 
         return {'input': input_queue, 'output': output_queue, 'processes': processes}
+
 
     @staticmethod
     def stop_multi_process_pool(pool):
@@ -320,6 +325,8 @@ class SentenceTransformer(nn.Sequential):
                 results_queue.put([id, embeddings])
             except queue.Empty:
                 break
+
+
 
     def get_max_seq_length(self):
         """
@@ -428,6 +435,7 @@ class SentenceTransformer(nn.Sequential):
             if train_datasets is not None:
                 datasets_str = "datasets:\n"+"\n".join(["- " + d for d in train_datasets])
             model_card = model_card.replace("{DATASETS}", datasets_str)
+
 
             # Add dim info
             self._model_card_vars["{NUM_DIMENSIONS}"] = self.get_sentence_embedding_dimension()
@@ -570,6 +578,7 @@ class SentenceTransformer(nn.Sequential):
 
         return sentence_features, labels
 
+
     def _text_length(self, text: Union[List[int], List[List[int]]]):
         """
         Help function to get the length for the input text. Text can be either
@@ -697,6 +706,7 @@ class SentenceTransformer(nn.Sequential):
 
             optimizers.append(optimizer)
             schedulers.append(scheduler_obj)
+
 
         global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
