@@ -464,7 +464,7 @@ class SentenceTransformer(nn.Sequential):
                     exist_ok: bool = False,
                     replace_model_card: bool = False,
                     train_datasets: Optional[List[str]] = None,
-                    local_repo_path: Optional[str] = None):
+                    local_repo_path: Optional[str] = "./hub"):
         """
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
@@ -476,7 +476,7 @@ class SentenceTransformer(nn.Sequential):
         :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
         :param replace_model_card: If true, replace an existing model card in the hub with the automatically created model card
         :param train_datasets: Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
-        :param local_repo_path: Local path where the model repo will be stored. If not provided, a temporary directory will be created.
+        :param local_repo_path: Local path where the model repo will be stored, "./hub" by default. Can be set to None to use a temporary directory.
         :return: The url of the commit of your model in the given repository.
         """
         token = HfFolder.get_token()
