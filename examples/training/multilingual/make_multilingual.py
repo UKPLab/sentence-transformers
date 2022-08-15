@@ -13,16 +13,23 @@ This scripts downloads automatically the TED2020 corpus: https://github.com/UKPL
 This corpus contains transcripts from
 TED and TEDx talks, translated to 100+ languages. For other parallel data, see get_parallel_data_[].py scripts
 
+To run this example, you can use a shell script in which you can change the parameters and experiment. 
+To do this, from the root of the repository in the terminal call the following command:
+$ sh examples/training/multilingual/run_make_multilingual.sh
+
 Further information can be found in our paper:
 Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation
 https://arxiv.org/abs/2004.09813
 """
 
 
+from dataclasses import dataclass, field
+from typing import Optional, Union
 from datetime import datetime
 import logging
 import zipfile
 import gzip
+import sys
 import csv
 import os
 import io
@@ -32,61 +39,204 @@ from sentence_transformers import (
     LoggingHandler,
     models,
     evaluation,
-    losses
+    losses,
 )
 from sentence_transformers.datasets import ParallelSentencesDataset
+from transformers import HfArgumentParser
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm
 import sentence_transformers.util
 import numpy as np
 
-logging.basicConfig(
-    format='%(asctime)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    level=logging.INFO,
-    handlers=[LoggingHandler()]
-)
-logger = logging.getLogger(__name__)
 
-# Our monolingual teacher model, we want to convert to multiple languages
-teacher_model_name = 'paraphrase-distilroberta-base-v2'
-# Multilingual base model we use to imitate the teacher model
-student_model_name = 'xlm-roberta-base'
+@dataclass
+class TrainingArguments:
+    train_batch_size: int = field(
+        default=64,
+        metadata={
+            "help": (
+                "Batch size for training."
+            )
+        },
+    )
 
-# Student model max. lengths for inputs (number of word pieces)
-max_seq_length = 128
-# Batch size for training
-train_batch_size = 64
-# Batch size at inference
-inference_batch_size = 64
-# Maximum number of  parallel sentences for training
-max_sentences_per_language = 500000
-# Maximum length (characters) for parallel training sentences
-train_max_sentence_length = 250
+    inference_batch_size: int = field(
+        default=64,
+        metadata={
+            "help": (
+                "Batch size at inference."
+            )
+        },
+    )
 
-# Train for x epochs
-num_epochs = 5
-# Warumup steps
-num_warmup_steps = 10000
+    max_sentences_per_language: int = field(
+        default=500000,
+        metadata={
+            "help": (
+                "Maximum number of  parallel sentences for training."
+            )
+        },
+    )
 
-# Evaluate performance after every xxxx steps
-num_evaluation_steps = 1000
-# Number of parallel sentences to be used for development
-dev_sentences = 1000
+    train_max_sentence_length: int = field(
+        default=250,
+        metadata={
+            "help": (
+                "Maximum length (characters) for parallel training sentences"
+            )
+        },
+    )
+
+    num_epochs: int = field(
+        default=5,
+        metadata={
+            "help": (
+                "Number of model training epochs."
+            )
+        },
+    )
+
+    num_warmup_steps: int = field(
+        default=10000,
+        metadata={
+            "help": (
+                "Number of warm up steps."
+            )
+        },
+    )
+
+    num_evaluation_steps: int = field(
+        default=1000,
+        metadata={
+            "help": (
+                "Evaluate performance after every xxxx steps."
+            )
+        },
+    )
+
+    dev_sentences: int = field(
+        default=1000,
+        metadata={
+            "help": (
+                "Number of parallel sentences to be used for development."
+            )
+        },
+    )
+
+    output_path: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Storage path for the model and evaluation files"
+            )
+        }
+    )
+
+    learning_rate: float = field(
+        default=2e-5,
+        metadata={
+            "help": (
+                "The initial learning rate for optimizer."
+            )
+        }
+    )
+
+    epsilon: float = field(
+        default=1e-6,
+        metadata={
+            "help": (
+                "Epsilon for optimizer."
+            )
+        }
+    )
+
+    correct_bias: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Whether or not to correct bias in optimizer."
+            )
+        }
+    )
 
 
-# Define the language codes you would like to extend the model to
-# Our teacher model accepts English (en) sentences
-source_languages = set(['en'])
-# We want to extend the model to these new languages. For language codes, see the header of the train file
-target_languages = set(['de', 'es', 'it', 'fr', 'ar', 'tr'])
+@dataclass
+class ModelArguments:
+    """
+    Arguments pertaining to which models we are going to use.
+    """
+    teacher_model_name: str = field(
+        metadata={
+            "help": (
+                "Our monolingual teacher model, we want to convert to multiple languages"
+            )
+        },
+    )
+
+    student_model_name: str = field(
+        metadata={
+            "help": (
+                "Multilingual base model we use to imitate the teacher model."
+            )
+        },
+    )
+
+    max_seq_length: int = field(
+        default=128,
+        metadata={
+            "help": (
+                "Student model max lengths for inputs (number of word pieces)"
+            )
+        },
+    )
 
 
-output_path = (
-    "output/make-multilingual-"
-    + "-".join(sorted(list(source_languages)) + sorted(list(target_languages)))
-    + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-)
+@dataclass
+class DataArguments:
+    """
+    Arguments pertaining to what data we are going to input our model for training and eval.
+    """
+    source_languages: list[str] = field(
+        metadata={
+            "help": (
+                "Languages into which the teacher model accepts"
+            )
+        },
+    )
+
+    target_languages: list[str] = field(
+        metadata={
+            "help": (
+                "The languages into which we want to extend the understanding of our model. \
+                For language codes, see the header of the train file."
+            )
+        },
+    )
+
+    train_corpus: str = field(
+        metadata={
+            "help": (
+                "Path to train corpus or name datasets from here https://sbert.net/datasets/"
+            )
+        },
+    )
+
+    val_corpus: str = field(
+        metadata={
+            "help": (
+                "Path to validation corpus or name datasets from here https://sbert.net/datasets/"
+            )
+        },
+    )
+
+    def __post_init__(self):
+        if isinstance(self.source_languages, str):
+            self.source_languages = [self.source_languages]
+        if isinstance(self.target_languages, str):
+            self.target_languages = [self.target_languages]
+
+        self.source_languages = list(set(self.source_languages))
+        self.target_languages = list(set(self.target_languages))
 
 
 # This function downloads a corpus if it does not exist
@@ -102,30 +252,56 @@ def download_corpora(filepaths):
             sentence_transformers.util.http_get(url, filepath)
 
 
-# Here we define train train and dev corpora
-# Transcripts of TED talks, crawled 2020
-train_corpus = "datasets/ted2020.tsv.gz"
-# Extended STS2017 dataset for more languages
-sts_corpus = "datasets/STS2017-extended.zip"
-parallel_sentences_folder = "parallel-sentences/"
+logging.basicConfig(
+    format='%(asctime)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    level=logging.INFO,
+    handlers=[LoggingHandler()]
+)
+logger = logging.getLogger(__name__)
+
+
+parser = HfArgumentParser((TrainingArguments, ModelArguments, DataArguments))
+
+if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
+    # If we pass only one argument to the script and it's the path to a json file,
+    # let's parse it to get our arguments.
+    train_args, model_args, data_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+else:
+    train_args, model_args, data_args = parser.parse_args_into_dataclasses()
+
+if not train_args.output_path:
+    train_args.output_path = (
+        "output/make-multilingual-"
+        + "-".join(
+            sorted(list(data_args.source_languages))
+            + sorted(list(data_args.target_languages))
+        )
+        + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    )
+
+logger.info(train_args)
+logger.info(model_args)
+logger.info(data_args)
 
 # Check if the file exists. If not, they are downloaded
-download_corpora([train_corpus, sts_corpus])
+download_corpora([data_args.artrain_corpus, data_args.val_corpus])
 
+parallel_sentences_folder = "parallel-sentences/"
 
 # Create parallel files for the selected language combinations
 os.makedirs(parallel_sentences_folder, exist_ok=True)
 train_files, dev_files, files_to_create = [], [], []
 
-for source_lang in source_languages:
-    for target_lang in target_languages:
+for source_lang in data_args.source_languages:
+    for target_lang in data_args.target_languages:
         output_filename_train = os.path.join(
             parallel_sentences_folder,
-            f"TED2020-{source_lang}-{target_lang}-train.tsv.gz"
+            f"TED2020-{source_lang}-{target_lang}-train.tsv.gz",
         )
         output_filename_dev = os.path.join(
             parallel_sentences_folder,
-            f"TED2020-{source_lang}-{target_lang}-dev.tsv.gz"
+            f"TED2020-{source_lang}-{target_lang}-dev.tsv.gz",
         )
         train_files.append(output_filename_train)
         dev_files.append(output_filename_dev)
@@ -136,15 +312,15 @@ for source_lang in source_languages:
                 'trg_lang': target_lang,
                 'fTrain': gzip.open(output_filename_train, 'wt', encoding='utf8'),
                 'fDev': gzip.open(output_filename_dev, 'wt', encoding='utf8'),
-                'devCount': 0
+                'devCount': 0,
             })
 
-if len(files_to_create) > 0:
+if files_to_create:
     lang_pairs = ", ".join(
         map(lambda x: x['src_lang'] + "-" + x['trg_lang'], files_to_create)
     )
     print(f"Parallel sentences files {lang_pairs} do not exist. Create these files now")
-    with gzip.open(train_corpus, 'rt', encoding='utf8') as file_lines:
+    with gzip.open(data_args.train_corpus, 'rt', encoding='utf8') as file_lines:
         reader = csv.DictReader(file_lines, delimiter='\t', quoting=csv.QUOTE_NONE)
         for line in tqdm(reader, desc="Sentences"):
             for outfile in files_to_create:
@@ -152,7 +328,7 @@ if len(files_to_create) > 0:
                 trg_text = line[outfile['trg_lang']].strip()
 
                 if src_text != "" and trg_text != "":
-                    if outfile['devCount'] < dev_sentences:
+                    if outfile['devCount'] < train_args.dev_sentences:
                         outfile['devCount'] += 1
                         fOut = outfile['fDev']
                     else:
@@ -167,20 +343,20 @@ if len(files_to_create) > 0:
 
 ######## Start the extension of the teacher model to multiple languages ########
 logger.info("Load teacher model")
-teacher_model = SentenceTransformer(teacher_model_name)
+teacher_model = SentenceTransformer(model_args.teacher_model_name)
 
 
 logger.info("Create student model from scratch")
 word_embedding_model = models.Transformer(
-    student_model_name,
-    max_seq_length=max_seq_length
+    model_args.student_model_name,
+    max_seq_length=model_args.max_seq_length,
 )
 # Apply mean pooling to get one fixed sized sentence vector
 pooling_model = models.Pooling(
-    word_embedding_model.get_word_embedding_dimension()
+    word_embedding_model.get_word_embedding_dimension(),
 )
 student_model = SentenceTransformer(
-    modules=[word_embedding_model, pooling_model]
+    modules=[word_embedding_model, pooling_model],
 )
 
 
@@ -188,20 +364,20 @@ student_model = SentenceTransformer(
 train_data = ParallelSentencesDataset(
     student_model=student_model,
     teacher_model=teacher_model,
-    batch_size=inference_batch_size,
-    use_embedding_cache=True
+    batch_size=train_args.inference_batch_size,
+    use_embedding_cache=True,
 )
 for train_file in train_files:
     train_data.load_data(
         train_file,
-        max_sentences=max_sentences_per_language,
-        max_sentence_length=train_max_sentence_length
+        max_sentences=train_args.max_sentences_per_language,
+        max_sentence_length=train_args.train_max_sentence_length,
     )
 
 train_dataloader = DataLoader(
     train_data,
     shuffle=True,
-    batch_size=train_batch_size
+    batch_size=train_args.train_batch_size,
 )
 train_loss = losses.MSELoss(model=student_model)
 
@@ -227,7 +403,7 @@ for dev_file in dev_files:
         trg_sentences,
         name=os.path.basename(dev_file),
         teacher_model=teacher_model,
-        batch_size=inference_batch_size
+        batch_size=train_args.inference_batch_size,
     )
     evaluators.append(dev_mse)
 
@@ -236,17 +412,17 @@ for dev_file in dev_files:
         src_sentences,
         trg_sentences,
         name=os.path.basename(dev_file),
-        batch_size=inference_batch_size
+        batch_size=train_args.inference_batch_size,
     )
     evaluators.append(dev_trans_acc)
 
 
 ##### Read cross-lingual Semantic Textual Similarity (STS) data ####
-all_languages = list(set(list(source_languages) + list(target_languages)))
+all_languages = list(set(data_args.source_languages) | set(data_args.target_languages))
 sts_data = {}
 
 # Open the ZIP File of STS2017-extended.zip and check for which language combinations we have STS data
-with zipfile.ZipFile(sts_corpus) as zip:
+with zipfile.ZipFile(data_args.val_corpus) as zip:
     filelist = zip.namelist()
 
     for i, lang1 in enumerate(all_languages):
@@ -262,7 +438,7 @@ with zipfile.ZipFile(sts_corpus) as zip:
                 sts_data[filename] = {
                     'sentences1': [],
                     'sentences2': [],
-                    'scores': []
+                    'scores': [],
                 }
 
                 file_bytes = zip.open(filepath)
@@ -279,9 +455,9 @@ for filename, data in sts_data.items():
         data['sentences1'],
         data['sentences2'],
         data['scores'],
-        batch_size=inference_batch_size,
+        batch_size=train_args.inference_batch_size,
         name=filename,
-        show_progress_bar=False
+        show_progress_bar=False,
     )
     evaluators.append(test_evaluator)
 
@@ -291,12 +467,16 @@ student_model.fit(
     train_objectives=[(train_dataloader, train_loss)],
     evaluator=evaluation.SequentialEvaluator(
         evaluators,
-        main_score_function=lambda scores: np.mean(scores)
+        main_score_function=lambda scores: np.mean(scores),
     ),
-    epochs=num_epochs,
-    warmup_steps=num_warmup_steps,
-    evaluation_steps=num_evaluation_steps,
-    output_path=output_path,
+    epochs=train_args.num_epochs,
+    warmup_steps=train_args.num_warmup_steps,
+    evaluation_steps=train_args.num_evaluation_steps,
+    output_path=train_args.output_path,
     save_best_model=True,
-    optimizer_params={'lr': 2e-5, 'eps': 1e-6, 'correct_bias': False}
+    optimizer_params={
+        'lr': train_args.learning_rate,
+        'eps': train_args.epsilon,
+        'correct_bias': train_args.correct_bias,
+    },
 )
