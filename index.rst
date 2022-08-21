@@ -158,6 +158,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    examples/training/distillation/README
    examples/training/cross-encoder/README
    examples/training/data_augmentation/README
+   examples/training/datasets/README
 
 .. toctree::
    :maxdepth: 2
