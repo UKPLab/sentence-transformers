@@ -86,9 +86,7 @@ class Transformer(nn.Module):
         Tokenizes a text and maps tokens to token-ids
         """
         output = {}
-        if isinstance(texts[0], str):
-            to_tokenize = [texts]
-        elif isinstance(texts[0], dict):
+        if isinstance(texts[0], dict):
             to_tokenize = []
             output['text_keys'] = []
             for lookup in texts:
@@ -96,13 +94,14 @@ class Transformer(nn.Module):
                 to_tokenize.append(text)
                 output['text_keys'].append(text_key)
             to_tokenize = [to_tokenize]
-        else:
+        elif isinstance(texts[0], tuple) and len(texts[0] == 2):
             batch1, batch2 = [], []
             for text_tuple in texts:
                 batch1.append(text_tuple[0])
                 batch2.append(text_tuple[1])
             to_tokenize = [batch1, batch2]
-
+        else:
+            to_tokenize = [texts]
         #strip
         to_tokenize = [[str(s).strip() for s in col] for col in to_tokenize]
 
