@@ -94,7 +94,7 @@ class Transformer(nn.Module):
                 to_tokenize.append(text)
                 output['text_keys'].append(text_key)
             to_tokenize = [to_tokenize]
-        elif isinstance(texts[0], tuple) and len(texts[0] == 2):
+        elif isinstance(texts[0], tuple) and len(texts[0]) == 2:
             batch1, batch2 = [], []
             for text_tuple in texts:
                 batch1.append(text_tuple[0])
