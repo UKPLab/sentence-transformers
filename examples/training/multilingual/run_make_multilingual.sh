@@ -1,9 +1,9 @@
 #!/bin/bash
 
-export target_languages=("de","es","it","fr","ar","tr")
-export source_languages=("en")
+export target_languages=["de","es","it","fr","ar","tr"]
+export source_languages=["en"]
 
-python examples/training/multilingual/make_multilingual.py \
+python3 examples/training/multilingual/make_multilingual.py \
     --train_batch_size="64" \
     --inference_batch_size="64" \
     --max_sentences_per_language="500000" \
