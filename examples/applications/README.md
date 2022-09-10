@@ -16,7 +16,7 @@ SentenceTransformers also support training and inference of [Cross-Encoders](cro
 
 ## Parallel Sentence Mining
 
-The [parallel-sentence-mining](parallel-sentence-mining/) folder contains examples how parallel (translated) sentences can be found in two corpora of different language. For example, you take the English and the Spanish Wikipedia and the script finds and returns all translated English-Spanish sentence pairs.
+The [parallel-sentence-mining](parallel-sentence-mining/) folder contains examples of how parallel (translated) sentences can be found in two corpora of different languages. For example, you take the English and the Spanish Wikipedia and the script finds and returns all translated English-Spanish sentence pairs.
 
 ## Paraphrase Mining
 
