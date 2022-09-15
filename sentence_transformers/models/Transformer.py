@@ -26,7 +26,7 @@ class Transformer(nn.Module):
         self.do_lower_case = do_lower_case
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
-        self._load_model(model_name_or_path, config, cache_dir)
+        self._load_model(model_name_or_path, config, cache_dir, **model_args)
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path if tokenizer_name_or_path is not None else model_name_or_path, cache_dir=cache_dir, **tokenizer_args)
 
@@ -41,18 +41,18 @@ class Transformer(nn.Module):
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
 
-    def _load_model(self, model_name_or_path, config, cache_dir):
+    def _load_model(self, model_name_or_path, config, cache_dir, **model_args):
         """Loads the transformer model"""
         if isinstance(config, T5Config):
-            self._load_t5_model(model_name_or_path, config, cache_dir)
+            self._load_t5_model(model_name_or_path, config, cache_dir, **model_args)
         else:
-            self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
+            self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir, **model_args)
 
-    def _load_t5_model(self, model_name_or_path, config, cache_dir):
+    def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args):
         """Loads the encoder model from T5"""
         from transformers import T5EncoderModel
         T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
-        self.auto_model = T5EncoderModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
+        self.auto_model = T5EncoderModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir, **model_args)
 
     def __repr__(self):
         return "Transformer({}) with Transformer model: {} ".format(self.get_config_dict(), self.auto_model.__class__.__name__)
@@ -135,7 +135,6 @@ class Transformer(nn.Module):
         with open(sbert_config_path) as fIn:
             config = json.load(fIn)
         return Transformer(model_name_or_path=input_path, **config)
-
 
 
 
