@@ -1,5 +1,5 @@
 from torch import nn
-from transformers import AutoModel, AutoTokenizer, AutoConfig, T5Config
+from transformers import AutoModel, AutoTokenizer, AutoConfig, T5Config, MT5Config
 import json
 from typing import List, Dict, Optional, Union, Tuple
 import os
@@ -45,6 +45,8 @@ class Transformer(nn.Module):
         """Loads the transformer model"""
         if isinstance(config, T5Config):
             self._load_t5_model(model_name_or_path, config, cache_dir)
+        elif isinstance(config, MT5Config):
+            self._load_mt5_model(model_name_or_path, config, cache_dir)
         else:
             self.auto_model = AutoModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
 
@@ -53,6 +55,12 @@ class Transformer(nn.Module):
         from transformers import T5EncoderModel
         T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
         self.auto_model = T5EncoderModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
+
+    def _load_mt5_model(self, model_name_or_path, config, cache_dir):
+        """Loads the encoder model from T5"""
+        from transformers import MT5EncoderModel
+        MT5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
+        self.auto_model = MT5EncoderModel.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir)
 
     def __repr__(self):
         return "Transformer({}) with Transformer model: {} ".format(self.get_config_dict(), self.auto_model.__class__.__name__)
