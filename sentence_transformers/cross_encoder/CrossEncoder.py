@@ -222,9 +222,9 @@ class CrossEncoder():
                     scheduler.step()
 
                 training_steps += 1
-                if logger_callback is not None and log_steps > 0 and training_steps%log_steps==0:
+                if log_callback is not None and log_steps > 0 and training_steps%log_steps==0:
                     try:
-                        logger_callback(training_steps, scheduler.get_last_lr(), loss_value.item())
+                        log_callback(training_steps, scheduler.get_last_lr(), loss_value.item())
                     except Exception as e:
                         logger.warning("Logging error encountered. Ignoring..")
                 if evaluator is not None and evaluation_steps > 0 and training_steps % evaluation_steps == 0:

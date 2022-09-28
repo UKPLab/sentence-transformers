@@ -734,9 +734,9 @@ class SentenceTransformer(nn.Sequential):
                     if not skip_scheduler:
                         scheduler.step()
 
-                    if log_steps>0 and training_steps%log_steps==log_steps-1 and log_callable is not None:
+                    if log_steps>0 and training_steps%log_steps==log_steps-1 and log_callback is not None:
                         try:
-                            log_callable(train_idx, training_steps, global_step, scheduler.get_last_lr(), loss_value.item())
+                            log_callback(train_idx, training_steps, global_step, scheduler.get_last_lr(), loss_value.item())
                         except Exception as e:
                             logger.warning("Logging error encountered. Ignoring..")
 
