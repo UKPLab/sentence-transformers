@@ -586,7 +586,7 @@ class SentenceTransformer(nn.Sequential):
             max_grad_norm: float = 1,
             use_amp: bool = False,
             log_steps: int=0,
-            log_callback = Callable[[int, int, float, float], None]=None,
+            log_callback = Callable[[int, int, int, float, float], None]=None,
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
@@ -616,7 +616,7 @@ class SentenceTransformer(nn.Sequential):
         :param log_steps: Log every `log_steps` steps. Should be greater than 0 for logging to kick in.
         :param log_callback: Callback function that is invoked to log during training:
                 It must accept the following parameters in this order:
-                `training idx`, `training_steps`, `current lr`, `loss value` (Sends loss value and current lr during `training_steps` for loss objective #`training_idx`)
+                `training idx`, `training_steps`, `global step`, `current lr`, `loss value` (Sends loss value and current lr during `training_steps` for loss objective #`training_idx`)
         :param callback: Callback function that is invoked after each evaluation.
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
