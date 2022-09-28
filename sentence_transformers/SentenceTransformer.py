@@ -586,7 +586,7 @@ class SentenceTransformer(nn.Sequential):
             max_grad_norm: float = 1,
             use_amp: bool = False,
             log_steps: int=0,
-            log_callback = Callable[[int, int, int, float, float], None]=None,
+            log_callback: Callable[[int, int, int, float, float], None]=None,
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
