@@ -24,7 +24,7 @@ model = SentenceTransformer('all-MiniLM-L6-v2')
 # and find similar question in it
 url = "http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv"
 dataset_path = "quora_duplicate_questions.tsv"
-max_corpus_size = 50000 # We limit our corpus to only the first 50k questions
+max_corpus_size = 50000  # We limit our corpus to only the first 50k questions
 
 
 # Check if the dataset exists. If not, download and extract

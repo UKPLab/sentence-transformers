@@ -9,7 +9,14 @@ import torch
 import numpy as np
 import queue
 import logging
+from typing import Dict, Optional, Union
+from pathlib import Path
 
+import huggingface_hub
+from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
+from huggingface_hub import HfApi, hf_hub_url, cached_download, HfFolder
+import fnmatch
+from packaging import version
 
 logger = logging.getLogger(__name__)
 
@@ -330,49 +337,53 @@ def import_from_string(dotted_path):
         raise ImportError(msg)
 
 
-def community_detection(embeddings, threshold=0.75, min_community_size=10, init_max_size=1000):
+def community_detection(embeddings, threshold=0.75, min_community_size=10, batch_size=1024):
     """
     Function for Fast Community Detection
-
     Finds in the embeddings all communities, i.e. embeddings that are close (closer than threshold).
-
     Returns only communities that are larger than min_community_size. The communities are returned
     in decreasing order. The first element in each list is the central point in the community.
     """
+    if not isinstance(embeddings, torch.Tensor):
+        embeddings = torch.tensor(embeddings)
+
+    threshold = torch.tensor(threshold, device=embeddings.device)
+
+    extracted_communities = []
 
     # Maximum size for community
-    init_max_size = min(init_max_size, len(embeddings))
+    min_community_size = min(min_community_size, len(embeddings))
+    sort_max_size = min(max(2 * min_community_size, 50), len(embeddings))
 
-    # Compute cosine similarity scores
-    cos_scores = cos_sim(embeddings, embeddings)
+    for start_idx in range(0, len(embeddings), batch_size):
+        # Compute cosine similarity scores
+        cos_scores = cos_sim(embeddings[start_idx:start_idx + batch_size], embeddings)
 
-    # Minimum size for a community
-    top_k_values, _ = cos_scores.topk(k=min_community_size, largest=True)
+        # Minimum size for a community
+        top_k_values, _ = cos_scores.topk(k=min_community_size, largest=True)
 
-    # Filter for rows >= min_threshold
-    extracted_communities = []
-    for i in range(len(top_k_values)):
-        if top_k_values[i][-1] >= threshold:
-            new_cluster = []
+        # Filter for rows >= min_threshold
+        for i in range(len(top_k_values)):
+            if top_k_values[i][-1] >= threshold:
+                new_cluster = []
 
-            # Only check top k most similar entries
-            top_val_large, top_idx_large = cos_scores[i].topk(k=init_max_size, largest=True)
-            top_idx_large = top_idx_large.tolist()
-            top_val_large = top_val_large.tolist()
+                # Only check top k most similar entries
+                top_val_large, top_idx_large = cos_scores[i].topk(k=sort_max_size, largest=True)
 
-            if top_val_large[-1] < threshold:
-                for idx, val in zip(top_idx_large, top_val_large):
+                # Check if we need to increase sort_max_size
+                while top_val_large[-1] > threshold and sort_max_size < len(embeddings):
+                    sort_max_size = min(2 * sort_max_size, len(embeddings))
+                    top_val_large, top_idx_large = cos_scores[i].topk(k=sort_max_size, largest=True)
+
+                for idx, val in zip(top_idx_large.tolist(), top_val_large):
                     if val < threshold:
                         break
 
                     new_cluster.append(idx)
-            else:
-                # Iterate over all entries (slow)
-                for idx, val in enumerate(cos_scores[i].tolist()):
-                    if val >= threshold:
-                        new_cluster.append(idx)
 
-            extracted_communities.append(new_cluster)
+                extracted_communities.append(new_cluster)
+
+        del cos_scores
 
     # Largest cluster first
     extracted_communities = sorted(extracted_communities, key=lambda x: len(x), reverse=True)
@@ -381,17 +392,18 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, init_
     unique_communities = []
     extracted_ids = set()
 
-    for community in extracted_communities:
-        add_cluster = True
+    for cluster_id, community in enumerate(extracted_communities):
+        community = sorted(community)
+        non_overlapped_community = []
         for idx in community:
-            if idx in extracted_ids:
-                add_cluster = False
-                break
+            if idx not in extracted_ids:
+                non_overlapped_community.append(idx)
 
-        if add_cluster:
-            unique_communities.append(community)
-            for idx in community:
-                extracted_ids.add(idx)
+        if len(non_overlapped_community) >= min_community_size:
+            unique_communities.append(non_overlapped_community)
+            extracted_ids.update(non_overlapped_community)
+
+    unique_communities = sorted(unique_communities, key=lambda x: len(x), reverse=True)
 
     return unique_communities
 
@@ -400,11 +412,7 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, init_
 #
 ######################
 
-from typing import Dict, Optional, Union
-from pathlib import Path
-from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
-from huggingface_hub import HfApi, hf_hub_url, cached_download
-import fnmatch
+
 
 def snapshot_download(
     repo_id: str,
@@ -426,15 +434,30 @@ def snapshot_download(
         cache_dir = str(cache_dir)
 
     _api = HfApi()
-    model_info = _api.model_info(repo_id=repo_id, revision=revision)
+    
+    token = None 
+    if isinstance(use_auth_token, str):
+        token = use_auth_token
+    elif use_auth_token:
+        token = HfFolder.get_token()
+        
+    model_info = _api.model_info(repo_id=repo_id, revision=revision, token=token)
 
     storage_folder = os.path.join(
         cache_dir, repo_id.replace("/", "_")
     )
 
-    for model_file in model_info.siblings:
+    all_files = model_info.siblings
+    #Download modules.json as the last file
+    for idx, repofile in enumerate(all_files):
+        if repofile.rfilename == "modules.json":
+            del all_files[idx]
+            all_files.append(repofile)
+            break
+
+    for model_file in all_files:
         if ignore_files is not None:
-            skip_download  = False
+            skip_download = False
             for pattern in ignore_files:
                 if fnmatch.fnmatch(model_file.rfilename, pattern):
                     skip_download = True
@@ -454,15 +477,20 @@ def snapshot_download(
         )
         os.makedirs(nested_dirname, exist_ok=True)
 
-        path = cached_download(
-            url,
-            cache_dir=storage_folder,
-            force_filename=relative_filepath,
-            library_name=library_name,
-            library_version=library_version,
-            user_agent=user_agent,
-            use_auth_token=use_auth_token,
-        )
+        cached_download_args = {'url': url,
+            'cache_dir': storage_folder,
+            'force_filename': relative_filepath,
+            'library_name': library_name,
+            'library_version': library_version,
+            'user_agent': user_agent,
+            'use_auth_token': use_auth_token}
+
+        if version.parse(huggingface_hub.__version__) >= version.parse("0.8.1"):
+            # huggingface_hub v0.8.1 introduces a new cache layout. We sill use a manual layout
+            # And need to pass legacy_cache_layout=True to avoid that a warning will be printed
+            cached_download_args['legacy_cache_layout'] = True
+
+        path = cached_download(**cached_download_args)
 
         if os.path.exists(path + ".lock"):
             os.remove(path + ".lock")

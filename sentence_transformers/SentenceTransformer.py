@@ -37,7 +37,7 @@ class SentenceTransformer(nn.Sequential):
     :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path, it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model from Huggingface models repository with that name.
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
-    :param cache_folder: Path to store models
+    :param cache_folder: Path to store models. Can be also set by SENTENCE_TRANSFORMERS_HOME enviroment variable.
     :param use_auth_token: HuggingFace authentication token to download private models.
     """
     def __init__(self, model_name_or_path: Optional[str] = None,
@@ -81,14 +81,15 @@ class SentenceTransformer(nn.Sequential):
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
                 model_path = os.path.join(cache_folder, model_name_or_path.replace("/", "_"))
-
-                # Download from hub with caching
-                snapshot_download(model_name_or_path,
-                                    cache_dir=cache_folder,
-                                    library_name='sentence-transformers',
-                                    library_version=__version__,
-                                    ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'],
-                                    use_auth_token=use_auth_token)
+                
+                if not os.path.exists(os.path.join(model_path, 'modules.json')):
+                    # Download from hub with caching
+                    snapshot_download(model_name_or_path,
+                                        cache_dir=cache_folder,
+                                        library_name='sentence-transformers',
+                                        library_version=__version__,
+                                        ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'],
+                                        use_auth_token=use_auth_token)
 
             if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
                 modules = self._load_sbert_model(model_path)
@@ -335,12 +336,13 @@ class SentenceTransformer(nn.Sequential):
         """Returns the last module of this sequential embedder"""
         return self._modules[next(reversed(self._modules))]
 
-    def save(self, path: str, model_name: Optional[str] = None, create_model_card: bool = True):
+    def save(self, path: str, model_name: Optional[str] = None, create_model_card: bool = True, train_datasets: Optional[List[str]] = None):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
         :param path: Path on disc
         :param model_name: Optional model name
         :param create_model_card: If True, create a README.md with basic information about this model
+        :param train_datasets: Optional list with the names of the datasets used to to train the model
         """
         if path is None:
             return
@@ -378,9 +380,9 @@ class SentenceTransformer(nn.Sequential):
 
         # Create model card
         if create_model_card:
-            self._create_model_card(path, model_name)
+            self._create_model_card(path, model_name, train_datasets)
 
-    def _create_model_card(self, path: str, model_name: Optional[str] = None):
+    def _create_model_card(self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = None):
         """
         Create an automatic model and stores it in path
         """
@@ -403,6 +405,12 @@ class SentenceTransformer(nn.Sequential):
 
             # Add tags
             model_card = model_card.replace("{TAGS}", "\n".join(["- "+t for t in tags]))
+
+            datasets_str = ""
+            if train_datasets is not None:
+                datasets_str = "datasets:\n"+"\n".join(["- " + d for d in train_datasets])
+            model_card = model_card.replace("{DATASETS}", datasets_str)
+
 
             # Add dim info
             self._model_card_vars["{NUM_DIMENSIONS}"] = self.get_sentence_embedding_dimension()
@@ -428,7 +436,8 @@ class SentenceTransformer(nn.Sequential):
                     commit_message: str = "Add new SentenceTransformer model.",
                     local_model_path: Optional[str] = None,
                     exist_ok: bool = False,
-                    replace_model_card: bool = False):
+                    replace_model_card: bool = False,
+                    train_datasets: Optional[List[str]] = None):
         """
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
@@ -439,6 +448,7 @@ class SentenceTransformer(nn.Sequential):
         :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
         :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
         :param replace_model_card: If true, replace an existing model card in the hub with the automatically created model card
+        :param train_datasets: Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
         :return: The url of the commit of your model in the given repository.
         """
         token = HfFolder.get_token()
@@ -474,7 +484,7 @@ class SentenceTransformer(nn.Sequential):
                 copy_tree(local_model_path, tmp_dir)
             else:  # Else, save model directly into local repo.
                 create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, 'README.md'))
-                self.save(tmp_dir, model_name=full_model_name, create_model_card=create_model_card)
+                self.save(tmp_dir, model_name=full_model_name, create_model_card=create_model_card, train_datasets=train_datasets)
 
             #Find files larger 5M and track with git-lfs
             large_files = []
@@ -534,12 +544,11 @@ class SentenceTransformer(nn.Sequential):
 
             labels.append(example.label)
 
-        labels = torch.tensor(labels).to(self._target_device)
+        labels = torch.tensor(labels)
 
         sentence_features = []
         for idx in range(num_texts):
             tokenized = self.tokenize(texts[idx])
-            batch_to_device(tokenized, self._target_device)
             sentence_features.append(tokenized)
 
         return sentence_features, labels
@@ -698,9 +707,9 @@ class SentenceTransformer(nn.Sequential):
                         data_iterators[train_idx] = data_iterator
                         data = next(data_iterator)
 
-
                     features, labels = data
-
+                    labels = labels.to(self._target_device)
+                    features = list(map(lambda batch: batch_to_device(batch, self._target_device), features))
 
                     if use_amp:
                         with autocast():
@@ -845,7 +854,9 @@ class SentenceTransformer(nn.Sequential):
 
         return modules
 
-
+    @staticmethod
+    def load(input_path):
+        return SentenceTransformer(input_path)
 
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):

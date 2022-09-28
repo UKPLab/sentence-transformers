@@ -29,7 +29,7 @@ The usage is as simple as:
 .. code-block:: python
 
     from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    model = SentenceTransformer('all-MiniLM-L6-v2')
 
     #Our sentences we like to encode
     sentences = ['This framework generates embeddings for each input sentence',
@@ -133,6 +133,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    docs/pretrained_models
    docs/pretrained_cross-encoders
    docs/publications
+   docs/hugging_face
 
 .. toctree::
    :maxdepth: 2
