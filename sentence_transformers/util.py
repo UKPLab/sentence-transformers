@@ -260,11 +260,12 @@ def semantic_search(query_embeddings: Tensor,
                     else:
                         heapq.heapreplace(queries_result_list[query_id], (score, corpus_id))
 
-    #change the data format
+    #change the data format and sort
     for query_id in range(len(queries_result_list)):
         for doc_itr in range(len(queries_result_list[query_id])):
             score, corpus_id = queries_result_list[query_id][doc_itr]
             queries_result_list[query_id][doc_itr] = {'corpus_id': corpus_id, 'score': score}
+        queries_result_list[query_id] = sorted(queries_result_list[query_id], key=lambda x: x['score'], reverse=True)
 
     return queries_result_list
 
