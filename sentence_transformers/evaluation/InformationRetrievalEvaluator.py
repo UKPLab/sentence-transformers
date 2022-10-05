@@ -172,13 +172,15 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                     for sub_corpus_id, score in zip(pair_scores_top_k_idx[query_itr], pair_scores_top_k_values[query_itr]):
                         corpus_id = self.corpus_ids[corpus_start_idx+sub_corpus_id]
                         if len(queries_result_list[name][query_itr]) < max_k:
-                            heapq.heappush(queries_result_list[name][query_itr], (score, {'corpus_id': corpus_id, 'score': score}))
+                            heapq.heappush(queries_result_list[name][query_itr], (score, corpus_id))  # heaqp tracks the quantity of the first element in the tuple
                         else:
-                            heapq.heapreplace(queries_result_list[name][query_itr], (score, {'corpus_id': corpus_id, 'score': score}))
+                            heapq.heapreplace(queries_result_list[name][query_itr], (score, corpus_id))
 
         for name in queries_result_list:
-            for query_itr in range(len(queries_result_list)):
-                queries_result_list[query_itr] = queries_result_list[query_itr][-1]  # keep only {'corpus_id': corpus_id, 'score': score}
+            for query_itr in range(len(queries_result_list[name])):
+                for doc_itr in range(len(queries_result_list[name][query_itr])):
+                    score, corpus_id = queries_result_list[name][query_itr][doc_itr]
+                    queries_result_list[name][query_itr][doc_itr] = {'corpus_id': corpus_id, 'score': score}
 
         logger.info("Queries: {}".format(len(self.queries)))
         logger.info("Corpus: {}\n".format(len(self.corpus)))
