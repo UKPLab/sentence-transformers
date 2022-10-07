@@ -258,7 +258,7 @@ def semantic_search(query_embeddings: Tensor,
                     if len(queries_result_list[query_id]) < top_k:
                         heapq.heappush(queries_result_list[query_id], (score, corpus_id))  # heaqp tracks the quantity of the first element in the tuple
                     else:
-                        heapq.heapreplace(queries_result_list[query_id], (score, corpus_id))
+                        heapq.heappushpop(queries_result_list[query_id], (score, corpus_id))
 
     #change the data format and sort
     for query_id in range(len(queries_result_list)):

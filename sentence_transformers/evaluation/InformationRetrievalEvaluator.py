@@ -174,7 +174,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                         if len(queries_result_list[name][query_itr]) < max_k:
                             heapq.heappush(queries_result_list[name][query_itr], (score, corpus_id))  # heaqp tracks the quantity of the first element in the tuple
                         else:
-                            heapq.heapreplace(queries_result_list[name][query_itr], (score, corpus_id))
+                            heapq.heappushpop(queries_result_list[name][query_itr], (score, corpus_id))
 
         for name in queries_result_list:
             for query_itr in range(len(queries_result_list[name])):
