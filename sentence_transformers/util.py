@@ -17,6 +17,7 @@ from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
 from huggingface_hub import HfApi, hf_hub_url, cached_download, HfFolder
 import fnmatch
 from packaging import version
+import heapq
 
 logger = logging.getLogger(__name__)
 
@@ -254,12 +255,17 @@ def semantic_search(query_embeddings: Tensor,
                 for sub_corpus_id, score in zip(cos_scores_top_k_idx[query_itr], cos_scores_top_k_values[query_itr]):
                     corpus_id = corpus_start_idx + sub_corpus_id
                     query_id = query_start_idx + query_itr
-                    queries_result_list[query_id].append({'corpus_id': corpus_id, 'score': score})
+                    if len(queries_result_list[query_id]) < top_k:
+                        heapq.heappush(queries_result_list[query_id], (score, corpus_id))  # heaqp tracks the quantity of the first element in the tuple
+                    else:
+                        heapq.heappushpop(queries_result_list[query_id], (score, corpus_id))
 
-    #Sort and strip to top_k results
-    for idx in range(len(queries_result_list)):
-        queries_result_list[idx] = sorted(queries_result_list[idx], key=lambda x: x['score'], reverse=True)
-        queries_result_list[idx] = queries_result_list[idx][0:top_k]
+    #change the data format and sort
+    for query_id in range(len(queries_result_list)):
+        for doc_itr in range(len(queries_result_list[query_id])):
+            score, corpus_id = queries_result_list[query_id][doc_itr]
+            queries_result_list[query_id][doc_itr] = {'corpus_id': corpus_id, 'score': score}
+        queries_result_list[query_id] = sorted(queries_result_list[query_id], key=lambda x: x['score'], reverse=True)
 
     return queries_result_list
 
