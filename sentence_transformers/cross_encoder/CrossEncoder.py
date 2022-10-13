@@ -1,18 +1,20 @@
 
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoConfig
-import numpy as np
 import logging
 import os
-from typing import Dict, Type, Callable, List
-import transformers
+from typing import Callable, Dict, List, Type
+
+import numpy as np
 import torch
+import transformers
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
+from transformers import (AutoConfig, AutoModelForSequenceClassification,
+                          AutoTokenizer)
+
 from .. import SentenceTransformer, util
 from ..evaluation import SentenceEvaluator
-
 
 logger = logging.getLogger(__name__)
 
@@ -72,20 +74,23 @@ class CrossEncoder():
     def smart_batching_collate(self, batch):
         texts = [[] for _ in range(len(batch[0].texts))]
         labels = []
+        guids = []
 
         for example in batch:
             for idx, text in enumerate(example.texts):
                 texts[idx].append(text.strip())
 
             labels.append(example.label)
+            guids.append(example.guid)
 
         tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
         labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
+        guids = torch.tensor(guids, dtype=torch.long).to(self._target_device)
 
         for name in tokenized:
             tokenized[name] = tokenized[name].to(self._target_device)
 
-        return tokenized, labels
+        return tokenized, labels, guids
 
     def smart_batching_collate_text_only(self, batch):
         texts = [[] for _ in range(len(batch[0]))]
@@ -187,7 +192,7 @@ class CrossEncoder():
             self.model.train()
 
             pbar = tqdm(train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar)
-            for features, labels in pbar:
+            for features, labels, guids in pbar:
                 
                 if use_amp:
                     with autocast():
@@ -214,7 +219,7 @@ class CrossEncoder():
                         logits = logits.view(-1)
                     loss_value = loss_fct(logits, labels)
 
-                    display = train_calback(logits, labels, loss_value, optimizer.state_dict()["param_groups"][0]["lr"], global_step)
+                    display = train_calback(logits, labels, loss_value, optimizer.state_dict()["param_groups"][0]["lr"], global_step, guids)
 
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
