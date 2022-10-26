@@ -70,7 +70,10 @@ class SentenceTransformersTrainer(Trainer):
     >> model = SentenceTransformer("distilbert-base-nli-mean-tokens")
     >> tokenizer = model.tokenizer
     >> loss = losses.CosineSimilarityLoss(model)
-    >> data_collator = SentenceTransformersCollator(tokenizer=tokenizer)
+    >> data_collator = SentenceTransformersCollator(
+    >>     tokenizer=tokenizer,
+    >>     text_columns=text_columns,
+    >> )
 
     >> evaluator = evaluation.EmbeddingSimilarityEvaluator(
     >>     sick_ds["validation"]["sentence_A"],
@@ -106,6 +109,7 @@ class SentenceTransformersTrainer(Trainer):
     >>     data_collator=data_collator,
     >>     tokenizer=tokenizer,
     >>     loss=loss,
+    >>     text_columns=text_columns,
     >>     compute_metrics=compute_metrics,
     >> )
     >> trainer.train()
