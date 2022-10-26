@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
-from transformers import AutoTokenizer, PreTrainedTokenizerBase, Trainer
+from transformers import PreTrainedTokenizerBase, Trainer
 from transformers.tokenization_utils import BatchEncoding
 from transformers.utils.generic import PaddingStrategy
 
@@ -26,7 +26,9 @@ class SentenceTransformersCollator:
     pad_to_multiple_of: Optional[int] = None
     return_tensors: str = "pt"
 
-    def __init__(self, tokenizer: AutoTokenizer, text_columns: List[str]) -> None:
+    def __init__(
+        self, tokenizer: PreTrainedTokenizerBase, text_columns: List[str]
+    ) -> None:
         self.tokenizer = tokenizer
         self.text_columns = text_columns
 
