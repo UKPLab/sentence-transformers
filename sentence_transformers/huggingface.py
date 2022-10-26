@@ -129,14 +129,7 @@ class SentenceTransformersTrainer(Trainer):
         inputs: Dict[str, Union[torch.Tensor, Any]],
         return_outputs: bool = False,
     ) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
-        pad_token_id = model.tokenizer.pad_token_id
-        features = [
-            {
-                "input_ids": input_ids,
-                "attention_mask": (input_ids != pad_token_id).to(int),
-            }
-            for input_ids in [inputs["sentence_A"], inputs["sentence_B"]]
-        ]
+        features = self.collect_features(inputs)
         loss = self.loss(features, inputs["label"])
         if return_outputs:
             output = torch.cat(
