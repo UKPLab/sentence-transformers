@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class CrossEncoder():
-    def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, device:str = None, tokenizer_args:Dict = {},
+    def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, truncation: str = 'longest_first', device:str = None, tokenizer_args:Dict = {},
                   automodel_args:Dict = {}, default_activation_function = None):
         """
         A CrossEncoder takes exactly two sentences / texts as input and either predicts
@@ -30,6 +30,7 @@ class CrossEncoder():
         :param model_name: Any model name from Huggingface Models Repository that can be loaded with AutoModel. We provide several pre-trained CrossEncoder models that can be used for common tasks
         :param num_labels: Number of labels of the classifier. If 1, the CrossEncoder is a regression model that outputs a continous score 0...1. If > 1, it output several scores that can be soft-maxed to get probability scores for the different classes.
         :param max_length: Max length for input sequences. Longer sequences will be truncated. If None, max length of the model will be used
+        :param truncation: Truncation way for input sequences
         :param device: Device that should be used for the model. If None, it will use CUDA if available.
         :param tokenizer_args: Arguments passed to AutoTokenizer
         :param automodel_args: Arguments passed to AutoModelForSequenceClassification
@@ -50,6 +51,7 @@ class CrossEncoder():
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name, config=self.config, **automodel_args)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, **tokenizer_args)
         self.max_length = max_length
+        self.truncation = truncation
 
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -78,7 +80,7 @@ class CrossEncoder():
 
             labels.append(example.label)
 
-        tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
+        tokenized = self.tokenizer(*texts, padding=True, truncation=self.truncation, return_tensors="pt", max_length=self.max_length)
         labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
 
         for name in tokenized:
@@ -93,7 +95,7 @@ class CrossEncoder():
             for idx, text in enumerate(example):
                 texts[idx].append(text.strip())
 
-        tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
+        tokenized = self.tokenizer(*texts, padding=True, truncation=self.self.truncation, return_tensors="pt", max_length=self.max_length)
 
         for name in tokenized:
             tokenized[name] = tokenized[name].to(self._target_device)

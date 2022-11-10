@@ -11,6 +11,7 @@ class Transformer(nn.Module):
 
     :param model_name_or_path: Huggingface models name (https://huggingface.co/models)
     :param max_seq_length: Truncate any inputs longer than max_seq_length
+    :param truncation: Truncation way for input sequences
     :param model_args: Arguments (key, value pairs) passed to the Huggingface Transformers model
     :param cache_dir: Cache dir for Huggingface Transformers to store/load models
     :param tokenizer_args: Arguments (key, value pairs) passed to the Huggingface Tokenizer model
@@ -18,12 +19,14 @@ class Transformer(nn.Module):
     :param tokenizer_name_or_path: Name or path of the tokenizer. When None, then model_name_or_path is used
     """
     def __init__(self, model_name_or_path: str, max_seq_length: Optional[int] = None,
+                 truncation: str = 'longest_first',
                  model_args: Dict = {}, cache_dir: Optional[str] = None,
                  tokenizer_args: Dict = {}, do_lower_case: bool = False,
                  tokenizer_name_or_path : str = None):
         super(Transformer, self).__init__()
-        self.config_keys = ['max_seq_length', 'do_lower_case']
+        self.config_keys = ['max_seq_length', 'do_lower_case', 'truncation']
         self.do_lower_case = do_lower_case
+        self.truncation = truncation
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
         self._load_model(model_name_or_path, config, cache_dir, **model_args)
@@ -118,7 +121,7 @@ class Transformer(nn.Module):
         if self.do_lower_case:
             to_tokenize = [[s.lower() for s in col] for col in to_tokenize]
 
-        output.update(self.tokenizer(*to_tokenize, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_seq_length))
+        output.update(self.tokenizer(*to_tokenize, padding=True, truncation=self.truncation, return_tensors="pt", max_length=self.max_seq_length))
         return output
 
 
