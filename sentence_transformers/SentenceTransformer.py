@@ -585,8 +585,8 @@ class SentenceTransformer(nn.Sequential):
             save_best_model: bool = True,
             max_grad_norm: float = 1,
             use_amp: bool = False,
-            log_steps: int=0,
-            log_callback: Callable[[int, int, int, float, float], None]=None,
+            log_steps: int = 0,
+            log_callback: Callable[[int, int, int, float, float], None] = None,
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
@@ -734,7 +734,7 @@ class SentenceTransformer(nn.Sequential):
                     if not skip_scheduler:
                         scheduler.step()
 
-                    if log_steps>0 and training_steps%log_steps==log_steps-1 and log_callback is not None:
+                    if log_steps > 0 and training_steps % log_steps == (log_steps - 1) and log_callback is not None:
                         try:
                             log_callback(train_idx, training_steps, global_step, scheduler.get_last_lr(), loss_value.item())
                         except Exception as e:

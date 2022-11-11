@@ -116,8 +116,8 @@ class CrossEncoder():
             save_best_model: bool = True,
             max_grad_norm: float = 1,
             use_amp: bool = False,
-            log_steps: int=0,
-            log_callback: Callable[[int, float, float], None]=None,
+            log_steps: int = 0,
+            log_callback: Callable[[int, float, float], None] = None,
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True
             ):
@@ -222,7 +222,7 @@ class CrossEncoder():
                     scheduler.step()
 
                 training_steps += 1
-                if log_callback is not None and log_steps > 0 and training_steps%log_steps==0:
+                if log_callback is not None and log_steps > 0 and training_steps % log_steps == 0:
                     try:
                         log_callback(training_steps, scheduler.get_last_lr(), loss_value.item())
                     except Exception as e:
