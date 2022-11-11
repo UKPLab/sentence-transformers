@@ -110,7 +110,7 @@ def paraphrase_mining(model,
                       show_progress_bar: bool = False,
                       batch_size:int = 32,
                       *args,
-                      **kwargs) -> List[List[Union[float, str]]]:
+                      **kwargs) -> List[List[Union[float, int]]]:
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
     other sentences and returns a list with the pairs that have the highest cosine similarity score.
@@ -138,7 +138,7 @@ def paraphrase_mining_embeddings(embeddings: Tensor,
                       corpus_chunk_size: int = 100000,
                       max_pairs: int = 500000,
                       top_k: int = 100,
-                      score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim) -> List[List[Union[float, str]]]:
+                      score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim) -> List[List[Union[float, int]]]:
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
     other sentences and returns a list with the pairs that have the highest cosine similarity score.
@@ -196,7 +196,7 @@ def paraphrase_mining_embeddings(embeddings: Tensor,
     return pairs_list
 
 
-def information_retrieval(*args, **kwargs) -> List[List[Dict[str, Union[str, float]]]]:
+def information_retrieval(*args, **kwargs) -> List[List[Dict[str, Union[int, float]]]]:
     """This function is deprecated. Use semantic_search instead"""
     return semantic_search(*args, **kwargs)
 
@@ -206,7 +206,7 @@ def semantic_search(query_embeddings: Tensor,
                     query_chunk_size: int = 100,
                     corpus_chunk_size: int = 500000,
                     top_k: int = 10,
-                    score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim) -> List[List[Dict[str, Union[str, float]]]]:
+                    score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim) -> List[List[Dict[str, Union[int, float]]]]:
     """
     This function performs a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
     It can be used for Information Retrieval / Semantic Search for corpora up to about 1 Million entries.
