@@ -470,7 +470,6 @@ class SentenceTransformer(nn.Sequential):
         repo_url = HfApi(endpoint=endpoint).create_repo(
                 repo_id=repo_id,
                 token=token,
-                organization=organization,
                 private=private,
                 repo_type=None,
                 exist_ok=exist_ok,
