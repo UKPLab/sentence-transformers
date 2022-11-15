@@ -41,8 +41,8 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         (2) Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings;
         (3) A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain.
 
-    Notes: Steps (1) and (3) are done with mini-batches. (2) is done in the same way of MNRL, but it requires several orders smaller memory.
-    One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
+    Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in mini-batches and
+    requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
 
     Example:
 
@@ -67,7 +67,6 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct
-        self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.mini_batch_size = mini_batch_size
         self.cache: Optional[List[List[Tensor]]] = None
 
@@ -106,14 +105,29 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             ]
             for sentence_feature in sentence_features
         ]
-        embeddings_a = torch.cat(reps[0])
-        embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])
+        embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
+        embeddings_b = torch.cat(
+            [torch.cat(r) for r in reps[1:]]
+        )  # ((1 + nneg) * bsz, hdim)
 
-        scores: Tensor = self.similarity_fct(embeddings_a, embeddings_b) * self.scale
+        batch_size = len(embeddings_a)
         labels = torch.tensor(
-            range(len(scores)), dtype=torch.long, device=scores.device
-        )  # Example a[i] should match with b[i]
-        loss: Tensor = self.cross_entropy_loss(scores, labels)
+            range(batch_size), dtype=torch.long, device=embeddings_a.device
+        )  # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
+        losses: List[torch.Tensor] = []
+        for b in range(0, batch_size, self.mini_batch_size):
+            e = b + self.mini_batch_size
+            scores: Tensor = (
+                self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
+            )
+            loss_mbatch = (
+                nn.functional.cross_entropy(scores, labels[b:e])
+                * len(scores)
+                / batch_size
+            )
+            losses.append(loss_mbatch)
+
+        loss = sum(losses)
         loss.backward()
         loss = loss.detach().requires_grad_()
 
