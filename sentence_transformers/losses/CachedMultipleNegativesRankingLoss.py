@@ -8,18 +8,22 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers import util
 
 
-def backward_mock(
+def _hook(
+    grad_output: Tensor,
     sentence_features: Iterable[Dict[str, Tensor]],
     loss: CachedMultipleNegativesRankingLoss,
 ):
     """Do the actual backward pass minibatch by minibatch with the cached gradients."""
     assert loss.cache is not None
-    for sentence_feature, grad in zip(sentence_features, loss.cache):
-        for reps_mb, grad_mb in zip(
-            loss.forward_minibatch_iter(sentence_feature, True), grad
-        ):
-            surrogate = torch.dot(reps_mb.flatten(), grad_mb.flatten())
-            surrogate.backward()
+    with torch.enable_grad():
+        for sentence_feature, grad in zip(sentence_features, loss.cache):
+            for reps_mb, grad_mb in zip(
+                loss.forward_minibatch_iter(sentence_feature, True), grad
+            ):
+                surrogate = (
+                    torch.dot(reps_mb.flatten(), grad_mb.flatten()) * grad_output
+                )
+                surrogate.backward()
 
 
 class CachedMultipleNegativesRankingLoss(nn.Module):
@@ -111,13 +115,14 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         )  # Example a[i] should match with b[i]
         loss: Tensor = self.cross_entropy_loss(scores, labels)
         loss.backward()
+        loss = loss.detach().requires_grad_()
 
         self.cache = [
             [r.grad for r in rs] for rs in reps
         ]  # e.g. 3 * bsz/mbsz * (mbsz, hdim)
 
-        loss.backward = partial(
-            backward_mock, sentence_features=sentence_features, loss=self
+        loss.register_hook(
+            partial(_hook, sentence_features=sentence_features, loss=self)
         )
         return loss
 
