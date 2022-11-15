@@ -4,6 +4,7 @@ from .MultipleNegativesRankingLoss import *
 from .MultipleNegativesSymmetricRankingLoss import *
 from .TripletLoss import *
 from .MarginMSELoss import MarginMSELoss
+from .CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
 from .MSELoss import *
 from .ContrastiveLoss import *
 from .ContrastiveTensionLoss import *
