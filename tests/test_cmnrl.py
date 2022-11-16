@@ -9,7 +9,7 @@ from torch.optim import Adam
 
 
 @pytest.mark.parametrize(
-    ["train_samples_mnrl", "train_samples_cmnrl", "same_grad"],
+    ["train_samples_mnrl", "train_samples_cmnrl", "same_grad", "scaler", "precision"],
     [
         (
             [
@@ -29,6 +29,8 @@ from torch.optim import Adam
                 )
             ],
             True,
+            1.0,
+            1e-6
         ),
         (
             [
@@ -48,6 +50,29 @@ from torch.optim import Adam
                 )
             ],
             False,
+            1.0,
+            1e-6
+        ),
+        (
+            [
+                InputExample(texts=[q, p, n])
+                for q, p, n in zip(
+                    ["aaa", "bbb", "ccc", "ddd", "eee"],
+                    ["aas", "bbs", "ccs", "dds", "ees"],
+                    ["xxx", "yyy", "zzz", "kkk", "fff"],
+                )
+            ],
+            [
+                InputExample(texts=[q, p, n])
+                for q, p, n in zip(
+                    ["aaa", "bbb", "ccc", "ddd", "eee"],
+                    ["aas", "bbs", "ccs", "dds", "ees"],
+                    ["xxx", "yyy", "zzz", "kkk", "fff"],
+                )
+            ],
+            True,
+            2.0,
+            1e-3
         ),
     ],
 )
@@ -55,6 +80,8 @@ def test_cmnrl_same_grad(
     train_samples_mnrl: List[InputExample],
     train_samples_cmnrl: List[InputExample],
     same_grad: bool,
+    scaler: float,
+    precision: float
 ):
     # Given:
     sbert = SentenceTransformer("distilbert-base-uncased")
@@ -63,6 +90,8 @@ def test_cmnrl_same_grad(
     train_samples_mnrl
     train_samples_cmnrl
     same_grad
+    scaler  # This simulates AMP scenarios
+    precision
 
     # When:
     # First run with MNRL
@@ -72,7 +101,7 @@ def test_cmnrl_same_grad(
     loss_mnrl.eval()  # To distable dropout
     loss_mnrl_value: torch.Tensor = loss_mnrl.forward(
         *sbert.smart_batching_collate(train_samples_mnrl)
-    )
+    ) * scaler
     loss_mnrl_value.backward()
     grad_expected = {
         name: p.grad.clone()
@@ -87,7 +116,7 @@ def test_cmnrl_same_grad(
     loss_cmnrl.eval()  # To distable dropout
     loss_cmnrl_value = loss_cmnrl.forward(
         *sbert.smart_batching_collate(train_samples_cmnrl)
-    )
+    ) * scaler
     loss_cmnrl_value.backward()
     grad = {
         name: p.grad.clone()
@@ -103,7 +132,7 @@ def test_cmnrl_same_grad(
 
     nclose = 0
     for name in tqdm.tqdm(grad_expected):
-        nclose += torch.allclose(grad[name], grad_expected[name], 1e-6, 1e-6)
+        nclose += torch.allclose(grad[name], grad_expected[name], precision, precision)    
 
     if same_grad:
         assert nclose == len(grad_expected)

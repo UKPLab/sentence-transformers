@@ -6,19 +6,20 @@ from torch import nn, Tensor
 from typing import Iterable, Dict, Iterator, List, Optional
 from sentence_transformers import SentenceTransformer
 from sentence_transformers import util
+import tqdm
 
 
-def _hook(
+def _backward_hook(
     grad_output: Tensor,
     sentence_features: Iterable[Dict[str, Tensor]],
     loss: CachedMultipleNegativesRankingLoss,
 ):
-    """Do the actual backward pass minibatch by minibatch with the cached gradients."""
+    """A backward hook to backpropagate the cached gradients mini-batch by mini-batch."""
     assert loss.cache is not None
     with torch.enable_grad():
         for sentence_feature, grad in zip(sentence_features, loss.cache):
             for reps_mb, grad_mb in zip(
-                loss.forward_minibatch_iter(sentence_feature, True), grad
+                loss.embed_minibatch_iter(sentence_feature, True), grad
             ):
                 surrogate = (
                     torch.dot(reps_mb.flatten(), grad_mb.flatten()) * grad_output
@@ -57,6 +58,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         scale: float = 20.0,
         similarity_fct: callable[[Tensor, Tensor], Tensor] = util.cos_sim,
         mini_batch_size: int = 32,
+        show_progress_bar: bool = False
     ):
         """
         :param model: SentenceTransformer model
@@ -67,10 +69,12 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.mini_batch_size = mini_batch_size
         self.cache: Optional[List[List[Tensor]]] = None
+        self.show_progress_bar = show_progress_bar
 
-    def forward_minibatch(
+    def embed_minibatch(
         self, sentence_feature: Dict[str, Tensor], begin: int, end: int, with_grad: bool
     ) -> Tensor:
         """Do forward pass on a minibatch of the input features and return corresponding embeddings."""
@@ -84,27 +88,19 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             ]  # (mbsz, hdim)
         return reps
 
-    def forward_minibatch_iter(
+    def embed_minibatch_iter(
         self, sentence_feature: Dict[str, Tensor], with_grad: bool
     ) -> Iterator[Tensor]:
         """Do forward pass on all the minibatches of the input features and yield corresponding embeddings."""
         input_ids: Tensor = sentence_feature["input_ids"]
         bsz, _ = input_ids.shape
-        for b in range(0, bsz, self.mini_batch_size):
+        for b in tqdm.trange(0, bsz, self.mini_batch_size, desc="Embed mini-batches", disable=not self.show_progress_bar):
             e = b + self.mini_batch_size
-            reps = self.forward_minibatch(sentence_feature, b, e, with_grad)
+            reps = self.embed_minibatch(sentence_feature, b, e, with_grad)
             yield reps  # (mbsz, hdim)
 
-    def forward(
-        self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor
-    ) -> Tensor:
-        reps = [
-            [
-                reps_mb.detach().requires_grad_()
-                for reps_mb in self.forward_minibatch_iter(sentence_feature, False)
-            ]
-            for sentence_feature in sentence_features
-        ]
+    def calculate_loss_and_cache_gradients(self, reps: List[List[Tensor]]) -> Tensor:
+        """Calculate the cross-entropy loss and cache the gradients wrt. the embeddings."""
         embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
         embeddings_b = torch.cat(
             [torch.cat(r) for r in reps[1:]]
@@ -115,28 +111,45 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             range(batch_size), dtype=torch.long, device=embeddings_a.device
         )  # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
         losses: List[torch.Tensor] = []
-        for b in range(0, batch_size, self.mini_batch_size):
+        for b in tqdm.trange(0, batch_size, self.mini_batch_size, desc="Preparing caches", disable=not self.show_progress_bar):
             e = b + self.mini_batch_size
             scores: Tensor = (
                 self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
             )
             loss_mbatch = (
-                nn.functional.cross_entropy(scores, labels[b:e])
+                self.cross_entropy_loss(scores, labels[b:e])
                 * len(scores)
                 / batch_size
             )
-            losses.append(loss_mbatch)
+            loss_mbatch.backward()
+            losses.append(loss_mbatch.detach())
 
-        loss = sum(losses)
-        loss.backward()
-        loss = loss.detach().requires_grad_()
+        loss = sum(losses).requires_grad_()
 
         self.cache = [
             [r.grad for r in rs] for rs in reps
         ]  # e.g. 3 * bsz/mbsz * (mbsz, hdim)
 
+        return loss
+
+    def forward(
+        self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor
+    ) -> Tensor:
+        # Step (1): A quick embedding step without gradients/computation graphs to get all the embeddings
+        reps = [
+            [
+                reps_mb.detach().requires_grad_()
+                for reps_mb in self.embed_minibatch_iter(sentence_feature, False)
+            ]
+            for sentence_feature in sentence_features
+        ]
+
+        # Step (2): Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings
+        loss = self.calculate_loss_and_cache_gradients(reps)
+
+        # Step (3): A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain
         loss.register_hook(
-            partial(_hook, sentence_features=sentence_features, loss=self)
+            partial(_backward_hook, sentence_features=sentence_features, loss=self)
         )
         return loss
 
