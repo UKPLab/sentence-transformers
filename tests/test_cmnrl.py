@@ -1,8 +1,8 @@
+from contextlib import nullcontext
 from typing import List
 import pytest
 from sentence_transformers import SentenceTransformer, InputExample, losses
 import tqdm
-from sentence_transformers.losses import CachedMultipleNegativesRankingLoss
 from transformers import set_seed
 import torch
 from torch.optim import Adam
@@ -30,7 +30,7 @@ from torch.optim import Adam
             ],
             True,
             1.0,
-            1e-6
+            1e-6,
         ),
         (
             [
@@ -51,7 +51,7 @@ from torch.optim import Adam
             ],
             False,
             1.0,
-            1e-6
+            1e-6,
         ),
         (
             [
@@ -71,8 +71,8 @@ from torch.optim import Adam
                 )
             ],
             True,
-            2.0,
-            1e-3
+            1000.0,
+            1e-3,
         ),
     ],
 )
@@ -81,7 +81,7 @@ def test_cmnrl_same_grad(
     train_samples_cmnrl: List[InputExample],
     same_grad: bool,
     scaler: float,
-    precision: float
+    precision: float,
 ):
     # Given:
     sbert = SentenceTransformer("distilbert-base-uncased")
@@ -98,10 +98,9 @@ def test_cmnrl_same_grad(
     set_seed(42)
     optimizer.zero_grad()
     loss_mnrl = losses.MultipleNegativesRankingLoss(sbert)
-    loss_mnrl.eval()  # To distable dropout
-    loss_mnrl_value: torch.Tensor = loss_mnrl.forward(
-        *sbert.smart_batching_collate(train_samples_mnrl)
-    ) * scaler
+    loss_mnrl_value: torch.Tensor = (
+        loss_mnrl.forward(*sbert.smart_batching_collate(train_samples_mnrl)) * scaler
+    )
     loss_mnrl_value.backward()
     grad_expected = {
         name: p.grad.clone()
@@ -112,11 +111,10 @@ def test_cmnrl_same_grad(
     # Then run with this cached version:
     set_seed(42)
     optimizer.zero_grad()
-    loss_cmnrl = CachedMultipleNegativesRankingLoss(sbert, mini_batch_size=2)
-    loss_cmnrl.eval()  # To distable dropout
-    loss_cmnrl_value = loss_cmnrl.forward(
-        *sbert.smart_batching_collate(train_samples_cmnrl)
-    ) * scaler
+    loss_cmnrl = losses.CachedMultipleNegativesRankingLoss(sbert, mini_batch_size=2)
+    loss_cmnrl_value = (
+        loss_cmnrl.forward(*sbert.smart_batching_collate(train_samples_cmnrl)) * scaler
+    )
     loss_cmnrl_value.backward()
     grad = {
         name: p.grad.clone()
@@ -132,9 +130,31 @@ def test_cmnrl_same_grad(
 
     nclose = 0
     for name in tqdm.tqdm(grad_expected):
-        nclose += torch.allclose(grad[name], grad_expected[name], precision, precision)    
+        nclose += torch.allclose(grad[name], grad_expected[name], precision, precision)
 
     if same_grad:
         assert nclose == len(grad_expected)
     else:
         assert nclose != len(grad_expected)
+
+
+@pytest.mark.parametrize("use_rand_context", [True, False])
+def test_rand_context_working(use_rand_context: bool):
+    # Given:
+    from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import (
+        RandContext,
+    )
+
+    a = torch.Tensor(1)
+    b = torch.Tensor(1).to("cuda")
+    random_state = RandContext(a, b) if use_rand_context else nullcontext()
+    expected = torch.rand(1000)
+    precision = 1e-6
+
+    # When:
+    with random_state:
+        # Then:
+        if use_rand_context:
+            assert torch.allclose(torch.rand(1000), expected, precision, precision)
+        else:
+            assert not torch.allclose(torch.rand(1000), expected, precision, precision)
