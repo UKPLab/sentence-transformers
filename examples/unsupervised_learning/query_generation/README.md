@@ -17,7 +17,7 @@ In this tutorial, we show to train such models if  **no training data is availab
 
 ## Overview
 
-We use **synthethic query generation** to achieve our gold. We start with the passage from our document collection and create for these possible queries users might ask / might search for.
+We use **synthethic query generation** to achieve our goal. We start with the passage from our document collection and create for these possible queries users might ask / might search for.
 
 ![Query Generation](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/query-generation.png)
 
