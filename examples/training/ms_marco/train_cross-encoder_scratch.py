@@ -177,5 +177,5 @@ model.fit(train_dataloader=train_dataloader,
           output_path=model_save_path,
           use_amp=True)
 
-#Save latest model
-model.save(model_save_path+'-latest')
+#Save best model
+model.save(model_save_path+'-best')
