@@ -1,7 +1,7 @@
 # SimCSE
 Gao et al. present in [SimCSE](https://arxiv.org/abs/2104.08821) a simple method to train sentence embeddings without having training data. 
 
-The idea is to encode the same sentence twice. Due to the used dropout in transformer models, both sentence embeddings will be at slightly different positions. The distance between these two embeddings will be minized, while the distance to other embeddings of the other sentences in the same batch will be maximized (they serve as negative examples).
+The idea is to encode the same sentence twice. Due to the used dropout in transformer models, both sentence embeddings will be at slightly different positions. The distance between these two embeddings will be minimized, while the distance to other embeddings of the other sentences in the same batch will be maximized (they serve as negative examples).
 
 ![SimCSE working](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/SimCSE.png)
 

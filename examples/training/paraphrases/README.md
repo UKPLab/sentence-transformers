@@ -34,7 +34,7 @@ You can find here: [sbert.net/datasets/paraphrases](http://sbert.net/datasets/pa
 See the respective linked source website for the dataset license.
 
 
-All datasets have a sample per line and the individual sentences are seperated by a tab (\t). Some datasets (like AllNLI) has three sentences per line: An anchor, a positive, and a hard negative.
+All datasets have a sample per line and the individual sentences are separated by a tab (\t). Some datasets (like AllNLI) has three sentences per line: An anchor, a positive, and a hard negative.
 
 We measure for each dataset the performance on the STSb development dataset after 2k training steps with a distilroberta-base model and a batch size of 256. 
 
@@ -45,7 +45,7 @@ See [training.py](training.py) for the training script.
 
 The training script allows to load one or multiple files. We construct batches by sampling examples from the respective dataset. So far, examples are not mixed between the datasets, i.e., a batch consists only of examples from a single dataset.
 
-As the dataset sizes are quite different in size, we perform a tempurate controlled sampling from the datasets: Smaller datasets are up-sampled, while larger datasets are down-sampled. This allows an effective training with very large and smaller datasets.
+As the dataset sizes are quite different in size, we perform a temperature controlled sampling from the datasets: Smaller datasets are up-sampled, while larger datasets are down-sampled. This allows an effective training with very large and smaller datasets.
 
 ## Pre-Trained Models
 Have a look at [pre-trained models](https://www.sbert.net/docs/pretrained_models.html) to view all models that were trained on these paraphrase datasets.
