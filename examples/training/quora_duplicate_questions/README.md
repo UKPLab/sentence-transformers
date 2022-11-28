@@ -54,11 +54,11 @@ Choosing the right loss function is crucial for getting well working sentence em
 ### Constrative Loss
 For the complete example, see [training_OnlineContrastiveLoss.py](training_OnlineContrastiveLoss.py).
 
-In the original dataset, we have questions given with a label of 0=not duplicate and 1=duplicate. In that case, we can use constrative loss: Similar pairs with label 1 are pulled together, so that they are close in vector space. Dissimilar pairs, that are closer than a defined margin, are pushed away in vector space.
+In the original dataset, we have questions given with a label of 0=not duplicate and 1=duplicate. In that case, we can use contrastive loss: Similar pairs with label 1 are pulled together, so that they are close in vector space. Dissimilar pairs, that are closer than a defined margin, are pushed away in vector space.
 
-Choosing the distance function and especially choosing a sensible margin are quite important for the success of constrative loss. In the given example, we use cosine_distance (which is 1-cosine_similarity) with a margin of 0.5. I.e., non-duplicate questions should have a cosine_distance of at least 0.5 (which is equivalent to a 0.5 cosine similarity difference).
+Choosing the distance function and especially choosing a sensible margin are quite important for the success of contrastive loss. In the given example, we use cosine_distance (which is 1-cosine_similarity) with a margin of 0.5. I.e., non-duplicate questions should have a cosine_distance of at least 0.5 (which is equivalent to a 0.5 cosine similarity difference).
 
-An improved version of constrative loss is OnlineConstrativeLoss, which looks which negative pairs have a lower distance that the largest positive pair and which positive pairs have a higher distance than the lowest distance of negative pairs. I.e., this loss automatically detects the hard cases in a batch and computes the loss only for these cases.
+An improved version of contrastive loss is OnlineContrastiveLoss, which looks which negative pairs have a lower distance that the largest positive pair and which positive pairs have a higher distance than the lowest distance of negative pairs. I.e., this loss automatically detects the hard cases in a batch and computes the loss only for these cases.
 
 The loss can be used like this:
 ```python
@@ -86,7 +86,7 @@ For the complete example, see [training_MultipleNegativesRankingLoss.py](trainin
 
 From all pairs, we sample a mini-batch *(a_1, b_1), ..., (a_n, b_n)* where *(a_i, b_i)* is a duplicate question.
 
-MultipleNegativesRankingLoss now uses all *b_j* with j != i as negative example for *(a_i, b_i)*. For example, for *a_1* we have given the options *(b_1, ..., b_n)* and we need to identify which is the correct duplicate question to *a_1*. We do this by computing the dot-product between the embedding of *a_1* and all *b*'s and softmax normalize it so that we get a proability distribution over *(b_1, ..., b_n)*. In the best case, the positive example *b_1* get a probability of close to 1 while all others get scores close to 0. We use negative log-likelihood to compute the loss.
+MultipleNegativesRankingLoss now uses all *b_j* with j != i as negative example for *(a_i, b_i)*. For example, for *a_1* we have given the options *(b_1, ..., b_n)* and we need to identify which is the correct duplicate question to *a_1*. We do this by computing the dot-product between the embedding of *a_1* and all *b*'s and softmax normalize it so that we get a probability distribution over *(b_1, ..., b_n)*. In the best case, the positive example *b_1* get a probability of close to 1 while all others get scores close to 0. We use negative log-likelihood to compute the loss.
 
 
 *MultipleNegativesRankingLoss* implements this idea in an efficient way so that the embeddings are re-used. With a batch-size of 64, we have 64 positive pairs and each positive pairs has 64-1 negative distractors. 
@@ -116,19 +116,19 @@ We only use the positive examples. As 'is_duplicate' is a symmetric relation, we
 **Note 2:** MultipleNegativesRankingLoss only works if *(a_i, b_j)* with j != i is actually a negative, non-duplicate question pair. In few instances, this assumption is wrong. But in the majority of cases, if we sample two random questions, they are not duplicates. If your dataset cannot fullfil this property,  MultipleNegativesRankingLoss might not work well.
 
 ### Multi-Task-Learning
-Constrative Loss works well for pair classification, i.e., given two pairs, are these duplicates or not. It pushes negative pairs far away in vector space, so that the distinguishing between duplicate and non-duplicate pairs works good.
+Contrastive Loss works well for pair classification, i.e., given two pairs, are these duplicates or not. It pushes negative pairs far away in vector space, so that the distinguishing between duplicate and non-duplicate pairs works good.
 
 MultipleNegativesRankingLoss on the other sides mainly reduces the distance between positive pairs out of large set of possible candidates. However, the distance between  non-duplicate questions is not so large, so that this loss does not work that weill for pair classification.
 
 In [training_multi-task-learning.py](training_multi-task-learning.py) I demonstrate how we can train the network with both losses. The essential code is to define both losses and to pass it to the fit method.
 ```python
 train_samples_MultipleNegativesRankingLoss = []
-train_samples_ConstrativeLoss = []
+train_samples_ContrastiveLoss = []
 
 with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
     for row in reader:
-        train_samples_ConstrativeLoss.append(InputExample(texts=[row['question1'], row['question2']], label=int(row['is_duplicate'])))
+        train_samples_ContrastiveLoss.append(InputExample(texts=[row['question1'], row['question2']], label=int(row['is_duplicate'])))
         if row['is_duplicate'] == '1':
             train_samples_MultipleNegativesRankingLoss.append(InputExample(texts=[row['question1'], row['question2']], label=1))
             train_samples_MultipleNegativesRankingLoss.append(InputExample(texts=[row['question2'], row['question1']], label=1))  # if A is a duplicate of B, then B is a duplicate of A

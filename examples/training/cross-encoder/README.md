@@ -11,7 +11,7 @@ See the following examples how to train Cross-Encoders:
 
 The `CrossEncoder` class is a wrapper around Huggingface `AutoModelForSequenceClassification`, but with some methods to make training and predicting scores a little bit easier. The saved models are 100% compatible with Huggingface and can also be loaded with their classes.
 
-First, you need some sentence pair data. You can either have a continious score, like:
+First, you need some sentence pair data. You can either have a continuous score, like:
 ```python
 from sentence_transformers import InputExample
 train_samples = [
