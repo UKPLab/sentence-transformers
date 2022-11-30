@@ -616,7 +616,7 @@ class SentenceTransformer(nn.Sequential):
         :param log_steps: Log every `log_steps` steps. Should be greater than 0 for logging to kick in.
         :param log_callback: Callback function that is invoked to log during training:
                 It must accept the following parameters in this order:
-                `training idx`, `training_steps`, `global step`, `current lr`, `loss value` (Sends loss value and current lr during `training_steps` for loss objective #`training_idx`)
+                `training idx`, `epoch`, `steps`, `current lr`, `loss value` (Sends loss value and current lr during `epoch`/`steps` for loss objective `training_idx`)
         :param callback: Callback function that is invoked after each evaluation.
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
@@ -736,7 +736,7 @@ class SentenceTransformer(nn.Sequential):
 
                     if log_steps > 0 and training_steps % log_steps == (log_steps - 1) and log_callback is not None:
                         try:
-                            log_callback(train_idx, training_steps, global_step, scheduler.get_last_lr(), loss_value.item())
+                            log_callback(train_idx, epoch, training_steps, scheduler.get_last_lr(), loss_value.item())
                         except Exception as e:
                             logger.warning("Logging error encountered. Ignoring..")
 
