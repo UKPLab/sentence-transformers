@@ -119,7 +119,7 @@ This scripts downloads the [TED2020 corpus](https://github.com/UKPLab/sentence-t
 
 ## Data Format
 
-As training data we require parallel sentences, i.e., sentences translated in various languages. As data format, we use a tab-seperated .tsv file. In the first column, you have your source sentence, for example, an English sentence. In the following columns, you have the translations of this source sentence. If you have multiple translations per source sentence, you can put them in the same line or in different lines.
+As training data we require parallel sentences, i.e., sentences translated in various languages. As data format, we use a tab-separated .tsv file. In the first column, you have your source sentence, for example, an English sentence. In the following columns, you have the translations of this source sentence. If you have multiple translations per source sentence, you can put them in the same line or in different lines.
 ```
 Source_sentence Target_lang1    Target_lang2    Target_lang3
 Source_sentence Target_lang1    Target_lang2

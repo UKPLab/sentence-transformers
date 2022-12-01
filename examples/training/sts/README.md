@@ -24,7 +24,7 @@ train_dataset = SentencesDataset(train_examples, model)
 As loss function we use [CosineSimilarityLoss](../../../docs/package_reference/losses.html#cosinesimilarityloss).
 
 
-*CosineSimilarityLoss* trains the network with a siamese network strucuture (for details see: [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084))
+*CosineSimilarityLoss* trains the network with a siamese network structure (for details see: [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084))
 
 
 ![SBERT Siamese Network Architecture](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/SBERT_Siamese_Network.png "SBERT Siamese Architecture")

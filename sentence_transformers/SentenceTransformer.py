@@ -455,10 +455,12 @@ class SentenceTransformer(nn.Sequential):
                 raise ValueError("You passed and invalid repository name: {}.".format(repo_name))
 
         endpoint = "https://huggingface.co"
+        repo_id = repo_name
+        if organization:
+          repo_id = f"{organization}/{repo_id}"
         repo_url = HfApi(endpoint=endpoint).create_repo(
-                token,
-                repo_name,
-                organization=organization,
+                repo_id=repo_id,
+                token=token,
                 private=private,
                 repo_type=None,
                 exist_ok=exist_ok,

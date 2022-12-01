@@ -18,7 +18,7 @@ See **[TSDAE](TSDAE/README.md)** for more information and training examples.
 
 Gao et al. present in [SimCSE: Simple Contrastive Learning of Sentence Embeddings](https://arxiv.org/abs/2104.08821) a method that passes the same sentence twice to the sentence embedding encoder. Due to the drop-out, it will be encoded at slightly different positions in vector space. 
 
-The distance between these two embeddings will be minized, while the distance to other embeddings of the other sentences in the same batch will be maximized.
+The distance between these two embeddings will be minimized, while the distance to other embeddings of the other sentences in the same batch will be maximized.
 
 ![SimCSE working](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/SimCSE.png)
 
@@ -53,7 +53,7 @@ See **[GenQ](query_generation/README.md)** for more information and training exa
 
 ## GPL
 
-In [GPL: Generative Pseudo Labeling for Unsupervised Domain Adaptation of Dense Retrieval](https://arxiv.org/abs/2112.07577) we show an improved version go GenQ, which combines the generation with negative mining and pseudo labeling cosing a Cross-Encoder. It leads to significantly improved results. See **[Domain Adaptation](../domain_adaptation/README.md)** for more information.
+In [GPL: Generative Pseudo Labeling for Unsupervised Domain Adaptation of Dense Retrieval](https://arxiv.org/abs/2112.07577) we show an improved version of GenQ, which combines the generation with negative mining and pseudo labeling using a Cross-Encoder. It leads to significantly improved results. See **[Domain Adaptation](../domain_adaptation/README.md)** for more information.
 
 ![GPL Architecture](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/gpl_architecture.png) 
 
