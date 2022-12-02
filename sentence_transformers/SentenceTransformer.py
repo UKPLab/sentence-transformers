@@ -192,7 +192,10 @@ class SentenceTransformer(nn.Sequential):
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
         if convert_to_tensor:
-            all_embeddings = torch.stack(all_embeddings)
+            if len(all_embeddings) == 0:
+                all_embeddings = torch.Tensor()
+            else:
+                all_embeddings = torch.stack(all_embeddings)
         elif convert_to_numpy:
             all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
 
