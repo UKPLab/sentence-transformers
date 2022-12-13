@@ -1,3 +1,4 @@
+
 """
 This script contains an example how to perform semantic search with ElasticSearch.
 
@@ -11,7 +12,7 @@ The script shows results from BM25 as well as from semantic search with
 cosine similarity.
 
 You need ElasticSearch (https://www.elastic.co/de/elasticsearch/) up and running. Further, you need the Python
-ElasticSearch Client installed: https://elasticsearch-py.readthedocs.io/en/master/
+ElasticSearch Client installed version 8.5.0: https://elasticsearch-py.readthedocs.io/en/master/
 
 As embeddings model, we use the SBERT model 'quora-distilbert-multilingual',
 that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
@@ -26,8 +27,7 @@ import time
 import tqdm.autonotebook
 
 
-
-es = Elasticsearch()
+es = Elasticsearch().options(ignore_status=[400])
 
 model = SentenceTransformer('quora-distilbert-multilingual')
 
@@ -73,7 +73,7 @@ if not es.indices.exists(index="quora"):
             }
         }
 
-        es.indices.create(index='quora', body=es_index, ignore=[400])
+        es.indices.create(index='quora', **es_index)
         chunk_size = 500
         print("Index data (you can stop it by pressing Ctrl+C once):")
         with tqdm.tqdm(total=len(qids)) as pbar:
@@ -110,23 +110,21 @@ while True:
     encode_end_time = time.time()
 
     #Lexical search
-    bm25 = es.search(index="quora", body={"query": {"match": {"question": inp_question }}})
+    bm25 = es.search(index="quora", query={"match": {"question": inp_question }})
 
     #Sematic search
-    sem_search = es.search(index="quora", body={
-          "query": {
+    sem_search = es.search(index="quora", query={
             "script_score": {
               "query": {
                 "match_all": {}
               },
               "script": {
-                "source": "cosineSimilarity(params.queryVector, doc['question_vector']) + 1.0",
+                "source": "cosineSimilarity(params.queryVector, 'question_vector') + 1.0",
                 "params": {
                   "queryVector": question_embedding
                 }
               }
             }
-          }
         })
 
     print("Input question:", inp_question)
