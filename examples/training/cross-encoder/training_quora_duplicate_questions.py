@@ -1,6 +1,6 @@
 """
 This examples trains a CrossEncoder for the Quora Duplicate Questions Detection task. A CrossEncoder takes a sentence pair
-as input and outputs a label. Here, it output a continious labels 0...1 to indicate the similarity between the input pair.
+as input and outputs a label. Here, it output a continuous labels 0...1 to indicate the similarity between the input pair.
 
 It does NOT produce a sentence embedding and does NOT work for individual sentences.
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 
-#Check if dataset exsist. If not, download and extract  it
+#Check if dataset exists. If not, download and extract  it
 dataset_path = 'quora-dataset/'
 
 if not os.path.exists(dataset_path):

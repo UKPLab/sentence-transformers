@@ -21,7 +21,7 @@ from bitext_mining_utils import *
 model_name = 'LaBSE'
 model = SentenceTransformer(model_name)
 
-#Intput files for BUCC2018 shared task
+#Input files for BUCC2018 shared task
 source_file = "bucc2018/de-en/de-en.training.de"
 target_file = "bucc2018/de-en/de-en.training.en"
 labels_file = "bucc2018/de-en/de-en.training.gold"
@@ -167,7 +167,7 @@ indices = np.stack([np.concatenate([np.arange(x.shape[0]), bwd_best]), np.concat
 scores = np.concatenate([fwd_scores.max(axis=1), bwd_scores.max(axis=1)])
 seen_src, seen_trg = set(), set()
 
-#Extact list of parallel sentences
+#Extract list of parallel sentences
 bitext_list = []
 for i in np.argsort(-scores):
     src_ind, trg_ind = indices[i]

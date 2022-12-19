@@ -2,7 +2,7 @@
 This scripts demonstrates how to train a sentence embedding model for question pair classification
 with cosine-similarity and a simple threshold.
 
-As dataset, we use Quora Duplicates Questions, where we have labeled pairs of  questions beeing either duplicates (label 1) or non-duplicate (label 0).
+As dataset, we use Quora Duplicates Questions, where we have labeled pairs of questions being either duplicates (label 1) or non-duplicate (label 0).
 
 As loss function, we use OnlineConstrativeLoss. It reduces the distance between positive pairs, i.e., it pulls the embeddings of positive pairs closer together. For negative pairs, it pushes them further apart.
 
