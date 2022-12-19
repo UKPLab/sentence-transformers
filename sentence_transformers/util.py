@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 def pytorch_cos_sim(a: Tensor, b: Tensor):
     """
     Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j.
+
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
     """
     return cos_sim(a, b)
@@ -31,6 +32,7 @@ def pytorch_cos_sim(a: Tensor, b: Tensor):
 def cos_sim(a: Tensor, b: Tensor):
     """
     Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j.
+
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
     """
     if not isinstance(a, torch.Tensor):
@@ -53,6 +55,7 @@ def cos_sim(a: Tensor, b: Tensor):
 def dot_score(a: Tensor, b: Tensor):
     """
     Computes the dot-product dot_prod(a[i], b[j]) for all i and j.
+
     :return: Matrix with res[i][j]  = dot_prod(a[i], b[j])
     """
     if not isinstance(a, torch.Tensor):
@@ -73,6 +76,7 @@ def dot_score(a: Tensor, b: Tensor):
 def pairwise_dot_score(a: Tensor, b: Tensor):
     """
    Computes the pairwise dot-product dot_prod(a[i], b[i])
+
    :return: Vector with res[i] = dot_prod(a[i], b[i])
    """
     if not isinstance(a, torch.Tensor):
@@ -87,6 +91,7 @@ def pairwise_dot_score(a: Tensor, b: Tensor):
 def pairwise_cos_sim(a: Tensor, b: Tensor):
     """
    Computes the pairwise cossim cos_sim(a[i], b[i])
+
    :return: Vector with res[i] = cos_sim(a[i], b[i])
    """
     if not isinstance(a, torch.Tensor):

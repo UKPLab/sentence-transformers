@@ -339,6 +339,7 @@ class SentenceTransformer(nn.Sequential):
     def save(self, path: str, model_name: Optional[str] = None, create_model_card: bool = True, train_datasets: Optional[List[str]] = None):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
+
         :param path: Path on disc
         :param model_name: Optional model name
         :param create_model_card: If True, create a README.md with basic information about this model
