@@ -226,7 +226,7 @@ In the following table you find the performance for different models and their p
 | --- | :---: |
 | [microsoft/mpnet-base](https://huggingface.co/microsoft/mpnet-base) |	60.99 |
 | [nghuyong/ernie-2.0-en](https://huggingface.co/nghuyong/ernie-2.0-en) |	60.73 |
-| [microsof/deberta-base](https://huggingface.co/microsof/deberta-base) |	60.21 |
+| [microsoft/deberta-base](https://huggingface.co/microsoft/deberta-base) |	60.21 |
 | [roberta-base](https://huggingface.co/roberta-base) |	59.63 |
 | [t5-base](https://huggingface.co/t5-base) |	59.21 |
 | [bert-base-uncased](https://huggingface.co/bert-base-uncased) |	59.17 |
