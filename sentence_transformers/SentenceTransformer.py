@@ -579,6 +579,7 @@ class SentenceTransformer(nn.Sequential):
             steps_per_epoch = None,
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
+            accumulation_steps: int = 1,
             optimizer_class: Type[Optimizer] = torch.optim.AdamW,
             optimizer_params : Dict[str, object]= {'lr': 2e-5},
             weight_decay: float = 0.01,
@@ -605,6 +606,7 @@ class SentenceTransformer(nn.Sequential):
         :param steps_per_epoch: Number of training steps per epoch. If set to None (default), one epoch is equal the DataLoader size from train_objectives.
         :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
+        :param accumulation_steps: Number of steps to accumulate before performing a backward pass
         :param optimizer_class: Optimizer
         :param optimizer_params: Optimizer parameters
         :param weight_decay: Weight decay for model parameters
@@ -689,7 +691,7 @@ class SentenceTransformer(nn.Sequential):
                 loss_model.zero_grad()
                 loss_model.train()
 
-            for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
+            for i, _ in enumerate(trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar)):
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
                     optimizer = optimizers[train_idx]
@@ -710,24 +712,29 @@ class SentenceTransformer(nn.Sequential):
                     if use_amp:
                         with autocast():
                             loss_value = loss_model(features, labels)
+                        loss_value /= accumulation_steps
 
                         scale_before_step = scaler.get_scale()
                         scaler.scale(loss_value).backward()
-                        scaler.unscale_(optimizer)
-                        torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
-                        scaler.step(optimizer)
-                        scaler.update()
+                        if (i + 1) % accumulation_steps == 0:
+                            scaler.unscale_(optimizer)
+                            torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
+                            scaler.step(optimizer)
+                            scaler.update()
+                            optimizer.zero_grad()
 
                         skip_scheduler = scaler.get_scale() != scale_before_step
                     else:
                         loss_value = loss_model(features, labels)
+                        loss_value /= accumulation_steps
                         loss_value.backward()
-                        torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
-                        optimizer.step()
+                        if (i + 1) % accumulation_steps == 0:
+                            torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
+                            optimizer.step()
+                            optimizer.zero_grad()
 
-                    optimizer.zero_grad()
 
-                    if not skip_scheduler:
+                    if not skip_scheduler and (i + 1) % accumulation_steps == 0::
                         scheduler.step()
 
                 training_steps += 1
