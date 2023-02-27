@@ -82,7 +82,9 @@ class SentenceTransformer(nn.Sequential):
 
                 model_path = os.path.join(cache_folder, model_name_or_path.replace("/", "_"))
                 
-                if not os.path.exists(os.path.join(model_path, 'modules.json')):
+                if not os.path.exists(model_path):
+                    if transformers.utils.is_offline_mode():
+                        raise ValueError("Offline mode but model {} not downloaded".format(model_name_or_path))
                     # Download from hub with caching
                     snapshot_download(model_name_or_path,
                                         cache_dir=cache_folder,
