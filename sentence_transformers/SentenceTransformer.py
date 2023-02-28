@@ -35,12 +35,14 @@ class SentenceTransformer(nn.Sequential):
     Loads or create a SentenceTransformer model, that can be used to map sentences / text to embeddings.
 
     :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path, it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model from Huggingface models repository with that name.
+    :param revision: HuggingFace revision (i.e sha or tag)
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models. Can be also set by SENTENCE_TRANSFORMERS_HOME enviroment variable.
     :param use_auth_token: HuggingFace authentication token to download private models.
     """
     def __init__(self, model_name_or_path: Optional[str] = None,
+                 revision: Optional[str] = None,
                  modules: Optional[Iterable[nn.Module]] = None,
                  device: Optional[str] = None,
                  cache_folder: Optional[str] = None,
@@ -79,12 +81,13 @@ class SentenceTransformer(nn.Sequential):
                 if '/' not in model_name_or_path and model_name_or_path.lower() not in basic_transformer_models:
                     # A model from sentence-transformers
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
-
-                model_path = os.path.join(cache_folder, model_name_or_path.replace("/", "_"))
                 
+                model_path = os.path.join(cache_folder, model_name_or_path.replace("/", "_"))
+
                 if not os.path.exists(os.path.join(model_path, 'modules.json')):
                     # Download from hub with caching
                     snapshot_download(model_name_or_path,
+                                        revision=revision,
                                         cache_dir=cache_folder,
                                         library_name='sentence-transformers',
                                         library_version=__version__,
