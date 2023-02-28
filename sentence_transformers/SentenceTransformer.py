@@ -580,7 +580,7 @@ class SentenceTransformer(nn.Sequential):
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
             optimizer_class: Type[Optimizer] = torch.optim.AdamW,
-            optimizer_params : Dict[str, object]= {'lr': 2e-5},
+            optimizer_params : Dict[str, object] = {'lr': 2e-5},
             weight_decay: float = 0.01,
             evaluation_steps: int = 0,
             output_path: str = None,
@@ -588,6 +588,7 @@ class SentenceTransformer(nn.Sequential):
             max_grad_norm: float = 1,
             use_amp: bool = False,
             callback: Callable[[float, int, int], None] = None,
+            patience_epoch : int = 0,
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
             checkpoint_save_steps: int = 500,
@@ -616,6 +617,7 @@ class SentenceTransformer(nn.Sequential):
         :param callback: Callback function that is invoked after each evaluation.
                 It must accept the following three parameters in this order:
                 `score`, `epoch`, `steps`
+        :param patience_epoch: If > 0, number of epochs with no improvement to stop training
         :param show_progress_bar: If True, output a tqdm progress bar
         :param checkpoint_path: Folder to save checkpoints during training
         :param checkpoint_save_steps: Will save a checkpoint after so many steps
@@ -651,6 +653,8 @@ class SentenceTransformer(nn.Sequential):
             loss_model.to(self._target_device)
 
         self.best_score = -9999999
+        self.training_stop = False
+        self.early_stopping_criteria_counter = 0
 
         if steps_per_epoch is None or steps_per_epoch == 0:
             steps_per_epoch = min([len(dataloader) for dataloader in dataloaders])
@@ -683,68 +687,69 @@ class SentenceTransformer(nn.Sequential):
 
         skip_scheduler = False
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
-            training_steps = 0
+            if not self.training_stop:
+                training_steps = 0
 
-            for loss_model in loss_models:
-                loss_model.zero_grad()
-                loss_model.train()
+                for loss_model in loss_models:
+                    loss_model.zero_grad()
+                    loss_model.train()
 
-            for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
-                for train_idx in range(num_train_objectives):
-                    loss_model = loss_models[train_idx]
-                    optimizer = optimizers[train_idx]
-                    scheduler = schedulers[train_idx]
-                    data_iterator = data_iterators[train_idx]
+                for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
+                    for train_idx in range(num_train_objectives):
+                        loss_model = loss_models[train_idx]
+                        optimizer = optimizers[train_idx]
+                        scheduler = schedulers[train_idx]
+                        data_iterator = data_iterators[train_idx]
 
-                    try:
-                        data = next(data_iterator)
-                    except StopIteration:
-                        data_iterator = iter(dataloaders[train_idx])
-                        data_iterators[train_idx] = data_iterator
-                        data = next(data_iterator)
+                        try:
+                            data = next(data_iterator)
+                        except StopIteration:
+                            data_iterator = iter(dataloaders[train_idx])
+                            data_iterators[train_idx] = data_iterator
+                            data = next(data_iterator)
 
-                    features, labels = data
-                    labels = labels.to(self._target_device)
-                    features = list(map(lambda batch: batch_to_device(batch, self._target_device), features))
+                        features, labels = data
+                        labels = labels.to(self._target_device)
+                        features = list(map(lambda batch: batch_to_device(batch, self._target_device), features))
 
-                    if use_amp:
-                        with autocast():
+                        if use_amp:
+                            with autocast():
+                                loss_value = loss_model(features, labels)
+
+                            scale_before_step = scaler.get_scale()
+                            scaler.scale(loss_value).backward()
+                            scaler.unscale_(optimizer)
+                            torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
+                            scaler.step(optimizer)
+                            scaler.update()
+
+                            skip_scheduler = scaler.get_scale() != scale_before_step
+                        else:
                             loss_value = loss_model(features, labels)
+                            loss_value.backward()
+                            torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
+                            optimizer.step()
 
-                        scale_before_step = scaler.get_scale()
-                        scaler.scale(loss_value).backward()
-                        scaler.unscale_(optimizer)
-                        torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
-                        scaler.step(optimizer)
-                        scaler.update()
+                        optimizer.zero_grad()
 
-                        skip_scheduler = scaler.get_scale() != scale_before_step
-                    else:
-                        loss_value = loss_model(features, labels)
-                        loss_value.backward()
-                        torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
-                        optimizer.step()
+                        if not skip_scheduler:
+                            scheduler.step()
 
-                    optimizer.zero_grad()
+                    training_steps += 1
+                    global_step += 1
 
-                    if not skip_scheduler:
-                        scheduler.step()
+                    if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
+                        self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback, 0)
 
-                training_steps += 1
-                global_step += 1
+                        for loss_model in loss_models:
+                            loss_model.zero_grad()
+                            loss_model.train()
 
-                if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
-
-                    for loss_model in loss_models:
-                        loss_model.zero_grad()
-                        loss_model.train()
-
-                if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 and global_step % checkpoint_save_steps == 0:
-                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
+                    if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 and global_step % checkpoint_save_steps == 0:
+                        self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
 
-            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+                self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback, patience_epoch)
 
         if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
             self.save(output_path)
@@ -767,7 +772,7 @@ class SentenceTransformer(nn.Sequential):
             os.makedirs(output_path, exist_ok=True)
         return evaluator(self, output_path)
 
-    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
+    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback, patience_epoch):
         """Runs evaluation during the training"""
         eval_path = output_path
         if output_path is not None:
@@ -783,6 +788,13 @@ class SentenceTransformer(nn.Sequential):
                 self.best_score = score
                 if save_best_model:
                     self.save(output_path)
+                if patience_epoch:
+                    self.early_stopping_criteria_counter = 0
+            else:
+                if patience_epoch:
+                    self.early_stopping_criteria_counter += 1
+            if patience_epoch:
+                    self.training_stop = self.early_stopping_criteria_counter >= patience_epoch
 
     def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step):
         # Store new checkpoint
