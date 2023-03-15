@@ -219,7 +219,7 @@ class CrossEncoder():
                         logits = logits.view(-1)
                     loss_value = loss_fct(logits, labels)
 
-                    display = train_calback(logits, labels, loss_value, optimizer.state_dict()["param_groups"][0]["lr"], global_step, guids)
+                    display = train_calback(logits, labels, loss_value, optimizer.state_dict()["param_groups"][0]["lr"], global_step)
 
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
