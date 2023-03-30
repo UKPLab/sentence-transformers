@@ -6,6 +6,6 @@ torchvision
 numpy
 scikit-learn
 scipy
-nltk
+nltk>=3.2.3,<=3.8.1
 sentencepiece
 huggingface-hub
