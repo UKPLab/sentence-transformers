@@ -6,7 +6,7 @@ Given two sentence (premise and hypothesis), Natural Language Inference (NLI) is
 
 To train on NLI, see the follwing example files:
 - **[training_nli.py](training_nli.py)** - This example uses the Softmax-Classification-Loss, as described in the [SBERT-Paper](https://arxiv.org/abs/1908.10084), to learn sentence embeddings.
-- **[training_nli_v2.py](training_nli_v2.py)** - The Softmax-Classification-Loss, as used in our original SBERT paper, does not yield optimal performance. A better loss is [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/losses.html#multiplenegativesrankingloss), where we provide pairs or triplets. In that example, we provide a triplet of the format: (anchor, entailment_sentence, contradiction_sentence). The NLI data provides such triplets. The MultipleNegativesRankingLoss yields much higher performances and is more intuitive than the Softmax-Classifiation-Loss. We have used this loss to train the paraphrase model in our [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) paper.
+- **[training_nli_v2.py](training_nli_v2.py)** - The Softmax-Classification-Loss, as used in our original SBERT paper, does not yield optimal performance. A better loss is [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/losses.html#multiplenegativesrankingloss), where we provide pairs or triplets. In that example, we provide a triplet of the format: (anchor, entailment_sentence, contradiction_sentence). The NLI data provides such triplets. The MultipleNegativesRankingLoss yields much higher performances and is more intuitive than the Softmax-Classification-Loss. We have used this loss to train the paraphrase model in our [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) paper.
 
 ## Data
 In our experiments we combine [SNLI](https://arxiv.org/abs/1508.05326) and [MultiNLI](https://arxiv.org/abs/1704.05426), which we call AllNLI. These two datasets contain sentence pairs and one of three labels: entailment, neutral, contradiction:
@@ -29,9 +29,9 @@ The softmax loss looks like this:
 
 ![SBERT SoftmaxLoss](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/SBERT_SoftmaxLoss.png "SBERT SoftmaxLoss")
 
-We pass the two sentences through our SentenceTransformer network and get the sentence embeddings *u* and *v*. We then concatenate u, v and |u-v| to form one, long vector. This vector is then passed to a softmax classifier, which predicts our three classes (entailnment, neutral, contradiction).
+We pass the two sentences through our SentenceTransformer network and get the sentence embeddings *u* and *v*. We then concatenate u, v and |u-v| to form one, long vector. This vector is then passed to a softmax classifier, which predicts our three classes (entailment, neutral, contradiction).
 
-This setup learns sentence embeddings, that can later be used for wide varity of tasks. 
+This setup learns sentence embeddings, that can later be used for wide variety of tasks. 
 
 ## MultipleNegativesRankingLoss
 

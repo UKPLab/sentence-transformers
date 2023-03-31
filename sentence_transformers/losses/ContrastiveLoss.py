@@ -22,7 +22,7 @@ class ContrastiveLoss(nn.Module):
     Further information: http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
 
     :param model: SentenceTransformer model
-    :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
+    :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
     :param margin: Negative samples (label == 0) should have a distance of at least the margin value.
     :param size_average: Average by the size of the mini-batch.
 

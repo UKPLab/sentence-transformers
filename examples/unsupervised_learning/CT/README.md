@@ -2,7 +2,7 @@
 Carlsson et al. present in [Semantic Re-Tuning With Contrastive Tension (CT)](https://openreview.net/pdf?id=Ov_sMNau-PF)  ([Github](https://github.com/FreddeFrallan/Contrastive-Tension)) an unsupervised learning approach for sentence embeddings that just requires sentences.
 
 ## Background
-During training, CT builds two independent encoders ('Model1' and 'Model2') with intial parameters shared to encode a pair of sentences. If Model1 and Model2 encode the same sentence, then the dot-product of the two sentence embeddings should be large. If Model1 and Model2 encode different sentences, then their dot-product should be small.
+During training, CT builds two independent encoders ('Model1' and 'Model2') with initial parameters shared to encode a pair of sentences. If Model1 and Model2 encode the same sentence, then the dot-product of the two sentence embeddings should be large. If Model1 and Model2 encode different sentences, then their dot-product should be small.
 
 
 The original CT paper uses batchs that contain multiple mini-batches. For the example of K=7,  each mini-batch consists of sentence pairs (S_A, S_A), (S_A, S_B), (S_A, S_C), ..., (S_A, S_H) and the corresponding labels are 1, 0, 0, ..., 0. In other words, one identical pair of sentences is viewed as the positive example and other pairs of different sentences are viewed as the negative examples (i.e. 1 positive + K negative pairs). The training objective is the binary cross-entropy between the generated similarity scores and labels. This example is illustrated in the figure (from the Appendix A.1 of the CT paper) below:

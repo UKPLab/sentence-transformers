@@ -1,5 +1,5 @@
 # Cross-Encoders
-SentenceTransformers also supports the option to train Cross-Encoder for sentence pair score and sentence pair classification tasks. For the what Cross-Encoders are and the difference between Cross- and Bi-Encoders, see [Cross-Encoders](../../applications/cross-encoder/README.md).
+SentenceTransformers also supports the option to train Cross-Encoders for sentence pair score and sentence pair classification tasks. For more details on what Cross-Encoders are and the difference between Cross- and Bi-Encoders, see [Cross-Encoders](../../applications/cross-encoder/README.md).
 
 ## Examples
 See the following examples how to train Cross-Encoders:
@@ -11,7 +11,7 @@ See the following examples how to train Cross-Encoders:
 
 The `CrossEncoder` class is a wrapper around Huggingface `AutoModelForSequenceClassification`, but with some methods to make training and predicting scores a little bit easier. The saved models are 100% compatible with Huggingface and can also be loaded with their classes.
 
-First, you need some sentence pair data. You can either have a continious score, like:
+First, you need some sentence pair data. You can either have a continuous score, like:
 ```python
 from sentence_transformers import InputExample
 train_samples = [
@@ -35,7 +35,7 @@ Then, you define the base model and the number of labels. You can take any [Hugg
 model = CrossEncoder('distilroberta-base', num_labels=1)
 ```
 
-For binary tasks and tasks with continious scores (like STS), we set num_labels=1. For classification tasks, we set it to the number of labels we have.
+For binary tasks and tasks with continuous scores (like STS), we set num_labels=1. For classification tasks, we set it to the number of labels we have.
 
 We start the training by calling `model.fit()`:
 ```python

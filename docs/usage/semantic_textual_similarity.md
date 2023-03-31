@@ -19,7 +19,7 @@ sentences2 = ['The dog plays in the garden',
 embeddings1 = model.encode(sentences1, convert_to_tensor=True)
 embeddings2 = model.encode(sentences2, convert_to_tensor=True)
 
-#Compute cosine-similarits
+#Compute cosine-similarities
 cosine_scores = util.cos_sim(embeddings1, embeddings2)
 
 #Output the pairs with their score
