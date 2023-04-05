@@ -81,7 +81,7 @@ class SentenceTransformer(nn.Sequential):
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
                 model_path = os.path.join(cache_folder, model_name_or_path.replace("/", "_"))
-                
+
                 if not os.path.exists(os.path.join(model_path, 'modules.json')):
                     # Download from hub with caching
                     snapshot_download(model_name_or_path,
@@ -156,7 +156,11 @@ class SentenceTransformer(nn.Sequential):
         length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
 
-        for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
+        num_steps = len(sentences) // batch_size + (1 if len(sentences) % batch_size != 0 else 0)
+        progress_bar = trange(0, len(sentences), desc="Items", disable=not show_progress_bar)
+
+        for step in range(num_steps):
+            start_index = step * batch_size
             sentences_batch = sentences_sorted[start_index:start_index+batch_size]
             features = self.tokenize(sentences_batch)
             features = batch_to_device(features, device)
@@ -188,6 +192,9 @@ class SentenceTransformer(nn.Sequential):
                         embeddings = embeddings.cpu()
 
                 all_embeddings.extend(embeddings)
+
+            items_processed = min(batch_size, len(sentences) - start_index)
+            progress_bar.update(items_processed)
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
