@@ -19,7 +19,8 @@ class ContrastiveLoss(nn.Module):
     Contrastive loss. Expects as input two texts and a label of either 0 or 1. If the label == 1, then the distance between the
     two embeddings is reduced. If the label == 0, then the distance between the embeddings is increased.
 
-    Further information: http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
+    Further information: https://web.archive.org/web/20100711164704id_/http://www.cs.toronto.edu/~hinton/csc2535/readings/hadsell-chopra-lecun-06-1.pdf
+    
 
     :param model: SentenceTransformer model
     :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
