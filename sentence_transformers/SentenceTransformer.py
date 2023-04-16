@@ -579,6 +579,7 @@ class SentenceTransformer(nn.Sequential):
             steps_per_epoch = None,
             scheduler: str = 'WarmupLinear',
             warmup_steps: int = 10000,
+            num_cycles: int = 1,
             optimizer_class: Type[Optimizer] = torch.optim.AdamW,
             optimizer_params : Dict[str, object]= {'lr': 2e-5},
             weight_decay: float = 0.01,
@@ -629,7 +630,7 @@ class SentenceTransformer(nn.Sequential):
             info_loss_functions.extend(ModelCardTemplate.get_train_objective_info(dataloader, loss))
         info_loss_functions = "\n\n".join([text for text in info_loss_functions])
 
-        info_fit_parameters = json.dumps({"evaluator": fullname(evaluator), "epochs": epochs, "steps_per_epoch": steps_per_epoch, "scheduler": scheduler, "warmup_steps": warmup_steps, "optimizer_class": str(optimizer_class),  "optimizer_params": optimizer_params, "weight_decay": weight_decay, "evaluation_steps": evaluation_steps, "max_grad_norm": max_grad_norm }, indent=4, sort_keys=True)
+        info_fit_parameters = json.dumps({"evaluator": fullname(evaluator), "epochs": epochs, "steps_per_epoch": steps_per_epoch, "scheduler": scheduler, "warmup_steps": warmup_steps, "num_cycles": num_cycles, "optimizer_class": str(optimizer_class),  "optimizer_params": optimizer_params, "weight_decay": weight_decay, "evaluation_steps": evaluation_steps, "max_grad_norm": max_grad_norm }, indent=4, sort_keys=True)
         self._model_card_text = None
         self._model_card_vars['{TRAINING_SECTION}'] = ModelCardTemplate.__TRAINING_SECTION__.replace("{LOSS_FUNCTIONS}", info_loss_functions).replace("{FIT_PARAMETERS}", info_fit_parameters)
 
@@ -670,7 +671,7 @@ class SentenceTransformer(nn.Sequential):
             ]
 
             optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
-            scheduler_obj = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps)
+            scheduler_obj = self._get_scheduler(optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps, num_cycles=num_cycles)
 
             optimizers.append(optimizer)
             schedulers.append(scheduler_obj)
@@ -849,7 +850,7 @@ class SentenceTransformer(nn.Sequential):
         return SentenceTransformer(input_path)
 
     @staticmethod
-    def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
+    def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int, num_cycles: int):
         """
         Returns the correct learning rate scheduler. Available scheduler: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         """
@@ -863,7 +864,7 @@ class SentenceTransformer(nn.Sequential):
         elif scheduler == 'warmupcosine':
             return transformers.get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total)
         elif scheduler == 'warmupcosinewithhardrestarts':
-            return transformers.get_cosine_with_hard_restarts_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total)
+            return transformers.get_cosine_with_hard_restarts_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total, num_cycles=num_cycles)
         else:
             raise ValueError("Unknown scheduler {}".format(scheduler))
 
