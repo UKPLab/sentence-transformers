@@ -74,13 +74,13 @@ class TranslationEvaluator(SentenceEvaluator):
             if i == max_idx:
                 correct_src2trg += 1
             elif self.print_wrong_matches:
-                print("i:", i, "j:", max_idx, "INCORRECT" if i != max_idx else "CORRECT")
+                print("i:", i, "j:", max_idx, "INCORRECT")
                 print("Src:", self.source_sentences[i])
-                print("Trg:", self.target_sentences[max_idx])
+                print("Trg:", self.target_sentences[i])
                 print("Argmax score:", cos_sims[i][max_idx], "vs. correct score:", cos_sims[i][i])
 
-                results = zip(range(len(cos_sims[i])), cos_sims[i])
-                results = sorted(results, key=lambda x: x[1], reverse=True)
+                results = enumerate(cos_sims[i])
+                results.sort(key=lambda x: x[1], reverse=True)
                 for idx, score in results[0:5]:
                     print("\t", idx, "(Score: %.4f)" % (score), self.target_sentences[idx])
 
