@@ -17,7 +17,7 @@ class MegaBatchMarginLoss(nn.Module):
     Train than as with the triplet loss
     """
 
-    def __init__(self, model, positive_margin: float = 0.8, negative_margin: float = 0.3, use_mini_batched_version: bool = True, mini_batch_size: bool = 50):
+    def __init__(self, model, positive_margin: float = 0.8, negative_margin: float = 0.3, use_mini_batched_version: bool = True, mini_batch_size: int = 50):
         """
         :param model: SentenceTransformerModel
         :param positive_margin: Positive margin, cos(anchor, positive) should be > positive_margin
