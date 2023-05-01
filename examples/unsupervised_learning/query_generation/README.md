@@ -1,6 +1,6 @@
 # GenQ
 
-In our paper [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663) we presented a method to learn (or adapt) model for[asymmetric semantic search](../../applications/semantic-search/) without requiring training data.
+In our paper [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663) we presented a method to adapt a model for [asymmetric semantic search](../../applications/semantic-search/) without for a corpus without labeled training data.
 
 ## Background
 In [asymmetric semantic search](../../applications/semantic-search/), the user provides a (short) query like some keywords or a question. We then want to retrieve a longer text passage that provides the answer.
@@ -17,7 +17,7 @@ In this tutorial, we show to train such models if  **no training data is availab
 
 ## Overview
 
-We use **synthethic query generation** to achieve our gold. We start with the passage from our document collection and create for these possible queries users might ask / might search for.
+We use **synthethic query generation** to achieve our goal. We start with the passage from our document collection and create for these possible queries users might ask / might search for.
 
 ![Query Generation](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/query-generation.png)
 

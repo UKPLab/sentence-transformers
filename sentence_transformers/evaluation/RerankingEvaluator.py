@@ -93,7 +93,7 @@ class RerankingEvaluator(SentenceEvaluator):
         all_query_embs = model.encode([sample['query'] for sample in self.samples],
                                   convert_to_tensor=True,
                                   batch_size=self.batch_size,
-                                  show_progress_bar=True) #self.show_progress_bar)
+                                  show_progress_bar=self.show_progress_bar)
 
         all_docs = []
 
