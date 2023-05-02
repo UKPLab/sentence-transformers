@@ -37,7 +37,7 @@ paragraphs = list(paragraphs)
 print("Paragraphs:", len(paragraphs))
 
 
-# No we load the model that is able to generate queries given a paragraph.
+# Now we load the model that is able to generate queries given a paragraph.
 # This model was trained on the MS MARCO dataset, a dataset with 500k
 # queries from Bing and the respective relevant passage
 tokenizer = T5Tokenizer.from_pretrained('BeIR/query-gen-msmarco-t5-large-v1')

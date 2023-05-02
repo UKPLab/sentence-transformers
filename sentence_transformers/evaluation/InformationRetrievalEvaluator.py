@@ -7,6 +7,7 @@ from ..util import cos_sim, dot_score
 import os
 import numpy as np
 from typing import List, Tuple, Dict, Set, Callable
+import heapq
 
 
 
@@ -170,7 +171,16 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 for query_itr in range(len(query_embeddings)):
                     for sub_corpus_id, score in zip(pair_scores_top_k_idx[query_itr], pair_scores_top_k_values[query_itr]):
                         corpus_id = self.corpus_ids[corpus_start_idx+sub_corpus_id]
-                        queries_result_list[name][query_itr].append({'corpus_id': corpus_id, 'score': score})
+                        if len(queries_result_list[name][query_itr]) < max_k:
+                            heapq.heappush(queries_result_list[name][query_itr], (score, corpus_id))  # heaqp tracks the quantity of the first element in the tuple
+                        else:
+                            heapq.heappushpop(queries_result_list[name][query_itr], (score, corpus_id))
+
+        for name in queries_result_list:
+            for query_itr in range(len(queries_result_list[name])):
+                for doc_itr in range(len(queries_result_list[name][query_itr])):
+                    score, corpus_id = queries_result_list[name][query_itr][doc_itr]
+                    queries_result_list[name][query_itr][doc_itr] = {'corpus_id': corpus_id, 'score': score}
 
         logger.info("Queries: {}".format(len(self.queries)))
         logger.info("Corpus: {}\n".format(len(self.corpus)))

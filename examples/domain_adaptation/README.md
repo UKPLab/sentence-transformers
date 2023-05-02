@@ -2,7 +2,7 @@
 
 The goal of **Domain Adaptation** is to adapt text embedding models to your specific text domain without the need to labeled training data.
 
-Domain adaptation is still an activate research field and there exists no perfect solution yet. However, in our two recent papers [TSDAE](https://arxiv.org/abs/2104.06979) and [GPL](https://arxiv.org/abs/2112.07577) we evaluated several methods how text embeddings model can be adapted to your specific domain. You can find an overview of these methods in my [talk on unsupervised domain adaptation](https://youtu.be/xbdLowiQTlk).
+Domain adaptation is still an active research field and there exists no perfect solution yet. However, in our two recent papers [TSDAE](https://arxiv.org/abs/2104.06979) and [GPL](https://arxiv.org/abs/2112.07577) we evaluated several methods how text embeddings model can be adapted to your specific domain. You can find an overview of these methods in my [talk on unsupervised domain adaptation](https://youtu.be/xbdLowiQTlk).
 
 ## Domain Adaptation vs. Unsupervised Learning
 There exists methods for [unsupervised text embedding learning](../unsupervised_learning/README.md), however, they generally perform rather badly: They are not really able to learn domain specific concepts. 
@@ -13,13 +13,13 @@ A much better approach is domain adaptation: Here you have an unlabeled corpus f
 
 When using adaptive pre-training, you first pre-train on your target corpus using e.g. [Masked Language Modeling](../unsupervised_learning/MLM/README.md) or [TSDAE](../unsupervised_learning/TSDAE/README.md) and then you fine-tune on an existing training dataset (see [embedding-training-data](https://huggingface.co/datasets/sentence-transformers/embedding-training-data)). 
 
-![Adaptive Fine-Tuning](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/adaptive_fine-tuning.png) 
+![Adaptive Pre-Training](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/adaptive_pre-training.png) 
 
 In our paper [TSDAE](https://arxiv.org/abs/2104.06979) we evaluated several methods for domain adaptation on 4 domain specific sentence embedding tasks:  
 
 | Approach | AskUbuntu | CQADupStack | Twitter | SciDocs | Avg |
 | -------- | :-------: | :---------: | :-----: | :-----: | :---: |
-| Pre-trained model | 54.5 | 12.9 | 72.2 | 69.4 | 52.3 |
+| Zero-Shot Model | 54.5 | 12.9 | 72.2 | 69.4 | 52.3 |
 | TSDAE | 59.4 | **14.4** | **74.5** | **77.6** | **56.5** |
 | MLM | **60.6** | 14.3 | 71.8 |  76.9 | 55.9 |
 | CT | 56.4 | 13.4 | 72.4 |  69.7 | 53.0 |
@@ -31,7 +31,7 @@ In  [GPL](https://arxiv.org/abs/2112.07577) we evaluate these methods for semant
 
 | Approach | FiQA  | SciFact | BioASQ | TREC-COVID | CQADupStack | Robust04 | Avg |
 | -------- | :---: | :-----: | :----: | :--------: | :---------: | :------: | :---: |
-| Pre-trained model | 26.7 | 57.1 | 52.9 | 66.1 | 29.6 | 39.0 | 45.2 |
+| Zero-Shot Model | 26.7 | 57.1 | 52.9 | 66.1 | 29.6 | 39.0 | 45.2 |
 | TSDAE | 29.3 | **62.8** | **55.5** | **76.1** | **31.8** | **39.4** | **49.2** |
 | MLM | **30.2** | 60.0 | 51.3 | 69.5 | 30.4 | 38.8 | 46.7 |
 | ICT | 27.0 | 58.3 | 55.3 | 69.7 | 31.3 | 37.4 | 46.5 |
@@ -63,10 +63,10 @@ GPL works in three phases:
 - **Query Generation**: For a given text from our domain, we first use a T5 model that generates a possible query for the given text. E.g. when your text is *"Python is a high-level general-purpose programming language"*, the model might generate a query like *"What is Python"*. You can find various query generators on our [doc2query-hub](https://huggingface.co/doc2query).
 - **Negative Mining**: Next, for the generate query *"What is Python"* we mine negative passages from our corpus, i.e. passages that are similar to the query but don't which a user would not consider relevant. Such a negative passage could be *"Java is a high-level, class-based, object-oriented programming language."*. We do this mining using dense retrieval, i.e. we use one of the existing text embedding models and retrieve relevant paragraphs for the given query.
 - **Pseudo Labeling**: It might be that in the negative mining step we retrieve a passage that is actually relevant for the query (like another definition for *"What is Python"*). To overcome this issue, we use a [Cross-Encoder](https://www.sbert.net/examples/applications/cross-encoder/README.html) to score all (query, passage)-pairs. 
-- **Training**: Once we have the triplets *(generated query, positive passage, mined negative passage)* and the Cross-Encoder socres for *(query, positive)* and *(query, negative)* we can start training the text embedding model using [MarginMSELoss](https://www.sbert.net/docs/package_reference/losses.html#marginmseloss).
+- **Training**: Once we have the triplets *(generated query, positive passage, mined negative passage)* and the Cross-Encoder scores for *(query, positive)* and *(query, negative)* we can start training the text embedding model using [MarginMSELoss](https://www.sbert.net/docs/package_reference/losses.html#marginmseloss).
 
 
-The **pseudo labeling** step is quite important and which results in the increased performance compared to the previous method QGen, which treated passages just as positive (1) or negative (0). As we see in the following picture, for a generate query (*"what is futures conrtact"*), the negative mining step retrieves passages that are partly or highly relevant to the generated query. Using MarginMSELoss and the Cross-Encoder, we can identify these passages and teach the text embedding model that these passages are also relevant for the given query.
+The **pseudo labeling** step is quite important and which results in the increased performance compared to the previous method QGen, which treated passages just as positive (1) or negative (0). As we see in the following picture, for a generate query (*"what is futures contract"*), the negative mining step retrieves passages that are partly or highly relevant to the generated query. Using MarginMSELoss and the Cross-Encoder, we can identify these passages and teach the text embedding model that these passages are also relevant for the given query.
 ![GPL Architecture](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/gpl_negatives.jpg) 
 
 
@@ -74,11 +74,13 @@ The following tables gives an overview of GPL in comparison to adaptive pre-trai
 
 | Approach | FiQA  | SciFact | BioASQ | TREC-COVID | CQADupStack | Robust04 | Avg |
 | -------- | :---: | :-----: | :----: | :--------: | :---------: | :------: | :---: |
-| Pre-trained model | 26.7 | 57.1 | 52.9 | 66.1 | 29.6 | 39.0 | 45.2 |
-| TSDAE | 29.3 | 62.8 | 55.5 | 76.1 | 31.8 | 39.4 | 49.2 |
-| MLM | 30.2 | 60.0 | 51.3 | 69.5 | 30.4 | 38.8 | 46.7 |
+| Zero-Shot model | 26.7 | 57.1 | 52.9 | 66.1 | 29.6 | 39.0 | 45.2 |
+| TSDAE + GPL | **33.3** | **67.3** | **62.8** | 74.0 | **35.1** | **42.1** | **52.4** |
 | GPL | 33.1 | 65.2 | 61.6 | 71.7 | 34.4 | **42.1** | 51.4 |
-| TSDAE + GPL | **33.3** | **67.3** | **62.8** | **74.0** | **35.1** | **42.1** | **52.4** |
+| TSDAE | 29.3 | 62.8 | 55.5 | **76.1** | 31.8 | 39.4 | 49.2 |
+| MLM | 30.2 | 60.0 | 51.3 | 69.5 | 30.4 | 38.8 | 46.7 |
+
+
 
 ### GPL Code
 You can find the code for GPL here: [https://github.com/UKPLab/gpl](https://github.com/UKPLab/gpl)

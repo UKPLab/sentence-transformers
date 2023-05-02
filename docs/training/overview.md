@@ -17,7 +17,7 @@ For sentence / text embeddings, we want to map a variable length input text to a
 
 We feed the input sentence or text into a transformer network like BERT. BERT produces contextualized word embeddings for all input tokens in our text. As we want a fixed-sized output representation (vector u), we need a pooling layer. Different pooling options are available, the most basic one is mean-pooling: We simply average all contextualized word embeddings BERT is giving us. This gives us a fixed 768 dimensional output vector independent how long our input text was.
 
-The depicted architecture, consisting on a BERT layer and a pooling layer is one final SentenceTransformer model.
+The depicted architecture, consisting of a BERT layer and a pooling layer is one final SentenceTransformer model.
 
 ## Creating Networks from Scratch
  
@@ -48,7 +48,7 @@ dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_dime
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dense_model])
 ```
 
-Here, we add a on top of the pooling layer a fully connected dense layer with Tanh activation, which performs a down-project to 256 dimensions. Hence, embeddings by this model will only have 256 instead of 768 dimensions.
+Here, we add on top of the pooling layer a fully connected dense layer with Tanh activation, which performs a down-project to 256 dimensions. Hence, embeddings by this model will only have 256 instead of 768 dimensions.
 
 For all available building blocks see [» Models Package Reference](../package_reference/models.md)
 
@@ -108,7 +108,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_st
 ```
 
 
-We tune the model by calling model.fit(). We pass a list of `train_objectives`, which constist of tuples `(dataloader, loss_function)`. We can pass more than one tuple in order to perform multi-task learning on several datasets with different loss functions.
+We tune the model by calling model.fit(). We pass a list of `train_objectives`, which consist of tuples `(dataloader, loss_function)`. We can pass more than one tuple in order to perform multi-task learning on several datasets with different loss functions.
 
 The `fit` method accepts the following parameter:
 
@@ -226,7 +226,7 @@ In the following table you find the performance for different models and their p
 | --- | :---: |
 | [microsoft/mpnet-base](https://huggingface.co/microsoft/mpnet-base) |	60.99 |
 | [nghuyong/ernie-2.0-en](https://huggingface.co/nghuyong/ernie-2.0-en) |	60.73 |
-| [microsof/deberta-base](https://huggingface.co/microsof/deberta-base) |	60.21 |
+| [microsoft/deberta-base](https://huggingface.co/microsoft/deberta-base) |	60.21 |
 | [roberta-base](https://huggingface.co/roberta-base) |	59.63 |
 | [t5-base](https://huggingface.co/t5-base) |	59.21 |
 | [bert-base-uncased](https://huggingface.co/bert-base-uncased) |	59.17 |

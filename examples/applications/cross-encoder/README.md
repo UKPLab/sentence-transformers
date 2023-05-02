@@ -11,7 +11,7 @@ First, it is important to understand the difference between Bi- and Cross-Encode
 ![BiEncoder](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/Bi_vs_Cross-Encoder.png)
 
 
-In contrast, for a **Cross-Encoder**,  we pass both sentences simultaneously to the Transformer network. It produces than an output value between 0 and 1 indicating the similarity of the input sentence pair: 
+In contrast, for a **Cross-Encoder**,  we pass both sentences simultaneously to the Transformer network. It produces then an output value between 0 and 1 indicating the similarity of the input sentence pair: 
 
 
 

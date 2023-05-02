@@ -16,7 +16,7 @@ class CEBinaryClassificationEvaluator:
     This evaluator can be used with the CrossEncoder class. Given sentence pairs and binary labels (0 and 1),
     it compute the average precision and the best possible f1 score
     """
-    def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str='', write_csv: bool = True):
+    def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str='', show_progress_bar: bool = False, write_csv: bool = True):
         assert len(sentence_pairs) == len(labels)
         for label in labels:
             assert (label == 0 or label == 1)
@@ -24,6 +24,10 @@ class CEBinaryClassificationEvaluator:
         self.sentence_pairs = sentence_pairs
         self.labels = np.asarray(labels)
         self.name = name
+
+        if show_progress_bar is None:
+            show_progress_bar = (logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
+        self.show_progress_bar = show_progress_bar
 
         self.csv_file = "CEBinaryClassificationEvaluator" + ("_" + name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps", "Accuracy", "Accuracy_Threshold", "F1", "F1_Threshold", "Precision", "Recall", "Average_Precision"]
@@ -49,7 +53,7 @@ class CEBinaryClassificationEvaluator:
             out_txt = ":"
 
         logger.info("CEBinaryClassificationEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
-        pred_scores = model.predict(self.sentence_pairs, convert_to_numpy=True, show_progress_bar=False)
+        pred_scores = model.predict(self.sentence_pairs, convert_to_numpy=True, show_progress_bar=self.show_progress_bar)
 
         acc, acc_threshold = BinaryClassificationEvaluator.find_best_acc_and_threshold(pred_scores, self.labels, True)
         f1, precision, recall, f1_threshold = BinaryClassificationEvaluator.find_best_f1_and_threshold(pred_scores, self.labels, True)

@@ -7,16 +7,17 @@ with open("README.md", mode="r", encoding="utf-8") as readme_file:
 
 setup(
     name="sentence-transformers",
-    version="2.2.0",
+    version="2.2.2",
     author="Nils Reimers",
     author_email="info@nils-reimers.de",
     description="Multilingual text embeddings",
     long_description=readme,
     long_description_content_type="text/markdown",
     license="Apache License 2.0",
-    url="https://github.com/UKPLab/sentence-transformers",
-    download_url="https://github.com/UKPLab/sentence-transformers/archive/v2.2.0.zip",
+    url="https://www.SBERT.net",
+    download_url="https://github.com/UKPLab/sentence-transformers/",
     packages=find_packages(),
+    python_requires=">=3.6.0",
     install_requires=[
         'transformers>=4.6.0,<5.0.0',
         'tqdm',
@@ -27,7 +28,7 @@ setup(
         'scipy',
         'nltk',
         'sentencepiece',
-        'huggingface-hub'
+        'huggingface-hub>=0.4.0'
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

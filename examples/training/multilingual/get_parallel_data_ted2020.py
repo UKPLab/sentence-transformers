@@ -4,8 +4,7 @@ This script downloads the TED2020 corpus (https://github.com/UKPLab/sentence-tra
 
 The TED2020 corpus is a crawl of transcripts from TED and TEDx talks, which are translated to 100+ languages.
 
-The TED2020 corpus is downloaded automatically. Otherwise, it can be found here:
-https://sbert.net/datasets/ted2020.tsv.gz
+The TED2020 corpus cannot be downloaded automatically. It is available for research purposes only (CC-BY-NC).
 
 The training procedure can be found in the files make_multilingual.py and make_multilingual_sys.py.
 
@@ -25,7 +24,7 @@ target_languages = set(['de', 'es', 'it', 'fr', 'ar', 'tr'])    #New languages w
 
 
 dev_sentences = 1000         #Number of sentences we want to use for development
-download_url = "https://sbert.net/datasets/ted2020.tsv.gz"
+download_url = "" #Specify TED2020 URL here
 ted2020_path = "../datasets/ted2020.tsv.gz" #Path of the TED2020.tsv.gz file.
 parallel_sentences_folder = "parallel-sentences/"
 
