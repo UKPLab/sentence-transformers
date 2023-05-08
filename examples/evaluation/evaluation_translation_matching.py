@@ -34,6 +34,8 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     level=logging.INFO,
                     handlers=[LoggingHandler()])
 
+logger = logging.getLogger(__name__)
+
 model_name = sys.argv[1]
 filepaths = sys.argv[2:]
 inference_batch_size = 32
@@ -51,7 +53,7 @@ for filepath in filepaths:
                 src_sentences.append(splits[0])
                 trg_sentences.append(splits[1])
 
-    logging.info(os.path.basename(filepath)+": "+str(len(src_sentences))+" sentence pairs")
+    logger.info(os.path.basename(filepath)+": "+str(len(src_sentences))+" sentence pairs")
     dev_trans_acc = evaluation.TranslationEvaluator(src_sentences, trg_sentences, name=os.path.basename(filepath), batch_size=inference_batch_size)
     dev_trans_acc(model)
 

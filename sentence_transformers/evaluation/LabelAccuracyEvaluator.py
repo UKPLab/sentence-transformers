@@ -2,10 +2,12 @@ from . import SentenceEvaluator
 import torch
 from torch.utils.data import DataLoader
 import logging
-from tqdm import tqdm
 from ..util import batch_to_device
 import os
 import csv
+
+
+logger = logging.getLogger(__name__)
 
 class LabelAccuracyEvaluator(SentenceEvaluator):
     """
@@ -16,7 +18,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
     The results are written in a CSV. If a CSV already exists, then values are appended.
     """
 
-    def __init__(self, dataloader: DataLoader, name: str = "", softmax_model = None):
+    def __init__(self, dataloader: DataLoader, name: str = "", softmax_model = None, write_csv: bool = True):
         """
         Constructs an evaluator for the given dataset
 
@@ -26,11 +28,11 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         self.dataloader = dataloader
         self.name = name
         self.softmax_model = softmax_model
-        self.softmax_model.to(self.device)
 
         if name:
             name = "_"+name
 
+        self.write_csv = write_csv
         self.csv_file = "accuracy_evaluation"+name+"_results.csv"
         self.csv_headers = ["epoch", "steps", "accuracy"]
 
@@ -47,10 +49,13 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        logging.info("Evaluation on the "+self.name+" dataset"+out_txt)
+        logger.info("Evaluation on the "+self.name+" dataset"+out_txt)
         self.dataloader.collate_fn = model.smart_batching_collate
-        for step, batch in enumerate(tqdm(self.dataloader, desc="Evaluating")):
-            features, label_ids = batch_to_device(batch, model.device)
+        for step, batch in enumerate(self.dataloader):
+            features, label_ids = batch
+            for idx in range(len(features)):
+                features[idx] = batch_to_device(features[idx], model.device)
+            label_ids = label_ids.to(model.device)
             with torch.no_grad():
                 _, prediction = self.softmax_model(features, labels=None)
 
@@ -58,17 +63,17 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
             correct += torch.argmax(prediction, dim=1).eq(label_ids).sum().item()
         accuracy = correct/total
 
-        logging.info("Accuracy: {:.4f} ({}/{})\n".format(accuracy, correct, total))
+        logger.info("Accuracy: {:.4f} ({}/{})\n".format(accuracy, correct, total))
 
-        if output_path is not None:
+        if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
-                with open(csv_path, mode="w", encoding="utf-8") as f:
+                with open(csv_path, newline='', mode="w", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow(self.csv_headers)
                     writer.writerow([epoch, steps, accuracy])
             else:
-                with open(csv_path, mode="a", encoding="utf-8") as f:
+                with open(csv_path, newline='', mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow([epoch, steps, accuracy])
 

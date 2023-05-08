@@ -1,6 +1,8 @@
-__version__ = "0.3.3"
-__DOWNLOAD_SERVER__ = 'https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/'
-from .datasets import SentencesDataset, SentenceLabelDataset, ParallelSentencesDataset
+__version__ = "2.2.2"
+__MODEL_HUB_ORGANIZATION__ = 'sentence-transformers'
+from .datasets import SentencesDataset, ParallelSentencesDataset
 from .LoggingHandler import LoggingHandler
 from .SentenceTransformer import SentenceTransformer
+from .readers import InputExample
+from .cross_encoder.CrossEncoder import CrossEncoder
 

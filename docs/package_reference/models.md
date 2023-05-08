@@ -10,9 +10,11 @@
 
 ## Further Classes
 ```eval_rst
+.. autoclass:: sentence_transformers.models.Asym
 .. autoclass:: sentence_transformers.models.BoW
 .. autoclass:: sentence_transformers.models.CNN
 .. autoclass:: sentence_transformers.models.LSTM
+.. autoclass:: sentence_transformers.models.Normalize
 .. autoclass:: sentence_transformers.models.WeightedLayerPooling
 .. autoclass:: sentence_transformers.models.WKPooling
 .. autoclass:: sentence_transformers.models.WordEmbeddings

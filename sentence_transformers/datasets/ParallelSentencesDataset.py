@@ -1,10 +1,13 @@
 from torch.utils.data import Dataset
 import logging
 import gzip
-from queue import Queue
 from .. import SentenceTransformer
+from ..readers import InputExample
 from typing import List
 import random
+
+
+logger = logging.getLogger(__name__)
 
 class ParallelSentencesDataset(Dataset):
     """
@@ -47,14 +50,14 @@ class ParallelSentencesDataset(Dataset):
         Reads in a tab-seperated .txt/.csv/.tsv or .gz file. The different columns contain the different translations of the sentence in the first column
 
         :param filepath: Filepath to the file
-        :param weight: If more that one dataset is loaded with load_data: With which frequency should data be sampled from this dataset?
+        :param weight: If more than one dataset is loaded with load_data: With which frequency should data be sampled from this dataset?
         :param max_sentences: Max number of lines to be read from filepath
         :param max_sentence_length: Skip the example if one of the sentences is has more characters than max_sentence_length
         :param batch_size: Size for encoding parallel sentences
         :return:
         """
 
-        logging.info("Load "+filepath)
+        logger.info("Load "+filepath)
         parallel_sentences = []
 
         with gzip.open(filepath, 'rt', encoding='utf8') if filepath.endswith('.gz') else open(filepath, encoding='utf8') as fIn:
@@ -71,7 +74,7 @@ class ParallelSentencesDataset(Dataset):
         self.add_dataset(parallel_sentences, weight=weight, max_sentences=max_sentences, max_sentence_length=max_sentence_length)
 
 
-    def add_dataset(self, parallel_sentences: List[List[str]], weight: int = 1000, max_sentences: int = None, max_sentence_length: int = 128):
+    def add_dataset(self, parallel_sentences: List[List[str]], weight: int = 100, max_sentences: int = None, max_sentence_length: int = 128):
         sentences_map = {}
         for sentences in parallel_sentences:
             if max_sentence_length is not None and max_sentence_length > 0 and max([len(sent) for sent in sentences]) > max_sentence_length:
@@ -95,8 +98,8 @@ class ParallelSentencesDataset(Dataset):
         dataset_id = len(self.datasets)
         self.datasets.append(list(sentences_map.items()))
         self.datasets_iterator.append(0)
-        self.datasets_tokenized.append(False)
         self.dataset_indices.extend([dataset_id] * weight)
+
 
     def generate_data(self):
         source_sentences_list = []
@@ -106,34 +109,28 @@ class ParallelSentencesDataset(Dataset):
             source_sentences_list.append(src_sentence)
             target_sentences_list.append(trg_sentences)
 
-
         #Generate embeddings
         src_embeddings = self.get_embeddings(source_sentences_list)
 
         for src_embedding, trg_sentences in zip(src_embeddings, target_sentences_list):
             for trg_sentence in trg_sentences:
-                self.cache.append([[trg_sentence], src_embedding])
+                self.cache.append(InputExample(texts=[trg_sentence], label=src_embedding))
 
         random.shuffle(self.cache)
 
     def next_entry(self, data_idx):
         source, target_sentences = self.datasets[data_idx][self.datasets_iterator[data_idx]]
 
-        if not self.datasets_tokenized[data_idx]:
-            target_sentences = [self.student_model.tokenize(sent) for sent in target_sentences]
-            self.datasets[data_idx][self.datasets_iterator[data_idx]] = [source, target_sentences]
-
         self.datasets_iterator[data_idx] += 1
         if self.datasets_iterator[data_idx] >= len(self.datasets[data_idx]): #Restart iterator
             self.datasets_iterator[data_idx] = 0
-            self.datasets_tokenized[data_idx] = True
             random.shuffle(self.datasets[data_idx])
 
         return source, target_sentences
 
     def get_embeddings(self, sentences):
         if not self.use_embedding_cache:
-            return self.teacher_model.encode(sentences, batch_size=self.batch_size, show_progress_bar=False, convert_to_numpy=False)
+            return self.teacher_model.encode(sentences, batch_size=self.batch_size, show_progress_bar=False, convert_to_numpy=True)
 
         #Use caching
         new_sentences = []
@@ -142,7 +139,7 @@ class ParallelSentencesDataset(Dataset):
                 new_sentences.append(sent)
 
         if len(new_sentences) > 0:
-            new_embeddings = self.teacher_model.encode(new_sentences, batch_size=self.batch_size, show_progress_bar=False, convert_to_numpy=False)
+            new_embeddings = self.teacher_model.encode(new_sentences, batch_size=self.batch_size, show_progress_bar=False, convert_to_numpy=True)
             for sent, embedding in zip(new_sentences, new_embeddings):
                 self.embedding_cache[sent] = embedding
 

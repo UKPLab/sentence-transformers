@@ -1,185 +1,96 @@
-from torch.utils.data import Dataset
-from typing import List
-import bisect
-import torch
-import logging
+"""
+
+"""
+from torch.utils.data import  IterableDataset
 import numpy as np
-from tqdm import tqdm
-from .. import SentenceTransformer
-from ..readers.InputExample import InputExample
-from multiprocessing import Pool, cpu_count
-import multiprocessing
+from typing import List
+from ..readers import InputExample
+import logging
 
-class SentenceLabelDataset(Dataset):
+logger = logging.getLogger(__name__)
+
+class SentenceLabelDataset(IterableDataset):
     """
-    Dataset for training with triplet loss.
-    This dataset takes a list of sentences grouped by their label and uses this grouping to dynamically select a
-    positive example from the same group and a negative example from the other sentences for a selected anchor sentence.
+    This dataset can be used for some specific Triplet Losses like BATCH_HARD_TRIPLET_LOSS which requires
+    multiple examples with the same label in a batch.
 
-    This dataset should be used in combination with dataset_reader.LabelSentenceReader
+    It draws n consecutive, random and unique samples from one label at a time. This is repeated for each label.
 
-    One iteration over this dataset selects every sentence as anchor once.
+    Labels with fewer than n unique samples are ignored.
+    This also applied to drawing without replacement, once less than n samples remain for a label, it is skipped.
 
-    This also uses smart batching like SentenceDataset.
+    This *DOES NOT* check if there are more labels than the batch is large or if the batch size is divisible
+    by the samples drawn per label.
     """
-
-    def __init__(self, examples: List[InputExample], model: SentenceTransformer, provide_positive: bool = True,
-                 provide_negative: bool = True,
-                 parallel_tokenization: bool = True,
-                 max_processes: int = 4,
-                 chunk_size: int = 5000):
+    def __init__(self, examples: List[InputExample], samples_per_label: int = 2, with_replacement: bool = False):
         """
-        Converts input examples to a SentenceLabelDataset usable to train the model with
-        SentenceTransformer.smart_batching_collate as the collate_fn for the DataLoader
-
-        Assumes only one sentence per InputExample and labels as integers from 0 to max_num_labels
-        and should be used in combination with dataset_reader.LabelSentenceReader.
-
-        Labels with only one example are ignored.
-
-        smart_batching_collate as collate_fn is required because it transforms the tokenized texts to the tensors.
+        Creates a LabelSampler for a SentenceLabelDataset.
 
         :param examples:
-            the input examples for the training
-        :param model
-            the Sentence BERT model for the conversion
-        :param provide_positive:
-            set this to False, if you don't need a positive example (e.g. for BATCH_HARD_TRIPLET_LOSS).
-        :param provide_negative:
-            set this to False, if you don't need a negative example (e.g. for BATCH_HARD_TRIPLET_LOSS
-            or MULTIPLE_NEGATIVES_RANKING_LOSS).
-        :param parallel_tokenization
-            If true, multiple processes will be started for the tokenization
-        :param max_processes
-            Maximum number of processes started for tokenization. Cannot be larger can cpu_count()
-        :param chunk_size
-            #chunk_size number of examples are send to each process. Larger values increase overall tokenization speed
+            a list with InputExamples
+        :param samples_per_label:
+            the number of consecutive, random and unique samples drawn per label. Batch size should be a multiple of samples_per_label
+        :param with_replacement:
+            if this is True, then each sample is drawn at most once (depending on the total number of samples per label).
+            if this is False, then one sample can be drawn in multiple draws, but still not multiple times in the same
+            drawing.
         """
-        self.model = model
-        self.groups_right_border = []
+        super().__init__()
+
+        self.samples_per_label = samples_per_label
+
+        #Group examples by label
+        label2ex = {}
+        for example in examples:
+            if example.label not in label2ex:
+                label2ex[example.label] = []
+            label2ex[example.label].append(example)
+
+        #Include only labels with at least 2 examples
         self.grouped_inputs = []
-        self.grouped_labels = []
-        self.num_labels = 0
-        self.max_processes = min(max_processes, cpu_count())
-        self.chunk_size = chunk_size
-        self.parallel_tokenization = parallel_tokenization
+        self.groups_right_border = []
+        num_labels = 0
 
-        if self.parallel_tokenization:
-            if multiprocessing.get_start_method() != 'fork':
-                logging.info("Parallel tokenization is only available on Unix systems which allow to fork processes. Fall back to sequential tokenization")
-                self.parallel_tokenization = False
+        for label, label_examples in label2ex.items():
+            if len(label_examples) >= self.samples_per_label:
+                self.grouped_inputs.extend(label_examples)
+                self.groups_right_border.append(len(self.grouped_inputs))  # At which position does this label group / bucket end?
+                num_labels += 1
 
-        self.convert_input_examples(examples, model)
+        self.label_range = np.arange(num_labels)
+        self.with_replacement = with_replacement
+        np.random.shuffle(self.label_range)
 
-        self.idxs = np.arange(len(self.grouped_inputs))
+        logger.info("SentenceLabelDataset: {} examples, from which {} examples could be used (those labels appeared at least {} times). {} different labels found.".format(len(examples), len(self.grouped_inputs), self.samples_per_label, num_labels ))
 
-        self.provide_positive = provide_positive
-        self.provide_negative = provide_negative
+    def __iter__(self):
+        label_idx = 0
+        count = 0
+        already_seen = {}
+        while count < len(self.grouped_inputs):
+            label = self.label_range[label_idx]
+            if label not in already_seen:
+                already_seen[label] = set()
 
+            left_border = 0 if label == 0 else self.groups_right_border[label-1]
+            right_border = self.groups_right_border[label]
 
-    def convert_input_examples(self, examples: List[InputExample], model: SentenceTransformer):
-        """
-        Converts input examples to a SentenceLabelDataset.
-
-        Assumes only one sentence per InputExample and labels as integers from 0 to max_num_labels
-        and should be used in combination with dataset_reader.LabelSentenceReader.
-
-        Labels with only one example are ignored.
-
-        :param examples:
-            the input examples for the training
-        :param model
-            the Sentence Transformer model for the conversion
-        :param is_pretokenized
-            If set to true, no tokenization will be applied. It is expected that the input is tokenized via model.tokenize
-        """
-
-        inputs = []
-        labels = []
-
-        label_sent_mapping = {}
-        too_long = 0
-        label_type = None
-
-        logging.info("Start tokenization")
-        if not self.parallel_tokenization or self.max_processes == 1 or len(examples) <= self.chunk_size:
-            tokenized_texts = [self.tokenize_example(example) for example in examples]
-        else:
-            logging.info("Use multi-process tokenization with {} processes".format(self.max_processes))
-            self.model.to('cpu')
-            with Pool(self.max_processes) as p:
-                tokenized_texts = list(p.imap(self.tokenize_example, examples, chunksize=self.chunk_size))
-
-        # Group examples and labels
-        # Add examples with the same label to the same dict
-        for ex_index, example in enumerate(tqdm(examples, desc="Convert dataset")):
-            if label_type is None:
-                if isinstance(example.label, int):
-                    label_type = torch.long
-                elif isinstance(example.label, float):
-                    label_type = torch.float
-            tokenized_text = tokenized_texts[ex_index][0]
-
-            if hasattr(model, 'max_seq_length') and model.max_seq_length is not None and model.max_seq_length > 0 and len(tokenized_text) > model.max_seq_length:
-                too_long += 1
-
-            if example.label in label_sent_mapping:
-                label_sent_mapping[example.label].append(ex_index)
+            if self.with_replacement:
+                selection = np.arange(left_border, right_border)
             else:
-                label_sent_mapping[example.label] = [ex_index]
+                selection = [i for i in np.arange(left_border, right_border) if i not in already_seen[label]]
 
-            inputs.append(tokenized_text)
-            labels.append(example.label)
+            if len(selection) >= self.samples_per_label:
+                for element_idx in np.random.choice(selection, self.samples_per_label, replace=False):
+                    count += 1
+                    already_seen[label].add(element_idx)
+                    yield self.grouped_inputs[element_idx]
 
-        # Group sentences, such that sentences with the same label
-        # are besides each other. Only take labels with at least 2 examples
-        distinct_labels = list(label_sent_mapping.keys())
-        for i in range(len(distinct_labels)):
-            label = distinct_labels[i]
-            if len(label_sent_mapping[label]) >= 2:
-                self.grouped_inputs.extend([inputs[j] for j in label_sent_mapping[label]])
-                self.grouped_labels.extend([labels[j] for j in label_sent_mapping[label]])
-                self.groups_right_border.append(len(self.grouped_inputs)) #At which position does this label group / bucket end?
-                self.num_labels += 1
-
-        self.grouped_labels = torch.tensor(self.grouped_labels, dtype=label_type)
-        logging.info("Num sentences: %d" % (len(self.grouped_inputs)))
-        logging.info("Sentences longer than max_seqence_length: {}".format(too_long))
-        logging.info("Number of labels with >1 examples: {}".format(len(distinct_labels)))
-
-
-    def tokenize_example(self, example):
-        if example.texts_tokenized is not None:
-            return example.texts_tokenized
-
-        return [self.model.tokenize(text) for text in example.texts]
-
-    def __getitem__(self, item):
-        if not self.provide_positive and not self.provide_negative:
-            return [self.grouped_inputs[item]], self.grouped_labels[item]
-
-        # Anchor element
-        anchor = self.grouped_inputs[item]
-
-        # Check start and end position for this label in our list of grouped sentences
-        group_idx = bisect.bisect_right(self.groups_right_border, item)
-        left_border = 0 if group_idx == 0 else self.groups_right_border[group_idx - 1]
-        right_border = self.groups_right_border[group_idx]
-
-        if self.provide_positive:
-            positive_item_idx = np.random.choice(np.concatenate([self.idxs[left_border:item], self.idxs[item + 1:right_border]]))
-            positive = self.grouped_inputs[positive_item_idx]
-        else:
-            positive = []
-
-        if self.provide_negative:
-            negative_item_idx = np.random.choice(np.concatenate([self.idxs[0:left_border], self.idxs[right_border:]]))
-            negative = self.grouped_inputs[negative_item_idx]
-        else:
-            negative = []
-
-        return [anchor, positive, negative], self.grouped_labels[item]
-
+            label_idx += 1
+            if label_idx >= len(self.label_range):
+                label_idx = 0
+                already_seen = {}
+                np.random.shuffle(self.label_range)
 
     def __len__(self):
         return len(self.grouped_inputs)

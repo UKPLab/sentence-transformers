@@ -1,10 +1,10 @@
 # Semantic Textual Similarity
 
-Once you have  [sentence embeddings computed](computing_sentence_embeddings.md), you usually want to compare them to each other. Here, I show you how you can compute the cosine similarity between embeddings, for example, to measure the semantic similarity of two texts.
+Once you have  [sentence embeddings computed](../../examples/applications/computing-embeddings/README.md), you usually want to compare them to each other. Here, I show you how you can compute the cosine similarity between embeddings, for example, to measure the semantic similarity of two texts.
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Two lists of sentences
 sentences1 = ['The cat sits outside',
@@ -19,15 +19,15 @@ sentences2 = ['The dog plays in the garden',
 embeddings1 = model.encode(sentences1, convert_to_tensor=True)
 embeddings2 = model.encode(sentences2, convert_to_tensor=True)
 
-#Compute cosine-similarits
-cosine_scores = util.pytorch_cos_sim(embeddings1, embeddings2)
+#Compute cosine-similarities
+cosine_scores = util.cos_sim(embeddings1, embeddings2)
 
 #Output the pairs with their score
 for i in range(len(sentences1)):
     print("{} \t\t {} \t\t Score: {:.4f}".format(sentences1[i], sentences2[i], cosine_scores[i][i]))
 ```
 
-We pass the `convert_to_tensor=True` parameter to the encode function. This will return a pytorch tensor containing our embeddings. We can then call `util.pytorch_cos_sim(A, B)` which computes the cosine similarity between all vectors in *A* and all vectors in *B*. 
+We pass the `convert_to_tensor=True` parameter to the encode function. This will return a pytorch tensor containing our embeddings. We can then call `util.cos_sim(A, B)` which computes the cosine similarity between all vectors in *A* and all vectors in *B*. 
 
 It returns in the above example a 3x3 matrix with the respective cosine similarity scores for all possible pairs between *embeddings1* and *embeddings2*.
 
@@ -36,7 +36,7 @@ You can use this function also to find out the pairs with the highest cosine sim
 ```python
 from sentence_transformers import SentenceTransformer, util
 
-model = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Single list of sentences
 sentences = ['The cat sits outside',
@@ -52,7 +52,7 @@ sentences = ['The cat sits outside',
 embeddings = model.encode(sentences, convert_to_tensor=True)
 
 #Compute cosine-similarities for each sentence with each other sentence
-cosine_scores = util.pytorch_cos_sim(embeddings, embeddings)
+cosine_scores = util.cos_sim(embeddings, embeddings)
 
 #Find the pairs with the highest cosine similarity scores
 pairs = []
@@ -68,4 +68,4 @@ for pair in pairs[0:10]:
     print("{} \t\t {} \t\t Score: {:.4f}".format(sentences[i], sentences[j], pair['score']))
 ```
 
-Note, in the above approach we use a brute-force approach to find the highest scoring pairs, which has a quadratic complexity. For long lists of sentences, this might be infeasible. If you want find the highest scoring pairs in a long list of sentences, have a look at [Paraphrase Mining](paraphrase_mining.md).
+Note, in the above approach we use a brute-force approach to find the highest scoring pairs, which has a quadratic complexity. For long lists of sentences, this might be infeasible. If you want find the highest scoring pairs in a long list of sentences, have a look at [Paraphrase Mining](../../examples/applications/paraphrase-mining/README.md).

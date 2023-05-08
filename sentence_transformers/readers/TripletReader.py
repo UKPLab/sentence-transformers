@@ -33,7 +33,7 @@ class TripletReader(object):
             s2 = row[self.s2_col_idx]
             s3 = row[self.s3_col_idx]
 
-            examples.append(InputExample(guid=filename+str(id), texts=[s1, s2, s3], label=1))
+            examples.append(InputExample(texts=[s1, s2, s3]))
             if max_examples > 0 and len(examples) >= max_examples:
                 break
 
