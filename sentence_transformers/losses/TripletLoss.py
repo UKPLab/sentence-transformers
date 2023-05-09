@@ -57,7 +57,7 @@ class TripletLoss(nn.Module):
 
         return {'distance_metric': distance_metric_name, 'triplet_margin': self.triplet_margin}
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]]):
         reps = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
 
         rep_anchor, rep_pos, rep_neg = reps
