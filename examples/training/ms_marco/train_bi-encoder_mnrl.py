@@ -79,8 +79,6 @@ else:
     pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), args.pooling)
     model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
     
-# Resize model embeddings to match curr tokenizer in case of added tokens
-model._first_module().auto_model.resize_token_embeddings(len(model.tokenizer))
 model_save_path = 'output/train_bi-encoder-mnrl-{}-margin_{:.1f}-{}'.format(model_name.replace("/", "-"), ce_score_margin, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 
