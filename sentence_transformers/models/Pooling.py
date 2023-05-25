@@ -141,7 +141,7 @@ class Pooling(nn.Module):
             # argmin gives us the index of the first 0 in the attention mask; We get the last 1 index by subtracting 1
             # Any sequence where min == 1, we use the entire sequence lenth since argmin = 0
             values, indices = torch.min(attention_mask, 1, keepdim = False)
-            gather_indices = torch.where(values==0, indices, attention_mask.shape[1]) - 1 # Shape [bs]
+            gather_indices = torch.where(values==0, indices, seq_len) - 1 # Shape [bs]
 
             # There are empty sequences, where the index would become -1 which will crash
             gather_indices = torch.clamp(gather_indices, min=0)
