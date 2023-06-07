@@ -12,7 +12,7 @@ There is one model to encode passages and one model to encode question / queries
 
 ## Usage
 
-To encode paragraphs, you need to provide a title (e.g. the Wikipedia article title) and the text passage. These must be seperated with a `[SEP]` token.  For encoding paragraphs, we use the **ctx_encoder**.
+To encode paragraphs, you need to provide a title (e.g. the Wikipedia article title) and the text passage. These must be separated with a `[SEP]` token.  For encoding paragraphs, we use the **ctx_encoder**.
 
 Queries are encoded with **question_encoder**:
 ```python
