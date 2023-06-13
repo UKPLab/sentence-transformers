@@ -44,12 +44,24 @@ class SentenceTransformer(nn.Sequential):
                  modules: Optional[Iterable[nn.Module]] = None,
                  device: Optional[str] = None,
                  cache_folder: Optional[str] = None,
-                 use_auth_token: Union[bool, str, None] = None
+                 use_auth_token: Union[bool, str, None] = None,
+                 transformer_model_args: Optional[dict] = {}
                  ):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
-
+        
+        '''
+        Arguments to pass apart from model_name_or_path when loading transformer model in _load_auto_model(self, model_name_or_path). Could be one of the following:
+        max_seq_length: Truncate any inputs longer than max_seq_length
+        model_args: Arguments (key, value pairs) passed to the Huggingface Transformers model
+        cache_dir: Cache dir for Huggingface Transformers to store/load models
+        tokenizer_args: Arguments (key, value pairs) passed to the Huggingface Tokenizer model
+        do_lower_case: If true, lowercases the input (independent if the model is cased or not)
+        tokenizer_name_or_path: Name or path of the tokenizer. When None, then model_name_or_path is used
+        '''
+        self.transformer_model_args = transformer_model_args
+        
         if cache_folder is None:
             cache_folder = os.getenv('SENTENCE_TRANSFORMERS_HOME')
             if cache_folder is None:
@@ -805,7 +817,7 @@ class SentenceTransformer(nn.Sequential):
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
         logger.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
-        transformer_model = Transformer(model_name_or_path)
+        transformer_model = Transformer(model_name_or_path, **self.transformer_model_args)
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
         return [transformer_model, pooling_model]
 
@@ -912,3 +924,4 @@ class SentenceTransformer(nn.Sequential):
         Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
         """
         self._first_module().max_seq_length = value
+    
