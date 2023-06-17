@@ -1,0 +1,1 @@
+from .ct2_sentence_transformer import CT2SentenceTransformer
