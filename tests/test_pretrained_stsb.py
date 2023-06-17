@@ -54,11 +54,12 @@ class PretrainedSTSbTest(unittest.TestCase):
         self.pretrained_model_score('bert-large-nli-cls-token', 78.29)
         self.pretrained_model_score('bert-large-nli-stsb-mean-tokens', 85.29)
         
-    def test_bert_minilm(self):
-        self.pretrained_model_score("sentence-transformers/all-MiniLM-L6-v2", 82.03)
-        self.pretrained_model_score("sentence-transformers/all-MiniLM-L6-v2", 82.03, ct2_compute_type="default")
-        self.pretrained_model_score("sentence-transformers/all-MiniLM-L6-v2", 82.03, ct2_compute_type="float16")
-        self.pretrained_model_score("sentence-transformers/all-MiniLM-L6-v2", 81.74, ct2_compute_type="int8")
+    def test_bert_ct2(self):
+        self.pretrained_model_score('bert-large-nli-mean-tokens', 79.19, ct2_compute_type='int8')
+        self.pretrained_model_score('bert-large-nli-mean-tokens', 79.19, ct2_compute_type='float16')
+        self.pretrained_model_score('sentence-transformers/all-MiniLM-L6-v2', 82.03)
+        self.pretrained_model_score('sentence-transformers/all-MiniLM-L6-v2', 82.03, ct2_compute_type='default')
+        self.pretrained_model_score('sentence-transformers/all-MiniLM-L6-v2', 82.03, ct2_compute_type='float16')
 
     def test_roberta(self):
         self.pretrained_model_score('roberta-base-nli-mean-tokens', 77.49)
