@@ -1,7 +1,7 @@
 """
 Tests that the pretrained models produce the correct scores on the STSbenchmark dataset
 """
-from sentence_transformers import SentenceTransformer,  InputExample, util
+from sentence_transformers import SentenceTransformer,  CT2SentenceTransformer, InputExample, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 import unittest
 import os
@@ -10,8 +10,10 @@ import csv
 
 class PretrainedSTSbTest(unittest.TestCase):
 
-    def pretrained_model_score(self, model_name, expected_score):
+    def pretrained_model_score(self, model_name, expected_score, ct2_compute_type: str = ""):
         model = SentenceTransformer(model_name)
+        if ct2_compute_type:
+            model = CT2SentenceTransformer(model_name, compute_type=ct2_compute_type)
         sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
 
         if not os.path.exists(sts_dataset_path):
@@ -51,6 +53,12 @@ class PretrainedSTSbTest(unittest.TestCase):
         self.pretrained_model_score('bert-large-nli-max-tokens', 78.41)
         self.pretrained_model_score('bert-large-nli-cls-token', 78.29)
         self.pretrained_model_score('bert-large-nli-stsb-mean-tokens', 85.29)
+        
+    def test_bert_minilm(self):
+        self.pretrained_model_score("sentence-transformers/all-MiniLM-L6-v2", 82.03)
+        self.pretrained_model_score("sentence-transformers/all-MiniLM-L6-v2", 82.03, ct2_compute_type="default")
+        self.pretrained_model_score("sentence-transformers/all-MiniLM-L6-v2", 82.03, ct2_compute_type="float16")
+        self.pretrained_model_score("sentence-transformers/all-MiniLM-L6-v2", 81.74, ct2_compute_type="int8")
 
     def test_roberta(self):
         self.pretrained_model_score('roberta-base-nli-mean-tokens', 77.49)
@@ -80,6 +88,8 @@ class PretrainedSTSbTest(unittest.TestCase):
 
     def test_sentence_t5(self):
         self.pretrained_model_score('sentence-t5-base', 85.52)
+        
+    
 
 if "__main__" == __name__:
     unittest.main()
