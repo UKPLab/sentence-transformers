@@ -14,7 +14,7 @@ class CT2SentenceTransformer(SentenceTransformer):
     Loads or create a SentenceTransformer model, that can be used to map sentences / text to embeddings.
     Extension of sentence_transformers.SentenceTransformer using a CTranslate2 model for accelerated inference-only.
     Adapted from https://gist.github.com/guillaumekln/fb125fc3eb108d1a304b7432486e712f
-    
+
     :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path, it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model from Huggingface models repository with that name.
     :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
@@ -47,7 +47,7 @@ class CT2SentenceTransformer(SentenceTransformer):
 class CT2Transformer(torch.nn.Module):
     """Wrapper around a sentence_transformers.models.Transformer which routes the forward
     call to a CTranslate2 encoder model.
-    
+
     :param compute_type: weight quantization, scheme for computing,
         default uses same as quantization
         (possible values are: int8, int8_float16, int16, float16).
@@ -80,16 +80,17 @@ class CT2Transformer(torch.nn.Module):
         # Convert to the CTranslate2 model format, if not already done.
         model_dir = transformer.auto_model.config.name_or_path
         self.ct2_model_dir = os.path.join(
-            model_dir, "ctranslate2_" + ctranslate2.__version__, 
+            model_dir,
+            "ctranslate2_" + ctranslate2.__version__,
         )
 
         if not os.path.exists(os.path.join(self.ct2_model_dir, "model.bin")) or force:
-            if os.path.exists(self.ct2_model_dir) and not os.listdir(self.ct2_model_dir):
+            if os.path.exists(self.ct2_model_dir) and not os.listdir(
+                self.ct2_model_dir
+            ):
                 force = True
             converter = ctranslate2.converters.TransformersConverter(model_dir)
-            converter.convert(
-                self.ct2_model_dir, force=force, vmap=vmap
-            )
+            converter.convert(self.ct2_model_dir, force=force, vmap=vmap)
         self._ctranslate2_encoder_cls = ctranslate2.Encoder
         self._storage_view = ctranslate2.StorageView
 
@@ -98,7 +99,7 @@ class CT2Transformer(torch.nn.Module):
         return []
 
     def forward(self, features):
-        """overwrites torch forward method in """
+        """overwrites torch forward method with CTranslate model"""
         device = features["input_ids"].device
 
         if self.encoder is None:

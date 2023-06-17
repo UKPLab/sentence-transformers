@@ -87,7 +87,10 @@ class CT2ComputeEmbeddingsTest(unittest.TestCase):
     def test_encode_tuple_sentences(self):
         # Input a sentence tuple
         for sentence, shape in [
-            ([("Hello Word, a test sentence", "Second input for model")], (1, self.embed_dim)),
+            (
+                [("Hello Word, a test sentence", "Second input for model")],
+                (1, self.embed_dim),
+            ),
             (
                 [
                     ("Hello Word, a test sentence", "Second input for model"),
@@ -108,7 +111,8 @@ class CT2ComputeEmbeddingsTest(unittest.TestCase):
         if self.do_speed_test:
             sentence = [
                 "".join(
-                    random.choice(["one ", "two ", "hi "]) for length in range(batch_idx+1)
+                    random.choice(["one ", "two ", "hi "])
+                    for length in range(batch_idx + 1)
                 )
                 for batch_idx in range(64)
             ]
@@ -127,8 +131,7 @@ class CT2ComputeEmbeddingsTest(unittest.TestCase):
             time_default = timing(self.default_model)
 
             assert float(time_ct2 / time_default) < 2
-            
-            
+
 
 class int8_cpu(CT2ComputeEmbeddingsTest):
     def setUp(self):
@@ -162,5 +165,3 @@ if torch.cuda.is_available():
     class float32_cuda(CT2ComputeEmbeddingsTest):
         def setUp(self):
             super().setUp(compute_type="float32", device="cuda")
-            
-    
