@@ -97,6 +97,48 @@ class CT2Transformer(torch.nn.Module):
     def children(self):
         # Do not consider the "transformer" attribute as a child module so that it will stay on the CPU.
         return []
+    
+    def half(self):
+        self.to(dtype="float16")
+        return self
+        
+    def to(self, device: str = "", dtype: str = ""):
+        if not isinstance(device, str):
+            raise ValueError("param `dtype` needs to be of type str")
+        if not isinstance(dtype, str):
+            raise ValueError("param `dtype` needs to be of type str")
+        
+        if dtype and not ("float" in dtype or "int" in dtype):
+            raise ValueError("dtype should be one of `int8`, `float16`, `int8_float16`, `float32`")
+        elif dtype:
+            new_dtype = True
+            self.compute_type = new_dtype
+        else:
+            new_dtype = False
+        
+        if device and (device.startswith("cuda") or device.startswith("cpu")):
+            raise ValueError("for param `device`, f'cuda:{index}' or f'cpu:{index}' are supported")
+        elif device:
+            if ":" in device:
+                new_device = device.split(":")[0]
+                new_index = device.split(":")[1]
+            else:
+                new_device = device
+                new_index = 0
+        else:
+            new_device = False
+            new_index = False
+            
+        if new_device or new_dtype or new_index:        
+            self.encoder = self._ctranslate2_encoder_cls(
+                self.ct2_model_dir,
+                device=new_device,
+                device_index=new_index,
+                intra_threads=torch.get_num_threads(),
+                compute_type=self.compute_type,
+            )
+        return self
+        
 
     def forward(self, features):
         """overwrites torch forward method with CTranslate model"""
