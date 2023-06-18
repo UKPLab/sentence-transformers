@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 import os
-
+from typing import Union
 import torch
 
 from .. import SentenceTransformer
@@ -32,7 +32,7 @@ class CT2SentenceTransformer(SentenceTransformer):
         *args,
         compute_type="default",
         force=False,
-        vmap: str | None = None,
+        vmap: Union[str,None] = None,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -61,7 +61,7 @@ class CT2Transformer(torch.nn.Module):
         transformer,
         compute_type="default",
         force=False,
-        vmap: str | None = None,
+        vmap: Union[str,None] = None,
     ):
         super().__init__()
         try:
