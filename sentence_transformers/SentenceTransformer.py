@@ -250,7 +250,13 @@ class SentenceTransformer(nn.Sequential):
         pool['output'].close()
 
 
-    def encode_multi_process(self, sentences: List[str], pool: Dict[str, object], batch_size: int = 32, chunk_size: int = None):
+    def encode_multi_process(
+            self,
+            sentences: List[str],
+            pool: Dict[str, object],
+            batch_size: int = 32,
+            chunk_size: int = None,
+            normalize_embeddings: bool = False):
         """
         This method allows to run encode() on multiple GPUs. The sentences are chunked into smaller packages
         and sent to individual processes, which encode these on the different GPUs. This method is only suitable
@@ -275,12 +281,12 @@ class SentenceTransformer(nn.Sequential):
         for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, batch_size, chunk])
+                input_queue.put([last_chunk_id, batch_size, chunk, normalize_embeddings])
                 last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, batch_size, chunk])
+            input_queue.put([last_chunk_id, batch_size, chunk, normalize_embeddings])
             last_chunk_id += 1
 
         output_queue = pool['output']
@@ -295,8 +301,15 @@ class SentenceTransformer(nn.Sequential):
         """
         while True:
             try:
-                id, batch_size, sentences = input_queue.get()
-                embeddings = model.encode(sentences, device=target_device,  show_progress_bar=False, convert_to_numpy=True, batch_size=batch_size)
+                id, batch_size, sentences, normalize = input_queue.get()
+                embeddings = model.encode(
+                    sentences,
+                    device=target_device,
+                    show_progress_bar=False,
+                    convert_to_numpy=True,
+                    batch_size=batch_size,
+                    normalize_embeddings=normalize)
+
                 results_queue.put([id, embeddings])
             except queue.Empty:
                 break
