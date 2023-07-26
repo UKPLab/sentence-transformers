@@ -60,7 +60,7 @@ args = parser.parse_args()
 print(args)
 
 # The  model we want to fine-tune
-model_name = 'distilbert-base-uncased'
+model_name = args.model_name
 
 train_batch_size = args.train_batch_size           #Increasing the train batch size improves the model performance, but requires more GPU memory
 max_seq_length = args.max_seq_length            #Max length for passages. Increasing it, requires more GPU memory
