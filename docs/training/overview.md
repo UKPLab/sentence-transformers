@@ -166,6 +166,28 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
           output_path=model_save_path)
 ```
 
+However, this does not load the model and optimizer state dict from the previous training. If you wish to continue with the training weights from the previous fine-tuning, please use the save_state_dict and state_dict_path parameters:
+
+```python
+model.fit(train_objectives=[(train_dataloader, train_loss)], #first training
+          evaluator=evaluator,
+          epochs=num_epochs,
+          evaluation_steps=1000,
+          warmup_steps=warmup_steps,
+          output_path=model_save_path,
+          save_state_dict=True)
+```
+```python
+model.fit(train_objectives=[(train_dataloader, train_loss)], #continued training
+          evaluator=evaluator,
+          epochs=num_epochs,
+          evaluation_steps=1000,
+          warmup_steps=warmup_steps,
+          output_path=model_save_path,
+          state_dict_path=os.path.join(model_save_path, "state_dict.tar"))
+```
+
+
 
 ## Loading Custom SentenceTransformer Models
 Loading trained models is easy. You can specify a path:
