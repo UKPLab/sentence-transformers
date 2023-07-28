@@ -336,12 +336,14 @@ class SentenceTransformer(nn.Sequential):
         """Returns the last module of this sequential embedder"""
         return self._modules[next(reversed(self._modules))]
 
-    def save(self, path: str, model_name: Optional[str] = None, create_model_card: bool = True, train_datasets: Optional[List[str]] = None):
+    def save(self, path: str, model_name: Optional[str] = None, create_model_card: bool = True, save_state_dict: bool = False, optimizers = None, train_datasets: Optional[List[str]] = None):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
         :param path: Path on disc
         :param model_name: Optional model name
         :param create_model_card: If True, create a README.md with basic information about this model
+        :param save_state_dict: If True, saves model weights and optimizer weights if optimizers param is provided
+        :param optimizers: If save_state_dict is True, saves optimizer weights to enable continuing training on different dataset
         :param train_datasets: Optional list with the names of the datasets used to to train the model
         """
         if path is None:
@@ -377,6 +379,16 @@ class SentenceTransformer(nn.Sequential):
 
         with open(os.path.join(path, 'modules.json'), 'w') as fOut:
             json.dump(modules_config, fOut, indent=2)
+
+        if save_state_dict:
+            state_dict = {
+                'model_state_dict': self.state_dict(),
+            }
+
+            if optimizers:
+                state_dict['optimizer_state_dicts'] = [o.state_dict() for o in optimizers]
+            
+            torch.save(state_dict, os.path.join(path, 'state_dict.tar'))
 
         # Create model card
         if create_model_card:
@@ -575,6 +587,8 @@ class SentenceTransformer(nn.Sequential):
     def fit(self,
             train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
             evaluator: SentenceEvaluator = None,
+            state_dict_path: str = None,
+            save_state_dict: bool = False,
             epochs: int = 1,
             steps_per_epoch = None,
             scheduler: str = 'WarmupLinear',
@@ -601,6 +615,8 @@ class SentenceTransformer(nn.Sequential):
 
         :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
         :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
+        :param state_dict_path: If provided, loads model and optimizer state dict from file. Allows continuing training on different dataset.
+        :param save_state_dict: If True, includes model and optimizer state dict when saving checkpoints
         :param epochs: Number of epochs for training
         :param steps_per_epoch: Number of training steps per epoch. If set to None (default), one epoch is equal the DataLoader size from train_objectives.
         :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
@@ -675,6 +691,13 @@ class SentenceTransformer(nn.Sequential):
             optimizers.append(optimizer)
             schedulers.append(scheduler_obj)
 
+        if state_dict_path:
+          checkpoint = torch.load(state_dict_path)
+          self.load_state_dict(checkpoint['model_state_dict'])
+          if len(checkpoint['optimizer_state_dicts']) != len(optimizers):
+              raise Exception(f'State dict has {len(checkpoint["optimizer_state_dicts"])} optimizer entries, but model has {len(optimizers)}! Are you sure the state dict is from this model?')
+          for i in range(len(optimizers)):
+            optimizers[i].load_state_dict(checkpoint['optimizer_state_dicts'][i])
 
         global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
@@ -741,16 +764,16 @@ class SentenceTransformer(nn.Sequential):
                         loss_model.train()
 
                 if checkpoint_path is not None and checkpoint_save_steps is not None and checkpoint_save_steps > 0 and global_step % checkpoint_save_steps == 0:
-                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
+                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step, save_state_dict=save_state_dict, optimizers=optimizers)
 
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
         if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
-            self.save(output_path)
+            self.save(output_path, save_state_dict=save_state_dict, optimizers=optimizers)
 
         if checkpoint_path is not None:
-            self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
+            self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step, save_state_dict=save_state_dict, optimizers=optimizers)
 
 
 
@@ -784,9 +807,9 @@ class SentenceTransformer(nn.Sequential):
                 if save_best_model:
                     self.save(output_path)
 
-    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step):
+    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step, save_state_dict: bool = False, optimizers = None):
         # Store new checkpoint
-        self.save(os.path.join(checkpoint_path, str(step)))
+        self.save(os.path.join(checkpoint_path, str(step)), save_state_dict=save_state_dict, optimizers=optimizers)
 
         # Delete old checkpoints
         if checkpoint_save_total_limit is not None and checkpoint_save_total_limit > 0:
