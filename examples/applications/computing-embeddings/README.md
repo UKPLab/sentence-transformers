@@ -9,7 +9,7 @@ model = SentenceTransformer('all-MiniLM-L6-v2')
 
 #Our sentences we like to encode
 sentences = ['This framework generates embeddings for each input sentence',
-    'Sentences are passed as a list of string.', 
+    'Sentences are passed as a list of strings.', 
     'The quick brown fox jumps over the lazy dog.']
 
 #Sentences are encoded by calling model.encode()
@@ -50,7 +50,7 @@ The relevant method to encode a set of sentences / texts is `model.encode()`. In
 ## Input Sequence Length
 Transformer models like BERT / RoBERTa / DistilBERT etc. the runtime and the memory requirement grows quadratic with the input length. This limits transformers to inputs of certain lengths. A common value for BERT & Co. are 512 word pieces, which corresponds to about 300-400 words (for English). Longer texts than this are truncated to the first x word pieces.
 
-By default, the provided methods use a limit fo 128 word pieces, longer inputs will be truncated. You can get and set the maximal sequence length like this:
+By default, the provided methods use a limit of 128 word pieces, longer inputs will be truncated. You can get and set the maximal sequence length like this:
  
 ```python
 from sentence_transformers import SentenceTransformer
@@ -95,7 +95,7 @@ with open('embeddings.pkl', "rb") as fIn:
 
 ## Multi-Process / Multi-GPU Encoding
 
-You can encode input texts with more than one GPU (or with multiple processes on a CPU machine). For an example, see: [computing_embeddings_mutli_gpu.py](computing_embeddings_mutli_gpu.py).
+You can encode input texts with more than one GPU (or with multiple processes on a CPU machine). For an example, see: [computing_embeddings_multi_gpu.py](computing_embeddings_multi_gpu.py).
 
 The relevant method is `start_multi_process_pool()`, which starts multiple processes that are used for encoding.
 
