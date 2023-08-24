@@ -17,7 +17,7 @@ class CEBinaryAccuracyEvaluator:
 
     See CEBinaryClassificationEvaluator for an evaluator that determines automatically the optimal threshold.
     """
-    def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str='', threshold: float = 0.5, write_csv: bool = True):
+    def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str='', threshold: float = 0.5, write_csv: bool = True, eval_batch_size: int = 32):
         self.sentence_pairs = sentence_pairs
         self.labels = labels
         self.name = name
@@ -26,6 +26,7 @@ class CEBinaryAccuracyEvaluator:
         self.csv_file = "CEBinaryAccuracyEvaluator" + ("_" + name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps", "Accuracy"]
         self.write_csv = write_csv
+        self.eval_batch_size = eval_batch_size
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -47,7 +48,7 @@ class CEBinaryAccuracyEvaluator:
             out_txt = ":"
 
         logger.info("CEBinaryAccuracyEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
-        pred_scores = model.predict(self.sentence_pairs, convert_to_numpy=True, show_progress_bar=False)
+        pred_scores = model.predict(self.sentence_pairs, batch_size=self.eval_batch_size, convert_to_numpy=True, show_progress_bar=False)
         pred_labels = pred_scores > self.threshold
 
         assert len(pred_labels) == len(self.labels)
