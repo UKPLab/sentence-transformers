@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 import json
 import logging
 import os
@@ -587,6 +588,7 @@ class SentenceTransformer(nn.Sequential):
             save_best_model: bool = True,
             max_grad_norm: float = 1,
             use_amp: bool = False,
+            bf16_amp: bool = False,
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True,
             checkpoint_path: str = None,
@@ -707,10 +709,12 @@ class SentenceTransformer(nn.Sequential):
                     labels = labels.to(self._target_device)
                     features = list(map(lambda batch: batch_to_device(batch, self._target_device), features))
 
-                    if use_amp:
-                        with autocast():
-                            loss_value = loss_model(features, labels)
+                    fwd_pass_context = autocast(dtype=torch.bfloat16 if bf16_amp else torch.float16) if use_amp else nullcontext()
+                    with fwd_pass_context:
+                        loss_value = loss_model(features, labels)
 
+                    if use_amp and not bf16_amp:
+                        # Scaler isn't necessary for bfloat16
                         scale_before_step = scaler.get_scale()
                         scaler.scale(loss_value).backward()
                         scaler.unscale_(optimizer)
