@@ -1,4 +1,5 @@
 
+from contextlib import nullcontext
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoConfig
 import numpy as np
 import logging
@@ -116,6 +117,7 @@ class CrossEncoder():
             save_best_model: bool = True,
             max_grad_norm: float = 1,
             use_amp: bool = False,
+            bf16_amp: bool = False,
             callback: Callable[[float, int, int], None] = None,
             show_progress_bar: bool = True
             ):
@@ -184,14 +186,17 @@ class CrossEncoder():
             self.model.train()
 
             for features, labels in tqdm(train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
-                if use_amp:
-                    with autocast():
-                        model_predictions = self.model(**features, return_dict=True)
-                        logits = activation_fct(model_predictions.logits)
-                        if self.config.num_labels == 1:
-                            logits = logits.view(-1)
-                        loss_value = loss_fct(logits, labels)
+                fwd_pass_context = autocast(dtype=torch.bfloat16 if bf16_amp else torch.float16) if use_amp else nullcontext()
 
+                with fwd_pass_context:
+                    model_predictions = self.model(**features, return_dict=True)
+                    logits = activation_fct(model_predictions.logits)
+                    if self.config.num_labels == 1:
+                        logits = logits.view(-1)
+                    loss_value = loss_fct(logits, labels)
+
+                if use_amp and not bf16_amp:
+                    # Scaler isn't necessary for bfloat16
                     scale_before_step = scaler.get_scale()
                     scaler.scale(loss_value).backward()
                     scaler.unscale_(optimizer)
@@ -201,11 +206,6 @@ class CrossEncoder():
 
                     skip_scheduler = scaler.get_scale() != scale_before_step
                 else:
-                    model_predictions = self.model(**features, return_dict=True)
-                    logits = activation_fct(model_predictions.logits)
-                    if self.config.num_labels == 1:
-                        logits = logits.view(-1)
-                    loss_value = loss_fct(logits, labels)
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     optimizer.step()
