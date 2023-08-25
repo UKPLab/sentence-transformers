@@ -70,13 +70,13 @@ def dot_score(a: Tensor, b: Tensor):
     return torch.mm(a, b.transpose(0, 1))
 
 
-def _get_cos_sim_mean_std(a: Tensor):
+def _get_cos_sim_mean_std(a: Tensor, b: Tensor):
     """
     Computes the mean and standard deviation of the cosine similarity scores
     for a set of embeddings.
     :return: Tuple with mean and standard deviation
     """
-    cos_scores = cos_sim(a, a)
+    cos_scores = cos_sim(a, b)
     return cos_scores.mean(axis=1), cos_scores.std(axis=1)
 
 
@@ -108,10 +108,9 @@ def surprise_dev(a: Tensor, b: Tensor, ensemble: Optional[Tensor] = None):
     `SurpriseScore` class instead as it stores intermediate results for efficiency.
     :return: Surprise score
     """
-    if ensemble is not None:
-        mean, std = _get_cos_sim_mean_std(ensemble)
-    else:
-        mean, std = _get_cos_sim_mean_std(b)
+    if ensemble is None:
+        ensemble = b
+    mean, std = _get_cos_sim_mean_std(b, ensemble)
     return _surprise_dev(a, b, mean, std)
 
 def surprise_score(a: Tensor, b: Tensor, ensemble: Optional[Tensor] = None):
@@ -128,7 +127,7 @@ def surprise_score(a: Tensor, b: Tensor, ensemble: Optional[Tensor] = None):
     return _normalize_surprise_dev(surprise_dev(a, b, ensemble))
 
 class SurpriseScore:
-    def __init__(self, ensemble: Tensor, normalize: bool = True):
+    def __init__(self, ensemble_embeddings: Tensor, normalize: bool = True):
         """
         Computes the surprise score for a pair of embeddings as defined in
         https://arxiv.org/abs/2308.09765. To increase performance for multiple inferences with the
@@ -138,7 +137,8 @@ class SurpriseScore:
         If you encounter floating point precision errors leading to an accumulation of scores with
         a value of 1, consider setting `normalize` to `False`.
         """
-        self.mean, self.std = _get_cos_sim_mean_std(ensemble)
+        self.ensemble = ensemble_embeddings
+        self.mean, self.std = None, None
         self.normalize = normalize
 
     def __call__(self, a: Tensor, b: Tensor):
@@ -146,6 +146,8 @@ class SurpriseScore:
         Computes the surprise score for a pair of embeddings.
         :return: Surprise score
         """
+        if self.mean is None or self.std is None:
+            self.mean, self.std = _get_cos_sim_mean_std(b, self.ensemble)
         surprise_dev = _surprise_dev(a, b, self.mean, self.std)
         if self.normalize:
             return _normalize_surprise_dev(surprise_dev)
