@@ -77,7 +77,7 @@ def _get_cos_sim_mean_std(a: Tensor):
     :return: Tuple with mean and standard deviation
     """
     cos_scores = cos_sim(a, a)
-    return cos_scores.median(axis=1), cos_scores.std(axis=1)
+    return cos_scores.mean(axis=1), cos_scores.std(axis=1)
 
 
 def _surprise_score(a: Tensor, b: Tensor, mean: Tensor, std: Tensor):
