@@ -70,6 +70,57 @@ def dot_score(a: Tensor, b: Tensor):
     return torch.mm(a, b.transpose(0, 1))
 
 
+def _get_cos_sim_mean_std(a: Tensor):
+    """
+    Computes the mean and standard deviation of the cosine similarity scores
+    for a set of embeddings.
+    :return: Tuple with mean and standard deviation
+    """
+    cos_scores = cos_sim(a, a)
+    return cos_scores.median(axis=1), cos_scores.std(axis=1)
+
+
+def _surprise_score(a: Tensor, b: Tensor, mean: Tensor, std: Tensor):
+    """
+    Computes the surprise score for a pair of embeddings,
+    given the mean and standard deviation of the ensemble.
+    :return: Surprise score
+    """
+    cos_scores = cos_sim(a, b)
+    surprise_devs = (cos_scores - mean) / std
+    return (1 + torch.erf(surprise_devs / 2**0.5)) / 2
+
+
+def surprise_score(a: Tensor, b: Tensor):
+    """
+    Computes the surprise score for a pair of embeddings as defined in
+    https://arxiv.org/abs/2308.09765. The second argument, `b`, is used as the ensemble.
+    If you plan to use this function multiple times with the same ensemble, consider
+    using the SurpriseScore class instead, as it will be more efficient.
+    :return: Surprise score
+    """
+    mean, std = _get_cos_sim_mean_std(b)
+    return _surprise_score(a, b, mean, std)
+
+
+class SurpriseScore:
+    def __init__(self, ensemble: Tensor):
+        """
+        Computes the surprise score for a pair of embeddings as defined in
+        https://arxiv.org/abs/2308.09765. To increase performance for multiple inferences with the
+        same ensemble, this class stores the mean and standard deviation of the cosine similarity
+        of the ensemble.
+        """
+        self.mean, self.std = _get_cos_sim_mean_std(ensemble)
+
+    def __call__(self, a: Tensor, b: Tensor):
+        """
+        Computes the surprise score for a pair of embeddings.
+        :return: Surprise score
+        """
+        return _surprise_score(a, b, self.mean, self.std)
+
+
 def pairwise_dot_score(a: Tensor, b: Tensor):
     """
    Computes the pairwise dot-product dot_prod(a[i], b[i])
