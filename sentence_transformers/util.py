@@ -80,49 +80,77 @@ def _get_cos_sim_mean_std(a: Tensor):
     return cos_scores.mean(axis=1), cos_scores.std(axis=1)
 
 
-def _surprise_score(a: Tensor, b: Tensor, mean: Tensor, std: Tensor):
+def _surprise_dev(a: Tensor, b: Tensor, mean: Tensor, std: Tensor):
     """
     Computes the surprise score for a pair of embeddings,
     given the mean and standard deviation of the ensemble.
     :return: Surprise score
     """
     cos_scores = cos_sim(a, b)
-    surprise_devs = (cos_scores - mean) / std
-    return (1 + torch.erf(surprise_devs / 2**0.5)) / 2
+    return (cos_scores - mean) / std
 
 
-def surprise_score(a: Tensor, b: Tensor, ensemble: Optional[Tensor] = None):
+def _normalize_surprise_dev(a: Tensor):
     """
-    Computes the surprise score for a pair of embeddings as defined in
-    https://arxiv.org/abs/2308.09765. If no `ensemble` is provided, the second argument, `b`, is
-    used as the ensemble. If you plan to use this function multiple times with the same ensemble,
-    consider using the SurpriseScore class instead as it stores intermediate results for efficiency.
+    Normalize the surprise_dev to be between 0 and 1
+    :return: Normalized surprise score
+    """
+    return (1 + torch.erf(a / 2**0.5)) / 2
+
+
+def surprise_dev(a: Tensor, b: Tensor, ensemble: Optional[Tensor] = None):
+    """
+    Computes the surprise deviations for a pair of embeddings as defined in
+    https://arxiv.org/abs/2308.09765.
+    If you need the score to be between 0 and 1, consider using `surprise_score` instead.
+    If no `ensemble` is provided, the second argument, `b`, is used as the ensemble.
+    If you plan to use this function multiple times with the same ensemble, consider using the
+    `SurpriseScore` class instead as it stores intermediate results for efficiency.
     :return: Surprise score
     """
     if ensemble is not None:
         mean, std = _get_cos_sim_mean_std(ensemble)
     else:
         mean, std = _get_cos_sim_mean_std(b)
-    return _surprise_score(a, b, mean, std)
+    return _surprise_dev(a, b, mean, std)
 
+def surprise_score(a: Tensor, b: Tensor, ensemble: Optional[Tensor] = None):
+    """
+    Computes the surprise score for a pair of embeddings as defined in
+    https://arxiv.org/abs/2308.09765.
+    This function is subject to floating point precision errors leading to accumulation of
+    scores with a score of 1. If this is an issue, consider using `surprise_dev` instead.
+    If no `ensemble` is provided, the second argument, `b`, is used as the ensemble.
+    If you plan to use this function multiple times with the same ensemble, consider using the
+    `SurpriseScore` class instead as it stores intermediate results for efficiency.
+    :return: Surprise score
+    """
+    return _normalize_surprise_dev(surprise_dev(a, b, ensemble))
 
 class SurpriseScore:
-    def __init__(self, ensemble: Tensor):
+    def __init__(self, ensemble: Tensor, normalize: bool = True):
         """
         Computes the surprise score for a pair of embeddings as defined in
         https://arxiv.org/abs/2308.09765. To increase performance for multiple inferences with the
         same ensemble, this class stores the mean and standard deviation of the cosine similarity
         of the ensemble.
+        If `normalize` is set to `True`, the score will be between 0 and 1.
+        If you encounter floating point precision errors leading to an accumulation of scores with
+        a value of 1, consider setting `normalize` to `False`.
         """
         self.mean, self.std = _get_cos_sim_mean_std(ensemble)
+        self.normalize = normalize
 
     def __call__(self, a: Tensor, b: Tensor):
         """
         Computes the surprise score for a pair of embeddings.
         :return: Surprise score
         """
-        return _surprise_score(a, b, self.mean, self.std)
-
+        surprise_dev = _surprise_dev(a, b, self.mean, self.std)
+        if self.normalize:
+            return _normalize_surprise_dev(surprise_dev)
+        else:
+            return surprise_dev
 
 def pairwise_dot_score(a: Tensor, b: Tensor):
     """
