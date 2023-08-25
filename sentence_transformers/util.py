@@ -91,15 +91,18 @@ def _surprise_score(a: Tensor, b: Tensor, mean: Tensor, std: Tensor):
     return (1 + torch.erf(surprise_devs / 2**0.5)) / 2
 
 
-def surprise_score(a: Tensor, b: Tensor):
+def surprise_score(a: Tensor, b: Tensor, ensemble: Optional[Tensor] = None):
     """
     Computes the surprise score for a pair of embeddings as defined in
-    https://arxiv.org/abs/2308.09765. The second argument, `b`, is used as the ensemble.
-    If you plan to use this function multiple times with the same ensemble, consider
-    using the SurpriseScore class instead, as it will be more efficient.
+    https://arxiv.org/abs/2308.09765. If no `ensemble` is provided, the second argument, `b`, is
+    used as the ensemble. If you plan to use this function multiple times with the same ensemble,
+    consider using the SurpriseScore class instead as it stores intermediate results for efficiency.
     :return: Surprise score
     """
-    mean, std = _get_cos_sim_mean_std(b)
+    if ensemble is not None:
+        mean, std = _get_cos_sim_mean_std(ensemble)
+    else:
+        mean, std = _get_cos_sim_mean_std(b)
     return _surprise_score(a, b, mean, std)
 
 
