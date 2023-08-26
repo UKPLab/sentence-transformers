@@ -70,6 +70,91 @@ def dot_score(a: Tensor, b: Tensor):
     return torch.mm(a, b.transpose(0, 1))
 
 
+def _get_cos_sim_mean_std(a: Tensor, b: Tensor):
+    """
+    Computes the mean and standard deviation of the cosine similarity scores
+    for a set of embeddings.
+    :return: Tuple with mean and standard deviation
+    """
+    cos_scores = cos_sim(a, b)
+    return cos_scores.mean(axis=1), cos_scores.std(axis=1)
+
+
+def _surprise_dev(a: Tensor, b: Tensor, mean: Tensor, std: Tensor):
+    """
+    Computes the surprise score for a pair of embeddings,
+    given the mean and standard deviation of the ensemble.
+    :return: Surprise score
+    """
+    cos_scores = cos_sim(a, b)
+    return (cos_scores - mean) / std
+
+
+def _normalize_surprise_dev(a: Tensor):
+    """
+    Normalize the surprise_dev to be between 0 and 1
+    :return: Normalized surprise score
+    """
+    return (1 + torch.erf(a / 2**0.5)) / 2
+
+
+def surprise_dev(a: Tensor, b: Tensor, ensemble: Optional[Tensor] = None):
+    """
+    Computes the surprise deviations for a pair of embeddings as defined in
+    https://arxiv.org/abs/2308.09765.
+    If you need the score to be between 0 and 1, consider using `surprise_score` instead.
+    If no `ensemble` is provided, the second argument, `b`, is used as the ensemble.
+    If you plan to use this function multiple times with the same ensemble, consider using the
+    `SurpriseScore` class instead as it stores intermediate results for efficiency.
+    :return: Surprise score
+    """
+    if ensemble is None:
+        ensemble = b
+    mean, std = _get_cos_sim_mean_std(b, ensemble)
+    return _surprise_dev(a, b, mean, std)
+
+def surprise_score(a: Tensor, b: Tensor, ensemble: Optional[Tensor] = None):
+    """
+    Computes the surprise score for a pair of embeddings as defined in
+    https://arxiv.org/abs/2308.09765.
+    This function is subject to floating point precision errors leading to accumulation of
+    scores with a score of 1. If this is an issue, consider using `surprise_dev` instead.
+    If no `ensemble` is provided, the second argument, `b`, is used as the ensemble.
+    If you plan to use this function multiple times with the same ensemble, consider using the
+    `SurpriseScore` class instead as it stores intermediate results for efficiency.
+    :return: Surprise score
+    """
+    return _normalize_surprise_dev(surprise_dev(a, b, ensemble))
+
+class SurpriseScore:
+    def __init__(self, ensemble_embeddings: Tensor, normalize: bool = True):
+        """
+        Computes the surprise score for a pair of embeddings as defined in
+        https://arxiv.org/abs/2308.09765. To increase performance for multiple inferences with the
+        same ensemble, this class stores the mean and standard deviation of the cosine similarity
+        of the ensemble.
+        If `normalize` is set to `True`, the score will be between 0 and 1.
+        If you encounter floating point precision errors leading to an accumulation of scores with
+        a value of 1, consider setting `normalize` to `False`.
+        """
+        self.ensemble = ensemble_embeddings
+        self.mean, self.std, self.b_id = None, None, None
+        self.normalize = normalize
+
+    def __call__(self, a: Tensor, b: Tensor):
+        """
+        Computes the surprise score for a pair of embeddings.
+        :return: Surprise score
+        """
+        if self.mean is None or self.std is None or id(b) != self.b_id:
+            self.mean, self.std = _get_cos_sim_mean_std(b, self.ensemble)
+            self.b_id = id(b)
+        surprise_dev = _surprise_dev(a, b, self.mean, self.std)
+        if self.normalize:
+            return _normalize_surprise_dev(surprise_dev)
+        else:
+            return surprise_dev
+
 def pairwise_dot_score(a: Tensor, b: Tensor):
     """
    Computes the pairwise dot-product dot_prod(a[i], b[i])

@@ -75,5 +75,57 @@ class UtilTest(unittest.TestCase):
         pytorch_cos_scores = util.pairwise_cos_sim(a, b).numpy()
         assert np.allclose(sklearn_pairwise, pytorch_cos_scores)
 
+
+    def test_surprise_score(self):
+        a = np.random.randn(10, 100)
+        b = np.random.randn(20, 100)
+        ensemble = np.random.randn(30, 100)
+
+        scores = util.surprise_score(a, b, ensemble)
+        self.assertEqual(scores.shape, (10,20))
+        self.assertTrue(torch.all(torch.isfinite(scores)))
+        self.assertTrue(torch.all(scores >= 0))
+        self.assertTrue(torch.all(scores <= 1))
+
+    def test_surprise_score_normalize(self):
+        a = np.random.randn(10, 100)
+        b = np.random.randn(20, 100)
+        ensemble = np.random.randn(30, 100)
+
+        score = util.surprise_score(a, b, ensemble)
+        score_no_norm = util.SurpriseScore(ensemble, normalize=True)(a, b)
+        self.assertTrue(torch.allclose(score, score_no_norm))
+
+
+    def test_surprise_score_no_normalize(self):
+        a = np.random.randn(10, 100)
+        b = np.random.randn(20, 100)
+        ensemble = np.random.randn(30, 100)
+
+        score = util.surprise_dev(a, b, ensemble)
+        score_no_norm = util.SurpriseScore(ensemble, normalize=False)(a, b)
+        self.assertTrue(torch.allclose(score, score_no_norm))
+
+    def test_surprise_score_class(self):
+        a = np.random.randn(10, 100)
+        b = np.random.randn(20, 100)
+        ensemble = np.random.randn(30, 100)
+
+        scorer = util.SurpriseScore(ensemble)
+        score_b = scorer(a, b)
+        mean_b, std_b = scorer.mean, scorer.std
+
+        c = np.random.randn(40, 100)
+        score_c = scorer(a, c)
+        mean_c, std_c = scorer.mean, scorer.std
+
+        self.assertEqual(mean_b.shape, (20,))
+        self.assertEqual(std_b.shape, (20,))
+        self.assertEqual(score_b.shape, (10,20))
+        self.assertEqual(mean_c.shape, (40,))
+        self.assertEqual(std_c.shape, (40,))
+        self.assertEqual(score_c.shape, (10,40))
+
+
 if "__main__" == __name__:
     unittest.main()
