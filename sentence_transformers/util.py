@@ -138,7 +138,7 @@ class SurpriseScore:
         a value of 1, consider setting `normalize` to `False`.
         """
         self.ensemble = ensemble_embeddings
-        self.mean, self.std = None, None
+        self.mean, self.std, self.b_id = None, None, None
         self.normalize = normalize
 
     def __call__(self, a: Tensor, b: Tensor):
@@ -146,8 +146,9 @@ class SurpriseScore:
         Computes the surprise score for a pair of embeddings.
         :return: Surprise score
         """
-        if self.mean is None or self.std is None:
+        if self.mean is None or self.std is None or id(b) != self.b_id:
             self.mean, self.std = _get_cos_sim_mean_std(b, self.ensemble)
+            self.b_id = id(b)
         surprise_dev = _surprise_dev(a, b, self.mean, self.std)
         if self.normalize:
             return _normalize_surprise_dev(surprise_dev)
