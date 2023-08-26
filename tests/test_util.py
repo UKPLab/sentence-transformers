@@ -112,17 +112,19 @@ class UtilTest(unittest.TestCase):
         ensemble = np.random.randn(30, 100)
 
         scorer = util.SurpriseScore(ensemble)
-        _ = scorer(a, b)
+        score_b = scorer(a, b)
         mean_b, std_b = scorer.mean, scorer.std
 
         c = np.random.randn(40, 100)
-        _ = scorer(a, c)
+        score_c = scorer(a, c)
         mean_c, std_c = scorer.mean, scorer.std
 
         self.assertEqual(mean_b.shape, (20,))
         self.assertEqual(std_b.shape, (20,))
+        self.assertEqual(score_b.shape, (10,20))
         self.assertEqual(mean_c.shape, (40,))
         self.assertEqual(std_c.shape, (40,))
+        self.assertEqual(score_c.shape, (10,40))
 
 
 if "__main__" == __name__:
