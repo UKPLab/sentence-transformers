@@ -24,14 +24,14 @@ class NoDuplicatesDataLoader:
 
                 valid_example = True
                 for text in example.texts:
-                    if self.text_to_str(text).strip().lower() in texts_in_batch:
+                    if self._text_to_str(text).strip().lower() in texts_in_batch:
                         valid_example = False
                         break
 
                 if valid_example:
                     batch.append(example)
                     for text in example.texts:
-                        texts_in_batch.add(self.text_to_str(text).strip().lower())
+                        texts_in_batch.add(self._text_to_str(text).strip().lower())
 
                 self.data_pointer += 1
                 if self.data_pointer >= len(self.train_examples):
