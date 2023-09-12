@@ -2,6 +2,7 @@
 .vscode
 *.pyc
 *.gz
+*.zip
 *.tsv
 tmp_*.py
 /examples/**/output/*
