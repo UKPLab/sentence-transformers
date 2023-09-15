@@ -26,6 +26,7 @@ class Transformer(nn.Module):
         self.do_lower_case = do_lower_case
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
+        print("\033[33m config of type", type(config), "\033[0m")
         self._load_model(model_name_or_path, config, cache_dir, **model_args)
 
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path if tokenizer_name_or_path is not None else model_name_or_path, cache_dir=cache_dir, **tokenizer_args)
