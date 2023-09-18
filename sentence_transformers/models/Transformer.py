@@ -55,7 +55,9 @@ class Transformer(nn.Module):
 
     def _load_opt_model(self, model_name_or_path, config, cache_dir, **model_args):
         from optimum.onnxruntime import ORTModelForFeatureExtraction
-        self.auto_model = ORTModelForFeatureExtraction.from_pretrained(model_name_or_path, config=config, cache_dir=cache_dir, **model_args)
+        self.auto_model = ORTModelForFeatureExtraction.from_pretrained(model_name_or_path, config=config,
+                                                                       provider="CUDAExecutionProvider",
+                                                                       cache_dir=cache_dir, **model_args)
 
     def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args):
         """Loads the encoder model from T5"""
