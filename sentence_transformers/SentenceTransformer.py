@@ -114,6 +114,7 @@ class SentenceTransformer(nn.Sequential):
                output_value: str = 'sentence_embedding',
                convert_to_numpy: bool = True,
                convert_to_tensor: bool = False,
+               transfer_to_cpu = False,
                device: str = None,
                normalize_embeddings: bool = False) -> Union[List[Tensor], ndarray, Tensor]:
         """
@@ -125,6 +126,7 @@ class SentenceTransformer(nn.Sequential):
         :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings. Set to None, to get all output values
         :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
         :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from convert_to_numpy
+        :param transfer_to_cpu: If true, the output_value will be detached and moved to cpu. This helps avoid Cuda Out-of-memory issues.
         :param device: Which torch.device to use for the computation
         :param normalize_embeddings: If set to true, returned vectors will have length 1. In that case, the faster dot-product (util.dot_score) instead of cosine similarity can be used.
 
@@ -163,6 +165,11 @@ class SentenceTransformer(nn.Sequential):
 
             with torch.no_grad():
                 out_features = self.forward(features)
+                
+                # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
+                if transfer_to_cpu:
+                    for name in out_features:
+                        out_features[name] = out_features[name].detach().to('cpu')
 
                 if output_value == 'token_embeddings':
                     embeddings = []
@@ -182,11 +189,8 @@ class SentenceTransformer(nn.Sequential):
                     embeddings = embeddings.detach()
                     if normalize_embeddings:
                         embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
-
-                    # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
-                    if convert_to_numpy:
-                        embeddings = embeddings.cpu()
-
+                        
+                # Save this batch's embeddings in preparation for the next batch
                 all_embeddings.extend(embeddings)
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
