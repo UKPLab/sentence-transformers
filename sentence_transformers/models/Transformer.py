@@ -18,10 +18,17 @@ class Transformer(nn.Module):
     :param tokenizer_name_or_path: Name or path of the tokenizer. When None, then model_name_or_path is used
     """
     def __init__(self, model_name_or_path: str, max_seq_length: Optional[int] = None,
-                 model_args: Dict = {}, cache_dir: Optional[str] = None,
-                 tokenizer_args: Dict = {}, do_lower_case: bool = False,
-                 tokenizer_name_or_path : str = None):
+                 model_args: Dict = None, cache_dir: Optional[str] = None,
+                 tokenizer_args: Dict = None, do_lower_case: bool = False,
+                 tokenizer_name_or_path: str = None):
         super(Transformer, self).__init__()
+
+        if model_args is None:
+            model_args = {}
+
+        if tokenizer_args is None:
+            tokenizer_args = {}
+
         self.config_keys = ['max_seq_length', 'do_lower_case']
         self.do_lower_case = do_lower_case
 
@@ -133,7 +140,7 @@ class Transformer(nn.Module):
             json.dump(self.get_config_dict(), fOut, indent=2)
 
     @staticmethod
-    def load(input_path: str):
+    def load(input_path: str, model_args=None):
         #Old classes used other config names than 'sentence_bert_config.json'
         for config_name in ['sentence_bert_config.json', 'sentence_roberta_config.json', 'sentence_distilbert_config.json', 'sentence_camembert_config.json', 'sentence_albert_config.json', 'sentence_xlm-roberta_config.json', 'sentence_xlnet_config.json']:
             sbert_config_path = os.path.join(input_path, config_name)
@@ -142,7 +149,8 @@ class Transformer(nn.Module):
 
         with open(sbert_config_path) as fIn:
             config = json.load(fIn)
-        return Transformer(model_name_or_path=input_path, **config)
+
+        return Transformer(model_name_or_path=input_path, model_args=model_args, **config)
 
 
 

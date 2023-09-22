@@ -39,13 +39,18 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models. Can be also set by SENTENCE_TRANSFORMERS_HOME enviroment variable.
     :param use_auth_token: HuggingFace authentication token to download private models.
+    :param custom_hf_params: An optional dict with Huggingface model params. This can, for instance, be useful when
+                             using DDP for multi-GPU training, where we need to disable the unused
+                             Huggingface transformer pooling layer, e.g.:
+
+                             { "add_pooling_layer": False }
     """
     def __init__(self, model_name_or_path: Optional[str] = None,
                  modules: Optional[Iterable[nn.Module]] = None,
                  device: Optional[str] = None,
                  cache_folder: Optional[str] = None,
-                 use_auth_token: Union[bool, str, None] = None
-                 ):
+                 use_auth_token: Union[bool, str, None] = None,
+                 custom_hf_params: Optional[dict] = None):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -91,10 +96,13 @@ class SentenceTransformer(nn.Sequential):
                                         ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'],
                                         use_auth_token=use_auth_token)
 
+            if custom_hf_params is not None:
+                logging.info(f"Using custom Huggingface transformer model params: {custom_hf_params}")
+
             if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
-                modules = self._load_sbert_model(model_path)
+                modules = self._load_sbert_model(model_path, custom_hf_params)
             else:   #Load with AutoModel
-                modules = self._load_auto_model(model_path)
+                modules = self._load_auto_model(model_path, custom_hf_params)
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -799,20 +807,20 @@ class SentenceTransformer(nn.Sequential):
                 old_checkpoints = sorted(old_checkpoints, key=lambda x: x['step'])
                 shutil.rmtree(old_checkpoints[0]['path'])
 
-
-    def _load_auto_model(self, model_name_or_path):
+    def _load_auto_model(self, model_name_or_path, custom_hf_params=None):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
         logger.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
-        transformer_model = Transformer(model_name_or_path)
+        transformer_model = Transformer(model_name_or_path, model_args=custom_hf_params)
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
         return [transformer_model, pooling_model]
 
-    def _load_sbert_model(self, model_path):
+    def _load_sbert_model(self, model_path, custom_hf_params=None):
         """
         Loads a full sentence-transformers model
         """
+
         # Check if the config_sentence_transformers.json file exists (exists since v2 of the framework)
         config_sentence_transformers_json_path = os.path.join(model_path, 'config_sentence_transformers.json')
         if os.path.exists(config_sentence_transformers_json_path):
@@ -839,7 +847,12 @@ class SentenceTransformer(nn.Sequential):
         modules = OrderedDict()
         for module_config in modules_config:
             module_class = import_from_string(module_config['type'])
-            module = module_class.load(os.path.join(model_path, module_config['path']))
+
+            if module_class is Transformer:
+                module = module_class.load(os.path.join(model_path, module_config['path']),
+                                           model_args=custom_hf_params)
+            else:
+                module = module_class.load(os.path.join(model_path, module_config['path']))
             modules[module_config['name']] = module
 
         return modules
