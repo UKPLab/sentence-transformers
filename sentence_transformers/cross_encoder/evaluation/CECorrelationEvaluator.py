@@ -14,7 +14,7 @@ class CECorrelationEvaluator:
     it compute the pearson & spearman correlation between the predicted score for the sentence pair
     and the gold score.
     """
-    def __init__(self, sentence_pairs: List[List[str]], scores: List[float], name: str='', write_csv: bool = True):
+    def __init__(self, sentence_pairs: List[List[str]], scores: List[float], name: str='', write_csv: bool = True, eval_batch_size: int = 32):
         self.sentence_pairs = sentence_pairs
         self.scores = scores
         self.name = name
@@ -22,6 +22,7 @@ class CECorrelationEvaluator:
         self.csv_file = "CECorrelationEvaluator" + ("_" + name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps", "Pearson_Correlation", "Spearman_Correlation"]
         self.write_csv = write_csv
+        self.eval_batch_size = eval_batch_size
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -43,7 +44,7 @@ class CECorrelationEvaluator:
             out_txt = ":"
 
         logger.info("CECorrelationEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
-        pred_scores = model.predict(self.sentence_pairs, convert_to_numpy=True, show_progress_bar=False)
+        pred_scores = model.predict(self.sentence_pairs, batch_size=self.eval_batch_size, convert_to_numpy=True, show_progress_bar=False)
 
 
         eval_pearson, _ = pearsonr(self.scores, pred_scores)

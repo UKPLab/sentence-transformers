@@ -15,7 +15,7 @@ class CERerankingEvaluator:
     :param samples: Must be a list and each element is of the form: {'query': '', 'positive': [], 'negative': []}. Query is the search query,
      positive is a list of positive (relevant) documents, negative is a list of negative (irrelevant) documents.
     """
-    def __init__(self, samples, mrr_at_k: int = 10, name: str = '', write_csv: bool = True):
+    def __init__(self, samples, mrr_at_k: int = 10, name: str = '', write_csv: bool = True, eval_batch_size: int = 32):
         self.samples = samples
         self.name = name
         self.mrr_at_k = mrr_at_k
@@ -26,6 +26,7 @@ class CERerankingEvaluator:
         self.csv_file = "CERerankingEvaluator" + ("_" + name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps", "MRR@{}".format(mrr_at_k)]
         self.write_csv = write_csv
+        self.eval_batch_size = eval_batch_size
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
@@ -57,7 +58,7 @@ class CERerankingEvaluator:
             num_negatives.append(len(negative))
 
             model_input = [[query, doc] for doc in docs]
-            pred_scores = model.predict(model_input, convert_to_numpy=True, show_progress_bar=False)
+            pred_scores = model.predict(model_input, batch_size=self.eval_batch_size, convert_to_numpy=True, show_progress_bar=False)
             pred_scores_argsort = np.argsort(-pred_scores)  #Sort in decreasing order
 
             mrr_score = 0
