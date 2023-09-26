@@ -3,6 +3,7 @@ from torch import nn, Tensor
 from typing import Iterable, Dict
 from ..SentenceTransformer import SentenceTransformer
 from .. import util
+from ..util import mismatched_sizes_all_gather
 
 class MultipleNegativesRankingLoss(nn.Module):
     """
@@ -48,20 +49,33 @@ class MultipleNegativesRankingLoss(nn.Module):
         self.similarity_fct = similarity_fct
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
-
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
         embeddings_a = reps[0]
-        embeddings_b = torch.cat(reps[1:])
+        if torch.distributed.is_initialized():
 
-        scores = self.similarity_fct(embeddings_a, embeddings_b) * self.scale
-        labels = torch.tensor(range(len(scores)), dtype=torch.long, device=scores.device)  # Example a[i] should match with b[i]
-        return self.cross_entropy_loss(scores, labels)
+            embeddings_b = reps[1]
+            if len(reps) > 2:
+                embeddings_n = torch.cat(reps[2:])
+            else:
+                embeddings_n = embeddings_b[:0, :]
+            full_embeddings_b = mismatched_sizes_all_gather(embeddings_b)
+            full_embeddings_b = torch.cat(full_embeddings_b)
+            full_embeddings_n = mismatched_sizes_all_gather(embeddings_n)
+            full_embeddings_n = torch.cat(full_embeddings_n)
+            candidates = torch.cat([full_embeddings_b, full_embeddings_n])
+
+            scores = self.similarity_fct(embeddings_a, candidates) * self.scale
+            labels = torch.tensor(range(len(scores)), dtype=torch.long, device=scores.device)\
+                     + len(scores) * torch.distributed.get_rank()
+            return self.cross_entropy_loss(scores, labels)
+
+        else:
+            candidates = torch.cat(reps[1:])
+            scores = self.similarity_fct(embeddings_a, candidates) * self.scale
+            labels = torch.tensor(range(len(scores)), dtype=torch.long,
+                                  device=scores.device)  # Example a[i] should match with b[i]
+            return self.cross_entropy_loss(scores, labels)
 
     def get_config_dict(self):
         return {'scale': self.scale, 'similarity_fct': self.similarity_fct.__name__}
-
-
-
-
-

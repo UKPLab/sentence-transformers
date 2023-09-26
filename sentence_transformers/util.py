@@ -308,6 +308,62 @@ def batch_to_device(batch, target_device: device):
 
 
 
+# from https://github.com/vlkit/vlkit/blob/master/vlkit/ops/distributed.py
+class AllGather(torch.autograd.Function):
+    """
+    all_gather with gradient back-propagation
+    """
+    @staticmethod
+    def forward(ctx, tensor_list, tensor, group, async_op):
+        torch.distributed.all_gather(tensor_list, tensor, group=group, async_op=async_op)
+        return tuple(tensor_list)
+
+    @staticmethod
+    def backward(ctx, *grad_list):
+        grad_list = list(grad_list)
+        rank = torch.distributed.get_rank()
+
+        dist_ops = [
+            torch.distributed.reduce(grad_list[i], i, async_op=True) for i in range(torch.distributed.get_world_size())
+        ]
+
+        for op in dist_ops:
+            op.wait()
+
+        return None, grad_list[rank], None, None
+
+
+all_gather_with_grad = AllGather.apply
+
+
+def mismatched_sizes_all_gather(tensor: Tensor, group=None, async_op=False, mismatched_axis=0):
+    # all_gather doesn't support tensor lists where the first dimension is mismatched. This does.
+    assert torch.distributed.is_initialized(), "torch.distributed not initialized"
+    world_size = torch.distributed.get_world_size()
+    # let's get the sizes for everyone
+    mismatched_sizes = torch.tensor([tensor.shape[mismatched_axis]], dtype=torch.int64, device="cuda")
+    sizes = [torch.zeros_like(mismatched_sizes) for _ in range(world_size)]
+    torch.distributed.all_gather(sizes, mismatched_sizes, group=group, async_op=async_op)
+    sizes = torch.cat(sizes).cpu().tolist()
+    # now pad to the max dim-0 size
+    max_size = max(sizes)
+    padded = torch.zeros((*tensor.shape[:mismatched_axis], max_size, *tensor.shape[mismatched_axis+1:]),
+                         device=tensor.device, dtype=tensor.dtype)
+    # selects the place where we're adding information
+    padded_to_fill = padded.narrow(mismatched_axis, 0, tensor.shape[mismatched_axis])
+    padded_to_fill[...] = tensor
+    # gather the padded tensors
+    tensor_list = [torch.zeros(padded.shape, device=padded.device, dtype=padded.dtype) for _ in range(world_size)]
+    all_gather_with_grad(tensor_list, padded, group, async_op)
+    # trim off the padding
+    for rank in range(world_size):
+        # checks that the rest is 0
+        assert not tensor_list[rank].narrow(mismatched_axis, sizes[rank], padded.shape[mismatched_axis]-sizes[rank]).count_nonzero().is_nonzero(), \
+            "This would remove non-padding information"
+        tensor_list[rank] = tensor_list[rank].narrow(mismatched_axis, 0, sizes[rank])
+    return tensor_list
+
+
 def fullname(o):
   """
   Gives a full name (package_name.class_name) for a class / object in Python. Will
