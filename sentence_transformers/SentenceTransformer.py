@@ -106,7 +106,9 @@ class SentenceTransformer(nn.Sequential):
 
         self._target_device = torch.device(device)
 
-
+    @property
+    def score_function(self):
+        return self._model_config.get("score_function", "cos_sim")
 
     def encode(self, sentences: Union[str, List[str]],
                batch_size: int = 32,
