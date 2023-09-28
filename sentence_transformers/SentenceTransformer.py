@@ -44,7 +44,9 @@ class SentenceTransformer(nn.Sequential):
                  modules: Optional[Iterable[nn.Module]] = None,
                  device: Optional[str] = None,
                  cache_folder: Optional[str] = None,
-                 use_auth_token: Union[bool, str, None] = None
+                 use_auth_token: Union[bool, str, None] = None,
+                 model_args: Dict = None,
+                 tokenizer_args: Dict = None
                  ):
         self._model_card_vars = {}
         self._model_card_text = None
@@ -93,8 +95,8 @@ class SentenceTransformer(nn.Sequential):
 
             if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
                 modules = self._load_sbert_model(model_path)
-            else:   #Load with AutoModel
-                modules = self._load_auto_model(model_path)
+            else:  # Load with AutoModel
+                modules = self._load_auto_model(model_name_or_path, model_args, tokenizer_args)
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -799,13 +801,12 @@ class SentenceTransformer(nn.Sequential):
                 old_checkpoints = sorted(old_checkpoints, key=lambda x: x['step'])
                 shutil.rmtree(old_checkpoints[0]['path'])
 
-
-    def _load_auto_model(self, model_name_or_path):
+    def _load_auto_model(self, model_name_or_path, model_args: Dict = None, tokenizer_args: Dict = None):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
         logger.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
-        transformer_model = Transformer(model_name_or_path)
+        transformer_model = Transformer(model_name_or_path, model_args=model_args, tokenizer_args=tokenizer_args)
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
         return [transformer_model, pooling_model]
 
