@@ -1,17 +1,18 @@
 """
-This script contains an example how to perform semantic search with ElasticSearch.
+This script contains an example how to perform semantic search with Elasticsearch.
 
 As dataset, we use the Quora Duplicate Questions dataset, which contains about 500k questions:
 https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs
 
-Questions are indexed to ElasticSearch together with their respective sentence
+Questions are indexed to Elasticsearch together with their respective sentence
 embeddings.
 
 The script shows results from BM25 as well as from semantic search with
 cosine similarity.
 
-You need ElasticSearch (https://www.elastic.co/de/elasticsearch/) up and running. Further, you need the Python
-ElasticSearch Client installed: https://elasticsearch-py.readthedocs.io/en/master/
+You need Elasticsearch up and running, for example using Docker
+(https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html).
+Further, you need the Python Elasticsearch Client installed: https://elasticsearch-py.readthedocs.io/
 
 As embeddings model, we use the SBERT model 'quora-distilbert-multilingual',
 that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
@@ -21,13 +22,17 @@ return the closest questions in the corpus (questions in the corpus are mainly i
 from sentence_transformers import SentenceTransformer, util
 import os
 from elasticsearch import Elasticsearch, helpers
+from ssl import create_default_context
 import csv
 import time
 import tqdm.autonotebook
 
 
-
-es = Elasticsearch()
+es = Elasticsearch(
+    hosts=["https://localhost:9200"],
+    basic_auth=("elastic", os.environ["ELASTIC_PASSWORD"],  # displayed at ES server startup
+    ssl_context=create_default_context(cafile="http_ca.crt"),  # copied from inside ES container
+)
 
 model = SentenceTransformer('quora-distilbert-multilingual')
 
@@ -67,13 +72,15 @@ if not es.indices.exists(index="quora"):
                 },
                 "question_vector": {
                   "type": "dense_vector",
-                  "dims": 768
+                  "dims": 768,
+                  "index": True,
+                  "similarity": "cosine"
                 }
               }
             }
         }
 
-        es.indices.create(index='quora', body=es_index, ignore=[400])
+        es.indices.create(index='quora', body=es_index)
         chunk_size = 500
         print("Index data (you can stop it by pressing Ctrl+C once):")
         with tqdm.tqdm(total=len(qids)) as pbar:
@@ -113,21 +120,12 @@ while True:
     bm25 = es.search(index="quora", body={"query": {"match": {"question": inp_question }}})
 
     #Sematic search
-    sem_search = es.search(index="quora", body={
-          "query": {
-            "script_score": {
-              "query": {
-                "match_all": {}
-              },
-              "script": {
-                "source": "cosineSimilarity(params.queryVector, doc['question_vector']) + 1.0",
-                "params": {
-                  "queryVector": question_embedding
-                }
-              }
-            }
-          }
-        })
+    sem_search = es.search(index="quora", knn={
+        "field": "question_vector",
+        "query_vector": question_embedding,
+        "k": 10,
+        "num_candidates": 100
+    })
 
     print("Input question:", inp_question)
     print("Computing the embedding took {:.3f} seconds, BM25 search took {:.3f} seconds, semantic search with ES took {:.3f} seconds".format(encode_end_time-encode_start_time, bm25['took']/1000, sem_search['took']/1000))
