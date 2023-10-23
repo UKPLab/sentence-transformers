@@ -112,10 +112,28 @@ This framework allows you to fine-tune your own sentence embedding methods, so t
 See [Training Overview](https://www.sbert.net/docs/training/overview.html) for an introduction how to train your own embedding models. We provide [various examples](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training) how to train models on various datasets.
 
 Some highlights are:
+- Support of multi-GPU training
 - Support of various transformer networks including BERT, RoBERTa, XLM-R, DistilBERT, Electra, BART, ...
 - Multi-Lingual and multi-task learning
 - Evaluation during training to find optimal model
 - [10+ loss-functions](https://www.sbert.net/docs/package_reference/losses.html) allowing to tune models specifically for semantic search, paraphrase mining, semantic similarity comparison, clustering, triplet loss, contrastive loss.
+
+### Multi-GPU Training
+The following snippet of code wraps SentenceTransformer to enable multi-GPU training using Pytorch Lightning:
+```
+from SentenceTransformer_MultiGPU import SentenceTransformerMultiGPU
+from sentence_transformers import losses
+import lightning.pytorch as pl
+
+model = SentenceTransformerMultiGPU("author/any_huggingface_model", losses.CosineSimilarityLoss)
+trainer = pl.Trainer(max_epochs = 2,
+                     accelerator = 'gpu',
+                     devices = 3,
+                     strategy = 'ddp_find_unused_parameters_true',
+                     log_every_n_steps = 50)
+trainer.fit(model = model, train_dataloader = train_dataloader, val_dataloader = val_dataloader)
+```
+Please note that the dataloader expects an InputExample object out of the dataset class. For more details, take a look at the main module `SentenceTransformer_MultiGPU.py` and the example `examples/multigpi_training.py`.
 
 ## Performance
 
