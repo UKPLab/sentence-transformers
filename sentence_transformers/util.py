@@ -14,7 +14,7 @@ from pathlib import Path
 
 import huggingface_hub
 from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
-from huggingface_hub import HfApi, hf_hub_url, cached_download, HfFolder
+from huggingface_hub import HfApi, hf_hub_url, hf_hub_download, HfFolder
 import fnmatch
 from packaging import version
 import heapq
@@ -483,20 +483,17 @@ def snapshot_download(
         )
         os.makedirs(nested_dirname, exist_ok=True)
 
-        cached_download_args = {'url': url,
+        cached_download_args = {
+            'repo_id': repo_id,
+            'filename': model_file.rfilename,
+            'revision': model_info.sha,
             'cache_dir': storage_folder,
-            'force_filename': relative_filepath,
             'library_name': library_name,
             'library_version': library_version,
             'user_agent': user_agent,
-            'use_auth_token': use_auth_token}
+            'token': use_auth_token}
 
-        if version.parse(huggingface_hub.__version__) >= version.parse("0.8.1"):
-            # huggingface_hub v0.8.1 introduces a new cache layout. We sill use a manual layout
-            # And need to pass legacy_cache_layout=True to avoid that a warning will be printed
-            cached_download_args['legacy_cache_layout'] = True
-
-        path = cached_download(**cached_download_args)
+        path = hf_hub_download(**cached_download_args)
 
         if os.path.exists(path + ".lock"):
             os.remove(path + ".lock")
