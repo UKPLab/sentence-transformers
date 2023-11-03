@@ -39,12 +39,16 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models. Can be also set by SENTENCE_TRANSFORMERS_HOME enviroment variable.
     :param use_auth_token: HuggingFace authentication token to download private models.
+    :param ignore_files_when_downloading: List of files that should be ignored if they already exist when downloading a model from the HuggingFace Hub.
     """
     def __init__(self, model_name_or_path: Optional[str] = None,
                  modules: Optional[Iterable[nn.Module]] = None,
                  device: Optional[str] = None,
                  cache_folder: Optional[str] = None,
-                 use_auth_token: Union[bool, str, None] = None
+                 use_auth_token: Union[bool, str, None] = None,
+                 ignore_files_when_downloading: Iterable[str] = [
+                    'flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'
+                 ],
                  ):
         self._model_card_vars = {}
         self._model_card_text = None
@@ -81,14 +85,14 @@ class SentenceTransformer(nn.Sequential):
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
                 model_path = os.path.join(cache_folder, model_name_or_path.replace("/", "_"))
-                
+
                 if not os.path.exists(os.path.join(model_path, 'modules.json')):
                     # Download from hub with caching
                     snapshot_download(model_name_or_path,
                                         cache_dir=cache_folder,
                                         library_name='sentence-transformers',
                                         library_version=__version__,
-                                        ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'],
+                                        ignore_files=list(ignore_files_when_downloading),
                                         use_auth_token=use_auth_token)
 
             if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
