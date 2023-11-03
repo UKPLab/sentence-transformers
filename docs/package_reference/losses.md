@@ -79,6 +79,14 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 
 
 
+## MultipleNegativesSymmetricRankingLoss
+
+```eval_rst
+.. autoclass:: sentence_transformers.losses.MultipleNegativesSymmetricRankingLoss
+```
+
+
+
 ## OnlineContrastiveLoss
 ```eval_rst
 .. autoclass:: sentence_transformers.losses.OnlineContrastiveLoss
