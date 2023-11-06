@@ -19,7 +19,7 @@ setup(
     packages=find_packages(),
     python_requires=">=3.6.0",
     install_requires=[
-        'transformers>=4.6.0,<5.0.0',
+        'transformers<4.35.0',
         'tqdm',
         'torch>=1.6.0',
         'torchvision',
