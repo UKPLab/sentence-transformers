@@ -12,9 +12,9 @@ import logging
 from typing import Dict, Optional, Union
 from pathlib import Path
 
-import huggingface_hub
 from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
-from huggingface_hub import HfApi, hf_hub_url, cached_download, HfFolder
+from huggingface_hub import HfApi, hf_hub_url, cached_download, HfFolder, model_info, hf_hub_download
+from huggingface_hub.utils import EntryNotFoundError
 import fnmatch
 from packaging import version
 import heapq
@@ -419,86 +419,43 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, batch
 ######################
 
 
+def is_sentence_transformer_model(model_name_or_path: str, token: Optional[Union[bool, str]] = None) -> bool:
+    if os.path.exists(model_name_or_path):
+        return os.path.exists(os.path.join(model_name_or_path, "modules.json"))
+    else:
+        info = model_info(model_name_or_path, token=token)
+        return any(repo_file.rfilename == "modules.json" for repo_file in info.siblings)
 
-def snapshot_download(
-    repo_id: str,
-    revision: Optional[str] = None,
-    cache_dir: Union[str, Path, None] = None,
-    library_name: Optional[str] = None,
-    library_version: Optional[str] = None,
-    user_agent: Union[Dict, str, None] = None,
-    ignore_files: Optional[List[str]] = None,
-    use_auth_token: Union[bool, str, None] = None
-) -> str:
-    """
-    Method derived from huggingface_hub.
-    Adds a new parameters 'ignore_files', which allows to ignore certain files / file-patterns
-    """
-    if cache_dir is None:
-        cache_dir = HUGGINGFACE_HUB_CACHE
-    if isinstance(cache_dir, Path):
-        cache_dir = str(cache_dir)
 
-    _api = HfApi()
+def load_file_path(model_name_or_path: str, filename: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]) -> Optional[str]:
+    # If file is local
+    file_path = os.path.join(model_name_or_path, filename)
+    if os.path.exists(file_path):
+        return file_path
     
-    token = None 
-    if isinstance(use_auth_token, str):
-        token = use_auth_token
-    elif use_auth_token:
-        token = HfFolder.get_token()
-        
-    model_info = _api.model_info(repo_id=repo_id, revision=revision, token=token)
+    # If file is remote
+    try:
+        return hf_hub_download(model_name_or_path, filename=filename, library_name="sentence-transformers", token=token, cache_dir=cache_folder)
+    except EntryNotFoundError:
+        return
 
-    storage_folder = os.path.join(
-        cache_dir, repo_id.replace("/", "_")
-    )
 
-    all_files = model_info.siblings
-    #Download modules.json as the last file
-    for idx, repofile in enumerate(all_files):
-        if repofile.rfilename == "modules.json":
-            del all_files[idx]
-            all_files.append(repofile)
-            break
+def load_dir_path(model_name_or_path: str, directory: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]) -> Optional[str]:
+    # If file is local
+    dir_path = os.path.join(model_name_or_path, directory)
+    if os.path.exists(dir_path):
+        return dir_path
+    
+    # If file is remote
+    goal_parts = Path(directory).parts
+    dir_path = None
+    for repo_info in model_info(model_name_or_path, token=token).siblings:
+        # if this file is under the goal directory
+        file_path_parts = Path(repo_info.rfilename).parts
+        if file_path_parts[:len(goal_parts)] == goal_parts:
+            file_path = hf_hub_download(model_name_or_path, filename=repo_info.rfilename, library_name="sentence-transformers", token=token, cache_dir=cache_folder)
+            if dir_path is None:
+                # Remove the last parts from the file_path
+                dir_path = str(Path(*Path(file_path).parts[:len(goal_parts) - len(file_path_parts)]))
 
-    for model_file in all_files:
-        if ignore_files is not None:
-            skip_download = False
-            for pattern in ignore_files:
-                if fnmatch.fnmatch(model_file.rfilename, pattern):
-                    skip_download = True
-                    break
-
-            if skip_download:
-                continue
-
-        url = hf_hub_url(
-            repo_id, filename=model_file.rfilename, revision=model_info.sha
-        )
-        relative_filepath = os.path.join(*model_file.rfilename.split("/"))
-
-        # Create potential nested dir
-        nested_dirname = os.path.dirname(
-            os.path.join(storage_folder, relative_filepath)
-        )
-        os.makedirs(nested_dirname, exist_ok=True)
-
-        cached_download_args = {'url': url,
-            'cache_dir': storage_folder,
-            'force_filename': relative_filepath,
-            'library_name': library_name,
-            'library_version': library_version,
-            'user_agent': user_agent,
-            'use_auth_token': use_auth_token}
-
-        if version.parse(huggingface_hub.__version__) >= version.parse("0.8.1"):
-            # huggingface_hub v0.8.1 introduces a new cache layout. We sill use a manual layout
-            # And need to pass legacy_cache_layout=True to avoid that a warning will be printed
-            cached_download_args['legacy_cache_layout'] = True
-
-        path = cached_download(**cached_download_args)
-
-        if os.path.exists(path + ".lock"):
-            os.remove(path + ".lock")
-
-    return storage_folder
+    return dir_path
