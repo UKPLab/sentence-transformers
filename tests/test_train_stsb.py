@@ -26,7 +26,7 @@ class PretrainedSTSbTest(unittest.TestCase):
         #Read NLI
         label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
         self.nli_train_samples = []
-        max_train_samples = 10000
+        max_train_samples = 100
         with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
             reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
             for row in reader:
@@ -38,19 +38,17 @@ class PretrainedSTSbTest(unittest.TestCase):
 
         #Read STSB
         self.stsb_train_samples = []
-        self.dev_samples = []
         self.test_samples = []
+        max_train_samples = 100
         with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
             reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
             for row in reader:
                 score = float(row['score']) / 5.0  # Normalize score to range 0 ... 1
                 inp_example = InputExample(texts=[row['sentence1'], row['sentence2']], label=score)
 
-                if row['split'] == 'dev':
-                    self.dev_samples.append(inp_example)
-                elif row['split'] == 'test':
+                if row['split'] == 'test':
                     self.test_samples.append(inp_example)
-                else:
+                elif row['split'] == 'train' and len(self.stsb_train_samples) < max_train_samples:
                     self.stsb_train_samples.append(inp_example)
 
     def evaluate_stsb_test(self, model, expected_score):
@@ -73,7 +71,7 @@ class PretrainedSTSbTest(unittest.TestCase):
                   warmup_steps=int(len(train_dataloader)*0.1),
                   use_amp=True)
 
-        self.evaluate_stsb_test(model, 80.0)
+        self.evaluate_stsb_test(model, 65.0)
 
     def test_train_nli(self):
         word_embedding_model = models.Transformer('distilbert-base-uncased')

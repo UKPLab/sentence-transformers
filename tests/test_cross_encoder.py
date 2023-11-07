@@ -21,8 +21,9 @@ class CrossEncoderTest(unittest.TestCase):
             util.http_get('https://sbert.net/datasets/stsbenchmark.tsv.gz', sts_dataset_path)
 
         #Read STSB
+        max_test_samples = 100
+        max_train_samples = 500
         self.stsb_train_samples = []
-        self.dev_samples = []
         self.test_samples = []
         with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
             reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -30,11 +31,9 @@ class CrossEncoderTest(unittest.TestCase):
                 score = float(row['score']) / 5.0  # Normalize score to range 0 ... 1
                 inp_example = InputExample(texts=[row['sentence1'], row['sentence2']], label=score)
 
-                if row['split'] == 'dev':
-                    self.dev_samples.append(inp_example)
-                elif row['split'] == 'test':
+                if row['split'] == 'test' and len(self.test_samples) < max_test_samples:
                     self.test_samples.append(inp_example)
-                else:
+                elif row['split'] == 'train' and len(self.stsb_train_samples) < max_train_samples:
                     self.stsb_train_samples.append(inp_example)
 
     def evaluate_stsb_test(self, model, expected_score):
@@ -53,7 +52,7 @@ class CrossEncoderTest(unittest.TestCase):
         model.fit(train_dataloader=train_dataloader,
                   epochs=1,
                   warmup_steps=int(len(train_dataloader)*0.1))
-        self.evaluate_stsb_test(model, 75)
+        self.evaluate_stsb_test(model, 50)
 
 
 

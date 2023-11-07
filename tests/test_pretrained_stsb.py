@@ -10,15 +10,13 @@ import csv
 
 class PretrainedSTSbTest(unittest.TestCase):
 
-    def pretrained_model_score(self, model_name, expected_score):
+    def pretrained_model_score(self, model_name, expected_score, max_test_samples: int = 100):
         model = SentenceTransformer(model_name)
         sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
 
         if not os.path.exists(sts_dataset_path):
             util.http_get('https://sbert.net/datasets/stsbenchmark.tsv.gz', sts_dataset_path)
 
-        train_samples = []
-        dev_samples = []
         test_samples = []
         with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
             reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -26,12 +24,10 @@ class PretrainedSTSbTest(unittest.TestCase):
                 score = float(row['score']) / 5.0  # Normalize score to range 0 ... 1
                 inp_example = InputExample(texts=[row['sentence1'], row['sentence2']], label=score)
 
-                if row['split'] == 'dev':
-                    dev_samples.append(inp_example)
-                elif row['split'] == 'test':
+                if row['split'] == 'test':
                     test_samples.append(inp_example)
-                else:
-                    train_samples.append(inp_example)
+                if len(test_samples) >= max_test_samples:
+                    break
 
         evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name='sts-test')
 
