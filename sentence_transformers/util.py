@@ -449,10 +449,6 @@ def snapshot_download(
         
     model_info = _api.model_info(repo_id=repo_id, revision=revision, token=token)
 
-    storage_folder = os.path.join(
-        cache_dir, repo_id.replace("/", "_")
-    )
-
     all_files = model_info.siblings
     #Download modules.json as the last file
     for idx, repofile in enumerate(all_files):
@@ -474,19 +470,11 @@ def snapshot_download(
             if skip_download:
                 continue
 
-        relative_filepath = os.path.join(*model_file.rfilename.split("/"))
-
-        # Create potential nested dir
-        nested_dirname = os.path.dirname(
-            os.path.join(storage_folder, relative_filepath)
-        )
-        os.makedirs(nested_dirname, exist_ok=True)
-
         cached_download_args = {
             'repo_id': repo_id,
             'filename': model_file.rfilename,
             'revision': model_info.sha,
-            'cache_dir': storage_folder,
+            'cache_dir': cache_dir,
             'library_name': library_name,
             'library_version': library_version,
             'user_agent': user_agent,
