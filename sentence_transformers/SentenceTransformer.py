@@ -4,7 +4,7 @@ import os
 import shutil
 import stat
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, TypeVar
 import requests
 import numpy as np
 from numpy import ndarray
@@ -29,6 +29,10 @@ from .model_card_templates import ModelCardTemplate
 from . import __version__
 
 logger = logging.getLogger(__name__)
+
+# See https://mypy.readthedocs.io/en/latest/generics.html#generic-methods-and-generic-self for the use
+# of `T` to annotate `self`.
+T = TypeVar('T', bound='SentenceTransformer')
 
 class SentenceTransformer(nn.Sequential):
     """
@@ -912,3 +916,17 @@ class SentenceTransformer(nn.Sequential):
         Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
         """
         self._first_module().max_seq_length = value
+
+    def to(
+        self: T,
+        device: Optional[Union[str, int, torch.device]] = None,
+        dtype: Optional[Union[str, torch.dtype]] = None,
+        non_blocking: Optional[bool] = False,
+        *args,
+        **kwargs,
+    ) -> T:
+        if device is not None:
+            self._target_device = device if isinstance(device, torch.device) else torch.device(device)
+        return super().to(
+            device=device, dtype=dtype, non_blocking=non_blocking, *args, **kwargs
+        )
