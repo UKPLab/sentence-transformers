@@ -79,7 +79,7 @@ class SentenceTransformer(nn.Sequential):
 
                 if not os.path.exists(os.path.join(model_name_or_path, 'modules.json')):
                     # Download from hub with caching
-                    snapshot_download(model_name_or_path,
+                    model_name_or_path = snapshot_download(model_name_or_path,
                                         cache_dir=cache_folder,
                                         library_name='sentence-transformers',
                                         library_version=__version__,

@@ -461,6 +461,8 @@ def snapshot_download(
             all_files.append(repofile)
             break
 
+    model_storage_folder = None
+
     for model_file in all_files:
         if ignore_files is not None:
             skip_download = False
@@ -472,9 +474,6 @@ def snapshot_download(
             if skip_download:
                 continue
 
-        url = hf_hub_url(
-            repo_id, filename=model_file.rfilename, revision=model_info.sha
-        )
         relative_filepath = os.path.join(*model_file.rfilename.split("/"))
 
         # Create potential nested dir
@@ -495,7 +494,11 @@ def snapshot_download(
 
         path = hf_hub_download(**cached_download_args)
 
+        # model path is the directory where the modules.json file is stored
+        if model_file.rfilename == "modules.json":
+            model_storage_folder = os.path.dirname(path)
+
         if os.path.exists(path + ".lock"):
             os.remove(path + ".lock")
 
-    return storage_folder
+    return model_storage_folder
