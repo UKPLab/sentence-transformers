@@ -40,6 +40,7 @@ jobs:
         run: |
           python -m pip install --no-cache-dir --upgrade pip
           python -m pip install --no-cache-dir .
+          python -m pip install --no-cache-dir pytest
         if: steps.restore-cache.outputs.cache-hit != 'true'
 
       - name: Install the checked-out setfit
