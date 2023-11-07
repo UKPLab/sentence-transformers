@@ -4,7 +4,7 @@ import os
 import shutil
 import stat
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, TypeVar
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
 import requests
 import numpy as np
 from numpy import ndarray
@@ -29,10 +29,6 @@ from .model_card_templates import ModelCardTemplate
 from . import __version__
 
 logger = logging.getLogger(__name__)
-
-# See https://mypy.readthedocs.io/en/latest/generics.html#generic-methods-and-generic-self for the use
-# of `T` to annotate `self`.
-T = TypeVar('T', bound='SentenceTransformer')
 
 class SentenceTransformer(nn.Sequential):
     """
@@ -108,7 +104,7 @@ class SentenceTransformer(nn.Sequential):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             logger.info("Use pytorch device: {}".format(device))
 
-        self._target_device = torch.device(device)
+        self.to(device)
 
 
 
@@ -152,7 +148,7 @@ class SentenceTransformer(nn.Sequential):
             input_was_string = True
 
         if device is None:
-            device = self._target_device
+            device = self.device
 
         self.to(device)
 
@@ -642,7 +638,7 @@ class SentenceTransformer(nn.Sequential):
             from torch.cuda.amp import autocast
             scaler = torch.cuda.amp.GradScaler()
 
-        self.to(self._target_device)
+        self.to(self.device)
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
 
@@ -652,7 +648,7 @@ class SentenceTransformer(nn.Sequential):
 
         loss_models = [loss for _, loss in train_objectives]
         for loss_model in loss_models:
-            loss_model.to(self._target_device)
+            loss_model.to(self.device)
 
         self.best_score = -9999999
 
@@ -708,8 +704,8 @@ class SentenceTransformer(nn.Sequential):
                         data = next(data_iterator)
 
                     features, labels = data
-                    labels = labels.to(self._target_device)
-                    features = list(map(lambda batch: batch_to_device(batch, self._target_device), features))
+                    labels = labels.to(self.device)
+                    features = list(map(lambda batch: batch_to_device(batch, self.device), features))
 
                     if use_amp:
                         with autocast():
@@ -917,16 +913,13 @@ class SentenceTransformer(nn.Sequential):
         """
         self._first_module().max_seq_length = value
 
-    def to(
-        self: T,
-        device: Optional[Union[str, int, torch.device]] = None,
-        dtype: Optional[Union[str, torch.dtype]] = None,
-        non_blocking: Optional[bool] = False,
-        *args,
-        **kwargs,
-    ) -> T:
-        if device is not None:
-            self._target_device = device if isinstance(device, torch.device) else torch.device(device)
-        return super().to(
-            device=device, dtype=dtype, non_blocking=non_blocking, *args, **kwargs
+    @property
+    def _target_device(self) -> torch.device:
+        logger.warning(
+            "`SentenceTransformer._target_device` has been removed, please use `SentenceTransformer.device` instead.",
         )
+        return self.device
+
+    @_target_device.setter
+    def _target_device(self, device: Optional[Union[int, str, torch.device]] = None) -> None:
+        self.to(device)
