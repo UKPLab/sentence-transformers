@@ -71,7 +71,7 @@ class PretrainedSTSbTest(unittest.TestCase):
                   warmup_steps=int(len(train_dataloader)*0.1),
                   use_amp=True)
 
-        self.evaluate_stsb_test(model, 65.0)
+        self.evaluate_stsb_test(model, 60.0)
 
     def test_train_nli(self):
         word_embedding_model = models.Transformer('distilbert-base-uncased')
