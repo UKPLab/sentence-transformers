@@ -1,0 +1,73 @@
+name: Unit tests
+
+on:
+  push:
+    branches:
+      - master
+      - v*-release
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+
+  test_sampling:
+    name: Run unit tests
+    strategy:
+      matrix:
+        python-version: ['3.6', '3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
+        os: [ubuntu-latest, windows-latest]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Try to load cached dependencies
+        uses: actions/cache@v3
+        id: restore-cache
+        with:
+          path: ${{ env.pythonLocation }}
+          key: python-dependencies-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('setup.py') }}-${{ hashFiles('requirements.txt') }}-${{ env.pythonLocation }}
+
+      - name: Install external dependencies on cache miss
+        run: |
+          python -m pip install --no-cache-dir --upgrade pip
+          python -m pip install --no-cache-dir .
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+
+      - name: Install the checked-out setfit
+        run: python -m pip install .
+
+      - name: Restore HF models from cache
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            ~/.cache/huggingface/hub
+            ~/.cache/torch
+          key: hf-models-${{ matrix.os }}-${{ env.NEW_HF_CACHE_HASH }}
+          restore-keys: |
+            hf-models-${{ matrix.os }}-
+
+      - name: Run unit tests
+        shell: bash
+        run: |
+          echo "OLD_HF_CACHE_HASH=$(find ~/.cache/huggingface/hub ~/.cache/torch -type f -exec sha256sum {} + | LC_ALL=C sort | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
+          pytest -sv tests/
+          echo "NEW_HF_CACHE_HASH=$(find ~/.cache/huggingface/hub ~/.cache/torch -type f -exec sha256sum {} + | LC_ALL=C sort | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
+
+      - name: Save new HF models to cache
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            ~/.cache/huggingface/hub
+            ~/.cache/torch
+          key: hf-models-${{ matrix.os }}-${{ env.NEW_HF_CACHE_HASH }}
+        # Only save cache if the hash has changed
+        if: env.NEW_HF_CACHE_HASH != env.OLD_HF_CACHE_HASH
