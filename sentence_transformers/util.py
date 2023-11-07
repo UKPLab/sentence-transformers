@@ -189,7 +189,7 @@ def paraphrase_mining_embeddings(embeddings: Tensor,
 
         if sorted_i != sorted_j and (sorted_i, sorted_j) not in added_pairs:
             added_pairs.add((sorted_i, sorted_j))
-            pairs_list.append([score, i, j])
+            pairs_list.append([score, sorted_i, sorted_j])
 
     # Highest scores first
     pairs_list = sorted(pairs_list, key=lambda x: x[0], reverse=True)
