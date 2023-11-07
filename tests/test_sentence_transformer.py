@@ -24,4 +24,4 @@ class TestSentenceTransformer(unittest.TestCase):
 
         self.assertEqual(model._target_device, model.device, msg="Prevent backwards compatibility failure for _target_device")
         model._target_device = "cpu"
-        self.assertEqual(model.device.type, "cpu", msg="Ensure that setting `_target_device` still works.")
+        self.assertEqual(model.device.type, "cpu", msg="Ensure that setting `_target_device` doesn't crash.")
