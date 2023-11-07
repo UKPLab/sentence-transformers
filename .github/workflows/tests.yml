@@ -46,29 +46,7 @@ jobs:
       - name: Install the checked-out sentence-transformers
         run: python -m pip install .
 
-      - name: Restore HF models from cache
-        uses: actions/cache/restore@v3
-        with:
-          path: |
-            ~/.cache/huggingface/hub
-            ~/.cache/torch
-          key: hf-models-${{ matrix.os }}-${{ env.NEW_HF_CACHE_HASH }}
-          restore-keys: |
-            hf-models-${{ matrix.os }}-
-
       - name: Run unit tests
         shell: bash
         run: |
-          echo "OLD_HF_CACHE_HASH=$(find ~/.cache/huggingface/hub ~/.cache/torch -type f -exec sha256sum {} + | LC_ALL=C sort | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
           pytest -sv tests/
-          echo "NEW_HF_CACHE_HASH=$(find ~/.cache/huggingface/hub ~/.cache/torch -type f -exec sha256sum {} + | LC_ALL=C sort | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
-
-      - name: Save new HF models to cache
-        uses: actions/cache/save@v3
-        with:
-          path: |
-            ~/.cache/huggingface/hub
-            ~/.cache/torch
-          key: hf-models-${{ matrix.os }}-${{ env.NEW_HF_CACHE_HASH }}
-        # Only save cache if the hash has changed
-        if: env.NEW_HF_CACHE_HASH != env.OLD_HF_CACHE_HASH
