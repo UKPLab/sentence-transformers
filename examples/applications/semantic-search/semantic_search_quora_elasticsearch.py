@@ -30,7 +30,7 @@ import tqdm.autonotebook
 
 es = Elasticsearch(
     hosts=["https://localhost:9200"],
-    basic_auth=("elastic", os.environ["ELASTIC_PASSWORD"],  # displayed at ES server startup
+    basic_auth=("elastic", os.environ["ELASTIC_PASSWORD"]),  # displayed at ES server startup
     ssl_context=create_default_context(cafile="http_ca.crt"),  # copied from inside ES container
 )
 
