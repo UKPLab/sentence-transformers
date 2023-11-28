@@ -82,6 +82,10 @@ You can automatically add to the Hub's model card a list of datasets you used to
 model.save_to_hub("my_new_model", train_datasets=["GEM/wiki_lingua", "code_search_net"])
 ```
 
+## Using local private models
+
+If you are performing inference with a local model that has a base compatible with SentenceTransformers (like ViT, BERT ...) and follows the HuggingFace architecture but is not hosted remotely on HuggingFace, you can integrate it into SentenceTransformers by adding the `modules.json` and `config_sentence_transformers.json` files at the root of the model artifacts folder. The structure of your `modules.json` and `config_sentence_transformers.json` should match the one from the coresponding base model.
+
 ## Sharing your embeddings
 
 The Hugging Face Hub can also be used to store and share any embeddings you generate. You can export your embeddings to CSV, ZIP, Pickle, or any other format, and then upload them to the Hub as a [Dataset](https://huggingface.co/docs/hub/datasets-adding). Read the ["Getting Started With Embeddings" blog post](https://huggingface.co/blog/getting-started-with-embeddings#2-host-embeddings-for-free-on-the-hugging-face-hub) for more information.
