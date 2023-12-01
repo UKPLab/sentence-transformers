@@ -6,7 +6,7 @@ This page contains a collection of unsupervised learning methods to learn senten
 
 
 ## TSDAE
-In our work [TSDAE (Tranformer-based Denoising AutoEncoder)](https://arxiv.org/abs/2104.06979) we present an unsupervised sentence embedding learning method based on denoising auto-encoders:
+In our work [TSDAE (Transformer-based Denoising AutoEncoder)](https://arxiv.org/abs/2104.06979) we present an unsupervised sentence embedding learning method based on denoising auto-encoders:
 
 ![](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/TSDAE.png)
 

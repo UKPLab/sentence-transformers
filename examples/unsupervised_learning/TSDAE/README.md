@@ -1,6 +1,6 @@
 # TSDAE
 
-This section shows an example, of how we can train an unsupervised [TSDAE (Tranformer-based Denoising AutoEncoder)](https://arxiv.org/abs/2104.06979) model with pure sentences as training data.
+This section shows an example, of how we can train an unsupervised [TSDAE (Transformer-based Denoising AutoEncoder)](https://arxiv.org/abs/2104.06979) model with pure sentences as training data.
 
 ## Background 
 During training, TSDAE encodes damaged sentences into fixed-sized vectors and requires the decoder to reconstruct the original sentences from these sentence embeddings. For good reconstruction quality, the semantics must be captured well in the sentence embeddings from the encoder. Later, at inference, we only use the encoder for creating sentence embeddings. The architecture is illustrated in the figure below:
