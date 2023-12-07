@@ -21,10 +21,10 @@ The depicted architecture, consisting of a BERT layer and a pooling layer is one
 
 ## Creating Networks from Scratch
  
- In the quick start & usage examples, we used pre-trained SentenceTransformer models that already come with a BERT layer and a pooling layer.
- 
- But we can create the networks architectures from scratch by defining the individual layers. For example, the following code would create the depicted network architecture:
- 
+In the quick start & usage examples, we used pre-trained SentenceTransformer models that already come with a BERT layer and a pooling layer.
+
+But we can create the networks architectures from scratch by defining the individual layers. For example, the following code would create the depicted network architecture:
+
 ```python
 from sentence_transformers import SentenceTransformer, models
 
@@ -49,6 +49,15 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dense_
 ```
 
 Here, we add on top of the pooling layer a fully connected dense layer with Tanh activation, which performs a down-project to 256 dimensions. Hence, embeddings by this model will only have 256 instead of 768 dimensions.
+
+Additionally, we can also create SentenceTransformer models from scratch for image search by loading any CLIP model from the Hugging Face Hub:
+
+```py
+from sentence_transformers import SentenceTransformer, models
+
+image_embedding_model = models.CLIPModel('openai/clip-vit-base-patch32')
+model = SentenceTransformer(modules=[image_embedding_model])
+```
 
 For all available building blocks see [» Models Package Reference](../package_reference/models.md)
 
