@@ -307,18 +307,3 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         for i in range(min(len(relevances), k)):
             dcg += relevances[i] / np.log2(i + 2)  #+2 as we start our idx at 0
         return dcg
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
