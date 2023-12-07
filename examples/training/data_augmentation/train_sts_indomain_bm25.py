@@ -49,7 +49,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
-# supressing INFO messages for elastic-search logger
+# suppressing INFO messages for elastic-search logger
 tracer = logging.getLogger('elasticsearch') 
 tracer.setLevel(logging.CRITICAL)
 es = Elasticsearch()
@@ -64,7 +64,7 @@ max_seq_length = 128
 
 ###### Read Datasets ######
 
-#Check if dataset exsist. If not, download and extract  it
+#Check if dataset exists. If not, download and extract  it
 sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
 
 if not os.path.exists(sts_dataset_path):

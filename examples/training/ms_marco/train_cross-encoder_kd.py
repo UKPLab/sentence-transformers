@@ -45,7 +45,7 @@ model_save_path = 'output/training_ms-marco_cross-encoder-v2-'+model_name.replac
 
 
 
-#We set num_labels=1 and set the activation function to Identiy, so that we get the raw logits
+#We set num_labels=1 and set the activation function to Identity, so that we get the raw logits
 model = CrossEncoder(model_name, num_labels=1, max_length=512, default_activation_function=torch.nn.Identity())
 
 

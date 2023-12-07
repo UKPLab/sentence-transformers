@@ -20,7 +20,7 @@ class MultiDatasetDataLoader:
         else:  # Equal weighting of all datasets
             weights = [100] * len(datasets)
 
-        logging.info("Dataset lenghts and weights: {}".format(list(zip(self.dataset_lengths, weights))))
+        logging.info("Dataset lengths and weights: {}".format(list(zip(self.dataset_lengths, weights))))
 
         self.dataset_idx = []
         self.dataset_idx_pointer = 0

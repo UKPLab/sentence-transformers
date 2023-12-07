@@ -103,7 +103,7 @@ if not es.indices.exists(index="quora"):
                 pbar.update(chunk_size)
 
     except:
-        print("During index an exception occured. Continue\n\n")
+        print("During index an exception occurred. Continue\n\n")
 
 
 
@@ -119,7 +119,7 @@ while True:
     #Lexical search
     bm25 = es.search(index="quora", body={"query": {"match": {"question": inp_question }}})
 
-    #Sematic search
+    #Semantic search
     sem_search = es.search(index="quora", knn={
         "field": "question_vector",
         "query_vector": question_embedding,

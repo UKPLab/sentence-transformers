@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 #As dataset, we use SNLI + MultiNLI
-#Check if dataset exsist. If not, download and extract  it
+#Check if dataset exists. If not, download and extract  it
 nli_dataset_path = 'datasets/AllNLI.tsv.gz'
 
 if not os.path.exists(nli_dataset_path):
@@ -60,7 +60,7 @@ model_save_path = 'output/training_allnli-'+datetime.now().strftime("%Y-%m-%d_%H
 #Define our CrossEncoder model. We use distilroberta-base as basis and setup it up to predict 3 labels
 model = CrossEncoder('distilroberta-base', num_labels=len(label2int))
 
-#We wrap train_samples, which is a list ot InputExample, in a pytorch DataLoader
+#We wrap train_samples, which is a list of InputExample, in a pytorch DataLoader
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 
 #During training, we use CESoftmaxAccuracyEvaluator to measure the accuracy on the dev set.
