@@ -213,7 +213,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             top_hits = sorted(queries_result_list[query_itr], key=lambda x: x['score'], reverse=True)
             query_relevant_docs = self.relevant_docs[query_id]
 
-            # Accuracy@k - We count the result correct, if at least one relevant doc is accross the top-k documents
+            # Accuracy@k - We count the result correct, if at least one relevant doc is across the top-k documents
             for k_val in self.accuracy_at_k:
                 for hit in top_hits[0:k_val]:
                     if hit['corpus_id'] in query_relevant_docs:

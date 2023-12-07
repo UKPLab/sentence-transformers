@@ -143,7 +143,7 @@ indices = np.stack([np.concatenate([np.arange(x.shape[0]), bwd_best]), np.concat
 scores = np.concatenate([fwd_scores.max(axis=1), bwd_scores.max(axis=1)])
 seen_src, seen_trg = set(), set()
 
-#Extact list of parallel sentences
+#Extract list of parallel sentences
 print("Write sentences to disc")
 sentences_written = 0
 with gzip.open('parallel-sentences-out.tsv.gz', 'wt', encoding='utf8') as fOut:

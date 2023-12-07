@@ -81,7 +81,7 @@ For further details, see [semantic_search_quora_elasticsearch.py](semantic_searc
 ## Approximate Nearest Neighbor
 Searching a large corpus with millions of embeddings can be time-consuming if exact nearest neighbor search is used (like it is used by *util.semantic_search*).
 
-In that case, Approximate Nearest Neighor (ANN) can be helpful. Here, the data is partitioned into smaller fractions of similar embeddings. This index can be searched efficiently and the embeddings with the highest similarity (the nearest neighbors) can be retrieved within milliseconds, even if you have millions of vectors.
+In that case, Approximate Nearest Neighbor (ANN) can be helpful. Here, the data is partitioned into smaller fractions of similar embeddings. This index can be searched efficiently and the embeddings with the highest similarity (the nearest neighbors) can be retrieved within milliseconds, even if you have millions of vectors.
 
 However, the results are not necessarily exact. It is possible that some vectors with high similarity will be missed. That's the reason why it is called approximate nearest neighbor.
 

@@ -50,7 +50,7 @@ pos_neg_ration = 4
 # Maximal number of training samples we want to use
 max_train_samples = 2e7
 
-#We set num_labels=1, which predicts a continous score between 0 and 1
+#We set num_labels=1, which predicts a continuous score between 0 and 1
 model = CrossEncoder(model_name, num_labels=1, max_length=512)
 
 
