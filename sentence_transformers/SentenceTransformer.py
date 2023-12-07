@@ -4,12 +4,11 @@ import os
 import shutil
 import stat
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
-import requests
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal
 import numpy as np
 from numpy import ndarray
 import transformers
-from huggingface_hub import HfApi, HfFolder, Repository, hf_hub_url, cached_download
+from huggingface_hub import HfApi, HfFolder, Repository
 import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
@@ -24,11 +23,29 @@ from distutils.dir_util import copy_tree
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, fullname, snapshot_download
-from .models import Transformer, Pooling, Dense
+from .models import Transformer, Pooling
 from .model_card_templates import ModelCardTemplate
 from . import __version__
 
 logger = logging.getLogger(__name__)
+
+
+def get_device_name() -> Literal["mps", "cuda", "cpu"]:
+    """
+    Returns the name of the device where this module is running on.
+    It's simple implementation that doesn't cover cases when more powerful GPUs are available and
+    not a primary device ('cuda:0') or MPS device is available, but not configured properly:
+    https://pytorch.org/docs/master/notes/mps.html
+
+    :return: Device name, like 'cuda' or 'cpu'
+    """
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
+
 
 class SentenceTransformer(nn.Sequential):
     """
@@ -101,12 +118,10 @@ class SentenceTransformer(nn.Sequential):
 
         super().__init__(modules)
         if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            logger.info("Use pytorch device: {}".format(device))
+            device = get_device_name()
+            logger.info("Use pytorch device_name: {}".format(device))
 
         self._target_device = torch.device(device)
-
-
 
     def encode(self, sentences: Union[str, List[str]],
                batch_size: int = 32,
