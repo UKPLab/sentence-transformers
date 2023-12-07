@@ -4,7 +4,7 @@ We utlise easy and practical elasticsearch (https://www.elastic.co/) for BM25 sa
 
 Installations:
 For this example, elasticsearch to be installed (pip install elasticsearch)
-[NOTE] You need to also install ElasticSearch locally on your PC or desktop.
+[NOTE] You need to also install Elasticsearch locally on your PC or desktop.
 link for download - https://www.elastic.co/downloads/elasticsearch
 Or to run it with Docker: https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
 

@@ -8,10 +8,10 @@ We use the logits scores from the ensemble to train a smaller model. We found th
 offering the highest speed.
 
 The resulting Cross-Encoder can then be used for passage re-ranking: You retrieve for example 100 passages
-for a given query, for example with ElasticSearch, and pass the query+retrieved_passage to the CrossEncoder
+for a given query, for example with Elasticsearch, and pass the query+retrieved_passage to the CrossEncoder
 for scoring. You sort the results then according to the output of the CrossEncoder.
 
-This gives a significant boost compared to out-of-the-box ElasticSearch / BM25 ranking.
+This gives a significant boost compared to out-of-the-box Elasticsearch / BM25 ranking.
 
 Running this script:
 python train_cross-encoder-v2.py
