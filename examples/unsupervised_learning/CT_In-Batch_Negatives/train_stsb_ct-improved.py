@@ -62,7 +62,7 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
 dev_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name='sts-dev')
 test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name='sts-test')
 
-################# Intialize an SBERT model #################
+################# Initialize an SBERT model #################
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])

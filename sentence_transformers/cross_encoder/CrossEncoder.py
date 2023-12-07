@@ -30,7 +30,7 @@ class CrossEncoder():
         :param model_name: A model name from Hugging Face Hub that can be loaded with AutoModel, or a path to a local
             model. We provide several pre-trained CrossEncoder models that can be used for common tasks.
         :param num_labels: Number of labels of the classifier. If 1, the CrossEncoder is a regression model that
-            outputs a continous score 0...1. If > 1, it output several scores that can be soft-maxed to get
+            outputs a continuous score 0...1. If > 1, it output several scores that can be soft-maxed to get
             probability scores for the different classes.
         :param max_length: Max length for input sequences. Longer sequences will be truncated. If None, max
             length of the model will be used
@@ -253,7 +253,7 @@ class CrossEncoder():
         :param activation_fct: Activation function applied on the logits output of the CrossEncoder. If None, nn.Sigmoid() will be used if num_labels=1, else nn.Identity
         :param convert_to_numpy: Convert the output to a numpy matrix.
         :param apply_softmax: If there are more than 2 dimensions and apply_softmax=True, applies softmax on the logits output
-        :param convert_to_tensor:  Conver the output to a tensor.
+        :param convert_to_tensor: Convert the output to a tensor.
         :return: Predictions for the passed sentence pairs
         """
         input_was_string = False

@@ -13,7 +13,7 @@ data is labeled (e.g. labels 1, 2, 3) and we assume that samples with the same l
 
 In a batch, it checks for sent1 with label 1 what is the other sentence with label 1 that is the furthest (hard positive)
 which sentence with another label is the closest (hard negative example). It then tries to optimize this, i.e.
-all sentences with the same label should be close and sentences for different labels should be clearly seperated.
+all sentences with the same label should be close and sentences for different labels should be clearly separated.
 """
 
 from sentence_transformers import SentenceTransformer, LoggingHandler, losses, util
