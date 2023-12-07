@@ -27,13 +27,19 @@ class CrossEncoder():
 
         It does not yield a sentence embedding and does not work for individually sentences.
 
-        :param model_name: Any model name from Huggingface Models Repository that can be loaded with AutoModel. We provide several pre-trained CrossEncoder models that can be used for common tasks
-        :param num_labels: Number of labels of the classifier. If 1, the CrossEncoder is a regression model that outputs a continuous score 0...1. If > 1, it output several scores that can be soft-maxed to get probability scores for the different classes.
-        :param max_length: Max length for input sequences. Longer sequences will be truncated. If None, max length of the model will be used
+        :param model_name: A model name from Hugging Face Hub that can be loaded with AutoModel, or a path to a local
+            model. We provide several pre-trained CrossEncoder models that can be used for common tasks.
+        :param num_labels: Number of labels of the classifier. If 1, the CrossEncoder is a regression model that
+            outputs a continuous score 0...1. If > 1, it output several scores that can be soft-maxed to get
+            probability scores for the different classes.
+        :param max_length: Max length for input sequences. Longer sequences will be truncated. If None, max
+            length of the model will be used
         :param device: Device that should be used for the model. If None, it will use CUDA if available.
         :param tokenizer_args: Arguments passed to AutoTokenizer
         :param automodel_args: Arguments passed to AutoModelForSequenceClassification
-        :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1, else nn.Identity()
+        :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that
+            should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
+            else nn.Identity()
         """
 
         self.config = AutoConfig.from_pretrained(model_name)
