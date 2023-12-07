@@ -5,10 +5,10 @@ The query and the passage are passed simoultanously to a Transformer network. Th
 a score between 0 and 1 how relevant the passage is for a given query.
 
 The resulting Cross-Encoder can then be used for passage re-ranking: You retrieve for example 100 passages
-for a given query, for example with ElasticSearch, and pass the query+retrieved_passage to the CrossEncoder
+for a given query, for example with Elasticsearch, and pass the query+retrieved_passage to the CrossEncoder
 for scoring. You sort the results then according to the output of the CrossEncoder.
 
-This gives a significant boost compared to out-of-the-box ElasticSearch / BM25 ranking.
+This gives a significant boost compared to out-of-the-box Elasticsearch / BM25 ranking.
 
 Running this script:
 python train_cross-encoder.py
