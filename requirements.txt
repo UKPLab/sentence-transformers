@@ -9,3 +9,4 @@ scipy
 nltk
 sentencepiece
 huggingface-hub
+lightning
