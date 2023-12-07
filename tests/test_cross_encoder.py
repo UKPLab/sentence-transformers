@@ -5,10 +5,10 @@ import csv
 import gzip
 import os
 import unittest
+import pytest
 
 from torch.utils.data import DataLoader
-import logging
-from sentence_transformers import CrossEncoder, util, LoggingHandler
+from sentence_transformers import CrossEncoder, util
 from sentence_transformers.readers import InputExample
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
 
@@ -21,8 +21,6 @@ class CrossEncoderTest(unittest.TestCase):
             util.http_get('https://sbert.net/datasets/stsbenchmark.tsv.gz', sts_dataset_path)
 
         #Read STSB
-        max_test_samples = 100
-        max_train_samples = 500
         self.stsb_train_samples = []
         self.test_samples = []
         with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
@@ -31,13 +29,13 @@ class CrossEncoderTest(unittest.TestCase):
                 score = float(row['score']) / 5.0  # Normalize score to range 0 ... 1
                 inp_example = InputExample(texts=[row['sentence1'], row['sentence2']], label=score)
 
-                if row['split'] == 'test' and len(self.test_samples) < max_test_samples:
+                if row['split'] == 'test':
                     self.test_samples.append(inp_example)
-                elif row['split'] == 'train' and len(self.stsb_train_samples) < max_train_samples:
+                elif row['split'] == 'train':
                     self.stsb_train_samples.append(inp_example)
 
-    def evaluate_stsb_test(self, model, expected_score):
-        evaluator = CECorrelationEvaluator.from_input_examples(self.test_samples, name='sts-test')
+    def evaluate_stsb_test(self, model, expected_score, num_test_samples: int = -1):
+        evaluator = CECorrelationEvaluator.from_input_examples(self.test_samples[:num_test_samples], name='sts-test')
         score = evaluator(model)*100
         print("STS-Test Performance: {:.2f} vs. exp: {:.2f}".format(score, expected_score))
         assert score > expected_score or abs(score-expected_score) < 0.1
@@ -46,16 +44,19 @@ class CrossEncoderTest(unittest.TestCase):
         model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
         self.evaluate_stsb_test(model, 87.92)
 
-    def test_train_stsb(self):
+    @pytest.mark.slow
+    def test_train_stsb_slow(self):
         model = CrossEncoder('distilroberta-base', num_labels=1)
         train_dataloader = DataLoader(self.stsb_train_samples, shuffle=True, batch_size=16)
         model.fit(train_dataloader=train_dataloader,
                   epochs=1,
                   warmup_steps=int(len(train_dataloader)*0.1))
-        self.evaluate_stsb_test(model, 50)
+        self.evaluate_stsb_test(model, 75)
 
-
-
-
-if "__main__" == __name__:
-    unittest.main()
+    def test_train_stsb(self):
+        model = CrossEncoder('distilroberta-base', num_labels=1)
+        train_dataloader = DataLoader(self.stsb_train_samples[:500], shuffle=True, batch_size=16)
+        model.fit(train_dataloader=train_dataloader,
+                  epochs=1,
+                  warmup_steps=int(len(train_dataloader)*0.1))
+        self.evaluate_stsb_test(model, 50, num_test_samples=100)
