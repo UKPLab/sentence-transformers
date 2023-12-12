@@ -445,11 +445,7 @@ class disabled_tqdm(tqdm):
 
 
 def is_sentence_transformer_model(model_name_or_path: str, token: Optional[Union[bool, str]] = None, cache_folder: Optional[str] = None) -> bool:
-    try:
-        hf_hub_download(model_name_or_path, "modules.json", token=token, cache_dir=cache_folder)
-        return True
-    except Exception:
-        return False
+    return bool(load_file_path(model_name_or_path, "modules.json", token, cache_folder))
 
 
 def load_file_path(model_name_or_path: str, filename: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]) -> Optional[str]:
