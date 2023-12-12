@@ -4,8 +4,12 @@ import os
 import shutil
 import stat
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal
 import warnings
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 import numpy as np
 from numpy import ndarray
 import transformers
