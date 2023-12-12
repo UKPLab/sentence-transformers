@@ -13,7 +13,7 @@ from typing import Dict, Optional, Union
 from pathlib import Path
 
 from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
-from huggingface_hub import HfApi, hf_hub_url, cached_download, HfFolder, model_info, hf_hub_download
+from huggingface_hub import snapshot_download, hf_hub_download
 from huggingface_hub.utils import EntryNotFoundError
 import fnmatch
 from packaging import version
@@ -419,12 +419,32 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, batch
 ######################
 
 
-def is_sentence_transformer_model(model_name_or_path: str, token: Optional[Union[bool, str]] = None) -> bool:
-    if os.path.exists(model_name_or_path):
-        return os.path.exists(os.path.join(model_name_or_path, "modules.json"))
-    else:
-        info = model_info(model_name_or_path, token=token)
-        return any(repo_file.rfilename == "modules.json" for repo_file in info.siblings)
+class disabled_tqdm(tqdm):
+    """
+    Class to override `disable` argument in case progress bars are globally disabled.
+
+    Taken from https://github.com/tqdm/tqdm/issues/619#issuecomment-619639324.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs["disable"] = True
+        super().__init__(*args, **kwargs)
+
+    def __delattr__(self, attr: str) -> None:
+        """Fix for https://github.com/huggingface/huggingface_hub/issues/1603"""
+        try:
+            super().__delattr__(attr)
+        except AttributeError:
+            if attr != "_lock":
+                raise
+
+
+def is_sentence_transformer_model(model_name_or_path: str, token: Optional[Union[bool, str]] = None, cache_folder: Optional[str] = None) -> bool:
+    try:
+        hf_hub_download(model_name_or_path, "modules.json", token=token, cache_dir=cache_folder)
+        return True
+    except Exception:
+        return False
 
 
 def load_file_path(model_name_or_path: str, filename: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]) -> Optional[str]:
@@ -432,11 +452,11 @@ def load_file_path(model_name_or_path: str, filename: str, token: Optional[Union
     file_path = os.path.join(model_name_or_path, filename)
     if os.path.exists(file_path):
         return file_path
-    
+
     # If file is remote
     try:
         return hf_hub_download(model_name_or_path, filename=filename, library_name="sentence-transformers", token=token, cache_dir=cache_folder)
-    except EntryNotFoundError:
+    except Exception:
         return
 
 
@@ -445,17 +465,20 @@ def load_dir_path(model_name_or_path: str, directory: str, token: Optional[Union
     dir_path = os.path.join(model_name_or_path, directory)
     if os.path.exists(dir_path):
         return dir_path
-    
-    # If file is remote
-    goal_parts = Path(directory).parts
-    dir_path = None
-    for repo_info in model_info(model_name_or_path, token=token).siblings:
-        # if this file is under the goal directory
-        file_path_parts = Path(repo_info.rfilename).parts
-        if file_path_parts[:len(goal_parts)] == goal_parts:
-            file_path = hf_hub_download(model_name_or_path, filename=repo_info.rfilename, library_name="sentence-transformers", token=token, cache_dir=cache_folder)
-            if dir_path is None:
-                # Remove the last parts from the file_path
-                dir_path = str(Path(*Path(file_path).parts[:len(goal_parts) - len(file_path_parts)]))
 
-    return dir_path
+    download_kwargs = {
+        "repo_id": model_name_or_path,
+        "allow_patterns":f"{directory}/**",
+        "library_name": "sentence-transformers",
+        "token": token,
+        "cache_dir": cache_folder,
+        "tqdm_class": disabled_tqdm,
+    }
+    # Try to download from the remote
+    try:
+        repo_path = snapshot_download(**download_kwargs)
+    except Exception:
+        # Otherwise, try local (i.e. cache) only
+        download_kwargs["local_files_only"] = True
+        repo_path = snapshot_download(**download_kwargs)
+    return os.path.join(repo_path, directory)

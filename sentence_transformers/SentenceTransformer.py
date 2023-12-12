@@ -88,7 +88,7 @@ class SentenceTransformer(nn.Sequential):
                     # A model from sentence-transformers
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
-            if is_sentence_transformer_model(model_name_or_path, token):
+            if is_sentence_transformer_model(model_name_or_path, token, cache_folder=cache_folder):
                 modules = self._load_sbert_model(model_name_or_path, token=token, cache_folder=cache_folder)
             else:
                 modules = self._load_auto_model(model_name_or_path, token=token, cache_folder=cache_folder)
