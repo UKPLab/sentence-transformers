@@ -4,12 +4,12 @@ import os
 import shutil
 import stat
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
-import requests
+import warnings
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal
 import numpy as np
 from numpy import ndarray
 import transformers
-from huggingface_hub import HfApi, HfFolder, Repository, hf_hub_url, cached_download
+from huggingface_hub import HfApi, HfFolder, Repository
 import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
@@ -23,32 +23,64 @@ from distutils.dir_util import copy_tree
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, fullname, snapshot_download
-from .models import Transformer, Pooling, Dense
+from .util import import_from_string, batch_to_device, fullname, is_sentence_transformer_model, load_dir_path, load_file_path
+from .models import Transformer, Pooling
 from .model_card_templates import ModelCardTemplate
 from . import __version__
 
 logger = logging.getLogger(__name__)
 
+
+def get_device_name() -> Literal["mps", "cuda", "cpu"]:
+    """
+    Returns the name of the device where this module is running on.
+    It's simple implementation that doesn't cover cases when more powerful GPUs are available and
+    not a primary device ('cuda:0') or MPS device is available, but not configured properly:
+    https://pytorch.org/docs/master/notes/mps.html
+
+    :return: Device name, like 'cuda' or 'cpu'
+    """
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
+
+
 class SentenceTransformer(nn.Sequential):
     """
-    Loads or create a SentenceTransformer model, that can be used to map sentences / text to embeddings.
+    Loads or creates a SentenceTransformer model that can be used to map sentences / text to embeddings.
 
-    :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path, it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model from Huggingface models repository with that name.
-    :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
-    :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
-    :param cache_folder: Path to store models. Can be also set by SENTENCE_TRANSFORMERS_HOME enviroment variable.
-    :param use_auth_token: HuggingFace authentication token to download private models.
+    :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path,
+        it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model
+        from the Hugging Face Hub with that name.
+    :param modules: A list of torch Modules that should be called sequentially, can be used to create custom
+        SentenceTransformer models from scratch.
+    :param device: Device (like "cuda", "cpu", "mps") that should be used for computation. If None, checks if a GPU
+        can be used.
+    :param cache_folder: Path to store models. Can be also set by SENTENCE_TRANSFORMERS_HOME environment variable.
+    :param token: Hugging Face authentication token to download private models.
     """
     def __init__(self, model_name_or_path: Optional[str] = None,
                  modules: Optional[Iterable[nn.Module]] = None,
                  device: Optional[str] = None,
                  cache_folder: Optional[str] = None,
-                 use_auth_token: Union[bool, str, None] = None
+                 token: Optional[Union[bool, str]] = None,
+                 use_auth_token: Optional[Union[bool, str]] = None,
                  ):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
+        if use_auth_token is not None:
+            warnings.warn(
+                "The `use_auth_token` argument is deprecated and will be removed in v3 of SentenceTransformers.", FutureWarning
+            )
+            if token is not None:
+                raise ValueError(
+                    "`token` and `use_auth_token` are both specified. Please set only the argument `token`."
+                )
+            token = use_auth_token
 
         if cache_folder is None:
             cache_folder = os.getenv('SENTENCE_TRANSFORMERS_HOME')
@@ -65,13 +97,10 @@ class SentenceTransformer(nn.Sequential):
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
 
-            #Old models that don't belong to any organization
+            # Old models that don't belong to any organization
             basic_transformer_models = ['albert-base-v1', 'albert-base-v2', 'albert-large-v1', 'albert-large-v2', 'albert-xlarge-v1', 'albert-xlarge-v2', 'albert-xxlarge-v1', 'albert-xxlarge-v2', 'bert-base-cased-finetuned-mrpc', 'bert-base-cased', 'bert-base-chinese', 'bert-base-german-cased', 'bert-base-german-dbmdz-cased', 'bert-base-german-dbmdz-uncased', 'bert-base-multilingual-cased', 'bert-base-multilingual-uncased', 'bert-base-uncased', 'bert-large-cased-whole-word-masking-finetuned-squad', 'bert-large-cased-whole-word-masking', 'bert-large-cased', 'bert-large-uncased-whole-word-masking-finetuned-squad', 'bert-large-uncased-whole-word-masking', 'bert-large-uncased', 'camembert-base', 'ctrl', 'distilbert-base-cased-distilled-squad', 'distilbert-base-cased', 'distilbert-base-german-cased', 'distilbert-base-multilingual-cased', 'distilbert-base-uncased-distilled-squad', 'distilbert-base-uncased-finetuned-sst-2-english', 'distilbert-base-uncased', 'distilgpt2', 'distilroberta-base', 'gpt2-large', 'gpt2-medium', 'gpt2-xl', 'gpt2', 'openai-gpt', 'roberta-base-openai-detector', 'roberta-base', 'roberta-large-mnli', 'roberta-large-openai-detector', 'roberta-large', 't5-11b', 't5-3b', 't5-base', 't5-large', 't5-small', 'transfo-xl-wt103', 'xlm-clm-ende-1024', 'xlm-clm-enfr-1024', 'xlm-mlm-100-1280', 'xlm-mlm-17-1280', 'xlm-mlm-en-2048', 'xlm-mlm-ende-1024', 'xlm-mlm-enfr-1024', 'xlm-mlm-enro-1024', 'xlm-mlm-tlm-xnli15-1024', 'xlm-mlm-xnli15-1024', 'xlm-roberta-base', 'xlm-roberta-large-finetuned-conll02-dutch', 'xlm-roberta-large-finetuned-conll02-spanish', 'xlm-roberta-large-finetuned-conll03-english', 'xlm-roberta-large-finetuned-conll03-german', 'xlm-roberta-large', 'xlnet-base-cased', 'xlnet-large-cased']
 
-            if os.path.exists(model_name_or_path):
-                #Load from path
-                model_path = model_name_or_path
-            else:
+            if not os.path.exists(model_name_or_path):
                 #Not a path, load from hub
                 if '\\' in model_name_or_path or model_name_or_path.count('/') > 1:
                     raise ValueError("Path {} not found".format(model_name_or_path))
@@ -80,33 +109,20 @@ class SentenceTransformer(nn.Sequential):
                     # A model from sentence-transformers
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
-                model_path = os.path.join(cache_folder, model_name_or_path.replace("/", "_"))
-                
-                if not os.path.exists(os.path.join(model_path, 'modules.json')):
-                    # Download from hub with caching
-                    snapshot_download(model_name_or_path,
-                                        cache_dir=cache_folder,
-                                        library_name='sentence-transformers',
-                                        library_version=__version__,
-                                        ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'],
-                                        use_auth_token=use_auth_token)
-
-            if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
-                modules = self._load_sbert_model(model_path)
-            else:   #Load with AutoModel
-                modules = self._load_auto_model(model_path)
+            if is_sentence_transformer_model(model_name_or_path, token, cache_folder=cache_folder):
+                modules = self._load_sbert_model(model_name_or_path, token=token, cache_folder=cache_folder)
+            else:
+                modules = self._load_auto_model(model_name_or_path, token=token, cache_folder=cache_folder)
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
 
         super().__init__(modules)
         if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            logger.info("Use pytorch device: {}".format(device))
+            device = get_device_name()
+            logger.info("Use pytorch device_name: {}".format(device))
 
         self.to(device)
-
-
 
     def encode(self, sentences: Union[str, List[str]],
                batch_size: int = 32,
@@ -117,19 +133,22 @@ class SentenceTransformer(nn.Sequential):
                device: str = None,
                normalize_embeddings: bool = False) -> Union[List[Tensor], ndarray, Tensor]:
         """
-        Computes sentence embeddings
+        Computes sentence embeddings.
 
-        :param sentences: the sentences to embed
-        :param batch_size: the batch size used for the computation
-        :param show_progress_bar: Output a progress bar when encode sentences
-        :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings. Set to None, to get all output values
-        :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
-        :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from convert_to_numpy
-        :param device: Which torch.device to use for the computation
-        :param normalize_embeddings: If set to true, returned vectors will have length 1. In that case, the faster dot-product (util.dot_score) instead of cosine similarity can be used.
+        :param sentences: the sentences to embed.
+        :param batch_size: the batch size used for the computation.
+        :param show_progress_bar: Whether to output a progress bar when encode sentences.
+        :param output_value: The type of embeddings to return: "sentence_embedding" to get sentence embeddings,
+            "token_embeddings" to get wordpiece token embeddings, and `None`, to get all output values. Defaults
+            to "sentence_embedding".
+        :param convert_to_numpy: Whether the output should be a list of numpy vectors. If False, it is a list of PyTorch tensors.
+        :param convert_to_tensor: Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
+        :param device: Which `torch.device` to use for the computation.
+        :param normalize_embeddings: Whether to normalize returned vectors to have length 1. In that case,
+            the faster dot-product (util.dot_score) instead of cosine similarity can be used.
 
-        :return:
-           By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
+        :return: By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned.
+            If convert_to_numpy, a numpy matrix is returned.
         """
         self.eval()
         if show_progress_bar is None:
@@ -339,6 +358,7 @@ class SentenceTransformer(nn.Sequential):
     def save(self, path: str, model_name: Optional[str] = None, create_model_card: bool = True, train_datasets: Optional[List[str]] = None):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
+
         :param path: Path on disc
         :param model_name: Optional model name
         :param create_model_card: If True, create a README.md with basic information about this model
@@ -800,22 +820,22 @@ class SentenceTransformer(nn.Sequential):
                 shutil.rmtree(old_checkpoints[0]['path'])
 
 
-    def _load_auto_model(self, model_name_or_path):
+    def _load_auto_model(self, model_name_or_path: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
         logger.warning("No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(model_name_or_path))
-        transformer_model = Transformer(model_name_or_path)
+        transformer_model = Transformer(model_name_or_path, cache_dir=cache_folder, model_args={"token": token})
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), 'mean')
         return [transformer_model, pooling_model]
 
-    def _load_sbert_model(self, model_path):
+    def _load_sbert_model(self, model_name_or_path: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]):
         """
         Loads a full sentence-transformers model
         """
         # Check if the config_sentence_transformers.json file exists (exists since v2 of the framework)
-        config_sentence_transformers_json_path = os.path.join(model_path, 'config_sentence_transformers.json')
-        if os.path.exists(config_sentence_transformers_json_path):
+        config_sentence_transformers_json_path = load_file_path(model_name_or_path, 'config_sentence_transformers.json', token=token, cache_folder=cache_folder)
+        if config_sentence_transformers_json_path is not None:
             with open(config_sentence_transformers_json_path) as fIn:
                 self._model_config = json.load(fIn)
 
@@ -823,8 +843,8 @@ class SentenceTransformer(nn.Sequential):
                 logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(self._model_config['__version__']['sentence_transformers'], __version__))
 
         # Check if a readme exists
-        model_card_path = os.path.join(model_path, 'README.md')
-        if os.path.exists(model_card_path):
+        model_card_path = load_file_path(model_name_or_path, 'README.md', token=token, cache_folder=cache_folder)
+        if model_card_path is not None:
             try:
                 with open(model_card_path, encoding='utf8') as fIn:
                     self._model_card_text = fIn.read()
@@ -832,14 +852,31 @@ class SentenceTransformer(nn.Sequential):
                 pass
 
         # Load the modules of sentence transformer
-        modules_json_path = os.path.join(model_path, 'modules.json')
+        modules_json_path = load_file_path(model_name_or_path, 'modules.json', token=token, cache_folder=cache_folder)
         with open(modules_json_path) as fIn:
             modules_config = json.load(fIn)
 
         modules = OrderedDict()
         for module_config in modules_config:
             module_class = import_from_string(module_config['type'])
-            module = module_class.load(os.path.join(model_path, module_config['path']))
+            # For Transformer, don't load the full directory, rely on `transformers` instead
+            # But, do load the config file first.
+            if module_class == Transformer and module_config['path'] == "":
+                kwargs = {}
+                for config_name in ['sentence_bert_config.json', 'sentence_roberta_config.json', 'sentence_distilbert_config.json', 'sentence_camembert_config.json', 'sentence_albert_config.json', 'sentence_xlm-roberta_config.json', 'sentence_xlnet_config.json']:
+                    config_path = load_file_path(model_name_or_path, config_name, token=token, cache_folder=cache_folder)
+                    if config_path is not None:
+                        with open(config_path) as fIn:
+                            kwargs = json.load(fIn)
+                        break
+                if "model_args" in kwargs:
+                    kwargs["model_args"]["token"] = token
+                else:
+                    kwargs["model_args"] = {"token": token}
+                module = Transformer(model_name_or_path, cache_dir=cache_folder, **kwargs)
+            else:
+                module_path = load_dir_path(model_name_or_path, module_config['path'], token=token, cache_folder=cache_folder)
+                module = module_class.load(module_path)
             modules[module_config['name']] = module
 
         return modules

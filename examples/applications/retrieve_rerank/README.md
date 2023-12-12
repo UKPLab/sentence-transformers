@@ -9,14 +9,14 @@ A pipeline for information retrieval / question answering retrieval that works w
 
 ![InformationRetrieval](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/InformationRetrieval.png)
 
-Given a search query, we first use a **retrieval system** that retrieves a large list of e.g. 100 possible hits which are potentially relevant for the query. For the retrieval, we can use either lexical search, e.g. with ElasticSearch, or we can use dense retrieval with a bi-encoder. 
+Given a search query, we first use a **retrieval system** that retrieves a large list of e.g. 100 possible hits which are potentially relevant for the query. For the retrieval, we can use either lexical search, e.g. with Elasticsearch, or we can use dense retrieval with a bi-encoder. 
 
 However, the retrieval system might retrieve documents that are not that relevant for the search query. Hence, in a second stage, we use a **re-ranker** based on a **cross-encoder** that scores the relevancy of all candidates for the given search query. 
 
 The output will be a ranked list of hits we can present to the user.
 
 ## Retrieval: Bi-Encoder
-For the retrieval of the candidate set, we can either use lexical search (e.g. [ElasticSearch](https://www.elastic.co/elasticsearch/)), or we can use a bi-encoder which is implemented in this repository.
+For the retrieval of the candidate set, we can either use lexical search (e.g. [Elasticsearch](https://www.elastic.co/elasticsearch/)), or we can use a bi-encoder which is implemented in this repository.
 
 Lexical search looks for literal matches of the query words in your document collection. It will not recognize synonyms, acronyms or spelling variations. In contrast, semantic search (or dense retrieval) encodes the search query into vector space and retrieves the document embeddings that are close in vector space. 
 

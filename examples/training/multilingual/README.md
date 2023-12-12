@@ -108,7 +108,7 @@ The idea is based on a fixed (monolingual) **teacher model**, that produces sent
 
 In the above figure, the student model should map *Hello World* and the German translation *Hallo Welt* to the vector of *teacher_model('Hello World')*. We achieve this by training the student model using mean squared error (MSE) loss.
 
-In our experiments we initiliazed the student model with the multilingual XLM-RoBERTa model. 
+In our experiments we initialized the student model with the multilingual XLM-RoBERTa model. 
 
 ## Training 
 For a **fully automatic code example**, see [make_multilingual.py](make_multilingual.py). 
@@ -191,7 +191,7 @@ You can also measure the semantic textual similarity (STS) between sentence pair
 sts_evaluator = evaluation.EmbeddingSimilarityEvaluatorFromList(sentences1, sentences2, scores)
 ```
 
-Where `sentences1` and `sentences2` are lists of sentences and score is numeric value indicating the sematic similarity between `sentences1[i]` and `sentences2[i]`.
+Where `sentences1` and `sentences2` are lists of sentences and score is numeric value indicating the semantic similarity between `sentences1[i]` and `sentences2[i]`.
 
 
 ## Citation

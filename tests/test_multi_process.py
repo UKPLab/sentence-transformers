@@ -19,6 +19,7 @@ class ComputeMultiProcessTest(unittest.TestCase):
 
         # Compute the embeddings using the multi-process pool
         emb = self.model.encode_multi_process(sentences, pool, chunk_size=50)
+        self.model.stop_multi_process_pool(pool)
         assert emb.shape == (len(sentences), 768)
 
         emb_normal = self.model.encode(sentences)

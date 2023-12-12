@@ -71,7 +71,7 @@ for id, sentence in corpus.items():
 
 logging.info("{} train sentences".format(len(train_sentences)))
 
-################# Intialize an SBERT model #################
+################# Initialize an SBERT model #################
 model_name = sys.argv[1] if len(sys.argv) >= 2 else 'bert-base-uncased'
 word_embedding_model = models.Transformer(model_name)
 # Apply **cls** pooling to get one fixed sized sentence vector

@@ -28,5 +28,5 @@ if __name__ == '__main__':
     emb = model.encode_multi_process(sentences, pool)
     print("Embeddings computed. Shape:", emb.shape)
 
-    #Optional: Stop the proccesses in the pool
+    #Optional: Stop the processes in the pool
     model.stop_multi_process_pool(pool)

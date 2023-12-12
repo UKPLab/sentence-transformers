@@ -36,7 +36,7 @@ wiki_doc_freq = 'wikipedia_doc_frequencies.txt'
 if not os.path.exists(wiki_doc_freq):
     util.http_get('https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/wikipedia_doc_frequencies.txt', wiki_doc_freq)
 
-#Check if dataset exsist. If not, download and extract  it
+#Check if dataset exists. If not, download and extract  it
 sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
 
 if not os.path.exists(sts_dataset_path):

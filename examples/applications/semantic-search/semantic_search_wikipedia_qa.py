@@ -19,7 +19,7 @@ import gzip
 import os
 import torch
 
-# We use the Bi-Encoder to encode all passages, so that we can use it with sematic search
+# We use the Bi-Encoder to encode all passages, so that we can use it with semantic search
 model_name = 'nq-distilbert-base-v1'
 bi_encoder = SentenceTransformer(model_name)
 top_k = 5  # Number of passages we want to retrieve with the bi-encoder

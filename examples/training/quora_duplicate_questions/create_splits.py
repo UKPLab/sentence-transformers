@@ -1,6 +1,6 @@
 """
 The Quora Duplicate Questions dataset contains questions pairs from Quora (www.quora.com)
-along with a label whether the two questions are a duplicate, i.e., have an identical itention.
+along with a label whether the two questions are a duplicate, i.e., have an identical intention.
 
 Example of a duplicate pair:
 How do I enhance my English?  AND  How can I become good at English?
@@ -18,10 +18,10 @@ https://sbert.net/datasets/quora-duplicate-questions.zip
 This script does the following:
 1) After reading the quora_duplicate_questions.tsv, as provided by Quora, we add a transitive closure: If question (A, B) are duplicates and (B, C) are duplicates, than (A, C) must also be a duplicate. We add these missing links.
 
-2) Next, we split sentences into train, dev, and test with a ratio of about 85% / 5% / 10%. In contrast to must other Quora data splits, like the split provided by GLUE, we ensure that the three sets are overlap free, i.e., no sentences in dev / test will appear in the train dataset. In order to achieve three distinct datasets, we pick a sentence and then assign all duplicate sentences to this dataset to that repective set
+2) Next, we split sentences into train, dev, and test with a ratio of about 85% / 5% / 10%. In contrast to must other Quora data splits, like the split provided by GLUE, we ensure that the three sets are overlap free, i.e., no sentences in dev / test will appear in the train dataset. In order to achieve three distinct datasets, we pick a sentence and then assign all duplicate sentences to this dataset to that respective set
 
 3) After distributing sentences to the three dataset split, we create files to facilitate 3 different tasks:
-    3.1) Classification - Given two sentences, are these a duplicate? This is identical to the orginial Quora task and the task in GLUE, but with the big difference that sentences in dev / test have not been seen in train.
+    3.1) Classification - Given two sentences, are these a duplicate? This is identical to the original Quora task and the task in GLUE, but with the big difference that sentences in dev / test have not been seen in train.
     3.2) Duplicate Question Mining - Given a large set of questions, identify all duplicates. The dev set consists of about 50k questions, the test set of about 100k sentences.
     3.3) Information Retrieval - Given a question as query, find in a large corpus (~350k questions) the duplicates of the query question.
 
@@ -223,7 +223,7 @@ print("\nTrain duplicates", len(train_duplicates))
 print("Dev duplicates", len(dev_duplicates))
 print("Test duplicates", len(test_duplicates))
 
-############### Write general files about the duplate questions graph ############
+############### Write general files about the duplicate questions graph ############
 with open('quora-IR-dataset/graph/sentences.tsv', 'w', encoding='utf8') as fOut:
     fOut.write("qid\tquestion\n")
     for id, question in sentences.items():
@@ -359,7 +359,7 @@ for a in rnd_test_ids:
                 corpus_ids.add(b)
 
 #Write output for information-retrieval
-print("\nInformation Retrival Setup")
+print("\nInformation Retrieval Setup")
 print("Corpus size:", len(corpus_ids))
 print("Dev queries:", len(dev_queries))
 print("Test queries:", len(test_queries))
