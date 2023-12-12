@@ -50,7 +50,7 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dense_
 
 Here, we add on top of the pooling layer a fully connected dense layer with Tanh activation, which performs a down-project to 256 dimensions. Hence, embeddings by this model will only have 256 instead of 768 dimensions.
 
-Additionally, we can also create SentenceTransformer models from scratch for image search by loading any CLIP model from the Hugging Face Hub:
+Additionally, we can also create SentenceTransformer models from scratch for image search by loading any CLIP model from the Hugging Face Hub or a local path:
 
 ```py
 from sentence_transformers import SentenceTransformer, models
