@@ -122,7 +122,7 @@ class SentenceTransformer(nn.Sequential):
             device = get_device_name()
             logger.info("Use pytorch device_name: {}".format(device))
 
-        self._target_device = torch.device(device)
+        self.to(device)
 
     def encode(self, sentences: Union[str, List[str]],
                batch_size: int = 32,
@@ -167,7 +167,7 @@ class SentenceTransformer(nn.Sequential):
             input_was_string = True
 
         if device is None:
-            device = self._target_device
+            device = self.device
 
         self.to(device)
 
@@ -658,7 +658,7 @@ class SentenceTransformer(nn.Sequential):
             from torch.cuda.amp import autocast
             scaler = torch.cuda.amp.GradScaler()
 
-        self.to(self._target_device)
+        self.to(self.device)
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
 
@@ -668,7 +668,7 @@ class SentenceTransformer(nn.Sequential):
 
         loss_models = [loss for _, loss in train_objectives]
         for loss_model in loss_models:
-            loss_model.to(self._target_device)
+            loss_model.to(self.device)
 
         self.best_score = -9999999
 
@@ -724,8 +724,8 @@ class SentenceTransformer(nn.Sequential):
                         data = next(data_iterator)
 
                     features, labels = data
-                    labels = labels.to(self._target_device)
-                    features = list(map(lambda batch: batch_to_device(batch, self._target_device), features))
+                    labels = labels.to(self.device)
+                    features = list(map(lambda batch: batch_to_device(batch, self.device), features))
 
                     if use_amp:
                         with autocast():
@@ -949,3 +949,14 @@ class SentenceTransformer(nn.Sequential):
         Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
         """
         self._first_module().max_seq_length = value
+
+    @property
+    def _target_device(self) -> torch.device:
+        logger.warning(
+            "`SentenceTransformer._target_device` has been removed, please use `SentenceTransformer.device` instead.",
+        )
+        return self.device
+
+    @_target_device.setter
+    def _target_device(self, device: Optional[Union[int, str, torch.device]] = None) -> None:
+        self.to(device)
