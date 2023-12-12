@@ -6,7 +6,7 @@ SentenceTransformers provides models that allow to embed images and text into th
 
 
 ## Installation
-Ensure that you have [torchvision](https://pypi.org/project/torchvision/) installed to use the image-text-models and use a recent PyTorch version (tested with PyTorch 1.7.0). Image-Text-Models have been added with SentenceTransformers version 1.0.0. Image-Text-Models are still in an experimental phase. 
+Ensure that you have [transformers](https://pypi.org/project/transformers/) installed to use the image-text-models and use a recent PyTorch version (tested with PyTorch 1.7.0). Image-Text-Models have been added with SentenceTransformers version 1.0.0. Image-Text-Models are still in an experimental phase. 
 
 ## Usage
 SentenceTransformers provides a wrapper for the [OpenAI CLIP Model](https://github.com/openai/CLIP), which was trained on a variety of (image, text)-pairs.
