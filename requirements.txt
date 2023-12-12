@@ -8,3 +8,4 @@ scipy
 nltk
 sentencepiece
 huggingface-hub
+Pillow
