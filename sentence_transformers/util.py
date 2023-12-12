@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 def pytorch_cos_sim(a: Tensor, b: Tensor):
     """
     Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j.
+
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
     """
     return cos_sim(a, b)
@@ -31,6 +32,7 @@ def pytorch_cos_sim(a: Tensor, b: Tensor):
 def cos_sim(a: Tensor, b: Tensor):
     """
     Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j.
+
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
     """
     if not isinstance(a, torch.Tensor):
@@ -53,6 +55,7 @@ def cos_sim(a: Tensor, b: Tensor):
 def dot_score(a: Tensor, b: Tensor):
     """
     Computes the dot-product dot_prod(a[i], b[j]) for all i and j.
+
     :return: Matrix with res[i][j]  = dot_prod(a[i], b[j])
     """
     if not isinstance(a, torch.Tensor):
@@ -73,6 +76,7 @@ def dot_score(a: Tensor, b: Tensor):
 def pairwise_dot_score(a: Tensor, b: Tensor):
     """
    Computes the pairwise dot-product dot_prod(a[i], b[i])
+
    :return: Vector with res[i] = dot_prod(a[i], b[i])
    """
     if not isinstance(a, torch.Tensor):
@@ -87,6 +91,7 @@ def pairwise_dot_score(a: Tensor, b: Tensor):
 def pairwise_cos_sim(a: Tensor, b: Tensor):
     """
    Computes the pairwise cossim cos_sim(a[i], b[i])
+
    :return: Vector with res[i] = cos_sim(a[i], b[i])
    """
     if not isinstance(a, torch.Tensor):
@@ -343,7 +348,7 @@ def import_from_string(dotted_path):
         raise ImportError(msg)
 
 
-def community_detection(embeddings, threshold=0.75, min_community_size=10, batch_size=1024):
+def community_detection(embeddings, threshold=0.75, min_community_size=10, batch_size=1024, show_progress_bar=False):
     """
     Function for Fast Community Detection
     Finds in the embeddings all communities, i.e. embeddings that are close (closer than threshold).
@@ -361,7 +366,7 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, batch
     min_community_size = min(min_community_size, len(embeddings))
     sort_max_size = min(max(2 * min_community_size, 50), len(embeddings))
 
-    for start_idx in range(0, len(embeddings), batch_size):
+    for start_idx in tqdm(range(0, len(embeddings), batch_size), desc="Finding clusters", disable=not show_progress_bar):
         # Compute cosine similarity scores
         cos_scores = cos_sim(embeddings[start_idx:start_idx + batch_size], embeddings)
 

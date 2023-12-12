@@ -43,5 +43,5 @@ if __name__ == '__main__':
         batch_emb = model.encode_multi_process(sentences, pool, chunk_size=chunk_size, batch_size=encode_batch_size)
         print("Embeddings computed for 1 batch. Shape:", batch_emb.shape)
 
-    #Optional: Stop the proccesses in the pool
+    #Optional: Stop the processes in the pool
     model.stop_multi_process_pool(pool)

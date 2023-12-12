@@ -42,7 +42,7 @@ word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_len
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode='mean')
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
-#Check if dataset exsist. If not, download and extract  it
+#Check if dataset exists. If not, download and extract  it
 nli_dataset_path = 'data/AllNLI.tsv.gz'
 sts_dataset_path = 'data/stsbenchmark.tsv.gz'
 

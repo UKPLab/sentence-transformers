@@ -4,13 +4,12 @@ import os
 import shutil
 import stat
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal
 import warnings
-import requests
 import numpy as np
 from numpy import ndarray
 import transformers
-from huggingface_hub import HfApi, HfFolder, Repository, hf_hub_url, cached_download, hf_hub_download
+from huggingface_hub import HfApi, HfFolder, Repository
 import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
@@ -25,21 +24,43 @@ from distutils.dir_util import copy_tree
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
 from .util import import_from_string, batch_to_device, fullname, is_sentence_transformer_model, load_dir_path, load_file_path
-from .models import Transformer, Pooling, Dense
+from .models import Transformer, Pooling
 from .model_card_templates import ModelCardTemplate
 from . import __version__
 
 logger = logging.getLogger(__name__)
 
+
+def get_device_name() -> Literal["mps", "cuda", "cpu"]:
+    """
+    Returns the name of the device where this module is running on.
+    It's simple implementation that doesn't cover cases when more powerful GPUs are available and
+    not a primary device ('cuda:0') or MPS device is available, but not configured properly:
+    https://pytorch.org/docs/master/notes/mps.html
+
+    :return: Device name, like 'cuda' or 'cpu'
+    """
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
+
+
 class SentenceTransformer(nn.Sequential):
     """
-    Loads or create a SentenceTransformer model, that can be used to map sentences / text to embeddings.
+    Loads or creates a SentenceTransformer model that can be used to map sentences / text to embeddings.
 
-    :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path, it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model from Huggingface models repository with that name.
-    :param modules: This parameter can be used to create custom SentenceTransformer models from scratch.
-    :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
-    :param cache_folder: Path to store models. Can be also set by SENTENCE_TRANSFORMERS_HOME enviroment variable.
-    :param token: HuggingFace authentication token to download private models.
+    :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path,
+        it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model
+        from the Hugging Face Hub with that name.
+    :param modules: A list of torch Modules that should be called sequentially, can be used to create custom
+        SentenceTransformer models from scratch.
+    :param device: Device (like "cuda", "cpu", "mps") that should be used for computation. If None, checks if a GPU
+        can be used.
+    :param cache_folder: Path to store models. Can be also set by SENTENCE_TRANSFORMERS_HOME environment variable.
+    :param token: Hugging Face authentication token to download private models.
     """
     def __init__(self, model_name_or_path: Optional[str] = None,
                  modules: Optional[Iterable[nn.Module]] = None,
@@ -98,12 +119,10 @@ class SentenceTransformer(nn.Sequential):
 
         super().__init__(modules)
         if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            logger.info("Use pytorch device: {}".format(device))
+            device = get_device_name()
+            logger.info("Use pytorch device_name: {}".format(device))
 
         self._target_device = torch.device(device)
-
-
 
     def encode(self, sentences: Union[str, List[str]],
                batch_size: int = 32,
@@ -114,19 +133,22 @@ class SentenceTransformer(nn.Sequential):
                device: str = None,
                normalize_embeddings: bool = False) -> Union[List[Tensor], ndarray, Tensor]:
         """
-        Computes sentence embeddings
+        Computes sentence embeddings.
 
-        :param sentences: the sentences to embed
-        :param batch_size: the batch size used for the computation
-        :param show_progress_bar: Output a progress bar when encode sentences
-        :param output_value:  Default sentence_embedding, to get sentence embeddings. Can be set to token_embeddings to get wordpiece token embeddings. Set to None, to get all output values
-        :param convert_to_numpy: If true, the output is a list of numpy vectors. Else, it is a list of pytorch tensors.
-        :param convert_to_tensor: If true, you get one large tensor as return. Overwrites any setting from convert_to_numpy
-        :param device: Which torch.device to use for the computation
-        :param normalize_embeddings: If set to true, returned vectors will have length 1. In that case, the faster dot-product (util.dot_score) instead of cosine similarity can be used.
+        :param sentences: the sentences to embed.
+        :param batch_size: the batch size used for the computation.
+        :param show_progress_bar: Whether to output a progress bar when encode sentences.
+        :param output_value: The type of embeddings to return: "sentence_embedding" to get sentence embeddings,
+            "token_embeddings" to get wordpiece token embeddings, and `None`, to get all output values. Defaults
+            to "sentence_embedding".
+        :param convert_to_numpy: Whether the output should be a list of numpy vectors. If False, it is a list of PyTorch tensors.
+        :param convert_to_tensor: Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
+        :param device: Which `torch.device` to use for the computation.
+        :param normalize_embeddings: Whether to normalize returned vectors to have length 1. In that case,
+            the faster dot-product (util.dot_score) instead of cosine similarity can be used.
 
-        :return:
-           By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned. If convert_to_numpy, a numpy matrix is returned.
+        :return: By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned.
+            If convert_to_numpy, a numpy matrix is returned.
         """
         self.eval()
         if show_progress_bar is None:
@@ -336,6 +358,7 @@ class SentenceTransformer(nn.Sequential):
     def save(self, path: str, model_name: Optional[str] = None, create_model_card: bool = True, train_datasets: Optional[List[str]] = None):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
+
         :param path: Path on disc
         :param model_name: Optional model name
         :param create_model_card: If True, create a README.md with basic information about this model
