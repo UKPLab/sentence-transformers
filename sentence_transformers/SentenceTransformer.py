@@ -4,11 +4,7 @@ import os
 import shutil
 import stat
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal
 import numpy as np
 from numpy import ndarray
 import transformers
