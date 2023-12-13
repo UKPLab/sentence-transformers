@@ -12,9 +12,9 @@ import logging
 from typing import Dict, Optional, Union
 from pathlib import Path
 
-import huggingface_hub
 from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
-from huggingface_hub import HfApi, hf_hub_url, cached_download, HfFolder
+from huggingface_hub import snapshot_download, hf_hub_download
+from huggingface_hub.utils import EntryNotFoundError
 import fnmatch
 from packaging import version
 import heapq
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 def pytorch_cos_sim(a: Tensor, b: Tensor):
     """
     Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j.
+
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
     """
     return cos_sim(a, b)
@@ -31,6 +32,7 @@ def pytorch_cos_sim(a: Tensor, b: Tensor):
 def cos_sim(a: Tensor, b: Tensor):
     """
     Computes the cosine similarity cos_sim(a[i], b[j]) for all i and j.
+
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
     """
     if not isinstance(a, torch.Tensor):
@@ -53,6 +55,7 @@ def cos_sim(a: Tensor, b: Tensor):
 def dot_score(a: Tensor, b: Tensor):
     """
     Computes the dot-product dot_prod(a[i], b[j]) for all i and j.
+
     :return: Matrix with res[i][j]  = dot_prod(a[i], b[j])
     """
     if not isinstance(a, torch.Tensor):
@@ -73,6 +76,7 @@ def dot_score(a: Tensor, b: Tensor):
 def pairwise_dot_score(a: Tensor, b: Tensor):
     """
    Computes the pairwise dot-product dot_prod(a[i], b[i])
+
    :return: Vector with res[i] = dot_prod(a[i], b[i])
    """
     if not isinstance(a, torch.Tensor):
@@ -87,6 +91,7 @@ def pairwise_dot_score(a: Tensor, b: Tensor):
 def pairwise_cos_sim(a: Tensor, b: Tensor):
     """
    Computes the pairwise cossim cos_sim(a[i], b[i])
+
    :return: Vector with res[i] = cos_sim(a[i], b[i])
    """
     if not isinstance(a, torch.Tensor):
@@ -189,7 +194,7 @@ def paraphrase_mining_embeddings(embeddings: Tensor,
 
         if sorted_i != sorted_j and (sorted_i, sorted_j) not in added_pairs:
             added_pairs.add((sorted_i, sorted_j))
-            pairs_list.append([score, i, j])
+            pairs_list.append([score, sorted_i, sorted_j])
 
     # Highest scores first
     pairs_list = sorted(pairs_list, key=lambda x: x[0], reverse=True)
@@ -343,7 +348,7 @@ def import_from_string(dotted_path):
         raise ImportError(msg)
 
 
-def community_detection(embeddings, threshold=0.75, min_community_size=10, batch_size=1024):
+def community_detection(embeddings, threshold=0.75, min_community_size=10, batch_size=1024, show_progress_bar=False):
     """
     Function for Fast Community Detection
     Finds in the embeddings all communities, i.e. embeddings that are close (closer than threshold).
@@ -361,7 +366,7 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, batch
     min_community_size = min(min_community_size, len(embeddings))
     sort_max_size = min(max(2 * min_community_size, 50), len(embeddings))
 
-    for start_idx in range(0, len(embeddings), batch_size):
+    for start_idx in tqdm(range(0, len(embeddings), batch_size), desc="Finding clusters", disable=not show_progress_bar):
         # Compute cosine similarity scores
         cos_scores = cos_sim(embeddings[start_idx:start_idx + batch_size], embeddings)
 
@@ -419,86 +424,62 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, batch
 ######################
 
 
-
-def snapshot_download(
-    repo_id: str,
-    revision: Optional[str] = None,
-    cache_dir: Union[str, Path, None] = None,
-    library_name: Optional[str] = None,
-    library_version: Optional[str] = None,
-    user_agent: Union[Dict, str, None] = None,
-    ignore_files: Optional[List[str]] = None,
-    use_auth_token: Union[bool, str, None] = None
-) -> str:
+class disabled_tqdm(tqdm):
     """
-    Method derived from huggingface_hub.
-    Adds a new parameters 'ignore_files', which allows to ignore certain files / file-patterns
+    Class to override `disable` argument in case progress bars are globally disabled.
+
+    Taken from https://github.com/tqdm/tqdm/issues/619#issuecomment-619639324.
     """
-    if cache_dir is None:
-        cache_dir = HUGGINGFACE_HUB_CACHE
-    if isinstance(cache_dir, Path):
-        cache_dir = str(cache_dir)
 
-    _api = HfApi()
-    
-    token = None 
-    if isinstance(use_auth_token, str):
-        token = use_auth_token
-    elif use_auth_token:
-        token = HfFolder.get_token()
-        
-    model_info = _api.model_info(repo_id=repo_id, revision=revision, token=token)
+    def __init__(self, *args, **kwargs):
+        kwargs["disable"] = True
+        super().__init__(*args, **kwargs)
 
-    storage_folder = os.path.join(
-        cache_dir, repo_id.replace("/", "_")
-    )
+    def __delattr__(self, attr: str) -> None:
+        """Fix for https://github.com/huggingface/huggingface_hub/issues/1603"""
+        try:
+            super().__delattr__(attr)
+        except AttributeError:
+            if attr != "_lock":
+                raise
 
-    all_files = model_info.siblings
-    #Download modules.json as the last file
-    for idx, repofile in enumerate(all_files):
-        if repofile.rfilename == "modules.json":
-            del all_files[idx]
-            all_files.append(repofile)
-            break
 
-    for model_file in all_files:
-        if ignore_files is not None:
-            skip_download = False
-            for pattern in ignore_files:
-                if fnmatch.fnmatch(model_file.rfilename, pattern):
-                    skip_download = True
-                    break
+def is_sentence_transformer_model(model_name_or_path: str, token: Optional[Union[bool, str]] = None, cache_folder: Optional[str] = None) -> bool:
+    return bool(load_file_path(model_name_or_path, "modules.json", token, cache_folder))
 
-            if skip_download:
-                continue
 
-        url = hf_hub_url(
-            repo_id, filename=model_file.rfilename, revision=model_info.sha
-        )
-        relative_filepath = os.path.join(*model_file.rfilename.split("/"))
+def load_file_path(model_name_or_path: str, filename: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]) -> Optional[str]:
+    # If file is local
+    file_path = os.path.join(model_name_or_path, filename)
+    if os.path.exists(file_path):
+        return file_path
 
-        # Create potential nested dir
-        nested_dirname = os.path.dirname(
-            os.path.join(storage_folder, relative_filepath)
-        )
-        os.makedirs(nested_dirname, exist_ok=True)
+    # If file is remote
+    try:
+        return hf_hub_download(model_name_or_path, filename=filename, library_name="sentence-transformers", token=token, cache_dir=cache_folder)
+    except Exception:
+        return
 
-        cached_download_args = {'url': url,
-            'cache_dir': storage_folder,
-            'force_filename': relative_filepath,
-            'library_name': library_name,
-            'library_version': library_version,
-            'user_agent': user_agent,
-            'use_auth_token': use_auth_token}
 
-        if version.parse(huggingface_hub.__version__) >= version.parse("0.8.1"):
-            # huggingface_hub v0.8.1 introduces a new cache layout. We sill use a manual layout
-            # And need to pass legacy_cache_layout=True to avoid that a warning will be printed
-            cached_download_args['legacy_cache_layout'] = True
+def load_dir_path(model_name_or_path: str, directory: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]) -> Optional[str]:
+    # If file is local
+    dir_path = os.path.join(model_name_or_path, directory)
+    if os.path.exists(dir_path):
+        return dir_path
 
-        path = cached_download(**cached_download_args)
-
-        if os.path.exists(path + ".lock"):
-            os.remove(path + ".lock")
-
-    return storage_folder
+    download_kwargs = {
+        "repo_id": model_name_or_path,
+        "allow_patterns":f"{directory}/**",
+        "library_name": "sentence-transformers",
+        "token": token,
+        "cache_dir": cache_folder,
+        "tqdm_class": disabled_tqdm,
+    }
+    # Try to download from the remote
+    try:
+        repo_path = snapshot_download(**download_kwargs)
+    except Exception:
+        # Otherwise, try local (i.e. cache) only
+        download_kwargs["local_files_only"] = True
+        repo_path = snapshot_download(**download_kwargs)
+    return os.path.join(repo_path, directory)

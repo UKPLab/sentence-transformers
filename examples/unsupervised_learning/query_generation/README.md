@@ -17,7 +17,7 @@ In this tutorial, we show to train such models if  **no training data is availab
 
 ## Overview
 
-We use **synthethic query generation** to achieve our goal. We start with the passage from our document collection and create for these possible queries users might ask / might search for.
+We use **synthetic query generation** to achieve our goal. We start with the passage from our document collection and create for these possible queries users might ask / might search for.
 
 ![Query Generation](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/query-generation.png)
 
@@ -90,5 +90,5 @@ Assembly language, C , C# , C++, Go , Java , JavaScript, Keras, Laravel, MATLAB,
 
 In:
 - [1_programming_query_generation.py](1_programming_query_generation.py) - We generate queries for all paragraphs from these articles
-- [2_programming_train_bi-encoder.py](2_programming_train_bi-encoder.py) - We train a SentenceTransformer bi-encoder with these generated queries. This results in a model we can then use for sematic search (for the given Wikipedia articles).
+- [2_programming_train_bi-encoder.py](2_programming_train_bi-encoder.py) - We train a SentenceTransformer bi-encoder with these generated queries. This results in a model we can then use for semantic search (for the given Wikipedia articles).
 - [3_programming_semantic_search.py](3_programming_semantic_search.py) - Shows how the trained model can be used for semantic search.

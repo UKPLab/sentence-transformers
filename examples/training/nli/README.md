@@ -4,7 +4,7 @@ Given two sentence (premise and hypothesis), Natural Language Inference (NLI) is
 
 [Conneau et al.](https://arxiv.org/abs/1705.02364) showed that NLI data can be quite useful when training Sentence Embedding methods. We also found this in our [Sentence-BERT-Paper](https://arxiv.org/abs/1908.10084) and often use NLI as a first fine-tuning step for sentence embedding methods.
 
-To train on NLI, see the follwing example files:
+To train on NLI, see the following example files:
 - **[training_nli.py](training_nli.py)** - This example uses the Softmax-Classification-Loss, as described in the [SBERT-Paper](https://arxiv.org/abs/1908.10084), to learn sentence embeddings.
 - **[training_nli_v2.py](training_nli_v2.py)** - The Softmax-Classification-Loss, as used in our original SBERT paper, does not yield optimal performance. A better loss is [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/losses.html#multiplenegativesrankingloss), where we provide pairs or triplets. In that example, we provide a triplet of the format: (anchor, entailment_sentence, contradiction_sentence). The NLI data provides such triplets. The MultipleNegativesRankingLoss yields much higher performances and is more intuitive than the Softmax-Classification-Loss. We have used this loss to train the paraphrase model in our [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) paper.
 

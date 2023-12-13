@@ -113,12 +113,12 @@ We only use the positive examples. As 'is_duplicate' is a symmetric relation, we
 
 **Note 1:** Increasing the batch sizes usually yields better results, as the task gets harder. It is more difficult to identify the correct duplicate question out of a set of 100 questions than out of a set of only 10 questions. So it is advisable to set the training batch size as large as possible. I trained it with a batch size of 350 on 32 GB GPU memory.
 
-**Note 2:** MultipleNegativesRankingLoss only works if *(a_i, b_j)* with j != i is actually a negative, non-duplicate question pair. In few instances, this assumption is wrong. But in the majority of cases, if we sample two random questions, they are not duplicates. If your dataset cannot fullfil this property,  MultipleNegativesRankingLoss might not work well.
+**Note 2:** MultipleNegativesRankingLoss only works if *(a_i, b_j)* with j != i is actually a negative, non-duplicate question pair. In few instances, this assumption is wrong. But in the majority of cases, if we sample two random questions, they are not duplicates. If your dataset cannot fulfil this property,  MultipleNegativesRankingLoss might not work well.
 
 ### Multi-Task-Learning
 Contrastive Loss works well for pair classification, i.e., given two pairs, are these duplicates or not. It pushes negative pairs far away in vector space, so that the distinguishing between duplicate and non-duplicate pairs works good.
 
-MultipleNegativesRankingLoss on the other sides mainly reduces the distance between positive pairs out of large set of possible candidates. However, the distance between  non-duplicate questions is not so large, so that this loss does not work that weill for pair classification.
+MultipleNegativesRankingLoss on the other sides mainly reduces the distance between positive pairs out of large set of possible candidates. However, the distance between  non-duplicate questions is not so large, so that this loss does not work that well for pair classification.
 
 In [training_multi-task-learning.py](training_multi-task-learning.py) I demonstrate how we can train the network with both losses. The essential code is to define both losses and to pass it to the fit method.
 ```python

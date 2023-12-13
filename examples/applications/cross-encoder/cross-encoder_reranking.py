@@ -12,7 +12,6 @@ import os
 import csv
 import pickle
 import time
-import sys
 
 # We use a BiEncoder (SentenceTransformer) that produces embeddings for questions.
 # We then search for similar questions using cosine similarity and identify the top 100 most similar questions
@@ -22,7 +21,7 @@ num_candidates = 500
 
 # To refine the results, we use a CrossEncoder. A CrossEncoder gets both inputs (input_question, retrieved_question)
 # and outputs a score 0...1 indicating the similarity.
-cross_encoder_model = CrossEncoder('cross-encoder/roberta-base-stsb')
+cross_encoder_model = CrossEncoder('cross-encoder/stsb-roberta-base')
 
 # Dataset we want to use
 url = "http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv"
@@ -55,7 +54,7 @@ if not os.path.exists(embedding_cache_path):
 
     corpus_sentences = list(corpus_sentences)
     print("Encode the corpus. This might take a while")
-    corpus_embeddings = model.encode(corpus_sentences, show_progress_bar=True, convert_to_tensor=True, num_workers=2)
+    corpus_embeddings = model.encode(corpus_sentences, show_progress_bar=True, convert_to_tensor=True)
 
     print("Store file on disc")
     with open(embedding_cache_path, "wb") as fOut:
@@ -96,7 +95,7 @@ while True:
 
     #Sort list by CrossEncoder scores
     hits = sorted(hits, key=lambda x: x['cross-encoder_score'], reverse=True)
-    print("\nRe-ranking with Cross-Encoder took {:.3f} seconds".format(time.time() - start_time))
+    print("\nRe-ranking with CrossEncoder took {:.3f} seconds".format(time.time() - start_time))
     print("Top 5 hits with CrossEncoder:")
     for hit in hits[0:5]:
         print("\t{:.3f}\t{}".format(hit['cross-encoder_score'], corpus_sentences[hit['corpus_id']]))
