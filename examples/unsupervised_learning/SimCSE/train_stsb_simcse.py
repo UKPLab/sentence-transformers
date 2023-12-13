@@ -25,7 +25,7 @@ max_seq_length = 32
 # Save path to store our model
 model_save_path = 'output/training_stsb_simcse-{}-{}-{}'.format(model_name, train_batch_size, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
-# Check if dataset exsist. If not, download and extract  it
+# Check if dataset exists. If not, download and extract  it
 sts_dataset_path = 'data/stsbenchmark.tsv.gz'
 
 if not os.path.exists(sts_dataset_path):

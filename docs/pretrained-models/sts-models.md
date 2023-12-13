@@ -5,8 +5,8 @@ The models were first trained on [NLI data](nli-models.md), then we fine-tuned t
 We use the training file from the  [STS benchmark dataset](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark).
 
 For a training example, see:
-- [examples/training_stsbenchmark.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_stsbenchmark.py) - Train directly on STS data
-- [examples/training_stsbenchmark_continue_training.py ](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training_transformers/training_stsbenchmark_continue_training.py) - First train on NLI, than train on STS data.
+- [examples/training_stsbenchmark.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/sts/training_stsbenchmark.py) - Train directly on STS data
+- [examples/training_stsbenchmark_continue_training.py ](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/sts/training_stsbenchmark_continue_training.py) - First train on NLI, than train on STS data.
 
 # Pre-trained models
  We provide the following pre-trained models:

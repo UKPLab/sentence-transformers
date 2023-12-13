@@ -29,6 +29,7 @@ class ParallelSentencesDataset(Dataset):
     def __init__(self, student_model: SentenceTransformer, teacher_model: SentenceTransformer, batch_size: int = 8, use_embedding_cache: bool = True):
         """
         Parallel sentences dataset reader to train student model given a teacher model
+
         :param student_model: Student sentence embedding model that should be trained
         :param teacher_model: Teacher model, that provides the sentence embeddings for the first column in the dataset file
         """
