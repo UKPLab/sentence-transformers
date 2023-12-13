@@ -9,7 +9,7 @@ from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional,
 import numpy as np
 from numpy import ndarray
 import transformers
-from huggingface_hub import HfApi, HfFolder, Repository
+from huggingface_hub import HfApi
 import torch
 from torch import nn, Tensor, device
 from torch.optim import Optimizer
@@ -468,8 +468,9 @@ class SentenceTransformer(nn.Sequential):
             fOut.write(model_card.strip())
 
     def save_to_hub(self,
-                    repo_name: str,
+                    repo_id: str,
                     organization: Optional[str] = None,
+                    token: Optional[str] = None,
                     private: Optional[bool] = None,
                     commit_message: str = "Add new SentenceTransformer model.",
                     local_model_path: Optional[str] = None,
@@ -479,90 +480,61 @@ class SentenceTransformer(nn.Sequential):
         """
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
-        :param repo_name: Repository name for your model in the Hub.
-        :param organization:  Organization in which you want to push your model or tokenizer (you must be a member of this organization).
+        :param repo_id: Repository name for your model in the Hub, including the user or organization.
+        :param token: An authentication token (See https://huggingface.co/settings/token)
         :param private: Set to true, for hosting a prive model
         :param commit_message: Message to commit while pushing.
         :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
         :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
         :param replace_model_card: If true, replace an existing model card in the hub with the automatically created model card
         :param train_datasets: Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
-        :return: The url of the commit of your model in the given repository.
+        :param organization: Deprecated. Organization in which you want to push your model or tokenizer (you must be a member of this organization).
+
+        :return: The url of the commit of your model in the repository on the Hugging Face Hub.
         """
-        token = HfFolder.get_token()
-        if token is None:
-            raise ValueError("You must login to the Hugging Face hub on this computer by typing `transformers-cli login`.")
-
-        if '/' in repo_name:
-            splits = repo_name.split('/', maxsplit=1)
-            if organization is None or organization == splits[0]:
-                organization = splits[0]
-                repo_name = splits[1]
-            else:
-                raise ValueError("You passed and invalid repository name: {}.".format(repo_name))
-
-        endpoint = "https://huggingface.co"
-        repo_id = repo_name
         if organization:
-          repo_id = f"{organization}/{repo_id}"
-        repo_url = HfApi(endpoint=endpoint).create_repo(
+            if "/" not in repo_id:
+                logger.warning(
+                    f"Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id=\"{organization}/{repo_id}\"` instead."
+                )
+                repo_id = f"{organization}/{repo_id}"
+            elif repo_id.split("/")[0] != organization:
+                raise ValueError("Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id`.")
+            else:
+                logger.warning(
+                    f"Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id=\"{repo_id}\"` instead."
+                )
+
+        api = HfApi(token=token)
+        repo_url = api.create_repo(
+            repo_id=repo_id,
+            private=private,
+            repo_type=None,
+            exist_ok=exist_ok,
+        )
+        if local_model_path:
+            folder_url = api.upload_folder(
                 repo_id=repo_id,
-                token=token,
-                private=private,
-                repo_type=None,
-                exist_ok=exist_ok,
+                folder_path=local_model_path,
+                commit_message=commit_message
             )
-        full_model_name = repo_url[len(endpoint)+1:].strip("/")
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            # First create the repo (and clone its content if it's nonempty).
-            logger.info("Create repository and clone it if it exists")
-            repo = Repository(tmp_dir, clone_from=repo_url)
-
-            # If user provides local files, copy them.
-            if local_model_path:
-                copy_tree(local_model_path, tmp_dir)
-            else:  # Else, save model directly into local repo.
+        else:
+            with tempfile.TemporaryDirectory() as tmp_dir:
                 create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, 'README.md'))
-                self.save(tmp_dir, model_name=full_model_name, create_model_card=create_model_card, train_datasets=train_datasets)
+                self.save(tmp_dir, model_name=repo_url.repo_id, create_model_card=create_model_card, train_datasets=train_datasets)
+                folder_url = api.upload_folder(
+                    repo_id=repo_id,
+                    folder_path=tmp_dir,
+                    commit_message=commit_message
+                )
 
-            #Find files larger 5M and track with git-lfs
-            large_files = []
-            for root, dirs, files in os.walk(tmp_dir):
-                for filename in files:
-                    file_path = os.path.join(root, filename)
-                    rel_path = os.path.relpath(file_path, tmp_dir)
+        refs = api.list_repo_refs(repo_id=repo_id)
+        for branch in refs.branches:
+            if branch.name == "main":
+                return f"https://huggingface.co/{repo_id}/commit/{branch.target_commit}"
+        # This isn't expected to ever be reached.
+        return folder_url
 
-                    if os.path.getsize(file_path) > (5 * 1024 * 1024):
-                        large_files.append(rel_path)
-
-            if len(large_files) > 0:
-                logger.info("Track files with git lfs: {}".format(", ".join(large_files)))
-                repo.lfs_track(large_files)
-
-            logger.info("Push model to the hub. This might take a while")
-            push_return = repo.push_to_hub(commit_message=commit_message)
-
-            def on_rm_error(func, path, exc_info):
-                # path contains the path of the file that couldn't be removed
-                # let's just assume that it's read-only and unlink it.
-                try:
-                    os.chmod(path, stat.S_IWRITE)
-                    os.unlink(path)
-                except:
-                    pass
-
-            # Remove .git folder. On Windows, the .git folder might be read-only and cannot be deleted
-            # Hence, try to set write permissions on error
-            try:
-                for f in os.listdir(tmp_dir):
-                    shutil.rmtree(os.path.join(tmp_dir, f), onerror=on_rm_error)
-            except Exception as e:
-                logger.warning("Error when deleting temp folder: {}".format(str(e)))
-                pass
-
-
-        return push_return
 
     def smart_batching_collate(self, batch):
         """
