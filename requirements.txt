@@ -1,5 +1,4 @@
-transformers>=4.6.0,<5.0.0
-tokenizers>=0.10.3
+transformers>=4.32.0,<5.0.0
 tqdm
 torch>=1.6.0
 numpy
@@ -7,5 +6,5 @@ scikit-learn
 scipy
 nltk
 sentencepiece
-huggingface-hub
+huggingface-hub>=0.15.1
 Pillow

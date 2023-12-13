@@ -19,7 +19,7 @@ setup(
     packages=find_packages(),
     python_requires=">=3.8.0",
     install_requires=[
-        'transformers>=4.6.0,<5.0.0',
+        'transformers>=4.32.0,<5.0.0',
         'tqdm',
         'torch>=1.6.0',
         'numpy',
@@ -27,7 +27,7 @@ setup(
         'scipy',
         'nltk',
         'sentencepiece',
-        'huggingface-hub>=0.4.0',
+        'huggingface-hub>=0.15.1',
         'Pillow'
     ],
     classifiers=[
