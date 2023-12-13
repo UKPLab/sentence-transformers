@@ -5,7 +5,7 @@ import shutil
 import stat
 from collections import OrderedDict
 import warnings
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal, TYPE_CHECKING
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -29,6 +29,10 @@ from .model_card_templates import ModelCardTemplate
 from . import __version__
 
 logger = logging.getLogger(__name__)
+
+
+if TYPE_CHECKING:
+    from sentence_transformers.readers import InputExample
 
 
 def get_device_name() -> Literal["mps", "cuda", "cpu"]:
@@ -536,35 +540,20 @@ class SentenceTransformer(nn.Sequential):
         return folder_url
 
 
-    def smart_batching_collate(self, batch):
+    def smart_batching_collate(self, batch: List["InputExample"]) -> Tuple[List[Dict[str, Tensor]], Tensor]:
         """
         Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
-        Here, batch is a list of tuples: [(tokens, label), ...]
+        Here, batch is a list of InputExample instances: [InputExample(...), ...]
 
         :param batch:
             a batch from a SmartBatchingDataset
         :return:
             a batch of tensors for the model
         """
-        num_texts = len(batch[0].texts)
-        texts = [[] for _ in range(num_texts)]
-        labels = []
-
-        for example in batch:
-            for idx, text in enumerate(example.texts):
-                texts[idx].append(text)
-
-            labels.append(example.label)
-
-        labels = torch.tensor(labels)
-
-        sentence_features = []
-        for idx in range(num_texts):
-            tokenized = self.tokenize(texts[idx])
-            sentence_features.append(tokenized)
-
+        texts = [example.texts for example in batch]
+        sentence_features = [self.tokenize(sentence) for sentence in zip(*texts)]
+        labels = torch.tensor([example.label for example in batch])
         return sentence_features, labels
-
 
     def _text_length(self, text: Union[List[int], List[List[int]]]):
         """
