@@ -49,4 +49,4 @@ jobs:
       - name: Run unit tests
         shell: bash
         run: |
-          pytest -sv tests/
+          pytest --durations 20 -sv tests/
