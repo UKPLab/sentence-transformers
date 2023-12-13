@@ -472,7 +472,7 @@ class SentenceTransformer(nn.Sequential):
         :param train_datasets: Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
         :param organization: Deprecated. Organization in which you want to push your model or tokenizer (you must be a member of this organization).
 
-        :return: The URL to visualize the uploaded model on the Hugging Face hub.
+        :return: The url of the commit of your model in the repository on the Hugging Face Hub.
         """
         if organization:
             if "/" not in repo_id:
@@ -495,20 +495,28 @@ class SentenceTransformer(nn.Sequential):
             exist_ok=exist_ok,
         )
         if local_model_path:
-            return api.upload_folder(
+            folder_url = api.upload_folder(
                 repo_id=repo_id,
                 folder_path=local_model_path,
                 commit_message=commit_message
             )
+        else:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, 'README.md'))
+                self.save(tmp_dir, model_name=repo_url.repo_id, create_model_card=create_model_card, train_datasets=train_datasets)
+                folder_url = api.upload_folder(
+                    repo_id=repo_id,
+                    folder_path=tmp_dir,
+                    commit_message=commit_message
+                )
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, 'README.md'))
-            self.save(tmp_dir, model_name=repo_url.repo_id, create_model_card=create_model_card, train_datasets=train_datasets)
-            return api.upload_folder(
-                repo_id=repo_id,
-                folder_path=tmp_dir,
-                commit_message=commit_message
-            )
+        refs = api.list_repo_refs(repo_id=repo_id)
+        for branch in refs.branches:
+            if branch.name == "main":
+                return f"https://huggingface.co/{repo_id}/commit/{branch.target_commit}"
+        # This isn't expected to ever be reached.
+        return folder_url
+
 
     def smart_batching_collate(self, batch):
         """

@@ -8,7 +8,7 @@ from pathlib import Path
 import tempfile
 import pytest
 
-from huggingface_hub import HfApi, RepoUrl
+from huggingface_hub import HfApi, RepoUrl, GitRefs, GitRefInfo
 import torch
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Transformer, Pooling
@@ -67,37 +67,68 @@ def test_to() -> None:
     model._target_device = "cpu"
     assert model.device.type == "cpu", "Ensure that setting `_target_device` doesn't crash."
 
+
 def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     def mock_create_repo(self, repo_id, **kwargs):
         return RepoUrl(f"https://huggingface.co/{repo_id}")
 
+    mock_upload_folder_kwargs = {}
+
     def mock_upload_folder(self, **kwargs):
-        return kwargs
+        nonlocal mock_upload_folder_kwargs
+        mock_upload_folder_kwargs = kwargs
+
+    def mock_list_repo_refs(self, repo_id=None, **kwargs):
+        try:
+            git_ref_info = GitRefInfo(name="main", ref="refs/heads/main", target_commit="123456")
+        except TypeError:
+            git_ref_info = GitRefInfo(dict(name="main", ref="refs/heads/main", targetCommit="123456"))
+        return GitRefs(branches=[git_ref_info], converts=[], tags=[])
 
     monkeypatch.setattr(HfApi, "create_repo", mock_create_repo)
     monkeypatch.setattr(HfApi, "upload_folder", mock_upload_folder)
+    monkeypatch.setattr(HfApi, "list_repo_refs", mock_list_repo_refs)
 
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-    kwargs = model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-    assert kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+    url = model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+    assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
+    mock_upload_folder_kwargs.clear()
 
-    with pytest.raises(ValueError, match="Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id`."):
+    with pytest.raises(
+        ValueError, match="Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id`."
+    ):
         model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors", organization="unrelated")
 
     caplog.clear()
     with caplog.at_level(logging.WARNING):
-        kwargs = model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors", organization="sentence-transformers-testing")
-        assert kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        url = model.save_to_hub(
+            "sentence-transformers-testing/stsb-bert-tiny-safetensors", organization="sentence-transformers-testing"
+        )
+        assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
         assert len(caplog.record_tuples) == 1
-        assert caplog.record_tuples[0][2] == "Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id=\"sentence-transformers-testing/stsb-bert-tiny-safetensors\"` instead."
+        assert (
+            caplog.record_tuples[0][2]
+            == 'Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
+        )
+    mock_upload_folder_kwargs.clear()
 
     caplog.clear()
     with caplog.at_level(logging.WARNING):
-        kwargs = model.save_to_hub("stsb-bert-tiny-safetensors", organization="sentence-transformers-testing")
-        assert kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        url = model.save_to_hub("stsb-bert-tiny-safetensors", organization="sentence-transformers-testing")
+        assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
         assert len(caplog.record_tuples) == 1
-        assert caplog.record_tuples[0][2] == "Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id=\"sentence-transformers-testing/stsb-bert-tiny-safetensors\"` instead."
-    
-    kwargs = model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors", local_model_path="my_fake_local_model_path")
-    assert kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
-    assert kwargs["folder_path"] == "my_fake_local_model_path"
+        assert (
+            caplog.record_tuples[0][2]
+            == 'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
+        )
+    mock_upload_folder_kwargs.clear()
+
+    url = model.save_to_hub(
+        "sentence-transformers-testing/stsb-bert-tiny-safetensors", local_model_path="my_fake_local_model_path"
+    )
+    assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+    assert mock_upload_folder_kwargs["folder_path"] == "my_fake_local_model_path"
+    assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
