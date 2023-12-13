@@ -139,7 +139,7 @@ class Pooling(nn.Module):
             # attention_mask shape: (bs, seq_len)
             # Get shape [bs] indices of the last token (i.e. the last token for each batch item)
             # argmin gives us the index of the first 0 in the attention mask; We get the last 1 index by subtracting 1
-            # Any sequence where min == 1, we use the entire sequence lenth since argmin = 0
+            # Any sequence where min == 1, we use the entire sequence length since argmin = 0
             values, indices = torch.min(attention_mask, 1, keepdim = False)
             gather_indices = torch.where(values==0, indices, seq_len) - 1 # Shape [bs]
 
