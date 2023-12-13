@@ -240,6 +240,8 @@ class SentenceTransformer(nn.Sequential):
 
         logger.info("Start multi-process pool on devices: {}".format(', '.join(map(str, target_devices))))
 
+        self.to("cpu")
+        self.share_memory()
         ctx = mp.get_context('spawn')
         input_queue = ctx.Queue()
         output_queue = ctx.Queue()
