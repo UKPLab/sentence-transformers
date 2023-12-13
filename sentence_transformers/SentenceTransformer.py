@@ -320,16 +320,17 @@ class SentenceTransformer(nn.Sequential):
         """
         while True:
             try:
-                id, batch_size, sentences, normalize = input_queue.get()
+                chunk_id, batch_size, sentences, normalize_embeddings = input_queue.get()
                 embeddings = model.encode(
                     sentences,
                     device=target_device,
                     show_progress_bar=False,
                     convert_to_numpy=True,
                     batch_size=batch_size,
-                    normalize_embeddings=normalize)
+                    normalize_embeddings=normalize_embeddings,
+                )
 
-                results_queue.put([id, embeddings])
+                results_queue.put([chunk_id, embeddings])
             except queue.Empty:
                 break
 
