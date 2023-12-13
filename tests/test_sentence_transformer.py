@@ -11,6 +11,7 @@ import torch
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Transformer, Pooling
 
+
 def test_load_with_safetensors() -> None:
     with tempfile.TemporaryDirectory() as cache_folder:
         safetensors_model = SentenceTransformer(
@@ -40,7 +41,11 @@ def test_load_with_safetensors() -> None:
         assert 0 == len(safetensors_files), "Safetensors model file must not be downloaded."
 
     sentences = ["This is a test sentence", "This is another test sentence"]
-    assert torch.equal(safetensors_model.encode(sentences, convert_to_tensor=True), pytorch_model.encode(sentences, convert_to_tensor=True)), "Ensure that Safetensors and PyTorch loaded models result in identical embeddings"
+    assert torch.equal(
+        safetensors_model.encode(sentences, convert_to_tensor=True),
+        pytorch_model.encode(sentences, convert_to_tensor=True),
+    ), "Ensure that Safetensors and PyTorch loaded models result in identical embeddings"
+
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test moving devices effectively.")
 def test_to() -> None:
@@ -59,4 +64,3 @@ def test_to() -> None:
     assert model._target_device == model.device, "Prevent backwards compatibility failure for _target_device"
     model._target_device = "cpu"
     assert model.device.type == "cpu", "Ensure that setting `_target_device` doesn't crash."
-    
