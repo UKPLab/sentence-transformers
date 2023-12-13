@@ -247,8 +247,8 @@ class SentenceTransformer(nn.Sequential):
         output_queue = ctx.Queue()
         processes = []
 
-        for cuda_id in target_devices:
-            p = ctx.Process(target=SentenceTransformer._encode_multi_process_worker, args=(cuda_id, self, input_queue, output_queue), daemon=True)
+        for device_id in target_devices:
+            p = ctx.Process(target=SentenceTransformer._encode_multi_process_worker, args=(device_id, self, input_queue, output_queue), daemon=True)
             p.start()
             processes.append(p)
 
