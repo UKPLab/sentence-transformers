@@ -1,6 +1,6 @@
 """
 This script is identical to examples/training/sts/training_stsbenchmark.py with seed optimization.
-We apply early stopping and evaluate the models over the dev set, to find out the best perfoming seeds.
+We apply early stopping and evaluate the models over the dev set, to find out the best performing seeds.
 
 For more details refer to -
 Fine-Tuning Pretrained Language Models:
@@ -46,7 +46,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 
 
-#Check if dataset exsist. If not, download and extract  it
+#Check if dataset exists. If not, download and extract  it
 sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
 
 if not os.path.exists(sts_dataset_path):

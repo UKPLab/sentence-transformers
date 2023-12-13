@@ -30,7 +30,7 @@ model_save_path = 'output/training_tf-idf_word_embeddings-'+datetime.now().strft
 
 
 
-#Check if dataset exsist. If not, download and extract  it
+#Check if dataset exists. If not, download and extract  it
 sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
 
 if not os.path.exists(sts_dataset_path):

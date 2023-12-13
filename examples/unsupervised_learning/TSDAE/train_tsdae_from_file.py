@@ -53,7 +53,7 @@ with gzip.open(filepath, 'rt', encoding='utf8') if filepath.endswith('.gz') else
 
 logging.info("{} train sentences".format(len(train_sentences)))
 
-################# Intialize an SBERT model #################
+################# Initialize an SBERT model #################
 
 word_embedding_model = models.Transformer(model_name)
 # Apply **cls** pooling to get one fixed sized sentence vector

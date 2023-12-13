@@ -3,7 +3,7 @@ The script shows how to train Augmented SBERT (Domain-Transfer/Cross-Domain) str
 For our example below we consider STSb (source) and QQP (target) datasets respectively.
 
 Methodology:
-Three steps are followed for AugSBERT data-augmentation strategy with Domain Trasfer / Cross-Domain - 
+Three steps are followed for AugSBERT data-augmentation strategy with Domain Transfer / Cross-Domain - 
 1. Cross-Encoder aka BERT is trained over STSb (source) dataset.
 2. Cross-Encoder is used to label QQP training (target) dataset (Assume no labels/no annotations are provided).
 3. Bi-encoder aka SBERT is trained over the labeled QQP (target) dataset.
@@ -52,7 +52,7 @@ sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
 qqp_dataset_path = 'quora-IR-dataset'
 
 
-# Check if the STSb dataset exsist. If not, download and extract it
+# Check if the STSb dataset exists. If not, download and extract it
 if not os.path.exists(sts_dataset_path):
     util.http_get('https://sbert.net/datasets/stsbenchmark.tsv.gz', sts_dataset_path)
 

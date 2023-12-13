@@ -52,4 +52,4 @@ for corpus in corpora:
                     read = OpusRead(directory=corpus, source=src_lang, target=trg_lang, write=[output_filename], download_dir=opus_download_folder, preprocess='raw', write_mode='moses', suppress_prompts=True)
                     read.printPairs()
                 except:
-                    print("An error occured during the creation of", output_filename)
+                    print("An error occurred during the creation of", output_filename)

@@ -17,7 +17,7 @@ class Pooling(nn.Module):
     :param pooling_mode_cls_token: Use the first token (CLS token) as text representations
     :param pooling_mode_max_tokens: Use max in each dimension over all tokens.
     :param pooling_mode_mean_tokens: Perform mean-pooling
-    :param pooling_mode_mean_sqrt_len_tokens: Perform mean-pooling, but devide by sqrt(input_length).
+    :param pooling_mode_mean_sqrt_len_tokens: Perform mean-pooling, but divide by sqrt(input_length).
     :param pooling_mode_weightedmean_tokens: Perform (position) weighted mean pooling, see https://arxiv.org/abs/2202.08904
     :param pooling_mode_lasttoken: Perform last token pooling, see https://arxiv.org/abs/2202.08904 & https://arxiv.org/abs/2201.10005
     """
