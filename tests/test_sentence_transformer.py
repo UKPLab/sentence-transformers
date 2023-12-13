@@ -3,10 +3,12 @@ Tests general behaviour of the SentenceTransformer class
 """
 
 
+import logging
 from pathlib import Path
 import tempfile
 import pytest
 
+from huggingface_hub import HfApi, RepoUrl
 import torch
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Transformer, Pooling
@@ -64,3 +66,38 @@ def test_to() -> None:
     assert model._target_device == model.device, "Prevent backwards compatibility failure for _target_device"
     model._target_device = "cpu"
     assert model.device.type == "cpu", "Ensure that setting `_target_device` doesn't crash."
+
+def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    def mock_create_repo(self, repo_id, **kwargs):
+        return RepoUrl(f"https://huggingface.co/{repo_id}")
+
+    def mock_upload_folder(self, **kwargs):
+        return kwargs
+
+    monkeypatch.setattr(HfApi, "create_repo", mock_create_repo)
+    monkeypatch.setattr(HfApi, "upload_folder", mock_upload_folder)
+
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    kwargs = model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    assert kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+
+    with pytest.raises(ValueError, match="Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id`."):
+        model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors", organization="unrelated")
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        kwargs = model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors", organization="sentence-transformers-testing")
+        assert kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        assert len(caplog.record_tuples) == 1
+        assert caplog.record_tuples[0][2] == "Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id=\"sentence-transformers-testing/stsb-bert-tiny-safetensors\"` instead."
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        kwargs = model.save_to_hub("stsb-bert-tiny-safetensors", organization="sentence-transformers-testing")
+        assert kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        assert len(caplog.record_tuples) == 1
+        assert caplog.record_tuples[0][2] == "Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id=\"sentence-transformers-testing/stsb-bert-tiny-safetensors\"` instead."
+    
+    kwargs = model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors", local_model_path="my_fake_local_model_path")
+    assert kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+    assert kwargs["folder_path"] == "my_fake_local_model_path"

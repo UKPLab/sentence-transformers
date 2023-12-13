@@ -476,10 +476,16 @@ class SentenceTransformer(nn.Sequential):
         """
         if organization:
             if "/" not in repo_id:
-                logger.warning(f"Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id=\"{organization}/{repo_id}\"` instead.")
+                logger.warning(
+                    f"Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id=\"{organization}/{repo_id}\"` instead."
+                )
                 repo_id = f"{organization}/{repo_id}"
             elif repo_id.split("/")[0] != organization:
                 raise ValueError("Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id`.")
+            else:
+                logger.warning(
+                    f"Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id=\"{repo_id}\"` instead."
+                )
 
         api = HfApi(token=token)
         repo_url = api.create_repo(
