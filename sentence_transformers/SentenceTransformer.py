@@ -235,18 +235,20 @@ class SentenceTransformer(nn.Sequential):
             if torch.cuda.is_available():
                 target_devices = ['cuda:{}'.format(i) for i in range(torch.cuda.device_count())]
             else:
-                logger.info("CUDA is not available. Start 4 CPU worker")
+                logger.info("CUDA is not available. Starting 4 CPU workers")
                 target_devices = ['cpu']*4
 
         logger.info("Start multi-process pool on devices: {}".format(', '.join(map(str, target_devices))))
 
+        self.to("cpu")
+        self.share_memory()
         ctx = mp.get_context('spawn')
         input_queue = ctx.Queue()
         output_queue = ctx.Queue()
         processes = []
 
-        for cuda_id in target_devices:
-            p = ctx.Process(target=SentenceTransformer._encode_multi_process_worker, args=(cuda_id, self, input_queue, output_queue), daemon=True)
+        for device_id in target_devices:
+            p = ctx.Process(target=SentenceTransformer._encode_multi_process_worker, args=(device_id, self, input_queue, output_queue), daemon=True)
             p.start()
             processes.append(p)
 
@@ -269,7 +271,13 @@ class SentenceTransformer(nn.Sequential):
         pool['output'].close()
 
 
-    def encode_multi_process(self, sentences: List[str], pool: Dict[str, object], batch_size: int = 32, chunk_size: int = None):
+    def encode_multi_process(
+            self,
+            sentences: List[str],
+            pool: Dict[str, object],
+            batch_size: int = 32,
+            chunk_size: int = None,
+            normalize_embeddings: bool = False):
         """
         This method allows to run encode() on multiple GPUs. The sentences are chunked into smaller packages
         and sent to individual processes, which encode these on the different GPUs. This method is only suitable
@@ -279,6 +287,8 @@ class SentenceTransformer(nn.Sequential):
         :param pool: A pool of workers started with SentenceTransformer.start_multi_process_pool
         :param batch_size: Encode sentences with batch size
         :param chunk_size: Sentences are chunked and sent to the individual processes. If none, it determine a sensible size.
+        :param normalize_embeddings: Whether to normalize returned vectors to have length 1. In that case,
+            the faster dot-product (util.dot_score) instead of cosine similarity can be used.
         :return: Numpy matrix with all embeddings
         """
 
@@ -294,12 +304,12 @@ class SentenceTransformer(nn.Sequential):
         for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, batch_size, chunk])
+                input_queue.put([last_chunk_id, batch_size, chunk, normalize_embeddings])
                 last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, batch_size, chunk])
+            input_queue.put([last_chunk_id, batch_size, chunk, normalize_embeddings])
             last_chunk_id += 1
 
         output_queue = pool['output']
@@ -314,9 +324,17 @@ class SentenceTransformer(nn.Sequential):
         """
         while True:
             try:
-                id, batch_size, sentences = input_queue.get()
-                embeddings = model.encode(sentences, device=target_device,  show_progress_bar=False, convert_to_numpy=True, batch_size=batch_size)
-                results_queue.put([id, embeddings])
+                chunk_id, batch_size, sentences, normalize_embeddings = input_queue.get()
+                embeddings = model.encode(
+                    sentences,
+                    device=target_device,
+                    show_progress_bar=False,
+                    convert_to_numpy=True,
+                    batch_size=batch_size,
+                    normalize_embeddings=normalize_embeddings,
+                )
+
+                results_queue.put([chunk_id, embeddings])
             except queue.Empty:
                 break
 
