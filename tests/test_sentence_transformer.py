@@ -132,3 +132,36 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
     assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
     assert mock_upload_folder_kwargs["folder_path"] == "my_fake_local_model_path"
     assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
+    mock_upload_folder_kwargs.clear()
+
+    # Incorrect usage: Using deprecated "repo_name" positional argument
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        url = model.save_to_hub(repo_name="sentence-transformers-testing/stsb-bert-tiny-safetensors")
+        assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
+        assert len(caplog.record_tuples) == 1
+        assert (
+            caplog.record_tuples[0][2]
+            == "Providing a `repo_name` keyword argument to `save_to_hub` is deprecated, please use `repo_id` instead."
+        )
+    mock_upload_folder_kwargs.clear()
+
+    # Incorrect usage: Use positional arguments from before "token" was introduced
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        url = model.save_to_hub(
+            "stsb-bert-tiny-safetensors", # repo_name
+            "sentence-transformers-testing", # organization
+            True, # private
+            "Adding new awesome Model!", # commit message
+            exist_ok=True,
+        )
+        assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        assert mock_upload_folder_kwargs["commit_message"] == "Adding new awesome Model!"
+        assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
+        assert len(caplog.record_tuples) == 1
+        assert (
+            caplog.record_tuples[0][2]
+            == 'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
+        )
