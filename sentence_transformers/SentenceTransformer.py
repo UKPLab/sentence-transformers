@@ -23,7 +23,7 @@ from distutils.dir_util import copy_tree
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
-from .util import import_from_string, batch_to_device, fullname, is_sentence_transformer_model, load_dir_path, load_file_path
+from .util import import_from_string, batch_to_device, fullname, is_sentence_transformer_model, load_dir_path, load_file_path, save_to_hub_args_decorator
 from .models import Transformer, Pooling
 from .model_card_templates import ModelCardTemplate
 from . import __version__
@@ -471,6 +471,7 @@ class SentenceTransformer(nn.Sequential):
         with open(os.path.join(path, "README.md"), "w", encoding='utf8') as fOut:
             fOut.write(model_card.strip())
 
+    @save_to_hub_args_decorator
     def save_to_hub(self,
                     repo_id: str,
                     organization: Optional[str] = None,
