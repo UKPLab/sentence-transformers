@@ -9,9 +9,8 @@ For training, you need parallel sentence data (machine translation training data
 with the first column a sentence in a language understood by the teacher model, e.g. English,
 and the further columns contain the according translations for languages you want to extend to.
 
-This scripts downloads automatically the TED2020 corpus: https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md
-This corpus contains transcripts from
-TED and TEDx talks, translated to 100+ languages. For other parallel data, see get_parallel_data_[].py scripts
+This scripts downloads automatically the parallel sentences corpus. This corpus contains transcripts from
+talks translated to 100+ languages. For other parallel data, see get_parallel_data_[].py scripts
 
 Further information can be found in our paper:
 Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation
@@ -78,8 +77,8 @@ def download_corpora(filepaths):
 
 
 # Here we define train train and dev corpora
-train_corpus = "datasets/ted2020.tsv.gz"         # Transcripts of TED talks, crawled 2020
-sts_corpus = "datasets/STS2017-extended.zip"     # Extended STS2017 dataset for more languages
+train_corpus = "datasets/parallel-sentences.tsv.gz"
+sts_corpus = "datasets/stsbenchmark.zip"
 parallel_sentences_folder = "parallel-sentences/"
 
 # Check if the file exists. If not, they are downloaded
@@ -93,8 +92,8 @@ dev_files = []
 files_to_create = []
 for source_lang in source_languages:
     for target_lang in target_languages:
-        output_filename_train = os.path.join(parallel_sentences_folder, "TED2020-{}-{}-train.tsv.gz".format(source_lang, target_lang))
-        output_filename_dev = os.path.join(parallel_sentences_folder, "TED2020-{}-{}-dev.tsv.gz".format(source_lang, target_lang))
+        output_filename_train = os.path.join(parallel_sentences_folder, "talks-{}-{}-train.tsv.gz".format(source_lang, target_lang))
+        output_filename_dev = os.path.join(parallel_sentences_folder, "talks-{}-{}-dev.tsv.gz".format(source_lang, target_lang))
         train_files.append(output_filename_train)
         dev_files.append(output_filename_dev)
         if not os.path.exists(output_filename_train) or not os.path.exists(output_filename_dev):
@@ -217,5 +216,5 @@ student_model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluation_steps=num_evaluation_steps,
           output_path=output_path,
           save_best_model=True,
-          optimizer_params= {'lr': 2e-5, 'eps': 1e-6, 'correct_bias': False}
+          optimizer_params= {'lr': 2e-5, 'eps': 1e-6}
           )

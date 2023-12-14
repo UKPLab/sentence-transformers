@@ -10,7 +10,7 @@ import tarfile
 import gzip
 
 # Note: Tatoeba uses 3 letter languages codes (ISO-639-2),
-# while other datasets like OPUS / TED2020 use 2 letter language codes (ISO-639-1)
+# while other datasets like OPUS use 2 letter language codes (ISO-639-1)
 # For training of sentence transformers, which type of language code is used doesn't matter.
 # For language codes, see: https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes
 source_languages = set(['eng'])
