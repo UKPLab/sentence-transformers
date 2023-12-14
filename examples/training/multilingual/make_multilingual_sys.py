@@ -9,7 +9,7 @@ For training, you need parallel sentence data (machine translation training data
 with the first column a sentence in a language understood by the teacher model, e.g. English,
 and the further columns contain the according translations for languages you want to extend to.
 
-See get_parallel_data_[opus/tatoeba/ted2020].py for automatic download of parallel sentences datasets.
+See get_parallel_data_[opus/tatoeba/talks].py for automatic download of parallel sentences datasets.
 
 Note: See make_multilingual.py for a fully automated script that downloads the necessary data and trains the model. This script just trains the model if you have already parallel data in the right format.
 
@@ -23,7 +23,7 @@ Usage:
 python make_multilingual_sys.py train1.tsv.gz train2.tsv.gz train3.tsv.gz --dev dev1.tsv.gz dev2.tsv.gz
 
 For example:
-python make_multilingual_sys.py parallel-sentences/TED2020-en-de-train.tsv.gz --dev parallel-sentences/TED2020-en-de-dev.tsv.gz
+python make_multilingual_sys.py parallel-sentences/talks-en-de-train.tsv.gz --dev parallel-sentences/talks-en-de-dev.tsv.gz
 
 To load all training & dev files from a folder (Linux):
 python make_multilingual_sys.py parallel-sentences/*-train.tsv.gz --dev parallel-sentences/*-dev.tsv.gz
