@@ -216,5 +216,5 @@ student_model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluation_steps=num_evaluation_steps,
           output_path=output_path,
           save_best_model=True,
-          optimizer_params= {'lr': 2e-5, 'eps': 1e-6, 'correct_bias': False}
+          optimizer_params= {'lr': 2e-5, 'eps': 1e-6}
           )
