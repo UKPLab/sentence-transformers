@@ -4,7 +4,7 @@ We utlise easy and practical elasticsearch (https://www.elastic.co/) for BM25 sa
 
 Installations:
 For this example, elasticsearch to be installed (pip install elasticsearch)
-[NOTE] You need to also install ElasticSearch locally on your PC or desktop.
+[NOTE] You need to also install Elasticsearch locally on your PC or desktop.
 link for download - https://www.elastic.co/downloads/elasticsearch
 Or to run it with Docker: https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
 
@@ -49,7 +49,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
-# supressing INFO messages for elastic-search logger
+# suppressing INFO messages for elastic-search logger
 tracer = logging.getLogger('elasticsearch') 
 tracer.setLevel(logging.CRITICAL)
 es = Elasticsearch()
@@ -64,7 +64,7 @@ max_seq_length = 128
 
 ###### Read Datasets ######
 
-#Check if dataset exsist. If not, download and extract  it
+#Check if dataset exists. If not, download and extract  it
 sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
 
 if not os.path.exists(sts_dataset_path):

@@ -1,5 +1,5 @@
 """
-Given a tab seperated file (.tsv) with parallel sentences, where the second column is the translation of the sentence in the first column, for example, in the format:
+Given a tab separated file (.tsv) with parallel sentences, where the second column is the translation of the sentence in the first column, for example, in the format:
 src1    trg1
 src2    trg2
 ...

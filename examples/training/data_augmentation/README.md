@@ -68,7 +68,7 @@ The [examples/training/data_augmentation](https://github.com/UKPLab/sentence-tra
 - [train_sts_indomain_bm25.py](train_sts_indomain_bm25.py)
     - Script initially trains a cross-encoder (BERT) model from scratch for small STS benchmark dataset.
     - Recombine sentences from our small training dataset and form lots of sentence-pairs.
-    - Limit number of combinations with BM25 sampling using [ElasticSearch](https://www.elastic.co/).
+    - Limit number of combinations with BM25 sampling using [Elasticsearch](https://www.elastic.co/).
     - Retrieve top-k sentences given a sentence and label these pairs using the cross-encoder (silver dataset).
     - Train a bi-encoder (SBERT) model on both gold + silver STSb dataset. (Augmented SBERT (In-domain) Strategy).
 

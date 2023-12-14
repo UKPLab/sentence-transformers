@@ -20,7 +20,7 @@ import time
 # Model for computing sentence embeddings. We use one trained for similar questions detection
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# We donwload the Quora Duplicate Questions Dataset (https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs)
+# We download the Quora Duplicate Questions Dataset (https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs)
 # and find similar question in it
 url = "http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv"
 dataset_path = "quora_duplicate_questions.tsv"
