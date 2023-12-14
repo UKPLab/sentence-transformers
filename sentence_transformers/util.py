@@ -404,7 +404,6 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, batch
     extracted_ids = set()
 
     for cluster_id, community in enumerate(extracted_communities):
-        community = sorted(community)
         non_overlapped_community = []
         for idx in community:
             if idx not in extracted_ids:
