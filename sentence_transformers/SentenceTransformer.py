@@ -239,8 +239,9 @@ class SentenceTransformer(nn.Sequential):
             if torch.cuda.is_available():
                 target_devices = ['cuda:{}'.format(i) for i in range(torch.cuda.device_count())]
             else:
-                logger.info("CUDA is not available. Starting 4 CPU workers")
-                target_devices = ['cpu']*4
+                num_cpus = os.cpu_count()
+                logger.info("CUDA is not available. Starting " +  str(num_cpus) + " CPU worker")
+                target_devices = ['cpu']*num_cpus
 
         logger.info("Start multi-process pool on devices: {}".format(', '.join(map(str, target_devices))))
 
