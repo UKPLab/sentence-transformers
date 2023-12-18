@@ -103,7 +103,7 @@ class WordEmbeddings(nn.Module):
             iterator = tqdm(fIn, desc="Load Word Embeddings", unit="Embeddings")
             for line in iterator:
                 split = line.rstrip().split(item_separator)
-                
+
                 if not vocab and len(split) == 2: # Handle Word2vec format
                     continue
 
