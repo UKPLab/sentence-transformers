@@ -108,18 +108,18 @@ The idea is based on a fixed (monolingual) **teacher model**, that produces sent
 
 In the above figure, the student model should map *Hello World* and the German translation *Hallo Welt* to the vector of *teacher_model('Hello World')*. We achieve this by training the student model using mean squared error (MSE) loss.
 
-In our experiments we initiliazed the student model with the multilingual XLM-RoBERTa model. 
+In our experiments we initialized the student model with the multilingual XLM-RoBERTa model. 
 
 ## Training 
 For a **fully automatic code example**, see [make_multilingual.py](make_multilingual.py). 
 
-This scripts downloads the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md?), a corpus with transcripts and translations from TED and TEDx talks. It than extends a monolingual model to several languages (en, de, es, it, fr, ar, tr). TED2020 contains parallel data for more than 100 languages, hence, you can simple change the script and train a multilingual model in your favorite languages.
+This scripts downloads the parallel sentences corpus, a corpus with transcripts and translations from talks. It than extends a monolingual model to several languages (en, de, es, it, fr, ar, tr). This corpus contains parallel data for more than 100 languages, hence, you can simple change the script and train a multilingual model in your favorite languages.
 
 
 
 ## Data Format
 
-As training data we require parallel sentences, i.e., sentences translated in various languages. As data format, we use a tab-seperated .tsv file. In the first column, you have your source sentence, for example, an English sentence. In the following columns, you have the translations of this source sentence. If you have multiple translations per source sentence, you can put them in the same line or in different lines.
+As training data we require parallel sentences, i.e., sentences translated in various languages. As data format, we use a tab-separated .tsv file. In the first column, you have your source sentence, for example, an English sentence. In the following columns, you have the translations of this source sentence. If you have multiple translations per source sentence, you can put them in the same line or in different lines.
 ```
 Source_sentence Target_lang1    Target_lang2    Target_lang3
 Source_sentence Target_lang1    Target_lang2
@@ -158,7 +158,7 @@ A great website for a vast number of parallel (translated) datasets is [OPUS](ht
 The [examples/training/multilingual](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/multilingual/) folder contains some scripts that downloads parallel training data and brings it into the right format:
 - [get_parallel_data_opus.py](get_parallel_data_opus.py): This script downloads data from the [OPUS](http://opus.nlpl.eu/) website.
 - [get_parallel_data_tatoeba.py](get_parallel_data_tatoeba.py): This script downloads data from the [Tatoeba](https://tatoeba.org/) website, a website for language learners with example sentences for more than many languages.
-- [get_parallel_data_ted2020.py](get_parallel_data_ted2020.py): This script downloads data the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md), which contains transcripts and translations of more than 4,000 TED and TEDx talks in 100+ languages.
+- [get_parallel_data_talks.py](get_parallel_data_talks.py): This script downloads data the parallel sentences corpus, which contains transcripts and translations of more than 4,000 talks in 100+ languages.
 
 ## Evaluation
 
@@ -191,7 +191,7 @@ You can also measure the semantic textual similarity (STS) between sentence pair
 sts_evaluator = evaluation.EmbeddingSimilarityEvaluatorFromList(sentences1, sentences2, scores)
 ```
 
-Where `sentences1` and `sentences2` are lists of sentences and score is numeric value indicating the sematic similarity between `sentences1[i]` and `sentences2[i]`.
+Where `sentences1` and `sentences2` are lists of sentences and score is numeric value indicating the semantic similarity between `sentences1[i]` and `sentences2[i]`.
 
 
 ## Citation

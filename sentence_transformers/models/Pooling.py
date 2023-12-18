@@ -17,7 +17,7 @@ class Pooling(nn.Module):
     :param pooling_mode_cls_token: Use the first token (CLS token) as text representations
     :param pooling_mode_max_tokens: Use max in each dimension over all tokens.
     :param pooling_mode_mean_tokens: Perform mean-pooling
-    :param pooling_mode_mean_sqrt_len_tokens: Perform mean-pooling, but devide by sqrt(input_length).
+    :param pooling_mode_mean_sqrt_len_tokens: Perform mean-pooling, but divide by sqrt(input_length).
     :param pooling_mode_weightedmean_tokens: Perform (position) weighted mean pooling, see https://arxiv.org/abs/2202.08904
     :param pooling_mode_lasttoken: Perform last token pooling, see https://arxiv.org/abs/2202.08904 & https://arxiv.org/abs/2201.10005
     """
@@ -139,7 +139,9 @@ class Pooling(nn.Module):
             # attention_mask shape: (bs, seq_len)
             # Get shape [bs] indices of the last token (i.e. the last token for each batch item)
             # argmin gives us the index of the first 0 in the attention mask; We get the last 1 index by subtracting 1
-            gather_indices = torch.argmin(attention_mask, 1, keepdim=False) - 1 # Shape [bs]
+            # Any sequence where min == 1, we use the entire sequence length since argmin = 0
+            values, indices = torch.min(attention_mask, 1, keepdim = False)
+            gather_indices = torch.where(values==0, indices, seq_len) - 1 # Shape [bs]
 
             # There are empty sequences, where the index would become -1 which will crash
             gather_indices = torch.clamp(gather_indices, min=0)

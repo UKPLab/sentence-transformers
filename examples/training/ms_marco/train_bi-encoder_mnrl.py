@@ -48,7 +48,7 @@ parser.add_argument("--model_name", required=True)
 parser.add_argument("--max_passages", default=0, type=int)
 parser.add_argument("--epochs", default=10, type=int)
 parser.add_argument("--pooling", default="mean")
-parser.add_argument("--negs_to_use", default=None, help="From which systems should negatives be used? Multiple systems seperated by comma. None = all")
+parser.add_argument("--negs_to_use", default=None, help="From which systems should negatives be used? Multiple systems separated by comma. None = all")
 parser.add_argument("--warmup_steps", default=1000, type=int)
 parser.add_argument("--lr", default=2e-5, type=float)
 parser.add_argument("--num_negs_per_system", default=5, type=int)
@@ -60,7 +60,7 @@ args = parser.parse_args()
 print(args)
 
 # The  model we want to fine-tune
-model_name = 'distilbert-base-uncased'
+model_name = args.model_name
 
 train_batch_size = args.train_batch_size           #Increasing the train batch size improves the model performance, but requires more GPU memory
 max_seq_length = args.max_seq_length            #Max length for passages. Increasing it, requires more GPU memory

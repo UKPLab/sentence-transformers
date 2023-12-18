@@ -28,7 +28,7 @@ batch_size = 16
 model_save_path = 'output/training_multi-task_'+model_name+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
-#Check if dataset exsist. If not, download and extract  it
+#Check if dataset exists. If not, download and extract  it
 nli_dataset_path = 'datasets/AllNLI.tsv.gz'
 sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
 

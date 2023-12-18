@@ -1,5 +1,5 @@
 """
-Given a tab seperated file (.tsv) with parallel sentences, where the second column is the translation of the sentence in the first column, for example, in the format:
+Given a tab separated file (.tsv) with parallel sentences, where the second column is the translation of the sentence in the first column, for example, in the format:
 src1    trg1
 src2    trg2
 ...
@@ -17,7 +17,7 @@ Usage:
 python [model_name_or_path] [parallel-file1] [parallel-file2] ...
 
 For example:
-python distiluse-base-multilingual-cased  TED2020-en-de.tsv.gz
+python distiluse-base-multilingual-cased  talks-en-de.tsv.gz
 
 See the training_multilingual/get_parallel_data_...py scripts for getting parallel sentence data from different sources
 """

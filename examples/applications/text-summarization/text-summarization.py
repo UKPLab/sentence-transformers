@@ -2,7 +2,7 @@
 This example uses LexRank (https://www.aaai.org/Papers/JAIR/Vol22/JAIR-2214.pdf)
 to create an extractive summarization of a long document.
 
-The document is splitted into sentences using NLTK, then the sentence embeddings are computed. We
+The document is split into sentences using NLTK, then the sentence embeddings are computed. We
 then compute the cosine-similarity across all possible sentence pairs.
 
 We then use LexRank to find the most central sentences in the document, which form our summary.

@@ -1,6 +1,6 @@
 """
 This examples trains a CrossEncoder for the STSbenchmark task. A CrossEncoder takes a sentence pair
-as input and outputs a label. Here, it output a continious labels 0...1 to indicate the similarity between the input pair.
+as input and outputs a label. Here, it output a continuous labels 0...1 to indicate the similarity between the input pair.
 
 It does NOT produce a sentence embedding and does NOT work for individual sentences.
 
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 
-#Check if dataset exsist. If not, download and extract  it
+#Check if dataset exists. If not, download and extract  it
 sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
 
 if not os.path.exists(sts_dataset_path):
@@ -43,7 +43,7 @@ train_batch_size = 16
 num_epochs = 4
 model_save_path = 'output/training_stsbenchmark-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-#We use distilroberta-base as base model and set num_labels=1, which predicts a continous score between 0 and 1
+#We use distilroberta-base as base model and set num_labels=1, which predicts a continuous score between 0 and 1
 model = CrossEncoder('distilroberta-base', num_labels=1)
 
 

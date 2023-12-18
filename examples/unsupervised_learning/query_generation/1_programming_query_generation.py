@@ -7,7 +7,7 @@ Assembly language, C , C Sharp , C++, Go , Java , JavaScript, Keras, Laravel, MA
 
 In:
 1_programming_query_generation.py - We generate queries for all paragraphs from these articles
-2_programming_train_bi-encoder.py - We train a SentenceTransformer bi-encoder with these generated queries. This results in a model we can then use for sematic search (for the given Wikipedia articles).
+2_programming_train_bi-encoder.py - We train a SentenceTransformer bi-encoder with these generated queries. This results in a model we can then use for semantic search (for the given Wikipedia articles).
 3_programming_semantic_search.py - Shows how the trained model can be used for semantic search
 """
 import json
@@ -37,7 +37,7 @@ paragraphs = list(paragraphs)
 print("Paragraphs:", len(paragraphs))
 
 
-# No we load the model that is able to generate queries given a paragraph.
+# Now we load the model that is able to generate queries given a paragraph.
 # This model was trained on the MS MARCO dataset, a dataset with 500k
 # queries from Bing and the respective relevant passage
 tokenizer = T5Tokenizer.from_pretrained('BeIR/query-gen-msmarco-t5-large-v1')

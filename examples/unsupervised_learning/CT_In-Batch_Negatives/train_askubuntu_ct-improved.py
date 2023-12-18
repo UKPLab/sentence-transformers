@@ -77,7 +77,7 @@ for id, sentence in corpus.items():
 
 logging.info("{} train sentences".format(len(train_sentences)))
 
-################# Intialize an SBERT model #################
+################# Initialize an SBERT model #################
 
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
