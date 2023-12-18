@@ -8,8 +8,11 @@ The training data consists of over 500k examples, while the complete corpus cons
 Pre-trained models can be used like this:
 ```python
 from sentence_transformers import CrossEncoder
-model = CrossEncoder('model_name', max_length=512)
-scores = model.predict([('Query', 'Paragraph1'), ('Query', 'Paragraph2') , ('Query', 'Paragraph3')])
+
+model = CrossEncoder("model_name", max_length=512)
+scores = model.predict(
+    [("Query", "Paragraph1"), ("Query", "Paragraph2"), ("Query", "Paragraph3")]
+)
 ```
 
 ## Usage with Transformers
@@ -18,10 +21,10 @@ scores = model.predict([('Query', 'Paragraph1'), ('Query', 'Paragraph2') , ('Que
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
-model = AutoModelForSequenceClassification.from_pretrained('model_name')
-tokenizer = AutoTokenizer.from_pretrained('model_name')
+model = AutoModelForSequenceClassification.from_pretrained("model_name")
+tokenizer = AutoTokenizer.from_pretrained("model_name")
 
-features = tokenizer(['Query', 'Query'], ['Paragraph1', 'Paragraph2'],  padding=True, truncation=True, return_tensors="pt")
+features = tokenizer(["Query", "Query"], ["Paragraph1", "Paragraph2"], padding=True, truncation=True, return_tensors="pt")
 
 model.eval()
 with torch.no_grad():

@@ -4,7 +4,8 @@ We provide various pre-trained models. Using these models is easy:
 
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('model_name')
+
+model = SentenceTransformer("model_name")
 ```
 
 All models are hosted on the [HuggingFace Model Hub](https://huggingface.co/sentence-transformers).
@@ -26,11 +27,14 @@ The following models have been specifically trained for **Semantic Search**: Giv
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1')
 
-query_embedding = model.encode('How big is London')
-passage_embedding = model.encode(['London has 9,787,426 inhabitants at the 2011 census',
-                                  'London is known for its finacial district'])
+model = SentenceTransformer("multi-qa-MiniLM-L6-cos-v1")
+
+query_embedding = model.encode("How big is London")
+passage_embedding = model.encode([
+    "London has 9,787,426 inhabitants at the 2011 census",
+    "London is known for its finacial district",
+])
 
 print("Similarity:", util.dot_score(query_embedding, passage_embedding))
 ```
@@ -144,12 +148,15 @@ The following models were trained on [Google's Natural Questions dataset](https:
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('nq-distilbert-base-v1')
 
-query_embedding = model.encode('How many people live in London?')
+model = SentenceTransformer("nq-distilbert-base-v1")
 
-#The passages are encoded as [ [title1, text1], [title2, text2], ...]
-passage_embedding = model.encode([['London', 'London has 9,787,426 inhabitants at the 2011 census.']])
+query_embedding = model.encode("How many people live in London?")
+
+# The passages are encoded as [ [title1, text1], [title2, text2], ...]
+passage_embedding = model.encode(
+    [["London", "London has 9,787,426 inhabitants at the 2011 census."]]
+)
 
 print("Similarity:", util.cos_sim(query_embedding, passage_embedding))
 ```
