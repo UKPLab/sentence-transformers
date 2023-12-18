@@ -15,6 +15,7 @@ class ModelCardTemplate:
 
     __MODEL_CARD__ = """
 ---
+library_name: sentence-transformers
 pipeline_tag: {PIPELINE_TAG}
 tags:
 {TAGS}
