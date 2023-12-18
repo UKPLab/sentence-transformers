@@ -487,7 +487,7 @@ class SentenceTransformer(nn.Sequential):
 
         :param repo_id: Repository name for your model in the Hub, including the user or organization.
         :param token: An authentication token (See https://huggingface.co/settings/token)
-        :param private: Set to true, for hosting a prive model
+        :param private: Set to true, for hosting a private model
         :param commit_message: Message to commit while pushing.
         :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
         :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
