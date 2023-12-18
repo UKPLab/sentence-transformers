@@ -59,10 +59,10 @@ To get the optimal speed for the `util.semantic_search` method, it is advisable 
 
 Further, we can normalize the corpus embeddings so that each corpus embeddings is of length 1. In that case, we can use dot-product for computing scores.
 ```python
-corpus_embeddings = corpus_embeddings.to('cuda')
+corpus_embeddings = corpus_embeddings.to("cuda")
 corpus_embeddings = util.normalize_embeddings(corpus_embeddings)
 
-query_embeddings = query_embeddings.to('cuda')
+query_embeddings = query_embeddings.to("cuda")
 query_embeddings = util.normalize_embeddings(query_embeddings)
 hits = util.semantic_search(query_embeddings, corpus_embeddings, score_function=util.dot_score)
 ```

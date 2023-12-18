@@ -3,7 +3,8 @@
 This page documents the properties and methods when you load a SentenceTransformer model:
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('model-name')
+
+model = SentenceTransformer("model-name")
 ```
 
 ```eval_rst

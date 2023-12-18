@@ -13,8 +13,9 @@ For a list of available models, see [Pretrained Models](https://www.sbert.net/do
 You can use the models in the following way:
 ```python
 from sentence_transformers import SentenceTransformer
-embedder = SentenceTransformer('model-name')
-embeddings = embedder.encode(['Hello World', 'Hallo Welt', 'Hola mundo'])
+
+embedder = SentenceTransformer("model-name")
+embeddings = embedder.encode(["Hello World", "Hallo Welt", "Hola mundo"])
 print(embeddings)
 ```
 
@@ -140,9 +141,9 @@ You can load such a training file using the *ParallelSentencesDataset* class:
 from sentence_transformers.datasets import ParallelSentencesDataset
 
 train_data = ParallelSentencesDataset(student_model=student_model, teacher_model=teacher_model)
-train_data.load_data('path/to/tab/separated/train-en-de.tsv')
-train_data.load_data('path/to/tab/separated/train-en-es.tsv.gz')
-train_data.load_data('path/to/tab/separated/train-en-fr.tsv.gz')
+train_data.load_data("path/to/tab/separated/train-en-de.tsv")
+train_data.load_data("path/to/tab/separated/train-en-es.tsv.gz")
+train_data.load_data("path/to/tab/separated/train-en-fr.tsv.gz")
 
 train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.MSELoss(model=student_model)
@@ -169,7 +170,7 @@ You can measure the mean squared error (MSE) between the student embeddings and 
 
 ```python
 # src_sentences and trg_sentences are lists of translated sentences, such that trg_sentences[i] is the translation of src_sentences[i]
- dev_mse = evaluation.MSEEvaluator(src_sentences, trg_sentences, teacher_model=teacher_model)
+dev_mse = evaluation.MSEEvaluator(src_sentences, trg_sentences, teacher_model=teacher_model)
 ```
 
 This evaluator computes the teacher embeddings for the `src_sentences`, for example, for English. During training, the student model is used to compute embeddings for the `trg_sentences`, for example, for Spanish. The distance between teacher and student embeddings is measures. Lower scores indicate a better performance.
@@ -181,7 +182,12 @@ For each sentence pair, we check if their embeddings are the closest using cosin
 
 ```python
 # src_sentences and trg_sentences are lists of translated sentences, such that trg_sentences[i] is the translation of src_sentences[i]
-dev_trans_acc = evaluation.TranslationEvaluator(src_sentences, trg_sentences, name=os.path.basename(dev_file),batch_size=inference_batch_size)
+dev_trans_acc = evaluation.TranslationEvaluator(
+    src_sentences,
+    trg_sentences,
+    name=os.path.basename(dev_file),
+    batch_size=inference_batch_size,
+)
 ```
 
 ### Multi-Lingual Semantic Textual Similarity

@@ -11,7 +11,8 @@ Currently the following models trained on Quora Duplicate Questions are availabl
 You can load & use pre-trained models like this:
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('model_name')
+
+model = SentenceTransformer("model_name")
 ```
 
 
@@ -63,10 +64,15 @@ An improved version of contrastive loss is OnlineContrastiveLoss, which looks wh
 The loss can be used like this:
 ```python
 train_samples = []
-with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+with open(
+    os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding="utf8"
+) as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
-        sample = InputExample(texts=[row['question1'], row['question2']], label=int(row['is_duplicate']))
+        sample = InputExample(
+            texts=[row["question1"], row["question2"]],
+            label=int(row["is_duplicate"]),
+        )
         train_samples.append(sample)
 
 
@@ -95,12 +101,16 @@ MultipleNegativesRankingLoss now uses all *b_j* with j != i as negative example 
 Using the loss is easy and does not require tuning of any hyperparameters:
 ```python
 train_samples = []
-with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding="utf8") as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
-        if row['is_duplicate'] == '1':
-            train_samples.append(InputExample(texts=[row['question1'], row['question2']], label=1))
-            train_samples.append(InputExample(texts=[row['question2'], row['question1']], label=1)) #if A is a duplicate of B, then B is a duplicate of A
+        if row["is_duplicate"] == "1":
+            train_samples.append(
+                InputExample(texts=[row["question1"], row["question2"]], label=1)
+            )
+            train_samples.append(
+                InputExample(texts=[row["question2"], row["question1"]], label=1)
+            )  # if A is a duplicate of B, then B is a duplicate of A
 
 
 # After reading the train_samples, we create a SentencesDataset and a DataLoader
@@ -125,32 +135,57 @@ In [training_multi-task-learning.py](training_multi-task-learning.py) I demonstr
 train_samples_MultipleNegativesRankingLoss = []
 train_samples_ContrastiveLoss = []
 
-with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding="utf8") as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
-        train_samples_ContrastiveLoss.append(InputExample(texts=[row['question1'], row['question2']], label=int(row['is_duplicate'])))
-        if row['is_duplicate'] == '1':
-            train_samples_MultipleNegativesRankingLoss.append(InputExample(texts=[row['question1'], row['question2']], label=1))
-            train_samples_MultipleNegativesRankingLoss.append(InputExample(texts=[row['question2'], row['question1']], label=1))  # if A is a duplicate of B, then B is a duplicate of A
+        train_samples_ContrastiveLoss.append(
+            InputExample(
+                texts=[row["question1"], row["question2"]],
+                label=int(row["is_duplicate"]),
+            )
+        )
+        if row["is_duplicate"] == "1":
+            train_samples_MultipleNegativesRankingLoss.append(
+                InputExample(texts=[row["question1"], row["question2"]], label=1)
+            )
+            train_samples_MultipleNegativesRankingLoss.append(
+                InputExample(texts=[row["question2"], row["question1"]], label=1)
+            )  # if A is a duplicate of B, then B is a duplicate of A
 
 # Create data loader and loss for MultipleNegativesRankingLoss
-train_dataset_MultipleNegativesRankingLoss = SentencesDataset(train_samples_MultipleNegativesRankingLoss, model=model)
-train_dataloader_MultipleNegativesRankingLoss = DataLoader(train_dataset_MultipleNegativesRankingLoss, shuffle=True, batch_size=train_batch_size)
+train_dataset_MultipleNegativesRankingLoss = SentencesDataset(
+    train_samples_MultipleNegativesRankingLoss, model=model
+)
+train_dataloader_MultipleNegativesRankingLoss = DataLoader(
+    train_dataset_MultipleNegativesRankingLoss,
+    shuffle=True,
+    batch_size=train_batch_size,
+)
 train_loss_MultipleNegativesRankingLoss = losses.MultipleNegativesRankingLoss(model)
 
 
 # Create data loader and loss for OnlineContrastiveLoss
-train_dataset_ConstrativeLoss = SentencesDataset(train_samples_ConstrativeLoss, model=model)
-train_dataloader_ConstrativeLoss = DataLoader(train_dataset_ConstrativeLoss, shuffle=True, batch_size=train_batch_size)
-train_loss_ConstrativeLoss = losses.OnlineContrastiveLoss(model=model, distance_metric=distance_metric, margin=margin)
+train_dataset_ConstrativeLoss = SentencesDataset(
+    train_samples_ConstrativeLoss, model=model
+)
+train_dataloader_ConstrativeLoss = DataLoader(
+    train_dataset_ConstrativeLoss, shuffle=True, batch_size=train_batch_size
+)
+train_loss_ConstrativeLoss = losses.OnlineContrastiveLoss(
+    model=model, distance_metric=distance_metric, margin=margin
+)
 
 # .....
 # Train the model
-model.fit(train_objectives=[(train_dataloader_MultipleNegativesRankingLoss, train_loss_MultipleNegativesRankingLoss), (train_dataloader_ConstrativeLoss, train_loss_ConstrativeLoss)],
-          evaluator=seq_evaluator,
-          epochs=num_epochs,
-          warmup_steps=1000,
-          output_path=model_save_path
-          )
+model.fit(
+    train_objectives=[
+        (train_dataloader_MultipleNegativesRankingLoss, train_loss_MultipleNegativesRankingLoss),
+        (train_dataloader_ConstrativeLoss, train_loss_ConstrativeLoss),
+    ],
+    evaluator=seq_evaluator,
+    epochs=num_epochs,
+    warmup_steps=1000,
+    output_path=model_save_path,
+)
 ```
 
