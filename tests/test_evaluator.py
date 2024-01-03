@@ -2,9 +2,9 @@
 Tests the correct computation of evaluation scores from BinaryClassificationEvaluator
 """
 from sentence_transformers import SentenceTransformer, evaluation, util, losses, LoggingHandler
-import logging
 import unittest
 from sklearn.metrics import f1_score, accuracy_score
+import pandas as pd
 import numpy as np
 import gzip
 import csv
@@ -58,6 +58,16 @@ class EvaluatorTest(unittest.TestCase):
         evaluator = evaluation.LabelAccuracyEvaluator(dev_dataloader, softmax_model=train_loss)
         acc = evaluator(model)
         assert acc > 0.2
+
+    def test_SingleLayerClassificationEvaluator(self):
+        """Tests that the SingleLayerClassificationEvaluator can loads and runs with reasonable performance."""
+        model = SentenceTransformer('paraphrase-distilroberta-base-v1')
+        df = pd.read_csv('datasets/ag_news.csv')[:1_000]
+        sentences = df.text.tolist()
+        labels = df.label.tolist()
+        evaluator = evaluation.SingleLayerClassificationEvaluator(sentences=sentences, labels=labels, test_ratio=0.2)
+        acc = evaluator(model)
+        assert acc > 0.7
 
     def test_ParaphraseMiningEvaluator(self):
         """Tests that the ParaphraseMiningEvaluator can be loaded"""
