@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class CrossEncoder():
     def __init__(self, model_name:str, num_labels:int = None, max_length:int = None, device:str = None, tokenizer_args:Dict = {},
-                  automodel_args:Dict = {}, default_activation_function = None):
+                  automodel_args:Dict = {}, default_activation_function = None, classifier_dropout:float = None):
         """
         A CrossEncoder takes exactly two sentences / texts as input and either predicts
         a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
@@ -40,12 +40,16 @@ class CrossEncoder():
         :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that
             should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
             else nn.Identity()
+        :param classifier_dropout: The dropout ratio for the classification head.
         """
 
         self.config = AutoConfig.from_pretrained(model_name)
         classifier_trained = True
         if self.config.architectures is not None:
             classifier_trained = any([arch.endswith('ForSequenceClassification') for arch in self.config.architectures])
+
+        if classifier_dropout is not None:
+            self.config.classifier_dropout = classifier_dropout
 
         if num_labels is None and not classifier_trained:
             num_labels = 1
