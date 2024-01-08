@@ -142,6 +142,9 @@ class Transformer(nn.Module):
 
         with open(sbert_config_path) as fIn:
             config = json.load(fIn)
+        # Don't allow configs to set trust_remote_code
+        if "model_args" in config:
+            config["model_args"].pop("trust_remote_code")
         return Transformer(model_name_or_path=input_path, **config)
 
 
