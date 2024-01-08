@@ -83,7 +83,13 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
             git_ref_info = GitRefInfo(name="main", ref="refs/heads/main", target_commit="123456")
         except TypeError:
             git_ref_info = GitRefInfo(dict(name="main", ref="refs/heads/main", targetCommit="123456"))
-        return GitRefs(branches=[git_ref_info], converts=[], tags=[])
+        # workaround for https://github.com/huggingface/huggingface_hub/issues/1956
+        git_ref_kwargs = {"branches": [git_ref_info], "converts": [], "tags": [], "pull_requests": None}
+        try:
+            return GitRefs(**git_ref_kwargs)
+        except TypeError:
+            git_ref_kwargs.pop("pull_requests")
+            return GitRefs(**git_ref_kwargs)
 
     monkeypatch.setattr(HfApi, "create_repo", mock_create_repo)
     monkeypatch.setattr(HfApi, "upload_folder", mock_upload_folder)

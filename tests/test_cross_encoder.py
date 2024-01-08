@@ -60,3 +60,15 @@ class CrossEncoderTest(unittest.TestCase):
                   epochs=1,
                   warmup_steps=int(len(train_dataloader)*0.1))
         self.evaluate_stsb_test(model, 50, num_test_samples=100)
+
+
+class CrossEncoderClassifierDropoutTest(unittest.TestCase):
+    def test_classifier_dropout_is_set(self):
+        model = CrossEncoder("cross-encoder/stsb-distilroberta-base", classifier_dropout=0.1234)
+        assert model.config.classifier_dropout == 0.1234
+        assert model.model.config.classifier_dropout == 0.1234
+
+    def test_classifier_dropout_default_value(self):
+        model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
+        assert model.config.classifier_dropout is None
+        assert model.model.config.classifier_dropout is None
