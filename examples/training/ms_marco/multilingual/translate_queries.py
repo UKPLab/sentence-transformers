@@ -83,5 +83,5 @@ print("This can take a while. But you can stop this script at any point")
 
 with open(output_filename, 'a' if os.path.exists(output_filename) else 'w', encoding='utf8') as fOut:
     for qid, query, translated_query in zip(qids, queries, translation_model.translate_stream(queries, source_lang='en', target_lang=target_lang, beam_size=2, perform_sentence_splitting=False, chunk_size=256, batch_size=64)):
-        fOut.write("{}\t{}\t{}\n".format(qid, translated_query.replace("\t", " ")))
+        fOut.write("{}\t{}\n".format(qid, translated_query.replace("\t", " ")))
         fOut.flush()
