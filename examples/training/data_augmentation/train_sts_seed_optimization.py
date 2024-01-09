@@ -20,7 +20,7 @@ python train_sts_seed_optimization.py
 OR
 python train_sts_seed_optimization.py pretrained_transformer_model_name seed_count stop_after
 
-python ttrain_sts_seed_optimization.py bert-base-uncased 10 0.3
+python train_sts_seed_optimization.py bert-base-uncased 10 0.3
 """
 from torch.utils.data import DataLoader
 import math
@@ -118,7 +118,7 @@ for seed in range(seed_count):
     
     # Stopping and Evaluating after 30% of training data (less than 1 epoch)
     # We find from (Dodge et al.) that 20-30% is often ideal for convergence of random seed
-    steps_per_epoch = math.ceil( len(train_dataset) / train_batch_size * stop_after ) 
+    steps_per_epoch = math.ceil(len(train_dataloader) * stop_after)
     
     logging.info("Warmup-steps: {}".format(warmup_steps))
 
