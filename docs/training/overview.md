@@ -66,8 +66,14 @@ model = SentenceTransformer(modules=[image_embedding_model])
 For all available building blocks see [» Models Package Reference](../package_reference/models.md)
 
 ## Training Data 
+
+To train a SentenceTransformer model, you need to inform it somehow that two sentences have a certain degree of similarity. Therefore, each example in the data requires a label or structure that allows the model to understand whether two sentences are similar or different.
+
+Unfortunately, there is no single way to prepare your data to train a Sentence Transformers model. It largely depends on your goals and the structure of your data. If you don't have an explicit label, which is the most likely scenario, you can derive it from the design of the documents where you obtained the sentences. For example, two sentences in the same report should be more comparable than two sentences in different reports. Neighboring sentences might be more comparable than non-neighboring sentences. 
+
+For more information on available datasets for training SentenceTransformers models see [» Datasets Reference](../examples/training/datasets/README.md).
  
- To represent our training data, we use the `InputExample` class to store training examples. As parameters, it accepts texts, which is a list of strings representing our pairs (or triplets). Further, we can also pass a label (either float or int). The following shows a simple example, where we pass text pairs to `InputExample` together with a label indicating the semantic similarity.
+To represent our training data, we use the `InputExample` class to store training examples. As parameters, it accepts texts, which is a list of strings representing our pairs (or triplets). Further, we can also pass a label (either float or int). The following shows a simple example, where we pass text pairs to `InputExample` together with a label indicating the semantic similarity.
  
  ```python
  from sentence_transformers import SentenceTransformer, InputExample
