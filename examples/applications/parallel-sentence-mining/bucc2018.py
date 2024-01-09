@@ -15,7 +15,8 @@ import os
 import pickle
 from sklearn.decomposition import PCA
 import torch
-from bitext_mining_utils import *
+from bitext_mining_utils import score_candidates, kNN
+import numpy as np
 
 #Model we want to use for bitext mining. LaBSE achieves state-of-the-art performance
 model_name = 'LaBSE'

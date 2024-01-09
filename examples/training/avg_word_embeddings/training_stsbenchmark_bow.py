@@ -9,7 +9,7 @@ import math
 from sentence_transformers import models, losses, util
 from sentence_transformers import LoggingHandler, SentenceTransformer
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers.readers import *
+from sentence_transformers.readers import InputExample
 from sentence_transformers.models.tokenizer.WordTokenizer import ENGLISH_STOP_WORDS
 import logging
 from datetime import datetime
