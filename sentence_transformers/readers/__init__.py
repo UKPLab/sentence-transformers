@@ -5,10 +5,10 @@ from .STSDataReader import STSDataReader, STSBenchmarkDataReader
 from .TripletReader import TripletReader
 
 __all__ = [
-    'InputExample',
-    'LabelSentenceReader',
-    'NLIDataReader',
-    'STSDataReader',
-    'STSBenchmarkDataReader',
-    'TripletReader'
+    "InputExample",
+    "LabelSentenceReader",
+    "NLIDataReader",
+    "STSDataReader",
+    "STSBenchmarkDataReader",
+    "TripletReader",
 ]

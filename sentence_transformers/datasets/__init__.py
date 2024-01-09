@@ -5,9 +5,9 @@ from .SentencesDataset import SentencesDataset
 from .SentenceLabelDataset import SentenceLabelDataset
 
 __all__ = [
-    'DenoisingAutoEncoderDataset',
-    'NoDuplicatesDataLoader',
-    'ParallelSentencesDataset',
-    'SentencesDataset',
-    'SentenceLabelDataset',
+    "DenoisingAutoEncoderDataset",
+    "NoDuplicatesDataLoader",
+    "ParallelSentencesDataset",
+    "SentencesDataset",
+    "SentenceLabelDataset",
 ]

@@ -13,17 +13,17 @@ from .TripletEvaluator import TripletEvaluator
 from .RerankingEvaluator import RerankingEvaluator
 
 __all__ = [
-    'SentenceEvaluator',
-    'SimilarityFunction',
-    'BinaryClassificationEvaluator',
-    'EmbeddingSimilarityEvaluator',
-    'InformationRetrievalEvaluator',
-    'LabelAccuracyEvaluator',
-    'MSEEvaluator',
-    'MSEEvaluatorFromDataFrame',
-    'ParaphraseMiningEvaluator',
-    'SequentialEvaluator',
-    'TranslationEvaluator',
-    'TripletEvaluator',
-    'RerankingEvaluator'
+    "SentenceEvaluator",
+    "SimilarityFunction",
+    "BinaryClassificationEvaluator",
+    "EmbeddingSimilarityEvaluator",
+    "InformationRetrievalEvaluator",
+    "LabelAccuracyEvaluator",
+    "MSEEvaluator",
+    "MSEEvaluatorFromDataFrame",
+    "ParaphraseMiningEvaluator",
+    "SequentialEvaluator",
+    "TranslationEvaluator",
+    "TripletEvaluator",
+    "RerankingEvaluator",
 ]

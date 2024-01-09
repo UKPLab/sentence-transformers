@@ -12,27 +12,26 @@ from sentence_transformers.readers import STSBenchmarkDataReader
 import logging
 import torch
 
-#Limit torch to 4 threads, as this example runs on the CPU
+# Limit torch to 4 threads, as this example runs on the CPU
 torch.set_num_threads(4)
 
 #### Just some code to print debug information to stdout
-logging.basicConfig(format='%(asctime)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO,
-                    handlers=[LoggingHandler()])
+logging.basicConfig(
+    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
+)
 #### /print debug information to stdout
 
 
-#1) Point the transformer model to the BERT / RoBERTa etc. model you would like to use. Ensure that output_hidden_states is true
-word_embedding_model = models.Transformer('bert-base-uncased', model_args={'output_hidden_states': True})
+# 1) Point the transformer model to the BERT / RoBERTa etc. model you would like to use. Ensure that output_hidden_states is true
+word_embedding_model = models.Transformer("bert-base-uncased", model_args={"output_hidden_states": True})
 
-#2) Add WKPooling
+# 2) Add WKPooling
 pooling_model = models.WKPooling(word_embedding_model.get_word_embedding_dimension())
 
-#3) Create a sentence transformer model to glue both models together
+# 3) Create a sentence transformer model to glue both models together
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
-sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark')
+sts_reader = STSBenchmarkDataReader("../datasets/stsbenchmark")
 evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples("sts-test.csv"))
 
 model.evaluate(evaluator)

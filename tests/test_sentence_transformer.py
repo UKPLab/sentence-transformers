@@ -157,10 +157,10 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
     caplog.clear()
     with caplog.at_level(logging.WARNING):
         url = model.save_to_hub(
-            "stsb-bert-tiny-safetensors", # repo_name
-            "sentence-transformers-testing", # organization
-            True, # private
-            "Adding new awesome Model!", # commit message
+            "stsb-bert-tiny-safetensors",  # repo_name
+            "sentence-transformers-testing",  # organization
+            True,  # private
+            "Adding new awesome Model!",  # commit message
             exist_ok=True,
         )
         assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"

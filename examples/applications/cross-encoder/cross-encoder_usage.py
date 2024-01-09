@@ -7,22 +7,23 @@ from sentence_transformers.cross_encoder import CrossEncoder
 import numpy as np
 
 # Pre-trained cross encoder
-model = CrossEncoder('cross-encoder/stsb-distilroberta-base')
+model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
 
 # We want to compute the similarity between the query sentence
-query = 'A man is eating pasta.'
+query = "A man is eating pasta."
 
 # With all sentences in the corpus
-corpus = ['A man is eating food.',
-          'A man is eating a piece of bread.',
-          'The girl is carrying a baby.',
-          'A man is riding a horse.',
-          'A woman is playing violin.',
-          'Two men pushed carts through the woods.',
-          'A man is riding a white horse on an enclosed ground.',
-          'A monkey is playing drums.',
-          'A cheetah is running behind its prey.'
-          ]
+corpus = [
+    "A man is eating food.",
+    "A man is eating a piece of bread.",
+    "The girl is carrying a baby.",
+    "A man is riding a horse.",
+    "A woman is playing violin.",
+    "Two men pushed carts through the woods.",
+    "A man is riding a white horse on an enclosed ground.",
+    "A monkey is playing drums.",
+    "A cheetah is running behind its prey.",
+]
 
 # So we create the respective sentence combinations
 sentence_combinations = [[query, corpus_sentence] for corpus_sentence in corpus]

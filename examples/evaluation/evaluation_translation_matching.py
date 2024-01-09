@@ -29,10 +29,9 @@ import os
 import logging
 
 
-logging.basicConfig(format='%(asctime)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO,
-                    handlers=[LoggingHandler()])
+logging.basicConfig(
+    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,15 +45,17 @@ model = SentenceTransformer(model_name)
 for filepath in filepaths:
     src_sentences = []
     trg_sentences = []
-    with gzip.open(filepath, 'rt', encoding='utf8') if filepath.endswith('.gz') else open(filepath, 'r', encoding='utf8') as fIn:
+    with gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else open(
+        filepath, "r", encoding="utf8"
+    ) as fIn:
         for line in fIn:
-            splits = line.strip().split('\t')
+            splits = line.strip().split("\t")
             if len(splits) >= 2:
                 src_sentences.append(splits[0])
                 trg_sentences.append(splits[1])
 
-    logger.info(os.path.basename(filepath)+": "+str(len(src_sentences))+" sentence pairs")
-    dev_trans_acc = evaluation.TranslationEvaluator(src_sentences, trg_sentences, name=os.path.basename(filepath), batch_size=inference_batch_size)
+    logger.info(os.path.basename(filepath) + ": " + str(len(src_sentences)) + " sentence pairs")
+    dev_trans_acc = evaluation.TranslationEvaluator(
+        src_sentences, trg_sentences, name=os.path.basename(filepath), batch_size=inference_batch_size
+    )
     dev_trans_acc(model)
-
-

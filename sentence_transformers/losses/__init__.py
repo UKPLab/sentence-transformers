@@ -6,7 +6,11 @@ from .TripletLoss import TripletDistanceMetric, TripletLoss
 from .MarginMSELoss import MarginMSELoss
 from .MSELoss import MSELoss
 from .ContrastiveLoss import SiameseDistanceMetric, ContrastiveLoss
-from .ContrastiveTensionLoss import ContrastiveTensionLoss, ContrastiveTensionLossInBatchNegatives, ContrastiveTensionDataLoader
+from .ContrastiveTensionLoss import (
+    ContrastiveTensionLoss,
+    ContrastiveTensionLossInBatchNegatives,
+    ContrastiveTensionDataLoader,
+)
 from .OnlineContrastiveLoss import OnlineContrastiveLoss
 from .MegaBatchMarginLoss import MegaBatchMarginLoss
 from .DenoisingAutoEncoderLoss import DenoisingAutoEncoderLoss
@@ -18,25 +22,25 @@ from .BatchSemiHardTripletLoss import BatchSemiHardTripletLoss
 from .BatchAllTripletLoss import BatchAllTripletLoss
 
 __all__ = [
-    'CosineSimilarityLoss',
-    'SoftmaxLoss',
-    'MultipleNegativesRankingLoss',
-    'MultipleNegativesSymmetricRankingLoss',
-    'TripletLoss',
-    'TripletDistanceMetric',
-    'MarginMSELoss',
-    'MSELoss',
-    'ContrastiveLoss',
-    'SiameseDistanceMetric',
-    'ContrastiveTensionLoss',
-    'ContrastiveTensionLossInBatchNegatives',
-    'ContrastiveTensionDataLoader',
-    'OnlineContrastiveLoss',
-    'MegaBatchMarginLoss',
-    'DenoisingAutoEncoderLoss',
-    'BatchHardTripletLoss',
-    'BatchHardTripletLossDistanceFunction',
-    'BatchHardSoftMarginTripletLoss',
-    'BatchSemiHardTripletLoss',
-    'BatchAllTripletLoss'
+    "CosineSimilarityLoss",
+    "SoftmaxLoss",
+    "MultipleNegativesRankingLoss",
+    "MultipleNegativesSymmetricRankingLoss",
+    "TripletLoss",
+    "TripletDistanceMetric",
+    "MarginMSELoss",
+    "MSELoss",
+    "ContrastiveLoss",
+    "SiameseDistanceMetric",
+    "ContrastiveTensionLoss",
+    "ContrastiveTensionLossInBatchNegatives",
+    "ContrastiveTensionDataLoader",
+    "OnlineContrastiveLoss",
+    "MegaBatchMarginLoss",
+    "DenoisingAutoEncoderLoss",
+    "BatchHardTripletLoss",
+    "BatchHardTripletLossDistanceFunction",
+    "BatchHardSoftMarginTripletLoss",
+    "BatchSemiHardTripletLoss",
+    "BatchAllTripletLoss",
 ]

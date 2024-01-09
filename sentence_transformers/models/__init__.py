@@ -14,18 +14,18 @@ from .WordWeights import WordWeights
 from .CLIPModel import CLIPModel
 
 __all__ = [
-    'Transformer',
-    'Asym',
-    'BoW',
-    'CNN',
-    'Dense',
-    'Dropout',
-    'LayerNorm',
-    'LSTM',
-    'Normalize',
-    'Pooling',
-    'WeightedLayerPooling',
-    'WordEmbeddings',
-    'WordWeights',
-    'CLIPModel'
+    "Transformer",
+    "Asym",
+    "BoW",
+    "CNN",
+    "Dense",
+    "Dropout",
+    "LayerNorm",
+    "LSTM",
+    "Normalize",
+    "Pooling",
+    "WeightedLayerPooling",
+    "WordEmbeddings",
+    "WordWeights",
+    "CLIPModel",
 ]
