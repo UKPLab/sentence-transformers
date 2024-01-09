@@ -339,7 +339,7 @@ def import_from_string(dotted_path):
 
     try:
         module = importlib.import_module(dotted_path)
-    except:
+    except Exception:
         module = importlib.import_module(module_path)
 
     try:

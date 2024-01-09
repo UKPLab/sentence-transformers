@@ -102,7 +102,7 @@ if not es.indices.exists(index="quora"):
                 helpers.bulk(es, bulk_data)
                 pbar.update(chunk_size)
 
-    except:
+    except Exception:
         print("During index an exception occurred. Continue\n\n")
 
 

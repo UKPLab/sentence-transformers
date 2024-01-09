@@ -46,7 +46,7 @@ for source_lang in source_languages:
                 print("Download", download_url+wikimatrix_filename)
                 try:
                     sentence_transformers.util.http_get(download_url+wikimatrix_filename, wikimatrix_filepath)
-                except:
+                except Exception:
                     print("Was not able to download", download_url+wikimatrix_filename)
                     continue
 
