@@ -43,7 +43,7 @@ word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_len
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
-datasets = []
+dataset_list = []
 for filepath in sys.argv[1:]:
     dataset = []
     with_guid = 'with-guid' in filepath     #Some datasets have a guid in the first column
@@ -60,10 +60,10 @@ for filepath in sys.argv[1:]:
 
             dataset.append(InputExample(texts=texts, guid=guid))
 
-    datasets.append(dataset)
+    dataset_list.append(dataset)
 
 
-train_dataloader = MultiDatasetDataLoader(datasets, batch_size_pairs=batch_size_pairs, batch_size_triplets=batch_size_triplets)
+train_dataloader = MultiDatasetDataLoader(dataset_list, batch_size_pairs=batch_size_pairs, batch_size_triplets=batch_size_triplets)
 
 
 
