@@ -19,7 +19,7 @@ import tqdm
 import numpy as np
 import sys
 import pytrec_eval
-from sentence_transformers import SentenceTransformer, util, CrossEncoder
+from sentence_transformers import util, CrossEncoder
 import os
 
 data_folder = 'trec2019-data'

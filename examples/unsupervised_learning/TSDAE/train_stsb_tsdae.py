@@ -1,5 +1,4 @@
 from torch.utils.data import DataLoader
-import math
 from sentence_transformers import models, losses, datasets
 from sentence_transformers import LoggingHandler, SentenceTransformer, util, InputExample
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator

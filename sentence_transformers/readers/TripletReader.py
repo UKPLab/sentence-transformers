@@ -1,6 +1,5 @@
 from . import InputExample
 import csv
-import gzip
 import os
 
 class TripletReader(object):

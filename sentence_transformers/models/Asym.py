@@ -4,7 +4,7 @@ import os
 import json
 from ..util import import_from_string
 from collections import OrderedDict
-from typing import List, Dict, Optional, Union, Tuple
+from typing import List, Dict, Union, Tuple
 
 class Asym(nn.Sequential):
     def __init__(self, sub_modules: Dict[str, List[nn.Module]], allow_empty_key: bool = True):

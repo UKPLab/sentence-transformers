@@ -4,7 +4,6 @@ from ..util import pytorch_cos_sim
 import os
 import csv
 import numpy as np
-import scipy.spatial
 from typing import List
 import torch
 

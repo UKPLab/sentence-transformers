@@ -33,7 +33,7 @@ import torch
 import math
 from sentence_transformers import SentenceTransformer, LoggingHandler, losses, models, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers.readers import STSBenchmarkDataReader, InputExample
+from sentence_transformers.readers import InputExample
 import nlpaug.augmenter.word as naw
 import logging
 from datetime import datetime

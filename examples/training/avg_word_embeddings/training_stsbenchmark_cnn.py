@@ -4,7 +4,6 @@ for example with mean-pooling.
 
 
 """
-import torch
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses, util

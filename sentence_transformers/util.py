@@ -11,13 +11,8 @@ import numpy as np
 import queue
 import logging
 from typing import Dict, Optional, Union
-from pathlib import Path
 
-from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
 from huggingface_hub import snapshot_download, hf_hub_download
-from huggingface_hub.utils import EntryNotFoundError
-import fnmatch
-from packaging import version
 import heapq
 
 logger = logging.getLogger(__name__)

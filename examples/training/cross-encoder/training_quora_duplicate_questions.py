@@ -17,7 +17,6 @@ from sentence_transformers.readers import InputExample
 import logging
 from datetime import datetime
 import os
-import gzip
 import csv
 from zipfile import ZipFile
 

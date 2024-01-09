@@ -6,7 +6,6 @@ Note: WKPooling improves the performance only for certain models. Further, WKPoo
 for which there is so far not efficient implementation in pytorch for GPUs (see https://github.com/pytorch/pytorch/issues/22573).
 Hence, WKPooling runs on the GPU, which makes it rather in-efficient.
 """
-from torch.utils.data import DataLoader
 from sentence_transformers import SentenceTransformer, LoggingHandler, models
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import STSBenchmarkDataReader

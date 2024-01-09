@@ -1,8 +1,6 @@
 from sentence_transformers.evaluation import SentenceEvaluator
-from sentence_transformers.util import batch_to_device
 from sentence_transformers import SentenceTransformer
 from typing import List, Tuple, Dict
-import torch
 import numpy as np
 import logging
 import os

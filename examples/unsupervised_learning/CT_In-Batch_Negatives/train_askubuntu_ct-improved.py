@@ -5,7 +5,6 @@ import logging
 import os
 import gzip
 from datetime import datetime
-import torch
 from torch.utils.data import DataLoader
 
 #### Just some code to print debug information to stdout

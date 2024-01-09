@@ -1,7 +1,5 @@
 from sentence_transformers import SentenceTransformer, util, models
-from PIL import ImageFile, Image
-import numpy as np
-import requests
+from PIL import Image
 
 
 

@@ -2,11 +2,11 @@ from . import SentenceEvaluator
 import torch
 from torch import Tensor
 import logging
-from tqdm import tqdm, trange
+from tqdm import trange
 from ..util import cos_sim, dot_score
 import os
 import numpy as np
-from typing import List, Tuple, Dict, Set, Callable
+from typing import List, Dict, Set, Callable
 import heapq
 
 

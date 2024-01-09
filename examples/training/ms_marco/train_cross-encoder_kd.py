@@ -26,7 +26,6 @@ from datetime import datetime
 import gzip
 import os
 import tarfile
-import tqdm
 import torch
 
 #### Just some code to print debug information to stdout

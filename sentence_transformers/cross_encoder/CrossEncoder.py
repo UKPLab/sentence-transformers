@@ -4,7 +4,6 @@ import numpy as np
 import logging
 import os
 from typing import Dict, Type, Callable, List
-import transformers
 import torch
 from torch import nn
 from torch.optim import Optimizer

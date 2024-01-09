@@ -31,7 +31,6 @@ from sentence_transformers import SentenceTransformer,  LoggingHandler, losses, 
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import InputExample
 import logging
-from datetime import datetime
 import sys
 import os
 import gzip

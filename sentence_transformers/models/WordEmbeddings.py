@@ -1,6 +1,6 @@
 import torch
-from torch import nn, Tensor
-from typing import Union, Tuple, List, Iterable, Dict
+from torch import nn
+from typing import List
 import logging
 import gzip
 from tqdm import tqdm

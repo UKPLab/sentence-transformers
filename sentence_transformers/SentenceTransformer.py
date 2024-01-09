@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import shutil
-import stat
 from collections import OrderedDict
 import warnings
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal, TYPE_CHECKING
@@ -19,7 +18,6 @@ from tqdm.autonotebook import trange
 import math
 import queue
 import tempfile
-from distutils.dir_util import copy_tree
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
@@ -637,6 +635,7 @@ class SentenceTransformer(nn.Sequential):
         info_loss_functions =  []
         for dataloader, loss in train_objectives:
             info_loss_functions.extend(ModelCardTemplate.get_train_objective_info(dataloader, loss))
+            breakpoint()
         info_loss_functions = "\n\n".join([text for text in info_loss_functions])
 
         info_fit_parameters = json.dumps({"evaluator": fullname(evaluator), "epochs": epochs, "steps_per_epoch": steps_per_epoch, "scheduler": scheduler, "warmup_steps": warmup_steps, "optimizer_class": str(optimizer_class),  "optimizer_params": optimizer_params, "weight_decay": weight_decay, "evaluation_steps": evaluation_steps, "max_grad_norm": max_grad_norm }, indent=4, sort_keys=True)
@@ -838,7 +837,7 @@ class SentenceTransformer(nn.Sequential):
             try:
                 with open(model_card_path, encoding='utf8') as fIn:
                     self._model_card_text = fIn.read()
-            except:
+            except Exception:
                 pass
 
         # Load the modules of sentence transformer

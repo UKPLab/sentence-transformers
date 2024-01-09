@@ -1,6 +1,5 @@
 from torch.utils.data import Dataset
 from typing import List
-import torch
 from .. import SentenceTransformer
 from ..readers.InputExample import InputExample
 

@@ -1,8 +1,7 @@
 import torch
 from torch import Tensor
 from torch import nn
-from torch import functional as F
-from typing import Union, Tuple, List, Iterable, Dict
+from typing import Dict
 import os
 import json
 from ..util import fullname, import_from_string

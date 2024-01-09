@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import os
 import csv
-from ..util import cos_sim, dot_score
+from ..util import cos_sim
 import torch
 from sklearn.metrics import average_precision_score
 import tqdm

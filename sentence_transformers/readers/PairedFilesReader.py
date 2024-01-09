@@ -1,7 +1,4 @@
 from . import InputExample
-import csv
-import gzip
-import os
 import gzip
 
 class PairedFilesReader(object):

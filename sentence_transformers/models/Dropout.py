@@ -1,4 +1,3 @@
-import torch
 from torch import Tensor
 from torch import nn
 from typing import Dict

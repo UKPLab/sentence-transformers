@@ -15,7 +15,6 @@ from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluato
 from sentence_transformers import InputExample
 import logging
 from datetime import datetime
-import sys
 import os
 import gzip
 import csv

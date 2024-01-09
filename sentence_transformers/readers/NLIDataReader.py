@@ -1,5 +1,4 @@
 from . import InputExample
-import csv
 import gzip
 import os
 

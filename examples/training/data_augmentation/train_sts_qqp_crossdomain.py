@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from sentence_transformers import models, losses, util, LoggingHandler, SentenceTransformer
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, BinaryClassificationEvaluator
+from sentence_transformers.evaluation import BinaryClassificationEvaluator
 from sentence_transformers.readers import InputExample
 from datetime import datetime
 from zipfile import ZipFile

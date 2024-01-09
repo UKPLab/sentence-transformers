@@ -1,8 +1,7 @@
 """
 Tests the correct computation of evaluation scores from BinaryClassificationEvaluator
 """
-from sentence_transformers import SentenceTransformer, evaluation, util, losses, LoggingHandler
-import logging
+from sentence_transformers import SentenceTransformer, evaluation, util, losses
 import unittest
 from sklearn.metrics import f1_score, accuracy_score
 import numpy as np

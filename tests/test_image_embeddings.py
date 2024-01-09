@@ -4,7 +4,6 @@ Compute image embeddings
 
 import unittest
 from sentence_transformers import SentenceTransformer, util
-import numpy as np
 from PIL import Image
 import os
 

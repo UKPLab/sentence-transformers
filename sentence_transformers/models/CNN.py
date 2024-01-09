@@ -1,14 +1,8 @@
 import torch
-from torch import nn, Tensor
-from typing import Union, Tuple, List, Iterable, Dict
-import logging
-import gzip
-from tqdm import tqdm
-import numpy as np
+from torch import nn
+from typing import List
 import os
 import json
-from ..util import import_from_string, fullname, http_get
-from .tokenizer import WordTokenizer, WhitespaceTokenizer
 
 
 class CNN(nn.Module):
