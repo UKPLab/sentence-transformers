@@ -35,7 +35,7 @@ class PairedFilesReader(object):
                 texts.append(text)
 
             if eof:
-                break;
+                break
 
             examples.append(InputExample(guid=str(len(examples)), texts=texts, label=1))
             if max_examples > 0 and len(examples) >= max_examples:
