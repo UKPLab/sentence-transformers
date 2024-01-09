@@ -44,7 +44,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
             decoder_name_or_path = encoder_name_or_path
 
         self.tokenizer_decoder = AutoTokenizer.from_pretrained(decoder_name_or_path)
-        self.need_retokenization = not (type(self.tokenizer_encoder) == type(self.tokenizer_decoder))
+        self.need_retokenization = not isinstance(self.tokenizer_encoder, type(self.tokenizer_decoder))
 
         decoder_config = AutoConfig.from_pretrained(decoder_name_or_path)
         decoder_config.is_decoder = True
