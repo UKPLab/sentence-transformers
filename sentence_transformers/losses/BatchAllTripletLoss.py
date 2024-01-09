@@ -79,9 +79,8 @@ class BatchAllTripletLoss(nn.Module):
         # Count number of positive triplets (where triplet_loss > 0)
         valid_triplets = triplet_loss[triplet_loss > 1e-16]
         num_positive_triplets = valid_triplets.size(0)
-        num_valid_triplets = mask.sum()
-
-        fraction_positive_triplets = num_positive_triplets / (num_valid_triplets.float() + 1e-16)
+        # num_valid_triplets = mask.sum()
+        # fraction_positive_triplets = num_positive_triplets / (num_valid_triplets.float() + 1e-16)
 
         # Get final mean triplet loss over the positive valid triplets
         triplet_loss = triplet_loss.sum() / (num_positive_triplets + 1e-16)
