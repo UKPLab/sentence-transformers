@@ -24,14 +24,14 @@ class NoDuplicatesDataLoader:
 
                 valid_example = True
                 for text in example.texts:
-                    if text.strip().lower() in texts_in_batch:
+                    if self._text_to_str(text).strip().lower() in texts_in_batch:
                         valid_example = False
                         break
 
                 if valid_example:
                     batch.append(example)
                     for text in example.texts:
-                        texts_in_batch.add(text.strip().lower())
+                        texts_in_batch.add(self._text_to_str(text).strip().lower())
 
                 self.data_pointer += 1
                 if self.data_pointer >= len(self.train_examples):
@@ -42,3 +42,17 @@ class NoDuplicatesDataLoader:
 
     def __len__(self):
         return math.floor(len(self.train_examples) / self.batch_size)
+
+
+    def _text_to_str(self, text) -> str:
+        """
+        In symmetric models, the text is a string, but in asymmetric models the text is a dictionary.
+        This method extracts a string in both cases.
+        """
+
+        # there is only one key value. Example is : `{"query": "Some query"}`
+        if isinstance(text, dict):
+            return list(text.values())[0]
+        else:
+            return text
+
