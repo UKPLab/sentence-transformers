@@ -148,7 +148,7 @@ def cls_pooling(model_output, attention_mask):
     def get_train_objective_info(dataloader, loss):
         try:
             if hasattr(dataloader, 'get_config_dict'):
-                train_loader = dataloader.get_config_dict()
+                loader_params = dataloader.get_config_dict()
             else:
                 loader_params = {}
                 loader_params['batch_size'] = dataloader.batch_size if hasattr(dataloader, 'batch_size') else 'unknown'
