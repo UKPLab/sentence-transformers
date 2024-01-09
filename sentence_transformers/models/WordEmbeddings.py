@@ -90,7 +90,7 @@ class WordEmbeddings(nn.Module):
             logger.info("{} does not exist, try to download from server".format(embeddings_file_path))
 
             if '/' in embeddings_file_path or '\\' in embeddings_file_path:
-                raise ValueError("Embeddings file not found: ".format(embeddings_file_path))
+                raise ValueError("Embeddings file not found: {}".format(embeddings_file_path))
 
             url = "https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/"+embeddings_file_path
             http_get(url, embeddings_file_path)
