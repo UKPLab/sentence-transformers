@@ -6,3 +6,11 @@ from .SentenceTransformer import SentenceTransformer
 from .readers import InputExample
 from .cross_encoder.CrossEncoder import CrossEncoder
 
+__all__ = [
+    'LoggingHandler',
+    'SentencesDataset',
+    'ParallelSentencesDataset',
+    'SentenceTransformer',
+    'InputExample',
+    'CrossEncoder'
+]
