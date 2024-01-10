@@ -32,28 +32,28 @@ For more information on how to manipulate your dataset see [» Datasets Document
 
 These are popular datasets used to train and fine-tune SentenceTransformers models.
 
-| Dataset                                                                                                   |
-|-----------------------------------------------------------------------------------------------------------|
-| [altlex pairs](https://huggingface.co/datasets/embedding-data/altlex)                                     |
-| [sentence compression pairs](https://huggingface.co/datasets/embedding-data/sentence-compression)         |
-| [QQP triplets](https://huggingface.co/datasets/embedding-data/QQP_triplets)                               |
-| [PAQ pairs](https://huggingface.co/datasets/embedding-data/PAQ_pairs)                                     |
-| [SPECTER triplets](https://huggingface.co/datasets/embedding-data/SPECTER)                                |
-| [Amazon QA pairs](https://huggingface.co/datasets/embedding-data/Amazon-QA)                               |
-| [Simple Wiki pairs](https://huggingface.co/datasets/embedding-data/simple-wiki)                           |
-| [Wiki Answers equivalent sentences](https://huggingface.co/datasets/embedding-data/WikiAnswers)           |
-| [COCO Captions quintets](https://huggingface.co/datasets/embedding-data/coco_captions_quintets)           |
-| [Flickr30k Captions quintets](https://huggingface.co/datasets/embedding-data/flickr30k_captions_quintets) |
-| [MS Marco](https://huggingface.co/datasets/ms_marco)                                                      |
-| [GOOAQ](https://huggingface.co/datasets/gooaq)                                                            |
-| [MS Marco](https://huggingface.co/datasets/ms_marco)                                                      |
-| [Yahoo Answers topics](https://huggingface.co/datasets/yahoo_answers_topics)                              |
-| [Search QA](https://huggingface.co/datasets/search_qa)                                                    |
-| [Stack Exchange](https://huggingface.co/datasets/flax-sentence-embeddings/stackexchange_xml )             |
-| [ELI5](https://huggingface.co/datasets/eli5)                                                              |
-| [MultiNLI](https://huggingface.co/datasets/multi_nli)                                                     |
-| [SNLI](https://huggingface.co/datasets/snli)                                                              |
-| [S2ORC](https://huggingface.co/datasets/s2orc)                                                            |
-| [Trivia QA](https://huggingface.co/datasets/trivia_qa)                                                    |
-| [Code Search Net](https://huggingface.co/datasets/code_search_net)                                        |
-| [Natural Questions](https://huggingface.co/datasets/natural_questions)                                    |
+|   | Dataset                                                                                                   |
+| - | --------------------------------------------------------------------------------------------------------- |
+|   | [altlex pairs](https://huggingface.co/datasets/embedding-data/altlex)                                     |
+|   | [sentence compression pairs](https://huggingface.co/datasets/embedding-data/sentence-compression)         |
+|   | [QQP triplets](https://huggingface.co/datasets/embedding-data/QQP_triplets)                               |
+|   | [PAQ pairs](https://huggingface.co/datasets/embedding-data/PAQ_pairs)                                     |
+|   | [SPECTER triplets](https://huggingface.co/datasets/embedding-data/SPECTER)                                |
+|   | [Amazon QA pairs](https://huggingface.co/datasets/embedding-data/Amazon-QA)                               |
+|   | [Simple Wiki pairs](https://huggingface.co/datasets/embedding-data/simple-wiki)                           |
+|   | [Wiki Answers equivalent sentences](https://huggingface.co/datasets/embedding-data/WikiAnswers)           |
+|   | [COCO Captions quintets](https://huggingface.co/datasets/embedding-data/coco_captions_quintets)           |
+|   | [Flickr30k Captions quintets](https://huggingface.co/datasets/embedding-data/flickr30k_captions_quintets) |
+|   | [MS Marco](https://huggingface.co/datasets/ms_marco)                                                      |
+|   | [GOOAQ](https://huggingface.co/datasets/gooaq)                                                            |
+|   | [MS Marco](https://huggingface.co/datasets/ms_marco)                                                      |
+|   | [Yahoo Answers topics](https://huggingface.co/datasets/yahoo_answers_topics)                              |
+|   | [Search QA](https://huggingface.co/datasets/search_qa)                                                    |
+|   | [Stack Exchange](https://huggingface.co/datasets/flax-sentence-embeddings/stackexchange_xml )             |
+|   | [ELI5](https://huggingface.co/datasets/eli5)                                                              |
+|   | [MultiNLI](https://huggingface.co/datasets/multi_nli)                                                     |
+|   | [SNLI](https://huggingface.co/datasets/snli)                                                              |
+|   | [S2ORC](https://huggingface.co/datasets/s2orc)                                                            |
+|   | [Trivia QA](https://huggingface.co/datasets/trivia_qa)                                                    |
+|   | [Code Search Net](https://huggingface.co/datasets/code_search_net)                                        |
+|   | [Natural Questions](https://huggingface.co/datasets/natural_questions)                                    |
