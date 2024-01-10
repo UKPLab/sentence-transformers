@@ -12,16 +12,17 @@ logger = logging.getLogger(__name__)
 
 class MSEEvaluatorFromDataFrame(SentenceEvaluator):
     """
-    Computes the mean squared error (x100) between the computed sentence embedding
-    and some target sentence embedding.
-    :param dataframe:
-        It must have the following format. Rows contains different, parallel sentences. Columns are the respective language codes
-        [{'en': 'My sentence', 'es': 'Sentence in Spanisch', 'fr': 'Sentence in French'...},
-         {'en': 'My second sentence', ....]
-    :param combinations:
-        Must be of the format [('en', 'es'), ('en', 'fr'), ...]
-        First entry in a tuple is the source language. The sentence in the respective language will be fetched from the dataframe and passed to the teacher model.
-        Second entry in a tuple the the target language. Sentence will be fetched from the dataframe and passed to the student model
+    Computes the mean squared error (x100) between the computed sentence embedding and some target sentence embedding.
+
+    :param dataframe: It must have the following format. Rows contains different, parallel sentences.
+        Columns are the respective language codes::
+
+            [{'en': 'My sentence', 'es': 'Sentence in Spanisch', 'fr': 'Sentence in French'...},
+             {'en': 'My second sentence', ...}]
+    :param combinations: Must be of the format ``[('en', 'es'), ('en', 'fr'), ...]``.
+        First entry in a tuple is the source language. The sentence in the respective language will be fetched from
+        the dataframe and passed to the teacher model. Second entry in a tuple the the target language. Sentence
+        will be fetched from the dataframe and passed to the student model
     """
 
     def __init__(

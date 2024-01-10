@@ -29,17 +29,19 @@ The usage is as simple as:
 .. code-block:: python
 
     from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    #Our sentences we like to encode
-    sentences = ['This framework generates embeddings for each input sentence',
-        'Sentences are passed as a list of string.',
-        'The quick brown fox jumps over the lazy dog.']
+    # Our sentences to encode
+    sentences = [
+        "This framework generates embeddings for each input sentence",
+        "Sentences are passed as a list of string.",
+        "The quick brown fox jumps over the lazy dog."
+    ]
 
-    #Sentences are encoded by calling model.encode()
+    # Sentences are encoded by calling model.encode()
     embeddings = model.encode(sentences)
 
-    #Print the embeddings
+    # Print the embeddings
     for sentence, embedding in zip(sentences, embeddings):
         print("Sentence:", sentence)
         print("Embedding:", embedding)
@@ -51,7 +53,7 @@ The usage is as simple as:
 Performance
 =========================
 
-Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed. Have a look at `Pre-Trained Models <https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models/>`_ for an overview of available models and the respective performance on different tasks.
+Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed. Have a look at `Pre-Trained Models <docs/pretrained_models.html>`_ for an overview of available models and the respective performance on different tasks.
 
 
 

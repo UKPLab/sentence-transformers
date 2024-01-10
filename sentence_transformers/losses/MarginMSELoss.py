@@ -5,7 +5,7 @@ from typing import Iterable, Dict
 
 class MarginMSELoss(nn.Module):
     """
-    Compute the MSE loss between the |sim(Query, Pos) - sim(Query, Neg)| and |gold_sim(Q, Pos) - gold_sim(Query, Neg)|.
+    Compute the MSE loss between the ``|sim(Query, Pos) - sim(Query, Neg)|`` and ``|gold_sim(Query, Pos) - gold_sim(Query, Neg)|``.
     By default, sim() is the dot-product.
     For more details, please refer to https://arxiv.org/abs/2010.02666.
     """

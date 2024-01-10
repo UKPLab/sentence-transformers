@@ -15,7 +15,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
     """
     Given a large set of sentences, this evaluator performs paraphrase (duplicate) mining and
     identifies the pairs with the highest similarity. It compare the extracted paraphrase pairs
-     with a set of gold labels and computes the F1 score.
+    with a set of gold labels and computes the F1 score.
     """
 
     def __init__(
