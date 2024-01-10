@@ -20,40 +20,40 @@ import os
 import torch
 
 # We use the Bi-Encoder to encode all passages, so that we can use it with semantic search
-model_name = 'nq-distilbert-base-v1'
+model_name = "nq-distilbert-base-v1"
 bi_encoder = SentenceTransformer(model_name)
 top_k = 5  # Number of passages we want to retrieve with the bi-encoder
 
 # As dataset, we use Simple English Wikipedia. Compared to the full English wikipedia, it has only
 # about 170k articles. We split these articles into paragraphs and encode them with the bi-encoder
 
-wikipedia_filepath = 'data/simplewiki-2020-11-01.jsonl.gz'
+wikipedia_filepath = "data/simplewiki-2020-11-01.jsonl.gz"
 
 if not os.path.exists(wikipedia_filepath):
-    util.http_get('http://sbert.net/datasets/simplewiki-2020-11-01.jsonl.gz', wikipedia_filepath)
+    util.http_get("http://sbert.net/datasets/simplewiki-2020-11-01.jsonl.gz", wikipedia_filepath)
 
 passages = []
-with gzip.open(wikipedia_filepath, 'rt', encoding='utf8') as fIn:
+with gzip.open(wikipedia_filepath, "rt", encoding="utf8") as fIn:
     for line in fIn:
         data = json.loads(line.strip())
-        for paragraph in data['paragraphs']:
+        for paragraph in data["paragraphs"]:
             # We encode the passages as [title, text]
-            passages.append([data['title'], paragraph])
+            passages.append([data["title"], paragraph])
 
 # If you like, you can also limit the number of passages you want to use
 print("Passages:", len(passages))
 
 # To speed things up, pre-computed embeddings are downloaded.
 # The provided file encoded the passages with the model 'nq-distilbert-base-v1'
-if model_name == 'nq-distilbert-base-v1':
-    embeddings_filepath = 'simplewiki-2020-11-01-nq-distilbert-base-v1.pt'
+if model_name == "nq-distilbert-base-v1":
+    embeddings_filepath = "simplewiki-2020-11-01-nq-distilbert-base-v1.pt"
     if not os.path.exists(embeddings_filepath):
-        util.http_get('http://sbert.net/datasets/simplewiki-2020-11-01-nq-distilbert-base-v1.pt', embeddings_filepath)
+        util.http_get("http://sbert.net/datasets/simplewiki-2020-11-01-nq-distilbert-base-v1.pt", embeddings_filepath)
 
     corpus_embeddings = torch.load(embeddings_filepath)
     corpus_embeddings = corpus_embeddings.float()  # Convert embedding file to float
     if torch.cuda.is_available():
-        corpus_embeddings = corpus_embeddings.to('cuda')
+        corpus_embeddings = corpus_embeddings.to("cuda")
 else:  # Here, we compute the corpus_embeddings from scratch (which can take a while depending on the GPU)
     corpus_embeddings = bi_encoder.encode(passages, convert_to_tensor=True, show_progress_bar=True)
 
@@ -72,6 +72,6 @@ while True:
     print("Input question:", query)
     print("Results (after {:.3f} seconds):".format(end_time - start_time))
     for hit in hits:
-        print("\t{:.3f}\t{}".format(hit['score'], passages[hit['corpus_id']]))
+        print("\t{:.3f}\t{}".format(hit["score"], passages[hit["corpus_id"]]))
 
     print("\n\n========\n")

@@ -1,8 +1,9 @@
 import torch
-from torch import nn, Tensor
-from typing import Union, Tuple, List, Iterable, Dict
+from torch import Tensor
+from typing import Iterable, Dict
 from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+
 
 class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
     """
@@ -31,15 +32,17 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
        train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
        train_loss = losses.BatchHardSoftMarginTripletLoss(model=model)
     """
-    def __init__(self, model: SentenceTransformer, distance_metric=BatchHardTripletLossDistanceFunction.eucledian_distance):
+
+    def __init__(
+        self, model: SentenceTransformer, distance_metric=BatchHardTripletLossDistanceFunction.eucledian_distance
+    ):
         super(BatchHardSoftMarginTripletLoss, self).__init__(model)
         self.sentence_embedder = model
         self.distance_metric = distance_metric
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-        rep = self.sentence_embedder(sentence_features[0])['sentence_embedding']
+        rep = self.sentence_embedder(sentence_features[0])["sentence_embedding"]
         return self.batch_hard_triplet_soft_margin_loss(labels, rep)
-
 
     # Hard Triplet Loss with Soft Margin
     # Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
@@ -56,7 +59,6 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
         """
         # Get the pairwise distance matrix
         pairwise_dist = self.distance_metric(embeddings)
-
 
         # For each anchor, get the hardest positive
         # First, we need to get a mask for every valid positive (they should have same label)
@@ -80,8 +82,8 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
         hardest_negative_dist, _ = anchor_negative_dist.min(1, keepdim=True)
 
         # Combine biggest d(a, p) and smallest d(a, n) into final triplet loss with soft margin
-        #tl = hardest_positive_dist - hardest_negative_dist + margin
-        #tl[tl < 0] = 0
+        # tl = hardest_positive_dist - hardest_negative_dist + margin
+        # tl[tl < 0] = 0
         tl = torch.log1p(torch.exp(hardest_positive_dist - hardest_negative_dist))
         triplet_loss = tl.mean()
 

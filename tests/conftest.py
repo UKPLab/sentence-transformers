@@ -1,4 +1,3 @@
-
 from sentence_transformers import SentenceTransformer
 import pytest
 

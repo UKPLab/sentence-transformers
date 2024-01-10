@@ -18,7 +18,7 @@ import time
 
 
 # Model for computing sentence embeddings. We use one trained for similar questions detection
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # We download the Quora Duplicate Questions Dataset (https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs)
 # and find similar question in it
@@ -35,11 +35,11 @@ if not os.path.exists(dataset_path):
 
 # Get all unique sentences from the file
 corpus_sentences = set()
-with open(dataset_path, encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
+with open(dataset_path, encoding="utf8") as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_MINIMAL)
     for row in reader:
-        corpus_sentences.add(row['question1'])
-        corpus_sentences.add(row['question2'])
+        corpus_sentences.add(row["question1"])
+        corpus_sentences.add(row["question2"])
         if len(corpus_sentences) >= max_corpus_size:
             break
 
@@ -51,21 +51,18 @@ corpus_embeddings = model.encode(corpus_sentences, batch_size=64, show_progress_
 print("Start clustering")
 start_time = time.time()
 
-#Two parameters to tune:
-#min_cluster_size: Only consider cluster that have at least 25 elements
-#threshold: Consider sentence pairs with a cosine-similarity larger than threshold as similar
+# Two parameters to tune:
+# min_cluster_size: Only consider cluster that have at least 25 elements
+# threshold: Consider sentence pairs with a cosine-similarity larger than threshold as similar
 clusters = util.community_detection(corpus_embeddings, min_community_size=25, threshold=0.75)
 
 print("Clustering done after {:.2f} sec".format(time.time() - start_time))
 
-#Print for all clusters the top 3 and bottom 3 elements
+# Print for all clusters the top 3 and bottom 3 elements
 for i, cluster in enumerate(clusters):
-    print("\nCluster {}, #{} Elements ".format(i+1, len(cluster)))
+    print("\nCluster {}, #{} Elements ".format(i + 1, len(cluster)))
     for sentence_id in cluster[0:3]:
         print("\t", corpus_sentences[sentence_id])
     print("\t", "...")
     for sentence_id in cluster[-3:]:
         print("\t", corpus_sentences[sentence_id])
-
-
-

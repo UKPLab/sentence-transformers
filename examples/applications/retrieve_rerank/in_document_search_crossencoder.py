@@ -20,7 +20,7 @@ from nltk import sent_tokenize
 import time
 
 
-#As document, we take the first two section from the Wikipedia article about Europe
+# As document, we take the first two section from the Wikipedia article about Europe
 document = """Europe is a continent located entirely in the Northern Hemisphere and mostly in the Eastern Hemisphere. It comprises the westernmost part of Eurasia and is bordered by the Arctic Ocean to the north, the Atlantic Ocean to the west, the Mediterranean Sea to the south, and Asia to the east. Europe is commonly considered to be separated from Asia by the watershed of the Ural Mountains, the Ural River, the Caspian Sea, the Greater Caucasus, the Black Sea, and the waterways of the Turkish Straits. Although some of this border is over land, Europe is generally accorded the status of a full continent because of its great physical size and the weight of history and tradition.
 
 Europe covers about 10,180,000 square kilometres (3,930,000 sq mi), or 2% of the Earth's surface (6.8% of land area), making it the second smallest continent. Politically, Europe is divided into about fifty sovereign states, of which Russia is the largest and most populous, spanning 39% of the continent and comprising 15% of its population. Europe had a total population of about 741 million (about 11% of the world population) as of 2018. The European climate is largely affected by warm Atlantic currents that temper winters and summers on much of the continent, even at latitudes along which the climate in Asia and North America is severe. Further from the sea, seasonal differences are more noticeable than close to the coast.
@@ -44,14 +44,14 @@ for paragraph in document.replace("\r\n", "\n").split("\n\n"):
         paragraphs.append(sent_tokenize(paragraph.strip()))
 
 
-#We combine up to 3 sentences into a passage. You can choose smaller or larger values for window_size
-#Smaller value: Context from other sentences might get lost
-#Lager values: More context from the paragraph remains, but results are longer
+# We combine up to 3 sentences into a passage. You can choose smaller or larger values for window_size
+# Smaller value: Context from other sentences might get lost
+# Lager values: More context from the paragraph remains, but results are longer
 window_size = 3
 passages = []
 for paragraph in paragraphs:
     for start_idx in range(0, len(paragraph), window_size):
-        end_idx = min(start_idx+window_size, len(paragraph))
+        end_idx = min(start_idx + window_size, len(paragraph))
         passages.append(" ".join(paragraph[start_idx:end_idx]))
 
 
@@ -61,31 +61,32 @@ print("Passages: ", len(passages))
 
 
 ## Load our cross-encoder. Use fast tokenizer to speed up the tokenization
-model = CrossEncoder('cross-encoder/ms-marco-TinyBERT-L-2')
+model = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L-2")
 
 ## Some queries we want to search for in the document
-queries = ["How large is Europe?",
-           "Is Europe a continent?",
-           "What is the currency in EU?",
-           "Fall Roman Empire when",                    #We can also search for key word queries
-           "Is Europa in the south part of the globe?"]   #Europe is miss-spelled & the matching sentences does not mention any of the content words
+queries = [
+    "How large is Europe?",
+    "Is Europe a continent?",
+    "What is the currency in EU?",
+    "Fall Roman Empire when",  # We can also search for key word queries
+    "Is Europa in the south part of the globe?",
+]  # Europe is miss-spelled & the matching sentences does not mention any of the content words
 
-#Search in a loop for the individual queries
+# Search in a loop for the individual queries
 for query in queries:
     start_time = time.time()
 
-    #Concatenate the query and all passages and predict the scores for the pairs [query, passage]
+    # Concatenate the query and all passages and predict the scores for the pairs [query, passage]
     model_inputs = [[query, passage] for passage in passages]
     scores = model.predict(model_inputs)
 
-    #Sort the scores in decreasing order
-    results = [{'input': inp, 'score': score} for inp, score in zip(model_inputs, scores)]
-    results = sorted(results, key=lambda x: x['score'], reverse=True)
+    # Sort the scores in decreasing order
+    results = [{"input": inp, "score": score} for inp, score in zip(model_inputs, scores)]
+    results = sorted(results, key=lambda x: x["score"], reverse=True)
 
     print("Query:", query)
     print("Search took {:.2f} seconds".format(time.time() - start_time))
     for hit in results[0:5]:
-        print("Score: {:.2f}".format(hit['score']), "\t", hit['input'][1])
-
+        print("Score: {:.2f}".format(hit["score"]), "\t", hit["input"][1])
 
     print("==========")

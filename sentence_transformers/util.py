@@ -11,16 +11,12 @@ import numpy as np
 import queue
 import logging
 from typing import Dict, Optional, Union
-from pathlib import Path
 
-from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
 from huggingface_hub import snapshot_download, hf_hub_download
-from huggingface_hub.utils import EntryNotFoundError
-import fnmatch
-from packaging import version
 import heapq
 
 logger = logging.getLogger(__name__)
+
 
 def pytorch_cos_sim(a: Tensor, b: Tensor) -> Tensor:
     """
@@ -29,6 +25,7 @@ def pytorch_cos_sim(a: Tensor, b: Tensor) -> Tensor:
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
     """
     return cos_sim(a, b)
+
 
 def cos_sim(a: Tensor, b: Tensor) -> Tensor:
     """
@@ -76,10 +73,10 @@ def dot_score(a: Tensor, b: Tensor) -> Tensor:
 
 def pairwise_dot_score(a: Tensor, b: Tensor) -> Tensor:
     """
-   Computes the pairwise dot-product dot_prod(a[i], b[i])
+    Computes the pairwise dot-product dot_prod(a[i], b[i])
 
-   :return: Vector with res[i] = dot_prod(a[i], b[i])
-   """
+    :return: Vector with res[i] = dot_prod(a[i], b[i])
+    """
     if not isinstance(a, torch.Tensor):
         a = torch.tensor(a)
 
@@ -91,10 +88,10 @@ def pairwise_dot_score(a: Tensor, b: Tensor) -> Tensor:
 
 def pairwise_cos_sim(a: Tensor, b: Tensor) -> Tensor:
     """
-   Computes the pairwise cossim cos_sim(a[i], b[i])
+    Computes the pairwise cossim cos_sim(a[i], b[i])
 
-   :return: Vector with res[i] = cos_sim(a[i], b[i])
-   """
+    :return: Vector with res[i] = cos_sim(a[i], b[i])
+    """
     if not isinstance(a, torch.Tensor):
         a = torch.tensor(a)
 
@@ -111,12 +108,9 @@ def normalize_embeddings(embeddings: Tensor) -> Tensor:
     return torch.nn.functional.normalize(embeddings, p=2, dim=1)
 
 
-def paraphrase_mining(model,
-                      sentences: List[str],
-                      show_progress_bar: bool = False,
-                      batch_size:int = 32,
-                      *args,
-                      **kwargs) -> List[List[Union[float, int]]]:
+def paraphrase_mining(
+    model, sentences: List[str], show_progress_bar: bool = False, batch_size: int = 32, *args, **kwargs
+) -> List[List[Union[float, int]]]:
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
     other sentences and returns a list with the pairs that have the highest cosine similarity score.
@@ -134,17 +128,21 @@ def paraphrase_mining(model,
     """
 
     # Compute embedding for the sentences
-    embeddings = model.encode(sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True)
+    embeddings = model.encode(
+        sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True
+    )
 
     return paraphrase_mining_embeddings(embeddings, *args, **kwargs)
 
 
-def paraphrase_mining_embeddings(embeddings: Tensor,
-                      query_chunk_size: int = 5000,
-                      corpus_chunk_size: int = 100000,
-                      max_pairs: int = 500000,
-                      top_k: int = 100,
-                      score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim) -> List[List[Union[float, int]]]:
+def paraphrase_mining_embeddings(
+    embeddings: Tensor,
+    query_chunk_size: int = 5000,
+    corpus_chunk_size: int = 100000,
+    max_pairs: int = 500000,
+    top_k: int = 100,
+    score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
+) -> List[List[Union[float, int]]]:
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
     other sentences and returns a list with the pairs that have the highest cosine similarity score.
@@ -167,9 +165,14 @@ def paraphrase_mining_embeddings(embeddings: Tensor,
 
     for corpus_start_idx in range(0, len(embeddings), corpus_chunk_size):
         for query_start_idx in range(0, len(embeddings), query_chunk_size):
-            scores = score_function(embeddings[query_start_idx:query_start_idx+query_chunk_size], embeddings[corpus_start_idx:corpus_start_idx+corpus_chunk_size])
+            scores = score_function(
+                embeddings[query_start_idx : query_start_idx + query_chunk_size],
+                embeddings[corpus_start_idx : corpus_start_idx + corpus_chunk_size],
+            )
 
-            scores_top_k_values, scores_top_k_idx = torch.topk(scores, min(top_k, len(scores[0])), dim=1, largest=True, sorted=False)
+            scores_top_k_values, scores_top_k_idx = torch.topk(
+                scores, min(top_k, len(scores[0])), dim=1, largest=True, sorted=False
+            )
             scores_top_k_values = scores_top_k_values.cpu().tolist()
             scores_top_k_idx = scores_top_k_idx.cpu().tolist()
 
@@ -207,12 +210,14 @@ def information_retrieval(*args, **kwargs) -> List[List[Dict[str, Union[int, flo
     return semantic_search(*args, **kwargs)
 
 
-def semantic_search(query_embeddings: Tensor,
-                    corpus_embeddings: Tensor,
-                    query_chunk_size: int = 100,
-                    corpus_chunk_size: int = 500000,
-                    top_k: int = 10,
-                    score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim) -> List[List[Dict[str, Union[int, float]]]]:
+def semantic_search(
+    query_embeddings: Tensor,
+    corpus_embeddings: Tensor,
+    query_chunk_size: int = 100,
+    corpus_chunk_size: int = 500000,
+    top_k: int = 10,
+    score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
+) -> List[List[Dict[str, Union[int, float]]]]:
     """
     This function performs a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
     It can be used for Information Retrieval / Semantic Search for corpora up to about 1 Million entries.
@@ -239,8 +244,7 @@ def semantic_search(query_embeddings: Tensor,
     elif isinstance(corpus_embeddings, list):
         corpus_embeddings = torch.stack(corpus_embeddings)
 
-
-    #Check that corpus and queries are on the same device
+    # Check that corpus and queries are on the same device
     if corpus_embeddings.device != query_embeddings.device:
         query_embeddings = query_embeddings.to(corpus_embeddings.device)
 
@@ -250,10 +254,15 @@ def semantic_search(query_embeddings: Tensor,
         # Iterate over chunks of the corpus
         for corpus_start_idx in range(0, len(corpus_embeddings), corpus_chunk_size):
             # Compute cosine similarities
-            cos_scores = score_function(query_embeddings[query_start_idx:query_start_idx+query_chunk_size], corpus_embeddings[corpus_start_idx:corpus_start_idx+corpus_chunk_size])
+            cos_scores = score_function(
+                query_embeddings[query_start_idx : query_start_idx + query_chunk_size],
+                corpus_embeddings[corpus_start_idx : corpus_start_idx + corpus_chunk_size],
+            )
 
             # Get top-k scores
-            cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(cos_scores, min(top_k, len(cos_scores[0])), dim=1, largest=True, sorted=False)
+            cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(
+                cos_scores, min(top_k, len(cos_scores[0])), dim=1, largest=True, sorted=False
+            )
             cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
             cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
 
@@ -262,16 +271,18 @@ def semantic_search(query_embeddings: Tensor,
                     corpus_id = corpus_start_idx + sub_corpus_id
                     query_id = query_start_idx + query_itr
                     if len(queries_result_list[query_id]) < top_k:
-                        heapq.heappush(queries_result_list[query_id], (score, corpus_id))  # heaqp tracks the quantity of the first element in the tuple
+                        heapq.heappush(
+                            queries_result_list[query_id], (score, corpus_id)
+                        )  # heaqp tracks the quantity of the first element in the tuple
                     else:
                         heapq.heappushpop(queries_result_list[query_id], (score, corpus_id))
 
-    #change the data format and sort
+    # change the data format and sort
     for query_id in range(len(queries_result_list)):
         for doc_itr in range(len(queries_result_list[query_id])):
             score, corpus_id = queries_result_list[query_id][doc_itr]
-            queries_result_list[query_id][doc_itr] = {'corpus_id': corpus_id, 'score': score}
-        queries_result_list[query_id] = sorted(queries_result_list[query_id], key=lambda x: x['score'], reverse=True)
+            queries_result_list[query_id][doc_itr] = {"corpus_id": corpus_id, "score": score}
+        queries_result_list[query_id] = sorted(queries_result_list[query_id], key=lambda x: x["score"], reverse=True)
 
     return queries_result_list
 
@@ -280,7 +291,7 @@ def http_get(url, path) -> None:
     """
     Downloads a URL to a given path on disc
     """
-    if os.path.dirname(path) != '':
+    if os.path.dirname(path) != "":
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
     req = requests.get(url, stream=True)
@@ -289,13 +300,13 @@ def http_get(url, path) -> None:
         req.raise_for_status()
         return
 
-    download_filepath = path+"_part"
+    download_filepath = path + "_part"
     with open(download_filepath, "wb") as file_binary:
-        content_length = req.headers.get('Content-Length')
+        content_length = req.headers.get("Content-Length")
         total = int(content_length) if content_length is not None else None
         progress = tqdm(unit="B", total=total, unit_scale=True)
         for chunk in req.iter_content(chunk_size=1024):
-            if chunk: # filter out keep-alive new chunks
+            if chunk:  # filter out keep-alive new chunks
                 progress.update(len(chunk))
                 file_binary.write(chunk)
 
@@ -313,18 +324,18 @@ def batch_to_device(batch, target_device: device):
     return batch
 
 
-
 def fullname(o) -> str:
-  """
-  Gives a full name (package_name.class_name) for a class / object in Python. Will
-  be used to load the correct classes from JSON files
-  """
+    """
+    Gives a full name (package_name.class_name) for a class / object in Python. Will
+    be used to load the correct classes from JSON files
+    """
 
-  module = o.__class__.__module__
-  if module is None or module == str.__class__.__module__:
-    return o.__class__.__name__  # Avoid reporting __builtin__
-  else:
-    return module + '.' + o.__class__.__name__
+    module = o.__class__.__module__
+    if module is None or module == str.__class__.__module__:
+        return o.__class__.__name__  # Avoid reporting __builtin__
+    else:
+        return module + "." + o.__class__.__name__
+
 
 def import_from_string(dotted_path):
     """
@@ -332,14 +343,14 @@ def import_from_string(dotted_path):
     last name in the path. Raise ImportError if the import failed.
     """
     try:
-        module_path, class_name = dotted_path.rsplit('.', 1)
+        module_path, class_name = dotted_path.rsplit(".", 1)
     except ValueError:
         msg = "%s doesn't look like a module path" % dotted_path
         raise ImportError(msg)
 
     try:
         module = importlib.import_module(dotted_path)
-    except:
+    except Exception:
         module = importlib.import_module(module_path)
 
     try:
@@ -349,7 +360,9 @@ def import_from_string(dotted_path):
         raise ImportError(msg)
 
 
-def community_detection(embeddings, threshold=0.75, min_community_size=10, batch_size=1024, show_progress_bar=False) -> List[List[int]]:
+def community_detection(
+    embeddings, threshold=0.75, min_community_size=10, batch_size=1024, show_progress_bar=False
+) -> List[List[int]]:
     """
     Function for Fast Community Detection
     Finds in the embeddings all communities, i.e. embeddings that are close (closer than threshold).
@@ -368,9 +381,11 @@ def community_detection(embeddings, threshold=0.75, min_community_size=10, batch
     min_community_size = min(min_community_size, len(embeddings))
     sort_max_size = min(max(2 * min_community_size, 50), len(embeddings))
 
-    for start_idx in tqdm(range(0, len(embeddings), batch_size), desc="Finding clusters", disable=not show_progress_bar):
+    for start_idx in tqdm(
+        range(0, len(embeddings), batch_size), desc="Finding clusters", disable=not show_progress_bar
+    ):
         # Compute cosine similarity scores
-        cos_scores = embeddings[start_idx:start_idx + batch_size] @ embeddings.T
+        cos_scores = embeddings[start_idx : start_idx + batch_size] @ embeddings.T
 
         # Use a torch-heavy approach if the embeddings are on CUDA, otherwise a loop-heavy one
         if embeddings.device.type == "cuda":
@@ -457,11 +472,15 @@ class disabled_tqdm(tqdm):
                 raise
 
 
-def is_sentence_transformer_model(model_name_or_path: str, token: Optional[Union[bool, str]] = None, cache_folder: Optional[str] = None) -> bool:
+def is_sentence_transformer_model(
+    model_name_or_path: str, token: Optional[Union[bool, str]] = None, cache_folder: Optional[str] = None
+) -> bool:
     return bool(load_file_path(model_name_or_path, "modules.json", token, cache_folder))
 
 
-def load_file_path(model_name_or_path: str, filename: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]) -> Optional[str]:
+def load_file_path(
+    model_name_or_path: str, filename: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]
+) -> Optional[str]:
     # If file is local
     file_path = os.path.join(model_name_or_path, filename)
     if os.path.exists(file_path):
@@ -469,12 +488,20 @@ def load_file_path(model_name_or_path: str, filename: str, token: Optional[Union
 
     # If file is remote
     try:
-        return hf_hub_download(model_name_or_path, filename=filename, library_name="sentence-transformers", token=token, cache_dir=cache_folder)
+        return hf_hub_download(
+            model_name_or_path,
+            filename=filename,
+            library_name="sentence-transformers",
+            token=token,
+            cache_dir=cache_folder,
+        )
     except Exception:
         return
 
 
-def load_dir_path(model_name_or_path: str, directory: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]) -> Optional[str]:
+def load_dir_path(
+    model_name_or_path: str, directory: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]
+) -> Optional[str]:
     # If file is local
     dir_path = os.path.join(model_name_or_path, directory)
     if os.path.exists(dir_path):
@@ -482,7 +509,7 @@ def load_dir_path(model_name_or_path: str, directory: str, token: Optional[Union
 
     download_kwargs = {
         "repo_id": model_name_or_path,
-        "allow_patterns":f"{directory}/**",
+        "allow_patterns": f"{directory}/**",
         "library_name": "sentence-transformers",
         "token": token,
         "cache_dir": cache_folder,
@@ -512,6 +539,7 @@ def save_to_hub_args_decorator(func):
         # If positional args are used, adjust for the new "token" keyword argument
         if len(args) >= 2:
             args = (*args[:2], None, *args[2:])
-        
+
         return func(self, *args, **kwargs)
+
     return wrapper

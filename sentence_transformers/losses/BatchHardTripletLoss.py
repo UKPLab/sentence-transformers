@@ -1,6 +1,6 @@
 import torch
 from torch import nn, Tensor
-from typing import Union, Tuple, List, Iterable, Dict
+from typing import Iterable, Dict
 from sentence_transformers import util
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 
@@ -9,6 +9,7 @@ class BatchHardTripletLossDistanceFunction:
     """
     This class defines distance functions, that can be used with Batch[All/Hard/SemiHard]TripletLoss
     """
+
     @staticmethod
     def cosine_distance(embeddings):
         """
@@ -82,16 +83,21 @@ class BatchHardTripletLoss(nn.Module):
        train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
        train_loss = losses.BatchHardTripletLoss(model=model)
     """
-    def __init__(self, model: SentenceTransformer, distance_metric = BatchHardTripletLossDistanceFunction.eucledian_distance, margin: float = 5):
+
+    def __init__(
+        self,
+        model: SentenceTransformer,
+        distance_metric=BatchHardTripletLossDistanceFunction.eucledian_distance,
+        margin: float = 5,
+    ):
         super(BatchHardTripletLoss, self).__init__()
         self.sentence_embedder = model
         self.triplet_margin = margin
         self.distance_metric = distance_metric
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-        rep = self.sentence_embedder(sentence_features[0])['sentence_embedding']
+        rep = self.sentence_embedder(sentence_features[0])["sentence_embedding"]
         return self.batch_hard_triplet_loss(labels, rep)
-
 
     # Hard Triplet Loss
     # Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
@@ -140,8 +146,6 @@ class BatchHardTripletLoss(nn.Module):
 
         return triplet_loss
 
-
-
     @staticmethod
     def get_triplet_mask(labels):
         """Return a 3D mask where mask[a, p, n] is True iff the triplet (a, p, n) is valid.
@@ -177,7 +181,6 @@ class BatchHardTripletLoss(nn.Module):
             mask: tf.bool `Tensor` with shape [batch_size, batch_size]
         """
         # Check that i and j are distinct
-
 
         indices_equal = torch.eye(labels.size(0), device=labels.device).bool()
         indices_not_equal = ~indices_equal

@@ -32,14 +32,14 @@ from opustools import OpusRead
 import os
 
 
-corpora = ['JW300']  #Corpora you want to use
-source_languages = ['en']            #Source language, our teacher model is able to understand
-target_languages = ['de', 'es', 'it', 'fr', 'ar', 'tr']    #Target languages, out student model should learn
+corpora = ["JW300"]  # Corpora you want to use
+source_languages = ["en"]  # Source language, our teacher model is able to understand
+target_languages = ["de", "es", "it", "fr", "ar", "tr"]  # Target languages, out student model should learn
 
-output_folder = 'parallel-sentences'
-opus_download_folder = './opus'
+output_folder = "parallel-sentences"
+opus_download_folder = "./opus"
 
-#Iterator over all corpora / source languages / target languages combinations and download files
+# Iterator over all corpora / source languages / target languages combinations and download files
 os.makedirs(output_folder, exist_ok=True)
 
 for corpus in corpora:
@@ -49,7 +49,16 @@ for corpus in corpora:
             if not os.path.exists(output_filename):
                 print("Create:", output_filename)
                 try:
-                    read = OpusRead(directory=corpus, source=src_lang, target=trg_lang, write=[output_filename], download_dir=opus_download_folder, preprocess='raw', write_mode='moses', suppress_prompts=True)
+                    read = OpusRead(
+                        directory=corpus,
+                        source=src_lang,
+                        target=trg_lang,
+                        write=[output_filename],
+                        download_dir=opus_download_folder,
+                        preprocess="raw",
+                        write_mode="moses",
+                        suppress_prompts=True,
+                    )
                     read.printPairs()
-                except:
+                except Exception:
                     print("An error occurred during the creation of", output_filename)

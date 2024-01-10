@@ -19,31 +19,33 @@ import tqdm
 import numpy as np
 import sys
 import pytrec_eval
-from sentence_transformers import SentenceTransformer, util, CrossEncoder
+from sentence_transformers import util, CrossEncoder
 import os
 
-data_folder = 'trec2019-data'
+data_folder = "trec2019-data"
 os.makedirs(data_folder, exist_ok=True)
 
-#Read test queries
+# Read test queries
 queries = {}
-queries_filepath = os.path.join(data_folder, 'msmarco-test2019-queries.tsv.gz')
+queries_filepath = os.path.join(data_folder, "msmarco-test2019-queries.tsv.gz")
 if not os.path.exists(queries_filepath):
-    logging.info("Download "+os.path.basename(queries_filepath))
-    util.http_get('https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz', queries_filepath)
+    logging.info("Download " + os.path.basename(queries_filepath))
+    util.http_get(
+        "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz", queries_filepath
+    )
 
-with gzip.open(queries_filepath, 'rt', encoding='utf8') as fIn:
+with gzip.open(queries_filepath, "rt", encoding="utf8") as fIn:
     for line in fIn:
         qid, query = line.strip().split("\t")
         queries[qid] = query
 
-#Read which passages are relevant
+# Read which passages are relevant
 relevant_docs = defaultdict(lambda: defaultdict(int))
-qrels_filepath = os.path.join(data_folder, '2019qrels-pass.txt')
+qrels_filepath = os.path.join(data_folder, "2019qrels-pass.txt")
 
 if not os.path.exists(qrels_filepath):
-    logging.info("Download "+os.path.basename(qrels_filepath))
-    util.http_get('https://trec.nist.gov/data/deep/2019qrels-pass.txt', qrels_filepath)
+    logging.info("Download " + os.path.basename(qrels_filepath))
+    util.http_get("https://trec.nist.gov/data/deep/2019qrels-pass.txt", qrels_filepath)
 
 
 with open(qrels_filepath) as fIn:
@@ -61,16 +63,17 @@ for qid in queries:
 
 
 # Read the top 1000 passages that are supposed to be re-ranked
-passage_filepath = os.path.join(data_folder, 'msmarco-passagetest2019-top1000.tsv.gz')
+passage_filepath = os.path.join(data_folder, "msmarco-passagetest2019-top1000.tsv.gz")
 
 if not os.path.exists(passage_filepath):
-    logging.info("Download "+os.path.basename(passage_filepath))
-    util.http_get('https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-passagetest2019-top1000.tsv.gz', passage_filepath)
-
+    logging.info("Download " + os.path.basename(passage_filepath))
+    util.http_get(
+        "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-passagetest2019-top1000.tsv.gz", passage_filepath
+    )
 
 
 passage_cand = {}
-with gzip.open(passage_filepath, 'rt', encoding='utf8') as fIn:
+with gzip.open(passage_filepath, "rt", encoding="utf8") as fIn:
     for line in fIn:
         qid, pid, query, passage = line.strip().split("\t")
         if qid not in passage_cand:
@@ -93,7 +96,7 @@ for qid in tqdm.tqdm(relevant_qid):
 
     cross_inp = [[query, sent] for sent in corpus_sentences]
 
-    if model.config.num_labels > 1: #Cross-Encoder that predict more than 1 score, we use the last and apply softmax
+    if model.config.num_labels > 1:  # Cross-Encoder that predict more than 1 score, we use the last and apply softmax
         cross_scores = model.predict(cross_inp, apply_softmax=True)[:, 1].tolist()
     else:
         cross_scores = model.predict(cross_inp).tolist()
@@ -108,12 +111,8 @@ for qid in tqdm.tqdm(relevant_qid):
         run[qid][pid] = float(sparse_scores[pid])
 
 
-evaluator = pytrec_eval.RelevanceEvaluator(relevant_docs, {'ndcg_cut.10'})
+evaluator = pytrec_eval.RelevanceEvaluator(relevant_docs, {"ndcg_cut.10"})
 scores = evaluator.evaluate(run)
 
 print("Queries:", len(relevant_qid))
-print("NDCG@10: {:.2f}".format(np.mean([ele["ndcg_cut_10"] for ele in scores.values()])*100))
-
-
-
-
+print("NDCG@10: {:.2f}".format(np.mean([ele["ndcg_cut_10"] for ele in scores.values()]) * 100))
