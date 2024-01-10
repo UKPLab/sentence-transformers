@@ -16,7 +16,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
 
     :param dataframe: It must have the following format. Rows contains different, parallel sentences.
         Columns are the respective language codes::
-        
+
             [{'en': 'My sentence', 'es': 'Sentence in Spanisch', 'fr': 'Sentence in French'...},
              {'en': 'My second sentence', ...}]
     :param combinations: Must be of the format ``[('en', 'es'), ('en', 'fr'), ...]``.
