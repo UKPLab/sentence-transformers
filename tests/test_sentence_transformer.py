@@ -83,13 +83,7 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
             git_ref_info = GitRefInfo(name="main", ref="refs/heads/main", target_commit="123456")
         except TypeError:
             git_ref_info = GitRefInfo(dict(name="main", ref="refs/heads/main", targetCommit="123456"))
-        # workaround for https://github.com/huggingface/huggingface_hub/issues/1956
-        git_ref_kwargs = {"branches": [git_ref_info], "converts": [], "tags": [], "pull_requests": None}
-        try:
-            return GitRefs(**git_ref_kwargs)
-        except TypeError:
-            git_ref_kwargs.pop("pull_requests")
-            return GitRefs(**git_ref_kwargs)
+        return GitRefs(branches=[git_ref_info], converts=[], tags=[])
 
     monkeypatch.setattr(HfApi, "create_repo", mock_create_repo)
     monkeypatch.setattr(HfApi, "upload_folder", mock_upload_folder)
@@ -157,10 +151,10 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
     caplog.clear()
     with caplog.at_level(logging.WARNING):
         url = model.save_to_hub(
-            "stsb-bert-tiny-safetensors",  # repo_name
-            "sentence-transformers-testing",  # organization
-            True,  # private
-            "Adding new awesome Model!",  # commit message
+            "stsb-bert-tiny-safetensors", # repo_name
+            "sentence-transformers-testing", # organization
+            True, # private
+            "Adding new awesome Model!", # commit message
             exist_ok=True,
         )
         assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
