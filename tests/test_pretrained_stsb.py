@@ -1,16 +1,18 @@
 """
 Tests that the pretrained models produce the correct scores on the STSbenchmark dataset
 """
-from functools import partial
-from sentence_transformers import SentenceTransformer, InputExample, util
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-import os
-import gzip
 import csv
+import gzip
+import os
+from functools import partial
+
 import pytest
 
+from sentence_transformers import InputExample, SentenceTransformer, util
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 
-def pretrained_model_score(model_name, expected_score, max_test_samples: int = 100):
+
+def pretrained_model_score(model_name, expected_score: float, max_test_samples: int = 100) -> None:
     model = SentenceTransformer(model_name)
     sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
 
@@ -36,92 +38,114 @@ def pretrained_model_score(model_name, expected_score, max_test_samples: int = 1
     assert score > expected_score or abs(score - expected_score) < 0.1
 
 
+pretrained_model_score = partial(pretrained_model_score, max_test_samples=100)
+pretrained_model_score_slow = partial(pretrained_model_score, max_test_samples=-1)
+
+
 @pytest.mark.slow
-class TestPretrainedSTSbSlow:
-    pretrained_model_score = partial(pretrained_model_score, max_test_samples=-1)
-
-    def test_bert_base(self):
-        self.pretrained_model_score("bert-base-nli-mean-tokens", 77.12)
-        self.pretrained_model_score("bert-base-nli-max-tokens", 77.21)
-        self.pretrained_model_score("bert-base-nli-cls-token", 76.30)
-        self.pretrained_model_score("bert-base-nli-stsb-mean-tokens", 85.14)
-
-    def test_bert_large(self):
-        self.pretrained_model_score("bert-large-nli-mean-tokens", 79.19)
-        self.pretrained_model_score("bert-large-nli-max-tokens", 78.41)
-        self.pretrained_model_score("bert-large-nli-cls-token", 78.29)
-        self.pretrained_model_score("bert-large-nli-stsb-mean-tokens", 85.29)
-
-    def test_roberta(self):
-        self.pretrained_model_score("roberta-base-nli-mean-tokens", 77.49)
-        self.pretrained_model_score("roberta-large-nli-mean-tokens", 78.69)
-        self.pretrained_model_score("roberta-base-nli-stsb-mean-tokens", 85.30)
-        self.pretrained_model_score("roberta-large-nli-stsb-mean-tokens", 86.39)
-
-    def test_distilbert(self):
-        self.pretrained_model_score("distilbert-base-nli-mean-tokens", 78.69)
-        self.pretrained_model_score("distilbert-base-nli-stsb-mean-tokens", 85.16)
-        self.pretrained_model_score("paraphrase-distilroberta-base-v1", 81.81)
-
-    def test_multiling(self):
-        self.pretrained_model_score("distiluse-base-multilingual-cased", 80.75)
-        self.pretrained_model_score("paraphrase-xlm-r-multilingual-v1", 83.50)
-        self.pretrained_model_score("paraphrase-multilingual-MiniLM-L12-v2", 84.42)
-
-    def test_mpnet(self):
-        self.pretrained_model_score("paraphrase-mpnet-base-v2", 86.99)
-
-    def test_other_models(self):
-        self.pretrained_model_score("average_word_embeddings_komninos", 61.56)
-
-    def test_msmarco(self):
-        self.pretrained_model_score("msmarco-roberta-base-ance-firstp", 77.0)
-        self.pretrained_model_score("msmarco-distilbert-base-v3", 78.85)
-
-    def test_sentence_t5(self):
-        self.pretrained_model_score("sentence-t5-base", 85.52)
+def test_bert_base_slow() -> None:
+    pretrained_model_score_slow("bert-base-nli-mean-tokens", 77.12)
+    pretrained_model_score_slow("bert-base-nli-max-tokens", 77.21)
+    pretrained_model_score_slow("bert-base-nli-cls-token", 76.30)
+    pretrained_model_score_slow("bert-base-nli-stsb-mean-tokens", 85.14)
 
 
-class TestPretrainedSTSbFast:
-    pretrained_model_score = partial(pretrained_model_score, max_test_samples=100)
+@pytest.mark.slow
+def test_bert_large_slow() -> None:
+    pretrained_model_score_slow("bert-large-nli-mean-tokens", 79.19)
+    pretrained_model_score_slow("bert-large-nli-max-tokens", 78.41)
+    pretrained_model_score_slow("bert-large-nli-cls-token", 78.29)
+    pretrained_model_score_slow("bert-large-nli-stsb-mean-tokens", 85.29)
 
-    def test_bert_base(self):
-        self.pretrained_model_score("bert-base-nli-mean-tokens", 86.53)
-        self.pretrained_model_score("bert-base-nli-max-tokens", 87.00)
-        self.pretrained_model_score("bert-base-nli-cls-token", 85.93)
-        self.pretrained_model_score("bert-base-nli-stsb-mean-tokens", 89.26)
 
-    def test_bert_large(self):
-        self.pretrained_model_score("bert-large-nli-mean-tokens", 90.06)
-        self.pretrained_model_score("bert-large-nli-max-tokens", 90.15)
-        self.pretrained_model_score("bert-large-nli-cls-token", 89.51)
-        self.pretrained_model_score("bert-large-nli-stsb-mean-tokens", 92.27)
+@pytest.mark.slow
+def test_roberta_slow() -> None:
+    pretrained_model_score_slow("roberta-base-nli-mean-tokens", 77.49)
+    pretrained_model_score_slow("roberta-large-nli-mean-tokens", 78.69)
+    pretrained_model_score_slow("roberta-base-nli-stsb-mean-tokens", 85.30)
+    pretrained_model_score_slow("roberta-large-nli-stsb-mean-tokens", 86.39)
 
-    def test_roberta(self):
-        self.pretrained_model_score("roberta-base-nli-mean-tokens", 87.91)
-        self.pretrained_model_score("roberta-large-nli-mean-tokens", 89.41)
-        self.pretrained_model_score("roberta-base-nli-stsb-mean-tokens", 93.39)
-        self.pretrained_model_score("roberta-large-nli-stsb-mean-tokens", 91.26)
 
-    def test_distilbert(self):
-        self.pretrained_model_score("distilbert-base-nli-mean-tokens", 88.83)
-        self.pretrained_model_score("distilbert-base-nli-stsb-mean-tokens", 91.01)
-        self.pretrained_model_score("paraphrase-distilroberta-base-v1", 90.89)
+@pytest.mark.slow
+def test_distilbert_slow() -> None:
+    pretrained_model_score_slow("distilbert-base-nli-mean-tokens", 78.69)
+    pretrained_model_score_slow("distilbert-base-nli-stsb-mean-tokens", 85.16)
+    pretrained_model_score_slow("paraphrase-distilroberta-base-v1", 81.81)
 
-    def test_multiling(self):
-        self.pretrained_model_score("distiluse-base-multilingual-cased", 88.79)
-        self.pretrained_model_score("paraphrase-xlm-r-multilingual-v1", 92.76)
-        self.pretrained_model_score("paraphrase-multilingual-MiniLM-L12-v2", 92.64)
 
-    def test_mpnet(self):
-        self.pretrained_model_score("paraphrase-mpnet-base-v2", 92.83)
+@pytest.mark.slow
+def test_multiling_slow() -> None:
+    pretrained_model_score_slow("distiluse-base-multilingual-cased", 80.75)
+    pretrained_model_score_slow("paraphrase-xlm-r-multilingual-v1", 83.50)
+    pretrained_model_score_slow("paraphrase-multilingual-MiniLM-L12-v2", 84.42)
 
-    def test_other_models(self):
-        self.pretrained_model_score("average_word_embeddings_komninos", 68.97)
 
-    def test_msmarco(self):
-        self.pretrained_model_score("msmarco-roberta-base-ance-firstp", 83.61)
-        self.pretrained_model_score("msmarco-distilbert-base-v3", 87.96)
+@pytest.mark.slow
+def test_mpnet_slow() -> None:
+    pretrained_model_score_slow("paraphrase-mpnet-base-v2", 86.99)
 
-    def test_sentence_t5(self):
-        self.pretrained_model_score("sentence-t5-base", 92.75)
+
+@pytest.mark.slow
+def test_other_models_slow() -> None:
+    pretrained_model_score_slow("average_word_embeddings_komninos", 61.56)
+
+
+@pytest.mark.slow
+def test_msmarco_slow() -> None:
+    pretrained_model_score_slow("msmarco-roberta-base-ance-firstp", 77.0)
+    pretrained_model_score_slow("msmarco-distilbert-base-v3", 78.85)
+
+
+@pytest.mark.slow
+def test_sentence_t5_slow() -> None:
+    pretrained_model_score_slow("sentence-t5-base", 85.52)
+
+
+def test_bert_base() -> None:
+    pretrained_model_score("bert-base-nli-mean-tokens", 86.53)
+    pretrained_model_score("bert-base-nli-max-tokens", 87.00)
+    pretrained_model_score("bert-base-nli-cls-token", 85.93)
+    pretrained_model_score("bert-base-nli-stsb-mean-tokens", 89.26)
+
+
+def test_bert_large() -> None:
+    pretrained_model_score("bert-large-nli-mean-tokens", 90.06)
+    pretrained_model_score("bert-large-nli-max-tokens", 90.15)
+    pretrained_model_score("bert-large-nli-cls-token", 89.51)
+    pretrained_model_score("bert-large-nli-stsb-mean-tokens", 92.27)
+
+
+def test_roberta() -> None:
+    pretrained_model_score("roberta-base-nli-mean-tokens", 87.91)
+    pretrained_model_score("roberta-large-nli-mean-tokens", 89.41)
+    pretrained_model_score("roberta-base-nli-stsb-mean-tokens", 93.39)
+    pretrained_model_score("roberta-large-nli-stsb-mean-tokens", 91.26)
+
+
+def test_distilbert() -> None:
+    pretrained_model_score("distilbert-base-nli-mean-tokens", 88.83)
+    pretrained_model_score("distilbert-base-nli-stsb-mean-tokens", 91.01)
+    pretrained_model_score("paraphrase-distilroberta-base-v1", 90.89)
+
+
+def test_multiling() -> None:
+    pretrained_model_score("distiluse-base-multilingual-cased", 88.79)
+    pretrained_model_score("paraphrase-xlm-r-multilingual-v1", 92.76)
+    pretrained_model_score("paraphrase-multilingual-MiniLM-L12-v2", 92.64)
+
+
+def test_mpnet() -> None:
+    pretrained_model_score("paraphrase-mpnet-base-v2", 92.83)
+
+
+def test_other_models() -> None:
+    pretrained_model_score("average_word_embeddings_komninos", 68.97)
+
+
+def test_msmarco() -> None:
+    pretrained_model_score("msmarco-roberta-base-ance-firstp", 83.61)
+    pretrained_model_score("msmarco-distilbert-base-v3", 87.96)
+
+
+def test_sentence_t5() -> None:
+    pretrained_model_score("sentence-t5-base", 92.75)

@@ -3,13 +3,15 @@ Computes embeddings
 """
 
 
-from sentence_transformers import SentenceTransformer
 import numpy as np
 import pytest
 
+from sentence_transformers import SentenceTransformer
+
 
 @pytest.mark.parametrize("normalize_embeddings", (False, True))
-def test_encode_multi_process(model: SentenceTransformer, normalize_embeddings: bool) -> None:
+def test_encode_multi_process(stsb_bert_tiny_model: SentenceTransformer, normalize_embeddings: bool) -> None:
+    model = stsb_bert_tiny_model
     sentences = ["This is sentence {}".format(i) for i in range(40)]
 
     # Start the multi-process pool on e.g. two CPU devices & compute the embeddings using the pool
