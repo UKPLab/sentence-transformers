@@ -8,17 +8,19 @@ For larger collections, *util* offers the *paraphrase_mining* function that can 
 ```python
 from sentence_transformers import SentenceTransformer, util
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # Single list of sentences - Possible tens of thousands of sentences
-sentences = ['The cat sits outside',
-             'A man is playing guitar',
-             'I love pasta',
-             'The new movie is awesome',
-             'The cat plays in the garden',
-             'A woman watches TV',
-             'The new movie is so great',
-             'Do you like pizza?']
+sentences = [
+    "The cat sits outside",
+    "A man is playing guitar",
+    "I love pasta",
+    "The new movie is awesome",
+    "The cat plays in the garden",
+    "A woman watches TV",
+    "The new movie is so great",
+    "Do you like pizza?",
+]
 
 paraphrases = util.paraphrase_mining(model, sentences)
 
@@ -32,7 +34,7 @@ The **paraphrase_mining()**-method accepts the following parameters:
 .. autofunction:: sentence_transformers.util.paraphrase_mining
 ```
 
-Instead of computing all pairwise cosine scores and ranking all possible, combintations, the approach is a bit more complex (and hence efficient). We chunk our corpus into smaller pieces, which is defined by *query_chunk_size* and *corpus_chunk_size*. For example, if we set *query_chunk_size=1000*, we search paraphrases for 1,000 sentences at a time in the remaining corpus (all other sentences). However, the remaining corpus is also chunked, for example, if we set *corpus_chunk_size=10000*, we look for paraphrases in 10k sentences at a time.
+Instead of computing all pairwise cosine scores and ranking all possible, combinations, the approach is a bit more complex (and hence efficient). We chunk our corpus into smaller pieces, which is defined by *query_chunk_size* and *corpus_chunk_size*. For example, if we set *query_chunk_size=1000*, we search paraphrases for 1,000 sentences at a time in the remaining corpus (all other sentences). However, the remaining corpus is also chunked, for example, if we set *corpus_chunk_size=10000*, we look for paraphrases in 10k sentences at a time.
 
 If we pass a list of 20k sentences, we will chunk it to 20x1000 sentences, and each of the query is compared first against sentences 0-10k and then 10k-20k.
 

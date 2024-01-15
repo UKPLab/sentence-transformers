@@ -98,29 +98,17 @@ def test_cmnrl_same_grad(
     set_seed(42)
     optimizer.zero_grad()
     loss_mnrl = losses.MultipleNegativesRankingLoss(sbert)
-    loss_mnrl_value: torch.Tensor = (
-        loss_mnrl.forward(*sbert.smart_batching_collate(train_samples_mnrl)) * scaler
-    )
+    loss_mnrl_value: torch.Tensor = loss_mnrl.forward(*sbert.smart_batching_collate(train_samples_mnrl)) * scaler
     loss_mnrl_value.backward()
-    grad_expected = {
-        name: p.grad.clone()
-        for name, p in loss_mnrl.named_parameters()
-        if p.grad is not None
-    }
+    grad_expected = {name: p.grad.clone() for name, p in loss_mnrl.named_parameters() if p.grad is not None}
 
     # Then run with this cached version:
     set_seed(42)
     optimizer.zero_grad()
     loss_cmnrl = losses.CachedMultipleNegativesRankingLoss(sbert, mini_batch_size=2)
-    loss_cmnrl_value = (
-        loss_cmnrl.forward(*sbert.smart_batching_collate(train_samples_cmnrl)) * scaler
-    )
+    loss_cmnrl_value = loss_cmnrl.forward(*sbert.smart_batching_collate(train_samples_cmnrl)) * scaler
     loss_cmnrl_value.backward()
-    grad = {
-        name: p.grad.clone()
-        for name, p in loss_cmnrl.named_parameters()
-        if p.grad is not None
-    }
+    grad = {name: p.grad.clone() for name, p in loss_cmnrl.named_parameters() if p.grad is not None}
 
     # Then:
     if same_grad:

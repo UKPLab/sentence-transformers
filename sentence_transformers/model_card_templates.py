@@ -2,6 +2,7 @@ import logging
 
 from .util import fullname
 
+
 class ModelCardTemplate:
     __TAGS__ = ["sentence-transformers", "feature-extraction", "sentence-similarity"]
     __DEFAULT_VARS__ = {
@@ -10,11 +11,12 @@ class ModelCardTemplate:
         "{TRAINING_SECTION}": "",
         "{USAGE_TRANSFORMERS_SECTION}": "",
         "{EVALUATION}": "<!--- Describe how your model was evaluated -->",
-        "{CITING}": "<!--- Describe where people can find more information -->"
+        "{CITING}": "<!--- Describe where people can find more information -->",
     }
 
     __MODEL_CARD__ = """
 ---
+library_name: sentence-transformers
 pipeline_tag: {PIPELINE_TAG}
 tags:
 {TAGS}
@@ -67,8 +69,6 @@ For an automated evaluation of this model, see the *Sentence Embeddings Benchmar
 
 """
 
-
-
     __TRAINING_SECTION__ = """
 ## Training
 The model was trained with the parameters:
@@ -80,7 +80,6 @@ Parameters of the fit()-Method:
 {FIT_PARAMETERS}
 ```
 """
-
 
     __USAGE_TRANSFORMERS__ = """\n
 ## Usage (HuggingFace Transformers)
@@ -115,57 +114,68 @@ print(sentence_embeddings)
 
 """
 
-
-
     @staticmethod
     def model_card_get_pooling_function(pooling_mode):
-        if pooling_mode == 'max':
-            return "max_pooling", """
+        if pooling_mode == "max":
+            return (
+                "max_pooling",
+                """
 # Max Pooling - Take the max value over time for every dimension. 
 def max_pooling(model_output, attention_mask):
     token_embeddings = model_output[0] #First element of model_output contains all token embeddings
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
     token_embeddings[input_mask_expanded == 0] = -1e9  # Set padding tokens to large negative value
     return torch.max(token_embeddings, 1)[0]
-"""
-        elif pooling_mode == 'mean':
-            return "mean_pooling", """
+""",
+            )
+        elif pooling_mode == "mean":
+            return (
+                "mean_pooling",
+                """
 #Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(model_output, attention_mask):
     token_embeddings = model_output[0] #First element of model_output contains all token embeddings
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
     return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-"""
+""",
+            )
 
-        elif pooling_mode == 'cls':
-            return "cls_pooling", """
+        elif pooling_mode == "cls":
+            return (
+                "cls_pooling",
+                """
 def cls_pooling(model_output, attention_mask):
     return model_output[0][:,0]
-"""
+""",
+            )
 
     @staticmethod
     def get_train_objective_info(dataloader, loss):
         try:
-            if hasattr(dataloader, 'get_config_dict'):
-                train_loader = dataloader.get_config_dict()
+            if hasattr(dataloader, "get_config_dict"):
+                loader_params = dataloader.get_config_dict()
             else:
                 loader_params = {}
-                loader_params['batch_size'] = dataloader.batch_size if hasattr(dataloader, 'batch_size') else 'unknown'
-                if hasattr(dataloader, 'sampler'):
-                    loader_params['sampler'] = fullname(dataloader.sampler)
-                if hasattr(dataloader, 'batch_sampler'):
-                    loader_params['batch_sampler'] = fullname(dataloader.batch_sampler)
+                loader_params["batch_size"] = dataloader.batch_size if hasattr(dataloader, "batch_size") else "unknown"
+                if hasattr(dataloader, "sampler"):
+                    loader_params["sampler"] = fullname(dataloader.sampler)
+                if hasattr(dataloader, "batch_sampler"):
+                    loader_params["batch_sampler"] = fullname(dataloader.batch_sampler)
 
             dataloader_str = """**DataLoader**:\n\n`{}` of length {} with parameters:
 ```
 {}
 ```""".format(fullname(dataloader), len(dataloader), loader_params)
 
-            loss_str = "**Loss**:\n\n`{}` {}".format(fullname(loss),
- """with parameters:
+            loss_str = "**Loss**:\n\n`{}` {}".format(
+                fullname(loss),
+                """with parameters:
   ```
   {}
-  ```""".format(loss.get_config_dict()) if hasattr(loss, 'get_config_dict') else "")
+  ```""".format(loss.get_config_dict())
+                if hasattr(loss, "get_config_dict")
+                else "",
+            )
 
             return [dataloader_str, loss_str]
 

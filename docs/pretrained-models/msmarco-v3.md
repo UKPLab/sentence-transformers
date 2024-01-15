@@ -6,10 +6,11 @@ The training data constist of over 500k examples, while the complete  corpus con
 ## Usage
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('msmarco-distilroberta-base-v3')
 
-query_embedding = model.encode('How big is London')
-passage_embedding = model.encode('London has 9,787,426 inhabitants at the 2011 census')
+model = SentenceTransformer("msmarco-distilroberta-base-v3")
+
+query_embedding = model.encode("How big is London")
+passage_embedding = model.encode("London has 9,787,426 inhabitants at the 2011 census")
 
 print("Similarity:", util.cos_sim(query_embedding, passage_embedding))
 ```
@@ -21,7 +22,7 @@ For more details on the usage, see [Applications - Information Retrieval](../../
 ## Performance
 Performance is evaluated on [TREC-DL 2019](https://microsoft.github.io/TREC-2019-Deep-Learning/), which is a query-passage retrieval task where multiple queries have been annotated as with their relevance with respect to the given query.  Further, we evaluate on the [MS Marco Passage Retrieval](https://github.com/microsoft/MSMARCO-Passage-Ranking/) dataset. 
 
-As baseline we show the results for lexical search with BM25 using ElasticSearch.
+As baseline we show the results for lexical search with BM25 using Elasticsearch.
 
 | Approach       | NDCG@10 (TREC DL 19 Reranking) | MRR@10 (MS Marco Dev) |  Queries (GPU / CPU) | Docs (GPU / CPU)
 | ------------- |:-------------: | :---: | :---: | :---: |
@@ -36,7 +37,7 @@ As baseline we show the results for lexical search with BM25 using ElasticSearch
 | [msmarco-roberta-base-ance-firstp](https://github.com/microsoft/ANCE) | 67.84 | 33.01 | 4,000 / 170 | 540 / 30
 | [msmarco-distilbert-base-tas-b](https://huggingface.co/sebastian-hofstaetter/distilbert-dot-tas_b-b256-msmarco) | **71.04** | **34.43** | 7,000 / 350 | 1100 / 70
 | **Previous approaches** |  |  |
-| BM25 (ElasticSearch)   | 45.46 | 17.29  |
+| BM25 (Elasticsearch)   | 45.46 | 17.29  |
 | msmarco-distilroberta-base-v2   | 65.65 |  28.55    |  
 | msmarco-roberta-base-v2 | 67.18 | 29.17 | 
 | msmarco-distilbert-base-v2 | 68.35 | 30.77 |

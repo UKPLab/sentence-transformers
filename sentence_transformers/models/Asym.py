@@ -1,11 +1,11 @@
 from torch import Tensor
 from torch import nn
-from typing import List, Dict
 import os
 import json
 from ..util import import_from_string
 from collections import OrderedDict
-from typing import List, Dict, Optional, Union, Tuple
+from typing import List, Dict, Union, Tuple
+
 
 class Asym(nn.Sequential):
     def __init__(self, sub_modules: Dict[str, List[nn.Module]], allow_empty_key: bool = True):
@@ -42,17 +42,16 @@ class Asym(nn.Sequential):
                 models = [models]
 
             for idx, model in enumerate(models):
-                ordered_dict[name+"-"+str(idx)] = model
+                ordered_dict[name + "-" + str(idx)] = model
         super(Asym, self).__init__(ordered_dict)
 
-
     def forward(self, features: Dict[str, Tensor]):
-        if 'text_keys' in features and len(features['text_keys']) > 0:
-            text_key = features['text_keys'][0]
+        if "text_keys" in features and len(features["text_keys"]) > 0:
+            text_key = features["text_keys"][0]
             for model in self.sub_modules[text_key]:
                 features = model(features)
         elif not self.allow_empty_key:
-            raise ValueError('Input did not specify any keys and allow_empty_key is False')
+            raise ValueError("Input did not specify any keys and allow_empty_key is False")
 
         return features
 
@@ -70,7 +69,7 @@ class Asym(nn.Sequential):
         for name, models in self.sub_modules.items():
             model_structure[name] = []
             for model in models:
-                model_id = str(id(model))+'_'+type(model).__name__
+                model_id = str(id(model)) + "_" + type(model).__name__
                 model_lookup[model_id] = model
                 model_types[model_id] = type(model).__module__
                 model_structure[name].append(model_id)
@@ -80,10 +79,16 @@ class Asym(nn.Sequential):
             os.makedirs(model_path, exist_ok=True)
             model.save(model_path)
 
-        with open(os.path.join(output_path, 'config.json'), 'w', encoding='utf8') as fOut:
-            json.dump({'types': model_types, 'structure': model_structure,
-                       'parameters': {'allow_empty_key': self.allow_empty_key}},
-                      fOut, indent=2)
+        with open(os.path.join(output_path, "config.json"), "w", encoding="utf8") as fOut:
+            json.dump(
+                {
+                    "types": model_types,
+                    "structure": model_structure,
+                    "parameters": {"allow_empty_key": self.allow_empty_key},
+                },
+                fOut,
+                indent=2,
+            )
 
     def tokenize(self, texts: Union[List[str], List[Tuple[str, str]]]):
         """
@@ -92,7 +97,6 @@ class Asym(nn.Sequential):
         if not isinstance(texts[0], dict):
             raise AttributeError("Asym. model requires that texts are passed as dicts: {'key': 'text'}")
 
-
         module_key = None
 
         for lookup in texts:
@@ -100,26 +104,25 @@ class Asym(nn.Sequential):
             if module_key is None:
                 module_key = text_key
 
-            assert text_key == module_key   #Mixed batches are not allowed
+            assert text_key == module_key  # Mixed batches are not allowed
         return self.sub_modules[module_key][0].tokenize(texts)
-
 
     @staticmethod
     def load(input_path):
-        with open(os.path.join(input_path, 'config.json')) as fIn:
+        with open(os.path.join(input_path, "config.json")) as fIn:
             config = json.load(fIn)
 
         modules = {}
-        for model_id, model_type in config['types'].items():
+        for model_id, model_type in config["types"].items():
             module_class = import_from_string(model_type)
             module = module_class.load(os.path.join(input_path, model_id))
             modules[model_id] = module
 
         model_structure = {}
-        for key_name, models_list in config['structure'].items():
+        for key_name, models_list in config["structure"].items():
             model_structure[key_name] = []
             for model_id in models_list:
                 model_structure[key_name].append(modules[model_id])
 
-        model = Asym(model_structure, **config['parameters'])
+        model = Asym(model_structure, **config["parameters"])
         return model

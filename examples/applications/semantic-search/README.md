@@ -14,7 +14,7 @@ At search time, the query is embedded into the same vector space and the closest
 
 A **critical distinction** for your setup is *symmetric* vs. *asymmetric semantic search*:
 - For **symmetric semantic search** your query and the entries in your corpus are of about the same length and have the same amount of content. An example would be searching for similar questions: Your query could for example be *"How to learn Python online?"* and you want to find an entry like *"How to learn Python on the web?"*. For symmetric tasks, you could potentially flip the query and the entries in your corpus.
-- For **asymmetric semantic search**, you usually have a **short query** (like a question or some keywords) and you want to find a longer paragraph answering the query. An example would be a query like *"What is Python"* and you wand to find the paragraph *"Python is an interpreted, high-level and general-purpose programming language. Python's design philosophy ..."*. For asymmetric tasks, flipping the query and the entries in your corpus usually does not make sense.
+- For **asymmetric semantic search**, you usually have a **short query** (like a question or some keywords) and you want to find a longer paragraph answering the query. An example would be a query like *"What is Python"* and you want to find the paragraph *"Python is an interpreted, high-level and general-purpose programming language. Python's design philosophy ..."*. For asymmetric tasks, flipping the query and the entries in your corpus usually does not make sense.
 
 It is critical **that you choose the right model** for your type of task.
 
@@ -59,10 +59,10 @@ To get the optimal speed for the `util.semantic_search` method, it is advisable 
 
 Further, we can normalize the corpus embeddings so that each corpus embeddings is of length 1. In that case, we can use dot-product for computing scores.
 ```python
-corpus_embeddings = corpus_embeddings.to('cuda')
+corpus_embeddings = corpus_embeddings.to("cuda")
 corpus_embeddings = util.normalize_embeddings(corpus_embeddings)
 
-query_embeddings = query_embeddings.to('cuda')
+query_embeddings = query_embeddings.to("cuda")
 query_embeddings = util.normalize_embeddings(query_embeddings)
 hits = util.semantic_search(query_embeddings, corpus_embeddings, score_function=util.dot_score)
 ```
@@ -70,10 +70,8 @@ hits = util.semantic_search(query_embeddings, corpus_embeddings, score_function=
 
 
 
-## ElasticSearch
-Starting with version 7.3, [ElasticSearch](https://www.elastic.co/elasticsearch/) introduced the possibility to index dense vectors and to use to for document scoring. Hence, we can use ElasticSearch to index embeddings along the documents and we can use the query embeddings to retrieve relevant entries.
-
-An advantage of ElasticSearch is that it is easy to add new documents to an index and that we can store also other data along with our vectors. A disadvantage is the slow performance, as it compares the query embeddings with all stored embeddings. This has a linear run-time and might be too slow for large (>100k) corpora.
+## Elasticsearch
+[Elasticsearch](https://www.elastic.co/elasticsearch/) has the possibility to [index dense vectors](https://www.elastic.co/what-is/vector-search) and to use them for document scoring. We can easily index embedding vectors, store other data alongside our vectors and, most importantly, efficiently retrieve relevant entries using [approximate nearest neighbor search](https://www.elastic.co/blog/introducing-approximate-nearest-neighbor-search-in-elasticsearch-8-0) (HNSW, see also below) on the embeddings.
 
 For further details, see [semantic_search_quora_elasticsearch.py](semantic_search_quora_elasticsearch.py).
 
@@ -81,7 +79,7 @@ For further details, see [semantic_search_quora_elasticsearch.py](semantic_searc
 ## Approximate Nearest Neighbor
 Searching a large corpus with millions of embeddings can be time-consuming if exact nearest neighbor search is used (like it is used by *util.semantic_search*).
 
-In that case, Approximate Nearest Neighor (ANN) can be helpful. Here, the data is partitioned into smaller fractions of similar embeddings. This index can be searched efficiently and the embeddings with the highest similarity (the nearest neighbors) can be retrieved within milliseconds, even if you have millions of vectors.
+In that case, Approximate Nearest Neighbor (ANN) can be helpful. Here, the data is partitioned into smaller fractions of similar embeddings. This index can be searched efficiently and the embeddings with the highest similarity (the nearest neighbors) can be retrieved within milliseconds, even if you have millions of vectors.
 
 However, the results are not necessarily exact. It is possible that some vectors with high similarity will be missed. That's the reason why it is called approximate nearest neighbor.
 

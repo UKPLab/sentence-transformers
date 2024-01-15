@@ -1,6 +1,5 @@
-import torch
 from torch import nn, Tensor
-from typing import Union, Tuple, List, Iterable, Dict
+from typing import Iterable, Dict
 
 
 class MSELoss(nn.Module):
@@ -11,6 +10,7 @@ class MSELoss(nn.Module):
 
     For an example, see the documentation on extending language models to new languages.
     """
+
     def __init__(self, model):
         """
         :param model: SentenceTransformerModel
@@ -20,5 +20,5 @@ class MSELoss(nn.Module):
         self.loss_fct = nn.MSELoss()
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-        rep = self.model(sentence_features[0])['sentence_embedding']
+        rep = self.model(sentence_features[0])["sentence_embedding"]
         return self.loss_fct(rep, labels)
