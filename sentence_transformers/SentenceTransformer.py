@@ -69,7 +69,7 @@ class SentenceTransformer(nn.Sequential):
         SentenceTransformer models from scratch.
     :param device: Device (like "cuda", "cpu", "mps") that should be used for computation. If None, checks if a GPU
         can be used.
-    :param cache_folder: Path to store models. Can be also set by SENTENCE_TRANSFORMERS_HOME environment variable.
+    :param cache_folder: Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
     :param trust_remote_code: Whether or not to allow for custom models defined on the Hub in their own modeling files.
         This option should only be set to True for repositories you trust and in which you have read the code, as it
         will execute code present on the Hub on your local machine.
@@ -102,17 +102,6 @@ class SentenceTransformer(nn.Sequential):
 
         if cache_folder is None:
             cache_folder = os.getenv("SENTENCE_TRANSFORMERS_HOME")
-            if cache_folder is None:
-                try:
-                    from torch.hub import _get_torch_home
-
-                    torch_cache_home = _get_torch_home()
-                except ImportError:
-                    torch_cache_home = os.path.expanduser(
-                        os.getenv("TORCH_HOME", os.path.join(os.getenv("XDG_CACHE_HOME", "~/.cache"), "torch"))
-                    )
-
-                cache_folder = os.path.join(torch_cache_home, "sentence_transformers")
 
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
