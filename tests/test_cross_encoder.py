@@ -73,3 +73,15 @@ def test_train_stsb(model, sts_resource):
         warmup_steps=int(len(train_dataloader) * 0.1),
     )
     evaluate_stsb_test(model, 50, sts_test_samples, num_test_samples=100)
+
+
+def test_classifier_dropout_is_set() -> None:
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", classifier_dropout=0.1234)
+    assert model.config.classifier_dropout == 0.1234
+    assert model.model.config.classifier_dropout == 0.1234
+
+
+def test_classifier_dropout_default_value() -> None:
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
+    assert model.config.classifier_dropout is None
+    assert model.model.config.classifier_dropout is None
