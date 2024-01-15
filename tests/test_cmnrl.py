@@ -134,7 +134,7 @@ def test_rand_context_working(use_rand_context: bool):
     )
 
     a = torch.Tensor(1)
-    b = torch.Tensor(1).to("cuda")
+    b = torch.Tensor(1)
     random_state = RandContext(a, b) if use_rand_context else nullcontext()
     expected = torch.rand(1000)
     precision = 1e-6
