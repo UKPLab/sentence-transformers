@@ -220,7 +220,7 @@ You can also host the training output on a server and download it:
  ```python
 model = SentenceTransformer('http://www.server.com/path/to/model/my_model.zip')
 ```
-With the first call, the model is downloaded and stored in the local torch cache-folder (`~/.cache/torch/sentence_transformers`). In order to work, you must zip all files and subfolders of your model. 
+With the first call, the model is downloaded and stored in the local Hugging Face cache folder (`~/.cache/huggingface`). In order to work, you must zip all files and subfolders of your model.
 
 
 
