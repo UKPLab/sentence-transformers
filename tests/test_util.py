@@ -5,7 +5,7 @@ import torch
 from sentence_transformers import SentenceTransformer, util
 
 
-def test_normalize_embeddings():
+def test_normalize_embeddings() -> None:
     """Tests the correct computation of util.normalize_embeddings"""
     embedding_size = 100
     a = torch.tensor(np.random.randn(50, embedding_size))
@@ -17,7 +17,7 @@ def test_normalize_embeddings():
         assert abs(emb_norm.item() - 1) < 0.0001
 
 
-def test_pytorch_cos_sim():
+def test_pytorch_cos_sim() -> None:
     """Tests the correct computation of util.pytorch_cos_scores"""
     a = np.random.randn(50, 100)
     b = np.random.randn(50, 100)
@@ -29,7 +29,7 @@ def test_pytorch_cos_sim():
             assert abs(sklearn_pairwise[i][j] - pytorch_cos_scores[i][j]) < 0.001
 
 
-def test_semantic_search():
+def test_semantic_search() -> None:
     """Tests util.semantic_search function"""
     num_queries = 20
     num_k = 10
@@ -52,7 +52,7 @@ def test_semantic_search():
             assert np.abs(hits[qid][hit_num]["score"] - cos_scores_values[qid][hit_num]) < 0.001
 
 
-def test_paraphrase_mining():
+def test_paraphrase_mining() -> None:
     model = SentenceTransformer("all-MiniLM-L6-v2")
     sentences = [
         "This is a test",
@@ -71,7 +71,7 @@ def test_paraphrase_mining():
             assert (a, b) in [(0, 1), (2, 3), (2, 4), (3, 4), (5, 6), (5, 7), (6, 7)]
 
 
-def test_pairwise_scores():
+def test_pairwise_scores() -> None:
     a = np.random.randn(50, 100)
     b = np.random.randn(50, 100)
 

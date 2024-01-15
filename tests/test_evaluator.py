@@ -6,7 +6,6 @@ import gzip
 import os
 
 import numpy as np
-import pytest
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import DataLoader
 
@@ -19,12 +18,7 @@ from sentence_transformers import (
 )
 
 
-@pytest.fixture()
-def model():
-    return SentenceTransformer("paraphrase-distilroberta-base-v1")
-
-
-def test_BinaryClassificationEvaluator_find_best_f1_and_threshold():
+def test_BinaryClassificationEvaluator_find_best_f1_and_threshold() -> None:
     """Tests that the F1 score for the computed threshold is correct"""
     y_true = np.random.randint(0, 2, 1000)
     y_pred_cosine = np.random.randn(1000)
@@ -41,7 +35,7 @@ def test_BinaryClassificationEvaluator_find_best_f1_and_threshold():
     assert np.abs(best_f1 - sklearn_f1score) < 1e-6
 
 
-def test_BinaryClassificationEvaluator_find_best_accuracy_and_threshold():
+def test_BinaryClassificationEvaluator_find_best_accuracy_and_threshold() -> None:
     """Tests that the Acc score for the computed threshold is correct"""
     y_true = np.random.randint(0, 2, 1000)
     y_pred_cosine = np.random.randn(1000)
@@ -56,8 +50,9 @@ def test_BinaryClassificationEvaluator_find_best_accuracy_and_threshold():
     assert np.abs(max_acc - sklearn_acc) < 1e-6
 
 
-def test_LabelAccuracyEvaluator(model):
+def test_LabelAccuracyEvaluator(paraphrase_distilroberta_base_v1_model: SentenceTransformer) -> None:
     """Tests that the LabelAccuracyEvaluator can be loaded correctly"""
+    model = paraphrase_distilroberta_base_v1_model
     nli_dataset_path = "datasets/AllNLI.tsv.gz"
     if not os.path.exists(nli_dataset_path):
         util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
@@ -85,8 +80,9 @@ def test_LabelAccuracyEvaluator(model):
     assert acc > 0.2
 
 
-def test_ParaphraseMiningEvaluator(model):
+def test_ParaphraseMiningEvaluator(paraphrase_distilroberta_base_v1_model: SentenceTransformer) -> None:
     """Tests that the ParaphraseMiningEvaluator can be loaded"""
+    model = paraphrase_distilroberta_base_v1_model
     sentences = {
         0: "Hello World",
         1: "Hello World!",

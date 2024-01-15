@@ -11,10 +11,11 @@ from torch.utils.data import DataLoader
 from sentence_transformers import CrossEncoder, util
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
 from sentence_transformers.readers import InputExample
+from typing import Generator, List, Tuple
 
 
 @pytest.fixture()
-def sts_resource():
+def sts_resource() -> Generator[Tuple[List[InputExample], List[InputExample]], None, None]:
     sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
     if not os.path.exists(sts_dataset_path):
         util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
@@ -31,29 +32,33 @@ def sts_resource():
                 stsb_test_samples.append(inp_example)
             elif row["split"] == "train":
                 stsb_train_samples.append(inp_example)
-        yield stsb_train_samples, stsb_test_samples
+    yield stsb_train_samples, stsb_test_samples
 
 
-@pytest.fixture()
-def model():
-    return CrossEncoder("distilroberta-base", num_labels=1)
-
-
-def evaluate_stsb_test(model, expected_score, test_samples, num_test_samples: int = -1):
+def evaluate_stsb_test(
+    distilroberta_base_ce_model: CrossEncoder,
+    expected_score: float,
+    test_samples: List[InputExample],
+    num_test_samples: int = -1,
+) -> None:
+    model = distilroberta_base_ce_model
     evaluator = CECorrelationEvaluator.from_input_examples(test_samples[:num_test_samples], name="sts-test")
     score = evaluator(model) * 100
     print("STS-Test Performance: {:.2f} vs. exp: {:.2f}".format(score, expected_score))
     assert score > expected_score or abs(score - expected_score) < 0.1
 
 
-def test_pretrained_stsb(sts_resource):
+def test_pretrained_stsb(sts_resource: Tuple[List[InputExample], List[InputExample]]):
     _, sts_test_samples = sts_resource
     model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
     evaluate_stsb_test(model, 87.92, sts_test_samples)
 
 
 @pytest.mark.slow
-def test_train_stsb_slow(model, sts_resource):
+def test_train_stsb_slow(
+    distilroberta_base_ce_model: CrossEncoder, sts_resource: Tuple[List[InputExample], List[InputExample]]
+) -> None:
+    model = distilroberta_base_ce_model
     sts_train_samples, sts_test_samples = sts_resource
     train_dataloader = DataLoader(sts_train_samples, shuffle=True, batch_size=16)
     model.fit(
@@ -64,7 +69,10 @@ def test_train_stsb_slow(model, sts_resource):
     evaluate_stsb_test(model, 75, sts_test_samples)
 
 
-def test_train_stsb(model, sts_resource):
+def test_train_stsb(
+    distilroberta_base_ce_model: CrossEncoder, sts_resource: Tuple[List[InputExample], List[InputExample]]
+) -> None:
+    model = distilroberta_base_ce_model
     sts_train_samples, sts_test_samples = sts_resource
     train_dataloader = DataLoader(sts_train_samples[:500], shuffle=True, batch_size=16)
     model.fit(

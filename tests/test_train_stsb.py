@@ -4,6 +4,7 @@ Tests that the pretrained models produce the correct scores on the STSbenchmark 
 import csv
 import gzip
 import os
+from typing import Generator, List, Tuple
 
 import pytest
 from torch.utils.data import DataLoader
@@ -12,7 +13,6 @@ from sentence_transformers import (
     SentencesDataset,
     SentenceTransformer,
     losses,
-    models,
     util,
 )
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
@@ -20,7 +20,7 @@ from sentence_transformers.readers import InputExample
 
 
 @pytest.fixture()
-def sts_resource():
+def sts_resource() -> Generator[Tuple[List[InputExample], List[InputExample]], None, None]:
     sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
     if not os.path.exists(sts_dataset_path):
         util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
@@ -37,11 +37,11 @@ def sts_resource():
                 stsb_test_samples.append(inp_example)
             elif row["split"] == "train":
                 stsb_train_samples.append(inp_example)
-        yield stsb_train_samples, stsb_test_samples
+    yield stsb_train_samples, stsb_test_samples
 
 
 @pytest.fixture()
-def nli_resource():
+def nli_resource() -> Generator[List[InputExample], None, None]:
     nli_dataset_path = "datasets/AllNLI.tsv.gz"
     if not os.path.exists(nli_dataset_path):
         util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
@@ -57,18 +57,10 @@ def nli_resource():
                 nli_train_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=label_id))
                 if len(nli_train_samples) >= max_train_samples:
                     break
-        yield nli_train_samples
+    yield nli_train_samples
 
 
-@pytest.fixture()
-def model():
-    word_embedding_model = models.Transformer("distilbert-base-uncased")
-    pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
-    model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
-    return model
-
-
-def evaluate_stsb_test(model, expected_score, test_samples):
+def evaluate_stsb_test(model, expected_score, test_samples) -> None:
     evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name="sts-test")
     score = model.evaluate(evaluator) * 100
     print("STS-Test Performance: {:.2f} vs. exp: {:.2f}".format(score, expected_score))
@@ -76,7 +68,10 @@ def evaluate_stsb_test(model, expected_score, test_samples):
 
 
 @pytest.mark.slow
-def test_train_stsb_slow(sts_resource, model):
+def test_train_stsb_slow(
+    distilbert_base_uncased_model: SentenceTransformer, sts_resource: Tuple[List[InputExample], List[InputExample]]
+) -> None:
+    model = distilbert_base_uncased_model
     sts_train_samples, sts_test_samples = sts_resource
     train_dataset = SentencesDataset(sts_train_samples, model)
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=16)
@@ -93,7 +88,10 @@ def test_train_stsb_slow(sts_resource, model):
     evaluate_stsb_test(model, 80.0, sts_test_samples)
 
 
-def test_train_stsb(model, sts_resource):
+def test_train_stsb(
+    distilbert_base_uncased_model: SentenceTransformer, sts_resource: Tuple[List[InputExample], List[InputExample]]
+) -> None:
+    model = distilbert_base_uncased_model
     sts_train_samples, sts_test_samples = sts_resource
     train_dataset = SentencesDataset(sts_train_samples[:100], model)
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=16)
@@ -111,7 +109,12 @@ def test_train_stsb(model, sts_resource):
 
 
 @pytest.mark.slow
-def test_train_nli_slow(model, nli_resource, sts_resource):
+def test_train_nli_slow(
+    distilbert_base_uncased_model: SentenceTransformer,
+    nli_resource: List[InputExample],
+    sts_resource: Tuple[List[InputExample], List[InputExample]],
+):
+    model = distilbert_base_uncased_model
     _, sts_test_samples = sts_resource
     train_dataset = SentencesDataset(nli_resource, model=model)
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=16)
@@ -131,7 +134,12 @@ def test_train_nli_slow(model, nli_resource, sts_resource):
     evaluate_stsb_test(model, 50.0, sts_test_samples)
 
 
-def test_train_nli(model, nli_resource, sts_resource):
+def test_train_nli(
+    distilbert_base_uncased_model: SentenceTransformer,
+    nli_resource: List[InputExample],
+    sts_resource: Tuple[List[InputExample], List[InputExample]],
+):
+    model = distilbert_base_uncased_model
     _, sts_test_samples = sts_resource
     train_dataset = SentencesDataset(nli_resource[:100], model=model)
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=16)

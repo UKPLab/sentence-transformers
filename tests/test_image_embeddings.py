@@ -4,18 +4,13 @@ Compute image embeddings
 
 import os
 
-import pytest
 from PIL import Image
 
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import util, SentenceTransformer
 
 
-@pytest.fixture()
-def model():
-    return SentenceTransformer("clip-ViT-B-32")
-
-
-def test_simple_encode(model):
+def test_simple_encode(clip_vit_b_32_model: SentenceTransformer) -> None:
+    model = clip_vit_b_32_model
     # Encode an image:
     image_filepath = os.path.join(
         os.path.dirname(os.path.realpath(__file__)),
