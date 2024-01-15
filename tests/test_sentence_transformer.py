@@ -90,7 +90,6 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
         except TypeError:
             git_ref_kwargs.pop("pull_requests")
             return GitRefs(**git_ref_kwargs)
-        return GitRefs(branches=[git_ref_info], converts=[], tags=[])
 
     monkeypatch.setattr(HfApi, "create_repo", mock_create_repo)
     monkeypatch.setattr(HfApi, "upload_folder", mock_upload_folder)
