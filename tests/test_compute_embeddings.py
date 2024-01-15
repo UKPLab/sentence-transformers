@@ -11,7 +11,7 @@ from sentence_transformers import SentenceTransformer
 
 @pytest.fixture()
 def model():
-    return SentenceTransformer('paraphrase-distilroberta-base-v1')
+    return SentenceTransformer("paraphrase-distilroberta-base-v1")
 
 
 def test_encode_token_embeddings(model):
@@ -26,10 +26,10 @@ def test_encode_token_embeddings(model):
         "Sentences",
         "Sentence five five five five five five five",
     ]
-    emb = model.encode(sent, output_value='token_embeddings', batch_size=2)
+    emb = model.encode(sent, output_value="token_embeddings", batch_size=2)
     assert len(emb) == len(sent)
     for s, e in zip(sent, emb):
-        assert len(model.tokenize([s])['input_ids'][0]) == e.shape[0]
+        assert len(model.tokenize([s])["input_ids"][0]) == e.shape[0]
 
 
 def test_encode_single_sentences(model):

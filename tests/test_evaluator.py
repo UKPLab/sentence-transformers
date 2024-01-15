@@ -21,7 +21,7 @@ from sentence_transformers import (
 
 @pytest.fixture()
 def model():
-    return SentenceTransformer('paraphrase-distilroberta-base-v1')
+    return SentenceTransformer("paraphrase-distilroberta-base-v1")
 
 
 def test_BinaryClassificationEvaluator_find_best_f1_and_threshold():
@@ -58,22 +58,18 @@ def test_BinaryClassificationEvaluator_find_best_accuracy_and_threshold():
 
 def test_LabelAccuracyEvaluator(model):
     """Tests that the LabelAccuracyEvaluator can be loaded correctly"""
-    nli_dataset_path = 'datasets/AllNLI.tsv.gz'
+    nli_dataset_path = "datasets/AllNLI.tsv.gz"
     if not os.path.exists(nli_dataset_path):
-        util.http_get('https://sbert.net/datasets/AllNLI.tsv.gz', nli_dataset_path)
+        util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
 
     label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
     dev_samples = []
-    with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
-        reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+    with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
+        reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
         for row in reader:
-            if row['split'] == 'train':
-                label_id = label2int[row['label']]
-                dev_samples.append(
-                    InputExample(
-                        texts=[row['sentence1'], row['sentence2']], label=label_id
-                    )
-                )
+            if row["split"] == "train":
+                label_id = label2int[row["label"]]
+                dev_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=label_id))
                 if len(dev_samples) >= 100:
                     break
 
@@ -84,9 +80,7 @@ def test_LabelAccuracyEvaluator(model):
     )
 
     dev_dataloader = DataLoader(dev_samples, shuffle=False, batch_size=16)
-    evaluator = evaluation.LabelAccuracyEvaluator(
-        dev_dataloader, softmax_model=train_loss
-    )
+    evaluator = evaluation.LabelAccuracyEvaluator(dev_dataloader, softmax_model=train_loss)
     acc = evaluator(model)
     assert acc > 0.2
 

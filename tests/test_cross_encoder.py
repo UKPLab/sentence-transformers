@@ -15,38 +15,32 @@ from sentence_transformers.readers import InputExample
 
 @pytest.fixture()
 def sts_resource():
-    sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
+    sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
     if not os.path.exists(sts_dataset_path):
-        util.http_get(
-            'https://sbert.net/datasets/stsbenchmark.tsv.gz', sts_dataset_path
-        )
+        util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
 
     stsb_train_samples = []
     stsb_test_samples = []
-    with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
-        reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+    with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
+        reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
         for row in reader:
-            score = float(row['score']) / 5.0  # Normalize score to range 0 ... 1
-            inp_example = InputExample(
-                texts=[row['sentence1'], row['sentence2']], label=score
-            )
+            score = float(row["score"]) / 5.0  # Normalize score to range 0 ... 1
+            inp_example = InputExample(texts=[row["sentence1"], row["sentence2"]], label=score)
 
-            if row['split'] == 'test':
+            if row["split"] == "test":
                 stsb_test_samples.append(inp_example)
-            elif row['split'] == 'train':
+            elif row["split"] == "train":
                 stsb_train_samples.append(inp_example)
         yield stsb_train_samples, stsb_test_samples
 
 
 @pytest.fixture()
 def model():
-    return CrossEncoder('distilroberta-base', num_labels=1)
+    return CrossEncoder("distilroberta-base", num_labels=1)
 
 
 def evaluate_stsb_test(model, expected_score, test_samples, num_test_samples: int = -1):
-    evaluator = CECorrelationEvaluator.from_input_examples(
-        test_samples[:num_test_samples], name='sts-test'
-    )
+    evaluator = CECorrelationEvaluator.from_input_examples(test_samples[:num_test_samples], name="sts-test")
     score = evaluator(model) * 100
     print("STS-Test Performance: {:.2f} vs. exp: {:.2f}".format(score, expected_score))
     assert score > expected_score or abs(score - expected_score) < 0.1

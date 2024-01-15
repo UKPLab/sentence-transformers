@@ -12,7 +12,7 @@ from sentence_transformers import SentenceTransformer, util
 
 @pytest.fixture()
 def model():
-    return SentenceTransformer('clip-ViT-B-32')
+    return SentenceTransformer("clip-ViT-B-32")
 
 
 def test_simple_encode(model):
@@ -24,9 +24,7 @@ def test_simple_encode(model):
     img_emb = model.encode(Image.open(image_filepath))
 
     # Encode text descriptions
-    text_emb = model.encode(
-        ['Two dogs in the snow', 'A cat on a table', 'A picture of London at night']
-    )
+    text_emb = model.encode(["Two dogs in the snow", "A cat on a table", "A picture of London at night"])
 
     # Compute cosine similarities
     cos_scores = util.cos_sim(img_emb, text_emb)[0]

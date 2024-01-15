@@ -36,9 +36,7 @@ def test_semantic_search():
 
     doc_emb = torch.tensor(np.random.randn(1000, 100))
     q_emb = torch.tensor(np.random.randn(num_queries, 100))
-    hits = util.semantic_search(
-        q_emb, doc_emb, top_k=num_k, query_chunk_size=5, corpus_chunk_size=17
-    )
+    hits = util.semantic_search(q_emb, doc_emb, top_k=num_k, query_chunk_size=5, corpus_chunk_size=17)
     assert len(hits) == num_queries
     assert len(hits[0]) == num_k
 
@@ -50,15 +48,12 @@ def test_semantic_search():
 
     for qid in range(num_queries):
         for hit_num in range(num_k):
-            assert hits[qid][hit_num]['corpus_id'] == cos_scores_idx[qid][hit_num]
-            assert (
-                np.abs(hits[qid][hit_num]['score'] - cos_scores_values[qid][hit_num])
-                < 0.001
-            )
+            assert hits[qid][hit_num]["corpus_id"] == cos_scores_idx[qid][hit_num]
+            assert np.abs(hits[qid][hit_num]["score"] - cos_scores_values[qid][hit_num]) < 0.001
 
 
 def test_paraphrase_mining():
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    model = SentenceTransformer("all-MiniLM-L6-v2")
     sentences = [
         "This is a test",
         "This is a test!",
