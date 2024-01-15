@@ -80,7 +80,7 @@ def test_multiling_slow():
     pretrained_model_score_slow("paraphrase-multilingual-MiniLM-L12-v2", 84.42)
 
 
-# @pytest.mark.slow
+@pytest.mark.slow
 def test_mpnet_slow():
     pretrained_model_score_slow("paraphrase-mpnet-base-v2", 86.99)
 
