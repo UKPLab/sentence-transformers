@@ -5,6 +5,7 @@ from .MultipleNegativesSymmetricRankingLoss import MultipleNegativesSymmetricRan
 from .TripletLoss import TripletDistanceMetric, TripletLoss
 from .MarginMSELoss import MarginMSELoss
 from .MSELoss import MSELoss
+from .CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
 from .ContrastiveLoss import SiameseDistanceMetric, ContrastiveLoss
 from .ContrastiveTensionLoss import (
     ContrastiveTensionLoss,
@@ -32,6 +33,7 @@ __all__ = [
     "MSELoss",
     "ContrastiveLoss",
     "SiameseDistanceMetric",
+    "CachedMultipleNegativesRankingLoss",
     "ContrastiveTensionLoss",
     "ContrastiveTensionLossInBatchNegatives",
     "ContrastiveTensionDataLoader",
