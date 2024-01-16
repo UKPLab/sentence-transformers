@@ -87,11 +87,11 @@ def test_cmnrl_same_grad(
     sbert = SentenceTransformer("distilbert-base-uncased")
     sbert.to("cpu")
     optimizer = Adam(sbert.parameters())
-    train_samples_mnrl
-    train_samples_cmnrl
-    same_grad
-    scaler  # This simulates AMP scenarios
-    precision
+    # train_samples_mnrl
+    # train_samples_cmnrl
+    # same_grad
+    # scaler  # This simulates AMP scenarios
+    # precision
 
     # When:
     # First run with MNRL
