@@ -473,13 +473,20 @@ class disabled_tqdm(tqdm):
 
 
 def is_sentence_transformer_model(
-    model_name_or_path: str, token: Optional[Union[bool, str]] = None, cache_folder: Optional[str] = None
+    model_name_or_path: str,
+    token: Optional[Union[bool, str]] = None,
+    cache_folder: Optional[str] = None,
+    revision: Optional[str] = None,
 ) -> bool:
-    return bool(load_file_path(model_name_or_path, "modules.json", token, cache_folder))
+    return bool(load_file_path(model_name_or_path, "modules.json", token, cache_folder, revision=revision))
 
 
 def load_file_path(
-    model_name_or_path: str, filename: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]
+    model_name_or_path: str,
+    filename: str,
+    token: Optional[Union[bool, str]],
+    cache_folder: Optional[str],
+    revision: Optional[str] = None,
 ) -> Optional[str]:
     # If file is local
     file_path = os.path.join(model_name_or_path, filename)
@@ -491,6 +498,7 @@ def load_file_path(
         return hf_hub_download(
             model_name_or_path,
             filename=filename,
+            revision=revision,
             library_name="sentence-transformers",
             token=token,
             cache_dir=cache_folder,
@@ -500,7 +508,11 @@ def load_file_path(
 
 
 def load_dir_path(
-    model_name_or_path: str, directory: str, token: Optional[Union[bool, str]], cache_folder: Optional[str]
+    model_name_or_path: str,
+    directory: str,
+    token: Optional[Union[bool, str]],
+    cache_folder: Optional[str],
+    revision: Optional[str] = None,
 ) -> Optional[str]:
     # If file is local
     dir_path = os.path.join(model_name_or_path, directory)
@@ -509,6 +521,7 @@ def load_dir_path(
 
     download_kwargs = {
         "repo_id": model_name_or_path,
+        "revision": revision,
         "allow_patterns": f"{directory}/**",
         "library_name": "sentence-transformers",
         "token": token,

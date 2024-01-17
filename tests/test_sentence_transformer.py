@@ -171,3 +171,18 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
             caplog.record_tuples[0][2]
             == 'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
         )
+
+
+def test_load_with_revision() -> None:
+    main_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors", revision="main")
+    latest_model = SentenceTransformer(
+        "sentence-transformers-testing/stsb-bert-tiny-safetensors", revision="f3cb857cba53019a20df283396bcca179cf051a4"
+    )
+    older_model = SentenceTransformer(
+        "sentence-transformers-testing/stsb-bert-tiny-safetensors", revision="ba33022fdf0b0fc2643263f0726f44d0a07d0e24"
+    )
+
+    test_sentence = ["Hello there!"]
+    main_embeddings = main_model.encode(test_sentence, convert_to_tensor=True)
+    assert torch.equal(main_embeddings, latest_model.encode(test_sentence, convert_to_tensor=True))
+    assert not torch.equal(main_embeddings, older_model.encode(test_sentence, convert_to_tensor=True))
