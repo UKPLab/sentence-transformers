@@ -1,3 +1,4 @@
+from functools import partial
 import json
 import logging
 import os
@@ -5,6 +6,9 @@ import shutil
 from collections import OrderedDict
 import warnings
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal, TYPE_CHECKING
+from typing import Any, List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
+import warnings
+import requests
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -19,18 +23,25 @@ import math
 import queue
 import tempfile
 
+from transformers.configuration_utils import PretrainedConfig
+from transformers import AutoModel, AutoConfig
+
+from sentence_transformers.configuration import SentenceTransformerConfig
+
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
 from .util import (
     import_from_string,
     batch_to_device,
     fullname,
-    is_sentence_transformer_model,
+    model_or_path_has_file,
     load_dir_path,
     load_file_path,
     save_to_hub_args_decorator,
 )
 from .models import Transformer, Pooling
+from .util import import_from_string, batch_to_device, fullname, snapshot_download, prepare_path
+from .models import Transformer, Pooling, Dense
 from .model_card_templates import ModelCardTemplate
 from . import __version__
 
@@ -88,10 +99,10 @@ class SentenceTransformer(nn.Sequential):
         revision: Optional[str] = None,
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
+        **kwargs,
     ):
         self._model_card_vars = {}
         self._model_card_text = None
-        self._model_config = {}
         if use_auth_token is not None:
             warnings.warn(
                 "The `use_auth_token` argument is deprecated and will be removed in v3 of SentenceTransformers.",
@@ -190,22 +201,23 @@ class SentenceTransformer(nn.Sequential):
                     # A model from sentence-transformers
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
-            if is_sentence_transformer_model(model_name_or_path, token, cache_folder=cache_folder, revision=revision):
-                modules = self._load_sbert_model(
-                    model_name_or_path,
-                    token=token,
-                    cache_folder=cache_folder,
-                    revision=revision,
-                    trust_remote_code=trust_remote_code,
-                )
+            hub_kwargs = {
+                "revision": revision,
+                "token": token,
+                "trust_remote_code": trust_remote_code,
+                "cache_dir": cache_folder,
+            }
+
+            # TODO: self.config is not always defined!
+            self.config = SentenceTransformerConfig.from_pretrained(model_name_or_path, _configuration_file="config_sentence_transformers.json", **hub_kwargs)
+
+            if model_or_path_has_file("modules.json", model_name_or_path, **hub_kwargs):
+                # TODO: kwargs are ignored, warn?
+                modules = self._load_sbert_model_as_modules(model_name_or_path, **hub_kwargs)
+            elif model_or_path_has_file("config_sentence_transformers.json", model_name_or_path, **hub_kwargs):
+                modules = self._load_sbert_model_as_pretrained_model(model_name_or_path, **hub_kwargs, **kwargs)
             else:
-                modules = self._load_auto_model(
-                    model_name_or_path,
-                    token=token,
-                    cache_folder=cache_folder,
-                    revision=revision,
-                    trust_remote_code=trust_remote_code,
-                )
+                modules = self._load_auto_model(model_name_or_path, **hub_kwargs)
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -316,7 +328,7 @@ class SentenceTransformer(nn.Sequential):
             else:
                 all_embeddings = torch.Tensor()
         elif convert_to_numpy:
-            all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
+            all_embeddings = np.asarray([emb.to(torch.float16).numpy() if emb.dtype == torch.bfloat16 else emb.numpy() for emb in all_embeddings])
 
         if input_was_string:
             all_embeddings = all_embeddings[0]
@@ -493,6 +505,22 @@ class SentenceTransformer(nn.Sequential):
         :param create_model_card: If True, create a README.md with basic information about this model
         :param train_datasets: Optional list with the names of the datasets used to to train the model
         """
+
+        self.config.save_pretrained(path)
+
+        if isinstance(self[0], Transformer):
+            self._save_as_pretrained_model(path=path)
+        else:
+            self._save_as_modules(path=path)
+
+        # Create model card
+        if create_model_card:
+            self._create_model_card(path, model_name, train_datasets)
+
+    def _save_as_modules(
+        self,
+        path: str,
+    ) -> None:
         if path is None:
             return
 
@@ -501,16 +529,8 @@ class SentenceTransformer(nn.Sequential):
         logger.info("Save model to {}".format(path))
         modules_config = []
 
-        # Save some model info
-        if "__version__" not in self._model_config:
-            self._model_config["__version__"] = {
-                "sentence_transformers": __version__,
-                "transformers": transformers.__version__,
-                "pytorch": torch.__version__,
-            }
-
-        with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
-            json.dump(self._model_config, fOut, indent=2)
+        # with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
+        #     json.dump(self._model_config, fOut, indent=2)
 
         # Save modules
         for idx, name in enumerate(self._modules):
@@ -529,9 +549,33 @@ class SentenceTransformer(nn.Sequential):
         with open(os.path.join(path, "modules.json"), "w") as fOut:
             json.dump(modules_config, fOut, indent=2)
 
-        # Create model card
-        if create_model_card:
-            self._create_model_card(path, model_name, train_datasets)
+    def _save_as_pretrained_model(
+        self,
+        path: str,
+    ) -> None:
+        transformer: Transformer = self[0]
+        encoder = transformer.auto_model
+
+        # def post_process(module, args, kwargs, outputs):
+        #     return {
+        #         "token_embeddings": outputs[0],
+        #         "attention_mask": kwargs.get("attention_mask", None)
+        #     }
+
+        # encoder.register_forward_hook(post_process, with_kwargs=True)
+
+        # Skip the first module, that's Transformer here
+        for idx, module_config in enumerate(self.config.modules[1:], start=1):
+            # module = import_from_string(module_config["type"])(**module_config["config"])
+            name = module_config['type'].split(".")[-1].lower()
+            setattr(encoder, name, self[idx])
+            # def hook(encoder_module, input, output, name=None):
+            #     return getattr(encoder_module, name)(output)
+            # hook_with_name = partial(hook, name=name)
+            # encoder.register_forward_hook(hook_with_name)
+
+        encoder.save_pretrained(path)
+        transformer.tokenizer.save_pretrained(path)
 
     def _create_model_card(
         self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = None
@@ -952,7 +996,7 @@ class SentenceTransformer(nn.Sequential):
         self,
         model_name_or_path: str,
         token: Optional[Union[bool, str]],
-        cache_folder: Optional[str],
+        cache_dir: Optional[str],
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
     ):
@@ -966,32 +1010,34 @@ class SentenceTransformer(nn.Sequential):
         )
         transformer_model = Transformer(
             model_name_or_path,
-            cache_dir=cache_folder,
+            cache_dir=cache_dir,
             model_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
             tokenizer_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
         return [transformer_model, pooling_model]
 
-    def _load_sbert_model(
+    def _load_sbert_model_as_modules(
         self,
         model_name_or_path: str,
         token: Optional[Union[bool, str]],
-        cache_folder: Optional[str],
+        cache_dir: Optional[str],
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
     ):
         """
         Loads a full sentence-transformers model
         """
+        """
         # Check if the config_sentence_transformers.json file exists (exists since v2 of the framework)
         config_sentence_transformers_json_path = load_file_path(
             model_name_or_path,
             "config_sentence_transformers.json",
             token=token,
-            cache_folder=cache_folder,
+            cache_dir=cache_dir,
             revision=revision,
         )
+        # TODO: Move this to the config class perhaps? Or to __init__?
         if config_sentence_transformers_json_path is not None:
             with open(config_sentence_transformers_json_path) as fIn:
                 self._model_config = json.load(fIn)
@@ -1006,10 +1052,11 @@ class SentenceTransformer(nn.Sequential):
                         self._model_config["__version__"]["sentence_transformers"], __version__
                     )
                 )
+        """
 
         # Check if a readme exists
         model_card_path = load_file_path(
-            model_name_or_path, "README.md", token=token, cache_folder=cache_folder, revision=revision
+            model_name_or_path, "README.md", token=token, cache_dir=cache_dir, revision=revision
         )
         if model_card_path is not None:
             try:
@@ -1020,12 +1067,13 @@ class SentenceTransformer(nn.Sequential):
 
         # Load the modules of sentence transformer
         modules_json_path = load_file_path(
-            model_name_or_path, "modules.json", token=token, cache_folder=cache_folder, revision=revision
+            model_name_or_path, "modules.json", token=token, cache_dir=cache_dir, revision=revision
         )
         with open(modules_json_path) as fIn:
             modules_config = json.load(fIn)
 
         modules = OrderedDict()
+        module_configs = []
         for module_config in modules_config:
             module_class = import_from_string(module_config["type"])
             # For Transformer, don't load the full directory, rely on `transformers` instead
@@ -1042,7 +1090,7 @@ class SentenceTransformer(nn.Sequential):
                     "sentence_xlnet_config.json",
                 ]:
                     config_path = load_file_path(
-                        model_name_or_path, config_name, token=token, cache_folder=cache_folder, revision=revision
+                        model_name_or_path, config_name, token=token, cache_dir=cache_dir, revision=revision
                     )
                     if config_path is not None:
                         with open(config_path) as fIn:
@@ -1057,19 +1105,78 @@ class SentenceTransformer(nn.Sequential):
                     kwargs["tokenizer_args"].update(hub_kwargs)
                 else:
                     kwargs["tokenizer_args"] = hub_kwargs
-                module = Transformer(model_name_or_path, cache_dir=cache_folder, **kwargs)
+                module = Transformer(model_name_or_path, cache_dir=cache_dir, **kwargs)
             else:
                 module_path = load_dir_path(
                     model_name_or_path,
                     module_config["path"],
                     token=token,
-                    cache_folder=cache_folder,
+                    cache_dir=cache_dir,
                     revision=revision,
                 )
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
+            module_configs.append({
+                "type": module_config["type"],
+                "config": module.get_config_dict() if hasattr(module, "get_config_dict") else {}
+            })
+
+        self.config.modules = module_configs
 
         return modules
+
+    def _load_sbert_model_as_pretrained_model(
+        self,
+        model_name_or_path: str,
+        token: Optional[Union[bool, str]],
+        cache_dir: Optional[str],
+        revision: Optional[str] = None,
+        trust_remote_code: bool = False,
+        **kwargs,
+    ) -> List[nn.Module]:
+        hub_kwargs = {"token": token, "cache_dir": cache_dir, "trust_remote_code": trust_remote_code, "revision": revision}
+        base_config: PretrainedConfig = AutoConfig.from_pretrained(
+            model_name_or_path, **hub_kwargs,
+        )
+        # Initialize an empty encoder just to get access to the encoder class
+        empty_encoder = AutoModel.from_config(base_config)
+        encoder_class = empty_encoder.__class__
+        original_init = encoder_class.__init__
+
+        sbert_config = self.config
+        def init_with_modules(self, *args, **kwargs):
+            original_init(self, *args, **kwargs)
+
+            def post_process(module, args, kwargs, outputs):
+                return {
+                    "token_embeddings": outputs[0],
+                    "attention_mask": kwargs.get("attention_mask", None)
+                }
+
+            self.register_forward_hook(post_process, with_kwargs=True)
+
+            nonlocal sbert_config
+            for module_config in sbert_config.modules[1:]:
+                module = import_from_string(module_config["type"])(**module_config["config"])
+                name = module_config['type'].split(".")[-1].lower()
+                setattr(self, name, module)
+                def hook(encoder, input, output, name=None):
+                    return getattr(encoder, name)(output)
+                hook_with_name = partial(hook, name=name)
+                self.register_forward_hook(hook_with_name)
+
+        encoder_class.__init__ = init_with_modules
+        encoder = AutoModel.from_pretrained(model_name_or_path, **hub_kwargs, **kwargs)
+        encoder_class.__init__ = original_init
+        encoder._forward_hooks = OrderedDict([])
+
+        # remove last modules from encoder
+        modules = []
+        for name, module in list(encoder.named_children())[-len(self.config.modules) + 1:]:
+            delattr(encoder, name)
+            modules.append(module)
+        hub_kwargs.pop("cache_dir", None)
+        return [Transformer(model_name_or_path, config=base_config, auto_model=encoder, tokenizer_args=hub_kwargs, cache_dir=cache_dir)] + modules
 
     @staticmethod
     def load(input_path):

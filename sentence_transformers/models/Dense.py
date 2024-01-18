@@ -34,6 +34,8 @@ class Dense(nn.Module):
         self.out_features = out_features
         self.bias = bias
         self.activation_function = activation_function
+        if isinstance(self.activation_function, str):
+            self.activation_function = import_from_string(activation_function)()
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
         if init_weight is not None:
@@ -71,7 +73,6 @@ class Dense(nn.Module):
         with open(os.path.join(input_path, "config.json")) as fIn:
             config = json.load(fIn)
 
-        config["activation_function"] = import_from_string(config["activation_function"])()
         model = Dense(**config)
         model.load_state_dict(
             torch.load(os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"))

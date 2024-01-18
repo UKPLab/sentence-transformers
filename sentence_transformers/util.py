@@ -1,4 +1,5 @@
 import functools
+from pathlib import Path
 import requests
 from torch import Tensor, device
 from typing import List, Callable
@@ -472,21 +473,24 @@ class disabled_tqdm(tqdm):
                 raise
 
 
-def is_sentence_transformer_model(
+def model_or_path_has_file(
+    filename: str,
     model_name_or_path: str,
     token: Optional[Union[bool, str]] = None,
-    cache_folder: Optional[str] = None,
+    cache_dir: Optional[str] = None,
     revision: Optional[str] = None,
+    trust_remote_code: Optional[bool] = None,
 ) -> bool:
-    return bool(load_file_path(model_name_or_path, "modules.json", token, cache_folder, revision=revision))
+    return bool(load_file_path(model_name_or_path, filename, token, cache_dir, revision=revision))
 
 
 def load_file_path(
     model_name_or_path: str,
     filename: str,
     token: Optional[Union[bool, str]],
-    cache_folder: Optional[str],
+    cache_dir: Optional[str],
     revision: Optional[str] = None,
+    trust_remote_code: Optional[bool] = None,
 ) -> Optional[str]:
     # If file is local
     file_path = os.path.join(model_name_or_path, filename)
@@ -501,7 +505,7 @@ def load_file_path(
             revision=revision,
             library_name="sentence-transformers",
             token=token,
-            cache_dir=cache_folder,
+            cache_dir=cache_dir,
         )
     except Exception:
         return
@@ -511,8 +515,9 @@ def load_dir_path(
     model_name_or_path: str,
     directory: str,
     token: Optional[Union[bool, str]],
-    cache_folder: Optional[str],
+    cache_dir: Optional[str],
     revision: Optional[str] = None,
+    trust_remote_code: Optional[bool] = None,
 ) -> Optional[str]:
     # If file is local
     dir_path = os.path.join(model_name_or_path, directory)
@@ -525,7 +530,7 @@ def load_dir_path(
         "allow_patterns": f"{directory}/**",
         "library_name": "sentence-transformers",
         "token": token,
-        "cache_dir": cache_folder,
+        "cache_dir": cache_dir,
         "tqdm_class": disabled_tqdm,
     }
     # Try to download from the remote
@@ -556,3 +561,81 @@ def save_to_hub_args_decorator(func):
         return func(self, *args, **kwargs)
 
     return wrapper
+    # model_info = _api.model_info(repo_id=repo_id, revision=revision, token=token)
+
+    # storage_folder = os.path.join(
+    #     cache_dir, repo_id.replace("/", "_")
+    # )
+
+    # all_files = model_info.siblings
+    # #Download modules.json as the last file
+    # for idx, repofile in enumerate(all_files):
+    #     if repofile.rfilename == "modules.json":
+    #         del all_files[idx]
+    #         all_files.append(repofile)
+    #         break
+
+    # for model_file in all_files:
+    #     if ignore_files is not None:
+    #         skip_download = False
+    #         for pattern in ignore_files:
+    #             if fnmatch.fnmatch(model_file.rfilename, pattern):
+    #                 skip_download = True
+    #                 break
+
+    #         if skip_download:
+    #             continue
+
+    #     url = hf_hub_url(
+    #         repo_id, filename=model_file.rfilename, revision=model_info.sha
+    #     )
+    #     relative_filepath = os.path.join(*model_file.rfilename.split("/"))
+
+    #     # Create potential nested dir
+    #     nested_dirname = os.path.dirname(
+    #         os.path.join(storage_folder, relative_filepath)
+    #     )
+    #     os.makedirs(nested_dirname, exist_ok=True)
+
+    #     cached_download_args = {'url': url,
+    #         'cache_dir': storage_folder,
+    #         'force_filename': relative_filepath,
+    #         'library_name': library_name,
+    #         'library_version': library_version,
+    #         'user_agent': user_agent,
+    #         'use_auth_token': use_auth_token}
+
+    #     if version.parse(huggingface_hub.__version__) >= version.parse("0.8.1"):
+    #         # huggingface_hub v0.8.1 introduces a new cache layout. We sill use a manual layout
+    #         # And need to pass legacy_cache_layout=True to avoid that a warning will be printed
+    #         cached_download_args['legacy_cache_layout'] = True
+
+    #     path = cached_download(**cached_download_args)
+
+    #     if os.path.exists(path + ".lock"):
+    #         os.remove(path + ".lock")
+
+    # return storage_folder
+
+from huggingface_hub import HfFileSystem, hf_hub_download
+from transformers.utils import cached_file
+
+def prepare_path(pretrained_model_name_or_path, module_path, ignore_files=None, **hub_kwargs):
+    if ignore_files is None:
+        ignore_files = ()
+
+    fs = HfFileSystem()
+    base_dir = None
+    for file in fs.glob(f"{pretrained_model_name_or_path}/{module_path}/**"):
+
+        if file.endswith(ignore_files):
+            continue
+
+        file = file[len(pretrained_model_name_or_path) + 1:]
+
+        loaded_file = cached_file(pretrained_model_name_or_path, file, **hub_kwargs)
+        if base_dir is None:
+            depth_of_loaded_file = len(Path(file).parts)
+            base_dir = str(Path(*Path(loaded_file).parts[:-depth_of_loaded_file]))
+
+    return base_dir
