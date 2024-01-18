@@ -69,7 +69,7 @@ else:
 print("Corpus loaded with {} sentences / embeddings".format(len(corpus_sentences)))
 
 # Move embeddings to the target device of the model
-corpus_embeddings = corpus_embeddings.to(model._target_device)
+corpus_embeddings = corpus_embeddings.to(model.device)
 
 while True:
     inp_question = input("Please enter a question: ")
