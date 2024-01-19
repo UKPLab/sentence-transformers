@@ -203,14 +203,13 @@ class SentenceTransformer(nn.Sequential):
                 "cache_dir": cache_folder,
             }
 
-            self.config: SentenceTransformerConfig = SentenceTransformerConfig.from_pretrained(
-                model_name_or_path, _configuration_file="config_sentence_transformers.json", **hub_kwargs
-            )
-
             if model_or_path_has_file("modules.json", model_name_or_path, **hub_kwargs):
                 # TODO: kwargs are ignored, warn?
                 modules = self._load_sbert_model_as_modules(model_name_or_path, **hub_kwargs)
             elif model_or_path_has_file("config_sentence_transformers.json", model_name_or_path, **hub_kwargs):
+                self.config: SentenceTransformerConfig = SentenceTransformerConfig.from_pretrained(
+                    model_name_or_path, _configuration_file="config_sentence_transformers.json", **hub_kwargs
+                )
                 modules = self._load_sbert_model_as_pretrained_model(model_name_or_path, **hub_kwargs, **kwargs)
             else:
                 # TODO: pass kwargs as model_args to Transformer?
@@ -219,7 +218,7 @@ class SentenceTransformer(nn.Sequential):
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
 
-        if not model_name_or_path:
+        if self.config is None:
             self.config = SentenceTransformerConfig.from_modules(modules)
 
         super().__init__(modules)
@@ -1182,7 +1181,6 @@ class SentenceTransformer(nn.Sequential):
             modules_config = json.load(fIn)
 
         modules = OrderedDict()
-        module_configs = []
         for module_config in modules_config:
             module_class = import_from_string(module_config["type"])
             # For Transformer, don't load the full directory, rely on `transformers` instead
@@ -1225,14 +1223,6 @@ class SentenceTransformer(nn.Sequential):
                 )
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
-            module_configs.append(
-                {
-                    "type": module_config["type"],
-                    "config": module.get_config_dict() if hasattr(module, "get_config_dict") else {},
-                }
-            )
-
-        self.config.modules = module_configs
 
         return modules
 
