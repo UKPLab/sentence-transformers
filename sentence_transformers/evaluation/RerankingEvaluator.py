@@ -49,7 +49,7 @@ class RerankingEvaluator(SentenceEvaluator):
             sample for sample in self.samples if len(sample["positive"]) > 0 and len(sample["negative"]) > 0
         ]
 
-        self.csv_file = "RerankingEvaluator" + ("_" + name if name else "") + "_results.csv"
+        self.csv_file = "RerankingEvaluator" + ("_" + name if name else "") + f"_results_@{self.mrr_at_k}.csv"
         self.csv_headers = ["epoch", "steps", "MAP", "MRR@{}".format(mrr_at_k)]
         self.write_csv = write_csv
 
