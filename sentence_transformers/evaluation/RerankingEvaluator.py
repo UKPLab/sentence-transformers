@@ -32,9 +32,15 @@ class RerankingEvaluator(SentenceEvaluator):
         batch_size: int = 64,
         show_progress_bar: bool = False,
         use_batched_encoding: bool = True,
+        mrr_at_k: Optional[int] = None,
     ):
         self.samples = samples
         self.name = name
+        if mrr_at_k is not None:
+            logger.warning(f"The `mrr_at_k` parameter has been deprecated; please use `at_k={mrr_at_k}` instead.")
+            at_k = mrr_at_k
+        else:
+            at_k = at_k
         self.at_k = at_k
         self.similarity_fct = similarity_fct
         self.batch_size = batch_size
