@@ -117,7 +117,8 @@ class SentenceTransformer(nn.Sequential):
         if cache_folder is None:
             cache_folder = os.getenv("SENTENCE_TRANSFORMERS_HOME")
 
-        if model_name_or_path is not None and model_name_or_path != "":
+        self.config = None
+        if model_name_or_path:
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
 
             # Old models that don't belong to any organization
@@ -208,8 +209,7 @@ class SentenceTransformer(nn.Sequential):
                 "cache_dir": cache_folder,
             }
 
-            # TODO: self.config is not always defined!
-            self.config = SentenceTransformerConfig.from_pretrained(model_name_or_path, _configuration_file="config_sentence_transformers.json", **hub_kwargs)
+            self.config: SentenceTransformerConfig = SentenceTransformerConfig.from_pretrained(model_name_or_path, _configuration_file="config_sentence_transformers.json", **hub_kwargs)
 
             if model_or_path_has_file("modules.json", model_name_or_path, **hub_kwargs):
                 # TODO: kwargs are ignored, warn?
@@ -217,10 +217,14 @@ class SentenceTransformer(nn.Sequential):
             elif model_or_path_has_file("config_sentence_transformers.json", model_name_or_path, **hub_kwargs):
                 modules = self._load_sbert_model_as_pretrained_model(model_name_or_path, **hub_kwargs, **kwargs)
             else:
+                # TODO: pass kwargs as model_args to Transformer?
                 modules = self._load_auto_model(model_name_or_path, **hub_kwargs)
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
+
+        if not model_name_or_path:
+            self.config = SentenceTransformerConfig.from_modules(modules)
 
         super().__init__(modules)
         if device is None:
@@ -505,32 +509,37 @@ class SentenceTransformer(nn.Sequential):
         :param create_model_card: If True, create a README.md with basic information about this model
         :param train_datasets: Optional list with the names of the datasets used to to train the model
         """
+        if path is None:
+            return
 
+        logger.info("Save model to {}".format(path))
+
+        # Save the SentenceTransformer config with modules -> "config_sentence_transformers.json"
         self.config.save_pretrained(path)
 
+        # Save the SentenceTransformer, preferably as a pretrained model or as a set of modules
         if isinstance(self[0], Transformer):
             self._save_as_pretrained_model(path=path)
         else:
             self._save_as_modules(path=path)
 
-        # Create model card
+        # Also save a freshly created model card
         if create_model_card:
             self._create_model_card(path, model_name, train_datasets)
 
-    def _save_as_modules(
-        self,
-        path: str,
-    ) -> None:
-        if path is None:
-            return
+    def _save_as_modules(self, path: str) -> None:
+        """
+        Saves the SentenceTransformer model as a set of modules at the specified path.
 
+        This method saves each module in a separate folder. The modules are saved via `save` and the
+        overarching configuration for the modules is saved in a `modules.json` file.
+
+        Args:
+            path (str): The path where the modules should be saved.
+        """
         os.makedirs(path, exist_ok=True)
 
-        logger.info("Save model to {}".format(path))
         modules_config = []
-
-        # with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
-        #     json.dump(self._model_config, fOut, indent=2)
 
         # Save modules
         for idx, name in enumerate(self._modules):
@@ -549,30 +558,25 @@ class SentenceTransformer(nn.Sequential):
         with open(os.path.join(path, "modules.json"), "w") as fOut:
             json.dump(modules_config, fOut, indent=2)
 
-    def _save_as_pretrained_model(
-        self,
-        path: str,
-    ) -> None:
+    def _save_as_pretrained_model(self, path: str) -> None:
+        """
+        Saves the SentenceTransformer model as a pretrained model at the specified path.
+
+        This method takes the first module (assumed to be a Transformer) its pretrained model.
+        It then injects all other modules into the encoder of the PreTrainedModel and saves them via `save_pretrained`.
+        The tokenizer of the Transformer is also saved at the same path.
+
+        Args:
+            path (str): The path where the pretrained model should be saved.
+        """
         transformer: Transformer = self[0]
         encoder = transformer.auto_model
 
-        # def post_process(module, args, kwargs, outputs):
-        #     return {
-        #         "token_embeddings": outputs[0],
-        #         "attention_mask": kwargs.get("attention_mask", None)
-        #     }
-
-        # encoder.register_forward_hook(post_process, with_kwargs=True)
-
         # Skip the first module, that's Transformer here
+        # Inject all other modules into the encoder
         for idx, module_config in enumerate(self.config.modules[1:], start=1):
-            # module = import_from_string(module_config["type"])(**module_config["config"])
             name = module_config['type'].split(".")[-1].lower()
             setattr(encoder, name, self[idx])
-            # def hook(encoder_module, input, output, name=None):
-            #     return getattr(encoder_module, name)(output)
-            # hook_with_name = partial(hook, name=name)
-            # encoder.register_forward_hook(hook_with_name)
 
         encoder.save_pretrained(path)
         transformer.tokenizer.save_pretrained(path)
@@ -1024,34 +1028,22 @@ class SentenceTransformer(nn.Sequential):
         cache_dir: Optional[str],
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
-    ):
-        """
-        Loads a full sentence-transformers model
-        """
-        """
-        # Check if the config_sentence_transformers.json file exists (exists since v2 of the framework)
-        config_sentence_transformers_json_path = load_file_path(
-            model_name_or_path,
-            "config_sentence_transformers.json",
-            token=token,
-            cache_dir=cache_dir,
-            revision=revision,
-        )
-        # TODO: Move this to the config class perhaps? Or to __init__?
-        if config_sentence_transformers_json_path is not None:
-            with open(config_sentence_transformers_json_path) as fIn:
-                self._model_config = json.load(fIn)
+    ) -> OrderedDict:
+        """Loads a SentenceTransformer model from the HuggingFace Hub as a set of modules.
 
-            if (
-                "__version__" in self._model_config
-                and "sentence_transformers" in self._model_config["__version__"]
-                and self._model_config["__version__"]["sentence_transformers"] > __version__
-            ):
-                logger.warning(
-                    "You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(
-                        self._model_config["__version__"]["sentence_transformers"], __version__
-                    )
-                )
+        Args:
+            model_name_or_path (str): The model name or path to load the modules from.
+            token (Optional[Union[bool, str]]): The HuggingFace token to use for authentication.
+            cache_dir (Optional[str]): The cache directory to use for caching models.
+            revision (Optional[str], optional): The specific model version to use. It can be a branch name,
+                a tag name, or a commit id, for a stored model on Hugging Face. Defaults to None
+            trust_remote_code (bool, optional): Whether or not to allow for custom models defined on the Hub in
+                their own modeling files. This option should only be set to True for repositories you trust and
+                in which you have read the code, as it will execute code present on the Hub on your local machine.
+                Defaults to False.
+
+        Returns:
+            OrderedDict: A dictionary of torch modules.
         """
 
         # Check if a readme exists
@@ -1134,10 +1126,33 @@ class SentenceTransformer(nn.Sequential):
         trust_remote_code: bool = False,
         **kwargs,
     ) -> List[nn.Module]:
+        """Loads a SentenceTransformer model from the HuggingFace Hub as a pretrained model.
+
+        The steps are as follows:
+        1. Load the base config from the model name or path
+        2. Initialize an empty encoder with the base config
+        3. Update the init from the empty encoder class to inject the modules (Dense, Normalize, Pooling, etc.)
+           defined in our config
+        4. Load the pretrained model from the model name or path
+        5. Reset the init of the encoder class to the original init
+        6. Decompose the pretrained model into the encoder and the modules
+
+        Args:
+            model_name_or_path (str): The model name or path to load the modules from.
+            token (Optional[Union[bool, str]]): The HuggingFace token to use for authentication.
+            cache_dir (Optional[str]): The cache directory to use for caching models.
+            revision (Optional[str], optional): The specific model version to use. It can be a branch name,
+                a tag name, or a commit id, for a stored model on Hugging Face. Defaults to None
+            trust_remote_code (bool, optional): Whether or not to allow for custom models defined on the Hub in
+                their own modeling files. This option should only be set to True for repositories you trust and
+                in which you have read the code, as it will execute code present on the Hub on your local machine.
+                Defaults to False.
+
+        Returns:
+            List[nn.Module]: A list of torch modules.
+        """
         hub_kwargs = {"token": token, "cache_dir": cache_dir, "trust_remote_code": trust_remote_code, "revision": revision}
-        base_config: PretrainedConfig = AutoConfig.from_pretrained(
-            model_name_or_path, **hub_kwargs,
-        )
+        base_config: PretrainedConfig = AutoConfig.from_pretrained(model_name_or_path, **hub_kwargs)
         # Initialize an empty encoder just to get access to the encoder class
         empty_encoder = AutoModel.from_config(base_config)
         encoder_class = empty_encoder.__class__
@@ -1176,7 +1191,7 @@ class SentenceTransformer(nn.Sequential):
             delattr(encoder, name)
             modules.append(module)
         hub_kwargs.pop("cache_dir", None)
-        return [Transformer(model_name_or_path, config=base_config, auto_model=encoder, tokenizer_args=hub_kwargs, cache_dir=cache_dir)] + modules
+        return [Transformer(model_name_or_path, config=base_config, auto_model=encoder, tokenizer_args=hub_kwargs, cache_dir=cache_dir, **self.config.modules[0]["config"])] + modules
 
     @staticmethod
     def load(input_path):
