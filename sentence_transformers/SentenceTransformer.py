@@ -6,8 +6,6 @@ import shutil
 from collections import OrderedDict
 import warnings
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal, TYPE_CHECKING
-from typing import Any, List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
-import warnings
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -39,10 +37,7 @@ from .util import (
     save_to_hub_args_decorator,
 )
 from .models import Transformer, Pooling
-from .util import import_from_string, batch_to_device, fullname, snapshot_download, prepare_path
-from .models import Transformer, Pooling, Dense
 from .model_card_templates import ModelCardTemplate
-from . import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -208,7 +203,9 @@ class SentenceTransformer(nn.Sequential):
                 "cache_dir": cache_folder,
             }
 
-            self.config: SentenceTransformerConfig = SentenceTransformerConfig.from_pretrained(model_name_or_path, _configuration_file="config_sentence_transformers.json", **hub_kwargs)
+            self.config: SentenceTransformerConfig = SentenceTransformerConfig.from_pretrained(
+                model_name_or_path, _configuration_file="config_sentence_transformers.json", **hub_kwargs
+            )
 
             if model_or_path_has_file("modules.json", model_name_or_path, **hub_kwargs):
                 # TODO: kwargs are ignored, warn?
@@ -331,7 +328,12 @@ class SentenceTransformer(nn.Sequential):
             else:
                 all_embeddings = torch.Tensor()
         elif convert_to_numpy:
-            all_embeddings = np.asarray([emb.to(torch.float16).numpy() if emb.dtype == torch.bfloat16 else emb.numpy() for emb in all_embeddings])
+            all_embeddings = np.asarray(
+                [
+                    emb.to(torch.float16).numpy() if emb.dtype == torch.bfloat16 else emb.numpy()
+                    for emb in all_embeddings
+                ]
+            )
 
         if input_was_string:
             all_embeddings = all_embeddings[0]
@@ -881,10 +883,7 @@ class SentenceTransformer(nn.Sequential):
 
         # Apply post-processing on the encoder to get the output expected by SentenceTransformer
         def post_process(module, args, kwargs, outputs):
-            return {
-                "token_embeddings": outputs[0],
-                "attention_mask": kwargs.get("attention_mask", None)
-            }
+            return {"token_embeddings": outputs[0], "attention_mask": kwargs.get("attention_mask", None)}
 
         encoder.register_forward_hook(post_process, with_kwargs=True)
 
@@ -894,9 +893,11 @@ class SentenceTransformer(nn.Sequential):
             # Add the module to the encoder
             name = f"st_{module_config['type'].split('.')[-1].lower()}"
             setattr(encoder, name, self[idx])
+
             # Add a forward hook to the encoder to also call the module after the encoder
             def hook(encoder_module, input, output, name=None):
                 return getattr(encoder_module, name)(output)
+
             hook_with_name = partial(hook, name=name)
             encoder.register_forward_hook(hook_with_name)
         return encoder
@@ -1224,10 +1225,12 @@ class SentenceTransformer(nn.Sequential):
                 )
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
-            module_configs.append({
-                "type": module_config["type"],
-                "config": module.get_config_dict() if hasattr(module, "get_config_dict") else {}
-            })
+            module_configs.append(
+                {
+                    "type": module_config["type"],
+                    "config": module.get_config_dict() if hasattr(module, "get_config_dict") else {},
+                }
+            )
 
         self.config.modules = module_configs
 
@@ -1267,7 +1270,12 @@ class SentenceTransformer(nn.Sequential):
         Returns:
             List[nn.Module]: A list of torch modules.
         """
-        hub_kwargs = {"token": token, "cache_dir": cache_dir, "trust_remote_code": trust_remote_code, "revision": revision}
+        hub_kwargs = {
+            "token": token,
+            "cache_dir": cache_dir,
+            "trust_remote_code": trust_remote_code,
+            "revision": revision,
+        }
         base_config: PretrainedConfig = AutoConfig.from_pretrained(model_name_or_path, **hub_kwargs)
         # Initialize an empty encoder just to get access to the encoder class
         empty_encoder = AutoModel.from_config(base_config)
@@ -1275,24 +1283,24 @@ class SentenceTransformer(nn.Sequential):
         original_init = encoder_class.__init__
 
         sbert_config = self.config
+
         def init_with_modules(self, *args, **kwargs):
             original_init(self, *args, **kwargs)
 
             def post_process(module, args, kwargs, outputs):
-                return {
-                    "token_embeddings": outputs[0],
-                    "attention_mask": kwargs.get("attention_mask", None)
-                }
+                return {"token_embeddings": outputs[0], "attention_mask": kwargs.get("attention_mask", None)}
 
             self.register_forward_hook(post_process, with_kwargs=True)
 
             nonlocal sbert_config
             for module_config in sbert_config.modules[1:]:
                 module = import_from_string(module_config["type"])(**module_config["config"])
-                name = module_config['type'].split(".")[-1].lower()
+                name = module_config["type"].split(".")[-1].lower()
                 setattr(self, name, module)
+
                 def hook(encoder, input, output, name=None):
                     return getattr(encoder, name)(output)
+
                 hook_with_name = partial(hook, name=name)
                 self.register_forward_hook(hook_with_name)
 
@@ -1303,11 +1311,20 @@ class SentenceTransformer(nn.Sequential):
 
         # remove last modules from encoder
         modules = []
-        for name, module in list(encoder.named_children())[-len(self.config.modules) + 1:]:
+        for name, module in list(encoder.named_children())[-len(self.config.modules) + 1 :]:
             delattr(encoder, name)
             modules.append(module)
         hub_kwargs.pop("cache_dir", None)
-        return [Transformer(model_name_or_path, config=base_config, auto_model=encoder, tokenizer_args=hub_kwargs, cache_dir=cache_dir, **self.config.modules[0]["config"])] + modules
+        return [
+            Transformer(
+                model_name_or_path,
+                config=base_config,
+                auto_model=encoder,
+                tokenizer_args=hub_kwargs,
+                cache_dir=cache_dir,
+                **self.config.modules[0]["config"],
+            )
+        ] + modules
 
     @staticmethod
     def load(input_path):

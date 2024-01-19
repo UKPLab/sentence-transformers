@@ -1,18 +1,17 @@
 from collections import OrderedDict
 import logging
-from typing import Iterable, Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union
 import transformers
 from sentence_transformers import __version__
 import torch
-from torch import nn
 import os
 from packaging.version import Version
 
 from transformers import PretrainedConfig
 
-from sentence_transformers.models import Transformer
 
 logger = logging.getLogger(__name__)
+
 
 class SentenceTransformerConfig(PretrainedConfig):
     model_type = "sentence-transformer"
@@ -20,11 +19,14 @@ class SentenceTransformerConfig(PretrainedConfig):
 
     def __init__(self, **kwargs) -> None:
         self.modules: List[str] = kwargs.pop("modules", [])
-        self.__version__: Dict[str, str] = kwargs.pop("__version__", {
-            'sentence_transformers': __version__,
-            'transformers': transformers.__version__,
-            'pytorch': torch.__version__,
-        })
+        self.__version__: Dict[str, str] = kwargs.pop(
+            "__version__",
+            {
+                "sentence_transformers": __version__,
+                "transformers": transformers.__version__,
+                "pytorch": torch.__version__,
+            },
+        )
         super().__init__(**kwargs)
 
         if Version(self.__version__["sentence_transformers"]) > Version(__version__):
@@ -65,9 +67,11 @@ class SentenceTransformerConfig(PretrainedConfig):
         kwargs = {}
         module_configs = []
         for module in modules.values():
-            module_configs.append({
-                "type": type(module).__module__,
-                "config": module.get_config_dict() if hasattr(module, "get_config_dict") else {}
-            })
+            module_configs.append(
+                {
+                    "type": type(module).__module__,
+                    "config": module.get_config_dict() if hasattr(module, "get_config_dict") else {},
+                }
+            )
         kwargs["modules"] = module_configs
         return cls(**kwargs)

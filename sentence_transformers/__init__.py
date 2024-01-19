@@ -12,6 +12,7 @@ __all__ = [
     "SentencesDataset",
     "ParallelSentencesDataset",
     "SentenceTransformer",
+    "SentenceTransformerConfig",
     "InputExample",
     "CrossEncoder",
 ]
