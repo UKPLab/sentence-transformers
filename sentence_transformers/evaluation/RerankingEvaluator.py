@@ -7,6 +7,7 @@ from ..util import cos_sim
 import torch
 from sklearn.metrics import average_precision_score, ndcg_score
 import tqdm
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
