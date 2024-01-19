@@ -39,9 +39,9 @@ class RerankingEvaluator(SentenceEvaluator):
         self.name = name
         if mrr_at_k is not None:
             logger.warning(f"The `mrr_at_k` parameter has been deprecated; please use `at_k={mrr_at_k}` instead.")
-            at_k = mrr_at_k
+            self.at_k = mrr_at_k
         else:
-            at_k = at_k
+            self.at_k = at_k
         self.similarity_fct = similarity_fct
         self.batch_size = batch_size
         self.show_progress_bar = show_progress_bar
@@ -55,13 +55,13 @@ class RerankingEvaluator(SentenceEvaluator):
             sample for sample in self.samples if len(sample["positive"]) > 0 and len(sample["negative"]) > 0
         ]
 
-        self.csv_file = "RerankingEvaluator" + ("_" + name if name else "") + f"_results_@{at_k}.csv"
+        self.csv_file = "RerankingEvaluator" + ("_" + name if name else "") + f"_results_@{self.at_k}.csv"
         self.csv_headers = [
             "epoch",
             "steps",
             "MAP",
-            "MRR@{}".format(at_k),
-            "NDCG@{}".format(at_k),
+            "MRR@{}".format(self.at_k),
+            "NDCG@{}".format(self.at_k),
         ]
         self.write_csv = write_csv
 
