@@ -41,7 +41,6 @@ class RerankingEvaluator(SentenceEvaluator):
             at_k = mrr_at_k
         else:
             at_k = at_k
-        self.at_k = at_k
         self.similarity_fct = similarity_fct
         self.batch_size = batch_size
         self.show_progress_bar = show_progress_bar
