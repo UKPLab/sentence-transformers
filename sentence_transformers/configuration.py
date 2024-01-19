@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class SentenceTransformerConfig(PretrainedConfig):
-    model_type = "sentence-transformer"
+    model_type = "sentence-transformers"
     is_composition = True
 
     def __init__(self, **kwargs) -> None:
