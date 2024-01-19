@@ -56,7 +56,13 @@ class RerankingEvaluator(SentenceEvaluator):
         ]
 
         self.csv_file = "RerankingEvaluator" + ("_" + name if name else "") + f"_results_@{at_k}.csv"
-        self.csv_headers = ["epoch", "steps", "MAP", "MRR@{}".format(at_k), "NDCG@{}".format(at_k),]
+        self.csv_headers = [
+            "epoch",
+            "steps",
+            "MAP",
+            "MRR@{}".format(at_k),
+            "NDCG@{}".format(at_k),
+        ]
         self.write_csv = write_csv
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
