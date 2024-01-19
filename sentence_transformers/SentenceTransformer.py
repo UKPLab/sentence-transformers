@@ -8,7 +8,6 @@ import warnings
 from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal, TYPE_CHECKING
 from typing import Any, List, Dict, Tuple, Iterable, Type, Union, Callable, Optional
 import warnings
-import requests
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -24,7 +23,7 @@ import queue
 import tempfile
 
 from transformers.configuration_utils import PretrainedConfig
-from transformers import AutoModel, AutoConfig
+from transformers import AutoModel, AutoConfig, PreTrainedModel
 
 from sentence_transformers.configuration import SentenceTransformerConfig
 
@@ -860,6 +859,48 @@ class SentenceTransformer(nn.Sequential):
     def _target_device(self, device: Optional[Union[int, str, torch.device]] = None) -> None:
         self.to(device)
 
+    def to_pretrained_model(self) -> PreTrainedModel:
+        """Returns the SentenceTransformer as a `transformers` PreTrainedModel instance.
+
+        Note that the SentenceTransformer its first module must be a `Transformer` module.
+
+        The PreTrainedModel is created by the following steps:
+        1. Get the Transformer module its auto_model. This is the `transformers` PreTrainedModel.
+        2. Apply post-processing on the encoder to get the output expected by SentenceTransformer.
+        3. Inject all other modules into the encoder.
+
+        Returns:
+            PreTrainedModel: The SentenceTransformer as a `transformers` PreTrainedModel instance
+        """
+        if not self.modules or not isinstance(self[0], Transformer):
+            raise ValueError(
+                "Cannot convert to a PreTrainedModel, because the first module is not a Transformer module."
+            )
+        transformer: Transformer = self[0]
+        encoder = transformer.auto_model
+
+        # Apply post-processing on the encoder to get the output expected by SentenceTransformer
+        def post_process(module, args, kwargs, outputs):
+            return {
+                "token_embeddings": outputs[0],
+                "attention_mask": kwargs.get("attention_mask", None)
+            }
+
+        encoder.register_forward_hook(post_process, with_kwargs=True)
+
+        # Skip the first module, that's Transformer here
+        # Inject all other modules into the encoder
+        for idx, module_config in enumerate(self.config.modules[1:], start=1):
+            # Add the module to the encoder
+            name = f"st_{module_config['type'].split('.')[-1].lower()}"
+            setattr(encoder, name, self[idx])
+            # Add a forward hook to the encoder to also call the module after the encoder
+            def hook(encoder_module, input, output, name=None):
+                return getattr(encoder_module, name)(output)
+            hook_with_name = partial(hook, name=name)
+            encoder.register_forward_hook(hook_with_name)
+        return encoder
+
     def save(
         self,
         path: str,
@@ -935,16 +976,9 @@ class SentenceTransformer(nn.Sequential):
         Args:
             path (str): The path where the pretrained model should be saved.
         """
-        transformer: Transformer = self[0]
-        encoder = transformer.auto_model
-
-        # Skip the first module, that's Transformer here
-        # Inject all other modules into the encoder
-        for idx, module_config in enumerate(self.config.modules[1:], start=1):
-            name = module_config['type'].split(".")[-1].lower()
-            setattr(encoder, name, self[idx])
-
+        encoder = self.to_pretrained_model()
         encoder.save_pretrained(path)
+        transformer: Transformer = self[0]
         transformer.tokenizer.save_pretrained(path)
 
     def _create_model_card(
