@@ -37,7 +37,7 @@ The following publications are integrated in this framework:
 
 ## Installation
 
-We recommend **Python 3.8** or higher, **[PyTorch 1.6.0](https://pytorch.org/get-started/locally/)** or higher and **[transformers v4.23.0](https://github.com/huggingface/transformers)** or higher. The code does **not** work with Python 2.7.
+We recommend **Python 3.8** or higher, **[PyTorch 1.11.0](https://pytorch.org/get-started/locally/)** or higher and **[transformers v4.32.0](https://github.com/huggingface/transformers)** or higher. The code does **not** work with Python 2.7.
 
 **Install with pip**
 
