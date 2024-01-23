@@ -8,6 +8,7 @@ from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional,
 import numpy as np
 from numpy import ndarray
 import transformers
+from transformers import is_torch_npu_available
 from huggingface_hub import HfApi
 import torch
 from torch import nn, Tensor, device
@@ -51,7 +52,7 @@ class SentenceTransformer(nn.Sequential):
         from the Hugging Face Hub with that name.
     :param modules: A list of torch Modules that should be called sequentially, can be used to create custom
         SentenceTransformer models from scratch.
-    :param device: Device (like "cuda", "cpu", "mps") that should be used for computation. If None, checks if a GPU
+    :param device: Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
         can be used.
     :param cache_folder: Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
     :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
@@ -314,16 +315,19 @@ class SentenceTransformer(nn.Sequential):
         to start only one process per GPU. This method works together with encode_multi_process
         and stop_multi_process_pool.
 
-        :param target_devices: PyTorch target devices, e.g. ["cuda:0", "cuda:1", ...] or ["cpu", "cpu", "cpu", "cpu"].
-            If target_devices is None and CUDA is available, then all available CUDA devices will be used. If
-            target_devices is None and CUDA is not available, then 4 CPU devices will be used.
+        :param target_devices: PyTorch target devices, e.g. ["cuda:0", "cuda:1", ...], ["npu:0", "npu:1", ...] or
+            ["cpu", "cpu", "cpu", "cpu"]. If target_devices is None and CUDA/NPU is available, then all available
+            CUDA/NPU devices will be used. If target_devices is None and CUDA/NPU is not available, then 4 CPU
+            devices will be used.
         :return: Returns a dict with the target processes, an input queue and and output queue.
         """
         if target_devices is None:
             if torch.cuda.is_available():
                 target_devices = ["cuda:{}".format(i) for i in range(torch.cuda.device_count())]
+            elif is_torch_npu_available():
+                target_devices = ["npu:{}".format(i) for i in range(torch.npu.device_count())]
             else:
-                logger.info("CUDA is not available. Starting 4 CPU workers")
+                logger.info("CUDA/NPU is not available. Starting 4 CPU workers")
                 target_devices = ["cpu"] * 4
 
         logger.info("Start multi-process pool on devices: {}".format(", ".join(map(str, target_devices))))
@@ -759,10 +763,10 @@ class SentenceTransformer(nn.Sequential):
         ).replace("{FIT_PARAMETERS}", info_fit_parameters)
 
         if use_amp:
-            from torch.cuda.amp import autocast
-
-            scaler = torch.cuda.amp.GradScaler()
-
+            if is_torch_npu_available():
+                scaler = torch.npu.amp.GradScaler()
+            else:
+                scaler = torch.cuda.amp.GradScaler()
         self.to(self.device)
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
@@ -837,7 +841,7 @@ class SentenceTransformer(nn.Sequential):
                     features = list(map(lambda batch: batch_to_device(batch, self.device), features))
 
                     if use_amp:
-                        with autocast():
+                        with torch.autocast(device_type=self.device.type):
                             loss_value = loss_model(features, labels)
 
                         scale_before_step = scaler.get_scale()

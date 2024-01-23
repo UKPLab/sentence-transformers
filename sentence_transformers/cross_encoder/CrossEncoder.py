@@ -8,6 +8,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
+from transformers import is_torch_npu_available
 from .. import SentenceTransformer, util
 from ..evaluation import SentenceEvaluator
 from ..util import get_device_name
@@ -184,10 +185,10 @@ class CrossEncoder:
         train_dataloader.collate_fn = self.smart_batching_collate
 
         if use_amp:
-            from torch.cuda.amp import autocast
-
-            scaler = torch.cuda.amp.GradScaler()
-
+            if is_torch_npu_available():
+                scaler = torch.npu.amp.GradScaler()
+            else:
+                scaler = torch.cuda.amp.GradScaler()
         self.model.to(self._target_device)
 
         if output_path is not None:
@@ -228,7 +229,7 @@ class CrossEncoder:
                 train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
             ):
                 if use_amp:
-                    with autocast():
+                    with torch.autocast(device_type=self._target_device.type):
                         model_predictions = self.model(**features, return_dict=True)
                         logits = activation_fct(model_predictions.logits)
                         if self.config.num_labels == 1:
