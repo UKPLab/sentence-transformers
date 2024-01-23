@@ -71,7 +71,6 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 .. autoclass:: sentence_transformers.losses.MSELoss
 ```
 
-
 ## MultipleNegativesRankingLoss
 
 *MultipleNegativesRankingLoss* is a great loss function if you only have positive pairs, for example, only pairs of similar texts like pairs of paraphrases, pairs of duplicate questions, pairs of (query, response), or pairs of (source_language, target_language).
@@ -80,7 +79,11 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 .. autoclass:: sentence_transformers.losses.MultipleNegativesRankingLoss
 ```
 
+## CachedMultipleNegativesRankingLoss
 
+```eval_rst
+.. autoclass:: sentence_transformers.losses.CachedMultipleNegativesRankingLoss
+```
 
 ## MultipleNegativesSymmetricRankingLoss
 
@@ -88,13 +91,10 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 .. autoclass:: sentence_transformers.losses.MultipleNegativesSymmetricRankingLoss
 ```
 
-
-
 ## OnlineContrastiveLoss
 ```eval_rst
 .. autoclass:: sentence_transformers.losses.OnlineContrastiveLoss
 ```
-
 
 ## SoftmaxLoss
 ```eval_rst
@@ -105,4 +105,3 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 ```eval_rst
 .. autoclass:: sentence_transformers.losses.TripletLoss
 ```
-
