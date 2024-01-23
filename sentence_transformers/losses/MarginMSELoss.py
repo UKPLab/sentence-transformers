@@ -8,6 +8,14 @@ class MarginMSELoss(nn.Module):
     Compute the MSE loss between the ``|sim(Query, Pos) - sim(Query, Neg)|`` and ``|gold_sim(Query, Pos) - gold_sim(Query, Neg)|``.
     By default, sim() is the dot-product.
     For more details, please refer to https://arxiv.org/abs/2010.02666.
+    
+    
+    Inputs:
+
+    | Texts                                       | Labels |
+    | ------------------------------------------- | ------ |
+    | (anchor, positive, negative) triplets       | -      |
+
     """
 
     def __init__(self, model, similarity_fct=util.pairwise_dot_score):

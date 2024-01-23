@@ -9,6 +9,13 @@ class MSELoss(nn.Module):
     Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation: https://arxiv.org/abs/2004.09813
 
     For an example, see the documentation on extending language models to new languages.
+    
+    Input:
+
+    | Texts                                  | Labels                |
+    | -------------------------------------- | --------------------- |
+    | sentence_A embeddings                  | sentence_B embeddings |
+    
     """
 
     def __init__(self, model):

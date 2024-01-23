@@ -21,6 +21,13 @@ class SoftmaxLoss(nn.Module):
     :param concatenation_sent_multiplication: Add u*v for the softmax classifier?
     :param loss_fct: Optional: Custom pytorch loss function. If not set, uses nn.CrossEntropyLoss()
 
+    
+    Inputs:
+
+    | Texts                           | Labels |
+    | ------------------------------- | ------ |
+    | (sentence_A, sentence_B) pairs  | class  |
+    
     Example::
 
         from sentence_transformers import SentenceTransformer, SentencesDataset, losses

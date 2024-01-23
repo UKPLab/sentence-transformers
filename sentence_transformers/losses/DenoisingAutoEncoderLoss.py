@@ -18,6 +18,14 @@ class DenoisingAutoEncoderLoss(nn.Module):
     which is shown beneficial to model performance while limiting the amount of required memory.
     Only when the encoder and decoder are from the same architecture, can the flag 'tie_encoder_decoder' works.
     For more information, please refer to the TSDAE paper.
+
+    Inputs:
+
+    | Texts                                       | Labels |
+    | ------------------------------------------- | ------ |
+    | (damaged_sentence, original_sentence) pairs | -      |
+
+    
     """
 
     def __init__(self, model: SentenceTransformer, decoder_name_or_path: str = None, tie_encoder_decoder: bool = True):

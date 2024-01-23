@@ -16,6 +16,13 @@ class OnlineContrastiveLoss(nn.Module):
     :param margin: Negative samples (label == 0) should have a distance of at least the margin value.
     :param size_average: Average by the size of the mini-batch.
 
+    
+    Inputs:
+
+    | Texts                                  | Labels      |
+    | -------------------------------------- | ----------- |
+    | (anchor, positive/negative) pairs      | is positive |
+    
     Example::
 
         from sentence_transformers import SentenceTransformer, LoggingHandler, losses, InputExample

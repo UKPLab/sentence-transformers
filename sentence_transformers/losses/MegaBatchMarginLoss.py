@@ -16,6 +16,12 @@ class MegaBatchMarginLoss(nn.Module):
     serves as the negative for this triplet.
 
     Train than as with the triplet loss
+
+    Input:
+
+    | Texts                    | Labels |
+    | ------------------------ | ------ |
+    | (anchor, positive) pairs | -      |
     """
 
     def __init__(

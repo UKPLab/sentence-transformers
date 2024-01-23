@@ -70,6 +70,12 @@ class BatchHardTripletLoss(nn.Module):
     :param model: SentenceTransformer model
     :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
 
+    Inputs:
+
+    | Texts             | Labels |
+    | ----------------- | ------ |
+    | single sentences  | class  |
+    
 
     Example::
 

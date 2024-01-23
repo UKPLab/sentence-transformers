@@ -75,6 +75,14 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
     Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in mini-batches and
     requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
 
+    
+    Inputs:
+
+    | Texts                                  | Labels |
+    | -------------------------------------- | ------ |
+    | (anchor, positive) pairs               | class  |
+    | (anchor, positive, negative) triplets  | class  |
+    
     Example::
 
         from sentence_transformers import SentenceTransformer

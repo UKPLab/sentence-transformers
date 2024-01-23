@@ -26,6 +26,13 @@ class MultipleNegativesRankingLoss(nn.Module):
 
     Here, n_1 is a hard negative for (a_1, p_1). The loss will use for the pair (a_i, p_i) all p_j (j!=i) and all n_j as negatives.
 
+    Inputs:
+
+    | Texts                                  | Labels |
+    | -------------------------------------- | ------ |
+    | (anchor, positive) pairs               | class  |
+    | (anchor, positive, negative) triplets  | class  |
+
     Example::
 
         from sentence_transformers import SentenceTransformer, losses, InputExample

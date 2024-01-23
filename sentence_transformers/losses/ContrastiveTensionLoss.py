@@ -21,6 +21,13 @@ class ContrastiveTensionLoss(nn.Module):
     only model2 are used, which gives better performance. The training objective is binary cross entropy.
     For more information, see: https://openreview.net/pdf?id=Ov_sMNau-PF
 
+    
+    Inputs:
+
+    | Texts                    | Labels |
+    | ------------------------ | ------ |
+    | single sentences         | -      |
+    
     """
 
     def __init__(self, model: SentenceTransformer):

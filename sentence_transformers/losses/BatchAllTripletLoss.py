@@ -18,7 +18,14 @@ class BatchAllTripletLoss(nn.Module):
     :param model: SentenceTransformer model
     :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
     :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
+    
+    Inputs:
 
+    | Texts             | Labels |
+    | ----------------- | ------ |
+    | single sentences  | class  |
+
+    
     Example::
 
         from sentence_transformers import SentenceTransformer, SentencesDataset, losses
