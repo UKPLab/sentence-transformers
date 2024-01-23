@@ -12,9 +12,9 @@ class MSELoss(nn.Module):
     
     Input:
 
-    | Texts                                  | Labels                |
-    | -------------------------------------- | --------------------- |
-    | sentence_A embeddings                  | sentence_B embeddings |
+    | Texts                         Labels                      |
+    | --------------------------- | --------------------------- |
+    | model_1_sentence_embeddings | model_2_sentence_embeddings |
     
     """
 
