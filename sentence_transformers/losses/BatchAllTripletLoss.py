@@ -19,8 +19,12 @@ class BatchAllTripletLoss(nn.Module):
     :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
     :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
     
+    Requirements:
+        - Class labels for each sentence
+        - Labels must contain at least 2 examples per labels class
+    
     Relations:
-        - equivalent to `BatchHardTripletLoss` but calculated for all possible, valid triplets
+        - Equivalent to `BatchHardTripletLoss` but calculated for all possible, valid triplets
 
     Inputs:
 

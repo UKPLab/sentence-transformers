@@ -20,8 +20,14 @@ class BatchSemiHardTripletLoss(nn.Module):
     :param model: SentenceTransformer model
     :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
 
+    Requirements:
+        - Class labels for each sentence
+        - Labels must contain at least 2 examples per labels class
+        - Data should contain semi hard positives and negatives
+    
+
     Relations:
-        - like `BatchTripletLoss` but with semi hard positives and negatives
+        - Like `BatchTripletLoss` but with semi hard positives and negatives
 
     Inputs:
 

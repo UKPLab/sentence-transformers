@@ -9,13 +9,19 @@ class MarginMSELoss(nn.Module):
     By default, sim() is the dot-product.
     For more details, please refer to https://arxiv.org/abs/2010.02666.
     
+    Requirements:
+        - (query, positive, negative) triplets
+        - Usually used with a finetuned teacher M in a knowledge distillation setup
+
+    Relations:
+        - equivalent to `MSELoss` but with a margin
     
     Inputs:
 
-    | Texts                                       | Labels |
-    | ------------------------------------------- | ------ |
-    | (anchor, positive, negative) triplets       | -      |
-
+    | Texts                                 | Labels                                                          |
+    | ------------------------------------- | --------------------------------------- |
+    | (query, positive, negative) triplets  | M(query, positive) - M(query, negative) |
+    
     """
 
     def __init__(self, model, similarity_fct=util.pairwise_dot_score):

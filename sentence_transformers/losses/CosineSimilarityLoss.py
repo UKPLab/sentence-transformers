@@ -15,6 +15,8 @@ class CosineSimilarityLoss(nn.Module):
     :param loss_fct: Which pytorch loss function should be used to compare the cosine_similartiy(u,v) with the input_label? By default, MSE:  ||input_label - cosine_sim(u,v)||_2
     :param cos_score_transformation: The cos_score_transformation function is applied on top of cosine_similarity. By default, the identify function is used (i.e. no change).
 
+    Requirements:
+        - Sentence pairs with corresponding similarity scores in range `[0, 1]`
     
     Inputs:
 

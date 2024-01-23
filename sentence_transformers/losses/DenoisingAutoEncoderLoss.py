@@ -19,6 +19,10 @@ class DenoisingAutoEncoderLoss(nn.Module):
     Only when the encoder and decoder are from the same architecture, can the flag 'tie_encoder_decoder' works.
     For more information, please refer to the TSDAE paper.
 
+    Requirements:
+        - The decoder should have a class called XXXLMHead (in the context of Huggingface's Transformers)
+        - Should use a large corpus
+
     Inputs:
 
     | Texts                                       | Labels |

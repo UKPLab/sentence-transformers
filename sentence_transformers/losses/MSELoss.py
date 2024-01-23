@@ -10,9 +10,12 @@ class MSELoss(nn.Module):
 
     For an example, see the documentation on extending language models to new languages.
     
+    Requirements:
+        - Usually uses a finetuned teacher M in a knowledge distillation setup
+
     Input:
 
-    | Texts                         Labels                      |
+    | Texts                       | Labels                      |
     | --------------------------- | --------------------------- |
     | model_1_sentence_embeddings | model_2_sentence_embeddings |
     

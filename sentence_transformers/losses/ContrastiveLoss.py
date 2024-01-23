@@ -27,6 +27,9 @@ class ContrastiveLoss(nn.Module):
     :param margin: Negative samples (label == 0) should have a distance of at least the margin value.
     :param size_average: Average by the size of the mini-batch.
 
+    Requirements:
+        - (anchor, positive/negative) pairs
+
     Inputs:
 
     | Texts                             | Labels         |

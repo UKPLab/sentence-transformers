@@ -31,6 +31,8 @@ class TripletLoss(nn.Module):
     :param distance_metric: Function to compute distance between two embeddings. The class TripletDistanceMetric contains common distance metrices that can be used.
     :param triplet_margin: The negative should be at least this much further away from the anchor than the positive.
 
+    Requirements:
+        - (anchor, positive, negative) triplets
     
     Inputs:
 
