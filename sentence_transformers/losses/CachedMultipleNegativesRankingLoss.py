@@ -67,6 +67,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
     As a result, memory of constant size (e.g. that works with batch size = 32) can now process much larger batches (e.g. 65536).
 
     In detail:
+
         (1) It first does a quick embedding step without gradients/computation graphs to get all the embeddings;
         (2) Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings;
         (3) A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain.
@@ -74,7 +75,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
     Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in mini-batches and
     requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
 
-    Example:
+    Example::
 
         from sentence_transformers import SentenceTransformer
         train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=1024)  # Here we can try much larger batch sizes!
