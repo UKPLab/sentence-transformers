@@ -29,7 +29,7 @@ class Transformer(nn.Module):
         tokenizer_name_or_path: str = None,
     ):
         super(Transformer, self).__init__()
-        self.config_keys = ["max_seq_length", "do_lower_case"]
+        self.config_keys = ['max_seq_length', 'do_lower_case', 'model_args', 'tokenizer_args']
         self.do_lower_case = do_lower_case
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
@@ -54,6 +54,9 @@ class Transformer(nn.Module):
 
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
+
+        self.model_args = model_args
+        self.tokenizer_args = tokenizer_args
 
     def _load_model(self, model_name_or_path, config, cache_dir, **model_args):
         """Loads the transformer model"""
