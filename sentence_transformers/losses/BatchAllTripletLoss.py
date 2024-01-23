@@ -8,7 +8,7 @@ class BatchAllTripletLoss(nn.Module):
     """
     BatchAllTripletLoss takes a batch with (label, sentence) pairs and computes the loss for all possible, valid
     triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. The labels
-    must be integers, with same label indicating sentences from the same class. You train dataset
+    must be integers, with same label indicating sentences from the same class. Your train dataset
     must contain at least 2 examples per label class.
 
     | Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
@@ -19,6 +19,9 @@ class BatchAllTripletLoss(nn.Module):
     :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
     :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
     
+    Relations:
+        - equivalent to `BatchHardTripletLoss` but calculated for all possible, valid triplets
+
     Inputs:
 
     | Texts             | Labels |

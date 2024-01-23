@@ -60,7 +60,7 @@ class BatchHardTripletLoss(nn.Module):
     BatchHardTripletLoss takes a batch with (label, sentence) pairs and computes the loss for all possible, valid
     triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. It then looks
     for the hardest positive and the hardest negatives.
-    The labels must be integers, with same label indicating sentences from the same class. You train dataset
+    The labels must be integers, with same label indicating sentences from the same class. Your train dataset
     must contain at least 2 examples per label class. The margin is computed automatically.
 
     Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py

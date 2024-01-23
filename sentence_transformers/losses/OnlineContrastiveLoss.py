@@ -9,14 +9,16 @@ class OnlineContrastiveLoss(nn.Module):
     """
     Online Contrastive loss. Similar to ConstrativeLoss, but it selects hard positive (positives that are far apart)
     and hard negative pairs (negatives that are close) and computes the loss only for these pairs. Often yields
-    better performances than  ConstrativeLoss.
+    better performances than ConstrativeLoss.
 
     :param model: SentenceTransformer model
-    :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
+    :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
     :param margin: Negative samples (label == 0) should have a distance of at least the margin value.
     :param size_average: Average by the size of the mini-batch.
 
-    
+    Relations:
+        - like `ContrastiveLoss` but uses hard positive and hard negative pairs
+
     Inputs:
 
     | Texts                                  | Labels      |

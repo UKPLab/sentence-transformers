@@ -15,7 +15,7 @@ class MegaBatchMarginLoss(nn.Module):
     is maximal. Then create from this a triplet (anchor_i, positive_i, positive_j) where positive_j
     serves as the negative for this triplet.
 
-    Train than as with the triplet loss
+    Then train as with the triplet loss.
 
     Input:
 

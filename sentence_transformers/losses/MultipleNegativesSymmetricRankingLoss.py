@@ -19,6 +19,8 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
 
     Note: If you pass triplets, the negative entry will be ignored. A anchor is just searched for the positive.
 
+    Relation:
+        - like `MultipleNegativesRankingLoss` but with an added loss term 
         
     Inputs:
 
