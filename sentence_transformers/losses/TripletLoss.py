@@ -1,17 +1,19 @@
-import torch
 from torch import nn, Tensor
-from typing import Union, Tuple, List, Iterable, Dict
+from typing import Iterable, Dict
 import torch.nn.functional as F
 from enum import Enum
 from ..SentenceTransformer import SentenceTransformer
+
 
 class TripletDistanceMetric(Enum):
     """
     The metric for the triplet loss
     """
+
     COSINE = lambda x, y: 1 - F.cosine_similarity(x, y)
     EUCLIDEAN = lambda x, y: F.pairwise_distance(x, y, p=2)
     MANHATTAN = lambda x, y: F.pairwise_distance(x, y, p=1)
+
 
 class TripletLoss(nn.Module):
     """
@@ -41,12 +43,14 @@ class TripletLoss(nn.Module):
         train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
         train_loss = losses.TripletLoss(model=model)
     """
-    def __init__(self, model: SentenceTransformer, distance_metric=TripletDistanceMetric.EUCLIDEAN, triplet_margin: float = 5):
+
+    def __init__(
+        self, model: SentenceTransformer, distance_metric=TripletDistanceMetric.EUCLIDEAN, triplet_margin: float = 5
+    ):
         super(TripletLoss, self).__init__()
         self.model = model
         self.distance_metric = distance_metric
         self.triplet_margin = triplet_margin
-
 
     def get_config_dict(self):
         distance_metric_name = self.distance_metric.__name__
@@ -55,10 +59,10 @@ class TripletLoss(nn.Module):
                 distance_metric_name = "TripletDistanceMetric.{}".format(name)
                 break
 
-        return {'distance_metric': distance_metric_name, 'triplet_margin': self.triplet_margin}
+        return {"distance_metric": distance_metric_name, "triplet_margin": self.triplet_margin}
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-        reps = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
+        reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
         rep_anchor, rep_pos, rep_neg = reps
         distance_pos = self.distance_metric(rep_anchor, rep_pos)

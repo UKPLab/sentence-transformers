@@ -5,7 +5,8 @@ class InputExample:
     """
     Structure for one input example with texts, the label and a unique id
     """
-    def __init__(self, guid: str = '', texts: List[str] = None,  label: Union[int, float] = 0):
+
+    def __init__(self, guid: str = "", texts: List[str] = None, label: Union[int, float] = 0):
         """
         Creates one InputExample with the given texts, guid and label
 

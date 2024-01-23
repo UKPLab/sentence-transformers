@@ -11,17 +11,14 @@ https://arxiv.org/abs/2004.09813
 import os
 import sentence_transformers.util
 import gzip
-import csv
-from tqdm.autonotebook import tqdm
 
 
+source_languages = set(["en"])  # Languages our (monolingual) teacher model understands
+target_languages = set(["de", "es", "it", "fr", "ar", "tr"])  # New languages we want to extend to
 
-source_languages = set(['en'])                                  #Languages our (monolingual) teacher model understands
-target_languages = set(['de', 'es', 'it', 'fr', 'ar', 'tr'])    #New languages we want to extend to
 
-
-num_dev_sentences = 1000         #Number of sentences we want to use for development
-threshold = 1.075                #Only use sentences with a LASER similarity score above the threshold
+num_dev_sentences = 1000  # Number of sentences we want to use for development
+threshold = 1.075  # Only use sentences with a LASER similarity score above the threshold
 
 download_url = "https://dl.fbaipublicfiles.com/laser/WikiMatrix/v1/"
 download_folder = "../datasets/WikiMatrix/"
@@ -34,8 +31,12 @@ os.makedirs(parallel_sentences_folder, exist_ok=True)
 
 for source_lang in source_languages:
     for target_lang in target_languages:
-        filename_train = os.path.join(parallel_sentences_folder, "WikiMatrix-{}-{}-train.tsv.gz".format(source_lang, target_lang))
-        filename_dev = os.path.join(parallel_sentences_folder, "WikiMatrix-{}-{}-dev.tsv.gz".format(source_lang, target_lang))
+        filename_train = os.path.join(
+            parallel_sentences_folder, "WikiMatrix-{}-{}-train.tsv.gz".format(source_lang, target_lang)
+        )
+        filename_dev = os.path.join(
+            parallel_sentences_folder, "WikiMatrix-{}-{}-dev.tsv.gz".format(source_lang, target_lang)
+        )
 
         if not os.path.exists(filename_train) and not os.path.exists(filename_dev):
             langs_ordered = sorted([source_lang, target_lang])
@@ -43,11 +44,11 @@ for source_lang in source_languages:
             wikimatrix_filepath = os.path.join(download_folder, wikimatrix_filename)
 
             if not os.path.exists(wikimatrix_filepath):
-                print("Download", download_url+wikimatrix_filename)
+                print("Download", download_url + wikimatrix_filename)
                 try:
-                    sentence_transformers.util.http_get(download_url+wikimatrix_filename, wikimatrix_filepath)
-                except:
-                    print("Was not able to download", download_url+wikimatrix_filename)
+                    sentence_transformers.util.http_get(download_url + wikimatrix_filename, wikimatrix_filepath)
+                except Exception:
+                    print("Was not able to download", download_url + wikimatrix_filename)
                     continue
 
             if not os.path.exists(wikimatrix_filepath):
@@ -58,9 +59,9 @@ for source_lang in source_languages:
             dev_sentences_set = set()
             extract_dev_sentences = True
 
-            with gzip.open(wikimatrix_filepath, 'rt', encoding='utf8') as fIn:
+            with gzip.open(wikimatrix_filepath, "rt", encoding="utf8") as fIn:
                 for line in fIn:
-                    score, sent1, sent2 = line.strip().split('\t')
+                    score, sent1, sent2 = line.strip().split("\t")
                     sent1 = sent1.strip()
                     sent2 = sent2.strip()
                     score = float(score)
@@ -71,7 +72,7 @@ for source_lang in source_languages:
                     if sent1 == sent2:
                         continue
 
-                    if langs_ordered.index(source_lang) == 1: #Swap, so that src lang is sent1
+                    if langs_ordered.index(source_lang) == 1:  # Swap, so that src lang is sent1
                         sent1, sent2 = sent2, sent1
 
                     # Avoid duplicates in development set
@@ -89,13 +90,13 @@ for source_lang in source_languages:
                         train_sentences.append([sent1, sent2])
 
             print("Write", len(dev_sentences), "dev sentences", filename_dev)
-            with gzip.open(filename_dev, 'wt', encoding='utf8') as fOut:
+            with gzip.open(filename_dev, "wt", encoding="utf8") as fOut:
                 for sents in dev_sentences:
                     fOut.write("\t".join(sents))
                     fOut.write("\n")
 
             print("Write", len(train_sentences), "train sentences", filename_train)
-            with gzip.open(filename_train, 'wt', encoding='utf8') as fOut:
+            with gzip.open(filename_train, "wt", encoding="utf8") as fOut:
                 for sents in train_sentences:
                     fOut.write("\t".join(sents))
                     fOut.write("\n")

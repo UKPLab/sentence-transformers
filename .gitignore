@@ -19,3 +19,7 @@ nr_*/
 /docs/make.bat
 /docs/Makefile
 /examples/training/quora_duplicate_questions/quora-IR-dataset/
+build
+
+htmlcov
+.coverage

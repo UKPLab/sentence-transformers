@@ -2,17 +2,20 @@
 Once you have SentenceTransformers [installed](installation.md), the usage is simple:
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('all-MiniLM-L6-v2')
 
-#Our sentences we like to encode
-sentences = ['This framework generates embeddings for each input sentence',
-    'Sentences are passed as a list of string.', 
-    'The quick brown fox jumps over the lazy dog.']
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
-#Sentences are encoded by calling model.encode()
+# Our sentences we like to encode
+sentences = [
+    "This framework generates embeddings for each input sentence",
+    "Sentences are passed as a list of string.",
+    "The quick brown fox jumps over the lazy dog.",
+]
+
+# Sentences are encoded by calling model.encode()
 sentence_embeddings = model.encode(sentences)
 
-#Print the embeddings
+# Print the embeddings
 for sentence, embedding in zip(sentences, sentence_embeddings):
     print("Sentence:", sentence)
     print("Embedding:", embedding)
@@ -30,9 +33,10 @@ The sentences (texts) are mapped such that sentences with similar meanings are c
 
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('all-MiniLM-L6-v2')
 
-#Sentences are encoded by calling model.encode()
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# Sentences are encoded by calling model.encode()
 emb1 = model.encode("This is a red cat with a hat.")
 emb2 = model.encode("Have you seen my red cat?")
 
@@ -43,32 +47,34 @@ print("Cosine-Similarity:", cos_sim)
 If you have a list with more sentences, you can use the following code example:
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('all-MiniLM-L6-v2')
 
-sentences = ['A man is eating food.',
-          'A man is eating a piece of bread.',
-          'The girl is carrying a baby.',
-          'A man is riding a horse.',
-          'A woman is playing violin.',
-          'Two men pushed carts through the woods.',
-          'A man is riding a white horse on an enclosed ground.',
-          'A monkey is playing drums.',
-          'Someone in a gorilla costume is playing a set of drums.'
-          ]
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
-#Encode all sentences
+sentences = [
+    "A man is eating food.",
+    "A man is eating a piece of bread.",
+    "The girl is carrying a baby.",
+    "A man is riding a horse.",
+    "A woman is playing violin.",
+    "Two men pushed carts through the woods.",
+    "A man is riding a white horse on an enclosed ground.",
+    "A monkey is playing drums.",
+    "Someone in a gorilla costume is playing a set of drums.",
+]
+
+# Encode all sentences
 embeddings = model.encode(sentences)
 
-#Compute cosine similarity between all pairs
+# Compute cosine similarity between all pairs
 cos_sim = util.cos_sim(embeddings, embeddings)
 
-#Add all pairs to a list with their cosine similarity score
+# Add all pairs to a list with their cosine similarity score
 all_sentence_combinations = []
-for i in range(len(cos_sim)-1):
-    for j in range(i+1, len(cos_sim)):
+for i in range(len(cos_sim) - 1):
+    for j in range(i + 1, len(cos_sim)):
         all_sentence_combinations.append([cos_sim[i][j], i, j])
 
-#Sort list by the highest cosine similarity score
+# Sort list by the highest cosine similarity score
 all_sentence_combinations = sorted(all_sentence_combinations, key=lambda x: x[0], reverse=True)
 
 print("Top-5 most similar pairs:")

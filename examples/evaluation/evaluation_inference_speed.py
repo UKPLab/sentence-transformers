@@ -14,30 +14,30 @@ import torch
 import gzip
 import csv
 
-#Limit torch to 4 threads
+# Limit torch to 4 threads
 torch.set_num_threads(4)
 
 
-model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-nli-mean-tokens'
+model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-nli-mean-tokens"
 
 # Load a named sentence model (based on BERT). This will download the model from our server.
 # Alternatively, you can also pass a filepath to SentenceTransformer()
 model = SentenceTransformer(model_name)
 
 
-nli_dataset_path = 'datasets/AllNLI.tsv.gz'
+nli_dataset_path = "datasets/AllNLI.tsv.gz"
 sentences = set()
 max_sentences = 100000
 
 
-#Download datasets if needed
+# Download datasets if needed
 if not os.path.exists(nli_dataset_path):
-    util.http_get('https://sbert.net/datasets/AllNLI.tsv.gz', nli_dataset_path)
+    util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
 
-with gzip.open(nli_dataset_path, 'rt', encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
-        sentences.add(row['sentence1'])
+        sentences.add(row["sentence1"])
         if len(sentences) >= max_sentences:
             break
 

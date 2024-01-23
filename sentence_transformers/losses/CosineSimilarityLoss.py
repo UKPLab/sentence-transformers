@@ -11,7 +11,7 @@ class CosineSimilarityLoss(nn.Module):
     It computes the vectors u = model(input_text[0]) and v = model(input_text[1]) and measures the cosine-similarity between the two.
     By default, it minimizes the following loss: ||input_label - cos_score_transformation(cosine_sim(u,v))||_2.
 
-    :param model: SentenceTranformer model
+    :param model: SentenceTransformer model
     :param loss_fct: Which pytorch loss function should be used to compare the cosine_similartiy(u,v) with the input_label? By default, MSE:  ||input_label - cosine_sim(u,v)||_2
     :param cos_score_transformation: The cos_score_transformation function is applied on top of cosine_similarity. By default, the identify function is used (i.e. no change).
 
@@ -28,15 +28,14 @@ class CosineSimilarityLoss(nn.Module):
 
 
     """
-    def __init__(self, model: SentenceTransformer, loss_fct = nn.MSELoss(), cos_score_transformation=nn.Identity()):
+
+    def __init__(self, model: SentenceTransformer, loss_fct=nn.MSELoss(), cos_score_transformation=nn.Identity()):
         super(CosineSimilarityLoss, self).__init__()
         self.model = model
         self.loss_fct = loss_fct
         self.cos_score_transformation = cos_score_transformation
 
-
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-        embeddings = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
+        embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         output = self.cos_score_transformation(torch.cosine_similarity(embeddings[0], embeddings[1]))
         return self.loss_fct(output, labels.view(-1))
-
