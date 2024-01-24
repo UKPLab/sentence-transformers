@@ -27,6 +27,33 @@ class ContrastiveTensionLoss(nn.Module):
     | Texts                    | Labels |
     | ------------------------ | ------ |
     | single sentences         | -      |
+
+    Example::
+
+        from sentence_transformers import SentenceTransformer, losses
+        from sentence_transformers.losses import ContrastiveTensionDataLoader
+
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        train_examples = [
+            'This is the 1st sentence',
+            'This is the 2nd sentence',
+            'This is the 3rd sentence',
+            'This is the 4th sentence',
+            'This is the 5th sentence',
+            'This is the 6th sentence',
+            'This is the 7th sentence',
+            'This is the 8th sentence',
+            'This is the 9th sentence',
+            'This is the final sentence',
+        ]
+
+        train_dataloader = ContrastiveTensionDataLoader(train_examples, batch_size=3, pos_neg_ratio=3)
+        train_loss = losses.ContrastiveTensionLoss(model=model)
+
+        model.fit(
+            [(train_dataloader, train_loss)],
+            epochs=10,
+        )
     
     """
 
@@ -90,7 +117,7 @@ class ContrastiveTensionDataLoader:
 
         if self.batch_size % self.pos_neg_ratio != 0:
             raise ValueError(
-                f"ContrastiveTensionDataLoader was loaded with a pos_neg_ratio of {pos_neg_ratio} and a batch size of {batch_size}. The batch size must be devisable by the pos_neg_ratio"
+                f"ContrastiveTensionDataLoader was loaded with a pos_neg_ratio of {pos_neg_ratio} and a batch size of {batch_size}. The batch size must be divisible by the pos_neg_ratio"
             )
 
     def __iter__(self):

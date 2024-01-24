@@ -38,15 +38,24 @@ class BatchSemiHardTripletLoss(nn.Module):
     
     Example::
 
-       from sentence_transformers import SentenceTransformer, SentencesDataset, losses
-       from sentence_transformers.readers import InputExample
+        from sentence_transformers import SentenceTransformer, losses
+        from sentence_transformers.readers import InputExample
+        from torch.utils.data import DataLoader
 
-       model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-       train_examples = [InputExample(texts=['Sentence from class 0'], label=0), InputExample(texts=['Another sentence from class 0'], label=0),
-           InputExample(texts=['Sentence from class 1'], label=1), InputExample(texts=['Sentence from class 2'], label=2)]
-       train_dataset = SentencesDataset(train_examples, model)
-       train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
-       train_loss = losses.BatchSemiHardTripletLoss(model=model)
+        model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+        train_examples = [
+            InputExample(texts=['Sentence from class 0'], label=0), 
+            InputExample(texts=['Another sentence from class 0'], label=0),
+            InputExample(texts=['Sentence from class 1'], label=1), 
+            InputExample(texts=['Sentence from class 2'], label=2)
+        ]
+        train_batch_size = 2
+        train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
+        train_loss = losses.BatchSemiHardTripletLoss(model=model)
+        model.fit(
+            train_objectives=[(train_dataloader, train_loss)],
+            epochs=10,
+        )
     """
 
     def __init__(

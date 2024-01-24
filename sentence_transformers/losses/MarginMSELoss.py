@@ -22,6 +22,33 @@ class MarginMSELoss(nn.Module):
     | ------------------------------------- | --------------------------------------- |
     | (query, positive, negative) triplets  | M(query, positive) - M(query, negative) |
     
+    Example::
+
+        from sentence_transformers import SentenceTransformer, InputExample, losses
+        from sentence_transformers.util import pairwise_dot_score
+        from torch.utils.data import DataLoader
+        import torch
+
+        model1 = SentenceTransformer('sentence-transformers/distilbert-base-nli-mean-tokens')
+        model2 = SentenceTransformer('sentence-transformers/bert-base-nli-stsb-mean-tokens')
+
+        train_examples = [
+            ['The first query',  'The first positive passage',  'The first negative passage'],
+            ['The second query', 'The second positive passage', 'The second negative passage'],
+            ['The third query',  'The third positive passage',  'The third negative passage'],
+        ]
+        train_batch_size = 1
+        encoded = torch.tensor([model2.encode(x).tolist() for x in train_examples])
+        labels = pairwise_dot_score(encoded[:, 0], encoded[:, 1]) - pairwise_dot_score(encoded[:, 0], encoded[:, 2])
+
+        train_input_examples = [InputExample(texts=x, label=labels[i]) for i, x in enumerate(train_examples)]
+        train_dataloader = DataLoader(train_input_examples, shuffle=True, batch_size=train_batch_size)
+        train_loss = losses.MarginMSELoss(model=model1)
+
+        model1.fit(
+            [(train_dataloader, train_loss)],
+            epochs=10,
+        )
     """
 
     def __init__(self, model, similarity_fct=util.pairwise_dot_score):

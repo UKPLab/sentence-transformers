@@ -16,7 +16,7 @@ class BatchAllTripletLoss(nn.Module):
     | Blog post: https://omoindrot.github.io/triplet-loss
 
     :param model: SentenceTransformer model
-    :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
+    :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
     :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
     
     Requirements:
@@ -35,15 +35,24 @@ class BatchAllTripletLoss(nn.Module):
     
     Example::
 
-        from sentence_transformers import SentenceTransformer, SentencesDataset, losses
+        from sentence_transformers import SentenceTransformer, losses
         from sentence_transformers.readers import InputExample
+        from torch.utils.data import DataLoader
 
         model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-        train_examples = [InputExample(texts=['Sentence from class 0'], label=0), InputExample(texts=['Another sentence from class 0'], label=0),
-            InputExample(texts=['Sentence from class 1'], label=1), InputExample(texts=['Sentence from class 2'], label=2)]
-        train_dataset = SentencesDataset(train_examples, model)
-        train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
+        train_examples = [
+            InputExample(texts=['Sentence from class 0'], label=0), 
+            InputExample(texts=['Another sentence from class 0'], label=0),
+            InputExample(texts=['Sentence from class 1'], label=1), 
+            InputExample(texts=['Sentence from class 2'], label=2),
+        ]
+        train_batch_size = 2
+        train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
         train_loss = losses.BatchAllTripletLoss(model=model)
+        model.fit(
+            train_objectives=[(train_dataloader, train_loss)],
+            epochs=10,
+        )
     """
 
     def __init__(

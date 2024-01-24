@@ -34,13 +34,27 @@ class SoftmaxLoss(nn.Module):
 
         from sentence_transformers import SentenceTransformer, SentencesDataset, losses
         from sentence_transformers.readers import InputExample
+        from torch.utils.data import DataLoader
 
         model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-        train_examples = [InputExample(texts=['First pair, sent A', 'First pair, sent B'], label=0),
-            InputExample(texts=['Second Pair, sent A', 'Second Pair, sent B'], label=3)]
+        train_examples = [
+            InputExample(texts=['First pair, sent A',  'First pair, sent B'], label=0),
+            InputExample(texts=['Second pair, sent A', 'Second pair, sent B'], label=1),
+            InputExample(texts=['Third pair, sent A',  'Third pair, sent B'], label=0),
+            InputExample(texts=['Fourth pair, sent A', 'Fourth pair, sent B'], label=2),
+        ]
+        train_batch_size = 2
         train_dataset = SentencesDataset(train_examples, model)
         train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
-        train_loss = losses.SoftmaxLoss(model=model, sentence_embedding_dimension=model.get_sentence_embedding_dimension(), num_labels=train_num_labels)
+        train_loss = losses.SoftmaxLoss(
+            model=model, 
+            sentence_embedding_dimension=model.get_sentence_embedding_dimension(), 
+            num_labels=len(set(x.label for x in train_examples))
+        )
+        model.fit(
+            [(train_dataloader, train_loss)],
+            epochs=10,
+        )
     """
 
     def __init__(

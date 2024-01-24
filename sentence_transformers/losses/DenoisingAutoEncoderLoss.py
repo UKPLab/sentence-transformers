@@ -30,6 +30,8 @@ class DenoisingAutoEncoderLoss(nn.Module):
     | (damaged_sentence, original_sentence) pairs | -      |
 
     
+    # TODO add example
+
     """
 
     def __init__(self, model: SentenceTransformer, decoder_name_or_path: str = None, tie_encoder_decoder: bool = True):

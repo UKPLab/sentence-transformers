@@ -26,6 +26,28 @@ class MegaBatchMarginLoss(nn.Module):
     | Texts                    | Labels |
     | ------------------------ | ------ |
     | (anchor, positive) pairs | -      |
+
+    Example::
+
+        from sentence_transformers import SentenceTransformer, InputExample, losses
+        from torch.utils.data import DataLoader
+
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+
+        total_examples = 500
+        train_batch_size = 250
+        train_mini_batch_size = 32
+
+        train_examples = [
+            InputExample(texts=[f"This is sentence number {i}", f"This is sentence number {i+1}"]) for i in range(total_examples)
+        ]
+        train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
+        train_loss = losses.MegaBatchMarginLoss(model=model, mini_batch_size=train_mini_batch_size)
+
+        model.fit(
+            [(train_dataloader, train_loss)],
+            epochs=10,
+        )
     """
 
     def __init__(

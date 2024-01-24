@@ -42,10 +42,16 @@ class MultipleNegativesRankingLoss(nn.Module):
         from torch.utils.data import DataLoader
 
         model = SentenceTransformer('distilbert-base-uncased')
-        train_examples = [InputExample(texts=['Anchor 1', 'Positive 1']),
-            InputExample(texts=['Anchor 2', 'Positive 2'])]
+        train_examples = [
+            InputExample(texts=['Anchor 1', 'Positive 1']),
+            InputExample(texts=['Anchor 2', 'Positive 2']),
+        ]
         train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
         train_loss = losses.MultipleNegativesRankingLoss(model=model)
+        model.fit(
+            [(train_dataloader, train_loss)],
+            epochs=10,
+        )
     """
 
     def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim):

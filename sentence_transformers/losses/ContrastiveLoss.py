@@ -39,19 +39,23 @@ class ContrastiveLoss(nn.Module):
 
     Example::
 
-        from sentence_transformers import SentenceTransformer, LoggingHandler, losses, InputExample
+        from sentence_transformers import SentenceTransformer, losses
+        from sentence_transformers.readers import InputExample
         from torch.utils.data import DataLoader
 
         model = SentenceTransformer('all-MiniLM-L6-v2')
         train_examples = [
             InputExample(texts=['This is a positive pair', 'Where the distance will be minimized'], label=1),
-            InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0)]
+            InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0),
+        ]
 
         train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=2)
         train_loss = losses.ContrastiveLoss(model=model)
 
-        model.fit([(train_dataloader, train_loss)], show_progress_bar=True)
-
+        model.fit(
+            [(train_dataloader, train_loss)],
+            epochs=10,
+        )
     """
 
     def __init__(

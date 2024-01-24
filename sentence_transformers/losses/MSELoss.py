@@ -19,6 +19,30 @@ class MSELoss(nn.Module):
     | --------------------------- | --------------------------- |
     | model_1_sentence_embeddings | model_2_sentence_embeddings |
     
+    Example::
+
+        from sentence_transformers import SentenceTransformer, InputExample, losses
+        from torch.utils.data import DataLoader
+
+        model_en = SentenceTransformer('bert-base-cased')
+        model_fr = SentenceTransformer('flaubert/flaubert_base_cased')
+
+        examples_en = ['The first sentence',  'The second sentence', 'The third sentence',  'The fourth sentence']
+        examples_fr = ['La première phrase',  'La deuxième phrase', 'La troisième phrase',  'La quatrième phrase']
+        train_batch_size = 2
+
+        labels_en_en = model_en.encode(examples_en)
+        examples_en_fr = [InputExample(texts=[x], label=labels_en_en[i]) for i, x in enumerate(examples_en)]
+        loader_en_fr = DataLoader(examples_en_fr, batch_size=train_batch_size)
+
+        examples_fr_fr = [InputExample(texts=[x], label=labels_en_en[i]) for i, x in enumerate(examples_fr)]
+        loader_fr_fr = DataLoader(examples_fr_fr, batch_size=train_batch_size)
+
+        train_loss = losses.MSELoss(model=model_fr)
+        model_fr.fit(
+            [(loader_en_fr, train_loss), (loader_fr_fr, train_loss)],
+            epochs=10,
+        )
     """
 
     def __init__(self, model):
