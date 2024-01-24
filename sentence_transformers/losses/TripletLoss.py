@@ -33,7 +33,7 @@ class TripletLoss(nn.Module):
 
     Requirements:
         1. (anchor, positive, negative) triplets
-    
+
     Inputs:
 
     +---------------------------------------+--------+
@@ -41,7 +41,7 @@ class TripletLoss(nn.Module):
     +=======================================+========+
     | (anchor, positive, negative) triplets |        |
     +---------------------------------------+--------+
-    
+
     Example::
 
         from sentence_transformers import SentenceTransformer,  SentencesDataset, losses

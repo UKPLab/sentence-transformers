@@ -23,7 +23,7 @@ class SoftmaxLoss(nn.Module):
 
     Requirements:
         1. sentence pairs with a class label
-    
+
     Inputs:
 
     +---------------------------------------+--------+
@@ -31,7 +31,7 @@ class SoftmaxLoss(nn.Module):
     +=======================================+========+
     | (sentence_A, sentence_B) pairs        | class  |
     +---------------------------------------+--------+
-    
+
     Example::
 
         from sentence_transformers import SentenceTransformer, SentencesDataset, losses
@@ -49,8 +49,8 @@ class SoftmaxLoss(nn.Module):
         train_dataset = SentencesDataset(train_examples, model)
         train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
         train_loss = losses.SoftmaxLoss(
-            model=model, 
-            sentence_embedding_dimension=model.get_sentence_embedding_dimension(), 
+            model=model,
+            sentence_embedding_dimension=model.get_sentence_embedding_dimension(),
             num_labels=len(set(x.label for x in train_examples))
         )
         model.fit(

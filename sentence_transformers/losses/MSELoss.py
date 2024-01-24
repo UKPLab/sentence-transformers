@@ -9,18 +9,18 @@ class MSELoss(nn.Module):
     Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation: https://arxiv.org/abs/2004.09813
 
     For an example, see the documentation on extending language models to new languages.
-    
+
     Requirements:
         1. Usually uses a finetuned teacher M in a knowledge distillation setup
 
     Input:
-    
+
     +-------------------+-----------------------------+
     | Texts             | Labels                      |
     +===================+=============================+
     | single sentences  | model_2_sentence_embeddings |
     +-------------------+-----------------------------+
-    
+
     Example::
 
         from sentence_transformers import SentenceTransformer, InputExample, losses

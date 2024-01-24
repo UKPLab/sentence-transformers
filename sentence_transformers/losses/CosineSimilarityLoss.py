@@ -17,7 +17,7 @@ class CosineSimilarityLoss(nn.Module):
 
     Requirements:
         1. Sentence pairs with corresponding similarity scores in range `[0, 1]`
-    
+
     Inputs:
 
     +--------------------------------+--------+
@@ -26,7 +26,7 @@ class CosineSimilarityLoss(nn.Module):
     | (sentence_A, sentence_B) pairs | score  |
     +--------------------------------+--------+
 
-    
+
     Example::
 
         from sentence_transformers import SentenceTransformer, InputExample, losses
