@@ -30,7 +30,28 @@ class DenoisingAutoEncoderLoss(nn.Module):
     | (damaged_sentence, original_sentence) pairs | -      |
 
     
-    # TODO add example
+    Example::
+    
+        from sentence_transformers import SentenceTransformer, losses
+        from sentence_transformers.datasets import DenoisingAutoEncoderDataset
+        from torch.utils.data import DataLoader
+
+        model_name = "bert-base-cased"
+        model = SentenceTransformer(model_name)
+        train_sentences = [
+            "First training sentence", "Second training sentence", "Third training sentence", "Fourth training sentence",
+        ]
+        batch_size = 2
+        train_dataset = DenoisingAutoEncoderDataset(train_sentences)
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+        train_loss = losses.DenoisingAutoEncoderLoss(
+            model, decoder_name_or_path=model_name, tie_encoder_decoder=True
+        )
+        model.fit(
+            train_objectives=[(train_dataloader, train_loss)],
+            epochs=10,
+        )
+
 
     """
 
