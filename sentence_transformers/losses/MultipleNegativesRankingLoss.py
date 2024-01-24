@@ -27,14 +27,17 @@ class MultipleNegativesRankingLoss(nn.Module):
     Here, n_1 is a hard negative for (a_1, p_1). The loss will use for the pair (a_i, p_i) all p_j (j!=i) and all n_j as negatives.
 
     Requirements:
-        - (anchor, positive) pairs or (anchor, positive, negative) triplets
+        1. (anchor, positive) pairs or (anchor, positive, negative) triplets
 
     Inputs:
 
-    | Texts                                  | Labels |
-    | -------------------------------------- | ------ |
-    | (anchor, positive) pairs               | -      |
-    | (anchor, positive, negative) triplets  | -      |
+    +---------------------------------------+--------+
+    | Texts                                 | Labels |
+    +=======================================+========+
+    | (anchor, positive) pairs              |        |
+    +---------------------------------------+--------+
+    | (anchor, positive, negative) triplets |        |
+    +---------------------------------------+--------+
 
     Example::
 

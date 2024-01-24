@@ -16,13 +16,16 @@ class CosineSimilarityLoss(nn.Module):
     :param cos_score_transformation: The cos_score_transformation function is applied on top of cosine_similarity. By default, the identify function is used (i.e. no change).
 
     Requirements:
-        - Sentence pairs with corresponding similarity scores in range `[0, 1]`
+        1. Sentence pairs with corresponding similarity scores in range `[0, 1]`
     
     Inputs:
 
+    +--------------------------------+--------+
     | Texts                          | Labels |
-    | ------------------------------ | ------ |
+    +================================+========+
     | (sentence_A, sentence_B) pairs | score  |
+    +--------------------------------+--------+
+
     
     Example::
 

@@ -10,18 +10,21 @@ class MarginMSELoss(nn.Module):
     For more details, please refer to https://arxiv.org/abs/2010.02666.
     
     Requirements:
-        - (query, positive, negative) triplets
-        - Usually used with a finetuned teacher M in a knowledge distillation setup
+        1. (query, positive, negative) triplets
+        2. Usually used with a finetuned teacher M in a knowledge distillation setup
 
     Relations:
+        \ \
         - equivalent to `MSELoss` but with a margin
     
     Inputs:
 
-    | Texts                                 | Labels                                                          |
-    | ------------------------------------- | --------------------------------------- |
-    | (query, positive, negative) triplets  | M(query, positive) - M(query, negative) |
-    
+    +-----------------------------------------------+-----------------------------------------+
+    | Texts                                         | Labels                                  |
+    +===============================================+=========================================+
+    | (query, positive, negative) triplets          | M(query, positive) - M(query, negative) |
+    +-----------------------------------------------+-----------------------------------------+
+
     Example::
 
         from sentence_transformers import SentenceTransformer, InputExample, losses

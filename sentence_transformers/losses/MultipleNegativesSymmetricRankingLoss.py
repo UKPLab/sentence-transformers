@@ -20,18 +20,22 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
     Note: If you pass triplets, the negative entry will be ignored. A anchor is just searched for the positive.
 
     Requirements:
-        - (anchor, positive) pairs
+        1. (anchor, positive) pairs
 
-    Relation:
-        - like `MultipleNegativesRankingLoss` but with an added loss term 
+    Relations:
+        \ \
+        - Like `MultipleNegativesRankingLoss` but with an additional loss term 
         
     Inputs:
 
-    | Texts                                  | Labels |
-    | -------------------------------------- | ------ |
-    | (anchor, positive) pairs               | -      |
-    | (anchor, positive, negative) triplets  | -      |
-    
+    +---------------------------------------+--------+
+    | Texts                                 | Labels |
+    +=======================================+========+
+    | (anchor, positive) pairs              |        |
+    +---------------------------------------+--------+
+    | (anchor, positive, negative) triplets |        |
+    +---------------------------------------+--------+
+
     Example::
 
         from sentence_transformers import SentenceTransformer, losses, InputExample

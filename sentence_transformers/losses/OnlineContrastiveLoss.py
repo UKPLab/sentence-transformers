@@ -17,17 +17,20 @@ class OnlineContrastiveLoss(nn.Module):
     :param size_average: Average by the size of the mini-batch.
 
     Requirements:
-        - (anchor, positive/negative) pairs
-        - Data should include hard positives and hard negatives
+        1. (anchor, positive/negative) pairs
+        2. Data should include hard positives and hard negatives
 
     Relations:
-        - like `ContrastiveLoss` but uses hard positive and hard negative pairs
+        \ \
+        - Like `ContrastiveLoss` but uses hard positive and hard negative pairs
 
     Inputs:
-
-    | Texts                                  | Labels      |
-    | -------------------------------------- | ----------- |
-    | (anchor, positive/negative) pairs      | is positive |
+    
+    +---------------------------------------+-------------+
+    | Texts                                 | Labels      |
+    +=======================================+=============+
+    | (anchor, positive/negative) pairs     | is positive |
+    +---------------------------------------+-------------+
     
     Example::
 

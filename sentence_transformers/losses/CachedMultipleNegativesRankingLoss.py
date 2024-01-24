@@ -76,18 +76,22 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
     requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
 
     Requirements:
-        - (anchor, positive) pairs or (anchor, positive, negative pairs)
-        - Should be used with large batch sizes due to slower computation time
+        1. (anchor, positive) pairs or (anchor, positive, negative pairs)
+        2. Should be used with large batch sizes due to slower computation time
 
     Relations:
+        \ \
         - Equivalent to `MultipleNegativesRankingLoss` but with caching
 
     Inputs:
-
-    | Texts                                  | Labels |
-    | -------------------------------------- | ------ |
-    | (anchor, positive) pairs               | -      |
-    | (anchor, positive, negative) triplets  | -      |
+    
+    +---------------------------------------+--------+
+    | Texts                                 | Labels |
+    +=======================================+========+
+    | (anchor, positive) pairs              |        |
+    +---------------------------------------+--------+
+    | (anchor, positive, negative) triplets |        |
+    +---------------------------------------+--------+
     
     Example::
 

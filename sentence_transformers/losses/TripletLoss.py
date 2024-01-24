@@ -32,13 +32,15 @@ class TripletLoss(nn.Module):
     :param triplet_margin: The negative should be at least this much further away from the anchor than the positive.
 
     Requirements:
-        - (anchor, positive, negative) triplets
+        1. (anchor, positive, negative) triplets
     
     Inputs:
 
+    +---------------------------------------+--------+
     | Texts                                 | Labels |
-    | ------------------------------------- | ------ |
-    | (anchor, positive, negative) tripets  | -      |
+    +=======================================+========+
+    | (anchor, positive, negative) triplets |        |
+    +---------------------------------------+--------+
     
     Example::
 

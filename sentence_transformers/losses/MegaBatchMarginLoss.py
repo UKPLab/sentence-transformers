@@ -18,14 +18,16 @@ class MegaBatchMarginLoss(nn.Module):
     Then train as with the triplet loss.
 
     Requirements:
-        - (anchor, positive) pairs
-        - Large batches (500 or more examples)
+        1. (anchor, positive) pairs
+        2. Large batches (500 or more examples)
 
     Input:
 
-    | Texts                    | Labels |
-    | ------------------------ | ------ |
-    | (anchor, positive) pairs | -      |
+    +---------------------------------------+--------+
+    | Texts                                 | Labels |
+    +=======================================+========+
+    | (anchor, positive) pairs              |        |
+    +---------------------------------------+--------+
 
     Example::
 

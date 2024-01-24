@@ -28,14 +28,15 @@ class ContrastiveLoss(nn.Module):
     :param size_average: Average by the size of the mini-batch.
 
     Requirements:
-        - (anchor, positive/negative) pairs
+        1. (anchor, positive/negative) pairs
 
     Inputs:
 
-    | Texts                             | Labels         |
-    | --------------------------------- | -------------- |
-    | (anchor, positive/negative) pairs | is a positive  |
-
+    +-----------------------------------------------+---------------+
+    | Texts                                         | Labels        |
+    +===============================================+===============+
+    | (anchor, positive/negative) pairs             | is a positive |
+    +-----------------------------------------------+---------------+
 
     Example::
 

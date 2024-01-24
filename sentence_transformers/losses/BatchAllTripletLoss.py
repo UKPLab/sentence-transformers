@@ -18,20 +18,22 @@ class BatchAllTripletLoss(nn.Module):
     :param model: SentenceTransformer model
     :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
     :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
-    
+        
     Requirements:
-        - Class labels for each sentence
-        - Labels must contain at least 2 examples per labels class
+        1. Class labels for each sentence
+        2. Labels must contain at least 2 examples per labels class
     
     Relations:
+        \ \
         - Equivalent to `BatchHardTripletLoss` but calculated for all possible, valid triplets
 
     Inputs:
-
-    | Texts             | Labels |
-    | ----------------- | ------ |
-    | single sentences  | class  |
-
+    
+    +------------------+--------+
+    | Texts            | Labels |
+    +==================+========+
+    | single sentences |        |
+    +------------------+--------+
     
     Example::
 

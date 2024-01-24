@@ -20,18 +20,19 @@ class DenoisingAutoEncoderLoss(nn.Module):
     For more information, please refer to the TSDAE paper.
 
     Requirements:
-        - The decoder should have a class called XXXLMHead (in the context of Huggingface's Transformers)
-        - Should use a large corpus
+        1. The decoder should have a class called XXXLMHead (in the context of Huggingface's Transformers)
+        2. Should use a large corpus
 
     Inputs:
 
-    | Texts                                       | Labels |
-    | ------------------------------------------- | ------ |
-    | (damaged_sentence, original_sentence) pairs | -      |
+    +-----------------------------------------------+--------+
+    | Texts                                         | Labels |
+    +===============================================+========+
+    | (damaged\_sentence, original\_sentence) pairs |        |
+    +-----------------------------------------------+--------+
 
-    
     Example::
-    
+
         from sentence_transformers import SentenceTransformer, losses
         from sentence_transformers.datasets import DenoisingAutoEncoderDataset
         from torch.utils.data import DataLoader

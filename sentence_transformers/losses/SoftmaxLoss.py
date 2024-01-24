@@ -22,13 +22,15 @@ class SoftmaxLoss(nn.Module):
     :param loss_fct: Optional: Custom pytorch loss function. If not set, uses nn.CrossEntropyLoss()
 
     Requirements:
-        - sentence pairs with a class label
+        1. sentence pairs with a class label
     
     Inputs:
 
-    | Texts                           | Labels |
-    | ------------------------------- | ------ |
-    | (sentence_A, sentence_B) pairs  | class  |
+    +---------------------------------------+--------+
+    | Texts                                 | Labels |
+    +=======================================+========+
+    | (sentence_A, sentence_B) pairs        | class  |
+    +---------------------------------------+--------+
     
     Example::
 

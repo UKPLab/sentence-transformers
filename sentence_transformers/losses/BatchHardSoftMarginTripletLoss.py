@@ -21,20 +21,23 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
 
         
     Requirements:
-        - Class labels for each sentence
-        - Labels must contain at least 2 examples per labels class
-        - Data should contain hard positives and negatives
+        1. Class labels for each sentence
+        2. Labels must contain at least 2 examples per labels class
+        3. Data should contain hard positives and negatives
     
 
     Relations:
+        \ \
         - Like `BatchAllTripletLoss` but with a margin
 
     Inputs:
 
-    | Texts             | Labels |
-    | ----------------- | ------ |
-    | single sentences  | class  |
-
+    +------------------+--------+
+    | Texts            | Labels |
+    +==================+========+
+    | single sentences | class  |
+    +------------------+--------+
+    
     Example::
 
         from sentence_transformers import SentenceTransformer, losses
