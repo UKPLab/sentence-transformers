@@ -18,7 +18,7 @@ You can install it using pip:
    pip install -U sentence-transformers
 
 
-We recommend **Python 3.8** or higher, and at least **PyTorch 1.6.0**. See `installation <docs/installation.html>`_ for further installation options, especially if you want to use a GPU.
+We recommend **Python 3.8** or higher, and at least **PyTorch 1.11.0**. See `installation <docs/installation.html>`_ for further installation options, especially if you want to use a GPU.
 
 
 
