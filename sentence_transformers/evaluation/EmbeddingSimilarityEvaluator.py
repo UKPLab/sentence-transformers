@@ -182,7 +182,9 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             "pearson_dot": eval_pearson_dot,
             "spearman_dot": eval_spearman_dot,
             "pearson_max": max(eval_pearson_cosine, eval_pearson_manhattan, eval_pearson_euclidean, eval_pearson_dot),
-            "spearman_max": max(eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot),
+            "spearman_max": max(
+                eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot
+            ),
         }
         if self.main_similarity == SimilarityFunction.COSINE:
             return eval_spearman_cosine

@@ -155,6 +155,7 @@ class FitMixin:
         # Clear the dataloaders from collate functions as we just want raw InputExamples
         def identity(batch):
             return batch
+
         for data_loader in data_loaders:
             data_loader.collate_fn = identity
 
