@@ -5,13 +5,14 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, ConcatDataset
-from transformers import PreTrainedTokenizerBase, Trainer, TrainingArguments, EvalPrediction, TrainerCallback
+from transformers import PreTrainedTokenizerBase, Trainer, EvalPrediction, TrainerCallback
 from transformers.trainer import TRAINING_ARGS_NAME
 
 from datasets import DatasetDict, Dataset
 from transformers.trainer_utils import EvalLoopOutput
 from transformers.data.data_collator import DataCollator
 
+from sentence_transformers.training_args import TrainingArguments
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator
