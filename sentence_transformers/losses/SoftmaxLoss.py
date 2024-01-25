@@ -84,10 +84,6 @@ class SoftmaxLoss(nn.Module):
         output = self.classifier(features)
 
         if labels is not None:
-            # print(labels.dtype)
-            # breakpoint()
-            # print(output.shape, labels.shape, output.dtype, labels.dtype, output.device, labels.device)
-            # print(labels.min(), labels.max())
             loss = self.loss_fct(output, labels.view(-1))
             return loss
         else:
