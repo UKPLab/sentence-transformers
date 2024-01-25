@@ -29,6 +29,7 @@ setup(
         "huggingface-hub>=0.15.1",
         "Pillow",
         "datasets",
+        "accelerate",
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
