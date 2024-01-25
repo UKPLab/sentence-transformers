@@ -226,7 +226,6 @@ class SentenceTransformerTrainer(Trainer):
                 batch_size=self.args.train_batch_size,
                 drop_last=self.args.dataloader_drop_last,
                 seed=self.args.seed,
-                trainer=self,
             ),
         }
 
