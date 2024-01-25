@@ -190,6 +190,7 @@ class FitMixin:
         # TODO: Extract dataloader arguments from the dataloaders
         # TODO: evaluator is not working yet, likely as eval_dataset is None
         # TODO: Test model checkpointing & loading
+        # TODO: Allow custom label columns, perhaps accept "score" as a default as well
         args = TrainingArguments(
             output_dir=checkpoint_path or _default_checkpoint_dir(),
             per_device_train_batch_size=batch_size,
