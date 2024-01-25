@@ -36,6 +36,7 @@ class MSEEvaluator(SentenceEvaluator):
         name: str = "",
         write_csv: bool = True,
     ):
+        super().__init__()
         self.source_embeddings = teacher_model.encode(
             source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True
         )

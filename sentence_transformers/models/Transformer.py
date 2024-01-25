@@ -37,6 +37,7 @@ class Transformer(nn.Module):
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name_or_path if tokenizer_name_or_path is not None else model_name_or_path,
+            model_max_length=max_seq_length,
             cache_dir=cache_dir,
             **tokenizer_args,
         )

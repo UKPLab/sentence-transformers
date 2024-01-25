@@ -38,4 +38,4 @@ class CosineSimilarityLoss(nn.Module):
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         output = self.cos_score_transformation(torch.cosine_similarity(embeddings[0], embeddings[1]))
-        return self.loss_fct(output, labels.view(-1))
+        return self.loss_fct(output, labels.float().view(-1))

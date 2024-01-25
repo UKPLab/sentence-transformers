@@ -37,6 +37,7 @@ class TripletEvaluator(SentenceEvaluator):
         :param show_progress_bar: If true, prints a progress bar
         :param write_csv: Write results to a CSV file
         """
+        super().__init__()
         self.anchors = anchors
         self.positives = positives
         self.negatives = negatives

@@ -1,3 +1,6 @@
+from typing import Dict, Union
+
+
 class SentenceEvaluator:
     """
     Base class for all evaluators
@@ -5,7 +8,12 @@ class SentenceEvaluator:
     Extend this class and implement __call__ for custom evaluators.
     """
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __init__(self):
+        self.greater_is_better = True
+
+    def __call__(
+        self, model, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Union[float, Dict[str, float]]:
         """
         This is called during training to evaluate the model.
         It returns a score for the evaluation with a higher score indicating a better result.
@@ -22,6 +30,8 @@ class SentenceEvaluator:
             the steps in the current epoch at time of the evaluation.
             This is used for the file prefixes.
             If this is -1, then we assume evaluation at the end of the epoch.
-        :return: a score for the evaluation with a higher score indicating a better result
+        :return: Either a score for the evaluation with a higher score indicating a better result,
+            or a dictionary with scores. If the latter is chosen, then `evaluator.primary_metric`
+            must be defined
         """
         pass

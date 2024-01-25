@@ -34,6 +34,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         name="",
         write_csv: bool = True,
     ):
+        super().__init__()
         self.combinations = combinations
         self.name = name
         self.batch_size = batch_size

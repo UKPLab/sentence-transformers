@@ -43,6 +43,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         :param scores: Similarity score between sentences1[i] and sentences2[i]
         :param write_csv: Write results to a CSV file
         """
+        super().__init__()
         self.sentences1 = sentences1
         self.sentences2 = sentences2
         self.scores = scores
@@ -169,6 +170,16 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                     ]
                 )
 
+        return {
+            "pearson_cosine": eval_pearson_cosine,
+            "spearman_cosine": eval_spearman_cosine,
+            "pearson_manhattan": eval_pearson_manhattan,
+            "spearman_manhattan": eval_spearman_manhattan,
+            "pearson_euclidean": eval_pearson_euclidean,
+            "spearman_euclidean": eval_spearman_euclidean,
+            "pearson_dot": eval_pearson_dot,
+            "spearman_dot": eval_spearman_dot,
+        }
         if self.main_similarity == SimilarityFunction.COSINE:
             return eval_spearman_cosine
         elif self.main_similarity == SimilarityFunction.EUCLIDEAN:

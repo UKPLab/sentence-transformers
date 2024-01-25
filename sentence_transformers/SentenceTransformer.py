@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from pathlib import Path
 import shutil
 from collections import OrderedDict
 import warnings
@@ -18,6 +19,11 @@ from tqdm.autonotebook import trange
 import math
 import queue
 import tempfile
+from datasets import Dataset, DatasetDict
+from transformers import TrainerCallback, TrainerState, TrainerControl
+
+from sentence_transformers.trainer import SentenceTransformerTrainer
+from sentence_transformers.training_args import TrainingArguments
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
@@ -484,6 +490,7 @@ class SentenceTransformer(nn.Sequential):
         model_name: Optional[str] = None,
         create_model_card: bool = True,
         train_datasets: Optional[List[str]] = None,
+        safe_serialization: bool = True,  # <- TODO, probably via #2426?
     ):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
@@ -696,6 +703,211 @@ class SentenceTransformer(nn.Sequential):
             return sum([len(t) for t in text])  # Sum of length of individual strings
 
     def fit(
+        self,
+        train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
+        evaluator: SentenceEvaluator = None,
+        epochs: int = 1,
+        steps_per_epoch=None,
+        scheduler: str = "WarmupLinear",
+        warmup_steps: int = 10000,
+        optimizer_class: Type[Optimizer] = torch.optim.AdamW,
+        optimizer_params: Dict[str, object] = {"lr": 2e-5},
+        weight_decay: float = 0.01,
+        evaluation_steps: int = 0,
+        output_path: str = None,
+        save_best_model: bool = True,
+        max_grad_norm: float = 1,
+        use_amp: bool = False,
+        callback: Callable[[float, int, int], None] = None,
+        show_progress_bar: bool = True,
+        checkpoint_path: str = None,
+        checkpoint_save_steps: int = 500,
+        checkpoint_save_total_limit: int = 0,
+    ):
+        """
+        Train the model with the given training objective
+        Each training objective is sampled in turn for one batch.
+        We sample only as many batches from each objective as there are in the smallest one
+        to make sure of equal training with each dataset.
+
+        :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
+        :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
+        :param epochs: Number of epochs for training
+        :param steps_per_epoch: Number of training steps per epoch. If set to None (default), one epoch is equal the DataLoader size from train_objectives.
+        :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
+        :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
+        :param optimizer_class: Optimizer
+        :param optimizer_params: Optimizer parameters
+        :param weight_decay: Weight decay for model parameters
+        :param evaluation_steps: If > 0, evaluate the model using evaluator after each number of training steps
+        :param output_path: Storage path for the model and evaluation files
+        :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
+        :param max_grad_norm: Used for gradient normalization.
+        :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
+        :param callback: Callback function that is invoked after each evaluation.
+                It must accept the following three parameters in this order:
+                `score`, `epoch`, `steps`
+        :param show_progress_bar: If True, output a tqdm progress bar
+        :param checkpoint_path: Folder to save checkpoints during training
+        :param checkpoint_save_steps: Will save a checkpoint after so many steps
+        :param checkpoint_save_total_limit: Total number of checkpoints to store
+        """
+        data_loaders, loss_fns = zip(*train_objectives)
+
+        batch_size = None
+        # Convert dataloaders into a DatasetDict
+        train_dataset_dict = {}
+        for loader_idx, data_loader in enumerate(data_loaders, start=1):
+            batch_size = getattr(data_loader, "batch_size", batch_size)
+            texts = []
+            labels = []
+            for batch in data_loader:
+                batch_texts, batch_labels = zip(*[(example.texts, example.label) for example in batch])
+                texts += batch_texts
+                labels += batch_labels
+            dataset = Dataset.from_dict({f"sentence_{idx}": text for idx, text in enumerate(zip(*texts))})
+            if set(labels) != {0}:
+                dataset = dataset.add_column("label", labels)
+            train_dataset_dict[f"dataset_{loader_idx}"] = dataset
+        train_dataset_dict = DatasetDict(train_dataset_dict)
+
+        def _default_checkpoint_dir() -> str:
+            dir_name = "checkpoints/model"
+            idx = 1
+            while Path(dir_name).exists() and len(list(Path(dir_name).iterdir())) != 0:
+                dir_name = f"checkpoints/model_{idx}"
+                idx += 1
+            return dir_name
+
+        # Convert loss_fns into a dict with `dataset_{idx}` keys
+        loss_fn_dict = {f"dataset_{idx}": loss_fn for idx, loss_fn in enumerate(loss_fns, start=1)}
+        # TODO: round_robin=True
+        # TODO: Extract dataloader arguments from the dataloaders
+        # TODO: evaluator is not working yet, likely as eval_dataset is None
+        # TODO: Test model checkpointing & loading
+        args = TrainingArguments(
+            output_dir=checkpoint_path or _default_checkpoint_dir(),
+            per_device_train_batch_size=batch_size,
+            per_device_eval_batch_size=batch_size,
+            num_train_epochs=epochs,
+            evaluation_strategy="steps" if evaluation_steps is not None and evaluation_steps > 0 else "no",
+            eval_steps=evaluation_steps,
+            # load_best_model_at_end=save_best_model, # <- TODO: Look into a good solution for save_best_model
+            max_grad_norm=max_grad_norm,
+            fp16=use_amp,
+            disable_tqdm=not show_progress_bar,
+            save_strategy="steps" if checkpoint_path is not None else "no",
+            save_steps=checkpoint_save_steps,
+            save_total_limit=checkpoint_save_total_limit,
+        )
+        print(args.output_dir)
+
+        if steps_per_epoch is None or steps_per_epoch == 0:
+            steps_per_epoch = min([len(train_dataset) // batch_size for train_dataset in train_dataset_dict.values()])
+        num_train_steps = int(steps_per_epoch * epochs)
+
+        # Prepare optimizer & scheduler
+        param_optimizer = list(self.named_parameters())
+
+        no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)],
+                "weight_decay": weight_decay,
+            },
+            {"params": [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], "weight_decay": 0.0},
+        ]
+
+        optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
+        scheduler_obj = self._get_scheduler(
+            optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps
+        )
+
+        # Create callbacks
+        callbacks = []
+
+        class SaveModelCallback(TrainerCallback):
+            """A Callback to save the model to the `output_dir`.
+
+            There are two cases:
+            1. save_best_model is True and evaluator is defined:
+                We save on evaluate, but only if the new model is better than the currently saved one
+                according to the evaluator.
+            2. If evaluator is not defined:
+                We save after the model has been trained.
+            """
+
+            def __init__(self, output_dir: str, evaluator: Optional[SentenceEvaluator], save_best_model: bool) -> None:
+                super().__init__()
+                self.output_dir = output_dir
+                self.evaluator = evaluator
+                self.save_best_model = save_best_model
+                # TODO: ^ has to implement `greater_is_better` and `primary_metric`
+                self.best_metric = None
+
+            def is_better(new_metric: float) -> bool:
+                if getattr(self.evaluator, "greater_is_better", True):
+                    return new_metric > self.best_metric
+                return new_metric < self.best_metric
+
+            def on_evaluate(
+                self,
+                args: TrainingArguments,
+                state: TrainerState,
+                control: TrainerControl,
+                model: SentenceTransformer,
+                **kwargs,
+            ):
+                if self.evaluator is not None and self.save_best_model:
+                    metric_key = getattr(self.evaluator, "primary_metric", "evaluator")
+                    if metric_key in state.log_history[-1]:
+                        if self.best_metric is None or self.is_better(state.log_history[-1][metric_key]):
+                            self.best_metric = state.log_history[-1][metric_key]
+                            model.save(self.output_dir)
+
+            def on_train_end(
+                self,
+                args: TrainingArguments,
+                state: TrainerState,
+                control: TrainerControl,
+                model: SentenceTransformer,
+                **kwargs,
+            ):
+                if self.evaluator is None:
+                    model.save(self.output_dir)
+
+        if output_path is not None:
+            callbacks.append(SaveModelCallback(output_path, evaluator, save_best_model))
+
+        class OriginalCallback(TrainerCallback):
+            def __init__(self, callback: Callable[[float, int, int], None], evaluator: SentenceEvaluator) -> None:
+                super().__init__()
+                self.callback = callback
+                self.evaluator = evaluator
+
+            def on_evaluate(
+                self, args: transformers.TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs
+            ):
+                metric_key = getattr(self.evaluator, "primary_metric", "evaluator")
+                if metric_key in self.log_history[-1]:
+                    return self.callback(self.log_history[-1][metric_key], state.epoch, state.global_step)
+
+        if callback is not None and evaluator is not None:
+            callbacks.append(OriginalCallback(callback, evaluator))
+
+        trainer = SentenceTransformerTrainer(
+            model=self,
+            args=args,
+            train_dataset=train_dataset_dict,
+            eval_dataset=None,
+            loss=loss_fn_dict,
+            evaluator=evaluator,
+            optimizers=(optimizer, scheduler_obj),
+            callbacks=callbacks,
+        )
+        trainer.train()
+
+    def old_fit(
         self,
         train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
         evaluator: SentenceEvaluator = None,
