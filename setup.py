@@ -28,6 +28,7 @@ setup(
         "sentencepiece",
         "huggingface-hub>=0.15.1",
         "Pillow",
+        "datasets",
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
