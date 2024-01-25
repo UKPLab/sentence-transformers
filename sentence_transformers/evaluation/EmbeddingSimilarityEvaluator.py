@@ -170,6 +170,8 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                     ]
                 )
 
+        # TODO: Use the model its SimilarityFunction to determine what to return and what to use as the primary metric
+        self.primary_metric = "spearman_max"
         return {
             "pearson_cosine": eval_pearson_cosine,
             "spearman_cosine": eval_spearman_cosine,
@@ -179,6 +181,8 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             "spearman_euclidean": eval_spearman_euclidean,
             "pearson_dot": eval_pearson_dot,
             "spearman_dot": eval_spearman_dot,
+            "pearson_max": max(eval_pearson_cosine, eval_pearson_manhattan, eval_pearson_euclidean, eval_pearson_dot),
+            "spearman_max": max(eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot),
         }
         if self.main_similarity == SimilarityFunction.COSINE:
             return eval_spearman_cosine
