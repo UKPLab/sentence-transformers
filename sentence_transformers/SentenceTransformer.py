@@ -33,6 +33,7 @@ from .util import (
 from .models import Transformer, Pooling
 from .model_card_templates import ModelCardTemplate
 from . import __version__
+from .SimilarityFunction import SimilarityFunction
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,7 @@ class SentenceTransformer(nn.Sequential):
         self,
         model_name_or_path: Optional[str] = None,
         modules: Optional[Iterable[nn.Module]] = None,
+        score_function: str = None,
         device: Optional[str] = None,
         cache_folder: Optional[str] = None,
         trust_remote_code: bool = False,
@@ -214,6 +216,14 @@ class SentenceTransformer(nn.Sequential):
         if device is None:
             device = get_device_name()
             logger.info("Use pytorch device_name: {}".format(device))
+
+        # if this is not true, the score_function is set after training
+        if score_function is not None:
+            if not isinstance(score_function, str):
+                raise ValueError("Type of score function is {}, but should be a string.".format(type(score_function)))
+            elif score_function not in [x.value for x in list(SimilarityFunction)]:
+                raise ValueError("The provided value is {}, but available values are {}.".format(score_function, [x.value for x in list(SimilarityFunction)]))
+        self.score_function = score_function
 
         self.to(device)
 
@@ -508,6 +518,8 @@ class SentenceTransformer(nn.Sequential):
                 "transformers": transformers.__version__,
                 "pytorch": torch.__version__,
             }
+        if "score_function" not in self._model_config:
+            self._model_config["score_function"] = self.score_function
 
         with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
             json.dump(self._model_config, fOut, indent=2)
@@ -1006,6 +1018,9 @@ class SentenceTransformer(nn.Sequential):
                         self._model_config["__version__"]["sentence_transformers"], __version__
                     )
                 )
+            
+            if "score_function" in self._model_config:
+                logger.info("The loaded model uses the {} score function.\n".format(self._model_config["score_function"]))
 
         # Check if a readme exists
         model_card_path = load_file_path(

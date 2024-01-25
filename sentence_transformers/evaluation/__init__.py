@@ -1,5 +1,5 @@
 from .SentenceEvaluator import SentenceEvaluator
-from .SimilarityFunction import SimilarityFunction
+from ..SimilarityFunction import SimilarityFunction
 from .BinaryClassificationEvaluator import BinaryClassificationEvaluator
 from .EmbeddingSimilarityEvaluator import EmbeddingSimilarityEvaluator
 from .InformationRetrievalEvaluator import InformationRetrievalEvaluator

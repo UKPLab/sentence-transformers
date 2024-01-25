@@ -31,7 +31,7 @@ class TripletEvaluator(SentenceEvaluator):
         :param anchors: Sentences to check similarity to. (e.g. a query)
         :param positives: List of positive sentences
         :param negatives: List of negative sentences
-        :param main_distance_function: One of 0 (Cosine), 1 (Euclidean) or 2 (Manhattan). Defaults to None, returning all 3.
+        :param main_distance_function: One of "cos_sim" (Cosine), "euclidean_sim" (Euclidean) or "manhattan_sim" (Manhattan). Defaults to None, returning all 3.
         :param name: Name for the output
         :param batch_size: Batch size used to compute embeddings
         :param show_progress_bar: If true, prints a progress bar
