@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 
 import torch
 from torch import nn
@@ -13,18 +13,20 @@ from transformers.trainer_utils import EvalLoopOutput
 from transformers.data.data_collator import DataCollator
 
 from sentence_transformers.training_args import TrainingArguments
-from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator
 from sentence_transformers.sampler import RoundRobinBatchSampler
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
+
 
 class SentenceTransformerTrainer(Trainer):
     def __init__(
         self,
-        model: Optional[SentenceTransformer] = None,
+        model: Optional["SentenceTransformer"] = None,
         args: TrainingArguments = None,
         train_dataset: Optional[Dataset] = None,
         eval_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
@@ -32,7 +34,7 @@ class SentenceTransformerTrainer(Trainer):
         evaluator: SentenceEvaluator = None,
         data_collator: Optional[DataCollator] = None,
         tokenizer: Optional[PreTrainedTokenizerBase] = None,
-        model_init: Optional[Callable[[], SentenceTransformer]] = None,
+        model_init: Optional[Callable[[], "SentenceTransformer"]] = None,
         compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = None,
         callbacks: Optional[List[TrainerCallback]] = None,
         optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
@@ -69,7 +71,7 @@ class SentenceTransformerTrainer(Trainer):
 
     def compute_loss(
         self,
-        model: SentenceTransformer,
+        model: "SentenceTransformer",
         inputs: Dict[str, Union[torch.Tensor, Any]],
         return_outputs: bool = False,
     ) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
