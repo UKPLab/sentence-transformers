@@ -6,13 +6,6 @@ a.icon-home {
     font-size: 1.4em;
 }
 
-ul.simple {
-    margin-top: -20px;
-}
-dd.field-odd > ul.simple {
-    margin-top: 0px;
-}
-
 dl.class > dt {
     width: 100%;
 }
