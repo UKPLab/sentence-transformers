@@ -7,6 +7,7 @@ import os
 from typing import Generator, List, Tuple
 
 import pytest
+import torch
 from torch.utils.data import DataLoader
 
 from sentence_transformers import (
@@ -83,7 +84,7 @@ def test_train_stsb_slow(
         epochs=1,
         evaluation_steps=1000,
         warmup_steps=int(len(train_dataloader) * 0.1),
-        use_amp=True,
+        use_amp=torch.cuda.is_available(),
     )
 
     evaluate_stsb_test(model, 80.0, sts_test_samples)
@@ -103,7 +104,7 @@ def test_train_stsb(
         epochs=1,
         evaluation_steps=1000,
         warmup_steps=int(len(train_dataloader) * 0.1),
-        use_amp=True,
+        use_amp=torch.cuda.is_available(),
     )
 
     evaluate_stsb_test(model, 60.0, sts_test_samples)
@@ -129,7 +130,7 @@ def test_train_nli_slow(
         evaluator=None,
         epochs=1,
         warmup_steps=int(len(train_dataloader) * 0.1),
-        use_amp=True,
+        use_amp=torch.cuda.is_available(),
     )
 
     evaluate_stsb_test(model, 50.0, sts_test_samples)
@@ -154,7 +155,7 @@ def test_train_nli(
         evaluator=None,
         epochs=1,
         warmup_steps=int(len(train_dataloader) * 0.1),
-        use_amp=True,
+        use_amp=torch.cuda.is_available(),
     )
 
     evaluate_stsb_test(model, 50.0, sts_test_samples)
