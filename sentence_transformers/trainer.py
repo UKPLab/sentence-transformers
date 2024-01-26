@@ -13,7 +13,7 @@ from transformers.trainer_utils import EvalLoopOutput
 from transformers.data.data_collator import DataCollator
 
 from sentence_transformers.training_args import TrainingArguments
-from sentence_transformers import SentenceTransformer
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator
 from sentence_transformers.sampler import RoundRobinBatchSampler
