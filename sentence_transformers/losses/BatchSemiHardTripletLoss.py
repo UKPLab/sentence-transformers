@@ -15,7 +15,7 @@ class BatchSemiHardTripletLoss(nn.Module):
 
     :param model: SentenceTransformer model
     :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrics that can be used
-    :param margin: Negative samples should be at least margin further apart from the anchor than the positive.    
+    :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
 
     Definitions:
         :Easy triplets: Triplets which have a loss of 0 because
@@ -47,7 +47,7 @@ class BatchSemiHardTripletLoss(nn.Module):
         +==================+========+
         | single sentences | class  |
         +------------------+--------+
-    
+
     Example:
         ::
 
@@ -57,9 +57,9 @@ class BatchSemiHardTripletLoss(nn.Module):
 
             model = SentenceTransformer('distilbert-base-nli-mean-tokens')
             train_examples = [
-                InputExample(texts=['Sentence from class 0'], label=0), 
+                InputExample(texts=['Sentence from class 0'], label=0),
                 InputExample(texts=['Another sentence from class 0'], label=0),
-                InputExample(texts=['Sentence from class 1'], label=1), 
+                InputExample(texts=['Sentence from class 1'], label=1),
                 InputExample(texts=['Sentence from class 2'], label=2)
             ]
             train_batch_size = 2

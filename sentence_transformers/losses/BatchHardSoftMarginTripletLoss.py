@@ -54,7 +54,7 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
             train_examples = [
                 InputExample(texts=['Sentence from class 0'], label=0),
                 InputExample(texts=['Another sentence from class 0'], label=0),
-                InputExample(texts=['Sentence from class 1'], label=1), 
+                InputExample(texts=['Sentence from class 1'], label=1),
                 InputExample(texts=['Sentence from class 2'], label=2)
             ]
             train_batch_size = 2

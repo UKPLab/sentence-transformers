@@ -1,4 +1,3 @@
-import string
 import torch
 from torch import nn, Tensor
 from typing import Iterable, Dict
@@ -17,8 +16,8 @@ class ContrastiveTensionLoss(nn.Module):
     such that a positive pair consists of two identical sentences and a negative pair consists of two different sentences. An independent
     copy of the encoder model is created, which is used for encoding the first sentence of each pair. The original encoder model encodes the
     second sentence. The embeddings are compared and scored using the generated labels (1 if positive, 0 if negative) using the binary cross
-    entropy objective. 
-    
+    entropy objective.
+
     Note that you must use the `ContrastiveTensionDataLoader` for this loss. The `pos_neg_ratio` of the ContrastiveTensionDataLoader can be
     used to determine the number of negative pairs per positive pair.
 
@@ -140,6 +139,7 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
                 epochs=10,
             )
     """
+
     def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim):
         super(ContrastiveTensionLossInBatchNegatives, self).__init__()
         self.model2 = model  # This will be the final model used during the inference time.

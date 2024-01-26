@@ -19,7 +19,7 @@ class BatchAllTripletLoss(nn.Module):
         * Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
         * Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
         * Blog post: https://omoindrot.github.io/triplet-loss
- 
+
     Requirements:
         1. Each sentence must be labeled with a class.
         2. Your dataset must contain at least 2 examples per labels class.
@@ -36,7 +36,7 @@ class BatchAllTripletLoss(nn.Module):
         +==================+========+
         | single sentences | class  |
         +------------------+--------+
-    
+
     Example:
         ::
 
@@ -46,9 +46,9 @@ class BatchAllTripletLoss(nn.Module):
 
             model = SentenceTransformer('distilbert-base-nli-mean-tokens')
             train_examples = [
-                InputExample(texts=['Sentence from class 0'], label=0), 
+                InputExample(texts=['Sentence from class 0'], label=0),
                 InputExample(texts=['Another sentence from class 0'], label=0),
-                InputExample(texts=['Sentence from class 1'], label=1), 
+                InputExample(texts=['Sentence from class 1'], label=1),
                 InputExample(texts=['Sentence from class 2'], label=2),
             ]
             train_batch_size = 2
