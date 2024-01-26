@@ -7,57 +7,64 @@ from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
     """
-    BatchHardSoftMarginTripletLoss takes a batch with (label, sentence) pairs and computes the loss for all possible, valid
+    BatchHardSoftMarginTripletLoss takes a batch with (sentence, label) pairs and computes the loss for all possible, valid
     triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. The labels
     must be integers, with same label indicating sentences from the same class. Your train dataset
-    must contain at least 2 examples per label class. The margin is computed automatically.
-
-    Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
-    Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
-    Blog post: https://omoindrot.github.io/triplet-loss
+    must contain at least 2 examples per label class. This soft-margin variant does not require setting a margin.
 
     :param model: SentenceTransformer model
-    :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
+    :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrics that can be used.
 
-        
+    Definitions:
+        :Easy triplets: Triplets which have a loss of 0 because
+            ``distance(anchor, positive) + margin < distance(anchor, negative)``.
+        :Hard triplets: Triplets where the negative is closer to the anchor than the positive, i.e.,
+            ``distance(anchor, negative) < distance(anchor, positive)``.
+        :Semi-hard triplets: Triplets where the negative is not closer to the anchor than the positive, but which
+            still have a positive loss, i.e., ``distance(anchor, positive) < distance(anchor, negative) + margin``.
+
+    References:
+        * Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
+        * Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
+        * Blog post: https://omoindrot.github.io/triplet-loss
+
     Requirements:
-        1. Class labels for each sentence
-        2. Labels must contain at least 2 examples per labels class
-        3. Data should contain hard positives and negatives
-    
+        1. Each sentence must be labeled with a class.
+        2. Your dataset must contain at least 2 examples per labels class.
+        3. Your dataset should contain hard positives and negatives.
 
     Relations:
-        \ \
-        - Like `BatchAllTripletLoss` but with a margin
+        * :class:`BatchHardTripletLoss` uses a user-specified margin, while this loss does not require setting a margin.
 
     Inputs:
+        +------------------+--------+
+        | Texts            | Labels |
+        +==================+========+
+        | single sentences | class  |
+        +------------------+--------+
 
-    +------------------+--------+
-    | Texts            | Labels |
-    +==================+========+
-    | single sentences | class  |
-    +------------------+--------+
-    
-    Example::
+    Example:
+        ::
 
-        from sentence_transformers import SentenceTransformer, losses
-        from sentence_transformers.readers import InputExample
-        from torch.utils.data import DataLoader
+            from sentence_transformers import SentenceTransformer, losses
+            from sentence_transformers.readers import InputExample
+            from torch.utils.data import DataLoader
 
-        model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-        train_examples = [
-            InputExample(texts=['Sentence from class 0'], label=0),
-            InputExample(texts=['Another sentence from class 0'], label=0),
-            InputExample(texts=['Sentence from class 1'], label=1), 
-            InputExample(texts=['Sentence from class 2'], label=2)
-        ]
-        train_batch_size = 2
-        train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
-        train_loss = losses.BatchHardSoftMarginTripletLoss(model=model)
-        model.fit(
-            train_objectives=[(train_dataloader, train_loss)],
-            epochs=10,
-        )
+            model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+            train_examples = [
+                InputExample(texts=['Sentence from class 0'], label=0),
+                InputExample(texts=['Another sentence from class 0'], label=0),
+                InputExample(texts=['Sentence from class 1'], label=1), 
+                InputExample(texts=['Sentence from class 2'], label=2)
+            ]
+            train_batch_size = 2
+            train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
+            train_loss = losses.BatchHardSoftMarginTripletLoss(model=model)
+            model.fit(
+                train_objectives=[(train_dataloader, train_loss)],
+                epochs=10,
+            )
+
     """
 
     def __init__(
