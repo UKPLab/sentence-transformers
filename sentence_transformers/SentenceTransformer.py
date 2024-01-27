@@ -29,11 +29,13 @@ from .util import (
     load_dir_path,
     load_file_path,
     save_to_hub_args_decorator,
+    cos_sim,
+    dot_score,
 )
 from .models import Transformer, Pooling
 from .model_card_templates import ModelCardTemplate
 from . import __version__
-from .SimilarityFunction import SimilarityFunction
+from .ScoreFunctions import SimilarityFunction
 
 logger = logging.getLogger(__name__)
 
@@ -218,12 +220,25 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device_name: {}".format(device))
 
         # if this is not true, the score_function is set after training
+        self.score_function_name = score_function
+        self.score_function = None
+
         if score_function is not None:
             if not isinstance(score_function, str):
                 raise ValueError("Type of score function is {}, but should be a string.".format(type(score_function)))
             elif score_function not in [x.value for x in list(SimilarityFunction)]:
                 raise ValueError("The provided value is {}, but available values are {}.".format(score_function, [x.value for x in list(SimilarityFunction)]))
-        self.score_function = score_function
+
+            self.score_function_name = score_function
+
+            if self.score_function_name == SimilarityFunction.COSINE:
+                self.score_function = cos_sim
+            if self.score_function_name == SimilarityFunction.MANHATTAN:
+                self.score_function = manhattan_sim
+            if self.score_function_name == SimilarityFunction.EUCLIDEAN:
+                self.score_function = euclidean_sim
+            elif self.score_function_name == SimilarityFunction.DOT_SCORE:
+                self.score_function = dot_score
 
         self.to(device)
 
