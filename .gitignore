@@ -20,6 +20,7 @@ nr_*/
 /docs/Makefile
 /examples/training/quora_duplicate_questions/quora-IR-dataset/
 build
-
+*.DS_Store
+*.DS_Store/
 htmlcov
 .coverage
