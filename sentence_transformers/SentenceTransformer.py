@@ -30,6 +30,8 @@ from .util import (
     load_file_path,
     save_to_hub_args_decorator,
     cos_sim,
+    manhattan_sim,
+    euclidean_sim,
     dot_score,
 )
 from .models import Transformer, Pooling

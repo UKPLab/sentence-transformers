@@ -23,6 +23,12 @@ def _convert_to_tensor(a: Union[list, np.ndarray, Tensor]):
     return a
 
 def _convert_to_batch(a: Tensor):
+    if len(a.shape) == 1:
+        a = a.unsqueeze(0)
+    return a
+
+def _convert_to_batch_tensor(a: Union[list, np.ndarray, Tensor]):
+    a = _convert_to_tensor(a)
     a = _convert_to_batch(a)
     return a
 
@@ -32,11 +38,8 @@ def manhattan_sim(a: Union[list, Tensor], b: Union[list, Tensor]):
 
     :return: Matrix with res[i][j]  = -manhattan_distance(a[i], b[j])
     """
-    a = _convert_to_tensor(a)
-    b = _convert_to_tensor(b)
-
-    a = _convert_to_batch(a)
-    b = _convert_to_batch(b)
+    a = _convert_to_batch_tensor(a)
+    b = _convert_to_batch_tensor(b)
 
     return -torch.sum(torch.abs(a - b), axis=1)
 
@@ -47,11 +50,8 @@ def euclidean_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray,
 
     :return: Matrix with res[i][j]  = -euclidean(a[i], b[j])
     """
-    a = _convert_to_tensor(a)
-    b = _convert_to_tensor(b)
-
-    a = _convert_to_batch(a)
-    b = _convert_to_batch(b)
+    a = _convert_to_batch_tensor(a)
+    b = _convert_to_batch_tensor(b)
 
     return -torch.sqrt(torch.sum((a-b)**2, dim=1))
 
@@ -70,11 +70,8 @@ def cos_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tenso
 
     :return: Matrix with res[i][j]  = cos_sim(a[i], b[j])
     """
-    a = _convert_to_tensor(a)
-    b = _convert_to_tensor(b)
-
-    a = _convert_to_batch(a)
-    b = _convert_to_batch(b)
+    a = _convert_to_batch_tensor(a)
+    b = _convert_to_batch_tensor(b)
 
     a_norm = torch.nn.functional.normalize(a, p=2, dim=1)
     b_norm = torch.nn.functional.normalize(b, p=2, dim=1)
@@ -87,11 +84,8 @@ def dot_score(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Ten
 
     :return: Matrix with res[i][j]  = dot_prod(a[i], b[j])
     """
-    a = _convert_to_tensor(a)
-    b = _convert_to_tensor(b)
-
-    a = _convert_to_batch(a)
-    b = _convert_to_batch(b)
+    a = _convert_to_batch_tensor(a)
+    b = _convert_to_batch_tensor(b)
 
     return torch.mm(a, b.transpose(0, 1))
 
