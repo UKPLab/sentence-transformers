@@ -1,4 +1,5 @@
 from . import SentenceEvaluator
+from . import SimilarityFunction
 import logging
 import os
 import csv
@@ -93,6 +94,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             "dot_f1_threshold",
             "dot_ap",
         ]
+        self.best_scoring_function = None
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -120,7 +122,9 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         scores = self.compute_metrices(model)
 
         # Main score is the max of Average Precision (AP)
-        main_score = max(scores[short_name]["ap"] for short_name in scores)
+        max_ap_key = max(scores, key=lambda x: scores[x]["ap"])
+        self.best_scoring_function = max_ap_key
+        main_score = scores[max_ap_key]["ap"]
 
         file_output_data = [epoch, steps]
 
@@ -163,10 +167,10 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         labels = np.asarray(self.labels)
         output_scores = {}
         for short_name, name, scores, reverse in [
-            ["cossim", "Cosine-Similarity", cosine_scores, True],
-            ["manhattan", "Manhattan-Distance", manhattan_distances, False],
-            ["euclidean", "Euclidean-Distance", euclidean_distances, False],
-            ["dot", "Dot-Product", dot_scores, True],
+            [SimilarityFunction.COSINE, "Cosine-Similarity", cosine_scores, True],
+            [SimilarityFunction.MANHATTAN, "Manhattan-Distance", manhattan_distances, False],
+            [SimilarityFunction.EUCLIDEAN, "Euclidean-Distance", euclidean_distances, False],
+            [SimilarityFunction.DOT_SCORE, "Dot-Product", dot_scores, True],
         ]:
             acc, acc_threshold = self.find_best_acc_and_threshold(scores, labels, reverse)
             f1, precision, recall, f1_threshold = self.find_best_f1_and_threshold(scores, labels, reverse)

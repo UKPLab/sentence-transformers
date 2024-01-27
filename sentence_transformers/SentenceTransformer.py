@@ -37,7 +37,7 @@ from .util import (
 from .models import Transformer, Pooling
 from .model_card_templates import ModelCardTemplate
 from . import __version__
-from .ScoreFunctions import SimilarityFunction
+from .SimilarityFunctions import SimilarityFunction
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,8 @@ class SentenceTransformer(nn.Sequential):
     :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path,
         it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model
         from the Hugging Face Hub with that name.
+    :param score_function: A string denoting the function used for comparing two embeddings. If it is None, it will be
+        set to the function with the highest score on the validation set. The list of possible values is in `SimilarityFunctions.py`
     :param modules: A list of torch Modules that should be called sequentially, can be used to create custom
         SentenceTransformer models from scratch.
     :param device: Device (like "cuda", "cpu", "mps") that should be used for computation. If None, checks if a GPU
@@ -228,19 +230,11 @@ class SentenceTransformer(nn.Sequential):
         if score_function is not None:
             if not isinstance(score_function, str):
                 raise ValueError("Type of score function is {}, but should be a string.".format(type(score_function)))
-            elif score_function not in [x.value for x in list(SimilarityFunction)]:
-                raise ValueError("The provided value is {}, but available values are {}.".format(score_function, [x.value for x in list(SimilarityFunction)]))
+            elif score_function not in SimilarityFunction.possible_values():
+                raise ValueError("The provided value is {}, but available values are {}.".format(score_function, SimilarityFunction.possible_values()))
 
             self.score_function_name = score_function
-
-            if self.score_function_name == SimilarityFunction.COSINE:
-                self.score_function = cos_sim
-            if self.score_function_name == SimilarityFunction.MANHATTAN:
-                self.score_function = manhattan_sim
-            if self.score_function_name == SimilarityFunction.EUCLIDEAN:
-                self.score_function = euclidean_sim
-            elif self.score_function_name == SimilarityFunction.DOT_SCORE:
-                self.score_function = dot_score
+            self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
 
         self.to(device)
 
@@ -930,6 +924,8 @@ class SentenceTransformer(nn.Sequential):
             self.save(output_path)
 
         if checkpoint_path is not None:
+            if hasattr(evaluator, "best_scoring_function") and evaluator.best_scoring_function is not None:
+                self.score_function = evaluator.best_scoring_function 
             self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):

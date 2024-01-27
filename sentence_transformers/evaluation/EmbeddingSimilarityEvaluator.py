@@ -74,6 +74,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             "dot_pearson",
             "dot_spearman",
         ]
+        self.best_scoring_function = None
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -178,6 +179,9 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         elif self.main_similarity == SimilarityFunction.DOT_SCORE:
             return eval_spearman_dot
         elif self.main_similarity is None:
-            return max(eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot)
+            eval_metrics = [eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot]
+            eval_metrics_argmax = np.argmax(eval_metrics)
+            self.best_scoring_function = SimilarityFunction.possible_values()[eval_metrics_argmax]
+            return eval_metrics[eval_metrics_argmax]
         else:
-            raise ValueError("Unknown main_similarity value")
+            raise ValueError("Unknown main_similarity value. Possible values are: {}".format(SimilarityFunction.possible_values()))
