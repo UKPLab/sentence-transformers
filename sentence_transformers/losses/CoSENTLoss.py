@@ -13,8 +13,9 @@ class CoSENTLoss(nn.Module):
 
     It computes the following loss function:
 
-    loss = logsum(1+exp(s(k,l)-s(i,j))+exp...), where (i,j) and (k,l) are any of the input pairs in the batch such that the expected
-    similarity of (i,j) is greater than (k,l). The summation is over all possible pairs of input pairs in the batch that match this condition.
+    ``loss = logsum(1+exp(s(k,l)-s(i,j))+exp...)``, where ``(i,j)`` and ``(k,l)`` are any of the input pairs in the
+    batch such that the expected similarity of ``(i,j)`` is greater than ``(k,l)``. The summation is over all possible
+    pairs of input pairs in the batch that match this condition.
 
     Anecdotal experiments show that this loss function produces a more powerful training signal than :class:`CosineSimilarityLoss`,
     resulting in faster convergence and a final model with superior Spearman correlation coefficients. Consequently,
@@ -22,35 +23,32 @@ class CoSENTLoss(nn.Module):
 
     For further details, see: https://kexue.fm/archives/8847
 
-
     :param model: SentenceTransformerModel
-    :param similarity_fct: Function to compute the PAIRWISE similarity between embeddings. Default is util.pairwise_cos_sim.
+    :param similarity_fct: Function to compute the PAIRWISE similarity between embeddings. Default is ``util.pairwise_cos_sim``.
     :param scale: Output of similarity function is multiplied by scale value. Represents the inverse temperature.
-
 
     Requirements:
         - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
 
-
     Inputs:
-    +--------------------------------+------------------------+
-    | Texts                          | Labels                 |
-    +================================+========================+
-    | (sentence_A, sentence_B) pairs | float similarity score |
-    +--------------------------------+------------------------+
+        +--------------------------------+------------------------+
+        | Texts                          | Labels                 |
+        +================================+========================+
+        | (sentence_A, sentence_B) pairs | float similarity score |
+        +--------------------------------+------------------------+
 
+    Example:
+        ::
 
-    Example::
+            from sentence_transformers import SentenceTransformer, losses
+            from sentence_transformers.readers import InputExample
 
-        from sentence_transformers import SentenceTransformer, losses
-        from sentence_transformers.readers import InputExample
+            model = SentenceTransformer('bert-base-uncased')
+            train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=1.0),
+                    InputExample(texts=['My third sentence', 'Unrelated sentence'], label=0.3)]
 
-        model = SentenceTransformer('bert-base-uncased')
-        train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=1.0),
-                InputExample(texts=['My third sentence', 'Unrelated sentence'], label=0.3)]
-
-        train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
-        train_loss = losses.CoSENTLoss(model=model)
+            train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
+            train_loss = losses.CoSENTLoss(model=model)
     """
 
     def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.pairwise_cos_sim):
