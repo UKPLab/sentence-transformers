@@ -7,14 +7,14 @@ from .. import util
 class CoSENTLoss(nn.Module):
     """
     This class implements CoSENT (Consistent Sentence Embedding via Similarity Ranking) loss.
-    It expects that the InputExample consists of a pair of texts and a float valued label, representing
+    It expects that each of the InputExamples consists of a pair of texts and a float valued label, representing
     the expected similarity score between the pair.
     
     
     It computes the following loss function:
 
-    loss = logsum(1+exp(s(k,l)-s(i,j))+exp...), where (i,j) and (k,l) are any of the input pairs such that the expected 
-    similarity of (i,j) is greater than (k,l). The summation is over all possible pairs of input pairs that match this condition.
+    loss = logsum(1+exp(s(k,l)-s(i,j))+exp...), where (i,j) and (k,l) are any of the input pairs in the batch such that the expected 
+    similarity of (i,j) is greater than (k,l). The summation is over all possible pairs of input pairs in the batch that match this condition.
 
     For further details, see: https://kexue.fm/archives/8847
 
