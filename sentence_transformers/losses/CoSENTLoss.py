@@ -11,11 +11,14 @@ class CoSENTLoss(nn.Module):
     It expects that each of the InputExamples consists of a pair of texts and a float valued label, representing
     the expected similarity score between the pair.
 
-
     It computes the following loss function:
 
     loss = logsum(1+exp(s(k,l)-s(i,j))+exp...), where (i,j) and (k,l) are any of the input pairs in the batch such that the expected
     similarity of (i,j) is greater than (k,l). The summation is over all possible pairs of input pairs in the batch that match this condition.
+
+    Anecdotal experiments show that this loss function produces a more powerful training signal than :class:`CosineSimilarityLoss`,
+    resulting in faster convergence and a final model with superior Spearman correlation coefficients. Consequently,
+    CoSENTLoss may be used as a drop-in replacement for :class:`CosineSimilarityLoss` in any training script.
 
     For further details, see: https://kexue.fm/archives/8847
 
