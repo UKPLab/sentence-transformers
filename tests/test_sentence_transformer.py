@@ -4,6 +4,7 @@ Tests general behaviour of the SentenceTransformer class
 
 
 import logging
+import os
 from pathlib import Path
 import tempfile
 import pytest
@@ -11,7 +12,7 @@ import pytest
 from huggingface_hub import HfApi, RepoUrl, GitRefs, GitRefInfo
 import torch
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.models import Transformer, Pooling
+from sentence_transformers.models import Normalize, Transformer, Pooling
 
 
 def test_load_with_safetensors() -> None:
@@ -186,3 +187,19 @@ def test_load_with_revision() -> None:
     main_embeddings = main_model.encode(test_sentence, convert_to_tensor=True)
     assert torch.equal(main_embeddings, latest_model.encode(test_sentence, convert_to_tensor=True))
     assert not torch.equal(main_embeddings, older_model.encode(test_sentence, convert_to_tensor=True))
+
+
+def test_load_local_without_normalize_directory() -> None:
+    tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    tiny_model.add_module("Normalize", Normalize())
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model_path = Path(tmp_folder) / "tiny_model_local"
+        tiny_model.save(str(model_path))
+
+        assert (model_path / "2_Normalize").exists()
+        os.rmdir(model_path / "2_Normalize")
+        assert not (model_path / "2_Normalize").exists()
+
+        # This fails in v2.3.0
+        fresh_tiny_model = SentenceTransformer(str(model_path))
+        assert isinstance(fresh_tiny_model, SentenceTransformer)
