@@ -15,6 +15,9 @@ class OnlineContrastiveLoss(nn.Module):
     :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrics that can be used
     :param margin: Negative samples (label == 0) should have a distance of at least the margin value.
 
+    References:
+        - `Training Examples > Quora Duplicate Questions <../../examples/training/quora_duplicate_questions/README.html>`_
+
     Requirements:
         1. (anchor, positive/negative) pairs
         2. Data should include hard positives and hard negatives

@@ -8,14 +8,22 @@ class MarginMSELoss(nn.Module):
     Compute the MSE loss between the ``|sim(Query, Pos) - sim(Query, Neg)|`` and ``|gold_sim(Query, Pos) - gold_sim(Query, Neg)|``.
     By default, sim() is the dot-product. The gold_sim is often the similarity score from a teacher model.
 
+    In contrast to :class:`MultipleNegativesRankingLoss`, the two passages do not have to be strictly positive and negative,
+    both can be relevant or not relevant for a given query. This can be an advantage of MarginMSELoss over
+    MultipleNegativesRankingLoss, but note that the MarginMSELoss is much slower to train. With MultipleNegativesRankingLoss,
+    with a batch size of 64, we compare one query against 128 passages. With MarginMSELoss, we compare a query only
+    against two passages.
+
     :param model: SentenceTransformerModel
     :param similarity_fct: Which similarity function to use.
 
     References:
         - For more details, please refer to https://arxiv.org/abs/2010.02666.
-    
+        - `Training Examples > MS MARCO <../../examples/training/ms_marco/README.html>`_
+        - `Unsupervised Learning > Domain Adaptation <../../examples/domain_adaptation/README.html>`_
+
     Requirements:
-        1. (query, positive, negative) triplets
+        1. (query, passage_one, passage_two) triplets
         2. Usually used with a finetuned teacher M in a knowledge distillation setup
 
     Relations:
@@ -25,7 +33,7 @@ class MarginMSELoss(nn.Module):
         +-----------------------------------------------+-----------------------------------------+
         | Texts                                         | Labels                                  |
         +===============================================+=========================================+
-        | (query, positive, negative) triplets          | M(query, positive) - M(query, negative) |
+        | (query, passage_one, passage_two) triplets          | M(query, passage_one) - M(query, passage_two) |
         +-----------------------------------------------+-----------------------------------------+
 
     Example:

@@ -25,8 +25,8 @@ class DenoisingAutoEncoderLoss(nn.Module):
     :param tie_encoder_decoder: whether to tie the trainable parameters of encoder and decoder
 
     References:
-        * `TSDAE documentation <../../examples/unsupervised_learning/TSDAE/README.html>`_
         * TSDAE paper: https://arxiv.org/pdf/2104.06979.pdf
+        * `Unsupervised Learning > TSDAE <../../examples/unsupervised_learning/TSDAE/README.html>`_
 
     Requirements:
         1. The decoder should have a class called XXXLMHead (in the context of Hugging Face's Transformers)

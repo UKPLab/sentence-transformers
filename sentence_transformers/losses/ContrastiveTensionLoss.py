@@ -27,6 +27,7 @@ class ContrastiveTensionLoss(nn.Module):
 
     References:
         * Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
+        * `Unsupervised Learning > CT <../../examples/unsupervised_learning/CT/README.html>`_
 
     Relations:
         * :class:`ContrastiveTensionLossInBatchNegatives` uses in-batch negative sampling, which gives a stronger training signal than this loss.
@@ -103,7 +104,8 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
     :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
 
     References:
-        * Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
+        - Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
+        - `Unsupervised Learning > CT (In-Batch Negatives) <../../examples/unsupervised_learning/CT_In-Batch_Negatives/README.html>`_
 
     Relations:
         * :class:`ContrastiveTensionLoss` does not select negative pairs in-batch, resulting in a weaker training signal than this loss.

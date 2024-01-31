@@ -12,7 +12,9 @@ class MSELoss(nn.Module):
 
     References:
         - Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation: https://arxiv.org/abs/2004.09813
-
+        - `Training > Model Distillation <../../examples/training/distillation/README.html>`_
+        - `Training > Multilingual Models <../../examples/training/multilingual/README.html>`_
+        
     Requirements:
         1. Usually uses a finetuned teacher M in a knowledge distillation setup
 

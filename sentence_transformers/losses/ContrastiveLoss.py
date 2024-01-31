@@ -27,6 +27,7 @@ class ContrastiveLoss(nn.Module):
 
     References:
         * Further information: http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
+        * `Training Examples > Quora Duplicate Questions <../../examples/training/quora_duplicate_questions/README.html>`_
 
     Requirements:
         1. (anchor, positive/negative) pairs
