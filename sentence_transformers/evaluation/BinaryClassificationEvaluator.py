@@ -156,10 +156,13 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         except TypeError:
             # Otherwise we just embed everything, e.g. if the sentences are images for evaluating a CLIP model
             embeddings = model.encode(
-                self.sentences1 + self.sentences2, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True
+                self.sentences1 + self.sentences2,
+                batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
+                convert_to_numpy=True,
             )
-            embeddings1 = embeddings[:len(self.sentences1)]
-            embeddings2 = embeddings[len(self.sentences1):]
+            embeddings1 = embeddings[: len(self.sentences1)]
+            embeddings2 = embeddings[len(self.sentences1) :]
 
         cosine_scores = 1 - paired_cosine_distances(embeddings1, embeddings2)
         manhattan_distances = paired_manhattan_distances(embeddings1, embeddings2)
