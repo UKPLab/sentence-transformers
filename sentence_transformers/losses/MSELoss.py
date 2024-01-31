@@ -6,20 +6,25 @@ class MSELoss(nn.Module):
     """
     Computes the MSE loss between the computed sentence embedding and a target sentence embedding. This loss
     is used when extending sentence embeddings to new languages as described in our publication
-    Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation: https://arxiv.org/abs/2004.09813
+    Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation.
 
-    For an example, see the documentation on extending language models to new languages.
+    For an example, see `the distillation documentation <../../examples/training/distillation/README.html>`_ on extending language models to new languages.
+
+    References:
+        - Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation: https://arxiv.org/abs/2004.09813
 
     Requirements:
         1. Usually uses a finetuned teacher M in a knowledge distillation setup
 
-    Input:
+    Relations:
+        - :class:`MarginMSELoss` is equivalent to this loss, but with a margin through a negative pair.
 
-    +-------------------+-----------------------------+
-    | Texts             | Labels                      |
-    +===================+=============================+
-    | single sentences  | model_2_sentence_embeddings |
-    +-------------------+-----------------------------+
+    Input:
+        +-------------------+-----------------------------+
+        | Texts             | Labels                      |
+        +===================+=============================+
+        | single sentences  | model_2_sentence_embeddings |
+        +-------------------+-----------------------------+
 
     Example::
 

@@ -66,6 +66,11 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 .. autoclass:: sentence_transformers.losses.DenoisingAutoEncoderLoss
 ```
 
+## MSELoss
+```eval_rst
+.. autoclass:: sentence_transformers.losses.MSELoss
+```
+
 ## MarginMSELoss
 ```eval_rst
 .. autoclass:: sentence_transformers.losses.MarginMSELoss
@@ -75,11 +80,6 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 
 ```eval_rst
 .. autoclass:: sentence_transformers.losses.MegaBatchMarginLoss
-```
-
-## MSELoss
-```eval_rst
-.. autoclass:: sentence_transformers.losses.MSELoss
 ```
 
 ## MultipleNegativesRankingLoss
