@@ -28,7 +28,7 @@ class MSELoss(nn.Module):
             +-------------------+-----------------------------+
             | Texts             | Labels                      |
             +===================+=============================+
-            | single sentences  | model_2_sentence_embeddings |
+            | single sentences  | model sentence embeddings   |
             +-------------------+-----------------------------+
 
         Example::
