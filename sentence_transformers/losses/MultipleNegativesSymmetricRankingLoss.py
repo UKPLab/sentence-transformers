@@ -19,47 +19,43 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
 
     Note: If you pass triplets, the negative entry will be ignored. A anchor is just searched for the positive.
 
+    :param model: SentenceTransformer model
+    :param scale: Output of similarity function is multiplied by scale value
+    :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+
     Requirements:
         1. (anchor, positive) pairs
 
     Relations:
-        \ \
-        - Like `MultipleNegativesRankingLoss` but with an additional loss term 
+        - Like :class:`MultipleNegativesRankingLoss`, but with an additional loss term.
         
     Inputs:
+        +---------------------------------------+--------+
+        | Texts                                 | Labels |
+        +=======================================+========+
+        | (anchor, positive) pairs              | none   |
+        +---------------------------------------+--------+
 
-    +---------------------------------------+--------+
-    | Texts                                 | Labels |
-    +=======================================+========+
-    | (anchor, positive) pairs              |        |
-    +---------------------------------------+--------+
-    | (anchor, positive, negative) triplets |        |
-    +---------------------------------------+--------+
+    Example:
+        ::
+    
+            from sentence_transformers import SentenceTransformer, losses, InputExample
+            from torch.utils.data import DataLoader
 
-    Example::
-
-        from sentence_transformers import SentenceTransformer, losses, InputExample
-        from torch.utils.data import DataLoader
-
-        model = SentenceTransformer('distilbert-base-uncased')
-        train_examples = [
-            InputExample(texts=['Anchor 1', 'Positive 1']),
-            InputExample(texts=['Anchor 2', 'Positive 2']),
-        ]
-        train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
-        train_loss = losses.MultipleNegativesSymmetricRankingLoss(model=model)
-        model.fit(
-            [(train_dataloader, train_loss)],
-            epochs=10,
-        )
+            model = SentenceTransformer('distilbert-base-uncased')
+            train_examples = [
+                InputExample(texts=['Anchor 1', 'Positive 1']),
+                InputExample(texts=['Anchor 2', 'Positive 2']),
+            ]
+            train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
+            train_loss = losses.MultipleNegativesSymmetricRankingLoss(model=model)
+            model.fit(
+                [(train_dataloader, train_loss)],
+                epochs=10,
+            )
     """
 
     def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim):
-        """
-        :param model: SentenceTransformer model
-        :param scale: Output of similarity function is multiplied by scale value
-        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
-        """
         super(MultipleNegativesSymmetricRankingLoss, self).__init__()
         self.model = model
         self.scale = scale

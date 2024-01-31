@@ -75,29 +75,49 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
     Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in mini-batches and
     requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
 
+    :param model: SentenceTransformer model
+    :param scale: Output of similarity function is multiplied by scale value
+    :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+
+    References:
+        - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
+        - Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup: https://arxiv.org/pdf/2101.06983.pdf
+
     Requirements:
         1. (anchor, positive) pairs or (anchor, positive, negative pairs)
-        2. Should be used with large batch sizes due to slower computation time
+        2. Should be used with large batch sizes for superior performance, but has slower training time than :class:`MultipleNegativesRankingLoss`
 
     Relations:
-        \ \
-        - Equivalent to `MultipleNegativesRankingLoss` but with caching
+        - Equivalent to :class:`MultipleNegativesRankingLoss`, but with caching that allows for much higher batch sizes
+          (and thus better performance) without extra memory usage. This loss also trains roughly 2x to 2.4x slower than
+          :class:`MultipleNegativesRankingLoss`.
 
     Inputs:
+        +---------------------------------------+--------+
+        | Texts                                 | Labels |
+        +=======================================+========+
+        | (anchor, positive) pairs              | none   |
+        +---------------------------------------+--------+
+        | (anchor, positive, negative) triplets | none   |
+        +---------------------------------------+--------+
     
-    +---------------------------------------+--------+
-    | Texts                                 | Labels |
-    +=======================================+========+
-    | (anchor, positive) pairs              |        |
-    +---------------------------------------+--------+
-    | (anchor, positive, negative) triplets |        |
-    +---------------------------------------+--------+
-    
-    Example::
+    Example:
+        ::
 
-        from sentence_transformers import SentenceTransformer
-        train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=1024)  # Here we can try much larger batch sizes!
-        train_loss = losses.CachedMultipleNegativesRankingLoss(model=model, mini_batch_size: int = 32)
+            from sentence_transformers import SentenceTransformer, losses, InputExample
+            from torch.utils.data import DataLoader
+
+            model = SentenceTransformer('distilbert-base-uncased')
+            train_examples = [
+                InputExample(texts=['Anchor 1', 'Positive 1']),
+                InputExample(texts=['Anchor 2', 'Positive 2']),
+            ]
+            train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=1024)  # Here we can try much larger batch sizes!
+            train_loss = losses.CachedMultipleNegativesRankingLoss(model=model, mini_batch_size = 32)
+            model.fit(
+                [(train_dataloader, train_loss)],
+                epochs=10,
+            )
     """
 
     def __init__(
@@ -108,11 +128,6 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
     ):
-        """
-        :param model: SentenceTransformer model
-        :param scale: Output of similarity function is multiplied by scale value
-        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
-        """
         super(CachedMultipleNegativesRankingLoss, self).__init__()
         self.model = model
         self.scale = scale
