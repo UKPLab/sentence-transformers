@@ -21,14 +21,18 @@ class CoSENTLoss(nn.Module):
     resulting in faster convergence and a final model with superior performance. Consequently, CoSENTLoss may be used
     as a drop-in replacement for :class:`CosineSimilarityLoss` in any training script.
 
-    For further details, see: https://kexue.fm/archives/8847
-
     :param model: SentenceTransformerModel
     :param similarity_fct: Function to compute the PAIRWISE similarity between embeddings. Default is ``util.pairwise_cos_sim``.
     :param scale: Output of similarity function is multiplied by scale value. Represents the inverse temperature.
 
+    References:
+        - For further details, see: https://kexue.fm/archives/8847
+
     Requirements:
         - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
+
+    Relations:
+        - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than CoSENTLoss. On our experiments, CoSENTLoss is recommended.
 
     Inputs:
         +--------------------------------+------------------------+
