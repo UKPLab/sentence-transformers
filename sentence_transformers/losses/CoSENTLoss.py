@@ -7,7 +7,7 @@ from .. import util
 
 class CoSENTLoss(nn.Module):
     """
-    This class implements CoSENT (Consistent Sentence Embedding via Similarity Ranking) loss.
+    This class implements CoSENT (Cosine Sentence) loss.
     It expects that each of the InputExamples consists of a pair of texts and a float valued label, representing
     the expected similarity score between the pair.
 
