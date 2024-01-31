@@ -30,6 +30,11 @@ Sadly there is no "one size fits all" loss function. Which loss function is suit
 .. autoclass:: sentence_transformers.losses.ContrastiveLoss
 ```
 
+## OnlineContrastiveLoss
+```eval_rst
+.. autoclass:: sentence_transformers.losses.OnlineContrastiveLoss
+```
+
 ## ContrastiveTensionLoss
 ```eval_rst
 .. autoclass:: sentence_transformers.losses.ContrastiveTensionLoss
@@ -100,11 +105,6 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 
 ```eval_rst
 .. autoclass:: sentence_transformers.losses.MultipleNegativesSymmetricRankingLoss
-```
-
-## OnlineContrastiveLoss
-```eval_rst
-.. autoclass:: sentence_transformers.losses.OnlineContrastiveLoss
 ```
 
 ## SoftmaxLoss
