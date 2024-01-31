@@ -88,64 +88,63 @@ class ContrastiveTensionLoss(nn.Module):
 
 
 class ContrastiveTensionLossInBatchNegatives(nn.Module):
-    """
-    This loss expects only single sentences, without any labels. Positive and negative pairs are automatically created via random sampling,
-    such that a positive pair consists of two identical sentences and a negative pair consists of two different sentences. An independent
-    copy of the encoder model is created, which is used for encoding the first sentence of each pair. The original encoder model encodes the
-    second sentence. Unlike :class:`ContrastiveTensionLoss`, this loss uses the batch negative sampling strategy, i.e. the negative pairs
-    are sampled from the batch. Using in-batch negative sampling gives a stronger training signal than the original :class:`ContrastiveTensionLoss`.
-    The performance usually increases with increasing batch sizes.
-
-    Note that you should not use the `ContrastiveTensionDataLoader` for this loss, but just a normal DataLoader with `InputExample` instances.
-    The two texts of each `InputExample` instance should be identical.
-
-    :param model: SentenceTransformer model
-    :param scale: Output of similarity function is multiplied by scale value
-    :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
-
-    References:
-        - Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
-        - `Unsupervised Learning > CT (In-Batch Negatives) <../../examples/unsupervised_learning/CT_In-Batch_Negatives/README.html>`_
-
-    Relations:
-        * :class:`ContrastiveTensionLoss` does not select negative pairs in-batch, resulting in a weaker training signal than this loss.
-
-    Inputs:
-        +------------------------+--------+
-        | Texts                  | Labels |
-        +========================+========+
-        | (anchor, anchor) pairs | none   |
-        +------------------------+--------+
-
-    Example:
-        ::
-
-            from sentence_transformers import SentenceTransformer, losses
-            from torch.utils.data import DataLoader
-
-            model = SentenceTransformer('all-MiniLM-L6-v2')
-            train_examples = [
-                InputExample(texts=['This is a positive pair', 'Where the distance will be minimized'], label=1),
-                InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0),
-            ]
-            train_examples = [
-                InputExample(texts=['This is the 1st sentence', 'This is the 1st sentence']),
-                InputExample(texts=['This is the 2nd sentence', 'This is the 2nd sentence']),
-                InputExample(texts=['This is the 3rd sentence', 'This is the 3rd sentence']),
-                InputExample(texts=['This is the 4th sentence', 'This is the 4th sentence']),
-                InputExample(texts=['This is the 5th sentence', 'This is the 5th sentence']),
-            ]
-
-            train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
-            train_loss = losses.ContrastiveTensionLossInBatchNegatives(model=model)
-
-            model.fit(
-                [(train_dataloader, train_loss)],
-                epochs=10,
-            )
-    """
-
     def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim):
+        """
+        This loss expects only single sentences, without any labels. Positive and negative pairs are automatically created via random sampling,
+        such that a positive pair consists of two identical sentences and a negative pair consists of two different sentences. An independent
+        copy of the encoder model is created, which is used for encoding the first sentence of each pair. The original encoder model encodes the
+        second sentence. Unlike :class:`ContrastiveTensionLoss`, this loss uses the batch negative sampling strategy, i.e. the negative pairs
+        are sampled from the batch. Using in-batch negative sampling gives a stronger training signal than the original :class:`ContrastiveTensionLoss`.
+        The performance usually increases with increasing batch sizes.
+
+        Note that you should not use the `ContrastiveTensionDataLoader` for this loss, but just a normal DataLoader with `InputExample` instances.
+        The two texts of each `InputExample` instance should be identical.
+
+        :param model: SentenceTransformer model
+        :param scale: Output of similarity function is multiplied by scale value
+        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+
+        References:
+            - Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
+            - `Unsupervised Learning > CT (In-Batch Negatives) <../../examples/unsupervised_learning/CT_In-Batch_Negatives/README.html>`_
+
+        Relations:
+            * :class:`ContrastiveTensionLoss` does not select negative pairs in-batch, resulting in a weaker training signal than this loss.
+
+        Inputs:
+            +------------------------+--------+
+            | Texts                  | Labels |
+            +========================+========+
+            | (anchor, anchor) pairs | none   |
+            +------------------------+--------+
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer, losses
+                from torch.utils.data import DataLoader
+
+                model = SentenceTransformer('all-MiniLM-L6-v2')
+                train_examples = [
+                    InputExample(texts=['This is a positive pair', 'Where the distance will be minimized'], label=1),
+                    InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0),
+                ]
+                train_examples = [
+                    InputExample(texts=['This is the 1st sentence', 'This is the 1st sentence']),
+                    InputExample(texts=['This is the 2nd sentence', 'This is the 2nd sentence']),
+                    InputExample(texts=['This is the 3rd sentence', 'This is the 3rd sentence']),
+                    InputExample(texts=['This is the 4th sentence', 'This is the 4th sentence']),
+                    InputExample(texts=['This is the 5th sentence', 'This is the 5th sentence']),
+                ]
+
+                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
+                train_loss = losses.ContrastiveTensionLossInBatchNegatives(model=model)
+
+                model.fit(
+                    [(train_dataloader, train_loss)],
+                    epochs=10,
+                )
+        """
         super(ContrastiveTensionLossInBatchNegatives, self).__init__()
         self.model2 = model  # This will be the final model used during the inference time.
         self.model1 = copy.deepcopy(model)
