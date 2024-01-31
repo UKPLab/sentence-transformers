@@ -18,8 +18,8 @@ class CoSENTLoss(nn.Module):
     pairs of input pairs in the batch that match this condition.
 
     Anecdotal experiments show that this loss function produces a more powerful training signal than :class:`CosineSimilarityLoss`,
-    resulting in faster convergence and a final model with superior Spearman correlation coefficients. Consequently,
-    CoSENTLoss may be used as a drop-in replacement for :class:`CosineSimilarityLoss` in any training script.
+    resulting in faster convergence and a final model with superior performance. Consequently, CoSENTLoss may be used
+    as a drop-in replacement for :class:`CosineSimilarityLoss` in any training script.
 
     For further details, see: https://kexue.fm/archives/8847
 
