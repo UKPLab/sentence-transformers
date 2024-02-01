@@ -6,18 +6,6 @@ import torch.nn.functional as F
 
 
 class MegaBatchMarginLoss(nn.Module):
-    """
-    Loss function inspired from ParaNMT paper:
-    https://www.aclweb.org/anthology/P18-1042/
-
-    Given a large batch (like 500 or more examples) of (anchor_i, positive_i) pairs,
-    find for each pair in the batch the hardest negative, i.e. find j != i such that cos_sim(anchor_i, positive_j)
-    is maximal. Then create from this a triplet (anchor_i, positive_i, positive_j) where positive_j
-    serves as the negative for this triplet.
-
-    Train than as with the triplet loss
-    """
-
     def __init__(
         self,
         model,
@@ -27,11 +15,55 @@ class MegaBatchMarginLoss(nn.Module):
         mini_batch_size: int = 50,
     ):
         """
+        Given a large batch (like 500 or more examples) of (anchor_i, positive_i) pairs, find for each pair in the batch
+        the hardest negative, i.e. find j != i such that cos_sim(anchor_i, positive_j) is maximal. Then create from this a
+        triplet (anchor_i, positive_i, positive_j) where positive_j serves as the negative for this triplet.
+
+        Then train as with the triplet loss.
+
         :param model: SentenceTransformerModel
         :param positive_margin: Positive margin, cos(anchor, positive) should be > positive_margin
         :param negative_margin: Negative margin, cos(anchor, negative) should be < negative_margin
-        :param use_mini_batched_version: As large batch sizes require a lot of memory, we can use a mini-batched version. We break down the large batch with 500 examples to smaller batches with fewer examples.
+        :param use_mini_batched_version: As large batch sizes require a lot of memory, we can use a mini-batched version.
+            We break down the large batch into smaller batches with fewer examples.
         :param mini_batch_size: Size for the mini-batches. Should be a devisor for the batch size in your data loader.
+
+        References:
+            - This loss function was inspired by the ParaNMT paper: https://www.aclweb.org/anthology/P18-1042/
+
+        Requirements:
+            1. (anchor, positive) pairs
+            2. Large batches (500 or more examples)
+
+        Input:
+            +---------------------------------------+--------+
+            | Texts                                 | Labels |
+            +=======================================+========+
+            | (anchor, positive) pairs              | none   |
+            +---------------------------------------+--------+
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer, InputExample, losses
+                from torch.utils.data import DataLoader
+
+                model = SentenceTransformer('all-MiniLM-L6-v2')
+
+                total_examples = 500
+                train_batch_size = 250
+                train_mini_batch_size = 32
+
+                train_examples = [
+                    InputExample(texts=[f"This is sentence number {i}", f"This is sentence number {i+1}"]) for i in range(total_examples)
+                ]
+                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
+                train_loss = losses.MegaBatchMarginLoss(model=model, mini_batch_size=train_mini_batch_size)
+
+                model.fit(
+                    [(train_dataloader, train_loss)],
+                    epochs=10,
+                )
         """
         super(MegaBatchMarginLoss, self).__init__()
         self.model = model

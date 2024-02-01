@@ -16,34 +16,6 @@ class SiameseDistanceMetric(Enum):
 
 
 class ContrastiveLoss(nn.Module):
-    """
-    Contrastive loss. Expects as input two texts and a label of either 0 or 1. If the label == 1, then the distance between the
-    two embeddings is reduced. If the label == 0, then the distance between the embeddings is increased.
-
-    Further information: http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
-
-    :param model: SentenceTransformer model
-    :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
-    :param margin: Negative samples (label == 0) should have a distance of at least the margin value.
-    :param size_average: Average by the size of the mini-batch.
-
-    Example::
-
-        from sentence_transformers import SentenceTransformer, LoggingHandler, losses, InputExample
-        from torch.utils.data import DataLoader
-
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        train_examples = [
-            InputExample(texts=['This is a positive pair', 'Where the distance will be minimized'], label=1),
-            InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0)]
-
-        train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=2)
-        train_loss = losses.ContrastiveLoss(model=model)
-
-        model.fit([(train_dataloader, train_loss)], show_progress_bar=True)
-
-    """
-
     def __init__(
         self,
         model: SentenceTransformer,
@@ -51,6 +23,54 @@ class ContrastiveLoss(nn.Module):
         margin: float = 0.5,
         size_average: bool = True,
     ):
+        """
+        Contrastive loss. Expects as input two texts and a label of either 0 or 1. If the label == 1, then the distance between the
+        two embeddings is reduced. If the label == 0, then the distance between the embeddings is increased.
+
+        :param model: SentenceTransformer model
+        :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
+        :param margin: Negative samples (label == 0) should have a distance of at least the margin value.
+        :param size_average: Average by the size of the mini-batch.
+
+        References:
+            * Further information: http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
+            * `Training Examples > Quora Duplicate Questions <../../examples/training/quora_duplicate_questions/README.html>`_
+
+        Requirements:
+            1. (anchor, positive/negative) pairs
+
+        Relations:
+            - :class:`OnlineContrastiveLoss` is similar, but uses hard positive and hard negative pairs.
+            It often yields better results.
+
+        Inputs:
+            +-----------------------------------------------+------------------------------+
+            | Texts                                         | Labels                       |
+            +===============================================+==============================+
+            | (anchor, positive/negative) pairs             | 1 if positive, 0 if negative |
+            +-----------------------------------------------+------------------------------+
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer, losses
+                from sentence_transformers.readers import InputExample
+                from torch.utils.data import DataLoader
+
+                model = SentenceTransformer('all-MiniLM-L6-v2')
+                train_examples = [
+                    InputExample(texts=['This is a positive pair', 'Where the distance will be minimized'], label=1),
+                    InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0),
+                ]
+
+                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=2)
+                train_loss = losses.ContrastiveLoss(model=model)
+
+                model.fit(
+                    [(train_dataloader, train_loss)],
+                    epochs=10,
+                )
+        """
         super(ContrastiveLoss, self).__init__()
         self.distance_metric = distance_metric
         self.margin = margin
