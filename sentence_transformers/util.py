@@ -1,7 +1,7 @@
 import functools
 import requests
 from torch import Tensor, device
-from typing import List, Callable
+from typing import List, Callable, Literal
 from tqdm.autonotebook import tqdm
 import sys
 import importlib
@@ -556,3 +556,20 @@ def save_to_hub_args_decorator(func):
         return func(self, *args, **kwargs)
 
     return wrapper
+
+
+def get_device_name() -> Literal["mps", "cuda", "cpu"]:
+    """
+    Returns the name of the device where this module is running on.
+    It's simple implementation that doesn't cover cases when more powerful GPUs are available and
+    not a primary device ('cuda:0') or MPS device is available, but not configured properly:
+    https://pytorch.org/docs/master/notes/mps.html
+
+    :return: Device name, like 'cuda' or 'cpu'
+    """
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
