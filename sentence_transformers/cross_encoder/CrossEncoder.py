@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
 from .. import SentenceTransformer, util
 from ..evaluation import SentenceEvaluator
+from ..util import get_device_name
 
 
 logger = logging.getLogger(__name__)
@@ -73,7 +74,7 @@ class CrossEncoder:
         self.max_length = max_length
 
         if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            device = get_device_name()
             logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
