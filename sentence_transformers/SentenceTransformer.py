@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from sentence_transformers.readers import InputExample
 
+
 class SentenceTransformer(nn.Sequential):
     """
     Loads or creates a SentenceTransformer model that can be used to map sentences / text to embeddings.
