@@ -4,7 +4,7 @@ import os
 import shutil
 from collections import OrderedDict
 import warnings
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal, TYPE_CHECKING
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, TYPE_CHECKING
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -29,6 +29,7 @@ from .util import (
     load_dir_path,
     load_file_path,
     save_to_hub_args_decorator,
+    get_device_name,
 )
 from .models import Transformer, Pooling, Normalize
 from .model_card_templates import ModelCardTemplate
@@ -39,23 +40,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentence_transformers.readers import InputExample
-
-
-def get_device_name() -> Literal["mps", "cuda", "cpu"]:
-    """
-    Returns the name of the device where this module is running on.
-    It's simple implementation that doesn't cover cases when more powerful GPUs are available and
-    not a primary device ('cuda:0') or MPS device is available, but not configured properly:
-    https://pytorch.org/docs/master/notes/mps.html
-
-    :return: Device name, like 'cuda' or 'cpu'
-    """
-    if torch.cuda.is_available():
-        return "cuda"
-    elif torch.backends.mps.is_available():
-        return "mps"
-    else:
-        return "cpu"
 
 
 class SentenceTransformer(nn.Sequential):
