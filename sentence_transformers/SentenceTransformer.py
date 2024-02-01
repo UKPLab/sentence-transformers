@@ -30,7 +30,7 @@ from .util import (
     load_file_path,
     save_to_hub_args_decorator,
 )
-from .models import Transformer, Pooling
+from .models import Transformer, Pooling, Normalize
 from .model_card_templates import ModelCardTemplate
 from . import __version__
 
@@ -1059,13 +1059,17 @@ class SentenceTransformer(nn.Sequential):
                     kwargs["tokenizer_args"] = hub_kwargs
                 module = Transformer(model_name_or_path, cache_dir=cache_folder, **kwargs)
             else:
-                module_path = load_dir_path(
-                    model_name_or_path,
-                    module_config["path"],
-                    token=token,
-                    cache_folder=cache_folder,
-                    revision=revision,
-                )
+                # Normalize does not require any files to be loaded
+                if module_class == Normalize:
+                    module_path = None
+                else:
+                    module_path = load_dir_path(
+                        model_name_or_path,
+                        module_config["path"],
+                        token=token,
+                        cache_folder=cache_folder,
+                        revision=revision,
+                    )
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
 

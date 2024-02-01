@@ -35,6 +35,12 @@ Sadly there is no "one size fits all" loss function. Which loss function is suit
 .. autoclass:: sentence_transformers.losses.ContrastiveTensionLoss
 ```
 
+## CoSENTLoss
+
+```eval_rst
+.. autoclass:: sentence_transformers.losses.CoSENTLoss
+```
+
 ## CosineSimilarityLoss
 
 ![SBERT Siamese Network Architecture](../img/SBERT_Siamese_Network.png "SBERT Siamese Architecture")
