@@ -28,7 +28,7 @@ The following models have been specifically trained for **Semantic Search**: Giv
 ```python
 from sentence_transformers import SentenceTransformer, util
 
-model = SentenceTransformer("multi-qa-MiniLM-L6-cos-v1")
+model = SentenceTransformer("multi-qa-MiniLM-L6-dot-v1")
 
 query_embedding = model.encode("How big is London")
 passage_embedding = model.encode([
