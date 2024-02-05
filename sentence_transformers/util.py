@@ -100,6 +100,7 @@ def pairwise_cos_sim(a: Tensor, b: Tensor) -> Tensor:
 
     return pairwise_dot_score(normalize_embeddings(a), normalize_embeddings(b))
 
+
 def pairwise_angle_sim(x: Tensor, y: Tensor) -> Tensor:
     """
     Computes the absolute normalized angle distance;
