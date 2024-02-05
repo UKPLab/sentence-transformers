@@ -2,7 +2,7 @@ from sentence_transformers import losses, SentenceTransformer, util
 
 
 class AnglELoss(losses.CoSENTLoss):
-    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.pairwise_angle_sim):
+    def __init__(self, model: SentenceTransformer, scale: float = 20.0):
         """
         This class implements AnglE (Angle Optimized) loss.
         This is a modification of CoSENT loss, designed to address the following issue:
@@ -22,7 +22,6 @@ class AnglELoss(losses.CoSENTLoss):
 
 
         :param model: SentenceTransformerModel
-        :param similarity_fct: Function to compute the PAIRWISE similarity between embeddings. Default is ``util.pairwise_angle_sim``.
         :param scale: Output of similarity function is multiplied by scale value. Represents the inverse temperature.
 
         References:
@@ -55,4 +54,4 @@ class AnglELoss(losses.CoSENTLoss):
                 train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
                 train_loss = losses.AnglELoss(model=model)
         """
-        super().__init__(model, scale, similarity_fct)
+        super().__init__(model, scale, similarity_fct=util.pairwise_angle_sim)
