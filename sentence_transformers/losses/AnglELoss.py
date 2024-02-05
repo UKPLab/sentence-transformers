@@ -18,7 +18,7 @@ class AnglELoss(losses.CoSENTLoss):
         ``loss = logsum(1+exp(s(k,l)-s(i,j))+exp...)``, where ``(i,j)`` and ``(k,l)`` are any of the input pairs in the
         batch such that the expected similarity of ``(i,j)`` is greater than ``(k,l)``. The summation is over all possible
         pairs of input pairs in the batch that match this condition. This is the same as CoSENTLoss, with a different
-        similarity factor.
+        similarity function.
 
 
         :param model: SentenceTransformerModel
