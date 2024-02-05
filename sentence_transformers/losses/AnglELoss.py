@@ -18,7 +18,7 @@ class AnglELoss(losses.CoSENTLoss):
         ``loss = logsum(1+exp(s(k,l)-s(i,j))+exp...)``, where ``(i,j)`` and ``(k,l)`` are any of the input pairs in the
         batch such that the expected similarity of ``(i,j)`` is greater than ``(k,l)``. The summation is over all possible
         pairs of input pairs in the batch that match this condition. This is the same as CoSENTLoss, with a different
-        default similarity factor.
+        similarity factor.
 
 
         :param model: SentenceTransformerModel
@@ -31,7 +31,7 @@ class AnglELoss(losses.CoSENTLoss):
             - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
 
         Relations:
-            - :class: 'CoSENTLoss' is AnglELoss with pairwise_cos_sim as the default metric, rather than pairwise_angle_sim
+            - :class: 'CoSENTLoss' is AnglELoss with pairwise_cos_sim as the metric, rather than pairwise_angle_sim
             - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than CoSENTLoss. On our experiments, CoSENTLoss is recommended.
 
         Inputs:
