@@ -8,7 +8,7 @@ class AnglELoss(losses.CoSENTLoss):
         This is a modification of CoSENT loss, designed to address the following issue:
         The cosine function's gradient approaches 0 as the wave approaches the top or bottom of its form.
         This can hinder the optimization process, so AnglE proposes to instead optimize the angle difference
-        in complex space to mitigate these effects.
+        in complex space in order to mitigate this effect.
 
         It expects that each of the InputExamples consists of a pair of texts and a float valued label, representing
         the expected similarity score between the pair.
