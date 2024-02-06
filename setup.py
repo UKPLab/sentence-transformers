@@ -6,7 +6,7 @@ with open("README.md", mode="r", encoding="utf-8") as readme_file:
 
 setup(
     name="sentence-transformers",
-    version="2.2.2",
+    version="2.4.0.dev0",
     author="Nils Reimers",
     author_email="info@nils-reimers.de",
     description="Multilingual text embeddings",
@@ -20,7 +20,7 @@ setup(
     install_requires=[
         "transformers>=4.32.0,<5.0.0",
         "tqdm",
-        "torch>=1.6.0",
+        "torch>=1.11.0",
         "numpy",
         "scikit-learn",
         "scipy",

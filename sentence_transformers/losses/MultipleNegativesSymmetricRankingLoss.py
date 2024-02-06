@@ -6,36 +6,54 @@ from .. import util
 
 
 class MultipleNegativesSymmetricRankingLoss(nn.Module):
-    """
-    This loss is an adaptation of MultipleNegativesRankingLoss. MultipleNegativesRankingLoss computes the following loss:
-    For a given anchor and a list of candidates, find the positive candidate.
-
-    In MultipleNegativesSymmetricRankingLoss, we add another loss term: Given the positive and a list of all anchors,
-    find the correct (matching) anchor.
-
-    For the example of question-answering: You have (question, answer)-pairs. MultipleNegativesRankingLoss just computes
-    the loss to find the answer for a given question. MultipleNegativesSymmetricRankingLoss additionally computes the
-    loss to find the question for a given answer.
-
-    Note: If you pass triplets, the negative entry will be ignored. A anchor is just searched for the positive.
-
-    Example::
-
-        from sentence_transformers import SentenceTransformer, losses, InputExample
-        from torch.utils.data import DataLoader
-
-        model = SentenceTransformer('distilbert-base-uncased')
-        train_examples = [InputExample(texts=['Anchor 1', 'Positive 1']),
-            InputExample(texts=['Anchor 2', 'Positive 2'])]
-        train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
-        train_loss = losses.MultipleNegativesSymmetricRankingLoss(model=model)
-    """
-
     def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim):
         """
+        This loss is an adaptation of MultipleNegativesRankingLoss. MultipleNegativesRankingLoss computes the following loss:
+        For a given anchor and a list of candidates, find the positive candidate.
+
+        In MultipleNegativesSymmetricRankingLoss, we add another loss term: Given the positive and a list of all anchors,
+        find the correct (matching) anchor.
+
+        For the example of question-answering: You have (question, answer)-pairs. MultipleNegativesRankingLoss just computes
+        the loss to find the answer for a given question. MultipleNegativesSymmetricRankingLoss additionally computes the
+        loss to find the question for a given answer.
+
+        Note: If you pass triplets, the negative entry will be ignored. A anchor is just searched for the positive.
+
         :param model: SentenceTransformer model
         :param scale: Output of similarity function is multiplied by scale value
         :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+
+        Requirements:
+            1. (anchor, positive) pairs
+
+        Relations:
+            - Like :class:`MultipleNegativesRankingLoss`, but with an additional loss term.
+
+        Inputs:
+            +---------------------------------------+--------+
+            | Texts                                 | Labels |
+            +=======================================+========+
+            | (anchor, positive) pairs              | none   |
+            +---------------------------------------+--------+
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer, losses, InputExample
+                from torch.utils.data import DataLoader
+
+                model = SentenceTransformer('distilbert-base-uncased')
+                train_examples = [
+                    InputExample(texts=['Anchor 1', 'Positive 1']),
+                    InputExample(texts=['Anchor 2', 'Positive 2']),
+                ]
+                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
+                train_loss = losses.MultipleNegativesSymmetricRankingLoss(model=model)
+                model.fit(
+                    [(train_dataloader, train_loss)],
+                    epochs=10,
+                )
         """
         super(MultipleNegativesSymmetricRankingLoss, self).__init__()
         self.model = model

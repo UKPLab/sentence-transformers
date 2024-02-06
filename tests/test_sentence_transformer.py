@@ -11,7 +11,8 @@ import pytest
 from huggingface_hub import HfApi, RepoUrl, GitRefs, GitRefInfo
 import torch
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.models import Transformer, Pooling
+from sentence_transformers.configuration import SentenceTransformerConfig
+from sentence_transformers.models import Normalize, Transformer, Pooling
 
 
 def test_load_with_safetensors() -> None:
@@ -186,3 +187,25 @@ def test_load_with_revision() -> None:
     main_embeddings = main_model.encode(test_sentence, convert_to_tensor=True)
     assert torch.equal(main_embeddings, latest_model.encode(test_sentence, convert_to_tensor=True))
     assert not torch.equal(main_embeddings, older_model.encode(test_sentence, convert_to_tensor=True))
+
+
+def test_add_module() -> None:
+    tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    tiny_model.add_module("Normalize", Normalize())
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model_path = Path(tmp_folder) / "tiny_model_local"
+        tiny_model.save(str(model_path))
+        assert len(tiny_model.config.modules) == 3
+        assert tiny_model.config.empty_on_init
+        config = SentenceTransformerConfig.from_pretrained(
+            str(model_path), _configuration_file="config_sentence_transformers.json"
+        )
+        assert len(config.modules) == 3
+        assert not config.empty_on_init
+
+        # This fails in v2.3.0
+        fresh_tiny_model = SentenceTransformer(str(model_path))
+        assert len(fresh_tiny_model.config.modules) == 3
+        assert not fresh_tiny_model.config.empty_on_init
+        fresh_tiny_model.add_module("Normalize", Normalize())
+        assert len(fresh_tiny_model.config.modules) == 4

@@ -5,10 +5,11 @@ import os
 import shutil
 from collections import OrderedDict
 import warnings
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, Literal, TYPE_CHECKING
+from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, TYPE_CHECKING
 import numpy as np
 from numpy import ndarray
 import transformers
+from transformers import is_torch_npu_available
 from huggingface_hub import HfApi
 import torch
 from torch import nn, Tensor, device
@@ -35,8 +36,9 @@ from .util import (
     load_dir_path,
     load_file_path,
     save_to_hub_args_decorator,
+    get_device_name,
 )
-from .models import Transformer, Pooling
+from .models import Transformer, Pooling, Normalize
 from .model_card_templates import ModelCardTemplate
 
 logger = logging.getLogger(__name__)
@@ -44,23 +46,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentence_transformers.readers import InputExample
-
-
-def get_device_name() -> Literal["mps", "cuda", "cpu"]:
-    """
-    Returns the name of the device where this module is running on.
-    It's simple implementation that doesn't cover cases when more powerful GPUs are available and
-    not a primary device ('cuda:0') or MPS device is available, but not configured properly:
-    https://pytorch.org/docs/master/notes/mps.html
-
-    :return: Device name, like 'cuda' or 'cpu'
-    """
-    if torch.cuda.is_available():
-        return "cuda"
-    elif torch.backends.mps.is_available():
-        return "mps"
-    else:
-        return "cpu"
 
 
 class SentenceTransformer(nn.Sequential):
@@ -72,7 +57,7 @@ class SentenceTransformer(nn.Sequential):
         from the Hugging Face Hub with that name.
     :param modules: A list of torch Modules that should be called sequentially, can be used to create custom
         SentenceTransformer models from scratch.
-    :param device: Device (like "cuda", "cpu", "mps") that should be used for computation. If None, checks if a GPU
+    :param device: Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
         can be used.
     :param cache_folder: Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
     :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
@@ -208,7 +193,10 @@ class SentenceTransformer(nn.Sequential):
                 modules = self._load_sbert_model_as_modules(model_name_or_path, **hub_kwargs)
             elif model_or_path_has_file("config_sentence_transformers.json", model_name_or_path, **hub_kwargs):
                 self.config: SentenceTransformerConfig = SentenceTransformerConfig.from_pretrained(
-                    model_name_or_path, _configuration_file="config_sentence_transformers.json", **hub_kwargs
+                    model_name_or_path,
+                    _configuration_file="config_sentence_transformers.json",
+                    **hub_kwargs,
+                    loaded_with_from_pretrained=True,
                 )
                 modules = self._load_sbert_model_as_pretrained_model(model_name_or_path, **hub_kwargs, **kwargs)
             else:
@@ -219,9 +207,11 @@ class SentenceTransformer(nn.Sequential):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
 
         if self.config is None:
-            self.config = SentenceTransformerConfig.from_modules(modules)
+            self.config = SentenceTransformerConfig()
 
+        self.calling_init = True
         super().__init__(modules)
+        self.calling_init = False
         if device is None:
             device = get_device_name()
             logger.info("Use pytorch device_name: {}".format(device))
@@ -346,16 +336,19 @@ class SentenceTransformer(nn.Sequential):
         to start only one process per GPU. This method works together with encode_multi_process
         and stop_multi_process_pool.
 
-        :param target_devices: PyTorch target devices, e.g. ["cuda:0", "cuda:1", ...] or ["cpu", "cpu", "cpu", "cpu"].
-            If target_devices is None and CUDA is available, then all available CUDA devices will be used. If
-            target_devices is None and CUDA is not available, then 4 CPU devices will be used.
+        :param target_devices: PyTorch target devices, e.g. ["cuda:0", "cuda:1", ...], ["npu:0", "npu:1", ...] or
+            ["cpu", "cpu", "cpu", "cpu"]. If target_devices is None and CUDA/NPU is available, then all available
+            CUDA/NPU devices will be used. If target_devices is None and CUDA/NPU is not available, then 4 CPU
+            devices will be used.
         :return: Returns a dict with the target processes, an input queue and and output queue.
         """
         if target_devices is None:
             if torch.cuda.is_available():
                 target_devices = ["cuda:{}".format(i) for i in range(torch.cuda.device_count())]
+            elif is_torch_npu_available():
+                target_devices = ["npu:{}".format(i) for i in range(torch.npu.device_count())]
             else:
-                logger.info("CUDA is not available. Starting 4 CPU workers")
+                logger.info("CUDA/NPU is not available. Starting 4 CPU workers")
                 target_devices = ["cpu"] * 4
 
         logger.info("Start multi-process pool on devices: {}".format(", ".join(map(str, target_devices))))
@@ -605,10 +598,10 @@ class SentenceTransformer(nn.Sequential):
         ).replace("{FIT_PARAMETERS}", info_fit_parameters)
 
         if use_amp:
-            from torch.cuda.amp import autocast
-
-            scaler = torch.cuda.amp.GradScaler()
-
+            if is_torch_npu_available():
+                scaler = torch.npu.amp.GradScaler()
+            else:
+                scaler = torch.cuda.amp.GradScaler()
         self.to(self.device)
 
         dataloaders = [dataloader for dataloader, _ in train_objectives]
@@ -683,7 +676,7 @@ class SentenceTransformer(nn.Sequential):
                     features = list(map(lambda batch: batch_to_device(batch, self.device), features))
 
                     if use_amp:
-                        with autocast():
+                        with torch.autocast(device_type=self.device.type):
                             loss_value = loss_model(features, labels)
 
                         scale_before_step = scaler.get_scale()
@@ -1214,13 +1207,17 @@ class SentenceTransformer(nn.Sequential):
                     kwargs["tokenizer_args"] = hub_kwargs
                 module = Transformer(model_name_or_path, cache_dir=cache_dir, **kwargs)
             else:
-                module_path = load_dir_path(
-                    model_name_or_path,
-                    module_config["path"],
-                    token=token,
-                    cache_dir=cache_dir,
-                    revision=revision,
-                )
+                # Normalize does not require any files to be loaded
+                if module_class == Normalize:
+                    module_path = None
+                else:
+                    module_path = load_dir_path(
+                        model_name_or_path,
+                        module_config["path"],
+                        token=token,
+                        cache_dir=cache_dir,
+                        revision=revision,
+                    )
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
 
@@ -1319,3 +1316,28 @@ class SentenceTransformer(nn.Sequential):
     @staticmethod
     def load(input_path):
         return SentenceTransformer(input_path)
+
+    def add_module(self, name: str, module: Optional[nn.Module]) -> None:
+        r"""Adds a child module to the current module.
+
+        The module can be accessed as an attribute using the given name.
+
+        Args:
+            name (str): name of the child module. The child module can be
+                accessed from this module using the given name
+            module (Module): child module to be added to the module.
+        """
+        super().add_module(name, module)
+        # If we aren't calling in the process of calling super().__init__, or if the modules were not provided
+        # to the config on initialization, then we want to add the new modules to the config.
+        # So, the exception is when from_pretrained was called & the modules were provided in the config, then
+        # we don't want to add modules via super().__init__
+        print(not self.calling_init, self.config.empty_on_init)
+
+        if not self.calling_init or self.config.empty_on_init:
+            self.config.modules.append(
+                {
+                    "type": type(module).__module__,
+                    "config": module.get_config_dict() if hasattr(module, "get_config_dict") else {},
+                }
+            )

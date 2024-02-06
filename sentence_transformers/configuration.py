@@ -1,6 +1,5 @@
-from collections import OrderedDict
 import logging
-from typing import Optional, List, Dict, Union
+from typing import List, Dict, Union
 import transformers
 from sentence_transformers import __version__
 import torch
@@ -28,6 +27,7 @@ class SentenceTransformerConfig(PretrainedConfig):
             },
         )
         super().__init__(**kwargs)
+        self.empty_on_init = len(self.modules) == 0
 
         if Version(self.__version__["sentence_transformers"]) > Version(__version__):
             logger.warning(
@@ -58,20 +58,3 @@ class SentenceTransformerConfig(PretrainedConfig):
         configuration_utils.CONFIG_NAME = "config_sentence_transformers.json"
         super().save_pretrained(save_directory=save_directory, push_to_hub=push_to_hub, **kwargs)
         configuration_utils.CONFIG_NAME = original_config_name
-
-    @classmethod
-    def from_modules(cls, modules: Optional[OrderedDict]) -> "SentenceTransformerConfig":
-        """
-        Creates a SentenceTransformerConfig from a list of modules.
-        """
-        kwargs = {}
-        module_configs = []
-        for module in modules.values():
-            module_configs.append(
-                {
-                    "type": type(module).__module__,
-                    "config": module.get_config_dict() if hasattr(module, "get_config_dict") else {},
-                }
-            )
-        kwargs["modules"] = module_configs
-        return cls(**kwargs)

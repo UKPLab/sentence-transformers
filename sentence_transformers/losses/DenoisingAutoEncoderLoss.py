@@ -8,23 +8,62 @@ logger = logging.getLogger(__name__)
 
 
 class DenoisingAutoEncoderLoss(nn.Module):
-    """
-    This loss expects as input a batch consisting of damaged sentences and the corresponding original ones.
-    The data generation process has already been implemented in readers/DenoisingAutoEncoderReader.py
-    During training, the decoder reconstructs the original sentences from the encoded sentence embeddings.
-    Here the argument 'decoder_name_or_path' indicates the pretrained model (supported by Huggingface) to be used as the decoder.
-    Since decoding process is included, here the decoder should have a class called XXXLMHead (in the context of Huggingface's Transformers).
-    Flag 'tie_encoder_decoder' indicates whether to tie the trainable parameters of encoder and decoder,
-    which is shown beneficial to model performance while limiting the amount of required memory.
-    Only when the encoder and decoder are from the same architecture, can the flag 'tie_encoder_decoder' works.
-    For more information, please refer to the TSDAE paper.
-    """
-
     def __init__(self, model: SentenceTransformer, decoder_name_or_path: str = None, tie_encoder_decoder: bool = True):
         """
+        This loss expects as input a pairs of damaged sentences and the corresponding original ones.
+        During training, the decoder reconstructs the original sentences from the encoded sentence embeddings.
+        Here the argument 'decoder_name_or_path' indicates the pretrained model (supported by Hugging Face) to be used as the decoder.
+        Since decoding process is included, here the decoder should have a class called XXXLMHead (in the context of Hugging Face's Transformers).
+        The 'tie_encoder_decoder' flag indicates whether to tie the trainable parameters of encoder and decoder,
+        which is shown beneficial to model performance while limiting the amount of required memory.
+        Only when the encoder and decoder are from the same architecture, can the flag 'tie_encoder_decoder' work.
+
+        The data generation process (i.e. the 'damaging' process) has already been implemented in ``DenoisingAutoEncoderDataset``,
+        allowing you to only provide regular sentences.
+
         :param model: SentenceTransformer model
         :param decoder_name_or_path: Model name or path for initializing a decoder (compatible with Huggingface's Transformers)
         :param tie_encoder_decoder: whether to tie the trainable parameters of encoder and decoder
+
+        References:
+            * TSDAE paper: https://arxiv.org/pdf/2104.06979.pdf
+            * `Unsupervised Learning > TSDAE <../../examples/unsupervised_learning/TSDAE/README.html>`_
+
+        Requirements:
+            1. The decoder should have a class called XXXLMHead (in the context of Hugging Face's Transformers)
+            2. Should use a large corpus
+
+        Inputs:
+            +------------------------------------------------------+--------+
+            | Texts                                                | Labels |
+            +======================================================+========+
+            | (damaged\_sentence, original\_sentence) pairs        | none   |
+            +------------------------------------------------------+--------+
+            | sentence fed through ``DenoisingAutoEncoderDataset`` | none   |
+            +------------------------------------------------------+--------+
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer, losses
+                from sentence_transformers.datasets import DenoisingAutoEncoderDataset
+                from torch.utils.data import DataLoader
+
+                model_name = "bert-base-cased"
+                model = SentenceTransformer(model_name)
+                train_sentences = [
+                    "First training sentence", "Second training sentence", "Third training sentence", "Fourth training sentence",
+                ]
+                batch_size = 2
+                train_dataset = DenoisingAutoEncoderDataset(train_sentences)
+                train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+                train_loss = losses.DenoisingAutoEncoderLoss(
+                    model, decoder_name_or_path=model_name, tie_encoder_decoder=True
+                )
+                model.fit(
+                    train_objectives=[(train_dataloader, train_loss)],
+                    epochs=10,
+                )
         """
         super(DenoisingAutoEncoderLoss, self).__init__()
         self.encoder = model  # This will be the final model used during the inference time.
