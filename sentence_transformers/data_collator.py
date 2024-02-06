@@ -21,6 +21,6 @@ class SentenceTransformerDataCollator:
             columns.remove("label")
         for column in columns:
             tokenized = self.tokenize_fn([row[column] for row in features])
-            batch[f"{column}_input_ids"] = tokenized["input_ids"]
-            batch[f"{column}_attention_mask"] = tokenized["attention_mask"]
+            for key, value in tokenized.items():
+                batch[f"{column}_{key}"] = value
         return batch

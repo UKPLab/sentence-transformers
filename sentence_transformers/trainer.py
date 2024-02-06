@@ -92,12 +92,8 @@ class SentenceTransformerTrainer(Trainer):
         features = []
         for column in inputs:
             if column.endswith("_input_ids"):
-                features.append(
-                    {
-                        "input_ids": inputs[column],
-                        "attention_mask": inputs[column.replace("_input_ids", "_attention_mask")],
-                    }
-                )
+                prefix = column[: -len("input_ids")]
+                features.append({key[len(prefix) :]: value for key, value in inputs.items() if key.startswith(prefix)})
         return features
 
     def evaluation_loop(
