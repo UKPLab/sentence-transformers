@@ -33,17 +33,17 @@ class SentenceTransformerTrainer(Trainer):
         loss: nn.Module = None,
         evaluator: SentenceEvaluator = None,
         data_collator: Optional[DataCollator] = None,
-        tokenizer: Optional[PreTrainedTokenizerBase] = None,
+        tokenizer: Optional[Union[PreTrainedTokenizerBase, Callable]] = None,
         model_init: Optional[Callable[[], "SentenceTransformer"]] = None,
         compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = None,
         callbacks: Optional[List[TrainerCallback]] = None,
         optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
         preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
     ) -> None:
-        if tokenizer is None:
+        if tokenizer is None and isinstance(model.tokenizer, PreTrainedTokenizerBase):
             tokenizer = model.tokenizer
         if data_collator is None:
-            data_collator = SentenceTransformerDataCollator(tokenizer=tokenizer)
+            data_collator = SentenceTransformerDataCollator(tokenize_fn=model.tokenize)
         super().__init__(
             model=model,
             args=args,

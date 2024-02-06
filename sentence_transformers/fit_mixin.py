@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 import shutil
-from typing import List, Dict, Tuple, Iterable, Type, Callable, Optional, TYPE_CHECKING
+from typing import Any, List, Dict, Tuple, Iterable, Type, Callable, Optional, TYPE_CHECKING
 import transformers
 import torch
 from torch import nn, Tensor
@@ -56,15 +56,17 @@ class SaveModelCallback(TrainerCallback):
         args: TrainingArguments,
         state: TrainerState,
         control: TrainerControl,
+        metrics: Dict[str, Any],
         model: "SentenceTransformer",
         **kwargs,
     ):
         if self.evaluator is not None and self.save_best_model:
             metric_key = getattr(self.evaluator, "primary_metric", "evaluator")
-            if metric_key in state.log_history[-1]:
-                if self.best_metric is None or self.is_better(state.log_history[-1][metric_key]):
-                    self.best_metric = state.log_history[-1][metric_key]
-                    model.save(self.output_dir)
+            for key, value in metrics.items():
+                if key.endswith(metric_key):
+                    if self.best_metric is None or self.is_better(value):
+                        self.best_metric = value
+                        model.save(self.output_dir)
 
     def on_train_end(
         self,
@@ -76,6 +78,40 @@ class SaveModelCallback(TrainerCallback):
     ):
         if self.evaluator is None:
             model.save(self.output_dir)
+
+
+class EvaluatorCallback(TrainerCallback):
+    """The SentenceTransformers.fit method always ran the evaluator on every epoch,
+    in addition to every "evaluation_steps". This callback is responsible for that.
+
+    The `.trainer` must be provided after the trainer has been created.
+    """
+
+    def __init__(self, evaluator: SentenceEvaluator) -> None:
+        super().__init__()
+        self.evaluator = evaluator
+        self.metric_key_prefix = "eval"
+        self.trainer = None
+
+    def on_epoch_end(
+        self,
+        args: transformers.TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        model: "SentenceTransformer",
+        **kwargs,
+    ):
+        evaluator_metrics = self.evaluator(model)
+        if not isinstance(evaluator_metrics, dict):
+            evaluator_metrics = {"evaluator": evaluator_metrics}
+
+        # Prefix all keys with metric_key_prefix + '_'
+        for key in list(evaluator_metrics.keys()):
+            if not key.startswith(f"{self.metric_key_prefix}_"):
+                evaluator_metrics[f"{self.metric_key_prefix}_{key}"] = evaluator_metrics.pop(key)
+
+        if self.trainer is not None:
+            self.trainer.callback_handler.on_evaluate(args, state, control, metrics=evaluator_metrics)
 
 
 class OriginalCallback(TrainerCallback):
@@ -90,11 +126,17 @@ class OriginalCallback(TrainerCallback):
         self.evaluator = evaluator
 
     def on_evaluate(
-        self, args: transformers.TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs
+        self,
+        args: transformers.TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        metrics: Dict[str, Any],
+        **kwargs,
     ):
         metric_key = getattr(self.evaluator, "primary_metric", "evaluator")
-        if metric_key in self.log_history[-1]:
-            return self.callback(self.log_history[-1][metric_key], state.epoch, state.global_step)
+        for key, value in metrics.items():
+            if key.endswith(metric_key):
+                return self.callback(value, state.epoch, state.global_step)
 
 
 class FitMixin:
@@ -232,8 +274,10 @@ class FitMixin:
         callbacks = []
         if output_path is not None:
             callbacks.append(SaveModelCallback(output_path, evaluator, save_best_model))
-        if callback is not None and evaluator is not None:
-            callbacks.append(OriginalCallback(callback, evaluator))
+        if evaluator is not None:
+            callbacks.append(EvaluatorCallback(evaluator))
+            if callback is not None:
+                callbacks.append(OriginalCallback(callback, evaluator))
 
         trainer = SentenceTransformerTrainer(
             model=self,
@@ -245,6 +289,11 @@ class FitMixin:
             optimizers=(optimizer, scheduler_obj),
             callbacks=callbacks,
         )
+        # Set the trainer on the EvaluatorCallback, required for logging the metrics
+        for callback in trainer.callback_handler.callbacks:
+            if isinstance(callback, EvaluatorCallback):
+                callback.trainer = trainer
+
         trainer.train()
 
     @staticmethod
