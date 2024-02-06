@@ -52,8 +52,8 @@ if model_name == "nq-distilbert-base-v1":
 
     corpus_embeddings = torch.load(embeddings_filepath)
     corpus_embeddings = corpus_embeddings.float()  # Convert embedding file to float
-    if torch.cuda.is_available():
-        corpus_embeddings = corpus_embeddings.to("cuda")
+    device = util.get_device_name()
+    corpus_embeddings = corpus_embeddings.to(device)
 else:  # Here, we compute the corpus_embeddings from scratch (which can take a while depending on the GPU)
     corpus_embeddings = bi_encoder.encode(passages, convert_to_tensor=True, show_progress_bar=True)
 

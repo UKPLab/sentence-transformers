@@ -57,31 +57,6 @@ def _backward_hook(
 
 
 class CachedMultipleNegativesRankingLoss(nn.Module):
-    """
-    Boosted version of MultipleNegativesRankingLoss (https://arxiv.org/pdf/1705.00652.pdf) by GradCache (https://arxiv.org/pdf/2101.06983.pdf).
-
-    Constrastive learning (here our MNRL loss) with in-batch negatives is usually hard to work with large batch sizes due to (GPU) memory limitation.
-    Even with batch-scaling methods like gradient-scaling, it cannot work either. This is because the in-batch negatives make the data points within
-    the same batch non-independent and thus the batch cannot be broke down into mini-batches. GradCache is a smart way to solve this problem.
-    It achieves the goal by dividing the computation into two stages of embedding and loss calculation, which both can be scaled by mini-batches.
-    As a result, memory of constant size (e.g. that works with batch size = 32) can now process much larger batches (e.g. 65536).
-
-    In detail:
-
-        (1) It first does a quick embedding step without gradients/computation graphs to get all the embeddings;
-        (2) Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings;
-        (3) A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain.
-
-    Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in mini-batches and
-    requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
-
-    Example::
-
-        from sentence_transformers import SentenceTransformer
-        train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=1024)  # Here we can try much larger batch sizes!
-        train_loss = losses.CachedMultipleNegativesRankingLoss(model=model, mini_batch_size: int = 32)
-    """
-
     def __init__(
         self,
         model: SentenceTransformer,
@@ -91,9 +66,66 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         show_progress_bar: bool = False,
     ):
         """
+        Boosted version of MultipleNegativesRankingLoss (https://arxiv.org/pdf/1705.00652.pdf) by GradCache (https://arxiv.org/pdf/2101.06983.pdf).
+
+        Constrastive learning (here our MNRL loss) with in-batch negatives is usually hard to work with large batch sizes due to (GPU) memory limitation.
+        Even with batch-scaling methods like gradient-scaling, it cannot work either. This is because the in-batch negatives make the data points within
+        the same batch non-independent and thus the batch cannot be broke down into mini-batches. GradCache is a smart way to solve this problem.
+        It achieves the goal by dividing the computation into two stages of embedding and loss calculation, which both can be scaled by mini-batches.
+        As a result, memory of constant size (e.g. that works with batch size = 32) can now process much larger batches (e.g. 65536).
+
+        In detail:
+
+            (1) It first does a quick embedding step without gradients/computation graphs to get all the embeddings;
+            (2) Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings;
+            (3) A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain.
+
+        Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in mini-batches and
+        requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
+
         :param model: SentenceTransformer model
         :param scale: Output of similarity function is multiplied by scale value
         :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+
+        References:
+            - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
+            - Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup: https://arxiv.org/pdf/2101.06983.pdf
+
+        Requirements:
+            1. (anchor, positive) pairs or (anchor, positive, negative pairs)
+            2. Should be used with large batch sizes for superior performance, but has slower training time than :class:`MultipleNegativesRankingLoss`
+
+        Relations:
+            - Equivalent to :class:`MultipleNegativesRankingLoss`, but with caching that allows for much higher batch sizes
+            (and thus better performance) without extra memory usage. This loss also trains roughly 2x to 2.4x slower than
+            :class:`MultipleNegativesRankingLoss`.
+
+        Inputs:
+            +---------------------------------------+--------+
+            | Texts                                 | Labels |
+            +=======================================+========+
+            | (anchor, positive) pairs              | none   |
+            +---------------------------------------+--------+
+            | (anchor, positive, negative) triplets | none   |
+            +---------------------------------------+--------+
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer, losses, InputExample
+                from torch.utils.data import DataLoader
+
+                model = SentenceTransformer('distilbert-base-uncased')
+                train_examples = [
+                    InputExample(texts=['Anchor 1', 'Positive 1']),
+                    InputExample(texts=['Anchor 2', 'Positive 2']),
+                ]
+                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=1024)  # Here we can try much larger batch sizes!
+                train_loss = losses.CachedMultipleNegativesRankingLoss(model=model, mini_batch_size = 32)
+                model.fit(
+                    [(train_dataloader, train_loss)],
+                    epochs=10,
+                )
         """
         super(CachedMultipleNegativesRankingLoss, self).__init__()
         self.model = model

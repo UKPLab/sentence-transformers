@@ -5,39 +5,67 @@ from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class BatchAllTripletLoss(nn.Module):
-    """
-    BatchAllTripletLoss takes a batch with (label, sentence) pairs and computes the loss for all possible, valid
-    triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. The labels
-    must be integers, with same label indicating sentences from the same class. You train dataset
-    must contain at least 2 examples per label class.
-
-    | Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
-    | Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
-    | Blog post: https://omoindrot.github.io/triplet-loss
-
-    :param model: SentenceTransformer model
-    :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
-    :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
-
-    Example::
-
-        from sentence_transformers import SentenceTransformer, SentencesDataset, losses
-        from sentence_transformers.readers import InputExample
-
-        model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-        train_examples = [InputExample(texts=['Sentence from class 0'], label=0), InputExample(texts=['Another sentence from class 0'], label=0),
-            InputExample(texts=['Sentence from class 1'], label=1), InputExample(texts=['Sentence from class 2'], label=2)]
-        train_dataset = SentencesDataset(train_examples, model)
-        train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
-        train_loss = losses.BatchAllTripletLoss(model=model)
-    """
-
     def __init__(
         self,
         model: SentenceTransformer,
         distance_metric=BatchHardTripletLossDistanceFunction.eucledian_distance,
         margin: float = 5,
     ):
+        """
+        BatchAllTripletLoss takes a batch with (sentence, label) pairs and computes the loss for all possible, valid
+        triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. The labels
+        must be integers, with same label indicating sentences from the same class. Your train dataset
+        must contain at least 2 examples per label class.
+
+        :param model: SentenceTransformer model
+        :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrics that can be used.
+        :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
+
+        References:
+            * Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
+            * Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
+            * Blog post: https://omoindrot.github.io/triplet-loss
+
+        Requirements:
+            1. Each sentence must be labeled with a class.
+            2. Your dataset must contain at least 2 examples per labels class.
+
+        Relations:
+            * :class:`BatchHardTripletLoss` uses only the hardest positive and negative samples, rather than all possible, valid triplets.
+            * :class:`BatchHardSoftMarginTripletLoss` uses only the hardest positive and negative samples, rather than all possible, valid triplets.
+            Also, it does not require setting a margin.
+            * :class:`BatchSemiHardTripletLoss` uses only semi-hard triplets, valid triplets, rather than all possible, valid triplets.
+
+        Inputs:
+            +------------------+--------+
+            | Texts            | Labels |
+            +==================+========+
+            | single sentences | class  |
+            +------------------+--------+
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer, losses
+                from sentence_transformers.readers import InputExample
+                from torch.utils.data import DataLoader
+
+                model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+                train_examples = [
+                    InputExample(texts=['Sentence from class 0'], label=0),
+                    InputExample(texts=['Another sentence from class 0'], label=0),
+                    InputExample(texts=['Sentence from class 1'], label=1),
+                    InputExample(texts=['Sentence from class 2'], label=2),
+                ]
+                train_batch_size = 2
+                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
+                train_loss = losses.BatchAllTripletLoss(model=model)
+                model.fit(
+                    train_objectives=[(train_dataloader, train_loss)],
+                    epochs=10,
+                )
+
+        """
         super(BatchAllTripletLoss, self).__init__()
         self.sentence_embedder = model
         self.triplet_margin = margin
