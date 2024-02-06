@@ -93,7 +93,11 @@ class SentenceTransformerTrainer(Trainer):
         for column in inputs:
             # TODO: Can this be improved?
             if column.endswith(("_input_ids", "_sentence_embedding")):
-                prefix = column[: -len("input_ids")] if column.endswith("_input_ids") else column[: -len("sentence_embedding")]
+                prefix = (
+                    column[: -len("input_ids")]
+                    if column.endswith("_input_ids")
+                    else column[: -len("sentence_embedding")]
+                )
                 features.append({key[len(prefix) :]: value for key, value in inputs.items() if key.startswith(prefix)})
         return features
 

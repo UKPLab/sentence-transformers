@@ -5,7 +5,6 @@ from typing import List, Dict
 import os
 import json
 import logging
-import numpy as np
 from .tokenizer import WhitespaceTokenizer
 
 
