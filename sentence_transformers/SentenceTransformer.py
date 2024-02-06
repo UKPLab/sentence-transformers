@@ -3,7 +3,7 @@ import logging
 import os
 from collections import OrderedDict
 import warnings
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, TYPE_CHECKING
+from typing import List, Dict, Tuple, Iterable, Union, Optional, TYPE_CHECKING
 import numpy as np
 from numpy import ndarray
 import transformers
