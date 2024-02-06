@@ -5,17 +5,20 @@
 The basic function to compute sentence embeddings looks like this:
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('all-MiniLM-L6-v2')
 
-#Our sentences we like to encode
-sentences = ['This framework generates embeddings for each input sentence',
-    'Sentences are passed as a list of strings.', 
-    'The quick brown fox jumps over the lazy dog.']
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
-#Sentences are encoded by calling model.encode()
+# Our sentences we like to encode
+sentences = [
+    "This framework generates embeddings for each input sentence",
+    "Sentences are passed as a list of strings.",
+    "The quick brown fox jumps over the lazy dog.",
+]
+
+# Sentences are encoded by calling model.encode()
 embeddings = model.encode(sentences)
 
-#Print the embeddings
+# Print the embeddings
 for sentence, embedding in zip(sentences, embeddings):
     print("Sentence:", sentence)
     print("Embedding:", embedding)
@@ -27,14 +30,15 @@ for sentence, embedding in zip(sentences, embeddings):
 First, we load a sentence-transformer model:
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('model_name_or_path')
+
+model = SentenceTransformer("model_name_or_path")
 ```
 
 You can either specify a [pre-trained model](https://www.sbert.net/docs/pretrained_models.html) or you can pass a path on your disc to load the sentence-transformer model from that folder.
 
 If available, the model is automatically executed on the GPU. You can specify the device for the model like this:
 ```python
-model = SentenceTransformer('model_name_or_path', device='cuda')
+model = SentenceTransformer("model_name_or_path", device="cuda")
 ```
 
 With *device* any pytorch device (like CPU, cuda, cuda:0 etc.)
@@ -54,11 +58,12 @@ By default, the provided methods use a limit of 128 word pieces, longer inputs w
  
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('all-MiniLM-L6-v2')
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 print("Max Sequence Length:", model.max_seq_length)
 
-#Change the length to 200
+# Change the length to 200
 model.max_seq_length = 200
 
 print("Max Sequence Length:", model.max_seq_length)
@@ -74,23 +79,25 @@ The easiest method is to use *pickle* to store pre-computed embeddings on disc a
 from sentence_transformers import SentenceTransformer
 import pickle
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
-sentences = ['This framework generates embeddings for each input sentence',
-    'Sentences are passed as a list of string.', 
-    'The quick brown fox jumps over the lazy dog.']
+model = SentenceTransformer("all-MiniLM-L6-v2")
+sentences = [
+    "This framework generates embeddings for each input sentence",
+    "Sentences are passed as a list of string.",
+    "The quick brown fox jumps over the lazy dog.",
+]
 
 
 embeddings = model.encode(sentences)
 
-#Store sentences & embeddings on disc
-with open('embeddings.pkl', "wb") as fOut:
-    pickle.dump({'sentences': sentences, 'embeddings': embeddings}, fOut, protocol=pickle.HIGHEST_PROTOCOL)
+# Store sentences & embeddings on disc
+with open("embeddings.pkl", "wb") as fOut:
+    pickle.dump({"sentences": sentences, "embeddings": embeddings}, fOut, protocol=pickle.HIGHEST_PROTOCOL)
 
-#Load sentences & embeddings from disc
-with open('embeddings.pkl', "rb") as fIn:
+# Load sentences & embeddings from disc
+with open("embeddings.pkl", "rb") as fIn:
     stored_data = pickle.load(fIn)
-    stored_sentences = stored_data['sentences']
-    stored_embeddings = stored_data['embeddings']
+    stored_sentences = stored_data["sentences"]
+    stored_embeddings = stored_data["embeddings"]
 ```
 
 ## Multi-Process / Multi-GPU Encoding
@@ -111,34 +118,37 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 
 
-#Mean Pooling - Take attention mask into account for correct averaging
+# Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(model_output, attention_mask):
-    token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+    token_embeddings = model_output[0]  # First element of model_output contains all token embeddings
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
     sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
     sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
     return sum_embeddings / sum_mask
 
 
+# Sentences we want sentence embeddings for
+sentences = [
+    "This framework generates embeddings for each input sentence",
+    "Sentences are passed as a list of string.",
+    "The quick brown fox jumps over the lazy dog.",
+]
 
-#Sentences we want sentence embeddings for
-sentences = ['This framework generates embeddings for each input sentence',
-             'Sentences are passed as a list of string.',
-             'The quick brown fox jumps over the lazy dog.']
-
-#Load AutoModel from huggingface model repository
+# Load AutoModel from huggingface model repository
 tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
 model = AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
 
-#Tokenize sentences
-encoded_input = tokenizer(sentences, padding=True, truncation=True, max_length=128, return_tensors='pt')
+# Tokenize sentences
+encoded_input = tokenizer(
+    sentences, padding=True, truncation=True, max_length=128, return_tensors="pt"
+)
 
-#Compute token embeddings
+# Compute token embeddings
 with torch.no_grad():
     model_output = model(**encoded_input)
 
-#Perform pooling. In this case, mean pooling
-sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
+# Perform pooling. In this case, mean pooling
+sentence_embeddings = mean_pooling(model_output, encoded_input["attention_mask"])
 ```
 
 

@@ -16,7 +16,6 @@
 .. autoclass:: sentence_transformers.models.LSTM
 .. autoclass:: sentence_transformers.models.Normalize
 .. autoclass:: sentence_transformers.models.WeightedLayerPooling
-.. autoclass:: sentence_transformers.models.WKPooling
 .. autoclass:: sentence_transformers.models.WordEmbeddings
 .. autoclass:: sentence_transformers.models.WordWeights
 ```

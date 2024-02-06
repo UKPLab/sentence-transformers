@@ -17,7 +17,7 @@ In contrast, for a **Cross-Encoder**,  we pass both sentences simultaneously to 
 
 A **Cross-Encoder does not produce a sentence embedding**. Also, we are not able to pass individual sentences to a Cross-Encoder.
 
-As detailed in our [paper](https://arxiv.org/abs/1908.10084), Cross-Encoder achieve better performances than Bi-Encoders. However, for many application they are not pratical as they do not produce embeddings we could e.g. index or efficiently compare using cosine similarity.
+As detailed in our [paper](https://arxiv.org/abs/1908.10084), Cross-Encoder achieve better performances than Bi-Encoders. However, for many application they are not practical as they do not produce embeddings we could e.g. index or efficiently compare using cosine similarity.
 
 
 ## When to use Cross- / Bi-Encoders?
@@ -32,9 +32,9 @@ Bi-Encoders (see [Computing Sentence Embeddings](../computing-embeddings/README.
 Using Cross-Encoders is quite easy:
 ```python
 from sentence_transformers.cross_encoder import CrossEncoder
-model = CrossEncoder('model_name_or_path')
-scores = model.predict([["My first", "sentence pair"],  
-                        ["Second text", "pair"]])
+
+model = CrossEncoder("model_name_or_path")
+scores = model.predict([["My first", "sentence pair"], ["Second text", "pair"]])
 ```
 
 You pass to `model.predict` a list of sentence **pairs**. Note, Cross-Encoder do not work on individual sentence, you have to pass sentence pairs.

@@ -2,14 +2,17 @@
 
 [MS MARCO](https://microsoft.github.io/msmarco/) is a large scale information retrieval corpus that was created based on real user search queries using Bing search engine. The provided models can be used for semantic search, i.e., given keywords / a search phrase / a question, the model will find passages that are relevant for the search query.
 
-The training data constist of over 500k examples, while the complete  corpus consist of over 8.8 Million passages.
+The training data consists of over 500k examples, while the complete corpus consists of over 8.8 million passages.
 
 ## Usage with SentenceTransformers
 Pre-trained models can be used like this:
 ```python
 from sentence_transformers import CrossEncoder
-model = CrossEncoder('model_name', max_length=512)
-scores = model.predict([('Query', 'Paragraph1'), ('Query', 'Paragraph2') , ('Query', 'Paragraph3')])
+
+model = CrossEncoder("model_name", max_length=512)
+scores = model.predict(
+    [("Query", "Paragraph1"), ("Query", "Paragraph2"), ("Query", "Paragraph3")]
+)
 ```
 
 ## Usage with Transformers
@@ -18,10 +21,10 @@ scores = model.predict([('Query', 'Paragraph1'), ('Query', 'Paragraph2') , ('Que
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
-model = AutoModelForSequenceClassification.from_pretrained('model_name')
-tokenizer = AutoTokenizer.from_pretrained('model_name')
+model = AutoModelForSequenceClassification.from_pretrained("model_name")
+tokenizer = AutoTokenizer.from_pretrained("model_name")
 
-features = tokenizer(['Query', 'Query'], ['Paragraph1', 'Paragraph2'],  padding=True, truncation=True, return_tensors="pt")
+features = tokenizer(["Query", "Query"], ["Paragraph1", "Paragraph2"], padding=True, truncation=True, return_tensors="pt")
 
 model.eval()
 with torch.no_grad():

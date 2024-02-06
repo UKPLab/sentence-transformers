@@ -1,13 +1,14 @@
 """
 
 """
-from torch.utils.data import  IterableDataset
+from torch.utils.data import IterableDataset
 import numpy as np
 from typing import List
 from ..readers import InputExample
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 class SentenceLabelDataset(IterableDataset):
     """
@@ -22,6 +23,7 @@ class SentenceLabelDataset(IterableDataset):
     This *DOES NOT* check if there are more labels than the batch is large or if the batch size is divisible
     by the samples drawn per label.
     """
+
     def __init__(self, examples: List[InputExample], samples_per_label: int = 2, with_replacement: bool = False):
         """
         Creates a LabelSampler for a SentenceLabelDataset.
@@ -39,14 +41,14 @@ class SentenceLabelDataset(IterableDataset):
 
         self.samples_per_label = samples_per_label
 
-        #Group examples by label
+        # Group examples by label
         label2ex = {}
         for example in examples:
             if example.label not in label2ex:
                 label2ex[example.label] = []
             label2ex[example.label].append(example)
 
-        #Include only labels with at least 2 examples
+        # Include only labels with at least 2 examples
         self.grouped_inputs = []
         self.groups_right_border = []
         num_labels = 0
@@ -54,14 +56,20 @@ class SentenceLabelDataset(IterableDataset):
         for label, label_examples in label2ex.items():
             if len(label_examples) >= self.samples_per_label:
                 self.grouped_inputs.extend(label_examples)
-                self.groups_right_border.append(len(self.grouped_inputs))  # At which position does this label group / bucket end?
+                self.groups_right_border.append(
+                    len(self.grouped_inputs)
+                )  # At which position does this label group / bucket end?
                 num_labels += 1
 
         self.label_range = np.arange(num_labels)
         self.with_replacement = with_replacement
         np.random.shuffle(self.label_range)
 
-        logger.info("SentenceLabelDataset: {} examples, from which {} examples could be used (those labels appeared at least {} times). {} different labels found.".format(len(examples), len(self.grouped_inputs), self.samples_per_label, num_labels ))
+        logger.info(
+            "SentenceLabelDataset: {} examples, from which {} examples could be used (those labels appeared at least {} times). {} different labels found.".format(
+                len(examples), len(self.grouped_inputs), self.samples_per_label, num_labels
+            )
+        )
 
     def __iter__(self):
         label_idx = 0
@@ -72,7 +80,7 @@ class SentenceLabelDataset(IterableDataset):
             if label not in already_seen:
                 already_seen[label] = set()
 
-            left_border = 0 if label == 0 else self.groups_right_border[label-1]
+            left_border = 0 if label == 0 else self.groups_right_border[label - 1]
             right_border = self.groups_right_border[label]
 
             if self.with_replacement:

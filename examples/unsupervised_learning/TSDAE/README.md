@@ -15,16 +15,18 @@ from sentence_transformers import models, util, datasets, evaluation, losses
 from torch.utils.data import DataLoader
 
 # Define your sentence transformer model using CLS pooling
-model_name = 'bert-base-uncased'
+model_name = "bert-base-uncased"
 word_embedding_model = models.Transformer(model_name)
-pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), 'cls')
+pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), "cls")
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 # Define a list with sentences (1k - 100k sentences)
-train_sentences = ["Your set of sentences",
-                   "Model will automatically add the noise", 
-                   "And re-construct it",
-                   "You should provide at least 1k sentences"]
+train_sentences = [
+    "Your set of sentences",
+    "Model will automatically add the noise",
+    "And re-construct it",
+    "You should provide at least 1k sentences",
+]
 
 # Create the special denoising dataset that adds noise on-the-fly
 train_dataset = datasets.DenoisingAutoEncoderDataset(train_sentences)
@@ -33,19 +35,21 @@ train_dataset = datasets.DenoisingAutoEncoderDataset(train_sentences)
 train_dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True)
 
 # Use the denoising auto-encoder loss
-train_loss = losses.DenoisingAutoEncoderLoss(model, decoder_name_or_path=model_name, tie_encoder_decoder=True)
+train_loss = losses.DenoisingAutoEncoderLoss(
+    model, decoder_name_or_path=model_name, tie_encoder_decoder=True
+)
 
 # Call the fit method
 model.fit(
     train_objectives=[(train_dataloader, train_loss)],
     epochs=1,
     weight_decay=0,
-    scheduler='constantlr',
-    optimizer_params={'lr': 3e-5},
-    show_progress_bar=True
+    scheduler="constantlr",
+    optimizer_params={"lr": 3e-5},
+    show_progress_bar=True,
 )
 
-model.save('output/tsdae-model')
+model.save("output/tsdae-model")
 ``` 
 
 ## TSDAE from Sentences File
