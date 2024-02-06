@@ -1332,8 +1332,6 @@ class SentenceTransformer(nn.Sequential):
         # to the config on initialization, then we want to add the new modules to the config.
         # So, the exception is when from_pretrained was called & the modules were provided in the config, then
         # we don't want to add modules via super().__init__
-        print(not self.calling_init, self.config.empty_on_init)
-
         if not self.calling_init or self.config.empty_on_init:
             self.config.modules.append(
                 {
