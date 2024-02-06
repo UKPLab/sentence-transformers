@@ -101,7 +101,7 @@ class EvaluatorCallback(TrainerCallback):
         model: "SentenceTransformer",
         **kwargs,
     ):
-        evaluator_metrics = self.evaluator(model)
+        evaluator_metrics = self.evaluator(model, epoch=state.epoch)
         if not isinstance(evaluator_metrics, dict):
             evaluator_metrics = {"evaluator": evaluator_metrics}
 
