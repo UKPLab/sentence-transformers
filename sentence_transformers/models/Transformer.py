@@ -29,15 +29,14 @@ class Transformer(nn.Module):
         tokenizer_name_or_path: str = None,
     ):
         super(Transformer, self).__init__()
-        self.config_keys = ["max_seq_length"]
+        self.config_keys = ["max_seq_length", "do_lower_case"]
+        self.do_lower_case = do_lower_case
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
         self._load_model(model_name_or_path, config, cache_dir, **model_args)
 
         if max_seq_length is not None and "model_max_length" not in tokenizer_args:
             tokenizer_args["model_max_length"] = max_seq_length
-        if do_lower_case is not None and "do_lower_case" not in tokenizer_args:
-            tokenizer_args["do_lower_case"] = do_lower_case
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name_or_path if tokenizer_name_or_path is not None else model_name_or_path,
             cache_dir=cache_dir,
@@ -140,6 +139,10 @@ class Transformer(nn.Module):
 
         # strip
         to_tokenize = [[str(s).strip() for s in col] for col in to_tokenize]
+
+        # Lowercase
+        if self.do_lower_case:
+            to_tokenize = [[s.lower() for s in col] for col in to_tokenize]
 
         output.update(
             self.tokenizer(
