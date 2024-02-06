@@ -79,7 +79,7 @@ class SentenceTransformerTrainer(Trainer):
         loss_fn = self.loss
 
         if self.training_with_dataset_dict and isinstance(loss_fn, dict):
-            loss_fn = self.loss[self.dataset_name]
+            loss_fn = loss_fn[self.dataset_name]
 
         loss = loss_fn(features, inputs["label"] if "label" in inputs else None)
         if return_outputs:
@@ -91,8 +91,9 @@ class SentenceTransformerTrainer(Trainer):
         """Turn the inputs from the dataloader into the separate model inputs."""
         features = []
         for column in inputs:
-            if column.endswith("_input_ids"):
-                prefix = column[: -len("input_ids")]
+            # TODO: Can this be improved?
+            if column.endswith(("_input_ids", "_sentence_embedding")):
+                prefix = column[: -len("input_ids")] if column.endswith("_input_ids") else column[: -len("sentence_embedding")]
                 features.append({key[len(prefix) :]: value for key, value in inputs.items() if key.startswith(prefix)})
         return features
 
