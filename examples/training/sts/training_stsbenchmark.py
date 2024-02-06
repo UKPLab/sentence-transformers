@@ -38,7 +38,7 @@ if not os.path.exists(sts_dataset_path):
 model_name = sys.argv[1] if len(sys.argv) > 1 else "distilbert-base-uncased"
 
 # Read the dataset
-train_batch_size = 16
+train_batch_size = 128
 num_epochs = 4
 model_save_path = (
     "output/training_stsbenchmark_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -78,11 +78,12 @@ with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
 
 
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
-train_loss = losses.CosineSimilarityLoss(model=model)
+train_loss = losses.CoSENTLoss(model=model)
+train_texts = list(set(text for inp_example in train_samples for text in inp_example.texts))
 
 
 logging.info("Read STSbenchmark dev dataset")
-evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name="sts-dev")
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name="sts-dev", train_texts=train_texts)
 
 
 # Configure the training. We skip evaluation in this example
@@ -108,5 +109,45 @@ model.fit(
 ##############################################################################
 
 model = SentenceTransformer(model_save_path)
-test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name="sts-test")
+test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
+    test_samples, name="sts-test", train_texts=train_texts
+)
 test_evaluator(model, output_path=model_save_path)
+
+"""
+Batch size: 128
+
+Ensemble via training:
+CoSENT:
+2024-02-06 21:08:50 - Cosine-Similarity :       Pearson: 0.8301 Spearman: 0.8428
+2024-02-06 21:08:50 - Manhattan-Distance:       Pearson: 0.8430 Spearman: 0.8386
+2024-02-06 21:08:50 - Euclidean-Distance:       Pearson: 0.8436 Spearman: 0.8394
+2024-02-06 21:08:50 - Dot-Product-Similarity:   Pearson: 0.4730 Spearman: 0.4651
+2024-02-06 21:08:50 - Surprise-Similarity:      Pearson: 0.3608 Spearman: 0.7497
+
+Cosine:
+
+MNRL:
+2024-02-06 21:11:20 - Cosine-Similarity :       Pearson: 0.6984 Spearman: 0.6986
+2024-02-06 21:11:20 - Manhattan-Distance:       Pearson: 0.7206 Spearman: 0.7144
+2024-02-06 21:11:20 - Euclidean-Distance:       Pearson: 0.7211 Spearman: 0.7149
+2024-02-06 21:11:20 - Dot-Product-Similarity:   Pearson: 0.4269 Spearman: 0.4124
+2024-02-06 21:11:20 - Surprise-Similarity:      Pearson: 0.2740 Spearman: 0.5605
+
+Ensemble via embeddings2:
+CoSENT:
+2024-02-06 21:15:09 - Cosine-Similarity :       Pearson: 0.8293 Spearman: 0.8417
+2024-02-06 21:15:09 - Manhattan-Distance:       Pearson: 0.8426 Spearman: 0.8382
+2024-02-06 21:15:09 - Euclidean-Distance:       Pearson: 0.8430 Spearman: 0.8387
+2024-02-06 21:15:09 - Dot-Product-Similarity:   Pearson: 0.4765 Spearman: 0.4687
+2024-02-06 21:15:09 - Surprise-Similarity:      Pearson: 0.3956 Spearman: 0.7212
+
+Cosine:
+
+MNRL:
+2024-02-06 21:13:28 - Cosine-Similarity :       Pearson: 0.6958 Spearman: 0.6975
+2024-02-06 21:13:28 - Manhattan-Distance:       Pearson: 0.7111 Spearman: 0.7076
+2024-02-06 21:13:28 - Euclidean-Distance:       Pearson: 0.7120 Spearman: 0.7079
+2024-02-06 21:13:28 - Dot-Product-Similarity:   Pearson: 0.4387 Spearman: 0.4257
+2024-02-06 21:13:28 - Surprise-Similarity:      Pearson: 0.3486 Spearman: 0.5562
+"""

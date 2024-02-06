@@ -1,3 +1,5 @@
+import torch
+from sentence_transformers.util import surprise_score
 from . import SentenceEvaluator, SimilarityFunction
 import logging
 import os
@@ -32,6 +34,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         name: str = "",
         show_progress_bar: bool = False,
         write_csv: bool = True,
+        train_texts: List[str] = None,
     ):
         """
         Constructs an evaluator based for the dataset
@@ -45,6 +48,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         """
         self.sentences1 = sentences1
         self.sentences2 = sentences2
+        self.train_texts = train_texts or []
         self.scores = scores
         self.write_csv = write_csv
 
@@ -110,12 +114,24 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             show_progress_bar=self.show_progress_bar,
             convert_to_numpy=True,
         )
+        ensemble = model.encode(
+            self.train_texts,
+            batch_size=self.batch_size,
+            show_progress_bar=self.show_progress_bar,
+            convert_to_tensor=True,
+        )
         labels = self.scores
 
         cosine_scores = 1 - (paired_cosine_distances(embeddings1, embeddings2))
         manhattan_distances = -paired_manhattan_distances(embeddings1, embeddings2)
         euclidean_distances = -paired_euclidean_distances(embeddings1, embeddings2)
         dot_products = [np.dot(emb1, emb2) for emb1, emb2 in zip(embeddings1, embeddings2)]
+        surprise_scores = surprise_score(
+            torch.from_numpy(embeddings1).to(ensemble.device),
+            torch.from_numpy(embeddings2).to(ensemble.device),
+            ensemble,
+        )
+        surprise_scores = surprise_scores.diagonal().cpu().numpy()
 
         eval_pearson_cosine, _ = pearsonr(labels, cosine_scores)
         eval_spearman_cosine, _ = spearmanr(labels, cosine_scores)
@@ -128,6 +144,9 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
         eval_pearson_dot, _ = pearsonr(labels, dot_products)
         eval_spearman_dot, _ = spearmanr(labels, dot_products)
+
+        eval_pearson_surprise, _ = pearsonr(labels, surprise_scores)
+        eval_spearman_surprise, _ = spearmanr(labels, surprise_scores)
 
         logger.info(
             "Cosine-Similarity :\tPearson: {:.4f}\tSpearman: {:.4f}".format(eval_pearson_cosine, eval_spearman_cosine)
@@ -144,6 +163,11 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         )
         logger.info(
             "Dot-Product-Similarity:\tPearson: {:.4f}\tSpearman: {:.4f}".format(eval_pearson_dot, eval_spearman_dot)
+        )
+        logger.info(
+            "Surprise-Similarity:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+                eval_pearson_surprise, eval_spearman_surprise
+            )
         )
 
         if output_path is not None and self.write_csv:
