@@ -232,7 +232,6 @@ class FitMixin:
         # Convert loss_fns into a dict with `dataset_{idx}` keys
         loss_fn_dict = {f"dataset_{idx}": loss_fn for idx, loss_fn in enumerate(loss_fns, start=1)}
         # TODO: round_robin=True
-        # TODO: Extract dataloader arguments from the dataloaders
         # TODO: Test model checkpointing & loading
         # TODO: Allow custom label columns, perhaps accept "score" as a default as well
 
