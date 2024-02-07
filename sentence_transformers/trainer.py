@@ -87,7 +87,9 @@ class SentenceTransformerTrainer(Trainer):
             return loss, output
         return loss
 
-    def collect_features(self, inputs: Dict[str, Union[torch.Tensor, Any]]) -> Tuple[List[Dict[str, torch.Tensor]], Optional[torch.Tensor]]:
+    def collect_features(
+        self, inputs: Dict[str, Union[torch.Tensor, Any]]
+    ) -> Tuple[List[Dict[str, torch.Tensor]], Optional[torch.Tensor]]:
         """Turn the inputs from the dataloader into the separate model inputs & the labels.
 
         Example::

@@ -16,7 +16,7 @@ class SentenceTransformerDataCollator:
 
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
         columns = list(features[0].keys())
-        
+
         # We should always be able to return a loss, label or not:
         batch = {"return_loss": True}
 
