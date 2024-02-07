@@ -125,6 +125,13 @@ CoSENT:
 2024-02-06 21:08:50 - Dot-Product-Similarity:   Pearson: 0.4730 Spearman: 0.4651
 2024-02-06 21:08:50 - Surprise-Similarity:      Pearson: 0.3608 Spearman: 0.7497
 
+2024-02-07 13:26:39 - Cosine-Similarity :       Pearson: 0.8295 Spearman: 0.8418
+2024-02-07 13:26:39 - Manhattan-Distance:       Pearson: 0.8424 Spearman: 0.8380
+2024-02-07 13:26:39 - Euclidean-Distance:       Pearson: 0.8430 Spearman: 0.8386
+2024-02-07 13:26:39 - Dot-Product-Similarity:   Pearson: 0.4939 Spearman: 0.4859
+2024-02-07 13:26:39 - Surprise-Similarity:      Pearson: 0.3591 Spearman: 0.7448
+2024-02-07 13:26:39 - Surprise-Similarity-Dev:  Pearson: 0.7722 Spearman: 0.7635
+
 Cosine:
 
 MNRL:
