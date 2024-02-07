@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 import shutil
@@ -21,6 +22,8 @@ from .util import (
     fullname,
 )
 from .model_card_templates import ModelCardTemplate
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -230,14 +233,27 @@ class FitMixin:
         loss_fn_dict = {f"dataset_{idx}": loss_fn for idx, loss_fn in enumerate(loss_fns, start=1)}
         # TODO: round_robin=True
         # TODO: Extract dataloader arguments from the dataloaders
-        # TODO: evaluator is not working yet, likely as eval_dataset is None
         # TODO: Test model checkpointing & loading
         # TODO: Allow custom label columns, perhaps accept "score" as a default as well
+
+        # Use steps_per_epoch to perhaps set max_steps
+        max_steps = -1
+        if steps_per_epoch is not None and steps_per_epoch > 0:
+            if epochs == 1:
+                max_steps = steps_per_epoch
+            else:
+                logger.warning(
+                    "Setting `steps_per_epoch` alongside `epochs` > 1 no longer works. "
+                    "We will train with the full datasets per epoch."
+                )
+                steps_per_epoch = None
+
         args = TrainingArguments(
             output_dir=checkpoint_path or _default_checkpoint_dir(),
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
             num_train_epochs=epochs,
+            max_steps=max_steps,
             evaluation_strategy="steps" if evaluation_steps is not None and evaluation_steps > 0 else "no",
             eval_steps=evaluation_steps,
             # load_best_model_at_end=save_best_model, # <- TODO: Look into a good solution for save_best_model
