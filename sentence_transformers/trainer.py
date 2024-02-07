@@ -16,7 +16,7 @@ from sentence_transformers.losses import CoSENTLoss
 from sentence_transformers.training_args import TrainingArguments
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator
-from sentence_transformers.sampler import RoundRobinBatchSampler
+from sentence_transformers.sampler import ProportionalBatchSampler, RoundRobinBatchSampler
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +45,8 @@ class SentenceTransformerTrainer(Trainer):
             output_dir = "tmp_trainer"
             logger.info(f"No `TrainingArguments` passed, using `output_dir={output_dir}`.")
             args = TrainingArguments(output_dir=output_dir)
+        elif not isinstance(args, TrainingArguments):
+            raise ValueError("Please use `TrainingArguments` imported from `sentence_transformers`.")
         if tokenizer is None and isinstance(model.tokenizer, PreTrainedTokenizerBase):
             tokenizer = model.tokenizer
         if data_collator is None:
@@ -205,19 +207,17 @@ class SentenceTransformerTrainer(Trainer):
 
         if isinstance(train_dataset, DatasetDict):
             sizes = [len(ds) for ds in train_dataset.values()]
-            # TODO: Maybe I can infer from the sampler index which dataset it is?
-            # for dataset_name, dataset in train_dataset.items():
-            #     train_dataset[dataset_name] = dataset.add_column("dataset_name", [dataset_name] * len(dataset))
             train_dataset = ConcatDataset(train_dataset.values())
         else:
             sizes = [len(train_dataset)]
 
+        batch_sampler_class = RoundRobinBatchSampler if self.args.round_robin_sampler else ProportionalBatchSampler
         dataloader_params = {
             "collate_fn": data_collator,
             "num_workers": self.args.dataloader_num_workers,
             "pin_memory": self.args.dataloader_pin_memory,
             "persistent_workers": self.args.dataloader_persistent_workers,
-            "batch_sampler": RoundRobinBatchSampler(
+            "batch_sampler": batch_sampler_class(
                 lengths=sizes,
                 batch_size=self.args.train_batch_size,
                 drop_last=self.args.dataloader_drop_last,
@@ -254,12 +254,13 @@ class SentenceTransformerTrainer(Trainer):
         else:
             sizes = [len(eval_dataset)]
 
+        batch_sampler_class = RoundRobinBatchSampler if self.args.round_robin_sampler else ProportionalBatchSampler
         dataloader_params = {
             "collate_fn": data_collator,
             "num_workers": self.args.dataloader_num_workers,
             "pin_memory": self.args.dataloader_pin_memory,
             "persistent_workers": self.args.dataloader_persistent_workers,
-            "batch_sampler": RoundRobinBatchSampler(
+            "batch_sampler": batch_sampler_class(
                 lengths=sizes,
                 batch_size=self.args.train_batch_size,
                 drop_last=self.args.dataloader_drop_last,

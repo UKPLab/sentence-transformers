@@ -232,7 +232,6 @@ class FitMixin:
 
         # Convert loss_fns into a dict with `dataset_{idx}` keys
         loss_fn_dict = {f"dataset_{idx}": loss_fn for idx, loss_fn in enumerate(loss_fns, start=1)}
-        # TODO: round_robin=True
         # TODO: Test model checkpointing & loading
 
         # Use steps_per_epoch to perhaps set max_steps
@@ -249,6 +248,7 @@ class FitMixin:
 
         args = TrainingArguments(
             output_dir=checkpoint_path or _default_checkpoint_dir(),
+            round_robin_sampler=True,
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
             num_train_epochs=epochs,
