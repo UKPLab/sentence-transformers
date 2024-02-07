@@ -233,7 +233,6 @@ class FitMixin:
         loss_fn_dict = {f"dataset_{idx}": loss_fn for idx, loss_fn in enumerate(loss_fns, start=1)}
         # TODO: round_robin=True
         # TODO: Test model checkpointing & loading
-        # TODO: Allow custom label columns, perhaps accept "score" as a default as well
 
         # Use steps_per_epoch to perhaps set max_steps
         max_steps = -1

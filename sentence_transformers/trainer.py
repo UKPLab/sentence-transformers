@@ -75,31 +75,47 @@ class SentenceTransformerTrainer(Trainer):
         inputs: Dict[str, Union[torch.Tensor, Any]],
         return_outputs: bool = False,
     ) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
-        features = self.collect_features(inputs)
+        features, labels = self.collect_features(inputs)
         loss_fn = self.loss
 
         if self.training_with_dataset_dict and isinstance(loss_fn, dict):
             loss_fn = loss_fn[self.dataset_name]
 
-        loss = loss_fn(features, inputs["label"] if "label" in inputs else None)
+        loss = loss_fn(features, labels)
         if return_outputs:
             output = torch.cat([model(row)["sentence_embedding"][:, None] for row in features], dim=1)
             return loss, output
         return loss
 
-    def collect_features(self, inputs: Dict[str, Union[torch.Tensor, Any]]) -> List[Dict[str, torch.Tensor]]:
-        """Turn the inputs from the dataloader into the separate model inputs."""
+    def collect_features(self, inputs: Dict[str, Union[torch.Tensor, Any]]) -> Tuple[List[Dict[str, torch.Tensor]], Optional[torch.Tensor]]:
+        """Turn the inputs from the dataloader into the separate model inputs & the labels.
+
+        Example::
+
+            >>> list(inputs.keys())
+            ['return_loss', 'label', 'sentence_0_input_ids', 'sentence_0_token_type_ids', 'sentence_0_attention_mask', 'sentence_1_input_ids', 'sentence_1_token_type_ids', 'sentence_1_attention_mask']
+            >>> features, labels = self.collect_features(inputs)
+            >>> len(features)
+            2
+            >>> list(features[0].keys())
+            ['input_ids', 'token_type_ids', 'attention_mask']
+            >>> list(features[1].keys())
+            ['input_ids', 'token_type_ids', 'attention_mask']
+            >>> torch.equal(labels, inputs["label"])
+            True
+        """
+        # All inputs ending with `_input_ids` or `_sentence_embedding` (for BoW only) are considered to correspond to a feature
         features = []
         for column in inputs:
-            # TODO: Can this be improved?
-            if column.endswith(("_input_ids", "_sentence_embedding")):
-                prefix = (
-                    column[: -len("input_ids")]
-                    if column.endswith("_input_ids")
-                    else column[: -len("sentence_embedding")]
-                )
-                features.append({key[len(prefix) :]: value for key, value in inputs.items() if key.startswith(prefix)})
-        return features
+            if column.endswith("_input_ids"):
+                prefix = column[: -len("input_ids")]
+            elif column.endswith("_sentence_embedding"):
+                prefix = column[: -len("sentence_embedding")]
+            else:
+                continue
+            features.append({key[len(prefix) :]: value for key, value in inputs.items() if key.startswith(prefix)})
+        labels = inputs.get("label", None)
+        return features, labels
 
     def evaluation_loop(
         self,
