@@ -1,5 +1,5 @@
 import torch
-from sentence_transformers.util import surprise_score
+from sentence_transformers.util import surprise_score, surprise_dev
 from . import SentenceEvaluator, SimilarityFunction
 import logging
 import os
@@ -132,6 +132,12 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             ensemble,
         )
         surprise_scores = surprise_scores.diagonal().cpu().numpy()
+        surprise_devs = surprise_dev(
+            torch.from_numpy(embeddings1).to(ensemble.device),
+            torch.from_numpy(embeddings2).to(ensemble.device),
+            ensemble,
+        )
+        surprise_devs = surprise_devs.diagonal().cpu().numpy()
 
         eval_pearson_cosine, _ = pearsonr(labels, cosine_scores)
         eval_spearman_cosine, _ = spearmanr(labels, cosine_scores)
@@ -147,6 +153,9 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
         eval_pearson_surprise, _ = pearsonr(labels, surprise_scores)
         eval_spearman_surprise, _ = spearmanr(labels, surprise_scores)
+
+        eval_pearson_surprise_dev, _ = pearsonr(labels, surprise_devs)
+        eval_spearman_surprise_dev, _ = spearmanr(labels, surprise_devs)
 
         logger.info(
             "Cosine-Similarity :\tPearson: {:.4f}\tSpearman: {:.4f}".format(eval_pearson_cosine, eval_spearman_cosine)
@@ -167,6 +176,11 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         logger.info(
             "Surprise-Similarity:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
                 eval_pearson_surprise, eval_spearman_surprise
+            )
+        )
+        logger.info(
+            "Surprise-Similarity-Dev:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
+                eval_pearson_surprise_dev, eval_spearman_surprise_dev
             )
         )
 
