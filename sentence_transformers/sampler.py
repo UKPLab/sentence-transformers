@@ -24,7 +24,6 @@ class RoundRobinSampler:
             samplers (Sequence[Iterable]): the list of samplers that will be cycled
         """
         self.samplers = samplers
-        self.dataset_idx = 0
         self.trainer = trainer
 
     def __iter__(self):
@@ -34,7 +33,6 @@ class RoundRobinSampler:
             try:
                 yield next(iterators[dataset_idx])
                 if self.trainer and self.trainer.training_with_dataset_dict:
-                    self.trainer.dataset_idx = dataset_idx
                     self.trainer.dataset_name = self.trainer.dataset_names[dataset_idx]
 
             except StopIteration:
@@ -91,7 +89,3 @@ class RoundRobinBatchSampler:
             return min([(length + self.batch_size - 1) // self.batch_size for length in self.lengths]) * len(
                 self.lengths
             )
-
-    @property
-    def dataset_idx(self) -> int:
-        return self.sampler.dataset_idx

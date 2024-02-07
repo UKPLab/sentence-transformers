@@ -86,7 +86,6 @@ class SentenceTransformerTrainer(Trainer):
         self.training_with_dataset_dict = isinstance(self.train_dataset, DatasetDict)
         if self.training_with_dataset_dict:
             self.dataset_names = list(self.train_dataset.keys())
-            self.dataset_idx = 0
 
     def compute_loss(
         self,
@@ -153,7 +152,6 @@ class SentenceTransformerTrainer(Trainer):
             and metric_key_prefix.startswith("eval_")
             and metric_key_prefix[5:] in list(self.eval_dataset.keys())
         ):
-            # TODO: What if the evaluation dataset_dict has different keys than the loss one?
             self.dataset_name = metric_key_prefix[5:]
 
         output = super().evaluation_loop(
