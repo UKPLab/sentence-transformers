@@ -75,7 +75,6 @@ class RoundRobinBatchSampler:
             )
             for (start, end) in self.ranges
         ]
-        # print(self.ranges)
 
         self.sampler = RoundRobinSampler(batch_samplers, self.trainer)
         return iter(self.sampler)
