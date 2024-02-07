@@ -11,6 +11,7 @@ from transformers.trainer import TRAINING_ARGS_NAME
 from datasets import DatasetDict, Dataset
 from transformers.trainer_utils import EvalLoopOutput
 from transformers.data.data_collator import DataCollator
+from sentence_transformers.losses import CoSENTLoss
 
 from sentence_transformers.training_args import TrainingArguments
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
@@ -28,7 +29,7 @@ class SentenceTransformerTrainer(Trainer):
         self,
         model: Optional["SentenceTransformer"] = None,
         args: TrainingArguments = None,
-        train_dataset: Optional[Dataset] = None,
+        train_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
         eval_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
         loss: nn.Module = None,
         evaluator: SentenceEvaluator = None,
@@ -40,6 +41,10 @@ class SentenceTransformerTrainer(Trainer):
         optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
         preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
     ) -> None:
+        if args is None:
+            output_dir = "tmp_trainer"
+            logger.info(f"No `TrainingArguments` passed, using `output_dir={output_dir}`.")
+            args = TrainingArguments(output_dir=output_dir)
         if tokenizer is None and isinstance(model.tokenizer, PreTrainedTokenizerBase):
             tokenizer = model.tokenizer
         if data_collator is None:
@@ -57,10 +62,24 @@ class SentenceTransformerTrainer(Trainer):
             optimizers=optimizers,
             preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         )
+        if loss is None:
+            logger.info("No `loss` passed, using `losses.CoSENTLoss` as a default option.")
+            loss = CoSENTLoss(self.model)
         self.loss = loss
         if isinstance(loss, dict):
             self.loss = {dataset_name: loss_fn.to(self.model.device) for dataset_name, loss_fn in loss.items()}
-            # TODO: Additional conditionals to check whether the dict points to dataset names correctly
+            for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
+                if dataset is None:
+                    continue
+                if not isinstance(dataset, dict):
+                    raise ValueError(
+                        f"If the provided `loss` is a dict, then the `{dataset_name}_dataset` must be a `DatasetDict`."
+                    )
+                if missing := set(dataset.keys()) - set(loss.keys()):
+                    raise ValueError(
+                        f"If the provided `loss` is a dict, then all keys from the `{dataset_name}_dataset` dictionary must occur in `loss` also. "
+                        f"Currently, {missing} occur{'s' if len(missing) == 1 else ''} in `{dataset_name}_dataset` but not in `loss`."
+                    )
         else:
             self.loss.to(self.model.device)
         self.evaluator = evaluator

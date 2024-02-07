@@ -12,8 +12,6 @@ from torch.utils.data import DataLoader
 from tqdm.autonotebook import trange
 from datasets import Dataset, DatasetDict
 from transformers import TrainerCallback, TrainerState, TrainerControl
-
-from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import TrainingArguments
 
 from .evaluation import SentenceEvaluator
@@ -195,6 +193,9 @@ class FitMixin:
         :param checkpoint_save_steps: Will save a checkpoint after so many steps
         :param checkpoint_save_total_limit: Total number of checkpoints to store
         """
+        # Delayed import to counter the SentenceTransformers -> FitMixin -> SentenceTransformerTrainer -> SentenceTransformers circular import
+        from sentence_transformers.trainer import SentenceTransformerTrainer
+
         data_loaders, loss_fns = zip(*train_objectives)
 
         # Clear the dataloaders from collate functions as we just want raw InputExamples
