@@ -78,7 +78,7 @@ class SentenceTransformerTrainer(Trainer):
                 if missing := set(dataset.keys()) - set(loss.keys()):
                     raise ValueError(
                         f"If the provided `loss` is a dict, then all keys from the `{dataset_name}_dataset` dictionary must occur in `loss` also. "
-                        f"Currently, {missing} occur{'s' if len(missing) == 1 else ''} in `{dataset_name}_dataset` but not in `loss`."
+                        f"Currently, {sorted(missing)} occur{'s' if len(missing) == 1 else ''} in `{dataset_name}_dataset` but not in `loss`."
                     )
         else:
             self.loss.to(self.model.device)
