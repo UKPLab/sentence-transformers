@@ -121,14 +121,14 @@ def pairwise_angle_sim(x: Tensor, y: Tensor) -> Tensor:
     a, b = torch.chunk(x, 2, dim=1)
     c, d = torch.chunk(y, 2, dim=1)
 
-    z = torch.sum(c ** 2 + d ** 2, dim=1, keepdim=True)
+    z = torch.sum(c**2 + d**2, dim=1, keepdim=True)
     re = (a * c + b * d) / z
     im = (b * c - a * d) / z
 
-    dz = torch.sum(a ** 2 + b ** 2, dim=1, keepdim=True) ** 0.5
-    dw = torch.sum(c ** 2 + d ** 2, dim=1, keepdim=True) ** 0.5
-    re /= (dz / dw)
-    im /= (dz / dw)
+    dz = torch.sum(a**2 + b**2, dim=1, keepdim=True) ** 0.5
+    dw = torch.sum(c**2 + d**2, dim=1, keepdim=True) ** 0.5
+    re /= dz / dw
+    im /= dz / dw
 
     norm_angle = torch.sum(torch.concat((re, im), dim=1), dim=1)
     return torch.abs(norm_angle)
