@@ -79,11 +79,11 @@ with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
 
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.CoSENTLoss(model=model)
-train_texts = list(set(text for inp_example in train_samples for text in inp_example.texts))
+ensemble_texts = list(set(text for inp_example in train_samples for text in inp_example.texts))
 
 
 logging.info("Read STSbenchmark dev dataset")
-evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name="sts-dev", train_texts=train_texts)
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name="sts-dev", ensemble_texts=ensemble_texts)
 
 
 # Configure the training. We skip evaluation in this example
@@ -110,7 +110,7 @@ model.fit(
 
 model = SentenceTransformer(model_save_path)
 test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
-    test_samples, name="sts-test", train_texts=train_texts
+    test_samples, name="sts-test", ensemble_texts=ensemble_texts
 )
 test_evaluator(model, output_path=model_save_path)
 

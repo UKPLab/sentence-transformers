@@ -34,7 +34,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         name: str = "",
         show_progress_bar: bool = False,
         write_csv: bool = True,
-        train_texts: List[str] = None,
+        ensemble_texts: List[str] = None,
     ):
         """
         Constructs an evaluator based for the dataset
@@ -48,7 +48,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         """
         self.sentences1 = sentences1
         self.sentences2 = sentences2
-        self.train_texts = train_texts or []
+        self.ensemble_texts = ensemble_texts
         self.scores = scores
         self.write_csv = write_csv
 
@@ -114,12 +114,16 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             show_progress_bar=self.show_progress_bar,
             convert_to_numpy=True,
         )
-        ensemble = model.encode(
-            self.train_texts,
-            batch_size=self.batch_size,
-            show_progress_bar=self.show_progress_bar,
-            convert_to_tensor=True,
-        )
+        if self.ensemble_texts is not None:
+            ensemble = model.encode(
+                self.ensemble_texts,
+                batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
+                convert_to_tensor=True,
+            )
+        else:
+            ensemble = None
+
         labels = self.scores
 
         cosine_scores = 1 - (paired_cosine_distances(embeddings1, embeddings2))
@@ -127,14 +131,14 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         euclidean_distances = -paired_euclidean_distances(embeddings1, embeddings2)
         dot_products = [np.dot(emb1, emb2) for emb1, emb2 in zip(embeddings1, embeddings2)]
         surprise_scores = surprise_score(
-            torch.from_numpy(embeddings1).to(ensemble.device),
-            torch.from_numpy(embeddings2).to(ensemble.device),
+            torch.from_numpy(embeddings1).to(model.device),
+            torch.from_numpy(embeddings2).to(model.device),
             ensemble,
         )
         surprise_scores = surprise_scores.diagonal().cpu().numpy()
         surprise_devs = surprise_dev(
-            torch.from_numpy(embeddings1).to(ensemble.device),
-            torch.from_numpy(embeddings2).to(ensemble.device),
+            torch.from_numpy(embeddings1).to(model.device),
+            torch.from_numpy(embeddings2).to(model.device),
             ensemble,
         )
         surprise_devs = surprise_devs.diagonal().cpu().numpy()
