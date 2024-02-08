@@ -5,7 +5,7 @@ class AnglELoss(losses.CoSENTLoss):
     def __init__(self, model: SentenceTransformer, scale: float = 20.0):
         """
         This class implements AnglE (Angle Optimized) loss.
-        This is a modification of CoSENT loss, designed to address the following issue:
+        This is a modification of :class:`CoSENTLoss`, designed to address the following issue:
         The cosine function's gradient approaches 0 as the wave approaches the top or bottom of its form.
         This can hinder the optimization process, so AnglE proposes to instead optimize the angle difference
         in complex space in order to mitigate this effect.
@@ -20,7 +20,6 @@ class AnglELoss(losses.CoSENTLoss):
         pairs of input pairs in the batch that match this condition. This is the same as CoSENTLoss, with a different
         similarity function.
 
-
         :param model: SentenceTransformerModel
         :param scale: Output of similarity function is multiplied by scale value. Represents the inverse temperature.
 
@@ -31,8 +30,8 @@ class AnglELoss(losses.CoSENTLoss):
             - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
 
         Relations:
-            - :class: 'CoSENTLoss' is AnglELoss with pairwise_cos_sim as the metric, rather than pairwise_angle_sim
-            - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than CoSENTLoss. On our experiments, CoSENTLoss is recommended.
+            - :class:`CoSENTLoss` is AnglELoss with ``pairwise_cos_sim`` as the metric, rather than ``pairwise_angle_sim``.
+            - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than ``CoSENTLoss`` or ``AnglELoss``.
 
         Inputs:
             +--------------------------------+------------------------+
