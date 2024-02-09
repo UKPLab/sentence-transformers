@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import os
 import csv
-from typing import Optional, Tuple
+from typing import Optional
 from sklearn.metrics import ndcg_score
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class CERerankingEvaluator:
         ]
         self.write_csv = write_csv
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> Tuple[float, float]:
+    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)
