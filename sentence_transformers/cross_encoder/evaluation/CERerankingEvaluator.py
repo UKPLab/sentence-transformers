@@ -20,12 +20,7 @@ class CERerankingEvaluator:
     """
 
     def __init__(
-        self,
-        samples,
-        at_k: int = 10,
-        name: str = "",
-        write_csv: bool = True,
-        mrr_at_k: Optional[int] = None,
+        self, samples, at_k: int = 10, name: str = "", write_csv: bool = True, mrr_at_k: Optional[int] = None
     ):
         self.samples = samples
         self.name = name
