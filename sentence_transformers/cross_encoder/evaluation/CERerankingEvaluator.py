@@ -112,4 +112,4 @@ class CERerankingEvaluator:
 
                 writer.writerow([epoch, steps, mean_mrr, mean_ndcg])
 
-        return (mean_mrr, mean_ndcg)
+        return mean_mrr
