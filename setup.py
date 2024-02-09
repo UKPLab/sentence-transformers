@@ -24,7 +24,6 @@ setup(
         "numpy",
         "scikit-learn",
         "scipy",
-        "nltk",
         "huggingface-hub>=0.15.1",
         "Pillow",
     ],

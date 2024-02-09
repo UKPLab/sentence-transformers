@@ -4,6 +4,5 @@ torch>=1.11.0
 numpy
 scikit-learn
 scipy
-nltk
 huggingface-hub>=0.15.1
 Pillow
