@@ -2,7 +2,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer, Auto
 import numpy as np
 import logging
 import os
-from typing import Dict, Type, Callable, List
+from typing import Dict, Type, Callable, List, Optional
 import torch
 from torch import nn
 from torch.optim import Optimizer
@@ -18,6 +18,33 @@ logger = logging.getLogger(__name__)
 
 
 class CrossEncoder:
+    """
+    A CrossEncoder takes exactly two sentences / texts as input and either predicts
+    a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
+    on a scale of 0 ... 1.
+        It does not yield a sentence embedding and does not work for individually sentences.
+        It does not yield a sentence embedding and does not work for individually sentences.
+
+    It does not yield a sentence embedding and does not work for individually sentences.
+
+    :param model_name: A model name from Hugging Face Hub that can be loaded with AutoModel, or a path to a local
+        model. We provide several pre-trained CrossEncoder models that can be used for common tasks.
+    :param num_labels: Number of labels of the classifier. If 1, the CrossEncoder is a regression model that
+        outputs a continuous score 0...1. If > 1, it output several scores that can be soft-maxed to get
+        probability scores for the different classes.
+    :param max_length: Max length for input sequences. Longer sequences will be truncated. If None, max
+        length of the model will be used
+    :param device: Device that should be used for the model. If None, it will use CUDA if available.
+    :param tokenizer_args: Arguments passed to AutoTokenizer
+    :param automodel_args: Arguments passed to AutoModelForSequenceClassification
+    :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
+        for a stored model on Hugging Face.
+    :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that
+        should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
+        else nn.Identity()
+    :param classifier_dropout: The dropout ratio for the classification head.
+    """
+
     def __init__(
         self,
         model_name: str,
@@ -26,33 +53,11 @@ class CrossEncoder:
         device: str = None,
         tokenizer_args: Dict = {},
         automodel_args: Dict = {},
+        revision: Optional[str] = None,
         default_activation_function=None,
         classifier_dropout: float = None,
     ):
-        """
-        A CrossEncoder takes exactly two sentences / texts as input and either predicts
-        a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
-        on a scale of 0 ... 1.
-
-        It does not yield a sentence embedding and does not work for individually sentences.
-
-        :param model_name: A model name from Hugging Face Hub that can be loaded with AutoModel, or a path to a local
-            model. We provide several pre-trained CrossEncoder models that can be used for common tasks.
-        :param num_labels: Number of labels of the classifier. If 1, the CrossEncoder is a regression model that
-            outputs a continuous score 0...1. If > 1, it output several scores that can be soft-maxed to get
-            probability scores for the different classes.
-        :param max_length: Max length for input sequences. Longer sequences will be truncated. If None, max
-            length of the model will be used
-        :param device: Device that should be used for the model. If None, it will use CUDA if available.
-        :param tokenizer_args: Arguments passed to AutoTokenizer
-        :param automodel_args: Arguments passed to AutoModelForSequenceClassification
-        :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that
-            should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
-            else nn.Identity()
-        :param classifier_dropout: The dropout ratio for the classification head.
-        """
-
-        self.config = AutoConfig.from_pretrained(model_name)
+        self.config = AutoConfig.from_pretrained(model_name, revision=revision)
         classifier_trained = True
         if self.config.architectures is not None:
             classifier_trained = any(
@@ -69,9 +74,9 @@ class CrossEncoder:
             self.config.num_labels = num_labels
 
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            model_name, config=self.config, **automodel_args
+            model_name, config=self.config, revision=revision, **automodel_args
         )
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, **tokenizer_args)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision, **tokenizer_args)
         self.max_length = max_length
 
         if device is None:
