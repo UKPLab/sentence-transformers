@@ -113,7 +113,7 @@ def test_load_with_revision() -> None:
 
     # Set the classifier.bias and classifier.weight equal among models. This
     # is needed because the AutoModelForSequenceClassification randomly initializes
-    # the classsifier.bias and classifier.weight for each (model) initialization.
+    # the classifier.bias and classifier.weight for each (model) initialization.
     # The test is only possible if all models have the same classifier.bias
     # and classifier.weight parameters.
     latest_model.model.classifier.bias = main_model.model.classifier.bias
