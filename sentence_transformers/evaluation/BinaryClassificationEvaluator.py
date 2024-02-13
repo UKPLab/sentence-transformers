@@ -146,10 +146,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             for metric, value in values.items()
         }
         scores_dict.update(
-            {
-                f"max_{metric}": max(scores[short_name][metric] for short_name in scores)
-                for metric in scores["cosine"]
-            }
+            {f"max_{metric}": max(scores[short_name][metric] for short_name in scores) for metric in scores["cosine"]}
         )
         return scores_dict
 
