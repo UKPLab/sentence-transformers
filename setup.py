@@ -24,8 +24,6 @@ setup(
         "numpy",
         "scikit-learn",
         "scipy",
-        "nltk",
-        "sentencepiece",
         "huggingface-hub>=0.15.1",
         "Pillow",
     ],
