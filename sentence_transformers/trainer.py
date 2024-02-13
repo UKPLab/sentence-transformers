@@ -126,13 +126,16 @@ class SentenceTransformerTrainer(Trainer):
             >>> torch.equal(labels, inputs["label"])
             True
         """
-        # All inputs ending with `_input_ids` or `_sentence_embedding` (for BoW only) are considered to correspond to a feature
+        # All inputs ending with `_input_ids` (Transformers), `_sentence_embedding` (BoW), `_pixel_values` (CLIPModel)
+        # are considered to correspond to a feature
         features = []
         for column in inputs:
             if column.endswith("_input_ids"):
                 prefix = column[: -len("input_ids")]
             elif column.endswith("_sentence_embedding"):
                 prefix = column[: -len("sentence_embedding")]
+            elif column.endswith("_pixel_values"):
+                prefix = column[: -len("pixel_values")]
             else:
                 continue
             features.append({key[len(prefix) :]: value for key, value in inputs.items() if key.startswith(prefix)})
