@@ -46,6 +46,8 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         self.sentences2 = sentences2
         self.labels = labels
 
+        self.primary_metric = "max_ap"
+
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.labels)
         for label in labels:
@@ -64,13 +66,13 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         self.csv_headers = [
             "epoch",
             "steps",
-            "cossim_accuracy",
-            "cossim_accuracy_threshold",
-            "cossim_f1",
-            "cossim_precision",
-            "cossim_recall",
-            "cossim_f1_threshold",
-            "cossim_ap",
+            "cosine_accuracy",
+            "cosine_accuracy_threshold",
+            "cosine_f1",
+            "cosine_precision",
+            "cosine_recall",
+            "cosine_f1_threshold",
+            "cosine_ap",
             "manhattan_accuracy",
             "manhattan_accuracy_threshold",
             "manhattan_f1",
@@ -119,9 +121,6 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
 
         scores = self.compute_metrices(model)
 
-        # Main score is the max of Average Precision (AP)
-        main_score = max(scores[short_name]["ap"] for short_name in scores)
-
         file_output_data = [epoch, steps]
 
         for header_name in self.csv_headers:
@@ -141,7 +140,18 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                     writer = csv.writer(f)
                     writer.writerow(file_output_data)
 
-        return main_score
+        scores_dict = {
+            f"{short_name}_{metric}": value
+            for short_name, values in scores.items()
+            for metric, value in values.items()
+        }
+        scores_dict.update(
+            {
+                f"max_{metric}": max(scores[short_name][metric] for short_name in scores)
+                for metric in scores["cosine"]
+            }
+        )
+        return scores_dict
 
     def compute_metrices(self, model):
         try:
@@ -175,7 +185,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         labels = np.asarray(self.labels)
         output_scores = {}
         for short_name, name, scores, reverse in [
-            ["cossim", "Cosine-Similarity", cosine_scores, True],
+            ["cosine", "Cosine-Similarity", cosine_scores, True],
             ["manhattan", "Manhattan-Distance", manhattan_distances, False],
             ["euclidean", "Euclidean-Distance", euclidean_distances, False],
             ["dot", "Dot-Product", dot_scores, True],
