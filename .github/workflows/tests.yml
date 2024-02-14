@@ -24,6 +24,7 @@ jobs:
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
         with:
+          root-reserve-mb: 4096
           remove-android: 'true'
           remove-dotnet: 'true'
         if: matrix.os == 'ubuntu-latest'
