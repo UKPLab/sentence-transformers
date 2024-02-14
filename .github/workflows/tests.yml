@@ -51,4 +51,4 @@ jobs:
         run: |
           pytest --durations 20 -sv tests/
         env:
-          SENTENCE_TRANSFORMERS_HOME: "/mnt/.cache/huggingface"
+          SENTENCE_TRANSFORMERS_HOME: "/.cache/huggingface"
