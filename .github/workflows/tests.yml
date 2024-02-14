@@ -21,19 +21,6 @@ jobs:
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 8192
-          remove-android: 'true'
-          remove-dotnet: 'true'
-        if: matrix.os == 'ubuntu-latest'
-
-      - name: check storage
-        run: |
-          sudo df -h
-        if: matrix.os == 'ubuntu-latest'
-
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -63,3 +50,5 @@ jobs:
         shell: bash
         run: |
           pytest --durations 20 -sv tests/
+        env:
+          SENTENCE_TRANSFORMERS_HOME: "/mnt/.cache/huggingface"
