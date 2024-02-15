@@ -1072,12 +1072,6 @@ class SentenceTransformer(nn.Sequential):
             if not self.prompts:
                 self.prompts = self._model_config.get("prompts", {})
             if not self.default_prompt_name:
-                # if default_prompt_name is not None and default_prompt_name not in self.prompts:
-                #     logger.warning(
-                #         f"Configured `default_prompt_name` of {default_prompt_name!r} not found in the prompts with keys {list(self.prompts.keys())!r}. "
-                #         "Setting `default_prompt_name` to `None` to disable automatic prompt use."
-                #     )
-
                 self.default_prompt_name = self._model_config.get("default_prompt_name", None)
 
         # Check if a readme exists
