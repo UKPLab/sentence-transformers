@@ -2,6 +2,8 @@ import logging
 import numpy as np
 import os
 import csv
+from typing import Optional
+from sklearn.metrics import ndcg_score
 
 logger = logging.getLogger(__name__)
 
@@ -11,22 +13,33 @@ class CERerankingEvaluator:
     This class evaluates a CrossEncoder model for the task of re-ranking.
 
     Given a query and a list of documents, it computes the score [query, doc_i] for all possible
-    documents and sorts them in decreasing order. Then, MRR@10 is compute to measure the quality of the ranking.
+    documents and sorts them in decreasing order. Then, MRR@10 and NDCG@10 are computed to measure the quality of the ranking.
 
     :param samples: Must be a list and each element is of the form: {'query': '', 'positive': [], 'negative': []}. Query is the search query,
      positive is a list of positive (relevant) documents, negative is a list of negative (irrelevant) documents.
     """
 
-    def __init__(self, samples, mrr_at_k: int = 10, name: str = "", write_csv: bool = True):
+    def __init__(
+        self, samples, at_k: int = 10, name: str = "", write_csv: bool = True, mrr_at_k: Optional[int] = None
+    ):
         self.samples = samples
         self.name = name
-        self.mrr_at_k = mrr_at_k
+        if mrr_at_k is not None:
+            logger.warning(f"The `mrr_at_k` parameter has been deprecated; please use `at_k={mrr_at_k}` instead.")
+            self.at_k = mrr_at_k
+        else:
+            self.at_k = at_k
 
         if isinstance(self.samples, dict):
             self.samples = list(self.samples.values())
 
-        self.csv_file = "CERerankingEvaluator" + ("_" + name if name else "") + "_results.csv"
-        self.csv_headers = ["epoch", "steps", "MRR@{}".format(mrr_at_k)]
+        self.csv_file = "CERerankingEvaluator" + ("_" + name if name else "") + f"_results_@{self.at_k}.csv"
+        self.csv_headers = [
+            "epoch",
+            "steps",
+            "MRR@{}".format(self.at_k),
+            "NDCG@{}".format(self.at_k),
+        ]
         self.write_csv = write_csv
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
@@ -41,6 +54,7 @@ class CERerankingEvaluator:
         logger.info("CERerankingEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
 
         all_mrr_scores = []
+        all_ndcg_scores = []
         num_queries = 0
         num_positives = []
         num_negatives = []
@@ -49,7 +63,7 @@ class CERerankingEvaluator:
             positive = list(instance["positive"])
             negative = list(instance["negative"])
             docs = positive + negative
-            is_relevant = [True] * len(positive) + [False] * len(negative)
+            is_relevant = [1] * len(positive) + [0] * len(negative)
 
             if len(positive) == 0 or len(negative) == 0:
                 continue
@@ -63,14 +77,17 @@ class CERerankingEvaluator:
             pred_scores_argsort = np.argsort(-pred_scores)  # Sort in decreasing order
 
             mrr_score = 0
-            for rank, index in enumerate(pred_scores_argsort[0 : self.mrr_at_k]):
+            for rank, index in enumerate(pred_scores_argsort[0 : self.at_k]):
                 if is_relevant[index]:
                     mrr_score = 1 / (rank + 1)
                     break
 
             all_mrr_scores.append(mrr_score)
+            all_ndcg_scores.append(ndcg_score([is_relevant], [pred_scores], k=self.at_k))
 
         mean_mrr = np.mean(all_mrr_scores)
+        mean_ndcg = np.mean(all_ndcg_scores)
+
         logger.info(
             "Queries: {} \t Positives: Min {:.1f}, Mean {:.1f}, Max {:.1f} \t Negatives: Min {:.1f}, Mean {:.1f}, Max {:.1f}".format(
                 num_queries,
@@ -82,7 +99,8 @@ class CERerankingEvaluator:
                 np.max(num_negatives),
             )
         )
-        logger.info("MRR@{}: {:.2f}".format(self.mrr_at_k, mean_mrr * 100))
+        logger.info("MRR@{}: {:.2f}".format(self.at_k, mean_mrr * 100))
+        logger.info("NDCG@{}: {:.2f}".format(self.at_k, mean_ndcg * 100))
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
@@ -92,6 +110,6 @@ class CERerankingEvaluator:
                 if not output_file_exists:
                     writer.writerow(self.csv_headers)
 
-                writer.writerow([epoch, steps, mean_mrr])
+                writer.writerow([epoch, steps, mean_mrr, mean_ndcg])
 
         return mean_mrr

@@ -6,6 +6,7 @@ import gzip
 import os
 
 import pytest
+import torch
 from torch.utils.data import DataLoader
 
 from sentence_transformers import CrossEncoder, util
@@ -93,3 +94,34 @@ def test_classifier_dropout_default_value() -> None:
     model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
     assert model.config.classifier_dropout is None
     assert model.model.config.classifier_dropout is None
+
+
+def test_load_with_revision() -> None:
+    model_name = "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+
+    main_model = CrossEncoder(model_name, num_labels=1, revision="main")
+    latest_model = CrossEncoder(
+        model_name,
+        num_labels=1,
+        revision="f3cb857cba53019a20df283396bcca179cf051a4",
+    )
+    older_model = CrossEncoder(
+        model_name,
+        num_labels=1,
+        revision="ba33022fdf0b0fc2643263f0726f44d0a07d0e24",
+    )
+
+    # Set the classifier.bias and classifier.weight equal among models. This
+    # is needed because the AutoModelForSequenceClassification randomly initializes
+    # the classifier.bias and classifier.weight for each (model) initialization.
+    # The test is only possible if all models have the same classifier.bias
+    # and classifier.weight parameters.
+    latest_model.model.classifier.bias = main_model.model.classifier.bias
+    latest_model.model.classifier.weight = main_model.model.classifier.weight
+    older_model.model.classifier.bias = main_model.model.classifier.bias
+    older_model.model.classifier.weight = main_model.model.classifier.weight
+
+    test_sentences = [["Hello there!", "Hello, World!"]]
+    main_prob = main_model.predict(test_sentences, convert_to_tensor=True)
+    assert torch.equal(main_prob, latest_model.predict(test_sentences, convert_to_tensor=True))
+    assert not torch.equal(main_prob, older_model.predict(test_sentences, convert_to_tensor=True))

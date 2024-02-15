@@ -1,3 +1,6 @@
+import os
+import platform
+import tempfile
 import pytest
 
 from sentence_transformers import SentenceTransformer, CrossEncoder
@@ -36,3 +39,18 @@ def distilbert_base_uncased_model() -> SentenceTransformer:
 @pytest.fixture(scope="session")
 def stsb_dataset_dict() -> DatasetDict:
     return load_dataset("mteb/stsbenchmark-sts")
+
+
+@pytest.fixture()
+def cache_dir():
+    """
+    In the CI environment, we use a temporary directory as `cache_dir`
+    to avoid keeping the downloaded models on disk after the test.
+
+    This is only required for Ubuntu, as we otherwise have disk space issues there.
+    """
+    if os.environ.get("CI", None) and platform.system() == "Linux":
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            yield tmp_dir
+    else:
+        yield None
