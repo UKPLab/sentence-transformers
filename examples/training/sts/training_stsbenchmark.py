@@ -83,7 +83,9 @@ ensemble_texts = list(set(text for inp_example in train_samples for text in inp_
 
 
 logging.info("Read STSbenchmark dev dataset")
-evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name="sts-dev", ensemble_texts=ensemble_texts)
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
+    dev_samples, name="sts-dev", ensemble_texts=ensemble_texts
+)
 
 
 # Configure the training. We skip evaluation in this example

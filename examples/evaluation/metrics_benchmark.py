@@ -39,9 +39,7 @@ def evaluate(
         for split in ("train", "test")
     }
     if use_train_as_ensemble:
-        ensemble_texts = list(
-            set(text for inp_example in samples["train"] for text in inp_example.texts)
-        )
+        ensemble_texts = list(set(text for inp_example in samples["train"] for text in inp_example.texts))
     else:
         ensemble_texts = None
 
@@ -70,13 +68,13 @@ if __name__ == "__main__":
         lambda row: {
             "sentence1": row["search_term"],
             "sentence2": row["product_title"] + row["product_description"],
-            "similarity_score": row["relevance"]/3,
+            "similarity_score": row["relevance"] / 3,
         }
     )
     evaluate(
         model,
         dataset,
-        min(max_samples,dataset["test"].num_rows),
+        min(max_samples, dataset["test"].num_rows),
         batch_size,
         use_train_as_ensemble,
     )
@@ -88,7 +86,7 @@ if __name__ == "__main__":
     evaluate(
         model,
         dataset,
-        min(max_samples,dataset["test"].num_rows),
+        min(max_samples, dataset["test"].num_rows),
         batch_size,
         use_train_as_ensemble,
     )
