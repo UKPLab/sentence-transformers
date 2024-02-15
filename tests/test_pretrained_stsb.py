@@ -5,6 +5,7 @@ import csv
 import gzip
 import os
 from functools import partial
+from typing import Optional
 
 import pytest
 
@@ -12,8 +13,10 @@ from sentence_transformers import InputExample, SentenceTransformer, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 
 
-def pretrained_model_score(model_name, expected_score: float, max_test_samples: int = 100) -> None:
-    model = SentenceTransformer(model_name)
+def pretrained_model_score(
+    model_name, expected_score: float, max_test_samples: int = 100, cache_dir: Optional[str] = None
+) -> None:
+    model = SentenceTransformer(model_name, cache_folder=cache_dir)
     sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
 
     if not os.path.exists(sts_dataset_path):
@@ -101,51 +104,51 @@ def test_sentence_t5_slow() -> None:
     pretrained_model_score_slow("sentence-t5-base", 85.52)
 
 
-def test_bert_base() -> None:
-    pretrained_model_score("bert-base-nli-mean-tokens", 86.53)
-    pretrained_model_score("bert-base-nli-max-tokens", 87.00)
-    pretrained_model_score("bert-base-nli-cls-token", 85.93)
-    pretrained_model_score("bert-base-nli-stsb-mean-tokens", 89.26)
+def test_bert_base(cache_dir) -> None:
+    pretrained_model_score("bert-base-nli-mean-tokens", 86.53, cache_dir=cache_dir)
+    pretrained_model_score("bert-base-nli-max-tokens", 87.00, cache_dir=cache_dir)
+    pretrained_model_score("bert-base-nli-cls-token", 85.93, cache_dir=cache_dir)
+    pretrained_model_score("bert-base-nli-stsb-mean-tokens", 89.26, cache_dir=cache_dir)
 
 
-def test_bert_large() -> None:
-    pretrained_model_score("bert-large-nli-mean-tokens", 90.06)
-    pretrained_model_score("bert-large-nli-max-tokens", 90.15)
-    pretrained_model_score("bert-large-nli-cls-token", 89.51)
-    pretrained_model_score("bert-large-nli-stsb-mean-tokens", 92.27)
+def test_bert_large(cache_dir) -> None:
+    pretrained_model_score("bert-large-nli-mean-tokens", 90.06, cache_dir=cache_dir)
+    pretrained_model_score("bert-large-nli-max-tokens", 90.15, cache_dir=cache_dir)
+    pretrained_model_score("bert-large-nli-cls-token", 89.51, cache_dir=cache_dir)
+    pretrained_model_score("bert-large-nli-stsb-mean-tokens", 92.27, cache_dir=cache_dir)
 
 
-def test_roberta() -> None:
-    pretrained_model_score("roberta-base-nli-mean-tokens", 87.91)
-    pretrained_model_score("roberta-large-nli-mean-tokens", 89.41)
-    pretrained_model_score("roberta-base-nli-stsb-mean-tokens", 93.39)
-    pretrained_model_score("roberta-large-nli-stsb-mean-tokens", 91.26)
+def test_roberta(cache_dir) -> None:
+    pretrained_model_score("roberta-base-nli-mean-tokens", 87.91, cache_dir=cache_dir)
+    pretrained_model_score("roberta-large-nli-mean-tokens", 89.41, cache_dir=cache_dir)
+    pretrained_model_score("roberta-base-nli-stsb-mean-tokens", 93.39, cache_dir=cache_dir)
+    pretrained_model_score("roberta-large-nli-stsb-mean-tokens", 91.26, cache_dir=cache_dir)
 
 
-def test_distilbert() -> None:
-    pretrained_model_score("distilbert-base-nli-mean-tokens", 88.83)
-    pretrained_model_score("distilbert-base-nli-stsb-mean-tokens", 91.01)
-    pretrained_model_score("paraphrase-distilroberta-base-v1", 90.89)
+def test_distilbert(cache_dir) -> None:
+    pretrained_model_score("distilbert-base-nli-mean-tokens", 88.83, cache_dir=cache_dir)
+    pretrained_model_score("distilbert-base-nli-stsb-mean-tokens", 91.01, cache_dir=cache_dir)
+    pretrained_model_score("paraphrase-distilroberta-base-v1", 90.89, cache_dir=cache_dir)
 
 
-def test_multiling() -> None:
-    pretrained_model_score("distiluse-base-multilingual-cased", 88.79)
-    pretrained_model_score("paraphrase-xlm-r-multilingual-v1", 92.76)
-    pretrained_model_score("paraphrase-multilingual-MiniLM-L12-v2", 92.64)
+def test_multiling(cache_dir) -> None:
+    pretrained_model_score("distiluse-base-multilingual-cased", 88.79, cache_dir=cache_dir)
+    pretrained_model_score("paraphrase-xlm-r-multilingual-v1", 92.76, cache_dir=cache_dir)
+    pretrained_model_score("paraphrase-multilingual-MiniLM-L12-v2", 92.64, cache_dir=cache_dir)
 
 
-def test_mpnet() -> None:
-    pretrained_model_score("paraphrase-mpnet-base-v2", 92.83)
+def test_mpnet(cache_dir) -> None:
+    pretrained_model_score("paraphrase-mpnet-base-v2", 92.83, cache_dir=cache_dir)
 
 
-def test_other_models() -> None:
-    pretrained_model_score("average_word_embeddings_komninos", 68.97)
+def test_other_models(cache_dir) -> None:
+    pretrained_model_score("average_word_embeddings_komninos", 68.97, cache_dir=cache_dir)
 
 
-def test_msmarco() -> None:
-    pretrained_model_score("msmarco-roberta-base-ance-firstp", 83.61)
-    pretrained_model_score("msmarco-distilbert-base-v3", 87.96)
+def test_msmarco(cache_dir) -> None:
+    pretrained_model_score("msmarco-roberta-base-ance-firstp", 83.61, cache_dir=cache_dir)
+    pretrained_model_score("msmarco-distilbert-base-v3", 87.96, cache_dir=cache_dir)
 
 
-def test_sentence_t5() -> None:
-    pretrained_model_score("sentence-t5-base", 92.75)
+def test_sentence_t5(cache_dir) -> None:
+    pretrained_model_score("sentence-t5-base", 92.75, cache_dir=cache_dir)
