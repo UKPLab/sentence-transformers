@@ -50,5 +50,3 @@ jobs:
         shell: bash
         run: |
           pytest --durations 20 -sv tests/
-        env:
-          SENTENCE_TRANSFORMERS_HOME: "/.cache/huggingface"
