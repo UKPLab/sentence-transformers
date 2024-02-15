@@ -88,6 +88,7 @@ def test_train_stsb_slow(
     evaluate_stsb_test(model, 80.0, sts_test_samples)
 
 
+@pytest.mark.skipif("CI" in os.environ, reason="This test is too slow for the CI (~8 minutes)")
 def test_train_stsb(
     distilbert_base_uncased_model: SentenceTransformer, sts_resource: Tuple[List[InputExample], List[InputExample]]
 ) -> None:
@@ -134,6 +135,7 @@ def test_train_nli_slow(
     evaluate_stsb_test(model, 50.0, sts_test_samples)
 
 
+@pytest.mark.skipif("CI" in os.environ, reason="This test is too slow for the CI (~25 minutes)")
 def test_train_nli(
     distilbert_base_uncased_model: SentenceTransformer,
     nli_resource: List[InputExample],

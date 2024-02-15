@@ -102,6 +102,39 @@ def pairwise_cos_sim(a: Tensor, b: Tensor) -> Tensor:
     return pairwise_dot_score(normalize_embeddings(a), normalize_embeddings(b))
 
 
+def pairwise_angle_sim(x: Tensor, y: Tensor) -> Tensor:
+    """
+    Computes the absolute normalized angle distance;
+    see AnglELoss or https://arxiv.org/abs/2309.12871v1
+    for more information.
+
+    :return: Vector with res[i] = angle_sim(a[i], b[i])
+    """
+
+    if not isinstance(x, torch.Tensor):
+        x = torch.tensor(x)
+
+    if not isinstance(y, torch.Tensor):
+        y = torch.tensor(y)
+
+    # modified from https://github.com/SeanLee97/AnglE/blob/main/angle_emb/angle.py
+    # chunk both tensors to obtain complex components
+    a, b = torch.chunk(x, 2, dim=1)
+    c, d = torch.chunk(y, 2, dim=1)
+
+    z = torch.sum(c**2 + d**2, dim=1, keepdim=True)
+    re = (a * c + b * d) / z
+    im = (b * c - a * d) / z
+
+    dz = torch.sum(a**2 + b**2, dim=1, keepdim=True) ** 0.5
+    dw = torch.sum(c**2 + d**2, dim=1, keepdim=True) ** 0.5
+    re /= dz / dw
+    im /= dz / dw
+
+    norm_angle = torch.sum(torch.concat((re, im), dim=1), dim=1)
+    return torch.abs(norm_angle)
+
+
 def normalize_embeddings(embeddings: Tensor) -> Tensor:
     """
     Normalizes the embeddings matrix, so that each sentence embedding has unit length
