@@ -13,7 +13,7 @@ Feel free to consider the following tables to help narrow down your choice of lo
 | `(sentence_A, sentence_B) pairs`              | `class`                                                       | <a href="#softmaxloss">`SoftmaxLoss`</a>                                                                                                                                                                                                                                                                                         |
 | `(anchor, positive) pairs`                    | `none`                                                        | <a href="#cachedmultiplenegativesrankingloss">`CachedMultipleNegativesRankingLoss`</a><br><a href="#multiplenegativesrankingloss">`MultipleNegativesRankingLoss`</a><br><a href="#multiplenegativessymmetricrankingloss">`MultipleNegativesSymmetricRankingLoss`</a><br><a href="#megabatchmarginloss">`MegaBatchMarginLoss`</a> |
 | `(anchor, positive/negative) pairs`           | `1 if positive, 0 if negative`                                | <a href="#contrastiveloss">`ContrastiveLoss`</a><br><a href="#onlinecontrastiveloss">`OnlineContrastiveLoss`</a>                                                                                                                                                                                                                 |
-| `(sentence_A, sentence_B) pairs`              | `float similarity score`                                      | <a href="#cosentloss">`CoSENTLoss`</a><br><a href="#cosinesimilarityloss">`CosineSimilarityLoss`</a>                                                                                                                                                                                                                             |
+| `(sentence_A, sentence_B) pairs`              | `float similarity score`                                      | <a href="#cosentloss">`CoSENTLoss`</a><br><a href="#angleloss">`AnglELoss`</a><br><a href="#cosinesimilarityloss">`CosineSimilarityLoss`</a>                                                                                                                                                                                     |
 | `(anchor, positive, negative) triplets`       | `none`                                                        | <a href="#cachedmultiplenegativesrankingloss">`CachedMultipleNegativesRankingLoss`</a><br><a href="#multiplenegativesrankingloss">`MultipleNegativesRankingLoss`</a><br><a href="#tripletloss">`TripletLoss`</a>                                                                                                                 |
 
 Note that you can often convert one training data format into another, allowing more loss functions to be viable for your case. For example, (sentence_A, sentence_B) pairs with classes can be converted into (anchor, positive, negative) by sampling sentences with the same or different classes.
@@ -71,6 +71,12 @@ For example, when finetuning a small model to behave more like a larger & strong
 
 ```eval_rst
 .. autoclass:: sentence_transformers.losses.CoSENTLoss
+```
+
+## AnglELoss
+
+```eval_rst
+.. autoclass:: sentence_transformers.losses.AnglELoss
 ```
 
 ## CosineSimilarityLoss

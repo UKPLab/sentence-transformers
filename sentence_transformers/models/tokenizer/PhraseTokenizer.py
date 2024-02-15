@@ -5,7 +5,7 @@ import os
 import json
 import logging
 from .WordTokenizer import WordTokenizer, ENGLISH_STOP_WORDS
-import nltk
+from transformers.utils.import_utils import is_nltk_available, NLTK_IMPORT_ERROR
 
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,9 @@ class PhraseTokenizer(WordTokenizer):
         ngram_separator: str = "_",
         max_ngram_length: int = 5,
     ):
+        if not is_nltk_available():
+            raise ImportError(NLTK_IMPORT_ERROR.format(self.__class__.__name__))
+
         self.stop_words = set(stop_words)
         self.do_lower_case = do_lower_case
         self.ngram_separator = ngram_separator
@@ -55,7 +58,9 @@ class PhraseTokenizer(WordTokenizer):
             logger.info("PhraseTokenizer - Num phrases: {}".format(len(self.ngram_lookup)))
 
     def tokenize(self, text: str) -> List[int]:
-        tokens = nltk.word_tokenize(text, preserve_line=True)
+        from nltk import word_tokenize
+
+        tokens = word_tokenize(text, preserve_line=True)
 
         # phrase detection
         for ngram_len in sorted(self.ngram_lengths, reverse=True):
