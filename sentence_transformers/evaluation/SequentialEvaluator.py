@@ -13,6 +13,7 @@ class SequentialEvaluator(SentenceEvaluator):
     def __init__(self, evaluators: Iterable[SentenceEvaluator], main_score_function=lambda scores: scores[-1]):
         self.evaluators = evaluators
         self.main_score_function = main_score_function
+        self.best_scoring_function = self.main_score_function
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         scores = []
