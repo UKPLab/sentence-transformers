@@ -66,7 +66,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.name = name
         self.write_csv = write_csv
         self.score_functions = score_functions
-        self.score_function_names = sorted(list(self.score_functions.keys()))
+        self.score_function_names = sorted(x.value for x in self.score_functions.keys())
         self.main_score_function = main_score_function
         self.best_scoring_function = None
 
@@ -222,7 +222,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         logger.info("Corpus: {}\n".format(len(self.corpus)))
 
         # Compute scores
-        scores = {name: self.compute_metrics(queries_result_list[name]) for name in self.score_functions}
+        scores = {name.value: self.compute_metrics(queries_result_list[name]) for name in self.score_functions}
 
         # Output
         for name in self.score_function_names:

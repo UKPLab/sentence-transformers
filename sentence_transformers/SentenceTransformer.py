@@ -214,6 +214,8 @@ class SentenceTransformer(nn.Sequential):
                     revision=revision,
                     trust_remote_code=trust_remote_code,
                 )
+        else:
+            self.score_function_name = score_function
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -223,18 +225,18 @@ class SentenceTransformer(nn.Sequential):
             device = get_device_name()
             logger.info("Use pytorch device_name: {}".format(device))
 
-        # if this is not true, the score_function is set after training
-        self.score_function_name = score_function
-        self.score_function = None
+        if self.score_function_name is None:
 
-        if score_function is not None:
-            if not isinstance(score_function, str):
-                raise ValueError("Type of score function is {}, but should be a string.".format(type(score_function)))
-            elif score_function not in SimilarityFunction.possible_values():
-                raise ValueError("The provided value is {}, but available values are {}.".format(score_function, SimilarityFunction.possible_values()))
+            # if this is not true, the score_function is set after training
+            self.score_function = None
 
-            self.score_function_name = score_function
-            self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
+            if score_function is not None:
+                if not isinstance(score_function, str):
+                    raise ValueError("Type of score function is {}, but should be a string.".format(type(score_function)))
+                elif score_function not in SimilarityFunction.possible_values():
+                    raise ValueError("The provided value is {}, but available values are {}.".format(score_function, SimilarityFunction.possible_values()))
+
+                self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
 
         self.to(device)
 
@@ -529,6 +531,7 @@ class SentenceTransformer(nn.Sequential):
                 "transformers": transformers.__version__,
                 "pytorch": torch.__version__,
             }
+
         if "score_function" not in self._model_config:
             self._model_config["score_function"] = self.score_function
 
@@ -909,7 +912,7 @@ class SentenceTransformer(nn.Sequential):
                     for loss_model in loss_models:
                         loss_model.zero_grad()
                         loss_model.train()
-
+                    
                 if (
                     checkpoint_path is not None
                     and checkpoint_save_steps is not None
@@ -924,8 +927,6 @@ class SentenceTransformer(nn.Sequential):
             self.save(output_path)
 
         if checkpoint_path is not None:
-            if hasattr(evaluator, "best_scoring_function") and evaluator.best_scoring_function is not None:
-                self.score_function = evaluator.best_scoring_function 
             self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
@@ -955,6 +956,8 @@ class SentenceTransformer(nn.Sequential):
                 callback(score, epoch, steps)
             if score > self.best_score:
                 self.best_score = score
+                if hasattr(evaluator, "best_scoring_function") and evaluator.best_scoring_function is not None:
+                    self.score_function = evaluator.best_scoring_function 
                 if save_best_model:
                     self.save(output_path)
 
@@ -996,6 +999,7 @@ class SentenceTransformer(nn.Sequential):
             tokenizer_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
+        self.score_function_name = None
         return [transformer_model, pooling_model]
 
     def _load_sbert_model(
@@ -1034,6 +1038,9 @@ class SentenceTransformer(nn.Sequential):
             
             if "score_function" in self._model_config:
                 logger.info("The loaded model uses the {} score function.\n".format(self._model_config["score_function"]))
+                self.score_function_name = self._model_config["score_function"]
+            else:
+                self.score_function_name = None
 
         # Check if a readme exists
         model_card_path = load_file_path(
