@@ -15,6 +15,7 @@ Feel free to consider the following tables to help narrow down your choice of lo
 | `(anchor, positive/negative) pairs`           | `1 if positive, 0 if negative`                                | <a href="#contrastiveloss">`ContrastiveLoss`</a><br><a href="#onlinecontrastiveloss">`OnlineContrastiveLoss`</a>                                                                                                                                                                                                                 |
 | `(sentence_A, sentence_B) pairs`              | `float similarity score`                                      | <a href="#cosentloss">`CoSENTLoss`</a><br><a href="#angleloss">`AnglELoss`</a><br><a href="#cosinesimilarityloss">`CosineSimilarityLoss`</a>                                                                                                                                                                                     |
 | `(anchor, positive, negative) triplets`       | `none`                                                        | <a href="#cachedmultiplenegativesrankingloss">`CachedMultipleNegativesRankingLoss`</a><br><a href="#multiplenegativesrankingloss">`MultipleNegativesRankingLoss`</a><br><a href="#tripletloss">`TripletLoss`</a>                                                                                                                 |
+| `any`                                         | `any`                                                         | <a href="#matryoshkaloss">`MatryoshkaLoss`</a>                                                                                                                                                                                                                                                                                   |
 
 Note that you can often convert one training data format into another, allowing more loss functions to be viable for your case. For example, (sentence_A, sentence_B) pairs with classes can be converted into (anchor, positive, negative) by sampling sentences with the same or different classes.
 
@@ -107,6 +108,11 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 ## MarginMSELoss
 ```eval_rst
 .. autoclass:: sentence_transformers.losses.MarginMSELoss
+```
+
+## MatryoshkaLoss
+```eval_rst
+.. autoclass:: sentence_transformers.losses.MatryoshkaLoss
 ```
 
 ## MegaBatchMarginLoss
