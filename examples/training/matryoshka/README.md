@@ -4,7 +4,7 @@ Dense embedding models typically produce embeddings with a fixed size, such as 7
 
 ## Use Cases
 
-A particularly interesting use cases are to split up processing into two steps: 1) pre-processing with much smaller vectors and then 2) processing the remaining vectors as full size (also called "shortlisting and reranking"). Additionally, Matryoshka models will allow you to scale your embedding solutions to your desired storage cost, processing speed and performance.
+A particularly interesting use case is to split up processing into two steps: 1) pre-processing with much smaller vectors and then 2) processing the remaining vectors as full size (also called "shortlisting and reranking"). Additionally, Matryoshka models will allow you to scale your embedding solutions to your desired storage cost, processing speed and performance.
 
 ## Training
 
@@ -23,7 +23,7 @@ loss = MatryoshkaLoss(model=model, loss=base_loss, matryoshka_dims=[768, 512, 25
 
 ## Inference
 
-When a model has been trained using a Matryoshka loss, then you can run inference with it using [`SentenceTransformers.encode`](../../../docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode). You must then truncate the resulting embeddings, and it is recommended to renormalize the embeddings.
+After a model has been trained using a Matryoshka loss, you can then run inference with it using [`SentenceTransformers.encode`](../../../docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode). You must then truncate the resulting embeddings, and it is recommended to renormalize the embeddings.
 
 ```python
 from sentence_transformers import SentenceTransformer
