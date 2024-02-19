@@ -211,17 +211,14 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device_name: {}".format(device))
 
         if self.score_function_name is None:
-
-            # if this is not true, the score_function is set after training
             self.score_function = None
+        else:
+            if not isinstance(self.score_function_name, str):
+                raise ValueError("Type of score function is {}, but should be a string.".format(type(score_function)))
+            elif self.score_function_name not in SimilarityFunction.possible_values():
+                raise ValueError("The provided value is {}, but available values are {}.".format(score_function, SimilarityFunction.possible_values()))
 
-            if score_function is not None:
-                if not isinstance(score_function, str):
-                    raise ValueError("Type of score function is {}, but should be a string.".format(type(score_function)))
-                elif score_function not in SimilarityFunction.possible_values():
-                    raise ValueError("The provided value is {}, but available values are {}.".format(score_function, SimilarityFunction.possible_values()))
-
-                self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
+            self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
 
         self.to(device)
 

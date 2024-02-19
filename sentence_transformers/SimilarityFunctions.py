@@ -13,20 +13,20 @@ class SimilarityFunction(Enum):
     DOT_SCORE = "dot_score"
 
     @staticmethod
-    def map_to_function(score_function_name):
-        if score_function_name == SimilarityFunction.COSINE:
+    def map_to_function(score_function):
+        if isinstance(score_function, Enum):
+            score_function = score_function.value
+
+        if score_function == SimilarityFunction.COSINE.value:
             return cos_sim
-        elif score_function_name == SimilarityFunction.MANHATTAN:
+        elif score_function == SimilarityFunction.MANHATTAN.value:
             return manhattan_sim
-        elif score_function_name == SimilarityFunction.EUCLIDEAN:
+        elif score_function == SimilarityFunction.EUCLIDEAN.value:
             return euclidean_sim
-        elif score_function_name == SimilarityFunction.DOT_SCORE:
+        elif score_function == SimilarityFunction.DOT_SCORE.value:
             return dot_score
         else:
-            raise ValueError("""
-                The provided function name is not supported. 
-                Use of the supported values: {}.""".format([m.value for m in SimilarityFunction])
-            )
+            raise ValueError("The provided function is not supported. Use one of the supported values: {}.".format([m.value for m in SimilarityFunction]))
         
     @staticmethod
     def possible_values():
