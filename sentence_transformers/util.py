@@ -506,21 +506,24 @@ class disabled_tqdm(tqdm):
                 raise
 
 
-def is_sentence_transformer_model(
+def model_or_path_has_file(
+    filename: str,
     model_name_or_path: str,
     token: Optional[Union[bool, str]] = None,
-    cache_folder: Optional[str] = None,
+    cache_dir: Optional[str] = None,
     revision: Optional[str] = None,
+    trust_remote_code: Optional[bool] = None,
 ) -> bool:
-    return bool(load_file_path(model_name_or_path, "modules.json", token, cache_folder, revision=revision))
+    return bool(load_file_path(model_name_or_path, filename, token, cache_dir, revision=revision))
 
 
 def load_file_path(
     model_name_or_path: str,
     filename: str,
     token: Optional[Union[bool, str]],
-    cache_folder: Optional[str],
+    cache_dir: Optional[str],
     revision: Optional[str] = None,
+    trust_remote_code: Optional[bool] = None,
 ) -> Optional[str]:
     # If file is local
     file_path = os.path.join(model_name_or_path, filename)
@@ -535,7 +538,7 @@ def load_file_path(
             revision=revision,
             library_name="sentence-transformers",
             token=token,
-            cache_dir=cache_folder,
+            cache_dir=cache_dir,
         )
     except Exception:
         return
@@ -545,8 +548,9 @@ def load_dir_path(
     model_name_or_path: str,
     directory: str,
     token: Optional[Union[bool, str]],
-    cache_folder: Optional[str],
+    cache_dir: Optional[str],
     revision: Optional[str] = None,
+    trust_remote_code: Optional[bool] = None,
 ) -> Optional[str]:
     # If file is local
     dir_path = os.path.join(model_name_or_path, directory)
@@ -559,7 +563,7 @@ def load_dir_path(
         "allow_patterns": f"{directory}/**",
         "library_name": "sentence-transformers",
         "token": token,
-        "cache_dir": cache_folder,
+        "cache_dir": cache_dir,
         "tqdm_class": disabled_tqdm,
     }
     # Try to download from the remote

@@ -1,3 +1,4 @@
+from functools import partial
 import json
 import logging
 import os
@@ -20,13 +21,18 @@ import math
 import queue
 import tempfile
 
+from transformers.configuration_utils import PretrainedConfig
+from transformers import AutoModel, AutoConfig, PreTrainedModel
+
+from sentence_transformers.configuration import SentenceTransformerConfig
+
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
 from .util import (
     import_from_string,
     batch_to_device,
     fullname,
-    is_sentence_transformer_model,
+    model_or_path_has_file,
     load_dir_path,
     load_file_path,
     save_to_hub_args_decorator,
@@ -34,7 +40,6 @@ from .util import (
 )
 from .models import Transformer, Pooling, Normalize
 from .model_card_templates import ModelCardTemplate
-from . import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +78,10 @@ class SentenceTransformer(nn.Sequential):
         revision: Optional[str] = None,
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
+        **kwargs,
     ):
         self._model_card_vars = {}
         self._model_card_text = None
-        self._model_config = {}
         if use_auth_token is not None:
             warnings.warn(
                 "The `use_auth_token` argument is deprecated and will be removed in v3 of SentenceTransformers.",
@@ -91,7 +96,8 @@ class SentenceTransformer(nn.Sequential):
         if cache_folder is None:
             cache_folder = os.getenv("SENTENCE_TRANSFORMERS_HOME")
 
-        if model_name_or_path is not None and model_name_or_path != "":
+        self.config = None
+        if model_name_or_path:
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
 
             # Old models that don't belong to any organization
@@ -175,27 +181,37 @@ class SentenceTransformer(nn.Sequential):
                     # A model from sentence-transformers
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
-            if is_sentence_transformer_model(model_name_or_path, token, cache_folder=cache_folder, revision=revision):
-                modules = self._load_sbert_model(
+            hub_kwargs = {
+                "revision": revision,
+                "token": token,
+                "trust_remote_code": trust_remote_code,
+                "cache_dir": cache_folder,
+            }
+
+            if model_or_path_has_file("modules.json", model_name_or_path, **hub_kwargs):
+                # TODO: kwargs are ignored, warn?
+                modules = self._load_sbert_model_as_modules(model_name_or_path, **hub_kwargs)
+            elif model_or_path_has_file("config_sentence_transformers.json", model_name_or_path, **hub_kwargs):
+                self.config: SentenceTransformerConfig = SentenceTransformerConfig.from_pretrained(
                     model_name_or_path,
-                    token=token,
-                    cache_folder=cache_folder,
-                    revision=revision,
-                    trust_remote_code=trust_remote_code,
+                    _configuration_file="config_sentence_transformers.json",
+                    **hub_kwargs,
+                    loaded_with_from_pretrained=True,
                 )
+                modules = self._load_sbert_model_as_pretrained_model(model_name_or_path, **hub_kwargs, **kwargs)
             else:
-                modules = self._load_auto_model(
-                    model_name_or_path,
-                    token=token,
-                    cache_folder=cache_folder,
-                    revision=revision,
-                    trust_remote_code=trust_remote_code,
-                )
+                # TODO: pass kwargs as model_args to Transformer?
+                modules = self._load_auto_model(model_name_or_path, **hub_kwargs)
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
 
+        if self.config is None:
+            self.config = SentenceTransformerConfig()
+
+        self.calling_init = True
         super().__init__(modules)
+        self.calling_init = False
         if device is None:
             device = get_device_name()
             logger.info("Use pytorch device_name: {}".format(device))
@@ -301,7 +317,12 @@ class SentenceTransformer(nn.Sequential):
             else:
                 all_embeddings = torch.Tensor()
         elif convert_to_numpy:
-            all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
+            all_embeddings = np.asarray(
+                [
+                    emb.to(torch.float16).numpy() if emb.dtype == torch.bfloat16 else emb.numpy()
+                    for emb in all_embeddings
+                ]
+            )
 
         if input_was_string:
             all_embeddings = all_embeddings[0]
@@ -465,192 +486,6 @@ class SentenceTransformer(nn.Sequential):
     def _last_module(self):
         """Returns the last module of this sequential embedder"""
         return self._modules[next(reversed(self._modules))]
-
-    def save(
-        self,
-        path: str,
-        model_name: Optional[str] = None,
-        create_model_card: bool = True,
-        train_datasets: Optional[List[str]] = None,
-    ):
-        """
-        Saves all elements for this seq. sentence embedder into different sub-folders
-
-        :param path: Path on disc
-        :param model_name: Optional model name
-        :param create_model_card: If True, create a README.md with basic information about this model
-        :param train_datasets: Optional list with the names of the datasets used to to train the model
-        """
-        if path is None:
-            return
-
-        os.makedirs(path, exist_ok=True)
-
-        logger.info("Save model to {}".format(path))
-        modules_config = []
-
-        # Save some model info
-        if "__version__" not in self._model_config:
-            self._model_config["__version__"] = {
-                "sentence_transformers": __version__,
-                "transformers": transformers.__version__,
-                "pytorch": torch.__version__,
-            }
-
-        with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
-            json.dump(self._model_config, fOut, indent=2)
-
-        # Save modules
-        for idx, name in enumerate(self._modules):
-            module = self._modules[name]
-            if idx == 0 and isinstance(module, Transformer):  # Save transformer model in the main folder
-                model_path = path + "/"
-            else:
-                model_path = os.path.join(path, str(idx) + "_" + type(module).__name__)
-
-            os.makedirs(model_path, exist_ok=True)
-            module.save(model_path)
-            modules_config.append(
-                {"idx": idx, "name": name, "path": os.path.basename(model_path), "type": type(module).__module__}
-            )
-
-        with open(os.path.join(path, "modules.json"), "w") as fOut:
-            json.dump(modules_config, fOut, indent=2)
-
-        # Create model card
-        if create_model_card:
-            self._create_model_card(path, model_name, train_datasets)
-
-    def _create_model_card(
-        self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = None
-    ):
-        """
-        Create an automatic model and stores it in path
-        """
-        if self._model_card_text is not None and len(self._model_card_text) > 0:
-            model_card = self._model_card_text
-        else:
-            tags = ModelCardTemplate.__TAGS__.copy()
-            model_card = ModelCardTemplate.__MODEL_CARD__
-
-            if (
-                len(self._modules) == 2
-                and isinstance(self._first_module(), Transformer)
-                and isinstance(self._last_module(), Pooling)
-                and self._last_module().get_pooling_mode_str() in ["cls", "max", "mean"]
-            ):
-                pooling_module = self._last_module()
-                pooling_mode = pooling_module.get_pooling_mode_str()
-                model_card = model_card.replace(
-                    "{USAGE_TRANSFORMERS_SECTION}", ModelCardTemplate.__USAGE_TRANSFORMERS__
-                )
-                pooling_fct_name, pooling_fct = ModelCardTemplate.model_card_get_pooling_function(pooling_mode)
-                model_card = (
-                    model_card.replace("{POOLING_FUNCTION}", pooling_fct)
-                    .replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
-                    .replace("{POOLING_MODE}", pooling_mode)
-                )
-                tags.append("transformers")
-
-            # Print full model
-            model_card = model_card.replace("{FULL_MODEL_STR}", str(self))
-
-            # Add tags
-            model_card = model_card.replace("{TAGS}", "\n".join(["- " + t for t in tags]))
-
-            datasets_str = ""
-            if train_datasets is not None:
-                datasets_str = "datasets:\n" + "\n".join(["- " + d for d in train_datasets])
-            model_card = model_card.replace("{DATASETS}", datasets_str)
-
-            # Add dim info
-            self._model_card_vars["{NUM_DIMENSIONS}"] = self.get_sentence_embedding_dimension()
-
-            # Replace vars we created while using the model
-            for name, value in self._model_card_vars.items():
-                model_card = model_card.replace(name, str(value))
-
-            # Replace remaining vars with default values
-            for name, value in ModelCardTemplate.__DEFAULT_VARS__.items():
-                model_card = model_card.replace(name, str(value))
-
-        if model_name is not None:
-            model_card = model_card.replace("{MODEL_NAME}", model_name.strip())
-
-        with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
-            fOut.write(model_card.strip())
-
-    @save_to_hub_args_decorator
-    def save_to_hub(
-        self,
-        repo_id: str,
-        organization: Optional[str] = None,
-        token: Optional[str] = None,
-        private: Optional[bool] = None,
-        commit_message: str = "Add new SentenceTransformer model.",
-        local_model_path: Optional[str] = None,
-        exist_ok: bool = False,
-        replace_model_card: bool = False,
-        train_datasets: Optional[List[str]] = None,
-    ):
-        """
-        Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
-
-        :param repo_id: Repository name for your model in the Hub, including the user or organization.
-        :param token: An authentication token (See https://huggingface.co/settings/token)
-        :param private: Set to true, for hosting a private model
-        :param commit_message: Message to commit while pushing.
-        :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
-        :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
-        :param replace_model_card: If true, replace an existing model card in the hub with the automatically created model card
-        :param train_datasets: Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
-        :param organization: Deprecated. Organization in which you want to push your model or tokenizer (you must be a member of this organization).
-
-        :return: The url of the commit of your model in the repository on the Hugging Face Hub.
-        """
-        if organization:
-            if "/" not in repo_id:
-                logger.warning(
-                    f'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="{organization}/{repo_id}"` instead.'
-                )
-                repo_id = f"{organization}/{repo_id}"
-            elif repo_id.split("/")[0] != organization:
-                raise ValueError(
-                    "Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id`."
-                )
-            else:
-                logger.warning(
-                    f'Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id="{repo_id}"` instead.'
-                )
-
-        api = HfApi(token=token)
-        repo_url = api.create_repo(
-            repo_id=repo_id,
-            private=private,
-            repo_type=None,
-            exist_ok=exist_ok,
-        )
-        if local_model_path:
-            folder_url = api.upload_folder(
-                repo_id=repo_id, folder_path=local_model_path, commit_message=commit_message
-            )
-        else:
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, "README.md"))
-                self.save(
-                    tmp_dir,
-                    model_name=repo_url.repo_id,
-                    create_model_card=create_model_card,
-                    train_datasets=train_datasets,
-                )
-                folder_url = api.upload_folder(repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message)
-
-        refs = api.list_repo_refs(repo_id=repo_id)
-        for branch in refs.branches:
-            if branch.name == "main":
-                return f"https://huggingface.co/{repo_id}/commit/{branch.target_commit}"
-        # This isn't expected to ever be reached.
-        return folder_url
 
     def smart_batching_collate(self, batch: List["InputExample"]) -> Tuple[List[Dict[str, Tensor]], Tensor]:
         """
@@ -936,137 +771,6 @@ class SentenceTransformer(nn.Sequential):
                 old_checkpoints = sorted(old_checkpoints, key=lambda x: x["step"])
                 shutil.rmtree(old_checkpoints[0]["path"])
 
-    def _load_auto_model(
-        self,
-        model_name_or_path: str,
-        token: Optional[Union[bool, str]],
-        cache_folder: Optional[str],
-        revision: Optional[str] = None,
-        trust_remote_code: bool = False,
-    ):
-        """
-        Creates a simple Transformer + Mean Pooling model and returns the modules
-        """
-        logger.warning(
-            "No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(
-                model_name_or_path
-            )
-        )
-        transformer_model = Transformer(
-            model_name_or_path,
-            cache_dir=cache_folder,
-            model_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
-            tokenizer_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
-        )
-        pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
-        return [transformer_model, pooling_model]
-
-    def _load_sbert_model(
-        self,
-        model_name_or_path: str,
-        token: Optional[Union[bool, str]],
-        cache_folder: Optional[str],
-        revision: Optional[str] = None,
-        trust_remote_code: bool = False,
-    ):
-        """
-        Loads a full sentence-transformers model
-        """
-        # Check if the config_sentence_transformers.json file exists (exists since v2 of the framework)
-        config_sentence_transformers_json_path = load_file_path(
-            model_name_or_path,
-            "config_sentence_transformers.json",
-            token=token,
-            cache_folder=cache_folder,
-            revision=revision,
-        )
-        if config_sentence_transformers_json_path is not None:
-            with open(config_sentence_transformers_json_path) as fIn:
-                self._model_config = json.load(fIn)
-
-            if (
-                "__version__" in self._model_config
-                and "sentence_transformers" in self._model_config["__version__"]
-                and self._model_config["__version__"]["sentence_transformers"] > __version__
-            ):
-                logger.warning(
-                    "You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(
-                        self._model_config["__version__"]["sentence_transformers"], __version__
-                    )
-                )
-
-        # Check if a readme exists
-        model_card_path = load_file_path(
-            model_name_or_path, "README.md", token=token, cache_folder=cache_folder, revision=revision
-        )
-        if model_card_path is not None:
-            try:
-                with open(model_card_path, encoding="utf8") as fIn:
-                    self._model_card_text = fIn.read()
-            except Exception:
-                pass
-
-        # Load the modules of sentence transformer
-        modules_json_path = load_file_path(
-            model_name_or_path, "modules.json", token=token, cache_folder=cache_folder, revision=revision
-        )
-        with open(modules_json_path) as fIn:
-            modules_config = json.load(fIn)
-
-        modules = OrderedDict()
-        for module_config in modules_config:
-            module_class = import_from_string(module_config["type"])
-            # For Transformer, don't load the full directory, rely on `transformers` instead
-            # But, do load the config file first.
-            if module_class == Transformer and module_config["path"] == "":
-                kwargs = {}
-                for config_name in [
-                    "sentence_bert_config.json",
-                    "sentence_roberta_config.json",
-                    "sentence_distilbert_config.json",
-                    "sentence_camembert_config.json",
-                    "sentence_albert_config.json",
-                    "sentence_xlm-roberta_config.json",
-                    "sentence_xlnet_config.json",
-                ]:
-                    config_path = load_file_path(
-                        model_name_or_path, config_name, token=token, cache_folder=cache_folder, revision=revision
-                    )
-                    if config_path is not None:
-                        with open(config_path) as fIn:
-                            kwargs = json.load(fIn)
-                        break
-                hub_kwargs = {"token": token, "trust_remote_code": trust_remote_code, "revision": revision}
-                if "model_args" in kwargs:
-                    kwargs["model_args"].update(hub_kwargs)
-                else:
-                    kwargs["model_args"] = hub_kwargs
-                if "tokenizer_args" in kwargs:
-                    kwargs["tokenizer_args"].update(hub_kwargs)
-                else:
-                    kwargs["tokenizer_args"] = hub_kwargs
-                module = Transformer(model_name_or_path, cache_dir=cache_folder, **kwargs)
-            else:
-                # Normalize does not require any files to be loaded
-                if module_class == Normalize:
-                    module_path = None
-                else:
-                    module_path = load_dir_path(
-                        model_name_or_path,
-                        module_config["path"],
-                        token=token,
-                        cache_folder=cache_folder,
-                        revision=revision,
-                    )
-                module = module_class.load(module_path)
-            modules[module_config["name"]] = module
-
-        return modules
-
-    @staticmethod
-    def load(input_path):
-        return SentenceTransformer(input_path)
-
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
         """
@@ -1148,3 +852,490 @@ class SentenceTransformer(nn.Sequential):
     @_target_device.setter
     def _target_device(self, device: Optional[Union[int, str, torch.device]] = None) -> None:
         self.to(device)
+
+    def to_pretrained_model(self) -> PreTrainedModel:
+        """Returns the SentenceTransformer as a `transformers` PreTrainedModel instance.
+
+        Note that the SentenceTransformer its first module must be a `Transformer` module.
+
+        The PreTrainedModel is created by the following steps:
+        1. Get the Transformer module its auto_model. This is the `transformers` PreTrainedModel.
+        2. Apply post-processing on the encoder to get the output expected by SentenceTransformer.
+        3. Inject all other modules into the encoder.
+
+        Returns:
+            PreTrainedModel: The SentenceTransformer as a `transformers` PreTrainedModel instance
+        """
+        if not self.modules or not isinstance(self[0], Transformer):
+            raise ValueError(
+                "Cannot convert to a PreTrainedModel, because the first module is not a Transformer module."
+            )
+        transformer: Transformer = self[0]
+        encoder = transformer.auto_model
+
+        # Apply post-processing on the encoder to get the output expected by SentenceTransformer
+        def post_process(module, args, kwargs, outputs):
+            return {"token_embeddings": outputs[0], "attention_mask": kwargs.get("attention_mask", None)}
+
+        encoder.register_forward_hook(post_process, with_kwargs=True)
+
+        # Skip the first module, that's Transformer here
+        # Inject all other modules into the encoder
+        for idx, module_config in enumerate(self.config.modules[1:], start=1):
+            # Add the module to the encoder
+            name = f"st_{module_config['type'].split('.')[-1].lower()}"
+            setattr(encoder, name, self[idx])
+
+            # Add a forward hook to the encoder to also call the module after the encoder
+            def hook(encoder_module, input, output, name=None):
+                return getattr(encoder_module, name)(output)
+
+            hook_with_name = partial(hook, name=name)
+            encoder.register_forward_hook(hook_with_name)
+        return encoder
+
+    def save(
+        self,
+        path: str,
+        model_name: Optional[str] = None,
+        create_model_card: bool = True,
+        train_datasets: Optional[List[str]] = None,
+    ):
+        """
+        Saves all elements for this seq. sentence embedder into different sub-folders
+
+        :param path: Path on disc
+        :param model_name: Optional model name
+        :param create_model_card: If True, create a README.md with basic information about this model
+        :param train_datasets: Optional list with the names of the datasets used to to train the model
+        """
+        if path is None:
+            return
+
+        logger.info("Save model to {}".format(path))
+
+        # Save the SentenceTransformer config with modules -> "config_sentence_transformers.json"
+        self.config.save_pretrained(path)
+
+        # Save the SentenceTransformer, preferably as a pretrained model or as a set of modules
+        if isinstance(self[0], Transformer):
+            self._save_as_pretrained_model(path=path)
+        else:
+            self._save_as_modules(path=path)
+
+        # Also save a freshly created model card
+        if create_model_card:
+            self._create_model_card(path, model_name, train_datasets)
+
+    def _save_as_modules(self, path: str) -> None:
+        """
+        Saves the SentenceTransformer model as a set of modules at the specified path.
+
+        This method saves each module in a separate folder. The modules are saved via `save` and the
+        overarching configuration for the modules is saved in a `modules.json` file.
+
+        Args:
+            path (str): The path where the modules should be saved.
+        """
+        os.makedirs(path, exist_ok=True)
+
+        modules_config = []
+
+        # Save modules
+        for idx, name in enumerate(self._modules):
+            module = self._modules[name]
+            if idx == 0 and isinstance(module, Transformer):  # Save transformer model in the main folder
+                model_path = path + "/"
+            else:
+                model_path = os.path.join(path, str(idx) + "_" + type(module).__name__)
+
+            os.makedirs(model_path, exist_ok=True)
+            module.save(model_path)
+            modules_config.append(
+                {"idx": idx, "name": name, "path": os.path.basename(model_path), "type": type(module).__module__}
+            )
+
+        with open(os.path.join(path, "modules.json"), "w") as fOut:
+            json.dump(modules_config, fOut, indent=2)
+
+    def _save_as_pretrained_model(self, path: str) -> None:
+        """
+        Saves the SentenceTransformer model as a pretrained model at the specified path.
+
+        This method takes the first module (assumed to be a Transformer) its pretrained model.
+        It then injects all other modules into the encoder of the PreTrainedModel and saves them via `save_pretrained`.
+        The tokenizer of the Transformer is also saved at the same path.
+
+        Args:
+            path (str): The path where the pretrained model should be saved.
+        """
+        encoder = self.to_pretrained_model()
+        encoder.save_pretrained(path)
+        transformer: Transformer = self[0]
+        transformer.tokenizer.save_pretrained(path)
+
+    def _create_model_card(
+        self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = None
+    ):
+        """
+        Create an automatic model and stores it in path
+        """
+        if self._model_card_text is not None and len(self._model_card_text) > 0:
+            model_card = self._model_card_text
+        else:
+            tags = ModelCardTemplate.__TAGS__.copy()
+            model_card = ModelCardTemplate.__MODEL_CARD__
+
+            if (
+                len(self._modules) == 2
+                and isinstance(self._first_module(), Transformer)
+                and isinstance(self._last_module(), Pooling)
+                and self._last_module().get_pooling_mode_str() in ["cls", "max", "mean"]
+            ):
+                pooling_module = self._last_module()
+                pooling_mode = pooling_module.get_pooling_mode_str()
+                model_card = model_card.replace(
+                    "{USAGE_TRANSFORMERS_SECTION}", ModelCardTemplate.__USAGE_TRANSFORMERS__
+                )
+                pooling_fct_name, pooling_fct = ModelCardTemplate.model_card_get_pooling_function(pooling_mode)
+                model_card = (
+                    model_card.replace("{POOLING_FUNCTION}", pooling_fct)
+                    .replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
+                    .replace("{POOLING_MODE}", pooling_mode)
+                )
+                tags.append("transformers")
+
+            # Print full model
+            model_card = model_card.replace("{FULL_MODEL_STR}", str(self))
+
+            # Add tags
+            model_card = model_card.replace("{TAGS}", "\n".join(["- " + t for t in tags]))
+
+            datasets_str = ""
+            if train_datasets is not None:
+                datasets_str = "datasets:\n" + "\n".join(["- " + d for d in train_datasets])
+            model_card = model_card.replace("{DATASETS}", datasets_str)
+
+            # Add dim info
+            self._model_card_vars["{NUM_DIMENSIONS}"] = self.get_sentence_embedding_dimension()
+
+            # Replace vars we created while using the model
+            for name, value in self._model_card_vars.items():
+                model_card = model_card.replace(name, str(value))
+
+            # Replace remaining vars with default values
+            for name, value in ModelCardTemplate.__DEFAULT_VARS__.items():
+                model_card = model_card.replace(name, str(value))
+
+        if model_name is not None:
+            model_card = model_card.replace("{MODEL_NAME}", model_name.strip())
+
+        with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
+            fOut.write(model_card.strip())
+
+    @save_to_hub_args_decorator
+    def save_to_hub(
+        self,
+        repo_id: str,
+        organization: Optional[str] = None,
+        token: Optional[str] = None,
+        private: Optional[bool] = None,
+        commit_message: str = "Add new SentenceTransformer model.",
+        local_model_path: Optional[str] = None,
+        exist_ok: bool = False,
+        replace_model_card: bool = False,
+        train_datasets: Optional[List[str]] = None,
+    ):
+        """
+        Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
+
+        :param repo_id: Repository name for your model in the Hub, including the user or organization.
+        :param token: An authentication token (See https://huggingface.co/settings/token)
+        :param private: Set to true, for hosting a private model
+        :param commit_message: Message to commit while pushing.
+        :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
+        :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
+        :param replace_model_card: If true, replace an existing model card in the hub with the automatically created model card
+        :param train_datasets: Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
+        :param organization: Deprecated. Organization in which you want to push your model or tokenizer (you must be a member of this organization).
+
+        :return: The url of the commit of your model in the repository on the Hugging Face Hub.
+        """
+        if organization:
+            if "/" not in repo_id:
+                logger.warning(
+                    f'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="{organization}/{repo_id}"` instead.'
+                )
+                repo_id = f"{organization}/{repo_id}"
+            elif repo_id.split("/")[0] != organization:
+                raise ValueError(
+                    "Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id`."
+                )
+            else:
+                logger.warning(
+                    f'Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id="{repo_id}"` instead.'
+                )
+
+        api = HfApi(token=token)
+        repo_url = api.create_repo(
+            repo_id=repo_id,
+            private=private,
+            repo_type=None,
+            exist_ok=exist_ok,
+        )
+        if local_model_path:
+            folder_url = api.upload_folder(
+                repo_id=repo_id, folder_path=local_model_path, commit_message=commit_message
+            )
+        else:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, "README.md"))
+                self.save(
+                    tmp_dir,
+                    model_name=repo_url.repo_id,
+                    create_model_card=create_model_card,
+                    train_datasets=train_datasets,
+                )
+                folder_url = api.upload_folder(repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message)
+
+        refs = api.list_repo_refs(repo_id=repo_id)
+        for branch in refs.branches:
+            if branch.name == "main":
+                return f"https://huggingface.co/{repo_id}/commit/{branch.target_commit}"
+        # This isn't expected to ever be reached.
+        return folder_url
+
+    def _load_auto_model(
+        self,
+        model_name_or_path: str,
+        token: Optional[Union[bool, str]],
+        cache_dir: Optional[str],
+        revision: Optional[str] = None,
+        trust_remote_code: bool = False,
+    ):
+        """
+        Creates a simple Transformer + Mean Pooling model and returns the modules
+        """
+        logger.warning(
+            "No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(
+                model_name_or_path
+            )
+        )
+        transformer_model = Transformer(
+            model_name_or_path,
+            cache_dir=cache_dir,
+            model_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
+            tokenizer_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
+        )
+        pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
+        return [transformer_model, pooling_model]
+
+    def _load_sbert_model_as_modules(
+        self,
+        model_name_or_path: str,
+        token: Optional[Union[bool, str]],
+        cache_dir: Optional[str],
+        revision: Optional[str] = None,
+        trust_remote_code: bool = False,
+    ) -> OrderedDict:
+        """Loads a SentenceTransformer model from the HuggingFace Hub as a set of modules.
+
+        Args:
+            model_name_or_path (str): The model name or path to load the modules from.
+            token (Optional[Union[bool, str]]): The HuggingFace token to use for authentication.
+            cache_dir (Optional[str]): The cache directory to use for caching models.
+            revision (Optional[str], optional): The specific model version to use. It can be a branch name,
+                a tag name, or a commit id, for a stored model on Hugging Face. Defaults to None
+            trust_remote_code (bool, optional): Whether or not to allow for custom models defined on the Hub in
+                their own modeling files. This option should only be set to True for repositories you trust and
+                in which you have read the code, as it will execute code present on the Hub on your local machine.
+                Defaults to False.
+
+        Returns:
+            OrderedDict: A dictionary of torch modules.
+        """
+
+        # Check if a readme exists
+        model_card_path = load_file_path(
+            model_name_or_path, "README.md", token=token, cache_dir=cache_dir, revision=revision
+        )
+        if model_card_path is not None:
+            try:
+                with open(model_card_path, encoding="utf8") as fIn:
+                    self._model_card_text = fIn.read()
+            except Exception:
+                pass
+
+        # Load the modules of sentence transformer
+        modules_json_path = load_file_path(
+            model_name_or_path, "modules.json", token=token, cache_dir=cache_dir, revision=revision
+        )
+        with open(modules_json_path) as fIn:
+            modules_config = json.load(fIn)
+
+        modules = OrderedDict()
+        for module_config in modules_config:
+            module_class = import_from_string(module_config["type"])
+            # For Transformer, don't load the full directory, rely on `transformers` instead
+            # But, do load the config file first.
+            if module_class == Transformer and module_config["path"] == "":
+                kwargs = {}
+                for config_name in [
+                    "sentence_bert_config.json",
+                    "sentence_roberta_config.json",
+                    "sentence_distilbert_config.json",
+                    "sentence_camembert_config.json",
+                    "sentence_albert_config.json",
+                    "sentence_xlm-roberta_config.json",
+                    "sentence_xlnet_config.json",
+                ]:
+                    config_path = load_file_path(
+                        model_name_or_path, config_name, token=token, cache_dir=cache_dir, revision=revision
+                    )
+                    if config_path is not None:
+                        with open(config_path) as fIn:
+                            kwargs = json.load(fIn)
+                        break
+                hub_kwargs = {"token": token, "trust_remote_code": trust_remote_code, "revision": revision}
+                if "model_args" in kwargs:
+                    kwargs["model_args"].update(hub_kwargs)
+                else:
+                    kwargs["model_args"] = hub_kwargs
+                if "tokenizer_args" in kwargs:
+                    kwargs["tokenizer_args"].update(hub_kwargs)
+                else:
+                    kwargs["tokenizer_args"] = hub_kwargs
+                module = Transformer(model_name_or_path, cache_dir=cache_dir, **kwargs)
+            else:
+                # Normalize does not require any files to be loaded
+                if module_class == Normalize:
+                    module_path = None
+                else:
+                    module_path = load_dir_path(
+                        model_name_or_path,
+                        module_config["path"],
+                        token=token,
+                        cache_dir=cache_dir,
+                        revision=revision,
+                    )
+                module = module_class.load(module_path)
+            modules[module_config["name"]] = module
+
+        return modules
+
+    def _load_sbert_model_as_pretrained_model(
+        self,
+        model_name_or_path: str,
+        token: Optional[Union[bool, str]],
+        cache_dir: Optional[str],
+        revision: Optional[str] = None,
+        trust_remote_code: bool = False,
+        **kwargs,
+    ) -> List[nn.Module]:
+        """Loads a SentenceTransformer model from the HuggingFace Hub as a pretrained model.
+
+        The steps are as follows:
+        1. Load the base config from the model name or path
+        2. Initialize an empty encoder with the base config
+        3. Update the init from the empty encoder class to inject the modules (Dense, Normalize, Pooling, etc.)
+           defined in our config
+        4. Load the pretrained model from the model name or path
+        5. Reset the init of the encoder class to the original init
+        6. Decompose the pretrained model into the encoder and the modules
+
+        Args:
+            model_name_or_path (str): The model name or path to load the modules from.
+            token (Optional[Union[bool, str]]): The HuggingFace token to use for authentication.
+            cache_dir (Optional[str]): The cache directory to use for caching models.
+            revision (Optional[str], optional): The specific model version to use. It can be a branch name,
+                a tag name, or a commit id, for a stored model on Hugging Face. Defaults to None
+            trust_remote_code (bool, optional): Whether or not to allow for custom models defined on the Hub in
+                their own modeling files. This option should only be set to True for repositories you trust and
+                in which you have read the code, as it will execute code present on the Hub on your local machine.
+                Defaults to False.
+
+        Returns:
+            List[nn.Module]: A list of torch modules.
+        """
+        hub_kwargs = {
+            "token": token,
+            "cache_dir": cache_dir,
+            "trust_remote_code": trust_remote_code,
+            "revision": revision,
+        }
+        base_config: PretrainedConfig = AutoConfig.from_pretrained(model_name_or_path, **hub_kwargs)
+        # Initialize an empty encoder just to get access to the encoder class
+        empty_encoder = AutoModel.from_config(base_config)
+        encoder_class = empty_encoder.__class__
+        original_init = encoder_class.__init__
+
+        sbert_config = self.config
+
+        def init_with_modules(self, *args, **kwargs):
+            original_init(self, *args, **kwargs)
+
+            def post_process(module, args, kwargs, outputs):
+                return {"token_embeddings": outputs[0], "attention_mask": kwargs.get("attention_mask", None)}
+
+            self.register_forward_hook(post_process, with_kwargs=True)
+
+            nonlocal sbert_config
+            for module_config in sbert_config.modules[1:]:
+                module = import_from_string(module_config["type"])(**module_config["config"])
+                name = module_config["type"].split(".")[-1].lower()
+                setattr(self, name, module)
+
+                def hook(encoder, input, output, name=None):
+                    return getattr(encoder, name)(output)
+
+                hook_with_name = partial(hook, name=name)
+                self.register_forward_hook(hook_with_name)
+
+        encoder_class.__init__ = init_with_modules
+        encoder = AutoModel.from_pretrained(model_name_or_path, **hub_kwargs, **kwargs)
+        encoder_class.__init__ = original_init
+        encoder._forward_hooks = OrderedDict([])
+
+        # remove last modules from encoder
+        modules = []
+        for name, module in list(encoder.named_children())[-len(self.config.modules) + 1 :]:
+            delattr(encoder, name)
+            modules.append(module)
+        hub_kwargs.pop("cache_dir", None)
+        return [
+            Transformer(
+                model_name_or_path,
+                config=base_config,
+                auto_model=encoder,
+                tokenizer_args=hub_kwargs,
+                cache_dir=cache_dir,
+                **self.config.modules[0]["config"],
+            )
+        ] + modules
+
+    @staticmethod
+    def load(input_path):
+        return SentenceTransformer(input_path)
+
+    def add_module(self, name: str, module: Optional[nn.Module]) -> None:
+        r"""Adds a child module to the current module.
+
+        The module can be accessed as an attribute using the given name.
+
+        Args:
+            name (str): name of the child module. The child module can be
+                accessed from this module using the given name
+            module (Module): child module to be added to the module.
+        """
+        super().add_module(name, module)
+        # If we aren't calling in the process of calling super().__init__, or if the modules were not provided
+        # to the config on initialization, then we want to add the new modules to the config.
+        # So, the exception is when from_pretrained was called & the modules were provided in the config, then
+        # we don't want to add modules via super().__init__
+        if not self.calling_init or self.config.empty_on_init:
+            self.config.modules.append(
+                {
+                    "type": type(module).__module__,
+                    "config": module.get_config_dict() if hasattr(module, "get_config_dict") else {},
+                }
+            )
