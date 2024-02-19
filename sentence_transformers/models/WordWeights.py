@@ -11,17 +11,53 @@ logger = logging.getLogger(__name__)
 
 
 class WordWeights(nn.Module):
-    """This model can weight word embeddings, for example, with idf-values."""
+    """
+    This model can weight word embeddings, for example, with idf-values.
 
+    Parameters
+    ----------
+    vocab : List[str]
+        Vocabulary of the tokenizer.
+
+    word_weights : Dict[str, float]
+        Mapping of tokens to a float weight value. Words embeddings are multiplied by this float value. Tokens in
+        word_weights must not be equal to the vocab (can contain more or less values).
+        
+    unknown_word_weight : float, optional
+        Weight for words in vocab that do not appear in the word_weights lookup. These can be, for example, rare words
+        in the vocab where no weight exists. Default is 1.
+
+    Methods
+    -------
+    forward(features: Dict[str, Tensor]) -> Dict[str, Tensor]:
+        Forward pass of the WordWeights model.
+
+    get_config_dict() -> Dict[str, Union[List[str], Dict[str, float], float]]:
+        Get the configuration dictionary.
+
+    save(output_path: str):
+        Save the WordWeights model to the specified output path.
+
+    @staticmethod
+    load(input_path: str) -> 'WordWeights':
+        Load the WordWeights model from the specified input path.
+    """
     def __init__(self, vocab: List[str], word_weights: Dict[str, float], unknown_word_weight: float = 1):
         """
+        Initialize the WordWeights model.
 
-        :param vocab:
-            Vocabulary of the tokenizer
-        :param word_weights:
-            Mapping of tokens to a float weight value. Words embeddings are multiplied by  this float value. Tokens in word_weights must not be equal to the vocab (can contain more or less values)
-        :param unknown_word_weight:
-            Weight for words in vocab, that do not appear in the word_weights lookup. These can be for example rare words in the vocab, where no weight exists.
+        Parameters
+        ----------
+        vocab : List[str]
+            Vocabulary of the tokenizer.
+
+        word_weights : Dict[str, float]
+            Mapping of tokens to a float weight value. Words embeddings are multiplied by this float value. Tokens in
+            word_weights must not be equal to the vocab (can contain more or less values).
+        
+        unknown_word_weight : float, optional
+            Weight for words in vocab that do not appear in the word_weights lookup. These can be, for example, rare
+            words in the vocab where no weight exists. Default is 1.
         """
         super(WordWeights, self).__init__()
         self.config_keys = ["vocab", "word_weights", "unknown_word_weight"]
@@ -51,6 +87,19 @@ class WordWeights(nn.Module):
         self.emb_layer.load_state_dict({"weight": torch.FloatTensor(weights).unsqueeze(1)})
 
     def forward(self, features: Dict[str, Tensor]):
+        """
+        Forward pass of the WordWeights model.
+
+        Parameters
+        ----------
+        features : Dict[str, Tensor]
+            Input features with key-value pairs.
+
+        Returns
+        -------
+        Dict[str, Tensor]
+            Output features with key-value pairs.
+        """
         attention_mask = features["attention_mask"]
         token_embeddings = features["token_embeddings"]
 
@@ -67,14 +116,47 @@ class WordWeights(nn.Module):
         return features
 
     def get_config_dict(self):
+        """
+        Get the configuration dictionary.
+
+        Returns
+        -------
+        Dict[str, Union[List[str], Dict[str, float], float]]
+            Configuration dictionary.
+        """
         return {key: self.__dict__[key] for key in self.config_keys}
 
-    def save(self, output_path):
+    def save(self, output_path:str) -> None:
+        """
+        Save the WordWeights model to the specified output path.
+
+        Parameters
+        ----------
+        output_path : str
+            Path to save the model.
+
+        Returns
+        -------
+        None
+        """
         with open(os.path.join(output_path, "config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut, indent=2)
 
     @staticmethod
-    def load(input_path):
+    def load(input_path:str):
+        """
+        Load the WordWeights model from the specified input path.
+
+        Parameters
+        ----------
+        input_path : str
+            Path from which to load the model.
+
+        Returns
+        -------
+        WordWeights
+            Loaded WordWeights model.
+        """
         with open(os.path.join(input_path, "config.json")) as fIn:
             config = json.load(fIn)
 

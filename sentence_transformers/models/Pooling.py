@@ -33,6 +33,39 @@ class Pooling(nn.Module):
         pooling_mode_weightedmean_tokens: bool = False,
         pooling_mode_lasttoken: bool = False,
     ):
+        """
+        Initialize Pooling layer.
+
+        Parameters
+        ----------
+        word_embedding_dimension : int
+            Dimensions for the word embeddings
+
+        pooling_mode : str, optional
+            Can be a string: mean/max/cls. If set, overwrites the other pooling_mode_* settings
+
+        pooling_mode_cls_token : bool, optional
+            Use the first token (CLS token) as text representations.
+
+        pooling_mode_max_tokens : bool, optional
+            Use max in each dimension over all tokens.
+
+        pooling_mode_mean_tokens : bool, optional
+            Perform mean-pooling.
+
+        pooling_mode_mean_sqrt_len_tokens : bool, optional
+            Perform mean-pooling, but divide by sqrt(input_length).
+
+        pooling_mode_weightedmean_tokens : bool, optional
+            Perform (position) weighted mean pooling.
+
+        pooling_mode_lasttoken : bool, optional
+            Perform last token pooling.
+
+        Returns
+        -------
+        None
+        """
         super(Pooling, self).__init__()
 
         self.config_keys = [
@@ -75,11 +108,24 @@ class Pooling(nn.Module):
         self.pooling_output_dimension = pooling_mode_multiplier * word_embedding_dimension
 
     def __repr__(self):
+        """
+        Return a string representation of the Pooling layer.
+
+        Returns
+        -------
+        str
+            String representation of the Pooling layer.
+        """
         return "Pooling({})".format(self.get_config_dict())
 
     def get_pooling_mode_str(self) -> str:
         """
-        Returns the pooling mode as string
+        Returns the pooling mode as string.
+
+        Returns
+        -------
+        str
+            Pooling mode as a string.
         """
         modes = []
         if self.pooling_mode_cls_token:
@@ -98,6 +144,19 @@ class Pooling(nn.Module):
         return "+".join(modes)
 
     def forward(self, features: Dict[str, Tensor]):
+        """
+        Forward pass through the Pooling layer.
+
+        Parameters
+        ----------
+        features : Dict[str, Tensor]
+            Dictionary containing input features, including "token_embeddings" and "attention_mask".
+
+        Returns
+        -------
+        Dict[str, Tensor]
+            Updated features dictionary after pooling.
+        """
         token_embeddings = features["token_embeddings"]
         attention_mask = features["attention_mask"]
 
@@ -181,17 +240,58 @@ class Pooling(nn.Module):
         return features
 
     def get_sentence_embedding_dimension(self):
+        """
+        Get the dimension of the output sentence embedding after pooling.
+
+        Returns
+        -------
+        int
+            Dimension of the output sentence embedding.
+        """
         return self.pooling_output_dimension
 
     def get_config_dict(self):
+        """
+        Get the configuration dictionary of the Pooling layer.
+
+        Returns
+        -------
+        Dict[str, bool]
+            Configuration dictionary of the Pooling layer.
+        """
         return {key: self.__dict__[key] for key in self.config_keys}
 
-    def save(self, output_path):
+    def save(self, output_path:str) -> None:
+        """
+        Save the Pooling layer configuration to the specified output path.
+
+        Parameters
+        ----------
+        output_path : str
+            Path to save the configuration file.
+
+        Returns
+        -------
+        None
+        """
         with open(os.path.join(output_path, "config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut, indent=2)
 
     @staticmethod
-    def load(input_path):
+    def load(input_path:str):
+        """
+        Load a saved Pooling layer from the specified input path.
+
+        Parameters
+        ----------
+        input_path : str
+            Path from which to load the configuration file.
+
+        Returns
+        -------
+        Pooling
+            Loaded Pooling layer.
+        """
         with open(os.path.join(input_path, "config.json")) as fIn:
             config = json.load(fIn)
 
