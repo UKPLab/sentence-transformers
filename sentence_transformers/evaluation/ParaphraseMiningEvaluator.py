@@ -1,4 +1,5 @@
 from . import SentenceEvaluator
+from . import SimilarityFunction
 import logging
 from sentence_transformers.util import paraphrase_mining
 import os
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 class ParaphraseMiningEvaluator(SentenceEvaluator):
     """
     Given a large set of sentences, this evaluator performs paraphrase (duplicate) mining and
-    identifies the pairs with the highest similarity. It compare the extracted paraphrase pairs
+    identifies the pairs with the highest similarity. It compares the extracted paraphrase pairs
     with a set of gold labels and computes the F1 score.
     """
 
@@ -93,6 +94,8 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "precision", "recall", "f1", "threshold", "average_precision"]
         self.write_csv = write_csv
 
+        self.best_score_function = SimilarityFunction.COSINE
+
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             out_txt = f" after epoch {epoch}:" if steps == -1 else f" in epoch {epoch} after {steps} steps:"
@@ -111,6 +114,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
             self.corpus_chunk_size,
             self.max_pairs,
             self.top_k,
+            score_function=SimilarityFunction.map_to_function(self.best_score_function),
         )
 
         logger.info("Number of candidate pairs: " + str(len(pairs_list)))

@@ -1,4 +1,5 @@
 from . import SentenceEvaluator
+from . import SimilarityFunction
 import logging
 import os
 import csv
@@ -61,38 +62,21 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         self.show_progress_bar = show_progress_bar
 
         self.csv_file = "binary_classification_evaluation" + ("_" + name if name else "") + "_results.csv"
-        self.csv_headers = [
-            "epoch",
-            "steps",
-            "cossim_accuracy",
-            "cossim_accuracy_threshold",
-            "cossim_f1",
-            "cossim_precision",
-            "cossim_recall",
-            "cossim_f1_threshold",
-            "cossim_ap",
-            "manhattan_accuracy",
-            "manhattan_accuracy_threshold",
-            "manhattan_f1",
-            "manhattan_precision",
-            "manhattan_recall",
-            "manhattan_f1_threshold",
-            "manhattan_ap",
-            "euclidean_accuracy",
-            "euclidean_accuracy_threshold",
-            "euclidean_f1",
-            "euclidean_precision",
-            "euclidean_recall",
-            "euclidean_f1_threshold",
-            "euclidean_ap",
-            "dot_accuracy",
-            "dot_accuracy_threshold",
-            "dot_f1",
-            "dot_precision",
-            "dot_recall",
-            "dot_f1_threshold",
-            "dot_ap",
+        self.csv_headers = ["epoch", "steps"]
+        metrics = [
+            "accuracy", 
+            "accuracy_threshold",
+            "f1",
+            "precision",
+            "recall",
+            "f1_threshold",
+            "ap",
         ]
+        for v in SimilarityFunction.possible_values():
+            for m in metrics:
+                self.csv_headers.append(f"{v}_{m}")
+
+        self.best_scoring_function = None
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -120,13 +104,16 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         scores = self.compute_metrices(model)
 
         # Main score is the max of Average Precision (AP)
-        main_score = max(scores[short_name]["ap"] for short_name in scores)
+        max_ap_key = max(scores, key=lambda x: scores[x]["ap"])
+        self.best_scoring_function = max_ap_key
+        main_score = scores[max_ap_key]["ap"]
 
         file_output_data = [epoch, steps]
 
         for header_name in self.csv_headers:
             if "_" in header_name:
-                sim_fct, metric = header_name.split("_", maxsplit=1)
+                header_split = header_name.split("_")
+                sim_fct, metric = "_".join(header_split[:2]), "_".join(header_split[2:])
                 file_output_data.append(scores[sim_fct][metric])
 
         if output_path is not None and self.write_csv:
@@ -175,10 +162,10 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         labels = np.asarray(self.labels)
         output_scores = {}
         for short_name, name, scores, reverse in [
-            ["cossim", "Cosine-Similarity", cosine_scores, True],
-            ["manhattan", "Manhattan-Distance", manhattan_distances, False],
-            ["euclidean", "Euclidean-Distance", euclidean_distances, False],
-            ["dot", "Dot-Product", dot_scores, True],
+            [SimilarityFunction.COSINE.value, "Cosine-Similarity", cosine_scores, True],
+            [SimilarityFunction.MANHATTAN.value, "Manhattan-Distance", manhattan_distances, False],
+            [SimilarityFunction.EUCLIDEAN.value, "Euclidean-Distance", euclidean_distances, False],
+            [SimilarityFunction.DOT_SCORE.value, "Dot-Product", dot_scores, True],
         ]:
             acc, acc_threshold = self.find_best_acc_and_threshold(scores, labels, reverse)
             f1, precision, recall, f1_threshold = self.find_best_f1_and_threshold(scores, labels, reverse)

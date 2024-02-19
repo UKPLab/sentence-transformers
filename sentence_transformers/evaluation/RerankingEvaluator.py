@@ -1,4 +1,5 @@
 from . import SentenceEvaluator
+from . import SimilarityFunction
 import logging
 import numpy as np
 import os
@@ -7,7 +8,8 @@ from ..util import cos_sim
 import torch
 from sklearn.metrics import average_precision_score, ndcg_score
 import tqdm
-from typing import Optional
+from torch import Tensor
+from typing import Optional, Union, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,7 @@ class RerankingEvaluator(SentenceEvaluator):
         at_k: int = 10,
         name: str = "",
         write_csv: bool = True,
-        similarity_fct=cos_sim,
+        score_function: SimilarityFunction = SimilarityFunction.COSINE,
         batch_size: int = 64,
         show_progress_bar: bool = False,
         use_batched_encoding: bool = True,
@@ -42,7 +44,9 @@ class RerankingEvaluator(SentenceEvaluator):
             self.at_k = mrr_at_k
         else:
             self.at_k = at_k
-        self.similarity_fct = similarity_fct
+
+        self.score_function = SimilarityFunction.map_to_function(score_function)
+
         self.batch_size = batch_size
         self.show_progress_bar = show_progress_bar
         self.use_batched_encoding = use_batched_encoding
@@ -160,7 +164,7 @@ class RerankingEvaluator(SentenceEvaluator):
             if num_pos == 0 or num_neg == 0:
                 continue
 
-            pred_scores = self.similarity_fct(query_emb, docs_emb)
+            pred_scores = self.score_function(query_emb, docs_emb)
             if len(pred_scores.shape) > 1:
                 pred_scores = pred_scores[0]
 
@@ -215,7 +219,7 @@ class RerankingEvaluator(SentenceEvaluator):
             )
             docs_emb = model.encode(docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
 
-            pred_scores = self.similarity_fct(query_emb, docs_emb)
+            pred_scores = self.score_function(query_emb, docs_emb)
             if len(pred_scores.shape) > 1:
                 pred_scores = pred_scores[0]
 

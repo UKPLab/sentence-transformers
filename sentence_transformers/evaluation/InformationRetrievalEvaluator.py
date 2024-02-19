@@ -1,4 +1,5 @@
 from . import SentenceEvaluator
+from . import SimilarityFunction
 import torch
 from torch import Tensor
 import logging
@@ -37,8 +38,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         name: str = "",
         write_csv: bool = True,
         score_functions: List[Callable[[Tensor, Tensor], Tensor]] = {
-            "cos_sim": cos_sim,
-            "dot_score": dot_score,
+            SimilarityFunction.COSINE: cos_sim,
+            SimilarityFunction.DOT_SCORE: dot_score,
         },  # Score function, higher=more similar
         main_score_function: str = None,
     ):
@@ -65,8 +66,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.name = name
         self.write_csv = write_csv
         self.score_functions = score_functions
-        self.score_function_names = sorted(list(self.score_functions.keys()))
+        self.score_function_names = sorted(x.value for x in self.score_functions.keys())
         self.main_score_function = main_score_function
+        self.best_scoring_function = None
 
         if name:
             name = "_" + name
@@ -90,6 +92,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
             for k in map_at_k:
                 self.csv_headers.append("{}-MAP@{}".format(score_name, k))
+
+        if self.main_score_function is not None:
+            self.best_scoring_function = self.main_score_function
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs) -> float:
         if epoch != -1:
@@ -139,7 +144,10 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             fOut.close()
 
         if self.main_score_function is None:
-            return max([scores[name]["map@k"][max(self.map_at_k)] for name in self.score_function_names])
+            max_key_map_at_k = max(scores, key=lambda x: scores[x]["map@k"][max(self.map_at_k)])
+            self.best_scoring_function = max_key_map_at_k
+            return scores[max_key_map_at_k]["map@k"][max(self.map_at_k)]
+            # return max([scores[name]["map@k"][max(self.map_at_k)] for name in self.score_function_names])
         else:
             return scores[self.main_score_function]["map@k"][max(self.map_at_k)]
 
@@ -214,7 +222,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         logger.info("Corpus: {}\n".format(len(self.corpus)))
 
         # Compute scores
-        scores = {name: self.compute_metrics(queries_result_list[name]) for name in self.score_functions}
+        scores = {name.value: self.compute_metrics(queries_result_list[name]) for name in self.score_functions}
 
         # Output
         for name in self.score_function_names:
