@@ -123,9 +123,9 @@ class TripletEvaluator(SentenceEvaluator):
         accuracy_manhattan = num_correct_manhattan_triplets / num_triplets
         accuracy_euclidean = num_correct_euclidean_triplets / num_triplets
         accs =  {
-            SimilarityFunction.COSINE: accuracy_cos,
-            SimilarityFunction.MANHATTAN: accuracy_manhattan,
-            SimilarityFunction.EUCLIDEAN: accuracy_euclidean,
+            SimilarityFunction.COSINE.value: accuracy_cos,
+            SimilarityFunction.MANHATTAN.value: accuracy_manhattan,
+            SimilarityFunction.EUCLIDEAN.value: accuracy_euclidean,
         }
 
         logger.info("Accuracy Cosine Similarity:   \t{:.2f}".format(accuracy_cos * 100))
