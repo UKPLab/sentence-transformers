@@ -94,7 +94,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "precision", "recall", "f1", "threshold", "average_precision"]
         self.write_csv = write_csv
 
-        self.best_score_function = SimilarityFunction.COSINE
+        self.best_scoring_function = SimilarityFunction.COSINE
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
@@ -114,7 +114,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
             self.corpus_chunk_size,
             self.max_pairs,
             self.top_k,
-            score_function=SimilarityFunction.map_to_function(self.best_score_function),
+            score_function=SimilarityFunction.map_to_function(self.best_scoring_function),
         )
 
         logger.info("Number of candidate pairs: " + str(len(pairs_list)))
