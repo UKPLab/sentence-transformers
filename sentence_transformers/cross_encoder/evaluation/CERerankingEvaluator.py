@@ -22,6 +22,26 @@ class CERerankingEvaluator:
     def __init__(
         self, samples, at_k: int = 10, name: str = "", write_csv: bool = True, mrr_at_k: Optional[int] = None
     ):
+        """
+        Initialize the CERerankingEvaluator.
+
+        Parameters
+        ----------
+        samples : list
+            List of samples, where each sample is a dictionary containing keys 'query', 'positive', and 'negative'.
+
+        at_k : int, optional
+            The rank at which to evaluate MRR and NDCG. Default is 10.
+
+        name : str, optional
+            Name of the evaluator. Default is an empty string.
+
+        write_csv : bool, optional
+            Whether to write evaluation results to a CSV file. Default is True.
+
+        mrr_at_k : int, optional
+            Deprecated. Please use `at_k` instead. Default is None.
+        """
         self.samples = samples
         self.name = name
         if mrr_at_k is not None:
@@ -43,6 +63,28 @@ class CERerankingEvaluator:
         self.write_csv = write_csv
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+        """
+        Evaluate the model and compute Mean Reciprocal Rank (MRR) and Normalized Discounted Cumulative Gain (NDCG).
+
+        Parameters
+        ----------
+        model : object
+            Model to be evaluated.
+
+        output_path : str, optional
+            Output path to write results to a CSV file. Default is None.
+
+        epoch : int, optional
+            Epoch number. Default is -1.
+            
+        steps : int, optional
+            Number of steps. Default is -1.
+
+        Returns
+        -------
+        float
+            Mean Reciprocal Rank (MRR).
+        """
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)
