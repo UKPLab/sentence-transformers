@@ -14,6 +14,8 @@ New York City (NYC), often called simply New York, is the most populous city in 
 Anchored by Wall Street in the Financial District of Lower Manhattan, New York City has been called both the world's leading financial center and the most financially powerful city in the world, and is home to the world's two largest stock exchanges by total market capitalization, the New York Stock Exchange and NASDAQ.
 New York City has been described as the cultural, financial, and media capital of the world, significantly influencing commerce, entertainment, research, technology, education, politics, tourism, art, fashion, and sports.
 If the New York metropolitan area were a sovereign state, it would have the eighth-largest economy in the world.
+
+Note: Requires NLTK: `pip install nltk`
 """
 import nltk
 from sentence_transformers import SentenceTransformer, util

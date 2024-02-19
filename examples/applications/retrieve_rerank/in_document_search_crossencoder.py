@@ -13,6 +13,8 @@ Note: As we score the [query, passage]-pair for every new query, this search met
 becomes at some point in-efficient if the document gets too large.
 
 Usage: python in_document_search_crossencoder.py
+
+Note: Requires NLTK: `pip install nltk`
 """
 
 from sentence_transformers import CrossEncoder

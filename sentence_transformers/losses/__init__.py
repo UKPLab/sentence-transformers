@@ -12,6 +12,8 @@ from .ContrastiveTensionLoss import (
     ContrastiveTensionLossInBatchNegatives,
     ContrastiveTensionDataLoader,
 )
+from .CoSENTLoss import CoSENTLoss
+from .AnglELoss import AnglELoss
 from .OnlineContrastiveLoss import OnlineContrastiveLoss
 from .MegaBatchMarginLoss import MegaBatchMarginLoss
 from .DenoisingAutoEncoderLoss import DenoisingAutoEncoderLoss
@@ -37,6 +39,8 @@ __all__ = [
     "ContrastiveTensionLoss",
     "ContrastiveTensionLossInBatchNegatives",
     "ContrastiveTensionDataLoader",
+    "CoSENTLoss",
+    "AnglELoss",
     "OnlineContrastiveLoss",
     "MegaBatchMarginLoss",
     "DenoisingAutoEncoderLoss",

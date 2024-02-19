@@ -6,7 +6,7 @@ with open("README.md", mode="r", encoding="utf-8") as readme_file:
 
 setup(
     name="sentence-transformers",
-    version="2.2.2",
+    version="2.4.0.dev0",
     author="Nils Reimers",
     author_email="info@nils-reimers.de",
     description="Multilingual text embeddings",
@@ -24,8 +24,6 @@ setup(
         "numpy",
         "scikit-learn",
         "scipy",
-        "nltk",
-        "sentencepiece",
         "huggingface-hub>=0.15.1",
         "Pillow",
     ],

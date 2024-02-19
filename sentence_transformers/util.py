@@ -1,7 +1,7 @@
 import functools
 import requests
 from torch import Tensor, device
-from typing import List, Callable
+from typing import List, Callable, Literal
 from tqdm.autonotebook import tqdm
 import sys
 import importlib
@@ -12,6 +12,7 @@ import queue
 import logging
 from typing import Dict, Optional, Union
 
+from transformers import is_torch_npu_available
 from huggingface_hub import snapshot_download, hf_hub_download
 import heapq
 
@@ -112,6 +113,39 @@ def pairwise_cos_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarr
     b = _convert_to_tensor(b)
 
     return pairwise_dot_score(normalize_embeddings(a), normalize_embeddings(b))
+
+
+def pairwise_angle_sim(x: Tensor, y: Tensor) -> Tensor:
+    """
+    Computes the absolute normalized angle distance;
+    see AnglELoss or https://arxiv.org/abs/2309.12871v1
+    for more information.
+
+    :return: Vector with res[i] = angle_sim(a[i], b[i])
+    """
+
+    if not isinstance(x, torch.Tensor):
+        x = torch.tensor(x)
+
+    if not isinstance(y, torch.Tensor):
+        y = torch.tensor(y)
+
+    # modified from https://github.com/SeanLee97/AnglE/blob/main/angle_emb/angle.py
+    # chunk both tensors to obtain complex components
+    a, b = torch.chunk(x, 2, dim=1)
+    c, d = torch.chunk(y, 2, dim=1)
+
+    z = torch.sum(c**2 + d**2, dim=1, keepdim=True)
+    re = (a * c + b * d) / z
+    im = (b * c - a * d) / z
+
+    dz = torch.sum(a**2 + b**2, dim=1, keepdim=True) ** 0.5
+    dw = torch.sum(c**2 + d**2, dim=1, keepdim=True) ** 0.5
+    re /= dz / dw
+    im /= dz / dw
+
+    norm_angle = torch.sum(torch.concat((re, im), dim=1), dim=1)
+    return torch.abs(norm_angle)
 
 
 def normalize_embeddings(embeddings: Tensor) -> Tensor:
@@ -401,7 +435,7 @@ def community_detection(
         cos_scores = embeddings[start_idx : start_idx + batch_size] @ embeddings.T
 
         # Use a torch-heavy approach if the embeddings are on CUDA, otherwise a loop-heavy one
-        if embeddings.device.type == "cuda":
+        if embeddings.device.type in ["cuda", "npu"]:
             # Threshold the cos scores and determine how many close embeddings exist per embedding
             threshold_mask = cos_scores >= threshold
             row_wise_count = threshold_mask.sum(1)
@@ -569,3 +603,22 @@ def save_to_hub_args_decorator(func):
         return func(self, *args, **kwargs)
 
     return wrapper
+
+
+def get_device_name() -> Literal["mps", "cuda", "npu", "cpu"]:
+    """
+    Returns the name of the device where this module is running on.
+    It's simple implementation that doesn't cover cases when more powerful GPUs are available and
+    not a primary device ('cuda:0') or MPS device is available, but not configured properly:
+    https://pytorch.org/docs/master/notes/mps.html
+
+    :return: Device name, like 'cuda' or 'cpu'
+    """
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    elif is_torch_npu_available():
+        return "npu"
+    else:
+        return "cpu"
