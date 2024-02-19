@@ -46,6 +46,8 @@ similarities = cos_sim(embeddings[0], embeddings[1:])
 ```
 As you can see, the similarity between the search query and the correct document is much higher than that of an unrelated document, despite the very small matryoshka dimension applied. Feel free to copy this script locally, modify the `matryoshka_dim`, and observe the difference in similarities.
 
+**Note**: Despite the embeddings being smaller, training and inference of a Matryoshka model is not faster, not more memory-efficient, and not smaller. Only the processing and storage of the resulting embeddings will be faster and cheaper.
+
 ## Code Examples
 
 See the following scripts as examples of how to apply the [`MatryoshkaLoss`](../../../docs/package_reference/losses.html#matryoshkaloss) in practice:
