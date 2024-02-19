@@ -21,7 +21,7 @@ class MatryoshkaLoss(nn.Module):
         :param matryoshka_dims: A list of embedding dimensions to be used for the loss function, e.g. [768, 512, 256, 128, 64].
         :param matryoshka_weights: A list of weights to be used for the loss function, e.g. [1, 1, 1, 1, 1]. If None, then the
             weights will be set to 1 for all dimensions.
-        
+
         References:
             - The concept was introduced in this paper: https://arxiv.org/abs/2205.13147
 
