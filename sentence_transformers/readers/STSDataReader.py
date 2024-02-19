@@ -23,6 +23,38 @@ class STSDataReader:
         min_score=0,
         max_score=5,
     ):
+        """
+        Initializes the STSDataReader.
+
+        Parameters
+        ----------
+        dataset_folder : str
+            The folder containing the STS dataset files.
+
+        s1_col_idx : int, optional
+            Index of the column containing the first sentence. Default is 0.
+
+        s2_col_idx : int, optional
+            Index of the column containing the second sentence. Default is 1.
+
+        score_col_idx : int, optional
+            Index of the column containing the score. Default is 2.
+
+        delimiter : str, optional
+            The delimiter used in the dataset files. Default is "\t".
+
+        quoting : int, optional
+            The quoting style used in the csv files. Default is csv.QUOTE_NONE.
+
+        normalize_scores : bool, optional
+            Whether to normalize scores to a range of 0...1. Default is True.
+
+        min_score : int, optional
+            The minimum score in the dataset. Default is 0.
+
+        max_score : int, optional
+            The maximum score in the dataset. Default is 5.
+        """
         self.dataset_folder = dataset_folder
         self.score_col_idx = score_col_idx
         self.s1_col_idx = s1_col_idx
@@ -33,9 +65,22 @@ class STSDataReader:
         self.min_score = min_score
         self.max_score = max_score
 
-    def get_examples(self, filename, max_examples=0):
+    def get_examples(self, filename:str, max_examples:int=0) -> list:
         """
-        filename specified which data split to use (train.csv, dev.csv, test.csv).
+        Reads examples from the STS dataset.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the data split file to read (train.csv, dev.csv, test.csv).
+
+        max_examples : int, optional
+            Maximum number of examples to read. Default is 0, meaning read all examples.
+
+        Returns
+        -------
+        examples : list
+            A list of InputExample objects.
         """
         filepath = os.path.join(self.dataset_folder, filename)
         with gzip.open(filepath, "rt", encoding="utf8") if filename.endswith(".gz") else open(
@@ -76,6 +121,38 @@ class STSBenchmarkDataReader(STSDataReader):
         min_score=0,
         max_score=5,
     ):
+        """
+        Initializes the STSBenchmarkDataReader.
+
+        Parameters
+        ----------
+        dataset_folder : str
+            The folder containing the STS benchmark dataset files.
+
+        s1_col_idx : int, optional
+            Index of the column containing the first sentence. Default is 5.
+
+        s2_col_idx : int, optional
+            Index of the column containing the second sentence. Default is 6.
+
+        score_col_idx : int, optional
+            Index of the column containing the score. Default is 4.
+
+        delimiter : str, optional
+            The delimiter used in the dataset files. Default is "\t".
+
+        quoting : int, optional
+            The quoting style used in the csv files. Default is csv.QUOTE_NONE.
+
+        normalize_scores : bool, optional
+            Whether to normalize scores to a range of 0...1. Default is True.
+
+        min_score : int, optional
+            The minimum score in the dataset. Default is 0.
+            
+        max_score : int, optional
+            The maximum score in the dataset. Default is 5.
+        """
         super().__init__(
             dataset_folder=dataset_folder,
             s1_col_idx=s1_col_idx,

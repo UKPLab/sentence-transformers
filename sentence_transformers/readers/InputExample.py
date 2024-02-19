@@ -10,17 +10,32 @@ class InputExample:
         """
         Creates one InputExample with the given texts, guid and label
 
+        Parameters
+        ----------
+        guid : str, optional
+            Id for the example. Default is an empty string.
 
-        :param guid
-            id for the example
-        :param texts
-            the texts for the example.
-        :param label
-            the label for the example
+        texts : List[str], optional
+            The texts for the example. Default is None.
+
+        label : Union[int, float], optional
+            The label for the example. Default is 0.
         """
         self.guid = guid
         self.texts = texts
         self.label = label
 
     def __str__(self):
+        """
+        String representation of the InputExample.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            String representation of the InputExample.
+        """
         return "<InputExample> label: {}, texts: {}".format(str(self.label), "; ".join(self.texts))

@@ -7,14 +7,47 @@ class LabelSentenceReader:
     This reader can for example be used with the BatchHardTripletLoss.
     Maps labels automatically to integers"""
 
-    def __init__(self, folder, label_col_idx=0, sentence_col_idx=1, separator="\t"):
+    def __init__(self, folder, label_col_idx:int=0, sentence_col_idx:int=1, separator:str="\t"):
+        """
+        Initializes the LabelSentenceReader.
+
+        Parameters
+        ----------
+        folder : str
+            The folder containing the files to be read.
+
+        label_col_idx : int, optional
+            The index of the column containing labels in the file. Default is 0.
+
+        sentence_col_idx : int, optional
+            The index of the column containing sentences in the file. Default is 1.
+
+        separator : str, optional
+            The separator used in the file. Default is "\t".
+        """
         self.folder = folder
         self.label_map = {}
         self.label_col_idx = label_col_idx
         self.sentence_col_idx = sentence_col_idx
         self.separator = separator
 
-    def get_examples(self, filename, max_examples=0):
+    def get_examples(self, filename:str, max_examples:int=0) -> list:
+        """
+        Reads examples from a file.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file to read.
+
+        max_examples : int, optional
+            Maximum number of examples to read. Default is 0, meaning read all examples.
+
+        Returns
+        -------
+        examples : list
+            A list of InputExample objects.
+        """
         examples = []
 
         id = 0
