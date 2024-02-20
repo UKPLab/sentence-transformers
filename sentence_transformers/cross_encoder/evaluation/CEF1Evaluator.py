@@ -1,6 +1,7 @@
 import csv
 import logging
 import os
+from typing import List
 
 import numpy as np
 from ... import InputExample
@@ -31,8 +32,8 @@ class CEF1Evaluator:
 
     def __init__(
         self,
-        sentence_pairs: list[list[str]],
-        labels: list[int],
+        sentence_pairs: List[List[str]],
+        labels: List[int],
         *,
         batch_size: int = 32,
         show_progress_bar: bool = None,
@@ -71,7 +72,7 @@ class CEF1Evaluator:
         self.csv_headers = ["epoch", "steps"] + [metric_name for metric_name, _ in self.f1_callables]
 
     @classmethod
-    def from_input_examples(cls, problem_type: str, examples: list[InputExample], **kwargs):
+    def from_input_examples(cls, problem_type: str, examples: List[InputExample], **kwargs):
         sentence_pairs = []
         labels = []
 
