@@ -1,6 +1,8 @@
 from typing import Dict, Iterable, List, Optional, Union
+import warnings
 from torch import Tensor, nn
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
 
 
 class MatryoshkaLoss(nn.Module):
@@ -26,7 +28,7 @@ class MatryoshkaLoss(nn.Module):
             - The concept was introduced in this paper: https://arxiv.org/abs/2205.13147
 
         Requirements:
-            1. Whatever the `loss` requires.
+            1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`.
 
         Input:
             +---------------------------------------+--------+
@@ -57,6 +59,8 @@ class MatryoshkaLoss(nn.Module):
         super().__init__()
         self.model = model
         self.loss = loss
+        if isinstance(loss, CachedMultipleNegativesRankingLoss):
+            warnings.warn("MatryoshkaLoss is not compatible with CachedMultipleNegativesRankingLoss.")
         self.matryoshka_dims = matryoshka_dims
         if matryoshka_weights is None:
             matryoshka_weights = [1] * len(matryoshka_dims)
