@@ -53,7 +53,7 @@ class CEF1Evaluator:
             problem_type = "multiclass"
         else:
             raise ValueError(
-                "Got only one distinct label. Please make sure there are at least two labels in the 'labels' array."
+                "Got only one distinct label. Please make sure there are at least two labels in the `labels` array."
             )
 
         if problem_type == "binary":
