@@ -1,6 +1,6 @@
 """
 This examples trains BERT (or any other transformer model like RoBERTa, DistilBERT etc.) for the STSbenchmark from scratch.
-It uses MatryoshkaLoss with the powerful CoSENTLoss to train models that perform well at output dimensions [768, 512, 258, 128, 64].
+It uses MatryoshkaLoss with the powerful CoSENTLoss to train models that perform well at output dimensions [768, 512, 256, 128, 64].
 It generates sentence embeddings that can be compared using cosine-similarity to measure the similarity.
 
 Usage:
