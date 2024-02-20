@@ -99,8 +99,9 @@ class CEF1Evaluator:
         logger.info(f"CEF1Evaluator: Evaluating the model on {self.name} dataset {out_txt}")
         pred_scores = model.predict(
             self.sentence_pairs,
+            batch_size=self.batch_size,
+            show_progress_bar=self.show_progress_bar,
             convert_to_numpy=True,
-            show_progress_bar=False,
         )
         pred_labels = np.argmax(pred_scores, axis=1)
 
