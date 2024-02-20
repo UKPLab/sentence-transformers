@@ -228,6 +228,22 @@ class SentenceTransformer(nn.Sequential):
                 "is called with `prompt` or `prompt_name` parameters."
             )
 
+        # Hardcode INSTRUCTOR support by setting `include_prompt=False`.
+        # Ideally, INSTRUCTOR models should support `include_prompt` in their pooling configuration, but
+        # that would be a breaking change for users currently using the InstructorEmbedding project.
+        if model_name_or_path in ("hkunlp/instructor-base", "hkunlp/instructor-large", "hkunlp/instructor-xl"):
+            self.set_pooling_include_prompt(include_prompt=False)
+        elif (
+            model_name_or_path
+            and "/" in model_name_or_path
+            and "instructor" in model_name_or_path.split("/")[1].lower()
+        ):
+            if any([module.include_prompt for module in self if isinstance(module, Pooling)]):
+                logger.warning(
+                    "Instructor models require `include_prompt=False` in the pooling configuration. "
+                    "Either update the model configuration or call `model.set_pooling_include_prompt(False)` after loading the model."
+                )
+
     def encode(
         self,
         sentences: Union[str, List[str]],
@@ -304,10 +320,24 @@ class SentenceTransformer(nn.Sequential):
                     "Ignoring the `prompt_name` in favor of `prompt`."
                 )
 
+        extra_features = {}
         if prompt is not None:
             if "{}" not in prompt:
                 prompt = prompt.rstrip() + " {}"
             sentences = [prompt.format(sentence) for sentence in sentences]
+
+            # Some models (e.g. INSTRUCTOR, GRIT) require removing the prompt before pooling
+            # Tracking the prefix and postfix lengths allow us to remove the prompt during pooling
+            def get_token_length(tokenized) -> int:
+                if "input_ids" in tokenized:
+                    return tokenized["input_ids"].shape[-1] - 1
+                return 0
+
+            prefix, postfix = prompt.split("{}")
+            if prefix:
+                extra_features["prefix_length"] = get_token_length(self.tokenize([prefix]))
+            if postfix:
+                extra_features["postfix_length"] = get_token_length(self.tokenize([postfix]))
 
         if device is None:
             device = self.device
@@ -322,6 +352,7 @@ class SentenceTransformer(nn.Sequential):
             sentences_batch = sentences_sorted[start_index : start_index + batch_size]
             features = self.tokenize(sentences_batch)
             features = batch_to_device(features, device)
+            features.update(extra_features)
 
             with torch.no_grad():
                 out_features = self.forward(features)
@@ -501,6 +532,17 @@ class SentenceTransformer(nn.Sequential):
 
                 results_queue.put([chunk_id, embeddings])
             except queue.Empty:
+                break
+
+    def set_pooling_include_prompt(self, include_prompt: bool) -> None:
+        """
+        Sets the `include_prompt` attribute in the pooling layer in the model, if there is one.
+
+        :param include_prompt: Whether to include the prompt in the pooling layer.
+        """
+        for module in self:
+            if isinstance(module, Pooling):
+                module.include_prompt = include_prompt
                 break
 
     def get_max_seq_length(self):
