@@ -111,7 +111,7 @@ class CEF1Evaluator:
         for f1_name, f1_fn in self.f1_callables:
             f1_val = f1_fn(pred_labels, self.labels)
             save_f1.append(f1_val)
-            logger.info(f"{f1_name:20s}: {f1_val:.4f}")
+            logger.info(f"{f1_name:20s}: {f1_val * 100:.2f}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
