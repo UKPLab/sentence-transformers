@@ -205,6 +205,7 @@ def test_load_local_without_normalize_directory() -> None:
         assert isinstance(fresh_tiny_model, SentenceTransformer)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
 def test_encode_fp16() -> None:
     tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
     tiny_model.half()
