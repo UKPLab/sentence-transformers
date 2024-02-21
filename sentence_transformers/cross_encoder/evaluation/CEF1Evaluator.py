@@ -4,6 +4,7 @@ import os
 from typing import List
 
 import numpy as np
+from .. import CrossEncoder
 from ... import InputExample
 from sklearn.metrics import f1_score
 
@@ -14,7 +15,9 @@ class CEF1Evaluator:
     """
     CrossEncoder F1 score based evaluator for binary and multiclass tasks.
 
-    The task type (binary or multiclass) is determined from the labels array.
+    The task type (binary or multiclass) is determined from the labels array. For
+    binary tasks the returned metric is binary F1 score. For the multiclass tasks
+    the returned metric is weighted F1 score.
 
     :param sentence_pairs: A list of sentence pairs, where each pair is a list of two strings.
     :type sentence_pairs: list[list[str]]
@@ -36,7 +39,7 @@ class CEF1Evaluator:
         labels: List[int],
         *,
         batch_size: int = 32,
-        show_progress_bar: bool = None,
+        show_progress_bar: bool = False,
         name: str = "",
         write_csv: bool = True,
     ):
@@ -47,32 +50,28 @@ class CEF1Evaluator:
         self.name = name
         self.write_csv = write_csv
 
-        n_unique = np.unique(labels)
-        if n_unique == 2:
-            problem_type = "binary"
-        elif n_unique > 2:
-            problem_type = "multiclass"
-        else:
-            raise ValueError(
-                "Got only one distinct label. Please make sure there are at least two labels in the `labels` array."
-            )
+        n_unique = np.unique(labels).size
 
-        if problem_type == "binary":
+        if n_unique == 2:
             self.f1_callables = [
                 ("Binary F1 score", lambda x, y: f1_score(x, y, average="binary")),
             ]
-        elif problem_type == "multiclass":
+        elif n_unique > 2:
             self.f1_callables = [
                 ("Macro F1 score", lambda x, y: f1_score(x, y, average="macro")),
                 ("Micro F1 score", lambda x, y: f1_score(x, y, average="micro")),
                 ("Weighted F1 score", lambda x, y: f1_score(x, y, average="weighted")),
             ]
+        else:
+            raise ValueError(
+                "Got only one distinct label. Please make sure there are at least two labels in the `labels` array."
+            )
 
         self.csv_file = "CEF1Evaluator" + (f"_{name}" if name else "") + "_results.csv"
         self.csv_headers = ["epoch", "steps"] + [metric_name for metric_name, _ in self.f1_callables]
 
     @classmethod
-    def from_input_examples(cls, problem_type: str, examples: List[InputExample], **kwargs):
+    def from_input_examples(cls, examples: List[InputExample], **kwargs):
         sentence_pairs = []
         labels = []
 
@@ -80,11 +79,11 @@ class CEF1Evaluator:
             sentence_pairs.append(example.texts)
             labels.append(example.label)
 
-        return cls(problem_type, sentence_pairs, labels, **kwargs)
+        return cls(sentence_pairs, labels, **kwargs)
 
     def __call__(
         self,
-        model,
+        model: CrossEncoder,
         output_path: str = None,
         epoch: int = -1,
         steps: int = -1,
@@ -112,7 +111,7 @@ class CEF1Evaluator:
         for f1_name, f1_fn in self.f1_callables:
             f1_val = f1_fn(pred_labels, self.labels)
             save_f1.append(f1_val)
-            logger.info(f"{f1_name:20s}: {f1_val:.4f} \n")
+            logger.info(f"{f1_name:20s}: {f1_val:.4f}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
