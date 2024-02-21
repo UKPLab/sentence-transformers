@@ -156,6 +156,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    :caption: Training
 
    docs/training/overview
+   docs/training/loss_overview
    examples/training/matryoshka/README
    examples/training/multilingual/README
    examples/training/distillation/README
