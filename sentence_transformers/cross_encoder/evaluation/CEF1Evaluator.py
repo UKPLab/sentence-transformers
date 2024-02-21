@@ -17,7 +17,7 @@ class CEF1Evaluator:
 
     The task type (binary or multiclass) is determined from the labels array. For
     binary tasks the returned metric is binary F1 score. For the multiclass tasks
-    the returned metric is weighted F1 score.
+    the returned metric is macro F1 score.
 
     :param sentence_pairs: A list of sentence pairs, where each pair is a list of two strings.
     :type sentence_pairs: list[list[str]]
