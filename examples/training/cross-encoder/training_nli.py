@@ -60,11 +60,7 @@ model_save_path = "output/training_allnli-" + datetime.now().strftime("%Y-%m-%d_
 model = CrossEncoder("distilroberta-base", num_labels=len(label2int))
 
 # We wrap train_samples, which is a list of InputExample, in a pytorch DataLoader
-train_dataloader = DataLoader(
-    train_samples,
-    shuffle=True,
-    batch_size=train_batch_size,
-)
+train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 
 # During training, we use CESoftmaxAccuracyEvaluator and CEF1Evaluator to measure the performance on the dev set
 accuracy_evaluator = CESoftmaxAccuracyEvaluator.from_input_examples(dev_samples, name="AllNLI-dev")
