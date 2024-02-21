@@ -280,3 +280,11 @@ def test_save_load_prompts() -> None:
         fresh_model = SentenceTransformer(str(model_path))
         assert fresh_model.prompts == {"query": "query: "}
         assert fresh_model.default_prompt_name == "query"
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
+def test_encode_fp16() -> None:
+    tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    tiny_model.half()
+    embeddings = tiny_model.encode(["Hello there!"], convert_to_tensor=True)
+    assert embeddings.dtype == torch.float16
