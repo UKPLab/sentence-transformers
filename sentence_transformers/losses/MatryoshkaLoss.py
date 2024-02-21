@@ -1,8 +1,42 @@
 from typing import Dict, Iterable, List, Optional, Union
 import warnings
 from torch import Tensor, nn
+import torch.nn.functional as F
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
+
+
+class ForwardDecorator:
+    def __init__(self, fn):
+        self.fn = fn
+
+        self.dim = None
+        self.cache = []
+        self.cache_dim = None
+        self.idx = 0
+
+    def set_dim(self, dim):
+        self.dim = dim
+        self.idx = 0
+
+    def shrink(self, tensor: Tensor) -> Tensor:
+        tensor = tensor[..., : self.dim]
+        tensor = F.normalize(tensor, p=2, dim=-1)
+        return tensor
+
+    def __call__(self, features):
+        # Growing cache:
+        if self.cache_dim is None or self.cache_dim == self.dim:
+            output = self.fn(features)
+            self.cache.append(output)
+            self.cache_dim = self.dim
+        # Using cache:
+        else:
+            output = self.cache[self.idx]
+        output["token_embeddings"] = self.shrink(output["token_embeddings"])
+        output["sentence_embedding"] = self.shrink(output["sentence_embedding"])
+        self.idx += 1
+        return output
 
 
 class MatryoshkaLoss(nn.Module):
@@ -67,42 +101,16 @@ class MatryoshkaLoss(nn.Module):
         self.matryoshka_weights = matryoshka_weights
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
-        class FirstModuleDecorator:
-            def __init__(self, fn):
-                self.fn = fn
-
-                self.dim = None
-                self.cache = []
-                self.cache_dim = None
-                self.idx = 0
-
-            def set_dim(self, dim):
-                self.dim = dim
-                self.idx = 0
-
-            def __call__(self, features):
-                # Growing cache:
-                if self.cache_dim is None or self.cache_dim == self.dim:
-                    output = self.fn(features)
-                    self.cache.append(output)
-                    self.cache_dim = self.dim
-                # Using cache:
-                else:
-                    output = self.cache[self.idx]
-                output["token_embeddings"] = output["token_embeddings"][..., : self.dim]
-                self.idx += 1
-                return output
-
-        original_forward = self.model[0].forward
-        decorated_forward = FirstModuleDecorator(original_forward)
-        self.model[0].forward = decorated_forward
+        original_forward = self.model.forward
+        decorated_forward = ForwardDecorator(original_forward)
+        self.model.forward = decorated_forward
 
         loss = 0.0
         for dim, weight in zip(self.matryoshka_dims, self.matryoshka_weights):
             decorated_forward.set_dim(dim)
             loss += weight * self.loss(sentence_features, labels)
 
-        self.model[0].forward = original_forward
+        self.model.forward = original_forward
         return loss
 
     def get_config_dict(self):
