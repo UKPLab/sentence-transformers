@@ -112,3 +112,15 @@ model.fit(
 model = SentenceTransformer(model_save_path)
 test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name="sts-test")
 test_evaluator(model, output_path=model_save_path)
+
+# Optionally, save the model to the Hugging Face Hub!
+# It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+try:
+    model.save_to_hub(f"{model_name}-sts-matryoshka")
+except Exception:
+    logging.error(
+        "Error uploading model to the Hugging Face Hub. To upload it manually, you can run "
+        f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({model_save_path!r})` "
+        f"and saving it using `model.save_to_hub('{model_name}-sts-matryoshka')`."
+    )

@@ -737,6 +737,7 @@ class SentenceTransformer(nn.Sequential):
             repo_type=None,
             exist_ok=exist_ok,
         )
+        repo_id = repo_url.repo_id  # Update the repo_id in case the old repo_id didn't contain a user or organization
         if local_model_path:
             folder_url = api.upload_folder(
                 repo_id=repo_id, folder_path=local_model_path, commit_message=commit_message

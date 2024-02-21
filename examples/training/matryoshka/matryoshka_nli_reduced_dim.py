@@ -5,8 +5,8 @@ Entailments are positive pairs and the contradiction on AllNLI dataset is added 
 At every 10% training steps, the model is evaluated on the STS benchmark dataset
 
 The difference between this script and matryoshka_nli.py is that this script uses a reduced dimensionality of the base
-model by adding a Dense layer with 256 output dimensions. This might be useful when your desired output dimensionality
-is lower than the base model's default output dimensionality.
+model by adding a Dense layer with `reduced_dim=256` output dimensions. This might be useful when your desired output
+dimensionality is lower than the base model's default output dimensionality.
 
 Usage:
 python matryoshka_nli_reduced_dim.py
@@ -37,6 +37,7 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else "distilroberta-base"
 train_batch_size = 128  # The larger you select this, the better the results (usually). But it requires more GPU memory
 max_seq_length = 75
 num_epochs = 1
+reduced_dim = 256
 
 # Save path of the model
 model_save_path = (
@@ -47,7 +48,7 @@ model_save_path = (
 # Here we define our SentenceTransformer model
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode="mean")
-dense = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=256)
+dense = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=reduced_dim)
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dense])
 
 # Check if dataset exists. If not, download and extract  it
@@ -146,3 +147,15 @@ test_evaluator = EmbeddingSimilarityEvaluator(
     name="sts-test",
 )
 test_evaluator(model, output_path=model_save_path)
+
+# Optionally, save the model to the Hugging Face Hub!
+# It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+try:
+    model.save_to_hub(f"{model_name}-nli-matryoshka-{reduced_dim}")
+except Exception:
+    logging.error(
+        "Error uploading model to the Hugging Face Hub. To upload it manually, you can run "
+        f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({model_save_path!r})` "
+        f"and saving it using `model.save_to_hub('{model_name}-nli-matryoshka-{reduced_dim}')`."
+    )
