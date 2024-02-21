@@ -54,6 +54,12 @@ class SentenceTransformer(nn.Sequential):
         SentenceTransformer models from scratch.
     :param device: Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
         can be used.
+    :param prompts: A dictionary with prompts for the model. The key is the prompt name, the value is the prompt text.
+        The prompt text will be prepended before any text to encode. For example:
+        `{"query": "query: ", "passage": "passage: "}` or `{"clustering": "Identify the main category based on the
+        titles in "}`.
+    :param default_prompt_name: The name of the prompt that should be used by default. If not set,
+        no prompt will be applied.
     :param cache_folder: Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
     :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
         for a stored model on Hugging Face.
@@ -68,12 +74,17 @@ class SentenceTransformer(nn.Sequential):
         model_name_or_path: Optional[str] = None,
         modules: Optional[Iterable[nn.Module]] = None,
         device: Optional[str] = None,
+        prompts: Optional[Dict[str, str]] = None,
+        default_prompt_name: Optional[str] = None,
         cache_folder: Optional[str] = None,
         trust_remote_code: bool = False,
         revision: Optional[str] = None,
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
     ):
+        # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
+        self.prompts = prompts or {}
+        self.default_prompt_name = default_prompt_name
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -202,9 +213,43 @@ class SentenceTransformer(nn.Sequential):
 
         self.to(device)
 
+        if self.default_prompt_name is not None and self.default_prompt_name not in self.prompts:
+            raise ValueError(
+                f"Default prompt name '{self.default_prompt_name}' not found in the configured prompts "
+                f"dictionary with keys {list(self.prompts.keys())!r}."
+            )
+
+        if self.prompts:
+            logger.info(f"{len(self.prompts)} prompts are loaded, with the keys: {list(self.prompts.keys())}")
+        if self.default_prompt_name:
+            logger.warning(
+                f"Default prompt name is set to '{self.default_prompt_name}'. "
+                "This prompt will be applied to all `encode()` calls, except if `encode()` "
+                "is called with `prompt` or `prompt_name` parameters."
+            )
+
+        # Ideally, INSTRUCTOR models should set `include_prompt=False` in their pooling configuration, but
+        # that would be a breaking change for users currently using the InstructorEmbedding project.
+        # So, instead we hardcode setting it for the main INSTRUCTOR models, and otherwise give a warning if we
+        # suspect the user is using an INSTRUCTOR model.
+        if model_name_or_path in ("hkunlp/instructor-base", "hkunlp/instructor-large", "hkunlp/instructor-xl"):
+            self.set_pooling_include_prompt(include_prompt=False)
+        elif (
+            model_name_or_path
+            and "/" in model_name_or_path
+            and "instructor" in model_name_or_path.split("/")[1].lower()
+        ):
+            if any([module.include_prompt for module in self if isinstance(module, Pooling)]):
+                logger.warning(
+                    "Instructor models require `include_prompt=False` in the pooling configuration. "
+                    "Either update the model configuration or call `model.set_pooling_include_prompt(False)` after loading the model."
+                )
+
     def encode(
         self,
         sentences: Union[str, List[str]],
+        prompt_name: Optional[str] = None,
+        prompt: Optional[str] = None,
         batch_size: int = 32,
         show_progress_bar: bool = None,
         output_value: str = "sentence_embedding",
@@ -217,6 +262,14 @@ class SentenceTransformer(nn.Sequential):
         Computes sentence embeddings.
 
         :param sentences: the sentences to embed.
+        :param prompt_name: The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
+            which is either set in the constructor or loaded from the model configuration. For example if
+            `prompt_name` is ``"query"`` and the `prompts` is ``{"query": "query: ", ...}``, then the sentence "What
+            is the capital of France?" will be encoded as "query: What is the capital of France?" because the sentence
+            is appended to the prompt. If `prompt` is also set, this argument is ignored.
+        :param prompt: The prompt to use for encoding. For example, if the prompt is ``"query: "``, then the
+            sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?"
+            because the sentence is appended to the prompt. If `prompt` is set, `prompt_name` is ignored.
         :param batch_size: the batch size used for the computation.
         :param show_progress_bar: Whether to output a progress bar when encode sentences.
         :param output_value: The type of embeddings to return: "sentence_embedding" to get sentence embeddings,
@@ -251,6 +304,33 @@ class SentenceTransformer(nn.Sequential):
             sentences = [sentences]
             input_was_string = True
 
+        if prompt is None:
+            if prompt_name is not None:
+                try:
+                    prompt = self.prompts[prompt_name]
+                except KeyError:
+                    raise ValueError(
+                        f"Prompt name '{prompt_name}' not found in the configured prompts dictionary with keys {list(self.prompts.keys())!r}."
+                    )
+            elif self.default_prompt_name is not None:
+                prompt = self.prompts.get(self.default_prompt_name, None)
+        else:
+            if prompt_name is not None:
+                logger.warning(
+                    "Encode with either a `prompt`, a `prompt_name`, or neither, but not both. "
+                    "Ignoring the `prompt_name` in favor of `prompt`."
+                )
+
+        extra_features = {}
+        if prompt is not None:
+            sentences = [prompt + sentence for sentence in sentences]
+
+            # Some models (e.g. INSTRUCTOR, GRIT) require removing the prompt before pooling
+            # Tracking the prompt length allow us to remove the prompt during pooling
+            tokenized_prompt = self.tokenize([prompt])
+            if "input_ids" in tokenized_prompt:
+                extra_features["prompt_length"] = tokenized_prompt["input_ids"].shape[-1] - 1
+
         if device is None:
             device = self.device
 
@@ -264,6 +344,7 @@ class SentenceTransformer(nn.Sequential):
             sentences_batch = sentences_sorted[start_index : start_index + batch_size]
             features = self.tokenize(sentences_batch)
             features = batch_to_device(features, device)
+            features.update(extra_features)
 
             with torch.no_grad():
                 out_features = self.forward(features)
@@ -369,6 +450,8 @@ class SentenceTransformer(nn.Sequential):
         self,
         sentences: List[str],
         pool: Dict[str, object],
+        prompt_name: Optional[str] = None,
+        prompt: Optional[str] = None,
         batch_size: int = 32,
         chunk_size: int = None,
         normalize_embeddings: bool = False,
@@ -380,6 +463,14 @@ class SentenceTransformer(nn.Sequential):
 
         :param sentences: List of sentences
         :param pool: A pool of workers started with SentenceTransformer.start_multi_process_pool
+        :param prompt_name: The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
+            which is either set in the constructor or loaded from the model configuration. For example if
+            `prompt_name` is ``"query"`` and the `prompts` is ``{"query": "query: {}", ...}``, then the sentence "What
+            is the capital of France?" will be encoded as "query: What is the capital of France?". If `prompt` is
+            also set, this argument is ignored.
+        :param prompt: The prompt to use for encoding. For example, if the prompt is ``"query: {}"``, then the
+            sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?".
+            If `prompt` is set, `prompt_name` is ignored.
         :param batch_size: Encode sentences with batch size
         :param chunk_size: Sentences are chunked and sent to the individual processes. If none, it determine a sensible size.
         :param normalize_embeddings: Whether to normalize returned vectors to have length 1. In that case,
@@ -399,12 +490,12 @@ class SentenceTransformer(nn.Sequential):
         for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, batch_size, chunk, normalize_embeddings])
+                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings])
                 last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, batch_size, chunk, normalize_embeddings])
+            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings])
             last_chunk_id += 1
 
         output_queue = pool["output"]
@@ -419,9 +510,11 @@ class SentenceTransformer(nn.Sequential):
         """
         while True:
             try:
-                chunk_id, batch_size, sentences, normalize_embeddings = input_queue.get()
+                chunk_id, batch_size, sentences, prompt_name, prompt, normalize_embeddings = input_queue.get()
                 embeddings = model.encode(
                     sentences,
+                    prompt_name=prompt_name,
+                    prompt=prompt,
                     device=target_device,
                     show_progress_bar=False,
                     convert_to_numpy=True,
@@ -431,6 +524,17 @@ class SentenceTransformer(nn.Sequential):
 
                 results_queue.put([chunk_id, embeddings])
             except queue.Empty:
+                break
+
+    def set_pooling_include_prompt(self, include_prompt: bool) -> None:
+        """
+        Sets the `include_prompt` attribute in the pooling layer in the model, if there is one.
+
+        :param include_prompt: Whether to include the prompt in the pooling layer.
+        """
+        for module in self:
+            if isinstance(module, Pooling):
+                module.include_prompt = include_prompt
                 break
 
     def get_max_seq_length(self):
@@ -498,7 +602,10 @@ class SentenceTransformer(nn.Sequential):
             }
 
         with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
-            json.dump(self._model_config, fOut, indent=2)
+            config = self._model_config.copy()
+            config["prompts"] = self.prompts
+            config["default_prompt_name"] = self.default_prompt_name
+            json.dump(config, fOut, indent=2)
 
         # Save modules
         for idx, name in enumerate(self._modules):
@@ -994,6 +1101,12 @@ class SentenceTransformer(nn.Sequential):
                         self._model_config["__version__"]["sentence_transformers"], __version__
                     )
                 )
+
+            # Set prompts if not already overridden by the __init__ calls
+            if not self.prompts:
+                self.prompts = self._model_config.get("prompts", {})
+            if not self.default_prompt_name:
+                self.default_prompt_name = self._model_config.get("default_prompt_name", None)
 
         # Check if a readme exists
         model_card_path = load_file_path(

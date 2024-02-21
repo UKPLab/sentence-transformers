@@ -3,10 +3,13 @@ Tests general behaviour of the SentenceTransformer class
 """
 
 
+import json
 import logging
 import os
 from pathlib import Path
+import re
 import tempfile
+import numpy as np
 import pytest
 
 from huggingface_hub import HfApi, RepoUrl, GitRefs, GitRefInfo
@@ -203,6 +206,80 @@ def test_load_local_without_normalize_directory() -> None:
         # This fails in v2.3.0
         fresh_tiny_model = SentenceTransformer(str(model_path))
         assert isinstance(fresh_tiny_model, SentenceTransformer)
+
+
+def test_prompts(caplog: pytest.LogCaptureFixture) -> None:
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    assert model.prompts == {}
+    assert model.default_prompt_name is None
+    texts = ["How to bake a chocolate cake", "Symptoms of the flu"]
+    no_prompt_embedding = model.encode(texts)
+    prompt_embedding = model.encode([f"query: {text}" for text in texts])
+    assert not np.array_equal(no_prompt_embedding, prompt_embedding)
+
+    for query in ["query: ", "query:", "query:   "]:
+        # Test prompt="... {}"
+        model.prompts = {}
+        assert np.array_equal(model.encode(texts, prompt=query), prompt_embedding)
+
+        # Test prompt_name="..."
+        model.prompts = {"query": query}
+        assert np.array_equal(model.encode(texts, prompt_name="query"), prompt_embedding)
+
+        caplog.clear()
+        # Test prompt_name="..." & prompt="..."
+        with caplog.at_level(logging.WARNING):
+            assert np.array_equal(model.encode(texts, prompt=query, prompt_name="query"), prompt_embedding)
+            assert len(caplog.record_tuples) == 1
+            assert (
+                caplog.record_tuples[0][2]
+                == "Encode with either a `prompt`, a `prompt_name`, or neither, but not both. "
+                "Ignoring the `prompt_name` in favor of `prompt`."
+            )
+
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query']."
+            ),
+        ):
+            model.encode(texts, prompt_name="invalid_prompt_name")
+
+
+def test_save_load_prompts() -> None:
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Default prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query']."
+        ),
+    ):
+        model = SentenceTransformer(
+            "sentence-transformers-testing/stsb-bert-tiny-safetensors",
+            prompts={"query": "query: "},
+            default_prompt_name="invalid_prompt_name",
+        )
+
+    model = SentenceTransformer(
+        "sentence-transformers-testing/stsb-bert-tiny-safetensors",
+        prompts={"query": "query: "},
+        default_prompt_name="query",
+    )
+    assert model.prompts == {"query": "query: "}
+    assert model.default_prompt_name == "query"
+
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model_path = Path(tmp_folder) / "tiny_model_local"
+        model.save(str(model_path))
+        config_path = model_path / "config_sentence_transformers.json"
+        assert config_path.exists()
+        with open(config_path, "r", encoding="utf8") as f:
+            saved_config = json.load(f)
+        assert saved_config["prompts"] == {"query": "query: "}
+        assert saved_config["default_prompt_name"] == "query"
+
+        fresh_model = SentenceTransformer(str(model_path))
+        assert fresh_model.prompts == {"query": "query: "}
+        assert fresh_model.default_prompt_name == "query"
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")

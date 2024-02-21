@@ -132,6 +132,59 @@ We further provide this multilingual text-image model:
 
 ## Other Models
 
+### INSTRUCTOR models
+As of Sentence Transformers 2.4.0, some INSTRUCTOR models such as [hkunlp/instructor-large](https://huggingface.co/hkunlp/instructor-large) are natively supported in Sentence Transformers. These models are special, as they are trained with instructions in mind. Notably, the primary difference between normal Sentence Transformer models and Instructor models is that the latter do not include the instructions themselves in the pooling step.
+
+The following models work out of the box:
+* [hkunlp/instructor-base](https://huggingface.co/hkunlp/instructor-base)
+* [hkunlp/instructor-large](https://huggingface.co/hkunlp/instructor-large)
+* [hkunlp/instructor-xl](https://huggingface.co/hkunlp/instructor-xl)
+
+You can use these models like so:
+
+```python
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("hkunlp/instructor-large")
+embeddings = model.encode(
+    [
+        "Dynamical Scalar Degree of Freedom in Horava-Lifshitz Gravity",
+        "Comparison of Atmospheric Neutrino Flux Calculations at Low Energies",
+        "Fermion Bags in the Massive Gross-Neveu Model",
+        "QCD corrections to Associated t-tbar-H production at the Tevatron",
+    ],
+    prompt="Represent the Medicine sentence for clustering: ",
+)
+print(embeddings.shape)
+# => (4, 768)
+```
+
+For example, for information retrieval:
+```python
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.util import cos_sim
+
+model = SentenceTransformer("hkunlp/instructor-large")
+query = "where is the food stored in a yam plant"
+query_instruction = (
+    "Represent the Wikipedia question for retrieving supporting documents: "
+)
+corpus = [
+    'Yams are perennial herbaceous vines native to Africa, Asia, and the Americas and cultivated for the consumption of their starchy tubers in many temperate and tropical regions. The tubers themselves, also called "yams", come in a variety of forms owing to numerous cultivars and related species.',
+    "The disparate impact theory is especially controversial under the Fair Housing Act because the Act regulates many activities relating to housing, insurance, and mortgage loansâ€”and some scholars have argued that the theory's use under the Fair Housing Act, combined with extensions of the Community Reinvestment Act, contributed to rise of sub-prime lending and the crash of the U.S. housing market and ensuing global economic recession",
+    "Disparate impact in United States labor law refers to practices in employment, housing, and other areas that adversely affect one group of people of a protected characteristic more than another, even though rules applied by employers or landlords are formally neutral. Although the protected classes vary by statute, most federal civil rights laws protect based on race, color, religion, national origin, and sex as protected traits, and some laws include disability status and other traits as well.",
+]
+corpus_instruction = "Represent the Wikipedia document for retrieval: "
+
+query_embedding = model.encode(query, prompt=query_instruction)
+corpus_embeddings = model.encode(corpus, prompt=corpus_instruction)
+similarities = cos_sim(query_embedding, corpus_embeddings)
+print(similarities)
+# => tensor([[0.8835, 0.7037, 0.6970]])
+```
+
+All other Instructor models either 1) will not load as they refer to `InstructorEmbedding` in their `modules.json` or 2) require calling `model.set_pooling_include_prompt(include_prompt=False)`.
+
 ### Scientific Publications
 [SPECTER](https://arxiv.org/abs/2004.07180) is a model trained on scientific citations and can be used to estimate the similarity of two publications. We can use it to find similar papers.
 
@@ -169,7 +222,7 @@ You can index the passages as shown [here](../examples/applications/semantic-sea
 
 
 
-**DPR-Models**
+### DPR-Models
 
 In [Dense Passage Retrieval  for Open-Domain Question Answering](https://arxiv.org/abs/2004.04906)  Karpukhin et al. trained models based on [Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions):
 - **facebook-dpr-ctx_encoder-single-nq-base** 
