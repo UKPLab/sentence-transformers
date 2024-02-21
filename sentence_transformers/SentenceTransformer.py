@@ -228,9 +228,10 @@ class SentenceTransformer(nn.Sequential):
                 "is called with `prompt` or `prompt_name` parameters."
             )
 
-        # Hardcode INSTRUCTOR support by setting `include_prompt=False`.
-        # Ideally, INSTRUCTOR models should support `include_prompt` in their pooling configuration, but
+        # Ideally, INSTRUCTOR models should set `include_prompt=False` in their pooling configuration, but
         # that would be a breaking change for users currently using the InstructorEmbedding project.
+        # So, instead we hardcode setting it for the main INSTRUCTOR models, and otherwise give a warning if we
+        # suspect the user is using an INSTRUCTOR model.
         if model_name_or_path in ("hkunlp/instructor-base", "hkunlp/instructor-large", "hkunlp/instructor-xl"):
             self.set_pooling_include_prompt(include_prompt=False)
         elif (
