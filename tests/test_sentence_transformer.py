@@ -203,3 +203,11 @@ def test_load_local_without_normalize_directory() -> None:
         # This fails in v2.3.0
         fresh_tiny_model = SentenceTransformer(str(model_path))
         assert isinstance(fresh_tiny_model, SentenceTransformer)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
+def test_encode_fp16() -> None:
+    tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    tiny_model.half()
+    embeddings = tiny_model.encode(["Hello there!"], convert_to_tensor=True)
+    assert embeddings.dtype == torch.float16
