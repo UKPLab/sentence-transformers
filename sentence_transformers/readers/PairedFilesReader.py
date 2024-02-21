@@ -7,11 +7,31 @@ class PairedFilesReader(object):
     Reads in the a Pair Dataset, split in two files
     """
 
-    def __init__(self, filepaths):
+    def __init__(self, filepaths:list):
+        """
+        Initializes the PairedFilesReader.
+
+        Parameters
+        ----------
+        filepaths : list
+            A list of file paths for the paired dataset files.
+        """
         self.filepaths = filepaths
 
-    def get_examples(self, max_examples=0):
-        """ """
+    def get_examples(self, max_examples:int=0) -> list:
+        """
+        Reads examples from paired files.
+
+        Parameters
+        ----------
+        max_examples : int, optional
+            Maximum number of examples to read. Default is 0, meaning read all examples.
+
+        Returns
+        -------
+        examples : list
+            A list of InputExample objects.
+        """
         fIns = []
         for filepath in self.filepaths:
             fIn = (

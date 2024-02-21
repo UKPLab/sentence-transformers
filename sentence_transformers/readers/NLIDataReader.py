@@ -8,14 +8,33 @@ class NLIDataReader(object):
     Reads in the Stanford NLI dataset and the MultiGenre NLI dataset
     """
 
-    def __init__(self, dataset_folder):
+    def __init__(self, dataset_folder:str):
+        """
+        Initializes the NLIDataReader.
+
+        Parameters
+        ----------
+        dataset_folder : str
+            The folder containing the dataset files.
+        """
         self.dataset_folder = dataset_folder
 
-    def get_examples(self, filename, max_examples=0):
+    def get_examples(self, filename:str, max_examples:int=0) -> list:
         """
-        data_splits specified which data split to use (train, dev, test).
-        Expects that self.dataset_folder contains the files s1.$data_split.gz,  s2.$data_split.gz,
-        labels.$data_split.gz, e.g., for the train split, s1.train.gz, s2.train.gz, labels.train.gz
+        Reads examples from a file.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file to read.
+
+        max_examples : int, optional
+            Maximum number of examples to read. Default is 0, meaning read all examples.
+
+        Returns
+        -------
+        examples : list
+            A list of InputExample objects.
         """
         s1 = gzip.open(os.path.join(self.dataset_folder, "s1." + filename), mode="rt", encoding="utf-8").readlines()
         s2 = gzip.open(os.path.join(self.dataset_folder, "s2." + filename), mode="rt", encoding="utf-8").readlines()
@@ -37,10 +56,43 @@ class NLIDataReader(object):
 
     @staticmethod
     def get_labels():
+        """
+        Returns the labels and their corresponding integer mappings.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        labels : dict
+            A dictionary containing label names as keys and their integer mappings as values.
+        """
         return {"contradiction": 0, "entailment": 1, "neutral": 2}
 
-    def get_num_labels(self):
+    def get_num_labels(self) -> int:
+        """
+        Returns the number of unique labels.
+
+        Returns
+        -------
+        num_labels : int
+            The number of unique labels.
+        """
         return len(self.get_labels())
 
-    def map_label(self, label):
+    def map_label(self, label:str) -> int:
+        """
+        Maps a label to its corresponding integer mapping.
+
+        Parameters
+        ----------
+        label : str
+            The label to map.
+
+        Returns
+        -------
+        label_id : int
+            The integer mapping of the label.
+        """
         return self.get_labels()[label.strip().lower()]

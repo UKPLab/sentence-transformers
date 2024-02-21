@@ -26,6 +26,26 @@ class CEBinaryClassificationEvaluator:
         show_progress_bar: bool = False,
         write_csv: bool = True,
     ):
+        """
+        Initialize the CEBinaryClassificationEvaluator.
+
+        Parameters
+        ----------
+        sentence_pairs : List[List[str]]
+            List of input sentence pairs.
+
+        labels : List[int]
+            List of binary labels (0 or 1).
+
+        name : str, optional
+            Name of the evaluator. Default is an empty string.
+
+        show_progress_bar : bool, optional
+            Whether to show a progress bar during evaluation. Default is False.
+
+        write_csv : bool, optional
+            Whether to write evaluation results to a CSV file. Default is True.
+        """
         assert len(sentence_pairs) == len(labels)
         for label in labels:
             assert label == 0 or label == 1
@@ -56,6 +76,19 @@ class CEBinaryClassificationEvaluator:
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
+        """
+        Create an instance of CEBinaryClassificationEvaluator from a list of InputExamples.
+
+        Parameters
+        ----------
+        examples : List[InputExample]
+            List of InputExamples.
+
+        Returns
+        -------
+        CEBinaryClassificationEvaluator
+            Instance of CEBinaryClassificationEvaluator.
+        """
         sentence_pairs = []
         labels = []
 
@@ -65,6 +98,28 @@ class CEBinaryClassificationEvaluator:
         return cls(sentence_pairs, labels, **kwargs)
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+        """
+        Evaluate the model and compute average precision.
+
+        Parameters
+        ----------
+        model : object
+            Model to be evaluated.
+
+        output_path : str, optional
+            Output path to write results to a CSV file. Default is None.
+
+        epoch : int, optional
+            Epoch number. Default is -1.
+            
+        steps : int, optional
+            Number of steps. Default is -1.
+
+        Returns
+        -------
+        float
+            Average precision score.
+        """
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)

@@ -12,12 +12,48 @@ logger = logging.getLogger(__name__)
 
 
 class PhraseTokenizer(WordTokenizer):
-    """Tokenizes the text with respect to existent phrases in the vocab.
+    """
+    Tokenizes the text with respect to existent phrases in the vocab.
 
     This tokenizers respects phrases that are in the vocab. Phrases are separated with 'ngram_separator', for example,
-    in Google News word2vec file, ngrams are separated with a _ like New_York. These phrases are detected in text and merged as one special token. (New York is the ... => [New_York, is, the])
-    """
+    in Google News word2vec file, ngrams are separated with a _ like New_York. These phrases are detected in text and
+    merged as one special token. (New York is the ... => [New_York, is, the])
 
+    Parameters
+    ----------
+    vocab : Iterable[str], optional
+        Vocabulary of the tokenizer. Default is an empty list.
+
+    stop_words : Iterable[str], optional
+        Set of stop words. Default is ENGLISH_STOP_WORDS.
+
+    do_lower_case : bool, optional
+        Whether to convert text to lowercase. Default is False.
+
+    ngram_separator : str, optional
+        Separator used for n-grams. Default is "_".
+
+    max_ngram_length : int, optional
+        Maximum length of n-grams to consider. Default is 5.
+
+    Methods
+    -------
+    get_vocab() -> Iterable[str]:
+        Get the vocabulary used for tokenization.
+
+    set_vocab(vocab: Iterable[str]):
+        Set the vocabulary used for tokenization.
+
+    tokenize(text: str) -> List[int]:
+        Tokenize the input text.
+
+    save(output_path: str):
+        Save the PhraseTokenizer model to the specified output path.
+
+    @staticmethod
+    load(input_path: str) -> 'PhraseTokenizer':
+        Load the PhraseTokenizer model from the specified input path.
+    """
     def __init__(
         self,
         vocab: Iterable[str] = [],
@@ -26,6 +62,26 @@ class PhraseTokenizer(WordTokenizer):
         ngram_separator: str = "_",
         max_ngram_length: int = 5,
     ):
+        """
+        Initialize the PhraseTokenizer.
+
+        Parameters
+        ----------
+        vocab : Iterable[str], optional
+            Vocabulary of the tokenizer. Default is an empty list.
+
+        stop_words : Iterable[str], optional
+            Set of stop words. Default is ENGLISH_STOP_WORDS.
+
+        do_lower_case : bool, optional
+            Whether to convert text to lowercase. Default is False.
+
+        ngram_separator : str, optional
+            Separator used for n-grams. Default is "_".
+
+        max_ngram_length : int, optional
+            Maximum length of n-grams to consider. Default is 5.
+        """
         if not is_nltk_available():
             raise ImportError(NLTK_IMPORT_ERROR.format(self.__class__.__name__))
 
@@ -36,9 +92,29 @@ class PhraseTokenizer(WordTokenizer):
         self.set_vocab(vocab)
 
     def get_vocab(self):
+        """
+        Get the vocabulary used for tokenization.
+
+        Returns
+        -------
+        Iterable[str]
+            Vocabulary used for tokenization.
+        """
         return self.vocab
 
-    def set_vocab(self, vocab: Iterable[str]):
+    def set_vocab(self, vocab: Iterable[str]) -> None:
+        """
+        Set the vocabulary used for tokenization.
+
+        Parameters
+        ----------
+        vocab : Iterable[str]
+            Vocabulary to set.
+
+        Returns
+        -------
+        None
+        """
         self.vocab = vocab
         self.word2idx = collections.OrderedDict([(word, idx) for idx, word in enumerate(vocab)])
 
@@ -58,6 +134,19 @@ class PhraseTokenizer(WordTokenizer):
             logger.info("PhraseTokenizer - Num phrases: {}".format(len(self.ngram_lookup)))
 
     def tokenize(self, text: str) -> List[int]:
+        """
+        Tokenize the input text.
+
+        Parameters
+        ----------
+        text : str
+            Input text to tokenize.
+
+        Returns
+        -------
+        List[int]
+            List of token indices.
+        """
         from nltk import word_tokenize
 
         tokens = word_tokenize(text, preserve_line=True)
@@ -98,7 +187,19 @@ class PhraseTokenizer(WordTokenizer):
 
         return tokens_filtered
 
-    def save(self, output_path: str):
+    def save(self, output_path: str) -> None:
+        """
+        Save the PhraseTokenizer model to the specified output path.
+
+        Parameters
+        ----------
+        output_path : str
+            Path to save the model.
+
+        Returns
+        -------
+        None
+        """
         with open(os.path.join(output_path, "phrasetokenizer_config.json"), "w") as fOut:
             json.dump(
                 {
@@ -113,6 +214,19 @@ class PhraseTokenizer(WordTokenizer):
 
     @staticmethod
     def load(input_path: str):
+        """
+        Load the PhraseTokenizer model from the specified input path.
+
+        Parameters
+        ----------
+        input_path : str
+            Path from which to load the model.
+
+        Returns
+        -------
+        PhraseTokenizer
+            Loaded PhraseTokenizer model.
+        """
         with open(os.path.join(input_path, "phrasetokenizer_config.json"), "r") as fIn:
             config = json.load(fIn)
 

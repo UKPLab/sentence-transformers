@@ -46,6 +46,19 @@ class Asym(nn.Sequential):
         super(Asym, self).__init__(ordered_dict)
 
     def forward(self, features: Dict[str, Tensor]):
+        """
+        Forward pass of the Asym model.
+
+        Parameters
+        ----------
+        features : Dict[str, Tensor]
+            Input features with key-value pairs.
+
+        Returns
+        -------
+        Dict[str, Tensor]
+            Output features with key-value pairs.
+        """
         if "text_keys" in features and len(features["text_keys"]) > 0:
             text_key = features["text_keys"][0]
             for model in self.sub_modules[text_key]:
@@ -56,12 +69,33 @@ class Asym(nn.Sequential):
         return features
 
     def get_sentence_embedding_dimension(self) -> int:
+        """
+        Get the dimension of the sentence embeddings.
+
+        Returns
+        -------
+        int
+            Dimension of the sentence embeddings.
+        """
         for name in self.sub_modules:
             if hasattr(self.sub_modules[name][0], "get_sentence_embedding_dimension"):
                 return self.sub_modules[name][0].get_sentence_embedding_dimension()
+        
         return None
 
-    def save(self, output_path):
+    def save(self, output_path:str) -> None:
+        """
+        Save the Asym model to the specified output path.
+
+        Parameters
+        ----------
+        output_path : str
+            Path to save the model.
+
+        Returns
+        -------
+        None
+        """
         model_lookup = {}
         model_types = {}
         model_structure = {}
@@ -92,7 +126,17 @@ class Asym(nn.Sequential):
 
     def tokenize(self, texts: Union[List[str], List[Tuple[str, str]]]):
         """
-        Tokenizes a text and maps tokens to token-ids
+        Tokenize text and map tokens to token-ids.
+
+        Parameters
+        ----------
+        texts : Union[List[str], List[Tuple[str, str]]]
+            List of texts to be tokenized.
+
+        Returns
+        -------
+        Dict[str, Tensor]
+            Tokenized input features.
         """
         if not isinstance(texts[0], dict):
             raise AttributeError("Asym. model requires that texts are passed as dicts: {'key': 'text'}")
@@ -105,10 +149,24 @@ class Asym(nn.Sequential):
                 module_key = text_key
 
             assert text_key == module_key  # Mixed batches are not allowed
+
         return self.sub_modules[module_key][0].tokenize(texts)
 
     @staticmethod
     def load(input_path):
+        """
+        Load the Asym model from the specified input path.
+
+        Parameters
+        ----------
+        input_path : str
+            Path from which to load the model.
+
+        Returns
+        -------
+        Asym
+            Loaded Asym model.
+        """
         with open(os.path.join(input_path, "config.json")) as fIn:
             config = json.load(fIn)
 
@@ -125,4 +183,5 @@ class Asym(nn.Sequential):
                 model_structure[key_name].append(modules[model_id])
 
         model = Asym(model_structure, **config["parameters"])
+        
         return model

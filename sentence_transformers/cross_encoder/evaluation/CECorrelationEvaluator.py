@@ -17,6 +17,23 @@ class CECorrelationEvaluator:
     """
 
     def __init__(self, sentence_pairs: List[List[str]], scores: List[float], name: str = "", write_csv: bool = True):
+        """
+        Initialize the CECorrelationEvaluator.
+
+        Parameters
+        ----------
+        sentence_pairs : List[List[str]]
+            List of input sentence pairs.
+
+        scores : List[float]
+            List of continuous scores.
+
+        name : str, optional
+            Name of the evaluator. Default is an empty string.
+
+        write_csv : bool, optional
+            Whether to write evaluation results to a CSV file. Default is True.
+        """
         self.sentence_pairs = sentence_pairs
         self.scores = scores
         self.name = name
@@ -27,6 +44,19 @@ class CECorrelationEvaluator:
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
+        """
+        Create an instance of CECorrelationEvaluator from a list of InputExamples.
+
+        Parameters
+        ----------
+        examples : List[InputExample]
+            List of InputExamples.
+
+        Returns
+        -------
+        CECorrelationEvaluator
+            Instance of CECorrelationEvaluator.
+        """
         sentence_pairs = []
         scores = []
 
@@ -36,6 +66,28 @@ class CECorrelationEvaluator:
         return cls(sentence_pairs, scores, **kwargs)
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+        """
+        Evaluate the model and compute Pearson & Spearman correlation.
+
+        Parameters
+        ----------
+        model : object
+            Model to be evaluated.
+
+        output_path : str, optional
+            Output path to write results to a CSV file. Default is None.
+
+        epoch : int, optional
+            Epoch number. Default is -1.
+            
+        steps : int, optional
+            Number of steps. Default is -1.
+
+        Returns
+        -------
+        float
+            Spearman correlation score.
+        """
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)

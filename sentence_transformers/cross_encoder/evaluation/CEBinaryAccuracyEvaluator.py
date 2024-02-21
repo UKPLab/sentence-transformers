@@ -27,6 +27,26 @@ class CEBinaryAccuracyEvaluator:
         threshold: float = 0.5,
         write_csv: bool = True,
     ):
+        """
+        Initialize the CEBinaryAccuracyEvaluator.
+
+        Parameters
+        ----------
+        sentence_pairs : List[List[str]]
+            List of input sentence pairs.
+
+        labels : List[int]
+            List of gold labels.
+
+        name : str, optional
+            Name of the evaluator. Default is an empty string.
+
+        threshold : float, optional
+            Threshold value to determine the label. Default is 0.5.
+
+        write_csv : bool, optional
+            Whether to write results to a CSV file. Default is True.
+        """
         self.sentence_pairs = sentence_pairs
         self.labels = labels
         self.name = name
@@ -38,15 +58,51 @@ class CEBinaryAccuracyEvaluator:
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
+        """
+        Create an instance of CEBinaryAccuracyEvaluator from a list of InputExamples.
+
+        Parameters
+        ----------
+        examples : List[InputExample]
+            List of InputExamples.
+
+        Returns
+        -------
+        CEBinaryAccuracyEvaluator
+            Instance of CEBinaryAccuracyEvaluator.
+        """
         sentence_pairs = []
         labels = []
 
         for example in examples:
             sentence_pairs.append(example.texts)
             labels.append(example.label)
+
         return cls(sentence_pairs, labels, **kwargs)
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+        """
+        Evaluate the model and compute accuracy.
+
+        Parameters
+        ----------
+        model : object
+            Model to be evaluated.
+
+        output_path : str, optional
+            Output path to write results to a CSV file. Default is None.
+
+        epoch : int, optional
+            Epoch number. Default is -1.
+            
+        steps : int, optional
+            Number of steps. Default is -1.
+
+        Returns
+        -------
+        float
+            Accuracy of the model.
+        """
         if epoch != -1:
             if steps == -1:
                 out_txt = " after epoch {}:".format(epoch)

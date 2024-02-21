@@ -28,6 +28,36 @@ class Transformer(nn.Module):
         do_lower_case: bool = False,
         tokenizer_name_or_path: str = None,
     ):
+        """
+        Initialize Transformer module.
+
+        Parameters
+        ----------
+        model_name_or_path : str
+            Huggingface models name (https://huggingface.co/models).
+
+        max_seq_length : int, optional
+            Truncate any inputs longer than max_seq_length.
+
+        model_args : Dict, optional
+            Arguments (key, value pairs) passed to the Huggingface Transformers model.
+
+        cache_dir : str, optional
+            Cache dir for Huggingface Transformers to store/load models.
+
+        tokenizer_args : Dict, optional
+            Arguments (key, value pairs) passed to the Huggingface Tokenizer model.
+
+        do_lower_case : bool, optional
+            If true, lowercases the input (independent if the model is cased or not).
+
+        tokenizer_name_or_path : str, optional
+            Name or path of the tokenizer. When None, then model_name_or_path is used.
+
+        Returns
+        -------
+        None
+        """
         super(Transformer, self).__init__()
         self.config_keys = ["max_seq_length", "do_lower_case"]
         self.do_lower_case = do_lower_case

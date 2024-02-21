@@ -12,13 +12,39 @@ class TripletReader(object):
     def __init__(
         self,
         dataset_folder,
-        s1_col_idx=0,
-        s2_col_idx=1,
-        s3_col_idx=2,
-        has_header=False,
-        delimiter="\t",
+        s1_col_idx:int=0,
+        s2_col_idx:int=1,
+        s3_col_idx:int=2,
+        has_header:bool=False,
+        delimiter:str="\t",
         quoting=csv.QUOTE_NONE,
     ):
+        """
+        Initializes the TripletReader.
+
+        Parameters
+        ----------
+        dataset_folder : str
+            The folder containing the Triplet dataset files.
+
+        s1_col_idx : int, optional
+            Index of the column containing the anchor examples. Default is 0.
+
+        s2_col_idx : int, optional
+            Index of the column containing the positive examples. Default is 1.
+
+        s3_col_idx : int, optional
+            Index of the column containing the negative examples. Default is 2.
+
+        has_header : bool, optional
+            Whether the dataset files contain a header. Default is False.
+
+        delimiter : str, optional
+            The delimiter used in the dataset files. Default is "\t".
+
+        quoting : int, optional
+            The quoting style used in the csv files. Default is csv.QUOTE_NONE.
+        """
         self.dataset_folder = dataset_folder
         self.s1_col_idx = s1_col_idx
         self.s2_col_idx = s2_col_idx
@@ -27,8 +53,23 @@ class TripletReader(object):
         self.delimiter = delimiter
         self.quoting = quoting
 
-    def get_examples(self, filename, max_examples=0):
-        """ """
+    def get_examples(self, filename:str, max_examples:int=0) -> list:
+        """
+        Reads examples from the Triplet dataset.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the dataset file to read.
+
+        max_examples : int, optional
+            Maximum number of examples to read. Default is 0, meaning read all examples.
+
+        Returns
+        -------
+        examples : list
+            A list of InputExample objects representing the anchor, positive, and negative examples.
+        """
         data = csv.reader(
             open(os.path.join(self.dataset_folder, filename), encoding="utf-8"),
             delimiter=self.delimiter,

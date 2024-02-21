@@ -22,6 +22,23 @@ class WordEmbeddings(nn.Module):
         update_embeddings: bool = False,
         max_seq_length: int = 1000000,
     ):
+        """
+        WordEmbeddings module to generate token embeddings from pre-trained word embeddings.
+
+        Parameters
+        ----------
+        tokenizer : WordTokenizer
+            The tokenizer object used for tokenization.
+
+        embedding_weights : torch.Tensor or np.ndarray
+            The pre-trained word embedding weights.
+
+        update_embeddings : bool, optional
+            Whether to update the embedding weights during training. Default is False.
+
+        max_seq_length : int, optional
+            Maximum sequence length. Default is 1000000.
+        """
         nn.Module.__init__(self)
         if isinstance(embedding_weights, list):
             embedding_weights = np.asarray(embedding_weights)
@@ -39,6 +56,19 @@ class WordEmbeddings(nn.Module):
         self.max_seq_length = max_seq_length
 
     def forward(self, features):
+        """
+        Forward pass of the WordEmbeddings module.
+
+        Parameters
+        ----------
+        features : dict
+            Input features dictionary containing 'input_ids' and 'attention_mask'.
+
+        Returns
+        -------
+        features : dict
+            Output features dictionary containing 'token_embeddings', 'cls_token_embeddings', and 'attention_mask'.
+        """
         token_embeddings = self.emb_layer(features["input_ids"])
         cls_tokens = None
         features.update(
@@ -51,6 +81,19 @@ class WordEmbeddings(nn.Module):
         return features
 
     def tokenize(self, texts: List[str]):
+        """
+        Tokenizes a list of texts.
+
+        Parameters
+        ----------
+        texts : List[str]
+            List of texts to tokenize.
+
+        Returns
+        -------
+        output : dict
+            Dictionary containing tokenized input ids, attention masks, and sentence lengths.
+        """
         tokenized_texts = [self.tokenizer.tokenize(text) for text in texts]
         sentence_lengths = [len(tokens) for tokens in tokenized_texts]
         max_len = max(sentence_lengths)
@@ -71,9 +114,29 @@ class WordEmbeddings(nn.Module):
         return output
 
     def get_word_embedding_dimension(self) -> int:
+        """
+        Get the dimension of the word embeddings.
+
+        Returns
+        -------
+        int
+            Dimension of the word embeddings.
+        """
         return self.embeddings_dimension
 
-    def save(self, output_path: str):
+    def save(self, output_path: str) -> None:
+        """
+        Saves the WordEmbeddings model.
+
+        Parameters
+        ----------
+        output_path : str
+            Path to save the model.
+
+        Returns
+        -------
+        None
+        """
         with open(os.path.join(output_path, "wordembedding_config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut, indent=2)
 
@@ -81,6 +144,14 @@ class WordEmbeddings(nn.Module):
         self.tokenizer.save(output_path)
 
     def get_config_dict(self):
+        """
+        Get the configuration dictionary of the WordEmbeddings model.
+
+        Returns
+        -------
+        dict
+            Configuration dictionary.
+        """
         return {
             "tokenizer_class": fullname(self.tokenizer),
             "update_embeddings": self.update_embeddings,
@@ -89,6 +160,19 @@ class WordEmbeddings(nn.Module):
 
     @staticmethod
     def load(input_path: str):
+        """
+        Load the WordEmbeddings model from a specified path.
+
+        Parameters
+        ----------
+        input_path : str
+            Path from which to load the model.
+
+        Returns
+        -------
+        model : WordEmbeddings
+            Loaded WordEmbeddings model.
+        """
         with open(os.path.join(input_path, "wordembedding_config.json"), "r") as fIn:
             config = json.load(fIn)
 
@@ -109,6 +193,31 @@ class WordEmbeddings(nn.Module):
         tokenizer=WhitespaceTokenizer(),
         max_vocab_size: int = None,
     ):
+        """
+        Create a WordEmbeddings model from a text file containing word embeddings.
+
+        Parameters
+        ----------
+        embeddings_file_path : str
+            Path to the text file containing word embeddings.
+
+        update_embeddings : bool, optional
+            Whether to update the embedding weights during training. Default is False.
+
+        item_separator : str, optional
+            Separator used to separate items in the embeddings file. Default is " ".
+
+        tokenizer : Tokenizer, optional
+            Tokenizer object to use for tokenization. Default is WhitespaceTokenizer().
+            
+        max_vocab_size : int, optional
+            Maximum vocabulary size. Default is None.
+
+        Returns
+        -------
+        model : WordEmbeddings
+            WordEmbeddings model created from the text file.
+        """
         logger.info("Read in embeddings file {}".format(embeddings_file_path))
 
         if not os.path.exists(embeddings_file_path):
