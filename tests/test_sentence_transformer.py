@@ -217,7 +217,7 @@ def test_prompts(caplog: pytest.LogCaptureFixture) -> None:
     prompt_embedding = model.encode([f"query: {text}" for text in texts])
     assert not np.array_equal(no_prompt_embedding, prompt_embedding)
 
-    for query in ["query: {}", "query:", "query:   "]:
+    for query in ["query: ", "query:", "query:   "]:
         # Test prompt="... {}"
         model.prompts = {}
         assert np.array_equal(model.encode(texts, prompt=query), prompt_embedding)
@@ -255,16 +255,16 @@ def test_save_load_prompts() -> None:
     ):
         model = SentenceTransformer(
             "sentence-transformers-testing/stsb-bert-tiny-safetensors",
-            prompts={"query": "query: {}"},
+            prompts={"query": "query: "},
             default_prompt_name="invalid_prompt_name",
         )
 
     model = SentenceTransformer(
         "sentence-transformers-testing/stsb-bert-tiny-safetensors",
-        prompts={"query": "query: {}"},
+        prompts={"query": "query: "},
         default_prompt_name="query",
     )
-    assert model.prompts == {"query": "query: {}"}
+    assert model.prompts == {"query": "query: "}
     assert model.default_prompt_name == "query"
 
     with tempfile.TemporaryDirectory() as tmp_folder:
@@ -274,9 +274,9 @@ def test_save_load_prompts() -> None:
         assert config_path.exists()
         with open(config_path, "r", encoding="utf8") as f:
             saved_config = json.load(f)
-        assert saved_config["prompts"] == {"query": "query: {}"}
+        assert saved_config["prompts"] == {"query": "query: "}
         assert saved_config["default_prompt_name"] == "query"
 
         fresh_model = SentenceTransformer(str(model_path))
-        assert fresh_model.prompts == {"query": "query: {}"}
+        assert fresh_model.prompts == {"query": "query: "}
         assert fresh_model.default_prompt_name == "query"

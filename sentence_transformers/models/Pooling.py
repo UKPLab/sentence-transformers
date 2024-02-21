@@ -104,24 +104,8 @@ class Pooling(nn.Module):
     def forward(self, features: Dict[str, Tensor]):
         token_embeddings = features["token_embeddings"]
         attention_mask = features["attention_mask"]
-        if not self.include_prompt:
-            if "postfix_length" in features:
-                bs, seq_len = attention_mask.shape
-                # attention_mask shape: (bs, seq_len)
-                # Gather the indices of the 1) first 0 in the attention mask, 2) the last 1 in the attention mask
-                values, indices = torch.min(attention_mask, 1, keepdim=False)
-                gather_indices = torch.where(values == 0, indices, seq_len)
-
-                # Get indices of the last `postfix_length` tokens
-                arange = torch.arange(-features["postfix_length"] - 1, 0, device=attention_mask.device).repeat(bs, 1)
-                gather_indices = gather_indices.unsqueeze(-1) + arange
-                # Clamp indices to 0
-                gather_indices = torch.clamp(gather_indices, min=0)
-
-                # Set the attention mask to 0 for the last `postfix_length` tokens
-                attention_mask[torch.arange(bs).unsqueeze(1), gather_indices] = 0
-            if "prefix_length" in features:
-                attention_mask[:, : features["prefix_length"]] = 0
+        if not self.include_prompt and "prompt_length" in features:
+            attention_mask[:, : features["prompt_length"]] = 0
 
         ## Pooling strategy
         output_vectors = []

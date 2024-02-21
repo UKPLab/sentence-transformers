@@ -55,9 +55,9 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
         can be used.
     :param prompts: A dictionary with prompts for the model. The key is the prompt name, the value is the prompt text.
-        The prompt text must contain `{}` where the input text should be inserted. For example:
-        `{"query": "query: {}", "passage": "passage: {}"}` or
-        `{"clustering": "Identify the main category based on the titles in {}"}`.
+        The prompt text will be prepended before any text to encode. For example:
+        `{"query": "query: ", "passage": "passage: "}` or `{"clustering": "Identify the main category based on the
+        titles in "}`.
     :param default_prompt_name: The name of the prompt that should be used by default. If not set,
         no prompt will be applied.
     :param cache_folder: Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
@@ -263,12 +263,12 @@ class SentenceTransformer(nn.Sequential):
         :param sentences: the sentences to embed.
         :param prompt_name: The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
             which is either set in the constructor or loaded from the model configuration. For example if
-            `prompt_name` is ``"query"`` and the `prompts` is ``{"query": "query: {}", ...}``, then the sentence "What
-            is the capital of France?" will be encoded as "query: What is the capital of France?". If `prompt` is
-            also set, this argument is ignored.
-        :param prompt: The prompt to use for encoding. For example, if the prompt is ``"query: {}"``, then the
-            sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?".
-            If `prompt` is set, `prompt_name` is ignored.
+            `prompt_name` is ``"query"`` and the `prompts` is ``{"query": "query: ", ...}``, then the sentence "What
+            is the capital of France?" will be encoded as "query: What is the capital of France?" because the sentence
+            is appended to the prompt. If `prompt` is also set, this argument is ignored.
+        :param prompt: The prompt to use for encoding. For example, if the prompt is ``"query: "``, then the
+            sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?"
+            because the sentence is appended to the prompt. If `prompt` is set, `prompt_name` is ignored.
         :param batch_size: the batch size used for the computation.
         :param show_progress_bar: Whether to output a progress bar when encode sentences.
         :param output_value: The type of embeddings to return: "sentence_embedding" to get sentence embeddings,
@@ -322,22 +322,13 @@ class SentenceTransformer(nn.Sequential):
 
         extra_features = {}
         if prompt is not None:
-            if "{}" not in prompt:
-                prompt = prompt.rstrip() + " {}"
-            sentences = [prompt.format(sentence) for sentence in sentences]
+            sentences = [prompt + sentence for sentence in sentences]
 
             # Some models (e.g. INSTRUCTOR, GRIT) require removing the prompt before pooling
-            # Tracking the prefix and postfix lengths allow us to remove the prompt during pooling
-            def get_token_length(tokenized) -> int:
-                if "input_ids" in tokenized:
-                    return tokenized["input_ids"].shape[-1] - 1
-                return 0
-
-            prefix, postfix = prompt.split("{}")
-            if prefix:
-                extra_features["prefix_length"] = get_token_length(self.tokenize([prefix]))
-            if postfix:
-                extra_features["postfix_length"] = get_token_length(self.tokenize([postfix]))
+            # Tracking the prompt length allow us to remove the prompt during pooling
+            tokenized_prompt = self.tokenize([prompt])
+            if "input_ids" in tokenized_prompt:
+                extra_features["prompt_length"] = tokenized_prompt["input_ids"].shape[-1] - 1
 
         if device is None:
             device = self.device

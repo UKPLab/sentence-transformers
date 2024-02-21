@@ -55,21 +55,21 @@ The relevant method to encode a set of sentences / texts is `model.encode()`. In
 Some models require using specific text *prompts* to achieve optimal performance. For example, with [intfloat/multilingual-e5-large](https://huggingface.co/intfloat/multilingual-e5-large) you should prefix all queries with `query: ` and all passages with `passage: `. Another example is [BAAI/bge-large-en-v1.5](https://huggingface.co/BAAI/bge-large-en-v1.5), which performs best for retrieval when the input texts are prefixed with `Represent this sentence for searching relevant passages: `. 
 
 Sentence Transformer models can be initialized with `prompts` and `default_prompt_name` parameters:
-* `prompts` is an optional argument that accepts a dictionary of prompts with prompt names to prompt format-strings. The `{}` will be replaced with the input text during inference. For example,
+* `prompts` is an optional argument that accepts a dictionary of prompts with prompt names to prompt texts. The prompt will be prepended to the input text during inference. For example,
     ```python
     model = SentenceTransformer(
         "intfloat/multilingual-e5-large",
         prompts={
-            "classification": "Classify the following text: {}",
-            "retrieval": "Retrieve semantically similar text: {}",
-            "clustering": "Identify the topic or theme based on the text: {}",
+            "classification": "Classify the following text: ",
+            "retrieval": "Retrieve semantically similar text: ",
+            "clustering": "Identify the topic or theme based on the text: ",
         },
     )
     # or
     model.prompts = {
-        "classification": "Classify the following text: {}",
-        "retrieval": "Retrieve semantically similar text: {}",
-        "clustering": "Identify the topic or theme based on the text: {}",
+        "classification": "Classify the following text: ",
+        "retrieval": "Retrieve semantically similar text: ",
+        "clustering": "Identify the topic or theme based on the text: ",
     }
     ```
 * `default_prompt_name` is an optional argument that determines the default prompt to be used. It has to correspond with a prompt name from `prompts`. If `None`, then no prompt is used by default. For example,
@@ -77,9 +77,9 @@ Sentence Transformer models can be initialized with `prompts` and `default_promp
     model = SentenceTransformer(
         "intfloat/multilingual-e5-large",
         prompts={
-            "classification": "Classify the following text: {}",
-            "retrieval": "Retrieve semantically similar text: {}",
-            "clustering": "Identify the topic or theme based on the text: {}",
+            "classification": "Classify the following text: ",
+            "retrieval": "Retrieve semantically similar text: ",
+            "clustering": "Identify the topic or theme based on the text: ",
         },
         default_prompt_name="retrieval",
     )
@@ -89,10 +89,10 @@ Sentence Transformer models can be initialized with `prompts` and `default_promp
 Both of these parameters can also be specified in the `config_sentence_transformers.json` file of a saved model. That way, you won't have to specify these options manually when loading. When you save a Sentence Transformer model, these options will be automatically saved as well.
 
 
-During inference, prompts can be applied in a few different ways:
+During inference, prompts can be applied in a few different ways. All of these scenarios result in identical texts being embedded:
 1. Explicitly using the `prompt` option in `SentenceTransformer.encode`:
     ```python
-    embeddings = model.encode("How to bake a strawberry cake", prompt="Retrieve semantically similar text: {}")
+    embeddings = model.encode("How to bake a strawberry cake", prompt="Retrieve semantically similar text: ")
     ```
 2. Explicitly using the `prompt_name` option in `SentenceTransformer.encode` by relying on the prompts loaded from a) initialization or b) the model config.
     ```python
