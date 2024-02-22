@@ -19,7 +19,7 @@ model = SentenceTransformer("microsoft/mpnet-base")
 base_loss = CoSENTLoss(model=model)
 loss = MatryoshkaLoss(model=model, loss=base_loss, matryoshka_dims=[768, 512, 256, 128, 64])
 ```
-* **Reference**: [`MatryoshkaLoss`](../../../docs/package_reference/losses#matryoshkaloss)
+* **Reference**: <a href="../../../docs/package_reference/losses.html#matryoshkaloss"><code>MatryoshkaLoss</code></a>
 
 ## Inference
 
@@ -28,6 +28,7 @@ After a model has been trained using a Matryoshka loss, you can then run inferen
 ```python
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim
+import torch.nn.functional as F
 
 model = SentenceTransformer("nomic-ai/nomic-embed-text-v1.5", trust_remote_code=True)
 
@@ -39,7 +40,7 @@ embeddings = model.encode(
         "search_document: Amelia Mary Earhart was an American aviation pioneer and writer.",
     ]
 )
-embeddings[..., :matryoshka_dim]  # Shrink the embedding dimensions
+embeddings = embeddings[..., :matryoshka_dim]  # Shrink the embedding dimensions
 
 similarities = cos_sim(embeddings[0], embeddings[1:])
 # => tensor([[0.7839, 0.4933]])
