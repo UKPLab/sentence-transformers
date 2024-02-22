@@ -28,6 +28,7 @@ After a model has been trained using a Matryoshka loss, you can then run inferen
 ```python
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim
+import torch.nn.functional as F
 
 model = SentenceTransformer("nomic-ai/nomic-embed-text-v1.5", trust_remote_code=True)
 
