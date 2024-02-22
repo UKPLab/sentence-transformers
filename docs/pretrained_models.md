@@ -133,7 +133,7 @@ We further provide this multilingual text-image model:
 ## Other Models
 
 ### INSTRUCTOR models
-As of Sentence Transformers 2.4.0, some INSTRUCTOR models such as [hkunlp/instructor-large](https://huggingface.co/hkunlp/instructor-large) are natively supported in Sentence Transformers. These models are special, as they are trained with instructions in mind. Notably, the primary difference between normal Sentence Transformer models and Instructor models is that the latter do not include the instructions themselves in the pooling step.
+Some INSTRUCTOR models, such as [hkunlp/instructor-large](https://huggingface.co/hkunlp/instructor-large), are natively supported in Sentence Transformers. These models are special, as they are trained with instructions in mind. Notably, the primary difference between normal Sentence Transformer models and Instructor models is that the latter do not include the instructions themselves in the pooling step.
 
 The following models work out of the box:
 * [hkunlp/instructor-base](https://huggingface.co/hkunlp/instructor-base)
@@ -183,7 +183,7 @@ print(similarities)
 # => tensor([[0.8835, 0.7037, 0.6970]])
 ```
 
-All other Instructor models either 1) will not load as they refer to `InstructorEmbedding` in their `modules.json` or 2) require calling `model.set_pooling_include_prompt(include_prompt=False)`.
+All other Instructor models either 1) will not load as they refer to `InstructorEmbedding` in their `modules.json` or 2) require calling `model.set_pooling_include_prompt(include_prompt=False)` after loading.
 
 ### Scientific Publications
 [SPECTER](https://arxiv.org/abs/2004.07180) is a model trained on scientific citations and can be used to estimate the similarity of two publications. We can use it to find similar papers.
