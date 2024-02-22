@@ -40,7 +40,7 @@ embeddings = model.encode(
         "search_document: Amelia Mary Earhart was an American aviation pioneer and writer.",
     ]
 )
-embeddings[..., :matryoshka_dim]  # Shrink the embedding dimensions
+embeddings = embeddings[..., :matryoshka_dim]  # Shrink the embedding dimensions
 
 similarities = cos_sim(embeddings[0], embeddings[1:])
 # => tensor([[0.7839, 0.4933]])
