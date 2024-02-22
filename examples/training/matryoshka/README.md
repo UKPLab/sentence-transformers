@@ -19,7 +19,7 @@ model = SentenceTransformer("microsoft/mpnet-base")
 base_loss = CoSENTLoss(model=model)
 loss = MatryoshkaLoss(model=model, loss=base_loss, matryoshka_dims=[768, 512, 256, 128, 64])
 ```
-* **Reference**: [`MatryoshkaLoss`](../../../docs/package_reference/losses#matryoshkaloss)
+* **Reference**: <a href="../../../docs/package_reference/losses.html#matryoshkaloss"><code>MatryoshkaLoss</code></a>
 
 ## Inference
 
