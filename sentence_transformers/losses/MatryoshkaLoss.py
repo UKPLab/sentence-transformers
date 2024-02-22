@@ -52,7 +52,7 @@ class MatryoshkaLoss(nn.Module):
         different embedding dimensions. This is useful for when you want to train a model where users have the option
         to lower the embedding dimension to improve their embedding comparison speed and costs.
 
-        :param model: SentenceTransformerModel
+        :param model: SentenceTransformer model
         :param loss: The loss function to be used, e.g. :class:`MultipleNegativesRankingLoss`, :class:`CoSENTLoss`, etc.
         :param matryoshka_dims: A list of embedding dimensions to be used for the loss function, e.g. [768, 512, 256, 128, 64].
         :param matryoshka_weights: A list of weights to be used for the loss function, e.g. [1, 1, 1, 1, 1]. If None, then the
