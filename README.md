@@ -79,15 +79,18 @@ First download a pretrained model.
 
 ````python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('all-MiniLM-L6-v2')
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
 ````
 
 Then provide some sentences to the model.
 
 ````python
-sentences = ['This framework generates embeddings for each input sentence',
-    'Sentences are passed as a list of string.', 
-    'The quick brown fox jumps over the lazy dog.']
+sentences = [
+    "This framework generates embeddings for each input sentence",
+    "Sentences are passed as a list of string.",
+    "The quick brown fox jumps over the lazy dog.",
+]
 sentence_embeddings = model.encode(sentences)
 ````
 
@@ -116,7 +119,7 @@ Some highlights are:
 - Support of various transformer networks including BERT, RoBERTa, XLM-R, DistilBERT, Electra, BART, ...
 - Multi-Lingual and multi-task learning
 - Evaluation during training to find optimal model
-- [10+ loss-functions](https://www.sbert.net/docs/package_reference/losses.html) allowing to tune models specifically for semantic search, paraphrase mining, semantic similarity comparison, clustering, triplet loss, contrastive loss.
+- [20+ loss-functions](https://www.sbert.net/docs/package_reference/losses.html) allowing to tune models specifically for semantic search, paraphrase mining, semantic similarity comparison, clustering, triplet loss, contrastive loss.
 
 ## Performance
 
@@ -174,10 +177,10 @@ If you use one of the multilingual models, feel free to cite our publication [Ma
 
 Please have a look at [Publications](https://www.sbert.net/docs/publications.html) for our different publications that are integrated into SentenceTransformers.
 
-Contact person: [Nils Reimers](https://www.nils-reimers.de), [info@nils-reimers.de](mailto:info@nils-reimers.de)
+Contact person: Tom Aarsen, [tom.aarsen@huggingface.co](mailto:tom.aarsen@huggingface.co)
 
 https://www.ukp.tu-darmstadt.de/
 
-Don't hesitate to send us an e-mail or report an issue, if something is broken (and it shouldn't be) or if you have further questions.
+Don't hesitate to open an issue if something is broken (and it shouldn't be) or if you have further questions.
 
 > This repository contains experimental software and is published for the sole purpose of giving additional background details on the respective publication.
