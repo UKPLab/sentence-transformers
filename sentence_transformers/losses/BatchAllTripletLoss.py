@@ -33,7 +33,7 @@ class BatchAllTripletLoss(nn.Module):
         Relations:
             * :class:`BatchHardTripletLoss` uses only the hardest positive and negative samples, rather than all possible, valid triplets.
             * :class:`BatchHardSoftMarginTripletLoss` uses only the hardest positive and negative samples, rather than all possible, valid triplets.
-            Also, it does not require setting a margin.
+              Also, it does not require setting a margin.
             * :class:`BatchSemiHardTripletLoss` uses only semi-hard triplets, valid triplets, rather than all possible, valid triplets.
 
         Inputs:
