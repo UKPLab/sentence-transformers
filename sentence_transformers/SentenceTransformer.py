@@ -16,6 +16,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
 from tqdm.autonotebook import trange
+from enum import Enum
 import math
 import queue
 import tempfile
@@ -74,7 +75,7 @@ class SentenceTransformer(nn.Sequential):
         self,
         model_name_or_path: Optional[str] = None,
         modules: Optional[Iterable[nn.Module]] = None,
-        score_function: str = None,
+        score_function: Enum = SimilarityFunction.COSINE,
         device: Optional[str] = None,
         cache_folder: Optional[str] = None,
         trust_remote_code: bool = False,
@@ -200,7 +201,7 @@ class SentenceTransformer(nn.Sequential):
                     trust_remote_code=trust_remote_code,
                 )
         else:
-            self.score_function_name = score_function
+            self.score_function_name = score_function.value
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -212,13 +213,15 @@ class SentenceTransformer(nn.Sequential):
 
         if self.score_function_name is None:
             self.score_function = None
+            self.score_function_pairwise = None
         else:
-            if not isinstance(self.score_function_name, str):
-                raise ValueError("Type of score function is {}, but should be a string.".format(type(score_function)))
+            if not isinstance(self.score_function_name, Enum):
+                raise ValueError("Type of score function is {}, but should be an enum.".format(type(score_function)))
             elif self.score_function_name not in SimilarityFunction.possible_values():
-                raise ValueError("The provided value is {}, but available values are {}.".format(score_function, SimilarityFunction.possible_values()))
+                raise ValueError("The provided value is {}, but available values are {}.".format(score_function.value, SimilarityFunction.possible_values()))
 
             self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
+            self.score_function_pairwise = SimilarityFunction.map_to_pairwise_function(self.score_function_name)
 
         self.to(device)
 
@@ -907,6 +910,9 @@ class SentenceTransformer(nn.Sequential):
                     self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+            
+            self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
+            self.score_function_pairwise = SimilarityFunction.map_to_pairwise_function(self.score_function_name)
 
         if evaluator is None and output_path is not None:  # No evaluator, but output path: save final model version
             self.save(output_path)
@@ -942,7 +948,7 @@ class SentenceTransformer(nn.Sequential):
             if score > self.best_score:
                 self.best_score = score
                 if hasattr(evaluator, "best_scoring_function") and evaluator.best_scoring_function is not None:
-                    self.score_function = evaluator.best_scoring_function 
+                    self.score_function_name = evaluator.best_scoring_function 
                 if save_best_model:
                     self.save(output_path)
 

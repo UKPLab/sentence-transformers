@@ -91,6 +91,30 @@ def dot_score(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Ten
     return torch.mm(a, b.transpose(0, 1))
 
 
+def pairwise_manhattan_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]) -> Tensor:
+    """
+    Computes the pairwise manhattan similarity manhattan_sim(a[i], b[i])
+
+    :return: Vector with res[i] = manhattan_sim(a[i], b[i])
+    """
+    a = _convert_to_tensor(a)
+    b = _convert_to_tensor(b)
+
+    return -torch.cdist(a, b, p=1.0)
+
+
+def pairwise_euclidean_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]) -> Tensor:
+    """
+    Computes the pairwise euclidean similarity euclidean_sim(a[i], b[i])
+
+    :return: Vector with res[i] = euclidean_sim(a[i], b[i])
+    """
+    a = _convert_to_tensor(a)
+    b = _convert_to_tensor(b)
+
+    return -torch.cdist(a, b, p=2.0)
+
+
 def pairwise_dot_score(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]) -> Tensor:
     """
     Computes the pairwise dot-product dot_prod(a[i], b[i])

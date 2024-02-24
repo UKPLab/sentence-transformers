@@ -3,7 +3,11 @@ from .util import (
     cos_sim,
     manhattan_sim,
     euclidean_sim,
-    dot_score
+    dot_score,
+    pairwise_cos_sim,
+    pairwise_dot_score,
+    pairwise_manhattan_sim,
+    pairwise_euclidean_sim
 )
 
 class SimilarityFunction(Enum):
@@ -25,6 +29,22 @@ class SimilarityFunction(Enum):
             return euclidean_sim
         elif score_function == SimilarityFunction.DOT_SCORE.value:
             return dot_score
+        else:
+            raise ValueError("The provided function is not supported. Use one of the supported values: {}.".format([m.value for m in SimilarityFunction]))
+
+    @staticmethod
+    def map_to_pairwise_function(score_function):
+        if isinstance(score_function, Enum):
+            score_function = score_function.value
+
+        if score_function == SimilarityFunction.COSINE.value:
+            return pairwise_cos_sim
+        elif score_function == SimilarityFunction.MANHATTAN.value:
+            return pairwise_manhattan_sim
+        elif score_function == SimilarityFunction.EUCLIDEAN.value:
+            return pairwise_euclidean_sim
+        elif score_function == SimilarityFunction.DOT_SCORE.value:
+            return pairwise_dot_score
         else:
             raise ValueError("The provided function is not supported. Use one of the supported values: {}.".format([m.value for m in SimilarityFunction]))
         
