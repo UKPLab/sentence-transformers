@@ -27,7 +27,7 @@ class Pooling(nn.Module):
         "lasttoken",
         "max",
         "mean",
-        "meansqrt",
+        "mean_sqrt_len_tokens",
         "weightedmean",
     )
 
@@ -67,7 +67,7 @@ class Pooling(nn.Module):
             pooling_mode_cls_token = pooling_mode == "cls"
             pooling_mode_max_tokens = pooling_mode == "max"
             pooling_mode_mean_tokens = pooling_mode == "mean"
-            pooling_mode_mean_sqrt_len_tokens = pooling_mode == "meansqrt"
+            pooling_mode_mean_sqrt_len_tokens = pooling_mode == "mean_sqrt_len_tokens"
             pooling_mode_weightedmean_tokens = pooling_mode == "weightedmean"
             pooling_mode_lasttoken = pooling_mode == "lasttoken"
 
