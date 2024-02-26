@@ -1,0 +1,18 @@
+from typing import List, Optional, Union
+from torch.nn import Module
+from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers.losses import AdaptiveLayerLoss, MatryoshkaLoss
+
+
+class Matryoshka2dLoss(AdaptiveLayerLoss):
+    def __init__(
+        self,
+        model: SentenceTransformer,
+        loss: Module,
+        matryoshka_dims: List[int],
+        matryoshka_weights: Optional[List[Union[float, int]]] = None,
+        n_layers_per_step: int = 1,
+    ) -> None:
+        # Note, this uses n_layers_per_step=1 as per the 2DMSE implementation
+        matryoshka_loss = MatryoshkaLoss(model, loss, matryoshka_dims, matryoshka_weights=matryoshka_weights)
+        super().__init__(model, matryoshka_loss, n_layers_per_step)
