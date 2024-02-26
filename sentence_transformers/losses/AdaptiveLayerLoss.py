@@ -1,9 +1,11 @@
 import random
 from typing import Dict, Iterable, List, Tuple
+import warnings
 from torch import Tensor, nn
 from torch.nn import functional as F
 import torch
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
 from sentence_transformers.models import Transformer
 
 
@@ -90,6 +92,8 @@ class AdaptiveLayerLoss(nn.Module):
         self.loss = loss
         self.n_layers_per_step = n_layers_per_step
         assert isinstance(self.model[0], Transformer)
+        if isinstance(loss, CachedMultipleNegativesRankingLoss):
+            warnings.warn("MatryoshkaLoss is not compatible with CachedMultipleNegativesRankingLoss.", stacklevel=2)
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Decorate the forward function of the transformer to cache the embeddings of all layers

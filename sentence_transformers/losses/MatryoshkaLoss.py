@@ -94,7 +94,7 @@ class MatryoshkaLoss(nn.Module):
         self.model = model
         self.loss = loss
         if isinstance(loss, CachedMultipleNegativesRankingLoss):
-            warnings.warn("MatryoshkaLoss is not compatible with CachedMultipleNegativesRankingLoss.")
+            warnings.warn("MatryoshkaLoss is not compatible with CachedMultipleNegativesRankingLoss.", stacklevel=2)
         self.matryoshka_dims = matryoshka_dims
         if matryoshka_weights is None:
             matryoshka_weights = [1] * len(matryoshka_dims)
