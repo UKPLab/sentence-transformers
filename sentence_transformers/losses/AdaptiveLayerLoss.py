@@ -26,11 +26,8 @@ class TransformerDecorator:
 
     def __call__(self, features):
         if self.layer_idx is None:
-            # print("Calling grow cache")
             output = self.call_grow_cache(features)
-            # self.call_idx = 0
         else:
-            # print("Calling use cache with idx", self.call_idx, "and layer", self.layer_idx, "out of", len(self.embeddings), "layers.")
             output = self.call_use_cache(features)
             self.call_idx += 1
         return output
