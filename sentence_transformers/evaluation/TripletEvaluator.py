@@ -22,7 +22,7 @@ class TripletEvaluator(SentenceEvaluator):
         anchors: List[str],
         positives: List[str],
         negatives: List[str],
-        score_function: SimilarityFunction = None,
+        similarity_fct: str = SimilarityFunction.COSINE.value,
         name: str = "",
         batch_size: int = 16,
         show_progress_bar: bool = False,
@@ -32,7 +32,7 @@ class TripletEvaluator(SentenceEvaluator):
         :param anchors: Sentences to check similarity to. (e.g. a query)
         :param positives: List of positive sentences
         :param negatives: List of negative sentences
-        :param score_function: One of "cos_sim" (Cosine), "euclidean_sim" (Euclidean) or "manhattan_sim" (Manhattan). Defaults to None, returning all 3.
+        :param similarity_fct: One of "cos_sim" (Cosine), "euclidean_sim" (Euclidean), "manhattan_sim" (Manhattan) or "dot_score" (Dot product). Defaults to None, returning all 4.
         :param name: Name for the output
         :param batch_size: Batch size used to compute embeddings
         :param show_progress_bar: If true, prints a progress bar
@@ -46,7 +46,7 @@ class TripletEvaluator(SentenceEvaluator):
         assert len(self.anchors) == len(self.positives)
         assert len(self.anchors) == len(self.negatives)
 
-        self.best_scoring_function = score_function
+        self.best_scoring_function = similarity_fct
 
         self.batch_size = batch_size
         if show_progress_bar is None:
@@ -83,7 +83,7 @@ class TripletEvaluator(SentenceEvaluator):
         logger.info("TripletEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
 
         num_triplets = 0
-        num_correct_cos_triplets, num_correct_manhattan_triplets, num_correct_euclidean_triplets = 0, 0, 0
+        num_correct_cos_triplets, num_correct_dot_triplets, num_correct_manhattan_triplets, num_correct_euclidean_triplets = 0, 0, 0, 0
 
         embeddings_anchors = model.encode(
             self.anchors, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True
@@ -99,6 +99,10 @@ class TripletEvaluator(SentenceEvaluator):
         pos_cos_sim = 1-paired_cosine_distances(embeddings_anchors, embeddings_positives)
         neg_cos_sims = 1-paired_cosine_distances(embeddings_anchors, embeddings_negatives)
 
+        # Dot score
+        pos_dot_sim = np.sum(embeddings_anchors * embeddings_positives, axis=-1)
+        neg_dot_sims = np.sum(embeddings_anchors * embeddings_negatives, axis=-1)
+
         # Manhattan
         pos_manhattan_sim = -paired_manhattan_distances(embeddings_anchors, embeddings_positives)
         neg_manhattan_sims = -paired_manhattan_distances(embeddings_anchors, embeddings_negatives)
@@ -113,6 +117,9 @@ class TripletEvaluator(SentenceEvaluator):
             if pos_cos_sim[idx] > neg_cos_sims[idx]:
                 num_correct_cos_triplets += 1
 
+            if pos_dot_sim[idx] > neg_dot_sims[idx]:
+                num_correct_dot_triplets += 1
+
             if pos_manhattan_sim[idx] > neg_manhattan_sims[idx]:
                 num_correct_manhattan_triplets += 1
 
@@ -120,15 +127,18 @@ class TripletEvaluator(SentenceEvaluator):
                 num_correct_euclidean_triplets += 1
 
         accuracy_cos = num_correct_cos_triplets / num_triplets
+        accuracy_dot = num_correct_dot_triplets / num_triplets
         accuracy_manhattan = num_correct_manhattan_triplets / num_triplets
         accuracy_euclidean = num_correct_euclidean_triplets / num_triplets
         accs =  {
             SimilarityFunction.COSINE.value: accuracy_cos,
+            SimilarityFunction.DOT_SCORE.value: accuracy_dot,
             SimilarityFunction.MANHATTAN.value: accuracy_manhattan,
             SimilarityFunction.EUCLIDEAN.value: accuracy_euclidean,
         }
 
         logger.info("Accuracy Cosine Similarity:   \t{:.2f}".format(accuracy_cos * 100))
+        logger.info("Accuracy Dot score:   \t{:.2f}".format(accuracy_dot * 100))
         logger.info("Accuracy Manhattan Similarity:\t{:.2f}".format(accuracy_manhattan * 100))
         logger.info("Accuracy Euclidean Similarity:\t{:.2f}\n".format(accuracy_euclidean * 100))
 
@@ -138,18 +148,20 @@ class TripletEvaluator(SentenceEvaluator):
                 with open(csv_path, newline="", mode="w", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow(self.csv_headers)
-                    writer.writerow([epoch, steps, accuracy_cos, accuracy_manhattan, accuracy_euclidean])
+                    writer.writerow([epoch, steps, accuracy_cos, accuracy_manhattan, accuracy_euclidean, accuracy_dot])
 
             else:
                 with open(csv_path, newline="", mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
-                    writer.writerow([epoch, steps, accuracy_cos, accuracy_manhattan, accuracy_euclidean])
+                    writer.writerow([epoch, steps, accuracy_cos, accuracy_manhattan, accuracy_euclidean, accuracy_dot])
 
-        if self.best_scoring_function == SimilarityFunction.COSINE:
+        if self.best_scoring_function == SimilarityFunction.COSINE.value:
             return accuracy_cos
-        if self.best_scoring_function == SimilarityFunction.MANHATTAN:
+        if self.best_scoring_function == SimilarityFunction.DOT_SCORE.value:
+            return accuracy_dot
+        if self.best_scoring_function == SimilarityFunction.MANHATTAN.value:
             return accuracy_manhattan
-        if self.best_scoring_function == SimilarityFunction.EUCLIDEAN:
+        if self.best_scoring_function == SimilarityFunction.EUCLIDEAN.value:
             return accuracy_euclidean
 
         key_acc_max = max(accs, key=lambda x: accs[x]) 

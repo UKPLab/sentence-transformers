@@ -56,8 +56,6 @@ class SentenceTransformer(nn.Sequential):
     :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path,
         it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model
         from the Hugging Face Hub with that name.
-    :param score_function: A string denoting the function used for comparing two embeddings. If it is None, it will be
-        set to the function with the highest score on the validation set. The list of possible values is in `SimilarityFunctions.py`
     :param modules: A list of torch Modules that should be called sequentially, can be used to create custom
         SentenceTransformer models from scratch.
     :param device: Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
@@ -75,7 +73,6 @@ class SentenceTransformer(nn.Sequential):
         self,
         model_name_or_path: Optional[str] = None,
         modules: Optional[Iterable[nn.Module]] = None,
-        score_function: Enum = SimilarityFunction.COSINE,
         device: Optional[str] = None,
         cache_folder: Optional[str] = None,
         trust_remote_code: bool = False,
@@ -201,7 +198,7 @@ class SentenceTransformer(nn.Sequential):
                     trust_remote_code=trust_remote_code,
                 )
         else:
-            self.score_function_name = score_function.value
+            self.score_function_name = None
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -211,14 +208,9 @@ class SentenceTransformer(nn.Sequential):
             device = get_device_name()
             logger.info("Use pytorch device_name: {}".format(device))
 
-        if self.score_function_name is None:
-            self.score_function = None
-            self.score_function_pairwise = None
-        else:
-            if not isinstance(self.score_function_name, Enum):
-                raise ValueError("Type of score function is {}, but should be an enum.".format(type(score_function)))
-            elif self.score_function_name not in SimilarityFunction.possible_values():
-                raise ValueError("The provided value is {}, but available values are {}.".format(score_function.value, SimilarityFunction.possible_values()))
+        if self.score_function_name is not None:
+            if self.score_function_name not in SimilarityFunction.possible_values():
+                raise ValueError("The provided value is {}, but available values are {}.".format(self.score_function_name, SimilarityFunction.possible_values()))
 
             self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
             self.score_function_pairwise = SimilarityFunction.map_to_pairwise_function(self.score_function_name)
@@ -521,7 +513,7 @@ class SentenceTransformer(nn.Sequential):
             }
 
         if "score_function" not in self._model_config:
-            self._model_config["score_function"] = self.score_function
+            self._model_config["score_function"] = self.score_function_name
 
         with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
             json.dump(self._model_config, fOut, indent=2)
@@ -911,8 +903,9 @@ class SentenceTransformer(nn.Sequential):
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
             
-            self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
-            self.score_function_pairwise = SimilarityFunction.map_to_pairwise_function(self.score_function_name)
+            if self.score_function_name is not None:
+                self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
+                self.score_function_pairwise = SimilarityFunction.map_to_pairwise_function(self.score_function_name)
 
         if evaluator is None and output_path is not None:  # No evaluator, but output path: save final model version
             self.save(output_path)

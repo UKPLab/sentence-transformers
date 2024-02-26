@@ -34,7 +34,7 @@ def pretrained_model_score(
             if max_test_samples != -1 and len(test_samples) >= max_test_samples:
                 break
 
-    evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name="sts-test")
+    evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, main_similarity=None, name="sts-test")
 
     score = model.evaluate(evaluator) * 100
     print(model_name, "{:.2f} vs. exp: {:.2f}".format(score, expected_score))

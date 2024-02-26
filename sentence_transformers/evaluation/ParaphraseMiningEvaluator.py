@@ -5,7 +5,7 @@ from sentence_transformers.util import paraphrase_mining
 import os
 import csv
 
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 from collections import defaultdict
 
 
@@ -33,6 +33,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         batch_size: int = 16,
         name: str = "",
         write_csv: bool = True,
+        similarity_fct: Union[str, SimilarityFunction] = SimilarityFunction.COSINE.value
     ):
         """
 
@@ -94,7 +95,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "precision", "recall", "f1", "threshold", "average_precision"]
         self.write_csv = write_csv
 
-        self.best_scoring_function = SimilarityFunction.COSINE
+        self.best_scoring_function = similarity_fct.value if isinstance(similarity_fct, SimilarityFunction) else similarity_fct
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:

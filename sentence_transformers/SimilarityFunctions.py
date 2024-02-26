@@ -30,7 +30,7 @@ class SimilarityFunction(Enum):
         elif score_function == SimilarityFunction.DOT_SCORE.value:
             return dot_score
         else:
-            raise ValueError("The provided function is not supported. Use one of the supported values: {}.".format([m.value for m in SimilarityFunction]))
+            raise ValueError("The provided function {} is not supported. Use one of the supported values: {}.".format(score_function, SimilarityFunction.possible_values()))
 
     @staticmethod
     def map_to_pairwise_function(score_function):
@@ -46,7 +46,7 @@ class SimilarityFunction(Enum):
         elif score_function == SimilarityFunction.DOT_SCORE.value:
             return pairwise_dot_score
         else:
-            raise ValueError("The provided function is not supported. Use one of the supported values: {}.".format([m.value for m in SimilarityFunction]))
+            raise ValueError("The provided function {} is not supported. Use one of the supported values: {}.".format(score_function, SimilarityFunction.possible_values()))
         
     @staticmethod
     def possible_values():
