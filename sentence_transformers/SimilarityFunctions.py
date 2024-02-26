@@ -1,13 +1,13 @@
 from enum import Enum
 from .util import (
-    cos_sim,
-    manhattan_sim,
-    euclidean_sim,
-    dot_score,
-    pairwise_cos_sim,
-    pairwise_dot_score,
-    pairwise_manhattan_sim,
-    pairwise_euclidean_sim
+    cos_sim_fn,
+    manhattan_sim_fn,
+    euclidean_sim_fn,
+    dot_score_fn,
+    pairwise_cos_sim_fn,
+    pairwise_dot_score_fn,
+    pairwise_manhattan_sim_fn,
+    pairwise_euclidean_sim_fn
 )
 
 class SimilarityFunction(Enum):
@@ -22,13 +22,13 @@ class SimilarityFunction(Enum):
             score_function = score_function.value
 
         if score_function == SimilarityFunction.COSINE.value:
-            return cos_sim
+            return cos_sim_fn
         elif score_function == SimilarityFunction.MANHATTAN.value:
-            return manhattan_sim
+            return manhattan_sim_fn
         elif score_function == SimilarityFunction.EUCLIDEAN.value:
-            return euclidean_sim
+            return euclidean_sim_fn
         elif score_function == SimilarityFunction.DOT_SCORE.value:
-            return dot_score
+            return dot_score_fn
         else:
             raise ValueError("The provided function {} is not supported. Use one of the supported values: {}.".format(score_function, SimilarityFunction.possible_values()))
 
@@ -38,13 +38,13 @@ class SimilarityFunction(Enum):
             score_function = score_function.value
 
         if score_function == SimilarityFunction.COSINE.value:
-            return pairwise_cos_sim
+            return pairwise_cos_sim_fn
         elif score_function == SimilarityFunction.MANHATTAN.value:
-            return pairwise_manhattan_sim
+            return pairwise_manhattan_sim_fn
         elif score_function == SimilarityFunction.EUCLIDEAN.value:
-            return pairwise_euclidean_sim
+            return pairwise_euclidean_sim_fn
         elif score_function == SimilarityFunction.DOT_SCORE.value:
-            return pairwise_dot_score
+            return pairwise_dot_score_fn
         else:
             raise ValueError("The provided function {} is not supported. Use one of the supported values: {}.".format(score_function, SimilarityFunction.possible_values()))
         

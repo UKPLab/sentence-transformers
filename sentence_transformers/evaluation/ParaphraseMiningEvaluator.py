@@ -115,7 +115,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
             self.corpus_chunk_size,
             self.max_pairs,
             self.top_k,
-            score_function=SimilarityFunction.map_to_function(self.best_scoring_function),
+            score_function=SimilarityFunction.map_to_pairwise_function(self.best_scoring_function),
         )
 
         logger.info("Number of candidate pairs: " + str(len(pairs_list)))

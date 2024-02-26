@@ -31,10 +31,6 @@ from .util import (
     load_dir_path,
     load_file_path,
     save_to_hub_args_decorator,
-    cos_sim,
-    manhattan_sim,
-    euclidean_sim,
-    dot_score,
     get_device_name,
 )
 from .models import Transformer, Pooling, Normalize

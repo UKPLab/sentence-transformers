@@ -78,4 +78,66 @@ def test_pairwise_scores() -> None:
     # Pairwise cos
     sklearn_pairwise = 1 - sklearn.metrics.pairwise.paired_cosine_distances(a, b)
     pytorch_cos_scores = util.pairwise_cos_sim(a, b).numpy()
+    print(sklearn_pairwise.shape, pytorch_cos_scores.shape)
+    print(sklearn_pairwise[0:3])
+    print(pytorch_cos_scores[0:3])
     assert np.allclose(sklearn_pairwise, pytorch_cos_scores)
+
+def test_pairwise_sims() -> None:
+    a = np.array([[1, 0], [0, 1]]).astype(np.float32)
+    b = np.array([[0, 0], [0, 1]]).astype(np.float32)
+
+    euclidean_expected = np.array([
+        [-1., -np.sqrt(2.)],
+        [-1., 0.]
+    ])
+    euclidean_calculated = util.pairwise_euclidean_sim_fn(a, b).detach().numpy()
+    assert np.allclose(euclidean_expected, euclidean_calculated)
+
+    manhattan_expected = np.array([
+        [-1., -2.],
+        [-1., 0]
+    ])
+    manhattan_calculated = util.pairwise_manhattan_sim_fn(a, b).detach().numpy()
+    assert np.allclose(manhattan_expected, manhattan_calculated)
+
+    a = np.array([[1, 0]]).astype(np.float32) 
+    b = np.array([[1, 0], [0, 1], [-1, 0]]).astype(np.float32)
+    dot_and_cosine_expected = np.array([
+        [1., 0., -1.],
+    ])
+    cosine_calculated = util.pairwise_cos_sim_fn(a, b)
+    dot_calculated = util.pairwise_dot_score_fn(a, b)
+    assert np.allclose(cosine_calculated, dot_and_cosine_expected)
+    assert np.allclose(dot_calculated, dot_and_cosine_expected)
+
+
+def test_sims() -> None:
+    a = np.array([[1, 0], [1, 1]]).astype(np.float32)
+    b = np.array([[0, 0], [0, 0]]).astype(np.float32)
+
+    euclidean_expected = np.array([
+        [-1.],
+        [-np.sqrt(2.)],
+    ])
+    euclidean_calculated = util.euclidean_sim_fn(a, b).detach().numpy()
+    assert np.allclose(euclidean_expected, euclidean_calculated)
+
+    manhattan_expected = np.array([
+        [-1.],
+        [-2.],
+    ])
+    manhattan_calculated = util.manhattan_sim_fn(a, b).detach().numpy()
+    assert np.allclose(manhattan_expected, manhattan_calculated)
+
+    a = np.array([[1, 0], [1, 0], [1, 0]]).astype(np.float32)
+    b = np.array([[1, 0], [0, 1], [-1, 0]]).astype(np.float32)
+    dot_and_cosine_expected = np.array([
+        [1.],
+        [0.],
+        [-1.],
+    ])
+    cosine_calculated = util.cos_sim_fn(a, b)
+    dot_calculated = util.dot_score_fn(a, b)
+    assert np.allclose(cosine_calculated, dot_and_cosine_expected)
+    assert np.allclose(dot_calculated, dot_and_cosine_expected)
