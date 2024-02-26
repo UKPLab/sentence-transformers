@@ -22,6 +22,15 @@ class Pooling(nn.Module):
     :param pooling_mode_lasttoken: Perform last token pooling, see https://arxiv.org/abs/2202.08904 & https://arxiv.org/abs/2201.10005
     """
 
+    POOLING_MODES = (
+        "cls",
+        "lasttoken",
+        "max",
+        "mean",
+        "meansqrt",
+        "weightedmean",
+    )
+
     def __init__(
         self,
         word_embedding_dimension: int,
@@ -49,10 +58,16 @@ class Pooling(nn.Module):
 
         if pooling_mode is not None:  # Set pooling mode by string
             pooling_mode = pooling_mode.lower()
-            assert pooling_mode in ["mean", "max", "cls", "weightedmean", "lasttoken"]
+
+            if pooling_mode not in self.POOLING_MODES:
+                raise ValueError(
+                    f"Set invalid pooling mode: {pooling_mode}. Valid pooling modes are: {self.POOLING_MODES}."
+                )
+
             pooling_mode_cls_token = pooling_mode == "cls"
             pooling_mode_max_tokens = pooling_mode == "max"
             pooling_mode_mean_tokens = pooling_mode == "mean"
+            pooling_mode_mean_sqrt_len_tokens = pooling_mode == "meansqrt"
             pooling_mode_weightedmean_tokens = pooling_mode == "weightedmean"
             pooling_mode_lasttoken = pooling_mode == "lasttoken"
 
