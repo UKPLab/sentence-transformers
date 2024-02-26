@@ -33,7 +33,8 @@ class CoSENTLoss(nn.Module):
             - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
 
         Relations:
-            - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than CoSENTLoss. On our experiments, CoSENTLoss is recommended.
+            - :class:`AnglELoss` is CoSENTLoss with ``pairwise_angle_sim`` as the metric, rather than ``pairwise_cos_sim``.
+            - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than CoSENTLoss. In our experiments, CoSENTLoss is recommended.
 
         Inputs:
             +--------------------------------+------------------------+
