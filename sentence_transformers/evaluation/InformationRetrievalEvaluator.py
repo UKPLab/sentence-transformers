@@ -37,7 +37,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         batch_size: int = 32,
         name: str = "",
         write_csv: bool = True,
-        score_functions: List[Callable[[Tensor, Tensor], Tensor]] = {
+        score_functions: Dict[str, Callable[[Tensor, Tensor], Tensor]] = {
             SimilarityFunction.COSINE: cos_sim,
             SimilarityFunction.DOT_SCORE: dot_score,
         },  # Score function, higher=more similar

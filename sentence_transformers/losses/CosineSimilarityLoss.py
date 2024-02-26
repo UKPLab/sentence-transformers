@@ -24,7 +24,8 @@ class CosineSimilarityLoss(nn.Module):
             1. Sentence pairs with corresponding similarity scores in range `[0, 1]`
 
         Relations:
-            - :class:`CoSENTLoss` seems to produce a stronger training signal than CosineSimilarityLoss. On our experiments, CoSENTLoss is recommended.
+            - :class:`CoSENTLoss` seems to produce a stronger training signal than CosineSimilarityLoss. In our experiments, CoSENTLoss is recommended.
+            - :class:`AnglELoss` is :class:`CoSENTLoss` with ``pairwise_angle_sim`` as the metric, rather than ``pairwise_cos_sim``. It also produces a stronger training signal than CosineSimilarityLoss.
 
         Inputs:
             +--------------------------------+------------------------+
