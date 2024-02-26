@@ -1,0 +1,108 @@
+from typing import Dict, Iterable, List, Tuple
+from torch import Tensor, nn
+import torch
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.models import Transformer
+
+
+class TransformerDecorator:
+    def __init__(self, transformer: Transformer, original_forward):
+        self.transformer = transformer
+        self.original_forward = original_forward
+        self.embeddings: List[Tuple[Tensor]] = []
+        self.last_embeddings: List[Tensor] = []
+        self.features: List[Dict[str, Tensor]] = []
+        self.layer_idx = None
+        self.call_idx = 0
+
+    def set_layer_idx(self, layer_idx):
+        self.layer_idx = layer_idx
+        self.call_idx = 0
+
+    def get_layer_embeddings(self):
+        return torch.concat([embedding[self.layer_idx] for embedding in self.embeddings], dim=1)
+
+    def __call__(self, features):
+        if self.layer_idx is None:
+            # print("Calling grow cache")
+            output = self.call_grow_cache(features)
+            # self.call_idx = 0
+        else:
+            # print("Calling use cache with idx", self.call_idx, "and layer", self.layer_idx, "out of", len(self.embeddings), "layers.")
+            output = self.call_use_cache(features)
+            self.call_idx += 1
+        return output
+
+    def call_grow_cache(self, features):
+        """
+        Temporarily sets the output_hidden_states to True, runs the model, and then restores the original setting.
+        Use the all_layer_embeddings to get the embeddings of all layers.
+        """
+        original_output_hidden_states = self.transformer.auto_model.config.output_hidden_states
+        self.transformer.auto_model.config.output_hidden_states = True
+
+        output = self.original_forward(features)
+        # We ignore the first layer, as it is the input embeddings
+        # and the last layer, as we already computed the loss over it
+        self.num_layers = len(output["all_layer_embeddings"]) - 1
+        self.embeddings.append(output["all_layer_embeddings"][1:-1])
+        self.last_embeddings.append(output["token_embeddings"])
+        self.features.append(
+            {key: value for key, value in output.items() if key not in ["all_layer_embeddings", "token_embeddings"]}
+        )
+
+        # Restore original setting
+        self.transformer.auto_model.config.output_hidden_states = original_output_hidden_states
+
+        if original_output_hidden_states:
+            del output["all_layer_embeddings"]
+
+        return output
+
+    def call_use_cache(self, features):
+        return {**self.features[self.call_idx], "token_embeddings": self.embeddings[self.call_idx][self.layer_idx]}
+
+
+class AdaptiveLayerLoss(nn.Module):
+    def __init__(
+        self,
+        model: SentenceTransformer,
+        loss: nn.Module,
+    ):
+        super().__init__()
+        self.model = model
+        self.loss = loss
+        assert isinstance(self.model[0], Transformer)
+
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+        original_forward = self.model[0].forward
+        decorated_forward = TransformerDecorator(self.model[0], original_forward)
+        self.model[0].forward = decorated_forward
+
+        # Run the loss normally: i.e. the final layer
+        # but use the decorator to get the embeddings of all layers
+        loss = self.loss(sentence_features, labels)
+        """
+        final_embeddings = torch.concat(decorated_forward.last_embeddings, dim=1)
+        """
+
+        # This loop is over `num_layer - 1` layers because we already computed the loss over the final layer
+        for layer_idx in range(decorated_forward.num_layers - 1):
+            # Add regular loss for each layer by using the cached embeddings of that layer
+            decorated_forward.set_layer_idx(layer_idx)
+            layer_loss = self.loss(sentence_features, labels) / (decorated_forward.num_layers - 1)
+            loss = loss + layer_loss
+
+            """
+            # and KL-divergence loss between the current layer and the final layer
+            # Note: we use "batchmean" reduction as that aligns with the mathematical definition
+            embeddings = decorated_forward.get_layer_embeddings()
+            kl_div_loss = F.kl_div(
+                F.log_softmax(embeddings, dim=-1), F.softmax(final_embeddings, dim=-1), reduction="batchmean"
+            ) / (decorated_forward.num_layers - 1)
+            loss = loss + kl_div_loss
+            """
+
+        self.model[0].forward = original_forward
+
+        return loss

@@ -1,3 +1,4 @@
+from .AdaptiveLayerLoss import AdaptiveLayerLoss
 from .CosineSimilarityLoss import CosineSimilarityLoss
 from .SoftmaxLoss import SoftmaxLoss
 from .MultipleNegativesRankingLoss import MultipleNegativesRankingLoss
@@ -26,6 +27,7 @@ from .BatchSemiHardTripletLoss import BatchSemiHardTripletLoss
 from .BatchAllTripletLoss import BatchAllTripletLoss
 
 __all__ = [
+    "AdaptiveLayerLoss",
     "CosineSimilarityLoss",
     "SoftmaxLoss",
     "MultipleNegativesRankingLoss",
