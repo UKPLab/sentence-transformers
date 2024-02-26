@@ -10,6 +10,13 @@ from sentence_transformers.models import Transformer
 
 
 class TransformerDecorator:
+    """
+    Decorator that caches the embeddings of all layers of the transformer.
+    When `layer_idx` is set, it returns the cached embeddings of that layer instead.
+
+    This is meant to override the forward function of the Transformer.
+    """
+
     def __init__(self, transformer: Transformer, original_forward):
         self.transformer = transformer
         self.original_forward = original_forward
@@ -65,6 +72,13 @@ class TransformerDecorator:
 
 
 class ForwardDecorator:
+    """
+    Decorator that caches the embeddings after all modules (e.g. pooling) of the model.
+    Required to get the embeddings after all modules for the KL-divergence loss.
+
+    This is meant to override the forward function of the SentenceTransformer.
+    """
+
     def __init__(self, fn):
         self.fn = fn
         self.embeddings = []
@@ -86,7 +100,50 @@ class AdaptiveLayerLoss(nn.Module):
         model: SentenceTransformer,
         loss: nn.Module,
         n_layers_per_step: int = -1,
-    ):
+    ) -> None:
+        """
+        The AdaptiveLayerLoss can be seen as a loss *modifier* that allows you to use other loss functions at non-final
+        layers of the Sentence Transformer model. This is useful for when you want to train a model where users have
+        the option to lower the number of layers used to improve their inference speed and memory usage.
+
+        :param model: SentenceTransformer model
+        :param loss: The loss function to be used, e.g. :class:`MultipleNegativesRankingLoss`, :class:`CoSENTLoss`, etc.
+        :param n_layers_per_step: The number of layers to use per step. If -1, then all layers are used. If > 0, then
+            a random sample of n_layers_per_step layers are used per step. The 2DMSE paper uses `n_layers_per_step=1`.
+            The default value is -1.
+
+        References:
+            - The concept was inspired by the 2DMSE paper: https://arxiv.org/abs/2402.14776
+
+        Requirements:
+            1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`.
+
+        Input:
+            +---------------------------------------+--------+
+            | Texts                                 | Labels |
+            +=======================================+========+
+            | any                                   | any    |
+            +---------------------------------------+--------+
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer, losses, InputExample
+                from torch.utils.data import DataLoader
+
+                model = SentenceTransformer('microsoft/mpnet-base')
+                train_examples = [
+                    InputExample(texts=['Anchor 1', 'Positive 1']),
+                    InputExample(texts=['Anchor 2', 'Positive 2']),
+                ]
+                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
+                train_loss = losses.MultipleNegativesRankingLoss(model=model)
+                train_loss = losses.AdaptiveLayerLoss(model, train_loss)
+                model.fit(
+                    [(train_dataloader, train_loss)],
+                    epochs=10,
+                )
+        """
         super().__init__()
         self.model = model
         self.loss = loss
