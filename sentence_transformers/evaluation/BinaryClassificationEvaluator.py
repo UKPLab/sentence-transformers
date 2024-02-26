@@ -6,7 +6,7 @@ import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 from sklearn.metrics import average_precision_score
 import numpy as np
-from typing import List
+from typing import List, Union
 from ..readers import InputExample
 
 
@@ -17,7 +17,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on the similarity of the embeddings by calculating the accuracy of identifying similar and
     dissimilar sentences.
-    The metrics are the cosine similarity as well as euclidean and Manhattan distance
+    The metrics are the cosine similarity, dot score, Euclidean and Manhattan distance
     The returned score is the accuracy with a specified metric.
 
     The results are written in a CSV. If a CSV already exists, then values are appended.
@@ -42,6 +42,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         batch_size: int = 32,
         show_progress_bar: bool = False,
         write_csv: bool = True,
+        similarity_fct: Union[str, SimilarityFunction] = SimilarityFunction.COSINE.value,
     ):
         self.sentences1 = sentences1
         self.sentences2 = sentences2
@@ -76,7 +77,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             for m in metrics:
                 self.csv_headers.append(f"{v}_{m}")
 
-        self.best_scoring_function = None
+        self.best_scoring_function = similarity_fct.value if isinstance(similarity_fct, SimilarityFunction) else similarity_fct
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -157,8 +158,8 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
 
         embeddings1_np = np.asarray(embeddings1)
         embeddings2_np = np.asarray(embeddings2)
-        dot_scores = [np.dot(embeddings1_np[i], embeddings2_np[i]) for i in range(len(embeddings1_np))]
-
+        dot_scores = embeddings1_np.dot(embeddings2_np.T)
+        
         labels = np.asarray(self.labels)
         output_scores = {}
         for short_name, name, scores, reverse in [

@@ -5,7 +5,7 @@ import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 from scipy.stats import pearsonr, spearmanr
 import numpy as np
-from typing import List
+from typing import List, Union
 from ..readers import InputExample
 
 
@@ -28,7 +28,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         sentences2: List[str],
         scores: List[float],
         batch_size: int = 16,
-        main_similarity: SimilarityFunction = None,
+        main_similarity: Union[str, SimilarityFunction] = SimilarityFunction.COSINE.value,
         name: str = "",
         show_progress_bar: bool = False,
         write_csv: bool = True,
@@ -51,7 +51,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.scores)
 
-        self.main_similarity = main_similarity
+        self.main_similarity = main_similarity if isinstance(main_similarity, SimilarityFunction) else main_similarity
         self.name = name
 
         self.batch_size = batch_size
@@ -74,7 +74,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             "dot_pearson",
             "dot_spearman",
         ]
-        self.best_scoring_function = None
+        self.best_scoring_function = self.main_similarity
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -116,7 +116,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         cosine_scores = 1 - (paired_cosine_distances(embeddings1, embeddings2))
         manhattan_distances = -paired_manhattan_distances(embeddings1, embeddings2)
         euclidean_distances = -paired_euclidean_distances(embeddings1, embeddings2)
-        dot_products = [np.dot(emb1, emb2) for emb1, emb2 in zip(embeddings1, embeddings2)]
+        dot_products = np.sum(embeddings1 * embeddings2, axis=-1)
 
         eval_pearson_cosine, _ = pearsonr(labels, cosine_scores)
         eval_spearman_cosine, _ = spearmanr(labels, cosine_scores)
@@ -170,13 +170,13 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                     ]
                 )
 
-        if self.main_similarity == SimilarityFunction.COSINE:
+        if self.main_similarity == SimilarityFunction.COSINE.value:
             return eval_spearman_cosine
-        elif self.main_similarity == SimilarityFunction.EUCLIDEAN:
+        elif self.main_similarity == SimilarityFunction.EUCLIDEAN.value:
             return eval_spearman_euclidean
-        elif self.main_similarity == SimilarityFunction.MANHATTAN:
+        elif self.main_similarity == SimilarityFunction.MANHATTAN.value:
             return eval_spearman_manhattan
-        elif self.main_similarity == SimilarityFunction.DOT_SCORE:
+        elif self.main_similarity == SimilarityFunction.DOT_SCORE.value:
             return eval_spearman_dot
         elif self.main_similarity is None:
             eval_metrics = [eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot]

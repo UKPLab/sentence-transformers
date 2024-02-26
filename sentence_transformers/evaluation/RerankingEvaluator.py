@@ -31,7 +31,7 @@ class RerankingEvaluator(SentenceEvaluator):
         at_k: int = 10,
         name: str = "",
         write_csv: bool = True,
-        score_function: SimilarityFunction = SimilarityFunction.COSINE,
+        similarity_fct: str = SimilarityFunction.COSINE.value,
         batch_size: int = 64,
         show_progress_bar: bool = False,
         use_batched_encoding: bool = True,
@@ -45,7 +45,7 @@ class RerankingEvaluator(SentenceEvaluator):
         else:
             self.at_k = at_k
 
-        self.score_function = SimilarityFunction.map_to_function(score_function)
+        self.similarity_fct = SimilarityFunction.map_to_function(similarity_fct)
 
         self.batch_size = batch_size
         self.show_progress_bar = show_progress_bar
@@ -164,7 +164,7 @@ class RerankingEvaluator(SentenceEvaluator):
             if num_pos == 0 or num_neg == 0:
                 continue
 
-            pred_scores = self.score_function(query_emb, docs_emb)
+            pred_scores = self.similarity_fct(query_emb, docs_emb)
             if len(pred_scores.shape) > 1:
                 pred_scores = pred_scores[0]
 
@@ -219,7 +219,7 @@ class RerankingEvaluator(SentenceEvaluator):
             )
             docs_emb = model.encode(docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
 
-            pred_scores = self.score_function(query_emb, docs_emb)
+            pred_scores = self.similarity_fct(query_emb, docs_emb)
             if len(pred_scores.shape) > 1:
                 pred_scores = pred_scores[0]
 
