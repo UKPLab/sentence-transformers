@@ -160,7 +160,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
 
         embeddings1_np = np.asarray(embeddings1)
         embeddings2_np = np.asarray(embeddings2)
-        dot_scores = embeddings1_np.dot(embeddings2_np.T)
+        dot_scores = np.sum(embeddings1_np * embeddings2_np, axis=-1)
 
         labels = np.asarray(self.labels)
         output_scores = {}
@@ -199,6 +199,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         assert len(scores) == len(labels)
         rows = list(zip(scores, labels))
 
+        print(rows[0])
         rows = sorted(rows, key=lambda x: x[0], reverse=high_score_more_similar)
 
         max_acc = 0

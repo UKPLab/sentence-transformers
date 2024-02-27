@@ -7,7 +7,7 @@ import csv
 import torch
 from sklearn.metrics import average_precision_score, ndcg_score
 import tqdm
-from typing import Optional
+from typing import Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class RerankingEvaluator(SentenceEvaluator):
         at_k: int = 10,
         name: str = "",
         write_csv: bool = True,
-        similarity_fct: str = SimilarityFunction.COSINE.value,
+        similarity_fct: Union[str, SimilarityFunction] = SimilarityFunction.COSINE.value,
         batch_size: int = 64,
         show_progress_bar: bool = False,
         use_batched_encoding: bool = True,
@@ -43,7 +43,13 @@ class RerankingEvaluator(SentenceEvaluator):
         else:
             self.at_k = at_k
 
-        self.similarity_fct = SimilarityFunction.map_to_function(similarity_fct)
+        self.best_scoring_function = (
+            similarity_fct.value if isinstance(similarity_fct, SimilarityFunction) else similarity_fct
+        )
+        if self.best_scoring_function is None:
+            self.sim_fcts_to_check = SimilarityFunction.possible_values()
+        else:
+            self.sim_fcts_to_check = [self.best_scoring_function]
 
         self.batch_size = batch_size
         self.show_progress_bar = show_progress_bar
@@ -111,7 +117,7 @@ class RerankingEvaluator(SentenceEvaluator):
                 if not output_file_exists:
                     writer.writerow(self.csv_headers)
 
-                writer.writerow([epoch, steps, mean_ap, mean_mrr, mean_ndcg])
+                writer.writerow([epoch, steps, mean_ap, mean_mrr, mean_ndcg, self.best_scoring_function])
 
         return mean_ap
 
@@ -148,45 +154,60 @@ class RerankingEvaluator(SentenceEvaluator):
             all_docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar
         )
 
-        # Compute scores
-        query_idx, docs_idx = 0, 0
-        for instance in self.samples:
-            query_emb = all_query_embs[query_idx]
-            query_idx += 1
+        mean_ap_scores, mean_mrr_scores, mean_ndcg_scores = [], [], []
+        for sim_fct_str in self.sim_fcts_to_check:
+            sim_fct_mapping = SimilarityFunction.map_to_function(sim_fct_str)
 
-            num_pos = len(instance["positive"])
-            num_neg = len(instance["negative"])
-            docs_emb = all_docs_embs[docs_idx : docs_idx + num_pos + num_neg]
-            docs_idx += num_pos + num_neg
+            # Compute scores
+            query_idx, docs_idx = 0, 0
+            for instance in self.samples:
+                query_emb = all_query_embs[query_idx]
+                query_idx += 1
 
-            if num_pos == 0 or num_neg == 0:
-                continue
+                num_pos = len(instance["positive"])
+                num_neg = len(instance["negative"])
+                docs_emb = all_docs_embs[docs_idx : docs_idx + num_pos + num_neg]
+                docs_idx += num_pos + num_neg
 
-            pred_scores = self.similarity_fct(query_emb, docs_emb)
-            if len(pred_scores.shape) > 1:
-                pred_scores = pred_scores[0]
+                if num_pos == 0 or num_neg == 0:
+                    continue
 
-            pred_scores_argsort = torch.argsort(-pred_scores)  # Sort in decreasing order
-            pred_scores = pred_scores.cpu().tolist()
+                pred_scores = sim_fct_mapping(query_emb, docs_emb)
+                if len(pred_scores.shape) > 1:
+                    pred_scores = pred_scores[0]
 
-            # Compute MRR score
-            is_relevant = [1] * num_pos + [0] * num_neg
-            mrr_score = 0
-            for rank, index in enumerate(pred_scores_argsort[0 : self.at_k]):
-                if is_relevant[index]:
-                    mrr_score = 1 / (rank + 1)
-                    break
-            all_mrr_scores.append(mrr_score)
+                pred_scores_argsort = torch.argsort(-pred_scores)  # Sort in decreasing order
+                pred_scores = pred_scores.cpu().tolist()
 
-            # Compute NDCG score
-            all_ndcg_scores.append(ndcg_score([is_relevant], [pred_scores], k=self.at_k))
+                # Compute MRR score
+                is_relevant = [1] * num_pos + [0] * num_neg
+                mrr_score = 0
+                for rank, index in enumerate(pred_scores_argsort[0 : self.at_k]):
+                    if is_relevant[index]:
+                        mrr_score = 1 / (rank + 1)
+                        break
+                all_mrr_scores.append(mrr_score)
 
-            # Compute AP
-            all_ap_scores.append(average_precision_score(is_relevant, pred_scores))
+                # Compute NDCG score
+                all_ndcg_scores.append(ndcg_score([is_relevant], [pred_scores], k=self.at_k))
 
-        mean_ap = np.mean(all_ap_scores)
-        mean_mrr = np.mean(all_mrr_scores)
-        mean_ndcg = np.mean(all_ndcg_scores)
+                # Compute AP
+                all_ap_scores.append(average_precision_score(is_relevant, pred_scores))
+
+            mean_ap = np.mean(all_ap_scores)
+            mean_mrr = np.mean(all_mrr_scores)
+            mean_ndcg = np.mean(all_ndcg_scores)
+
+            mean_ap_scores.append(mean_ap)
+            mean_mrr_scores.append(mean_mrr)
+            mean_ndcg_scores.append(mean_ndcg)
+
+        best_idx = np.argmax(mean_ap_scores)
+        self.best_scoring_function = self.sim_fcts_to_check[best_idx]
+
+        mean_ap = mean_ap_scores[best_idx]
+        mean_mrr = mean_mrr_scores[best_idx]
+        mean_ndcg = mean_ndcg_scores[best_idx]
 
         return {"map": mean_ap, "mrr": mean_mrr, "ndcg": mean_ndcg}
 
@@ -197,49 +218,68 @@ class RerankingEvaluator(SentenceEvaluator):
         embeddings for one tuple are needed. Useful when you have
         a really large test set
         """
-        all_mrr_scores = []
-        all_ndcg_scores = []
-        all_ap_scores = []
 
-        for instance in tqdm.tqdm(self.samples, disable=not self.show_progress_bar, desc="Samples"):
-            query = instance["query"]
-            positive = list(instance["positive"])
-            negative = list(instance["negative"])
+        mean_ap_scores, mean_mrr_scores, mean_ndcg_scores = [], [], []
 
-            if len(positive) == 0 or len(negative) == 0:
-                continue
+        for sim_fct_str in self.sim_fcts_to_check:
+            sim_fct_mapping = SimilarityFunction.map_to_function(sim_fct_str)
 
-            docs = positive + negative
-            is_relevant = [1] * len(positive) + [0] * len(negative)
+            all_mrr_scores = []
+            all_ndcg_scores = []
+            all_ap_scores = []
 
-            query_emb = model.encode(
-                [query], convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False
-            )
-            docs_emb = model.encode(docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
+            for instance in tqdm.tqdm(self.samples, disable=not self.show_progress_bar, desc="Samples"):
+                query = instance["query"]
+                positive = list(instance["positive"])
+                negative = list(instance["negative"])
 
-            pred_scores = self.similarity_fct(query_emb, docs_emb)
-            if len(pred_scores.shape) > 1:
-                pred_scores = pred_scores[0]
+                if len(positive) == 0 or len(negative) == 0:
+                    continue
 
-            pred_scores_argsort = torch.argsort(-pred_scores)  # Sort in decreasing order
-            pred_scores = pred_scores.cpu().tolist()
+                docs = positive + negative
+                is_relevant = [1] * len(positive) + [0] * len(negative)
 
-            # Compute MRR score
-            mrr_score = 0
-            for rank, index in enumerate(pred_scores_argsort[0 : self.at_k]):
-                if is_relevant[index]:
-                    mrr_score = 1 / (rank + 1)
-                    break
-            all_mrr_scores.append(mrr_score)
+                query_emb = model.encode(
+                    [query], convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False
+                )
+                docs_emb = model.encode(
+                    docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False
+                )
 
-            # Compute NDCG score
-            all_ndcg_scores.append(ndcg_score([is_relevant], [pred_scores], k=self.at_k))
+                pred_scores = sim_fct_mapping(query_emb, docs_emb)
+                if len(pred_scores.shape) > 1:
+                    pred_scores = pred_scores[0]
 
-            # Compute AP
-            all_ap_scores.append(average_precision_score(is_relevant, pred_scores))
+                pred_scores_argsort = torch.argsort(-pred_scores)  # Sort in decreasing order
+                pred_scores = pred_scores.cpu().tolist()
 
-        mean_ap = np.mean(all_ap_scores)
-        mean_mrr = np.mean(all_mrr_scores)
-        mean_ndcg = np.mean(all_ndcg_scores)
+                # Compute MRR score
+                mrr_score = 0
+                for rank, index in enumerate(pred_scores_argsort[0 : self.at_k]):
+                    if is_relevant[index]:
+                        mrr_score = 1 / (rank + 1)
+                        break
+                all_mrr_scores.append(mrr_score)
+
+                # Compute NDCG score
+                all_ndcg_scores.append(ndcg_score([is_relevant], [pred_scores], k=self.at_k))
+
+                # Compute AP
+                all_ap_scores.append(average_precision_score(is_relevant, pred_scores))
+
+            mean_ap = np.mean(all_ap_scores)
+            mean_mrr = np.mean(all_mrr_scores)
+            mean_ndcg = np.mean(all_ndcg_scores)
+
+            mean_ap_scores.append(mean_ap)
+            mean_mrr_scores.append(mean_mrr)
+            mean_ndcg_scores.append(mean_ndcg)
+
+        best_idx = np.argmax(mean_ap_scores)
+        self.best_scoring_function = self.sim_fcts_to_check[best_idx]
+
+        mean_ap = mean_ap_scores[best_idx]
+        mean_mrr = mean_mrr_scores[best_idx]
+        mean_ndcg = mean_ndcg_scores[best_idx]
 
         return {"map": mean_ap, "mrr": mean_mrr, "ndcg": mean_ndcg}

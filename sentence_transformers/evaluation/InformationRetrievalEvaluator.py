@@ -66,7 +66,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.name = name
         self.write_csv = write_csv
         self.similarity_fct = similarity_fct
-        self.similarity_fct_names = sorted(x.value for x in self.similarity_fct.keys())
+        self.similarity_fct_names = sorted(x for x in self.similarity_fct.keys())
         self.main_score_function = (
             main_score_function.value if isinstance(main_score_function, SimilarityFunction) else main_score_function
         )
@@ -167,7 +167,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         )
 
         queries_result_list = {}
-        for name in self.score_functions:
+        for name in self.similarity_fct_names:
             queries_result_list[name] = [[] for _ in range(len(query_embeddings))]
 
         # Iterate over chunks of the corpus
@@ -188,7 +188,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 sub_corpus_embeddings = corpus_embeddings[corpus_start_idx:corpus_end_idx]
 
             # Compute cosine similarites
-            for name, score_function in self.score_functions.items():
+            for name, score_function in self.similarity_fct.items():
                 pair_scores = score_function(query_embeddings, sub_corpus_embeddings)
 
                 # Get top-k values
@@ -220,7 +220,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         logger.info("Corpus: {}\n".format(len(self.corpus)))
 
         # Compute scores
-        scores = {name.value: self.compute_metrics(queries_result_list[name]) for name in self.score_functions}
+        scores = {name: self.compute_metrics(queries_result_list[name]) for name in self.similarity_fct}
 
         # Output
         for name in self.similarity_fct_names:
