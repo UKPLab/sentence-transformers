@@ -12,7 +12,10 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
         matryoshka_dims: List[int],
         matryoshka_weights: Optional[List[Union[float, int]]] = None,
         n_layers_per_step: int = 1,
+        n_dims_per_step: int = 1,
     ) -> None:
-        # Note, this uses n_layers_per_step=1 as per the 2DMSE implementation
-        matryoshka_loss = MatryoshkaLoss(model, loss, matryoshka_dims, matryoshka_weights=matryoshka_weights)
+        # Note, this uses n_layers_per_step=1 & n_dims_per_step=1 as default, following the 2DMSE implementation
+        matryoshka_loss = MatryoshkaLoss(
+            model, loss, matryoshka_dims, matryoshka_weights=matryoshka_weights, n_dims_per_step=n_dims_per_step
+        )
         super().__init__(model, matryoshka_loss, n_layers_per_step)

@@ -6,6 +6,7 @@ from .MultipleNegativesSymmetricRankingLoss import MultipleNegativesSymmetricRan
 from .TripletLoss import TripletDistanceMetric, TripletLoss
 from .MarginMSELoss import MarginMSELoss
 from .MatryoshkaLoss import MatryoshkaLoss
+from .Matryoshka2dLoss import Matryoshka2dLoss
 from .MSELoss import MSELoss
 from .CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
 from .ContrastiveLoss import SiameseDistanceMetric, ContrastiveLoss
@@ -36,6 +37,7 @@ __all__ = [
     "TripletDistanceMetric",
     "MarginMSELoss",
     "MatryoshkaLoss",
+    "Matryoshka2dLoss",
     "MSELoss",
     "ContrastiveLoss",
     "SiameseDistanceMetric",
