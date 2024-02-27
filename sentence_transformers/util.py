@@ -18,20 +18,24 @@ import heapq
 
 logger = logging.getLogger(__name__)
 
+
 def _convert_to_tensor(a: Union[list, np.ndarray, Tensor]):
     if not isinstance(a, Tensor):
         a = torch.tensor(a)
     return a
+
 
 def _convert_to_batch(a: Tensor):
     if len(a.shape) == 1:
         a = a.unsqueeze(0)
     return a
 
+
 def _convert_to_batch_tensor(a: Union[list, np.ndarray, Tensor]):
     a = _convert_to_tensor(a)
     a = _convert_to_batch(a)
     return a
+
 
 def manhattan_sim_fn(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]):
     """
@@ -54,7 +58,8 @@ def euclidean_sim_fn(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarr
     a = _convert_to_batch_tensor(a)
     b = _convert_to_batch_tensor(b)
 
-    return -torch.sqrt(torch.sum((a - b)**2, dim=-1, keepdim=True))
+    return -torch.sqrt(torch.sum((a - b) ** 2, dim=-1, keepdim=True))
+
 
 def pytorch_cos_sim(a: Tensor, b: Tensor) -> Tensor:
     """
@@ -108,6 +113,7 @@ def dot_score(a: Tensor, b: Tensor) -> Tensor:
 
     return torch.mm(a, b.transpose(0, 1))
 
+
 def cos_sim_fn(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]) -> Tensor:
     """
     Computes the cosine similarity.
@@ -133,6 +139,7 @@ def dot_score_fn(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, 
 
     return torch.sum(a * b, dim=-1, keepdim=True)
 
+
 def pairwise_manhattan_sim_fn(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]) -> Tensor:
     """
     Computes the pairwise manhattan similarity manhattan_sim(a[i], b[j]) for all i and j.
@@ -155,6 +162,7 @@ def pairwise_euclidean_sim_fn(a: Union[list, np.ndarray, Tensor], b: Union[list,
     b = _convert_to_tensor(b)
 
     return -torch.cdist(a, b, p=2.0)
+
 
 def pairwise_dot_score(a: Tensor, b: Tensor) -> Tensor:
     """
@@ -208,6 +216,7 @@ def pairwise_cos_sim_fn(a: Union[list, np.ndarray, Tensor], b: Union[list, np.nd
     b = _convert_to_tensor(b)
 
     return torch.mm(normalize_embeddings(a), normalize_embeddings(b).transpose(0, 1))
+
 
 def pairwise_angle_sim(x: Tensor, y: Tensor) -> Tensor:
     """

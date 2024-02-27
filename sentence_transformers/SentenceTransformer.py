@@ -217,7 +217,11 @@ class SentenceTransformer(nn.Sequential):
 
         if self.score_function_name is not None:
             if self.score_function_name not in SimilarityFunction.possible_values():
-                raise ValueError("The provided value is {}, but available values are {}.".format(self.score_function_name, SimilarityFunction.possible_values()))
+                raise ValueError(
+                    "The provided value is {}, but available values are {}.".format(
+                        self.score_function_name, SimilarityFunction.possible_values()
+                    )
+                )
 
             self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
             self.score_function_pairwise = SimilarityFunction.map_to_pairwise_function(self.score_function_name)
@@ -996,7 +1000,7 @@ class SentenceTransformer(nn.Sequential):
                     for loss_model in loss_models:
                         loss_model.zero_grad()
                         loss_model.train()
-                    
+
                 if (
                     checkpoint_path is not None
                     and checkpoint_save_steps is not None
@@ -1006,7 +1010,7 @@ class SentenceTransformer(nn.Sequential):
                     self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
-            
+
             if self.score_function_name is not None:
                 self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
                 self.score_function_pairwise = SimilarityFunction.map_to_pairwise_function(self.score_function_name)
@@ -1045,7 +1049,7 @@ class SentenceTransformer(nn.Sequential):
             if score > self.best_score:
                 self.best_score = score
                 if hasattr(evaluator, "best_scoring_function") and evaluator.best_scoring_function is not None:
-                    self.score_function_name = evaluator.best_scoring_function 
+                    self.score_function_name = evaluator.best_scoring_function
                 if save_best_model:
                     self.save(output_path)
 
@@ -1123,9 +1127,11 @@ class SentenceTransformer(nn.Sequential):
                         self._model_config["__version__"]["sentence_transformers"], __version__
                     )
                 )
-            
+
             if "score_function" in self._model_config:
-                logger.info("The loaded model uses the {} score function.\n".format(self._model_config["score_function"]))
+                logger.info(
+                    "The loaded model uses the {} score function.\n".format(self._model_config["score_function"])
+                )
                 self.score_function_name = self._model_config["score_function"]
             else:
                 self.score_function_name = None

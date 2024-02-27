@@ -67,7 +67,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.similarity_fct = similarity_fct
         self.similarity_fct_names = sorted(x.value for x in self.similarity_fct.keys())
-        self.main_score_function = main_score_function.value if isinstance(main_score_function, SimilarityFunction) else main_score_function
+        self.main_score_function = (
+            main_score_function.value if isinstance(main_score_function, SimilarityFunction) else main_score_function
+        )
         self.best_scoring_function = self.main_score_function
 
         if name:
@@ -92,7 +94,6 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
             for k in map_at_k:
                 self.csv_headers.append("{}-MAP@{}".format(score_name, k))
-
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs) -> float:
         if epoch != -1:

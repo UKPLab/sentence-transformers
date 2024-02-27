@@ -83,7 +83,12 @@ class TripletEvaluator(SentenceEvaluator):
         logger.info("TripletEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
 
         num_triplets = 0
-        num_correct_cos_triplets, num_correct_dot_triplets, num_correct_manhattan_triplets, num_correct_euclidean_triplets = 0, 0, 0, 0
+        (
+            num_correct_cos_triplets,
+            num_correct_dot_triplets,
+            num_correct_manhattan_triplets,
+            num_correct_euclidean_triplets,
+        ) = 0, 0, 0, 0
 
         embeddings_anchors = model.encode(
             self.anchors, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True
@@ -96,8 +101,8 @@ class TripletEvaluator(SentenceEvaluator):
         )
 
         # Cosine distance
-        pos_cos_sim = 1-paired_cosine_distances(embeddings_anchors, embeddings_positives)
-        neg_cos_sims = 1-paired_cosine_distances(embeddings_anchors, embeddings_negatives)
+        pos_cos_sim = 1 - paired_cosine_distances(embeddings_anchors, embeddings_positives)
+        neg_cos_sims = 1 - paired_cosine_distances(embeddings_anchors, embeddings_negatives)
 
         # Dot score
         pos_dot_sim = np.sum(embeddings_anchors * embeddings_positives, axis=-1)
@@ -130,7 +135,7 @@ class TripletEvaluator(SentenceEvaluator):
         accuracy_dot = num_correct_dot_triplets / num_triplets
         accuracy_manhattan = num_correct_manhattan_triplets / num_triplets
         accuracy_euclidean = num_correct_euclidean_triplets / num_triplets
-        accs =  {
+        accs = {
             SimilarityFunction.COSINE.value: accuracy_cos,
             SimilarityFunction.DOT_SCORE.value: accuracy_dot,
             SimilarityFunction.MANHATTAN.value: accuracy_manhattan,
@@ -164,6 +169,6 @@ class TripletEvaluator(SentenceEvaluator):
         if self.best_scoring_function == SimilarityFunction.EUCLIDEAN.value:
             return accuracy_euclidean
 
-        key_acc_max = max(accs, key=lambda x: accs[x]) 
-        self.best_scoring_function = key_acc_max 
+        key_acc_max = max(accs, key=lambda x: accs[x])
+        self.best_scoring_function = key_acc_max
         return accs[key_acc_max]

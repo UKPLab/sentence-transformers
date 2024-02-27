@@ -65,7 +65,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         self.csv_file = "binary_classification_evaluation" + ("_" + name if name else "") + "_results.csv"
         self.csv_headers = ["epoch", "steps"]
         metrics = [
-            "accuracy", 
+            "accuracy",
             "accuracy_threshold",
             "f1",
             "precision",
@@ -77,7 +77,9 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             for m in metrics:
                 self.csv_headers.append(f"{v}_{m}")
 
-        self.best_scoring_function = similarity_fct.value if isinstance(similarity_fct, SimilarityFunction) else similarity_fct
+        self.best_scoring_function = (
+            similarity_fct.value if isinstance(similarity_fct, SimilarityFunction) else similarity_fct
+        )
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -159,7 +161,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         embeddings1_np = np.asarray(embeddings1)
         embeddings2_np = np.asarray(embeddings2)
         dot_scores = embeddings1_np.dot(embeddings2_np.T)
-        
+
         labels = np.asarray(self.labels)
         output_scores = {}
         for short_name, name, scores, reverse in [

@@ -7,8 +7,9 @@ from .util import (
     pairwise_cos_sim_fn,
     pairwise_dot_score_fn,
     pairwise_manhattan_sim_fn,
-    pairwise_euclidean_sim_fn
+    pairwise_euclidean_sim_fn,
 )
+
 
 class SimilarityFunction(Enum):
     COSINE = "cos_sim"
@@ -30,7 +31,11 @@ class SimilarityFunction(Enum):
         elif score_function == SimilarityFunction.DOT_SCORE.value:
             return dot_score_fn
         else:
-            raise ValueError("The provided function {} is not supported. Use one of the supported values: {}.".format(score_function, SimilarityFunction.possible_values()))
+            raise ValueError(
+                "The provided function {} is not supported. Use one of the supported values: {}.".format(
+                    score_function, SimilarityFunction.possible_values()
+                )
+            )
 
     @staticmethod
     def map_to_pairwise_function(score_function):
@@ -46,8 +51,12 @@ class SimilarityFunction(Enum):
         elif score_function == SimilarityFunction.DOT_SCORE.value:
             return pairwise_dot_score_fn
         else:
-            raise ValueError("The provided function {} is not supported. Use one of the supported values: {}.".format(score_function, SimilarityFunction.possible_values()))
-        
+            raise ValueError(
+                "The provided function {} is not supported. Use one of the supported values: {}.".format(
+                    score_function, SimilarityFunction.possible_values()
+                )
+            )
+
     @staticmethod
     def possible_values():
         return [m.value for m in SimilarityFunction]

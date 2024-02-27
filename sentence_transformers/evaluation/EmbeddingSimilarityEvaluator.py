@@ -184,4 +184,6 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             self.best_scoring_function = SimilarityFunction.possible_values()[eval_metrics_argmax]
             return eval_metrics[eval_metrics_argmax]
         else:
-            raise ValueError("Unknown main_similarity value. Possible values are: {}".format(SimilarityFunction.possible_values()))
+            raise ValueError(
+                "Unknown main_similarity value. Possible values are: {}".format(SimilarityFunction.possible_values())
+            )
