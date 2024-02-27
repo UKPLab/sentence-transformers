@@ -9,18 +9,28 @@ import json
 class Pooling(nn.Module):
     """Performs pooling (max or mean) on the token embeddings.
 
-    Using pooling, it generates from a variable sized sentence a fixed sized sentence embedding. This layer also allows to use the CLS token if it is returned by the underlying word embedding model.
-    You can concatenate multiple poolings together.
+    Using pooling, it generates from a variable sized sentence a fixed sized sentence embedding. This layer also allows
+    to use the CLS token if it is returned by the underlying word embedding model. You can concatenate multiple poolings
+    together.
 
     :param word_embedding_dimension: Dimensions for the word embeddings
-    :param pooling_mode: Can be a string: mean/max/cls. If set, overwrites the other pooling_mode_* settings
+    :param pooling_mode: Either "cls", "lasttoken", "max", "mean", "mean_sqrt_len_tokens", or "weightedmean". If set, overwrites the other pooling_mode_* settings
     :param pooling_mode_cls_token: Use the first token (CLS token) as text representations
     :param pooling_mode_max_tokens: Use max in each dimension over all tokens.
     :param pooling_mode_mean_tokens: Perform mean-pooling
     :param pooling_mode_mean_sqrt_len_tokens: Perform mean-pooling, but divide by sqrt(input_length).
-    :param pooling_mode_weightedmean_tokens: Perform (position) weighted mean pooling, see https://arxiv.org/abs/2202.08904
-    :param pooling_mode_lasttoken: Perform last token pooling, see https://arxiv.org/abs/2202.08904 & https://arxiv.org/abs/2201.10005
+    :param pooling_mode_weightedmean_tokens: Perform (position) weighted mean pooling. See `SGPT: GPT Sentence Embeddings for Semantic Search <https://arxiv.org/abs/2202.08904>`_.
+    :param pooling_mode_lasttoken: Perform last token pooling. See `SGPT: GPT Sentence Embeddings for Semantic Search <https://arxiv.org/abs/2202.08904>`_ and `Text and Code Embeddings by Contrastive Pre-Training <https://arxiv.org/abs/2201.10005>`_.
     """
+
+    POOLING_MODES = (
+        "cls",
+        "lasttoken",
+        "max",
+        "mean",
+        "mean_sqrt_len_tokens",
+        "weightedmean",
+    )
 
     def __init__(
         self,
@@ -49,10 +59,16 @@ class Pooling(nn.Module):
 
         if pooling_mode is not None:  # Set pooling mode by string
             pooling_mode = pooling_mode.lower()
-            assert pooling_mode in ["mean", "max", "cls", "weightedmean", "lasttoken"]
+
+            if pooling_mode not in self.POOLING_MODES:
+                raise ValueError(
+                    f"Set invalid pooling mode: {pooling_mode}. Valid pooling modes are: {self.POOLING_MODES}."
+                )
+
             pooling_mode_cls_token = pooling_mode == "cls"
             pooling_mode_max_tokens = pooling_mode == "max"
             pooling_mode_mean_tokens = pooling_mode == "mean"
+            pooling_mode_mean_sqrt_len_tokens = pooling_mode == "mean_sqrt_len_tokens"
             pooling_mode_weightedmean_tokens = pooling_mode == "weightedmean"
             pooling_mode_lasttoken = pooling_mode == "lasttoken"
 
