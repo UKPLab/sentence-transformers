@@ -14,7 +14,7 @@ class Pooling(nn.Module):
     together.
 
     :param word_embedding_dimension: Dimensions for the word embeddings
-    :param pooling_mode: Can be a string: cls, lasttoken, max, mean, mean_sqrt_len_tokens, or weightedmean. If set,
+    :param pooling_mode: Either "cls", "lasttoken", "max", "mean", "mean_sqrt_len_tokens", or "weightedmean". If set,
     overwrites the other pooling_mode_* settings
     :param pooling_mode_cls_token: Use the first token (CLS token) as text representations
     :param pooling_mode_max_tokens: Use max in each dimension over all tokens.
