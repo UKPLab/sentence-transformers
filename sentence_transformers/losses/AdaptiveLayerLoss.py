@@ -185,7 +185,7 @@ class AdaptiveLayerLoss(nn.Module):
             # Add regular loss for each layer by using the cached embeddings of that layer
             transformer_decorator.set_layer_idx(layer_idx)
             layer_loss = self.loss(sentence_features, labels)
-            loss = loss + layer_loss / len(layer_indices)
+            loss = loss + layer_loss / (1 + layer_idx) / len(layer_indices)
 
             # and KL-divergence loss between the current layer and the final layer
             # Note: we use "batchmean" reduction as that aligns with the mathematical definition
@@ -196,7 +196,7 @@ class AdaptiveLayerLoss(nn.Module):
                     final_embeddings,
                     reduction="batchmean",
                 )
-                loss = loss + kl_div_loss * self.kl_temperature / len(layer_indices)
+                loss = loss + kl_div_loss * self.kl_temperature
 
         self.model[0].forward = original_transformer_forward
         self.model.forward = original_forward
