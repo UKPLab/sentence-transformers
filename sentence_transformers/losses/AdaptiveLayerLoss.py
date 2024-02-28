@@ -100,6 +100,7 @@ class AdaptiveLayerLoss(nn.Module):
         model: SentenceTransformer,
         loss: nn.Module,
         n_layers_per_step: int = -1,
+        kl_temperature: float = 1.0,
     ) -> None:
         """
         The AdaptiveLayerLoss can be seen as a loss *modifier* that allows you to use other loss functions at non-final
@@ -111,6 +112,8 @@ class AdaptiveLayerLoss(nn.Module):
         :param n_layers_per_step: The number of layers to use per step. If -1, then all layers are used. If > 0, then
             a random sample of n_layers_per_step layers are used per step. The 2DMSE paper uses `n_layers_per_step=1`.
             The default value is -1.
+        :param kl_temperature: The temperature to use for the KL-divergence loss. If 0, then the KL-divergence loss is
+            not used. The default value is 1.0.
 
         References:
             - The concept was inspired by the 2DMSE paper: https://arxiv.org/abs/2402.14776
@@ -148,6 +151,7 @@ class AdaptiveLayerLoss(nn.Module):
         self.model = model
         self.loss = loss
         self.n_layers_per_step = n_layers_per_step
+        self.kl_temperature = kl_temperature
         assert isinstance(self.model[0], Transformer)
         if isinstance(loss, CachedMultipleNegativesRankingLoss):
             warnings.warn("MatryoshkaLoss is not compatible with CachedMultipleNegativesRankingLoss.", stacklevel=2)
@@ -167,8 +171,9 @@ class AdaptiveLayerLoss(nn.Module):
         # the embeddings of all layers and 2) use the forward decorator to get the embeddings after all modules
         # for the KL-divergence loss
         loss = self.loss(sentence_features, labels)
-        final_embeddings = forward_decorator.get_embeddings()
-        final_embeddings = F.softmax(final_embeddings, dim=-1)
+        if self.kl_temperature > 0:
+            final_embeddings = forward_decorator.get_embeddings()
+            final_embeddings = F.softmax(final_embeddings / self.kl_temperature, dim=-1)
 
         num_layers = transformer_decorator.num_layers
         layer_indices = range(num_layers - 1)
@@ -184,9 +189,14 @@ class AdaptiveLayerLoss(nn.Module):
 
             # and KL-divergence loss between the current layer and the final layer
             # Note: we use "batchmean" reduction as that aligns with the mathematical definition
-            embeddings = forward_decorator.get_embeddings()
-            kl_div_loss = F.kl_div(F.log_softmax(embeddings, dim=-1), final_embeddings, reduction="batchmean")
-            loss = loss + kl_div_loss / len(layer_indices)
+            if self.kl_temperature > 0:
+                embeddings = forward_decorator.get_embeddings()
+                kl_div_loss = F.kl_div(
+                    F.log_softmax(embeddings / self.kl_temperature, dim=-1),
+                    final_embeddings,
+                    reduction="batchmean",
+                )
+                loss = loss + kl_div_loss * self.kl_temperature / len(layer_indices)
 
         self.model[0].forward = original_transformer_forward
         self.model.forward = original_forward
