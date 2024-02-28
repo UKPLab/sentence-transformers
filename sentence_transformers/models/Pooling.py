@@ -184,6 +184,11 @@ class Pooling(nn.Module):
             # attention_mask shape: (bs, seq_len)
             # Get shape [bs] indices of the last token (i.e. the last token for each batch item)
             # Use flip and max() to get the last index of 1 in the attention mask
+
+            if torch.jit.is_tracing():
+                # Avoid tracing the argmax with int64 input that can not be handled by ONNX Runtime: https://github.com/microsoft/onnxruntime/issues/10068
+                attention_mask = attention_mask.to(torch.int32)
+
             values, indices = attention_mask.flip(1).max(1)
             indices = torch.where(values == 0, seq_len - 1, indices)
             gather_indices = seq_len - indices - 1
