@@ -190,7 +190,6 @@ class Pooling(nn.Module):
                 attention_mask = attention_mask.to(torch.int32)
 
             values, indices = attention_mask.flip(1).max(1)
-
             indices = torch.where(values == 0, seq_len - 1, indices)
             gather_indices = seq_len - indices - 1
 
