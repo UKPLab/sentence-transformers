@@ -100,7 +100,7 @@ class AdaptiveLayerLoss(nn.Module):
         model: SentenceTransformer,
         loss: nn.Module,
         n_layers_per_step: int = -1,
-        kl_temperature: float = 1.0,
+        kl_temperature: float = 0.3,
     ) -> None:
         """
         The AdaptiveLayerLoss can be seen as a loss *modifier* that allows you to use other loss functions at non-final
