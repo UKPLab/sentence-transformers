@@ -22,8 +22,6 @@ class CrossEncoder:
     A CrossEncoder takes exactly two sentences / texts as input and either predicts
     a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
     on a scale of 0 ... 1.
-        It does not yield a sentence embedding and does not work for individually sentences.
-        It does not yield a sentence embedding and does not work for individually sentences.
 
     It does not yield a sentence embedding and does not work for individually sentences.
 
@@ -355,7 +353,7 @@ class CrossEncoder:
         self,
         query: str,
         documents: List[str],
-        top_k: int = -1,
+        top_k: Optional[int] = None,
         return_documents: bool = False,
         batch_size: int = 32,
         show_progress_bar: bool = None,
