@@ -68,6 +68,10 @@ class MatryoshkaLoss(nn.Module):
         Requirements:
             1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`.
 
+        Relations:
+            - :class:`Matryoshka2dLoss` uses this loss in combination with :class:`AdaptiveLayerLoss` which allows for
+                layer reduction for faster inference.
+
         Input:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
