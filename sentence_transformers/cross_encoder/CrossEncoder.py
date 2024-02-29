@@ -404,7 +404,7 @@ class CrossEncoder:
 
         :param query: A single query
         :param documents: A list of documents
-        :param top_k: Return the top-k documents. If -1, all documents are returned.
+        :param top_k: Return the top-k documents. If None, all documents are returned.
         :param return_documents: If True, also returns the documents. If False, only returns the indices and scores.
         :param batch_size: Batch size for encoding
         :param show_progress_bar: Output progress bar
