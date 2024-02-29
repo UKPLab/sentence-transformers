@@ -99,7 +99,7 @@ class AdaptiveLayerLoss(nn.Module):
         self,
         model: SentenceTransformer,
         loss: nn.Module,
-        n_layers_per_step: int = -1,
+        n_layers_per_step: int = 1,
         last_layer_weight: float = 1.0,
         prior_layers_weight: float = 1.0,
         kl_div_weight: float = 1.0,
@@ -113,8 +113,8 @@ class AdaptiveLayerLoss(nn.Module):
         :param model: SentenceTransformer model
         :param loss: The loss function to be used, e.g. :class:`MultipleNegativesRankingLoss`, :class:`CoSENTLoss`, etc.
         :param n_layers_per_step: The number of layers to use per step. If -1, then all layers are used. If > 0, then
-            a random sample of n_layers_per_step layers are used per step. The 2DMSE paper uses `n_layers_per_step=1`.
-            The default value is -1.
+            a random sample of `n_layers_per_step` layers are used per step, separate from the final layer, which is
+            always used. The 2DMSE paper uses `n_layers_per_step=1`. The default value is 1.
         :param last_layer_weight: The weight to use for the loss of the final layer. Increase this to focus more on the
             performance when using all layers. The default value is 1.0.
         :param prior_layers_weight: The weight to use for the loss of the prior layers. Increase this to focus more on
