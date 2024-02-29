@@ -112,7 +112,6 @@ MPNetModel(
 This output will differ depending on the model. We will look for the repeated layers in the encoder. For this MPNet model, this is stored under `model[0].auto_model.encoder.layer`. Then we can slice the model to only keep the first few layers to speed up the model:
 
 ```python
-
 new_num_layers = 3
 model[0].auto_model.encoder.layer = model[0].auto_model.encoder.layer[:new_num_layers]
 ```
