@@ -21,8 +21,8 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
         """
         The Matryoshka2dLoss can be seen as a loss *modifier* that combines the :class:`AdaptiveLayerLoss` and the
         :class:`MatryoshkaLoss`. This allows you to train an embedding model that 1) allows users to specify the number
-        of model layers to use, and 2) allows users to specify the output dimensions to use. 
-        
+        of model layers to use, and 2) allows users to specify the output dimensions to use.
+
         The former is useful for when you want users to have the option to lower the number of layers used to improve
         their inference speed and memory usage, and the latter is useful for when you want users to have the option to
         lower the output dimensions to improve the efficiency of their downstream tasks (e.g. retrieval) or to lower
