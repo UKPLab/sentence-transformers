@@ -90,6 +90,16 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 .. autoclass:: sentence_transformers.losses.MatryoshkaLoss
 ```
 
+## Matryoshka2dLoss
+```eval_rst
+.. autoclass:: sentence_transformers.losses.Matryoshka2dLoss
+```
+
+## AdaptiveLayerLoss
+```eval_rst
+.. autoclass:: sentence_transformers.losses.AdaptiveLayerLoss
+```
+
 ## MegaBatchMarginLoss
 
 ```eval_rst
