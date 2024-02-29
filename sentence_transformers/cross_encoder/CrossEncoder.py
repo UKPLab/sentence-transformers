@@ -61,10 +61,7 @@ class CrossEncoder:
         classifier_trained = True
         if self.config.architectures is not None:
             classifier_trained = any(
-                [
-                    arch.endswith("ForSequenceClassification")
-                    for arch in self.config.architectures
-                ]
+                [arch.endswith("ForSequenceClassification") for arch in self.config.architectures]
             )
 
         if classifier_dropout is not None:
@@ -79,9 +76,7 @@ class CrossEncoder:
         self.model = AutoModelForSequenceClassification.from_pretrained(
             model_name, config=self.config, revision=revision, **automodel_args
         )
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name, revision=revision, **tokenizer_args
-        )
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision, **tokenizer_args)
         self.max_length = max_length
 
         if device is None:
@@ -93,14 +88,10 @@ class CrossEncoder:
         if default_activation_function is not None:
             self.default_activation_function = default_activation_function
             try:
-                self.config.sbert_ce_default_activation_function = util.fullname(
-                    self.default_activation_function
-                )
+                self.config.sbert_ce_default_activation_function = util.fullname(self.default_activation_function)
             except Exception as e:
                 logger.warning(
-                    "Was not able to update config about the default_activation_function: {}".format(
-                        str(e)
-                    )
+                    "Was not able to update config about the default_activation_function: {}".format(str(e))
                 )
         elif (
             hasattr(self.config, "sbert_ce_default_activation_function")
@@ -110,9 +101,7 @@ class CrossEncoder:
                 self.config.sbert_ce_default_activation_function
             )()
         else:
-            self.default_activation_function = (
-                nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
-            )
+            self.default_activation_function = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
 
     def smart_batching_collate(self, batch):
         texts = [[] for _ in range(len(batch[0].texts))]
@@ -125,15 +114,11 @@ class CrossEncoder:
             labels.append(example.label)
 
         tokenized = self.tokenizer(
-            *texts,
-            padding=True,
-            truncation="longest_first",
-            return_tensors="pt",
-            max_length=self.max_length
+            *texts, padding=True, truncation="longest_first", return_tensors="pt", max_length=self.max_length
         )
-        labels = torch.tensor(
-            labels, dtype=torch.float if self.config.num_labels == 1 else torch.long
-        ).to(self._target_device)
+        labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(
+            self._target_device
+        )
 
         for name in tokenized:
             tokenized[name] = tokenized[name].to(self._target_device)
@@ -148,11 +133,7 @@ class CrossEncoder:
                 texts[idx].append(text.strip())
 
         tokenized = self.tokenizer(
-            *texts,
-            padding=True,
-            truncation="longest_first",
-            return_tensors="pt",
-            max_length=self.max_length
+            *texts, padding=True, truncation="longest_first", return_tensors="pt", max_length=self.max_length
         )
 
         for name in tokenized:
@@ -227,35 +208,21 @@ class CrossEncoder:
         no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
             {
-                "params": [
-                    p for n, p in param_optimizer if not any(nd in n for nd in no_decay)
-                ],
+                "params": [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)],
                 "weight_decay": weight_decay,
             },
-            {
-                "params": [
-                    p for n, p in param_optimizer if any(nd in n for nd in no_decay)
-                ],
-                "weight_decay": 0.0,
-            },
+            {"params": [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], "weight_decay": 0.0},
         ]
 
         optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
 
         if isinstance(scheduler, str):
             scheduler = SentenceTransformer._get_scheduler(
-                optimizer,
-                scheduler=scheduler,
-                warmup_steps=warmup_steps,
-                t_total=num_train_steps,
+                optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps
             )
 
         if loss_fct is None:
-            loss_fct = (
-                nn.BCEWithLogitsLoss()
-                if self.config.num_labels == 1
-                else nn.CrossEntropyLoss()
-            )
+            loss_fct = nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
 
         skip_scheduler = False
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
@@ -264,10 +231,7 @@ class CrossEncoder:
             self.model.train()
 
             for features, labels in tqdm(
-                train_dataloader,
-                desc="Iteration",
-                smoothing=0.05,
-                disable=not show_progress_bar,
+                train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
             ):
                 if use_amp:
                     with torch.autocast(device_type=self._target_device.type):
@@ -280,9 +244,7 @@ class CrossEncoder:
                     scale_before_step = scaler.get_scale()
                     scaler.scale(loss_value).backward()
                     scaler.unscale_(optimizer)
-                    torch.nn.utils.clip_grad_norm_(
-                        self.model.parameters(), max_grad_norm
-                    )
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     scaler.step(optimizer)
                     scaler.update()
 
@@ -294,9 +256,7 @@ class CrossEncoder:
                         logits = logits.view(-1)
                     loss_value = loss_fct(logits, labels)
                     loss_value.backward()
-                    torch.nn.utils.clip_grad_norm_(
-                        self.model.parameters(), max_grad_norm
-                    )
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     optimizer.step()
 
                 optimizer.zero_grad()
@@ -306,27 +266,16 @@ class CrossEncoder:
 
                 training_steps += 1
 
-                if (
-                    evaluator is not None
-                    and evaluation_steps > 0
-                    and training_steps % evaluation_steps == 0
-                ):
+                if evaluator is not None and evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     self._eval_during_training(
-                        evaluator,
-                        output_path,
-                        save_best_model,
-                        epoch,
-                        training_steps,
-                        callback,
+                        evaluator, output_path, save_best_model, epoch, training_steps, callback
                     )
 
                     self.model.zero_grad()
                     self.model.train()
 
             if evaluator is not None:
-                self._eval_during_training(
-                    evaluator, output_path, save_best_model, epoch, -1, callback
-                )
+                self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
     def predict(
         self,
@@ -353,9 +302,7 @@ class CrossEncoder:
         :return: Predictions for the passed sentence pairs
         """
         input_was_string = False
-        if isinstance(
-            sentences[0], str
-        ):  # Cast an individual sentence to a list with length 1
+        if isinstance(sentences[0], str):  # Cast an individual sentence to a list with length 1
             sentences = [sentences]
             input_was_string = True
 
@@ -369,8 +316,7 @@ class CrossEncoder:
 
         if show_progress_bar is None:
             show_progress_bar = (
-                logger.getEffectiveLevel() == logging.INFO
-                or logger.getEffectiveLevel() == logging.DEBUG
+                logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG
             )
 
         iterator = inp_dataloader
@@ -398,9 +344,7 @@ class CrossEncoder:
         if convert_to_tensor:
             pred_scores = torch.stack(pred_scores)
         elif convert_to_numpy:
-            pred_scores = np.asarray(
-                [score.cpu().detach().numpy() for score in pred_scores]
-            )
+            pred_scores = np.asarray([score.cpu().detach().numpy() for score in pred_scores])
 
         if input_was_string:
             pred_scores = pred_scores[0]
@@ -461,9 +405,7 @@ class CrossEncoder:
         resutls = sorted(resutls, key=lambda x: x["score"], reverse=True)
         return resutls[:top_k]
 
-    def _eval_during_training(
-        self, evaluator, output_path, save_best_model, epoch, steps, callback
-    ):
+    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
         """Runs evaluation during the training"""
         if evaluator is not None:
             score = evaluator(self, output_path=output_path, epoch=epoch, steps=steps)
@@ -474,7 +416,7 @@ class CrossEncoder:
                 if save_best_model:
                     self.save(output_path)
 
-    def save(self, path: str):
+    def save(self, path: str) -> None:
         """
         Saves all model and tokenizer to path
         """
@@ -485,7 +427,7 @@ class CrossEncoder:
         self.model.save_pretrained(path)
         self.tokenizer.save_pretrained(path)
 
-    def save_pretrained(self, path: str):
+    def save_pretrained(self, path: str) -> None:
         """
         Same function as save
         """
