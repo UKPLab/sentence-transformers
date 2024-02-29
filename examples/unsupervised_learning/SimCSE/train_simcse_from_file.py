@@ -7,6 +7,7 @@ Usage:
 python train_simcse_from_file.py path/to/sentences.txt
 
 """
+
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses

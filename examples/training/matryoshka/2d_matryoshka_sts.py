@@ -9,6 +9,7 @@ python 2d_matryoshka_sts.py
 OR
 python 2d_matryoshka_sts.py pretrained_transformer_model_name
 """
+
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import SentenceTransformer, LoggingHandler, losses, models, util

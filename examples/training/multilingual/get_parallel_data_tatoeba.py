@@ -4,6 +4,7 @@ It is available for more than 300 languages.
 
 This script downloads the Tatoeba corpus and extracts the sentences & translations in the languages you like
 """
+
 import os
 import sentence_transformers
 import tarfile
