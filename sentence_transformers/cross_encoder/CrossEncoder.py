@@ -393,17 +393,15 @@ class CrossEncoder:
             convert_to_tensor=convert_to_tensor,
         )
 
-        resutls = []
+        results = []
         for i in range(len(scores)):
             if return_documents:
-                resutls.append(
-                    {"corpus_id": i, "score": scores[i], "text": documents[i]}
-                )
+                results.append({"corpus_id": i, "score": scores[i], "text": documents[i]})
             else:
-                resutls.append({"corpus_id": i, "score": scores[i]})
+                results.append({"corpus_id": i, "score": scores[i]})
 
-        resutls = sorted(resutls, key=lambda x: x["score"], reverse=True)
-        return resutls[:top_k]
+        results = sorted(results, key=lambda x: x["score"], reverse=True)
+        return results[:top_k]
 
     def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
         """Runs evaluation during the training"""
