@@ -3,6 +3,7 @@ This is a simple application for sentence embeddings: clustering
 
 Sentences are mapped to sentence embeddings and then agglomerative clustering with a threshold is applied.
 """
+
 from sentence_transformers import SentenceTransformer
 from sklearn.cluster import AgglomerativeClustering
 import numpy as np

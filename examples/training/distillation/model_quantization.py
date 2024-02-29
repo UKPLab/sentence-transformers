@@ -8,6 +8,7 @@ Note: Quantized models are only available for CPUs. Use a GPU, if available, for
 For more details:
 https://pytorch.org/docs/stable/quantization.html
 """
+
 import logging
 import os
 import torch

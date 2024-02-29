@@ -12,6 +12,7 @@ return the closest questions in the corpus (questions in the corpus are mainly i
 
 Google Colab example: https://colab.research.google.com/drive/12cn5Oo0v3HfQQ8Tv6-ukgxXSmT3zl35A?usp=sharing
 """
+
 from sentence_transformers import SentenceTransformer, util
 import os
 import csv

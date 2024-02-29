@@ -12,6 +12,7 @@ Run:
 python eval_cross-encoder-trec-dl.py cross-encoder-model-name
 
 """
+
 import gzip
 from collections import defaultdict
 import logging

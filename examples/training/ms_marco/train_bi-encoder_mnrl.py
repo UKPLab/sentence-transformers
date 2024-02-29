@@ -16,6 +16,7 @@ With a distilbert-base-uncased model, it should achieve a performance of about 3
 Running this script:
 python train_bi-encoder-v3.py
 """
+
 import json
 from torch.utils.data import DataLoader
 from sentence_transformers import SentenceTransformer, LoggingHandler, util, models, losses, InputExample

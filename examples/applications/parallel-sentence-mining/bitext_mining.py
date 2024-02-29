@@ -12,6 +12,7 @@ http://data.statmt.org/cc-100/
 This script requires that you have FAISS installed:
 https://github.com/facebookresearch/faiss
 """
+
 from sentence_transformers import SentenceTransformer, models
 import numpy as np
 from bitext_mining_utils import score_candidates, kNN, file_open

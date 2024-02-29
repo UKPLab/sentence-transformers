@@ -2,7 +2,6 @@
 Tests general behaviour of the SentenceTransformer class
 """
 
-
 import json
 import logging
 import os

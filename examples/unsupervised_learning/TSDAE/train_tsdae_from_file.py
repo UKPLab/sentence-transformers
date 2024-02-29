@@ -7,6 +7,7 @@ Usage:
 python train_tsdae_from_file.py path/to/sentences.txt
 
 """
+
 from sentence_transformers import SentenceTransformer, LoggingHandler
 from sentence_transformers import models, datasets, losses
 import logging
