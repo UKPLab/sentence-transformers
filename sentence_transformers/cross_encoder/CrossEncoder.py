@@ -2,7 +2,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer, Auto
 import numpy as np
 import logging
 import os
-from typing import Dict, Tuple, Type, Callable, List, Optional, Union
+from typing import Dict, Type, Callable, List, Optional
 import torch
 from torch import nn
 from torch.optim import Optimizer
