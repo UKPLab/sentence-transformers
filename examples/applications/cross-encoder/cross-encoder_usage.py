@@ -25,16 +25,19 @@ corpus = [
     "A cheetah is running behind its prey.",
 ]
 
-# So we create the respective sentence combinations
-sentence_combinations = [[query, corpus_sentence] for corpus_sentence in corpus]
-
-# Compute the similarity scores for these combinations
-similarity_scores = model.predict(sentence_combinations)
-
-# Sort the scores in decreasing order
-sim_scores_argsort = reversed(np.argsort(similarity_scores))
+# 1. We rank all sentences in the corpus for the query
+ranks = model.rank(query, corpus)
 
 # Print the scores
 print("Query:", query)
-for idx in sim_scores_argsort:
-    print("{:.2f}\t{}".format(similarity_scores[idx], corpus[idx]))
+for rank in ranks:
+    print(f"{rank['score']:.2f}\t{corpus[rank['corpus_id']]}")
+
+# 2. Alternatively, you can also manually compute the score between two sentences
+sentence_combinations = [[query, sentence] for sentence in corpus]
+scores = model.predict(sentence_combinations)
+
+# Sort the scores in decreasing order to get the corpus indices
+ranked_indices = np.argsort(scores)[::-1]
+print("scores:", scores)
+print("indices:", ranked_indices)
