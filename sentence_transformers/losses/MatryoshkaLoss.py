@@ -1,5 +1,5 @@
 import random
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 import warnings
 from torch import Tensor, nn
 import torch.nn.functional as F
@@ -129,7 +129,7 @@ class MatryoshkaLoss(nn.Module):
         self.model.forward = original_forward
         return loss
 
-    def get_config_dict(self):
+    def get_config_dict(self) -> Dict[str, Any]:
         return {
             "loss": self.loss.__class__.__name__,
             "matryoshka_dims": self.matryoshka_dims,

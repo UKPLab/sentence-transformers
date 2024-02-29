@@ -1,5 +1,5 @@
 import random
-from typing import Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 import warnings
 from torch import Tensor, nn
 from torch.nn import functional as F
@@ -220,3 +220,13 @@ class AdaptiveLayerLoss(nn.Module):
         self.model.forward = original_forward
 
         return loss
+
+    def get_config_dict(self) -> Dict[str, Any]:
+        return {
+            "loss": self.loss.__class__.__name__,
+            "n_layers_per_step": self.n_layers_per_step,
+            "last_layer_weight": self.last_layer_weight,
+            "prior_layers_weight": self.prior_layers_weight,
+            "kl_div_weight": self.kl_div_weight,
+            "kl_temperature": self.kl_temperature,
+        }
