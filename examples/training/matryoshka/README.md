@@ -38,6 +38,20 @@ loss = MatryoshkaLoss(model=model, loss=base_loss, matryoshka_dims=[768, 512, 25
 ```
 * **Reference**: <a href="../../../docs/package_reference/losses.html#matryoshkaloss"><code>MatryoshkaLoss</code></a>
 
+Additionally, this can be combined with the `AdaptiveLayerLoss` such that the resulting model can be reduced both in the size of the output dimensions, but also in the number of layers for faster inference. See also the [Adaptive Layers](../adaptive_layer/README.html) for more information on reducing the number of model layers. In Sentence Transformers, the combination of these two losses is called `Matryoshka2dLoss`, and a shorthand is provided for simpler training.
+
+```python
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.losses import CoSENTLoss, Matryoshka2dLoss
+
+model = SentenceTransformer("microsoft/mpnet-base")
+
+base_loss = CoSENTLoss(model=model)
+loss = Matryoshka2dLoss(model=model, loss=base_loss, matryoshka_dims=[768, 512, 256, 128, 64])
+```
+
+* **Reference**: <a href="../../../docs/package_reference/losses.html#matryoshka2dloss"><code>Matryoshka2dLoss</code></a>
+
 ## Inference
 
 After a model has been trained using a Matryoshka loss, you can then run inference with it using <a href="../../../docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode"><code>SentenceTransformers.encode</code></a>. You must then truncate the resulting embeddings, and it is recommended to renormalize the embeddings.
