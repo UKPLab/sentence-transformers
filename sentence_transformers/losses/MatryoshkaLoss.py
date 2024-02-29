@@ -64,6 +64,7 @@ class MatryoshkaLoss(nn.Module):
 
         References:
             - The concept was introduced in this paper: https://arxiv.org/abs/2205.13147
+            - `Matryoshka Embeddings <../../examples/training/matryoshka/README.html>`_
 
         Requirements:
             1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`.
