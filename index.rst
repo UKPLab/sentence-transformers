@@ -155,6 +155,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    docs/training/overview
    docs/training/loss_overview
    examples/training/matryoshka/README
+   examples/training/adaptive_layer/README
    examples/training/multilingual/README
    examples/training/distillation/README
    examples/training/cross-encoder/README
