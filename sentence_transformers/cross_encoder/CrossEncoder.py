@@ -23,7 +23,7 @@ class CrossEncoder:
     a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
     on a scale of 0 ... 1.
 
-    It does not yield a sentence embedding and does not work for individually sentences.
+    It does not yield a sentence embedding and does not work for individual sentences.
 
     :param model_name: A model name from Hugging Face Hub that can be loaded with AutoModel, or a path to a local
         model. We provide several pre-trained CrossEncoder models that can be used for common tasks.
