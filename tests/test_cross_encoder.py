@@ -126,3 +126,28 @@ def test_load_with_revision() -> None:
     main_prob = main_model.predict(test_sentences, convert_to_tensor=True)
     assert torch.equal(main_prob, latest_model.predict(test_sentences, convert_to_tensor=True))
     assert not torch.equal(main_prob, older_model.predict(test_sentences, convert_to_tensor=True))
+
+
+def test_rank() -> None:
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
+    # We want to compute the similarity between the query sentence
+    query = "A man is eating pasta."
+
+    # With all sentences in the corpus
+    corpus = [
+        "A man is eating food.",
+        "A man is eating a piece of bread.",
+        "The girl is carrying a baby.",
+        "A man is riding a horse.",
+        "A woman is playing violin.",
+        "Two men pushed carts through the woods.",
+        "A man is riding a white horse on an enclosed ground.",
+        "A monkey is playing drums.",
+        "A cheetah is running behind its prey.",
+    ]
+    expected_ranking = [0, 1, 3, 6, 2, 5, 7, 4, 8]
+
+    # 1. We rank all sentences in the corpus for the query
+    ranks = model.rank(query, corpus)
+    pred_ranking = [rank["corpus_id"] for rank in ranks]
+    assert pred_ranking == expected_ranking

@@ -22,10 +22,8 @@ class CrossEncoder:
     A CrossEncoder takes exactly two sentences / texts as input and either predicts
     a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
     on a scale of 0 ... 1.
-        It does not yield a sentence embedding and does not work for individually sentences.
-        It does not yield a sentence embedding and does not work for individually sentences.
 
-    It does not yield a sentence embedding and does not work for individually sentences.
+    It does not yield a sentence embedding and does not work for individual sentences.
 
     :param model_name: A model name from Hugging Face Hub that can be loaded with AutoModel, or a path to a local
         model. We provide several pre-trained CrossEncoder models that can be used for common tasks.
@@ -355,7 +353,7 @@ class CrossEncoder:
         self,
         query: str,
         documents: List[str],
-        top_k: int = -1,
+        top_k: Optional[int] = None,
         return_documents: bool = False,
         batch_size: int = 32,
         show_progress_bar: bool = None,
@@ -406,7 +404,7 @@ class CrossEncoder:
 
         :param query: A single query
         :param documents: A list of documents
-        :param top_k: Return the top-k documents. If -1, all documents are returned.
+        :param top_k: Return the top-k documents. If None, all documents are returned.
         :param return_documents: If True, also returns the documents. If False, only returns the indices and scores.
         :param batch_size: Batch size for encoding
         :param show_progress_bar: Output progress bar
