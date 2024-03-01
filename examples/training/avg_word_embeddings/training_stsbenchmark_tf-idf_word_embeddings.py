@@ -8,6 +8,7 @@ See https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/ for availa
 You can get term-document frequencies from here:
 https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/wikipedia_doc_frequencies.txt
 """
+
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses, util

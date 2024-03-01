@@ -2,7 +2,6 @@
 Computes embeddings
 """
 
-
 import numpy as np
 import pytest
 from typing import Optional

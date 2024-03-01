@@ -9,6 +9,7 @@ python 2d_matryoshka_sts.py
 OR
 python 2d_matryoshka_sts.py pretrained_transformer_model_name
 """
+
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import SentenceTransformer, LoggingHandler, losses, models, util
@@ -117,10 +118,10 @@ test_evaluator(model, output_path=model_save_path)
 # It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
 model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
 try:
-    model.save_to_hub(f"{model_name}-sts-matryoshka")
+    model.save_to_hub(f"{model_name}-sts-2d-matryoshka")
 except Exception:
     logging.error(
         "Error uploading model to the Hugging Face Hub. To upload it manually, you can run "
         f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({model_save_path!r})` "
-        f"and saving it using `model.save_to_hub('{model_name}-sts-matryoshka')`."
+        f"and saving it using `model.save_to_hub('{model_name}-sts-2d-matryoshka')`."
     )

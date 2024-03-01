@@ -10,6 +10,7 @@ python 2d_matryoshka_nli.py
 OR
 python 2d_matryoshka_nli.py pretrained_transformer_model_name
 """
+
 import math
 from datasets import load_dataset
 from sentence_transformers import models, losses, datasets
@@ -147,10 +148,10 @@ test_evaluator(model, output_path=model_save_path)
 # It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
 model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
 try:
-    model.save_to_hub(f"{model_name}-nli-matryoshka")
+    model.save_to_hub(f"{model_name}-nli-2d-matryoshka")
 except Exception:
     logging.error(
         "Error uploading model to the Hugging Face Hub. To upload it manually, you can run "
         f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({model_save_path!r})` "
-        f"and saving it using `model.save_to_hub('{model_name}-nli-matryoshka')`."
+        f"and saving it using `model.save_to_hub('{model_name}-nli-2d-matryoshka')`."
     )

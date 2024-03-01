@@ -14,6 +14,7 @@ and extend our original SentenceTransformer model with this linear downproject. 
 the new SentenceTransformer model will produce directly embeddings with 128 dimensions
 without further changes needed.
 """
+
 from sklearn.decomposition import PCA
 from sentence_transformers import SentenceTransformer, LoggingHandler, util, evaluation, models, InputExample
 import logging

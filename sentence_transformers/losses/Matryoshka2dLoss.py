@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from torch.nn import Module
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.losses import AdaptiveLayerLoss, MatryoshkaLoss
@@ -105,3 +105,9 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
             kl_div_weight=kl_div_weight,
             kl_temperature=kl_temperature,
         )
+
+    def get_config_dict(self) -> Dict[str, Any]:
+        return {
+            **super().get_config_dict(),
+            **self.loss.get_config_dict(),
+        }

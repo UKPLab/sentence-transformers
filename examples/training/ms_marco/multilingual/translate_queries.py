@@ -7,6 +7,7 @@ You can install it via: pip install easynmt
 Usage:
 python translate_queries [target_language]
 """
+
 import os
 from sentence_transformers import LoggingHandler, util
 import logging

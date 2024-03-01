@@ -9,6 +9,7 @@ We have used it in our paper (https://arxiv.org/pdf/2004.09813.pdf) in Section 4
 This script requires that you have FAISS installed:
 https://github.com/facebookresearch/faiss
 """
+
 from sentence_transformers import SentenceTransformer, models
 from collections import defaultdict
 import os

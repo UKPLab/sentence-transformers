@@ -4,6 +4,7 @@ to a sparse vector with e.g. 25,000 dimensions. Optionally, you can also use tf-
 
 To make the model trainable, we add multiple dense layers to create a Deep Averaging Network (DAN).
 """
+
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses, util
