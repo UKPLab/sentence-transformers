@@ -6,7 +6,6 @@ Sentences are mapped to sentence embeddings and then agglomerative clustering wi
 
 from sentence_transformers import SentenceTransformer
 from sklearn.cluster import AgglomerativeClustering
-import numpy as np
 
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -26,8 +25,8 @@ corpus = [
 ]
 corpus_embeddings = embedder.encode(corpus)
 
-# Normalize the embeddings to unit length
-corpus_embeddings = corpus_embeddings / np.linalg.norm(corpus_embeddings, axis=1, keepdims=True)
+# Some models don't automatically normalize the embeddings, in which case you should normalize the embeddings:
+# corpus_embeddings = corpus_embeddings / np.linalg.norm(corpus_embeddings, axis=1, keepdims=True)
 
 # Perform kmean clustering
 clustering_model = AgglomerativeClustering(
