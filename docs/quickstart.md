@@ -1,5 +1,5 @@
 # Quickstart
-Once you have SentenceTransformers [installed](installation.md), the usage is simple:
+Once you have [installed](installation.md) Sentence Transformers, the usage is simple:
 ```python
 from sentence_transformers import SentenceTransformer
 
@@ -23,7 +23,7 @@ for sentence, embedding in zip(sentences, sentence_embeddings):
 ```
 
 
-With `SentenceTransformer('all-MiniLM-L6-v2')` we define which sentence transformer model we like to load. In this example, we load *all-MiniLM-L6-v2*, which is a MiniLM model fine tuned on a large dataset of over 1 billion training pairs.
+With `SentenceTransformer('all-MiniLM-L6-v2')` we define which sentence transformer model we like to load. In this example, we load [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2), which is a MiniLM model finetuned on a large dataset of over 1 billion training pairs.
 
 BERT (and other transformer networks) output for each token in our input text an embedding. In order to create a fixed-sized sentence embedding out of this, the model applies mean pooling, i.e., the output embeddings for all tokens are averaged to yield a fixed-sized vector.
 

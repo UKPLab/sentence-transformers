@@ -11,6 +11,7 @@ The method for finding the communities is extremely fast, for clustering 50k sen
 
 In this example, we download a large set of questions from Quora and then find similar questions in this set.
 """
+
 from sentence_transformers import SentenceTransformer, util
 import os
 import csv

@@ -65,8 +65,8 @@ cosine_scores = util.cos_sim(embeddings, embeddings)
 
 # Find the pairs with the highest cosine similarity scores
 pairs = []
-for i in range(len(cosine_scores) - 1):
-    for j in range(i + 1, len(cosine_scores)):
+for i in range(cosine_scores.shape[0]):
+    for j in range(cosine_scores.shape[1]):
         pairs.append({"index": [i, j], "score": cosine_scores[i][j]})
 
 # Sort scores in decreasing order

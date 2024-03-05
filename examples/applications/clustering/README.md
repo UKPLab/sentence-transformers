@@ -44,9 +44,11 @@ Cluster 47, #25 Elements
 Topic modeling is the process of discovering topics in a collection of documents. 
 
 An example is shown in the following picture, which shows the identified topics in the 20 newsgroup dataset:
+
 ![20news](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/20news_semantic.png) 
 
 For each topic, you want to extract the words that describe this topic:
+
 ![20news](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/20news_top2vec.png) 
 
 Sentence-Transformers can be used to identify these topics in a collection of sentences, paragraphs or short documents. For an excellent tutorial, see [Topic Modeling with BERT](https://towardsdatascience.com/topic-modeling-with-bert-779f7db187e6) as well as the repositories [Top2Vec](https://github.com/ddangelov/Top2Vec) and [BERTopic](https://github.com/MaartenGr/BERTopic).

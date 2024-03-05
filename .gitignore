@@ -25,3 +25,4 @@ htmlcov
 wandb
 checkpoints
 tmp
+.venv

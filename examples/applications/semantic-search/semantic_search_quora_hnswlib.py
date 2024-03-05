@@ -20,6 +20,7 @@ As embeddings model, we use the SBERT model 'quora-distilbert-multilingual',
 that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
 return the closest questions in the corpus (questions in the corpus are mainly in English).
 """
+
 from sentence_transformers import SentenceTransformer, util
 import os
 import csv

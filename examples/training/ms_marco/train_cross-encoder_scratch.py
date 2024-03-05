@@ -13,6 +13,7 @@ This gives a significant boost compared to out-of-the-box Elasticsearch / BM25 r
 Running this script:
 python train_cross-encoder.py
 """
+
 from torch.utils.data import DataLoader
 from sentence_transformers import LoggingHandler, util
 from sentence_transformers.cross_encoder import CrossEncoder

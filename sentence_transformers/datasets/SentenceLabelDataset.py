@@ -1,6 +1,5 @@
-"""
+""" """
 
-"""
 from torch.utils.data import IterableDataset
 import numpy as np
 from typing import List

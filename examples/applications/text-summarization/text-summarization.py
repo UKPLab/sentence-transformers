@@ -17,6 +17,7 @@ If the New York metropolitan area were a sovereign state, it would have the eigh
 
 Note: Requires NLTK: `pip install nltk`
 """
+
 import nltk
 from sentence_transformers import SentenceTransformer, util
 import numpy as np

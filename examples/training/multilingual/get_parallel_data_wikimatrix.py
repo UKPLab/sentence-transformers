@@ -8,6 +8,7 @@ Further information can be found in our paper:
 Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation
 https://arxiv.org/abs/2004.09813
 """
+
 import os
 import sentence_transformers.util
 import gzip

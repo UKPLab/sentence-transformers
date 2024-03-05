@@ -12,6 +12,7 @@ Wikipedia article tile together with the individual text passages.
 
 Google Colab Example: https://colab.research.google.com/drive/11GunvCqJuebfeTlgbJWkIMT0xJH6PWF1?usp=sharing
 """
+
 import json
 from sentence_transformers import SentenceTransformer, util
 import time
