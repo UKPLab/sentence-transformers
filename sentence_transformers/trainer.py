@@ -4,10 +4,10 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECK
 
 import torch
 from torch import nn
-from torch.nn.parallel.data_parallel import DataParallel
 from torch.utils.data import DataLoader, ConcatDataset
 from transformers import PreTrainedTokenizerBase, Trainer, EvalPrediction, TrainerCallback
 from transformers.trainer import TRAINING_ARGS_NAME
+from transformers.training_args import ParallelMode
 
 from datasets import DatasetDict, Dataset
 from transformers.trainer_utils import EvalLoopOutput
@@ -102,8 +102,9 @@ class SentenceTransformerTrainer(Trainer):
         if self.training_with_dataset_dict and isinstance(loss_fn, dict):
             loss_fn = loss_fn[self.dataset_name]
 
-        # Hackishly insert the DataParallel model into the loss function, if the loss stores the model
-        if isinstance(model, DataParallel) and hasattr(loss_fn, "model") and loss_fn.model == model.module:
+        # Hackishly insert the distributed model into the loss function, if the loss stores the model
+        # Only called once per process
+        if self.args.parallel_mode == ParallelMode.DISTRIBUTED and getattr(loss_fn, "model", None) == model.module:
             loss_fn.model = model
         loss = loss_fn(features, labels)
         if return_outputs:

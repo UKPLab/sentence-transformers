@@ -981,3 +981,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @_target_device.setter
     def _target_device(self, device: Optional[Union[int, str, torch.device]] = None) -> None:
         self.to(device)
+
+    @property
+    def _no_split_modules(self) -> List[str]:
+        return self._first_module()._no_split_modules
