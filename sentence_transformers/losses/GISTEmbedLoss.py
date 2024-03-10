@@ -12,10 +12,12 @@ class GISTEmbedLoss(nn.Module):
         """
         This loss is used to train a SentenceTransformer model using the GISTEmbed algorithm.
         It takes a model and a guide model as input, and uses the guide model to guide the
-        in-batch negative sample selection.
+        in-batch negative sample selection. The cosine similarity is used to compute the loss
+        and the temperature parameter is used to scale the cosine similarities.
 
         :param model: SentenceTransformer model
         :param guide: SentenceTransformer model to guide the in-batch negative sample selection.
+        :param temperature: Temperature parameter to scale the cosine similarities.
 
         References:
             - For further details, see: https://arxiv.org/abs/2402.16829
@@ -42,10 +44,9 @@ class GISTEmbedLoss(nn.Module):
                 model = SentenceTransformer('all-MiniLM-L6-v2')
                 guide = SentenceTransformer('avsolatorio/GIST-small-Embedding-v0')
                 train_examples = [
-                    InputExample(texts=['This is a positive pair', 'Where the distance will be minimized'], label=1),
-                    InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0),
+                    InputExample(texts=['The first query',  'The first positive passage',  'The first negative passage']),
+                    InputExample(texts=['The second query', 'The second positive passage', 'The second negative passage']),
                 ]
-
                 train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=2)
                 train_loss = losses.GISTEmbedLoss(model=model, guide=guide)
                 model.fit(
