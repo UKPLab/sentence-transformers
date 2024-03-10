@@ -1,14 +1,12 @@
-from typing import Iterable, Dict, Callable
+from typing import Iterable, Dict
 import torch
 from torch import nn, Tensor
-from .ContrastiveLoss import SiameseDistanceMetric
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class GISTEmbedLoss(nn.Module):
     def __init__(
         self, model: SentenceTransformer, guide: SentenceTransformer,
-        distance_metric: Callable[[Tensor, Tensor]] = SiameseDistanceMetric.COSINE_DISTANCE,
         temperature: float = 0.01,
     ):
         """
@@ -58,10 +56,12 @@ class GISTEmbedLoss(nn.Module):
         super(GISTEmbedLoss, self).__init__()
         self.model = model
         self.guide = guide
-        self.distance_metric = distance_metric
         self.temperature = temperature
+        self.similarity_fct = nn.CosineSimilarity(dim=-1)
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+
+
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         guide_embeddings = [self.guide(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
@@ -77,18 +77,15 @@ class GISTEmbedLoss(nn.Module):
         else:
             raise ValueError("Expected 2 or 3 embeddings, got {}".format(len(embeddings)))
 
-        # This is different from the original implementation, which uses a similarity metric instead of a distance metric.
-        # We just negate the distance metric to get the similarity metric.
-
         # Compute the model's similarities
-        ap_sim = -self.distance_metric(anchor, positive)
-        aa_sim = -self.distance_metric(anchor, anchor)
-        pp_sim = -self.distance_metric(positive, positive)
+        ap_sim = self.similarity_fct(anchor.unsqueeze(1), positive.unsqueeze(0))
+        aa_sim = self.similarity_fct(anchor.unsqueeze(1), anchor.unsqueeze(0))
+        pp_sim = self.similarity_fct(positive.unsqueeze(1), positive.unsqueeze(0))
 
-        # Let's compute the similarity matrices for the combinations of anchor, positive, and negative samples.
-        guided_ap_sim = -self.distance_metric(anchor_guide, positive_guide)
-        guided_aa_sim = -self.distance_metric(anchor_guide, anchor_guide)
-        guided_pp_sim = -self.distance_metric(positive_guide, positive_guide)
+        # Let's compute the similarity matrices for the combinations of anchor and positive samples.
+        guided_ap_sim = self.similarity_fct(anchor_guide.unsqueeze(1), positive_guide.unsqueeze(0))
+        guided_aa_sim = self.similarity_fct(anchor_guide.unsqueeze(1), anchor_guide.unsqueeze(0))
+        guided_pp_sim = self.similarity_fct(positive_guide.unsqueeze(1), positive_guide.unsqueeze(0))
 
         # Define the anchor threshold
         guided_sim = guided_ap_sim.diagonal().view(-1, 1)
@@ -110,12 +107,13 @@ class GISTEmbedLoss(nn.Module):
 
         # Handle the case where we have a negative sample
         if negative is not None:
-            an_sim = -self.distance_metric(anchor, negative)
-            guided_an_sim = -self.distance_metric(anchor_guide, negative_guide)
+            an_sim = self.similarity_fct(anchor.unsqueeze(1), negative.unsqueeze(0))
+            guided_an_sim = self.similarity_fct(anchor_guide.unsqueeze(1), negative_guide.unsqueeze(0))
             an_mask = guided_an_sim > guided_sim
             an_sim[an_mask] = -torch.inf
             scores.append(an_sim)
 
         scores = torch.stack(scores, dim=1) / self.temperature
-        labels = torch.arange(scores.size(0)).long().to(anchor.device)
+        labels = torch.arange(scores.size(0)).long().to(scores.device)
+
         return nn.CrossEntropyLoss()(scores, labels)
