@@ -60,9 +60,10 @@ class GISTEmbedLoss(nn.Module):
         self.temperature = temperature
         self.similarity_fct = nn.CosineSimilarity(dim=-1)
 
+    def sim_matrix(self, embed1, embed2):
+        return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
+
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-
-
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         guide_embeddings = [self.guide(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
@@ -79,14 +80,14 @@ class GISTEmbedLoss(nn.Module):
             raise ValueError("Expected 2 or 3 embeddings, got {}".format(len(embeddings)))
 
         # Compute the model's similarities
-        ap_sim = self.similarity_fct(anchor.unsqueeze(1), positive.unsqueeze(0))
-        aa_sim = self.similarity_fct(anchor.unsqueeze(1), anchor.unsqueeze(0))
-        pp_sim = self.similarity_fct(positive.unsqueeze(1), positive.unsqueeze(0))
+        ap_sim = self.sim_matrix(anchor, positive)
+        aa_sim = self.sim_matrix(anchor, anchor)
+        pp_sim = self.sim_matrix(positive, positive)
 
         # Let's compute the similarity matrices for the combinations of anchor and positive samples.
-        guided_ap_sim = self.similarity_fct(anchor_guide.unsqueeze(1), positive_guide.unsqueeze(0))
-        guided_aa_sim = self.similarity_fct(anchor_guide.unsqueeze(1), anchor_guide.unsqueeze(0))
-        guided_pp_sim = self.similarity_fct(positive_guide.unsqueeze(1), positive_guide.unsqueeze(0))
+        guided_ap_sim = self.sim_matrix(anchor_guide, positive_guide)
+        guided_aa_sim = self.sim_matrix(anchor_guide, anchor_guide)
+        guided_pp_sim = self.sim_matrix(positive_guide, positive_guide)
 
         # Define the anchor threshold
         guided_sim = guided_ap_sim.diagonal().view(-1, 1)
@@ -108,8 +109,8 @@ class GISTEmbedLoss(nn.Module):
 
         # Handle the case where we have a negative sample
         if negative is not None:
-            an_sim = self.similarity_fct(anchor.unsqueeze(1), negative.unsqueeze(0))
-            guided_an_sim = self.similarity_fct(anchor_guide.unsqueeze(1), negative_guide.unsqueeze(0))
+            an_sim = self.sim_matrix(anchor, negative)
+            guided_an_sim = self.sim_matrix(anchor_guide, negative_guide)
             an_mask = guided_an_sim > guided_sim
             an_sim[an_mask] = -torch.inf
             scores.append(an_sim)
