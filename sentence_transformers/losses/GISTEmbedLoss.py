@@ -1,6 +1,5 @@
 from typing import Iterable, Dict, Callable
 import torch
-import torch.nn.functional as F
 from torch import nn, Tensor
 from .ContrastiveLoss import SiameseDistanceMetric
 from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -25,7 +24,7 @@ class GISTEmbedLoss(nn.Module):
 
         Requirements:
             1. (anchor, positive, negative) triplets
-            2. (anchor, positive/negative) pairs
+            2. (anchor, positive) pairs
 
         Inputs:
             +---------------------------------------+--------+
@@ -33,7 +32,7 @@ class GISTEmbedLoss(nn.Module):
             +=======================================+========+
             | (anchor, positive, negative) triplets | none   |
             +---------------------------------------+--------+
-            | (anchor, positive/negative) pairs     | none   |
+            | (anchor, positive) pairs              | none   |
             +---------------------------------------+--------+
 
         Example:
@@ -83,16 +82,13 @@ class GISTEmbedLoss(nn.Module):
 
         # Compute the model's similarities
         ap_sim = -self.distance_metric(anchor, positive)
-        an_sim = -self.distance_metric(anchor, negative)
         aa_sim = -self.distance_metric(anchor, anchor)
         pp_sim = -self.distance_metric(positive, positive)
 
         # Let's compute the similarity matrices for the combinations of anchor, positive, and negative samples.
         guided_ap_sim = -self.distance_metric(anchor_guide, positive_guide)
         guided_aa_sim = -self.distance_metric(anchor_guide, anchor_guide)
-        guided_an_sim = -self.distance_metric(anchor_guide, negative_guide)
         guided_pp_sim = -self.distance_metric(positive_guide, positive_guide)
-
 
         # Define the anchor threshold
         guided_sim = guided_ap_sim.diagonal().view(-1, 1)
@@ -103,17 +99,23 @@ class GISTEmbedLoss(nn.Module):
         # the loss.
 
         ap_mask = guided_ap_sim > guided_sim
-        an_mask = guided_an_sim > guided_sim
         aa_mask = guided_aa_sim > guided_sim
         pp_mask = guided_pp_sim > guided_sim
 
         ap_sim[ap_mask] = -torch.inf
-        an_sim[an_mask] = -torch.inf
         aa_sim[aa_mask] = -torch.inf
         pp_sim[pp_mask] = -torch.inf
 
+        scores = [ap_sim, aa_sim, pp_sim]
 
-        scores = torch.cat([ap_sim, an_sim, aa_sim, pp_sim], dim=1) / self.temperature
+        # Handle the case where we have a negative sample
+        if negative is not None:
+            an_sim = -self.distance_metric(anchor, negative)
+            guided_an_sim = -self.distance_metric(anchor_guide, negative_guide)
+            an_mask = guided_an_sim > guided_sim
+            an_sim[an_mask] = -torch.inf
+            scores.append(an_sim)
+
+        scores = torch.stack(scores, dim=1) / self.temperature
         labels = torch.arange(scores.size(0)).long().to(anchor.device)
         return nn.CrossEntropyLoss()(scores, labels)
-
