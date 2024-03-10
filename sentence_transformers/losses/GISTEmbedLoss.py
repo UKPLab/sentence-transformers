@@ -113,7 +113,7 @@ class GISTEmbedLoss(nn.Module):
             an_sim[an_mask] = -torch.inf
             scores.append(an_sim)
 
-        scores = torch.stack(scores, dim=1) / self.temperature
+        scores = torch.cat(scores, dim=1) / self.temperature
         labels = torch.arange(scores.size(0)).long().to(scores.device)
 
         return nn.CrossEntropyLoss()(scores, labels)
