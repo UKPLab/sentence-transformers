@@ -114,6 +114,9 @@ class GISTEmbedLoss(nn.Module):
             scores.append(an_sim)
 
         scores = torch.cat(scores, dim=1) / self.temperature
+
+        # NOTE: We use arange here since the ap_sim matrix contains the anchor-positive
+        # similarities along the diagonal.
         labels = torch.arange(scores.size(0)).long().to(scores.device)
 
         return nn.CrossEntropyLoss()(scores, labels)
