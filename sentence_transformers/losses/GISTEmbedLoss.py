@@ -6,7 +6,9 @@ from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 class GISTEmbedLoss(nn.Module):
     def __init__(
-        self, model: SentenceTransformer, guide: SentenceTransformer,
+        self,
+        model: SentenceTransformer,
+        guide: SentenceTransformer,
         temperature: float = 0.01,
     ):
         """
@@ -65,7 +67,9 @@ class GISTEmbedLoss(nn.Module):
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
-        guide_embeddings = [self.guide(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
+        guide_embeddings = [
+            self.guide(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features
+        ]
 
         negative = None
         negative_guide = None
