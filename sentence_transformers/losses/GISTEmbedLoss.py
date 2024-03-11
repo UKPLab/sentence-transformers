@@ -94,16 +94,11 @@ class GISTEmbedLoss(nn.Module):
 
         # Find which samples cannot be used as negatives because they are
         # more similar to the query than the assigned positive as deemed by the guide model.
-        # For this samples, we mask them with -inf to basically ignore their contribution to
+        # For these samples, we mask them with -inf to basically ignore their contribution to
         # the loss.
-
-        ap_mask = guided_ap_sim > guided_sim
-        aa_mask = guided_aa_sim > guided_sim
-        pp_mask = guided_pp_sim > guided_sim
-
-        ap_sim[ap_mask] = -torch.inf
-        aa_sim[aa_mask] = -torch.inf
-        pp_sim[pp_mask] = -torch.inf
+        ap_sim[guided_ap_sim > guided_sim] = -torch.inf
+        aa_sim[guided_aa_sim > guided_sim] = -torch.inf
+        pp_sim[guided_pp_sim > guided_sim] = -torch.inf
 
         scores = [ap_sim, aa_sim, pp_sim]
 
@@ -111,8 +106,8 @@ class GISTEmbedLoss(nn.Module):
         if negative is not None:
             an_sim = self.sim_matrix(anchor, negative)
             guided_an_sim = self.sim_matrix(anchor_guide, negative_guide)
-            an_mask = guided_an_sim > guided_sim
-            an_sim[an_mask] = -torch.inf
+            an_sim[guided_an_sim > guided_sim] = -torch.inf
+
             scores.append(an_sim)
 
         scores = torch.cat(scores, dim=1) / self.temperature
