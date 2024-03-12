@@ -207,7 +207,7 @@ class SentenceTransformer(nn.Module):
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = [(str(idx), module) for idx, module in enumerate(modules)]
-        self._submodules =  nn.ModuleDict(modules)
+        self._submodules = nn.ModuleDict(modules)
         # self._module_kwargs maps submodule names to the kwargs they receive in `forward`
         self._module_kwargs = module_kwargs
 
@@ -256,8 +256,10 @@ class SentenceTransformer(nn.Module):
         for keys in self._module_kwargs.values():
             required_keys = required_keys.union(set(keys))
         if provided_keys != required_keys:
-            raise ValueError(f"Expected keyword arguments {required_keys if len(required_keys)>0 else '{}'} "
-                             f"but got {provided_keys if len(provided_keys)>0 else '{}'}")
+            raise ValueError(
+                f"Expected keyword arguments {required_keys if len(required_keys)>0 else '{}'} "
+                f"but got {provided_keys if len(provided_keys)>0 else '{}'}"
+            )
         result = []
         for mod_keys in self._module_kwargs.values():
             current_kwargs = {key: kwargs[key] for key in mod_keys}
@@ -283,7 +285,7 @@ class SentenceTransformer(nn.Module):
         convert_to_tensor: bool = False,
         device: str = None,
         normalize_embeddings: bool = False,
-        **kwargs
+        **kwargs,
     ) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings.
@@ -1155,7 +1157,7 @@ class SentenceTransformer(nn.Module):
             modules_config = json.load(fIn)
 
         modules = OrderedDict()
-        modules_keys = OrderedDict() # maps module names to the kwargs they receive in `forward`
+        modules_keys = OrderedDict()  # maps module names to the kwargs they receive in `forward`
         for module_config in modules_config:
             module_class = import_from_string(module_config["type"])
             # For Transformer, don't load the full directory, rely on `transformers` instead
