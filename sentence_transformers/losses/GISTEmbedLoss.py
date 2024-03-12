@@ -29,6 +29,10 @@ class GISTEmbedLoss(nn.Module):
             1. (anchor, positive, negative) triplets
             2. (anchor, positive) pairs
 
+        Relations:
+            - :class:`MultipleNegativesRankingLoss` is similar to this loss, but it does not use
+              a guide model to guide the in-batch negative sample selection.
+
         Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
