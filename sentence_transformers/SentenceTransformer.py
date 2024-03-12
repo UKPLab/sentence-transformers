@@ -74,6 +74,7 @@ class SentenceTransformer(nn.Module):
         self,
         model_name_or_path: Optional[str] = None,
         modules: Optional[Iterable[nn.Module]] = None,
+        module_kwargs: Optional[Iterable[List[str]]] = None,
         device: Optional[str] = None,
         prompts: Optional[Dict[str, str]] = None,
         default_prompt_name: Optional[str] = None,
@@ -207,6 +208,17 @@ class SentenceTransformer(nn.Module):
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = [(str(idx), module) for idx, module in enumerate(modules)]
+
+        if module_kwargs is None:
+            module_kwargs = OrderedDict([(str(idx), []) for idx in range(len(modules))])
+        elif module_kwargs is not None and not isinstance(module_kwargs, OrderedDict):
+            if len(module_kwargs) != len(modules):
+                raise ValueError(
+                    f"Length of 'module_kwargs' should match length "
+                    f"of 'modules' but got {len(module_kwargs)} and {len(modules)}."
+                )
+            module_kwargs = OrderedDict([(str(idx), kwargs) for idx, kwargs in enumerate(module_kwargs)])
+
         self._submodules = nn.ModuleDict(modules)
         # self._module_kwargs maps submodule names to the kwargs they receive in `forward`
         self._module_kwargs = module_kwargs
