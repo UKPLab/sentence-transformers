@@ -267,7 +267,6 @@ class SentenceTransformer(nn.Module):
     def forward(self, *args, **kwargs):
         split_kwargs = self._split_kwargs(kwargs)
         result = self._first_module()(*args, **split_kwargs[0])
-        print(self._submodules.values(), split_kwargs)
         for mod, current_kwargs in islice(zip(self._submodules.values(), split_kwargs), 1, None):
             result = mod(result, **current_kwargs)
         return result
