@@ -2,6 +2,7 @@ from typing import Iterable, Dict
 import torch
 from torch import nn, Tensor
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers.models import Transformer
 
 
 class GISTEmbedLoss(nn.Module):
@@ -17,7 +18,7 @@ class GISTEmbedLoss(nn.Module):
         in-batch negative sample selection. The cosine similarity is used to compute the loss
         and the temperature parameter is used to scale the cosine similarities.
 
-        :param model: SentenceTransformer model
+        :param model: SentenceTransformer model based on a `transformers` model.
         :param guide: SentenceTransformer model to guide the in-batch negative sample selection.
         :param temperature: Temperature parameter to scale the cosine similarities.
 
@@ -61,15 +62,35 @@ class GISTEmbedLoss(nn.Module):
         self.guide = guide
         self.temperature = temperature
         self.similarity_fct = nn.CosineSimilarity(dim=-1)
+        if not isinstance(model[0], Transformer) or not isinstance(guide[0], Transformer):
+            raise ValueError(
+                "Both the training model and the guiding model must be based on the `transformers` architecture."
+            )
+        self.must_retokenize = (
+            model.tokenizer.vocab != guide.tokenizer.vocab
+            or guide.tokenizer.model_max_length < model.tokenizer.model_max_length
+        )
 
     def sim_matrix(self, embed1, embed2):
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
-        guide_embeddings = [
-            self.guide(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features
-        ]
+        with torch.no_grad():
+            if self.must_retokenize:
+                decoded = [
+                    self.model.tokenizer.batch_decode(sentence_feature["input_ids"], skip_special_tokens=True)
+                    for sentence_feature in sentence_features
+                ]
+                sentence_features = [self.guide.tokenize(sentences) for sentences in decoded]
+                sentence_features = [
+                    {key: value.to(self.guide.device) for key, value in sentence_feature.items()}
+                    for sentence_feature in sentence_features
+                ]
+
+            guide_embeddings = [
+                self.guide(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features
+            ]
 
         negative = None
         negative_guide = None
