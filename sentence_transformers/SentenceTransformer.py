@@ -53,7 +53,7 @@ class SentenceTransformer(nn.Module):
         from the Hugging Face Hub with that name.
     :param modules: A list of torch Modules that should be called sequentially, can be used to create custom
         SentenceTransformer models from scratch.
-    :param module_kwargs: An iterable of lists that specifies which keyword arguments of `forward` that are passed
+    :param module_kwargs: An iterable of lists that specifies which keyword arguments of `forward` are passed
         to which components in `modules`. If None, no keyword arguments are forwarded to the modules.
     :param device: Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
         can be used.
