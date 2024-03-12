@@ -208,7 +208,7 @@ class SentenceTransformer(nn.ModuleDict):
                 )
 
         if modules is not None and not isinstance(modules, OrderedDict):
-            modules = [(str(idx), module) for idx, module in enumerate(modules)]
+            modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
 
         if module_kwargs is None:
             module_kwargs = OrderedDict([(str(idx), []) for idx in range(len(modules))])
