@@ -1096,7 +1096,7 @@ class SentenceTransformer(nn.Module):
             tokenizer_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
-        return [transformer_model, pooling_model], OrderedDict()
+        return [transformer_model, pooling_model], OrderedDict([("0", []), ("1", [])])
 
     def _load_sbert_model(
         self,
