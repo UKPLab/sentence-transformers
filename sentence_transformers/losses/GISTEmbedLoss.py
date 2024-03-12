@@ -31,7 +31,8 @@ class GISTEmbedLoss(nn.Module):
 
         Relations:
             - :class:`MultipleNegativesRankingLoss` is similar to this loss, but it does not use
-              a guide model to guide the in-batch negative sample selection.
+              a guide model to guide the in-batch negative sample selection. `GISTEmbedLoss` yields
+              a stronger training signal at the cost of some training overhead.
 
         Inputs:
             +---------------------------------------+--------+

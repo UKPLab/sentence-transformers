@@ -46,7 +46,7 @@ class MultipleNegativesRankingLoss(nn.Module):
               training time.
             - :class:`MultipleNegativesSymmetricRankingLoss` is equivalent to this loss, but with an additional loss term.
             - :class:`GISTEmbedLoss` is equivalent to this loss, but uses a guide model to guide the in-batch negative
-              sample selection.
+              sample selection. `GISTEmbedLoss` yields a stronger training signal at the cost of some training overhead.
 
         Inputs:
             +---------------------------------------+--------+
