@@ -44,7 +44,7 @@ if TYPE_CHECKING:
     from sentence_transformers.readers import InputExample
 
 
-class SentenceTransformer(nn.Module):
+class SentenceTransformer(nn.ModuleDict):
     """
     Loads or creates a SentenceTransformer model that can be used to map sentences / text to embeddings.
 
@@ -87,7 +87,6 @@ class SentenceTransformer(nn.Module):
         use_auth_token: Optional[Union[bool, str]] = None,
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
-        super().__init__()
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
         self._model_card_vars = {}
@@ -221,7 +220,7 @@ class SentenceTransformer(nn.Module):
                 )
             module_kwargs = OrderedDict([(str(idx), kwargs) for idx, kwargs in enumerate(module_kwargs)])
 
-        self._submodules = nn.ModuleDict(modules)
+        super().__init__(modules)
         # self._module_kwargs maps submodule names to the kwargs they receive in `forward`
         self._module_kwargs = module_kwargs
 
@@ -283,7 +282,7 @@ class SentenceTransformer(nn.Module):
     def forward(self, *args, **kwargs):
         split_kwargs = self._split_kwargs(kwargs)
         result = self._first_module()(*args, **split_kwargs[0])
-        for mod, current_kwargs in islice(zip(self._submodules.values(), split_kwargs), 1, None):
+        for mod, current_kwargs in islice(zip(self._modules.values(), split_kwargs), 1, None):
             result = mod(result, **current_kwargs)
         return result
 
@@ -599,7 +598,7 @@ class SentenceTransformer(nn.Module):
         return self._first_module().get_sentence_features(*features)
 
     def get_sentence_embedding_dimension(self):
-        for mod in reversed(self._submodules.values()):
+        for mod in reversed(self._modules.values()):
             sent_embedding_dim_method = getattr(mod, "get_sentence_embedding_dimension", None)
             if callable(sent_embedding_dim_method):
                 return sent_embedding_dim_method()
@@ -607,11 +606,11 @@ class SentenceTransformer(nn.Module):
 
     def _first_module(self):
         """Returns the first module of this sequential embedder"""
-        return self._submodules[next(iter(self._submodules))]
+        return self._modules[next(iter(self._modules))]
 
     def _last_module(self):
         """Returns the last module of this sequential embedder"""
-        return self._submodules[next(reversed(self._submodules))]
+        return self._modules[next(reversed(self._modules))]
 
     def save(
         self,
@@ -651,8 +650,8 @@ class SentenceTransformer(nn.Module):
             json.dump(config, fOut, indent=2)
 
         # Save modules
-        for idx, name in enumerate(self._submodules):
-            module = self._submodules[name]
+        for idx, name in enumerate(self._modules):
+            module = self._modules[name]
             if idx == 0 and isinstance(module, Transformer):  # Save transformer model in the main folder
                 model_path = path + "/"
             else:
@@ -684,7 +683,7 @@ class SentenceTransformer(nn.Module):
             model_card = ModelCardTemplate.__MODEL_CARD__
 
             if (
-                len(self._submodules) == 2
+                len(self._modules) == 2
                 and isinstance(self._first_module(), Transformer)
                 and isinstance(self._last_module(), Pooling)
                 and self._last_module().get_pooling_mode_str() in ["cls", "max", "mean"]
