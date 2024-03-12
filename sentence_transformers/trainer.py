@@ -104,7 +104,11 @@ class SentenceTransformerTrainer(Trainer):
 
         # Hackishly insert the distributed model into the loss function, if the loss stores the model
         # Only called once per process
-        if self.args.parallel_mode != ParallelMode.NOT_PARALLEL and getattr(loss_fn, "model", None) == model.module:
+        if (
+            self.args.parallel_mode != ParallelMode.NOT_PARALLEL
+            and hasattr(model, "module")
+            and getattr(loss_fn, "model", None) == model.module
+        ):
             loss_fn.model = model
         loss = loss_fn(features, labels)
         if return_outputs:
