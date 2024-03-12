@@ -208,6 +208,7 @@ class SentenceTransformer(nn.Module):
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = [(str(idx), module) for idx, module in enumerate(modules)]
         self._submodules =  nn.ModuleDict(modules)
+        # self._module_kwargs maps submodule names to the kwargs they receive in `forward`
         self._module_kwargs = module_kwargs
 
         if device is None:
@@ -1155,7 +1156,7 @@ class SentenceTransformer(nn.Module):
             modules_config = json.load(fIn)
 
         modules = OrderedDict()
-        modules_keys = OrderedDict()
+        modules_keys = OrderedDict() # maps module names to the kwargs they receive in `forward`
         for module_config in modules_config:
             module_class = import_from_string(module_config["type"])
             # For Transformer, don't load the full directory, rely on `transformers` instead
