@@ -1,5 +1,5 @@
 from torch import nn
-from transformers import AutoModel, AutoTokenizer, AutoConfig, T5Config, MT5Config
+from transformers import AutoModel, AutoTokenizer, AutoConfig, T5Config, MT5Config, M2M100Config
 import json
 from typing import List, Dict, Optional, Union, Tuple
 import os
@@ -61,6 +61,8 @@ class Transformer(nn.Module):
             self._load_t5_model(model_name_or_path, config, cache_dir, **model_args)
         elif isinstance(config, MT5Config):
             self._load_mt5_model(model_name_or_path, config, cache_dir, **model_args)
+        elif isinstance(config, M2M100Config):
+            self._load_m2m100_model(model_name_or_path, config, cache_dir, **model_args)
         else:
             self.auto_model = AutoModel.from_pretrained(
                 model_name_or_path, config=config, cache_dir=cache_dir, **model_args
@@ -72,6 +74,15 @@ class Transformer(nn.Module):
 
         T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
         self.auto_model = T5EncoderModel.from_pretrained(
+            model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+        )
+
+    def _load_m2m100_model(self, model_name_or_path, config, cache_dir, **model_args):
+        """Loads the encoder model from M2M100 (aka NLLB, aka SONAR text encoder)"""
+        from transformers import M2M100EncoderModel
+
+        M2M100EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
+        self.auto_model = M2M100EncoderModel.from_pretrained(
             model_name_or_path, config=config, cache_dir=cache_dir, **model_args
         )
 
