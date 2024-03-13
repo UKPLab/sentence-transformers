@@ -268,9 +268,9 @@ class SentenceTransformer(nn.ModuleDict):
         required_keys = set()
         for keys in self._module_kwargs.values():
             required_keys = required_keys.union(set(keys))
-        if provided_keys != required_keys:
+        if not provided_keys.issubset(required_keys):
             raise ValueError(
-                f"Expected keyword arguments {required_keys if len(required_keys)>0 else '{}'} "
+                f"Expected keyword arguments to be subset of {required_keys if len(required_keys)>0 else '{}'} "
                 f"but got {provided_keys if len(provided_keys)>0 else '{}'}"
             )
         result = []
@@ -497,6 +497,7 @@ class SentenceTransformer(nn.ModuleDict):
         batch_size: int = 32,
         chunk_size: int = None,
         normalize_embeddings: bool = False,
+        **kwargs,
     ):
         """
         This method allows to run encode() on multiple GPUs. The sentences are chunked into smaller packages
@@ -532,12 +533,12 @@ class SentenceTransformer(nn.ModuleDict):
         for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings])
+                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings, kwargs])
                 last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings])
+            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings, kwargs])
             last_chunk_id += 1
 
         output_queue = pool["output"]
@@ -552,7 +553,7 @@ class SentenceTransformer(nn.ModuleDict):
         """
         while True:
             try:
-                chunk_id, batch_size, sentences, prompt_name, prompt, normalize_embeddings = input_queue.get()
+                chunk_id, batch_size, sentences, prompt_name, prompt, normalize_embeddings, kwargs = input_queue.get()
                 embeddings = model.encode(
                     sentences,
                     prompt_name=prompt_name,
@@ -562,6 +563,7 @@ class SentenceTransformer(nn.ModuleDict):
                     convert_to_numpy=True,
                     batch_size=batch_size,
                     normalize_embeddings=normalize_embeddings,
+                    **kwargs,
                 )
 
                 results_queue.put([chunk_id, embeddings])
