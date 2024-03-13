@@ -1,15 +1,16 @@
+from contextlib import nullcontext
 import logging
 import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import DataLoader, ConcatDataset, Dataset
 from transformers import PreTrainedTokenizerBase, Trainer, EvalPrediction, TrainerCallback
 from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.training_args import ParallelMode
 
-from datasets import DatasetDict, Dataset
+from datasets import DatasetDict
 from transformers.trainer_utils import EvalLoopOutput
 from transformers.data.data_collator import DataCollator
 from sentence_transformers.losses import CoSENTLoss
@@ -18,6 +19,7 @@ from sentence_transformers.training_args import TrainingArguments
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator
 from sentence_transformers.sampler import ProportionalBatchSampler, RoundRobinBatchSampler
+from sentence_transformers.util import disable_logging
 
 logger = logging.getLogger(__name__)
 
@@ -86,9 +88,18 @@ class SentenceTransformerTrainer(Trainer):
         else:
             self.loss.to(self.model.device)
         self.evaluator = evaluator
-        self.training_with_dataset_dict = isinstance(self.train_dataset, DatasetDict)
-        if self.training_with_dataset_dict:
-            self.dataset_names = list(self.train_dataset.keys())
+        # TODO: "return_loss" and "dataset_name" are invalid data column names
+        # TODO: What if an eval dataset is provided to evaluate directly?
+        # if isinstance(self.train_dataset, DatasetDict):
+        #     self.train_dataset = self.add_dataset_name_column(self.train_dataset)
+        # if isinstance(self.eval_dataset, DatasetDict):
+        #     self.eval_dataset = self.add_dataset_name_column(self.eval_dataset)
+
+    def add_dataset_name_column(self, dataset_dict: DatasetDict) -> DatasetDict:
+        for key, dataset in dataset_dict.items():
+            if "dataset_name" not in dataset.column_names:
+                dataset_dict[key] = dataset.add_column("dataset_name", [key] * len(dataset))
+        return dataset_dict
 
     def compute_loss(
         self,
@@ -96,11 +107,12 @@ class SentenceTransformerTrainer(Trainer):
         inputs: Dict[str, Union[torch.Tensor, Any]],
         return_outputs: bool = False,
     ) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
+        dataset_name = inputs.pop("dataset_name", None)
         features, labels = self.collect_features(inputs)
         loss_fn = self.loss
 
-        if self.training_with_dataset_dict and isinstance(loss_fn, dict):
-            loss_fn = loss_fn[self.dataset_name]
+        if isinstance(loss_fn, dict) and dataset_name:
+            loss_fn = loss_fn[dataset_name]
 
         # Hackishly insert the distributed model into the loss function, if the loss stores the model
         # Only called once per process
@@ -151,6 +163,17 @@ class SentenceTransformerTrainer(Trainer):
         labels = inputs.get("label", None)
         return features, labels
 
+    def evaluate(
+        self,
+        eval_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
+        ignore_keys: Optional[List[str]] = None,
+        metric_key_prefix: str = "eval",
+    ) -> Dict[str, float]:
+        eval_dataset = eval_dataset if eval_dataset is not None else self.eval_dataset
+        if isinstance(eval_dataset, DatasetDict):
+            eval_dataset = self.add_dataset_name_column(eval_dataset)
+        return super().evaluate(eval_dataset, ignore_keys, metric_key_prefix)
+
     def evaluation_loop(
         self,
         dataloader: DataLoader,
@@ -159,15 +182,6 @@ class SentenceTransformerTrainer(Trainer):
         ignore_keys: Optional[List[str]] = None,
         metric_key_prefix: str = "eval",
     ) -> EvalLoopOutput:
-        if (
-            self.training_with_dataset_dict
-            and self.is_in_train
-            and isinstance(self.eval_dataset, dict)
-            and metric_key_prefix.startswith("eval_")
-            and metric_key_prefix[5:] in list(self.eval_dataset.keys())
-        ):
-            self.dataset_name = metric_key_prefix[5:]
-
         output = super().evaluation_loop(
             dataloader=dataloader,
             description=description,
@@ -189,7 +203,8 @@ class SentenceTransformerTrainer(Trainer):
             else:
                 return output
 
-        evaluator_metrics = self.evaluator(self.model)
+        with nullcontext() if self.is_local_process_zero() else disable_logging(logging.INFO):
+            evaluator_metrics = self.evaluator(self.model)
         if not isinstance(evaluator_metrics, dict):
             evaluator_metrics = {"evaluator": evaluator_metrics}
 
@@ -219,6 +234,7 @@ class SentenceTransformerTrainer(Trainer):
 
         if isinstance(train_dataset, DatasetDict):
             sizes = [len(ds) for ds in train_dataset.values()]
+            train_dataset = self.add_dataset_name_column(train_dataset)
             train_dataset = ConcatDataset(train_dataset.values())
         else:
             sizes = [len(train_dataset)]
@@ -234,7 +250,6 @@ class SentenceTransformerTrainer(Trainer):
                 batch_size=self.args.train_batch_size,
                 drop_last=self.args.dataloader_drop_last,
                 seed=self.args.seed,
-                trainer=self,
             ),
         }
 
@@ -262,6 +277,7 @@ class SentenceTransformerTrainer(Trainer):
 
         if isinstance(eval_dataset, DatasetDict):
             sizes = [len(ds) for ds in eval_dataset.values()]
+            eval_dataset = self.add_dataset_name_column(eval_dataset)
             eval_dataset = ConcatDataset(eval_dataset.values())
         else:
             sizes = [len(eval_dataset)]
@@ -282,7 +298,7 @@ class SentenceTransformerTrainer(Trainer):
 
         return self.accelerator.prepare(DataLoader(eval_dataset, **dataloader_params))
 
-    # TODO: Also override the test_dataloader
+    # TODO: Also override the test_dataloader?
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         # If we are executing this function, we are the process zero, so we don't check for that.

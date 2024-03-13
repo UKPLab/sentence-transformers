@@ -20,6 +20,10 @@ class SentenceTransformerDataCollator:
         # We should always be able to return a loss, label or not:
         batch = {"return_loss": True}
 
+        if "dataset_name" in columns:
+            columns.remove("dataset_name")
+            batch["dataset_name"] = features[0]["dataset_name"]
+
         # Extract the label column if it exists
         for label_column in self.valid_label_columns:
             if label_column in columns:
