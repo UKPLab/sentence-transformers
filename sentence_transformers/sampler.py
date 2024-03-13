@@ -2,13 +2,13 @@ from itertools import accumulate, cycle
 from typing import List
 import logging
 
-from torch.utils.data import BatchSampler, SubsetRandomSampler
+from torch.utils.data import BatchSampler, SubsetRandomSampler, Sampler
 import torch
 
 logger = logging.getLogger(__name__)
 
 
-class RoundRobinBatchSampler:
+class RoundRobinBatchSampler(Sampler[List[int]]):
     def __init__(
         self,
         lengths: List[int],
@@ -64,7 +64,7 @@ class RoundRobinBatchSampler:
             )
 
 
-class ProportionalBatchSampler:
+class ProportionalBatchSampler(Sampler[List[int]]):
     def __init__(
         self,
         lengths: List[int],
@@ -99,11 +99,11 @@ class ProportionalBatchSampler:
         ]
 
         lengths = [len(sampler) for sampler in batch_samplers]
-        indices = [idx for idx, length in enumerate(lengths) for _ in range(length)]
-        sampler = SubsetRandomSampler(indices, generator=g)
+        dataset_indices = [idx for idx, length in enumerate(lengths) for _ in range(length)]
+        dataset_idx_sampler = SubsetRandomSampler(dataset_indices, generator=g)
 
         batch_samplers = [iter(sampler) for sampler in batch_samplers]
-        for dataset_idx in sampler:
+        for dataset_idx in dataset_idx_sampler:
             yield next(batch_samplers[dataset_idx])
 
     def set_epoch(self, epoch: int):
