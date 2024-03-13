@@ -1,3 +1,4 @@
+import re
 import pytest
 from sentence_transformers import SentenceTransformerTrainer, SentenceTransformer, losses
 from datasets import DatasetDict
@@ -66,3 +67,29 @@ def test_trainer_multi_dataset_errors(
         SentenceTransformerTrainer(
             model=stsb_bert_tiny_model, train_dataset=train_dataset, eval_dataset=eval_dataset, loss=loss
         )
+
+
+def test_trainer_invalid_column_names(
+    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: DatasetDict
+) -> None:
+    train_dataset = stsb_dataset_dict["train"]
+    for column_name in ("return_loss", "dataset_name"):
+        invalid_train_dataset = train_dataset.rename_column("sentence1", column_name)
+        trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, train_dataset=invalid_train_dataset)
+        with pytest.raises(
+            ValueError, match=re.escape(f"The following column names are invalid in your dataset: ['{column_name}'].")
+        ):
+            trainer.train()
+
+        invalid_train_dataset = DatasetDict(
+            {
+                "stsb": train_dataset.rename_column("sentence1", column_name),
+                "stsb-2": train_dataset,
+            }
+        )
+        trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, train_dataset=invalid_train_dataset)
+        with pytest.raises(
+            ValueError,
+            match=re.escape(f"The following column names are invalid in your stsb dataset: ['{column_name}']."),
+        ):
+            trainer.train()

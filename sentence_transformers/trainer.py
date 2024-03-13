@@ -88,12 +88,6 @@ class SentenceTransformerTrainer(Trainer):
         else:
             self.loss.to(self.model.device)
         self.evaluator = evaluator
-        # TODO: "return_loss" and "dataset_name" are invalid data column names
-        # TODO: What if an eval dataset is provided to evaluate directly?
-        # if isinstance(self.train_dataset, DatasetDict):
-        #     self.train_dataset = self.add_dataset_name_column(self.train_dataset)
-        # if isinstance(self.eval_dataset, DatasetDict):
-        #     self.eval_dataset = self.add_dataset_name_column(self.eval_dataset)
 
     def add_dataset_name_column(self, dataset_dict: DatasetDict) -> DatasetDict:
         for key, dataset in dataset_dict.items():
@@ -217,6 +211,12 @@ class SentenceTransformerTrainer(Trainer):
 
         return output
 
+    def validate_column_names(self, dataset: Dataset, dataset_name: Optional[str] = None) -> bool:
+        if overlap := set(dataset.column_names) & {"return_loss", "dataset_name"}:
+            raise ValueError(
+                f"The following column names are invalid in your {dataset_name + ' ' if dataset_name else ''}dataset: {list(overlap)}."
+            )
+
     def get_train_dataloader(self) -> DataLoader:
         """
         Returns the training [`~torch.utils.data.DataLoader`].
@@ -234,9 +234,12 @@ class SentenceTransformerTrainer(Trainer):
 
         if isinstance(train_dataset, DatasetDict):
             sizes = [len(ds) for ds in train_dataset.values()]
+            for dataset_name, dataset in train_dataset.items():
+                self.validate_column_names(dataset, dataset_name=dataset_name)
             train_dataset = self.add_dataset_name_column(train_dataset)
             train_dataset = ConcatDataset(train_dataset.values())
         else:
+            self.validate_column_names(train_dataset)
             sizes = [len(train_dataset)]
 
         batch_sampler_class = RoundRobinBatchSampler if self.args.round_robin_sampler else ProportionalBatchSampler
@@ -281,9 +284,12 @@ class SentenceTransformerTrainer(Trainer):
 
         if isinstance(eval_dataset, DatasetDict):
             sizes = [len(ds) for ds in eval_dataset.values()]
+            for dataset_name, dataset in eval_dataset.items():
+                self.validate_column_names(dataset, dataset_name=dataset_name)
             eval_dataset = self.add_dataset_name_column(eval_dataset)
             eval_dataset = ConcatDataset(eval_dataset.values())
         else:
+            self.validate_column_names(eval_dataset)
             sizes = [len(eval_dataset)]
 
         batch_sampler_class = RoundRobinBatchSampler if self.args.round_robin_sampler else ProportionalBatchSampler
