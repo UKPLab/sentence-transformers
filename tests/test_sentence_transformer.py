@@ -175,6 +175,17 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
             == 'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
         )
 
+@pytest.mark.parametrize("safe_serialization", [True, False])
+def test_safe_serialization(safe_serialization: bool) -> None:
+    with tempfile.TemporaryDirectory() as cache_folder:
+        model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+        model.save(cache_folder, safe_serialization=safe_serialization)
+        if safe_serialization:
+            model_files = list(Path(cache_folder).glob("**/model.safetensors"))
+            assert 1 == len(model_files)
+        else:
+            model_files = list(Path(cache_folder).glob("**/pytorch_model.bin"))
+            assert 1 == len(model_files)
 
 def test_load_with_revision() -> None:
     main_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors", revision="main")
