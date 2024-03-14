@@ -550,7 +550,7 @@ class SentenceTransformer(nn.Sequential):
         """
         Tokenizes the texts
         """
-        return self._first_module().tokenize(texts)
+        return self._first_module().tokenize(texts, self.device.type)
 
     def get_sentence_features(self, *features):
         return self._first_module().get_sentence_features(*features)
