@@ -83,7 +83,7 @@ model.push_to_hub("my_new_model")
 You can automatically add to the Hub's model card a list of datasets you used to train the model with the argument `train_datasets: Optional[List[str]] = None)`. See the "Datasets used to train" section in the [ITESM/sentece-embeddings-BETO](https://huggingface.co/ITESM/sentece-embeddings-BETO) model for an example of the final result.
 
 ```py
-model.  ("my_new_model", train_datasets=["GEM/wiki_lingua", "code_search_net"])
+model.push_to_hub("my_new_model", train_datasets=["GEM/wiki_lingua", "code_search_net"])
 ```
 
 ## Sharing your embeddings
