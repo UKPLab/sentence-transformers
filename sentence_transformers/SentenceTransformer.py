@@ -619,7 +619,7 @@ class SentenceTransformer(nn.Sequential):
 
             os.makedirs(model_path, exist_ok=True)
             if isinstance(module, Transformer):
-                module.save(model_path, safe_serialization)
+                module.save(model_path, safe_serialization=safe_serialization)
             else:
                 module.save(model_path)
 
