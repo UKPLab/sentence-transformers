@@ -448,7 +448,7 @@ class CrossEncoder:
                 if save_best_model:
                     self.save(output_path)
 
-    def save(self, path: str) -> None:
+    def save(self, path: str, safe_serialization: bool = True) -> None:
         """
         Saves all model and tokenizer to path
         """
@@ -456,7 +456,7 @@ class CrossEncoder:
             return
 
         logger.info("Save model to {}".format(path))
-        self.model.save_pretrained(path)
+        self.model.save_pretrained(path, safe_serialization=safe_serialization)
         self.tokenizer.save_pretrained(path)
 
     def save_pretrained(self, path: str) -> None:
