@@ -727,7 +727,7 @@ class SentenceTransformer(nn.Sequential):
         """
         logger.warning(
             "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers."
-            " Please use `push_to_hub` instead."
+            " Please use `push_to_hub` instead for future model uploads."
         )
 
         if organization:
