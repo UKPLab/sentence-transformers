@@ -156,7 +156,7 @@ class Transformer(nn.Module):
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}
 
-    def save(self, output_path: str, safe_serialization: bool):
+    def save(self, output_path: str, safe_serialization: bool = True):
         self.auto_model.save_pretrained(output_path, safe_serialization=safe_serialization)
         self.tokenizer.save_pretrained(output_path)
 
