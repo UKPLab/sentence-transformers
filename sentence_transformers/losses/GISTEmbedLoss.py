@@ -1,4 +1,4 @@
-from typing import Iterable, Dict
+from typing import Any, Iterable, Dict
 import torch
 from torch import nn, Tensor
 from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -146,3 +146,9 @@ class GISTEmbedLoss(nn.Module):
         labels = torch.arange(scores.size(0)).long().to(scores.device)
 
         return nn.CrossEntropyLoss()(scores, labels)
+
+    def get_config_dict(self) -> Dict[str, Any]:
+        return {
+            "guide": self.guide,
+            "temperature": self.temperature,
+        }
