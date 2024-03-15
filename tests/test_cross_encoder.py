@@ -154,6 +154,7 @@ def test_rank() -> None:
     pred_ranking = [rank["corpus_id"] for rank in ranks]
     assert pred_ranking == expected_ranking
 
+
 @pytest.mark.parametrize("safe_serialization", [True, False, None])
 def test_safe_serialization(safe_serialization: bool) -> None:
     with tempfile.TemporaryDirectory() as cache_folder:

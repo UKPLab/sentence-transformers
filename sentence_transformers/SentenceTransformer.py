@@ -576,7 +576,7 @@ class SentenceTransformer(nn.Sequential):
         model_name: Optional[str] = None,
         create_model_card: bool = True,
         train_datasets: Optional[List[str]] = None,
-        safe_serialization: bool = True
+        safe_serialization: bool = True,
     ):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
@@ -622,7 +622,7 @@ class SentenceTransformer(nn.Sequential):
                 module.save(model_path, safe_serialization)
             else:
                 module.save(model_path)
-            
+
             modules_config.append(
                 {"idx": idx, "name": name, "path": os.path.basename(model_path), "type": type(module).__module__}
             )
