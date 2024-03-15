@@ -700,6 +700,7 @@ class SentenceTransformer(nn.Sequential):
         organization: Optional[str] = None,
         token: Optional[str] = None,
         private: Optional[bool] = None,
+        safe_serialization: bool = True,
         commit_message: str = "Add new SentenceTransformer model.",
         local_model_path: Optional[str] = None,
         exist_ok: bool = False,
@@ -712,6 +713,7 @@ class SentenceTransformer(nn.Sequential):
         :param repo_id: Repository name for your model in the Hub, including the user or organization.
         :param token: An authentication token (See https://huggingface.co/settings/token)
         :param private: Set to true, for hosting a private model
+        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
         :param commit_message: Message to commit while pushing.
         :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
         :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
@@ -756,6 +758,7 @@ class SentenceTransformer(nn.Sequential):
                     model_name=repo_url.repo_id,
                     create_model_card=create_model_card,
                     train_datasets=train_datasets,
+                    safe_serialization=safe_serialization,
                 )
                 folder_url = api.upload_folder(repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message)
 
