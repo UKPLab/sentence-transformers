@@ -10,5 +10,6 @@ model = SentenceTransformer("model-name")
 ```eval_rst
 .. autoclass:: sentence_transformers.SentenceTransformer
    :members:
+   :exclude-members: save_to_hub
 
 ```
