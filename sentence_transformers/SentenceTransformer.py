@@ -576,6 +576,7 @@ class SentenceTransformer(nn.Sequential):
         model_name: Optional[str] = None,
         create_model_card: bool = True,
         train_datasets: Optional[List[str]] = None,
+        safe_serialization: bool = True,
     ):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
@@ -584,6 +585,7 @@ class SentenceTransformer(nn.Sequential):
         :param model_name: Optional model name
         :param create_model_card: If True, create a README.md with basic information about this model
         :param train_datasets: Optional list with the names of the datasets used to to train the model
+        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
         """
         if path is None:
             return
@@ -616,7 +618,11 @@ class SentenceTransformer(nn.Sequential):
                 model_path = os.path.join(path, str(idx) + "_" + type(module).__name__)
 
             os.makedirs(model_path, exist_ok=True)
-            module.save(model_path)
+            if isinstance(module, Transformer):
+                module.save(model_path, safe_serialization=safe_serialization)
+            else:
+                module.save(model_path)
+
             modules_config.append(
                 {"idx": idx, "name": name, "path": os.path.basename(model_path), "type": type(module).__module__}
             )
