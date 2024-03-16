@@ -281,7 +281,7 @@ class SentenceTransformer(nn.Sequential):
         :param normalize_embeddings: Whether to normalize returned vectors to have length 1. In that case,
             the faster dot-product (util.dot_score) instead of cosine similarity can be used.
 
-        :return: By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned.
+        :return: By default, a list of numpy vectors is returned. If convert_to_tensor, a stacked tensor is returned.
             If convert_to_numpy, a numpy matrix is returned.
         """
         self.eval()
