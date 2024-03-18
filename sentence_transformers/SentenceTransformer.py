@@ -700,18 +700,22 @@ class SentenceTransformer(nn.Sequential):
         organization: Optional[str] = None,
         token: Optional[str] = None,
         private: Optional[bool] = None,
+        safe_serialization: bool = True,
         commit_message: str = "Add new SentenceTransformer model.",
         local_model_path: Optional[str] = None,
         exist_ok: bool = False,
         replace_model_card: bool = False,
         train_datasets: Optional[List[str]] = None,
-    ):
+    ) -> str:
         """
+        DEPRECATED, use `push_to_hub` instead.
+
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
         :param repo_id: Repository name for your model in the Hub, including the user or organization.
         :param token: An authentication token (See https://huggingface.co/settings/token)
         :param private: Set to true, for hosting a private model
+        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
         :param commit_message: Message to commit while pushing.
         :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
         :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
@@ -721,6 +725,11 @@ class SentenceTransformer(nn.Sequential):
 
         :return: The url of the commit of your model in the repository on the Hugging Face Hub.
         """
+        logger.warning(
+            "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers."
+            " Please use `push_to_hub` instead for future model uploads."
+        )
+
         if organization:
             if "/" not in repo_id:
                 logger.warning(
@@ -736,6 +745,45 @@ class SentenceTransformer(nn.Sequential):
                     f'Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id="{repo_id}"` instead.'
                 )
 
+        return self.push_to_hub(
+            repo_id=repo_id,
+            token=token,
+            private=private,
+            safe_serialization=safe_serialization,
+            commit_message=commit_message,
+            local_model_path=local_model_path,
+            exist_ok=exist_ok,
+            replace_model_card=replace_model_card,
+            train_datasets=train_datasets,
+        )
+
+    def push_to_hub(
+        self,
+        repo_id: str,
+        token: Optional[str] = None,
+        private: Optional[bool] = None,
+        safe_serialization: bool = True,
+        commit_message: str = "Add new SentenceTransformer model.",
+        local_model_path: Optional[str] = None,
+        exist_ok: bool = False,
+        replace_model_card: bool = False,
+        train_datasets: Optional[List[str]] = None,
+    ) -> str:
+        """
+        Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
+
+        :param repo_id: Repository name for your model in the Hub, including the user or organization.
+        :param token: An authentication token (See https://huggingface.co/settings/token)
+        :param private: Set to true, for hosting a private model
+        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
+        :param commit_message: Message to commit while pushing.
+        :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
+        :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
+        :param replace_model_card: If true, replace an existing model card in the hub with the automatically created model card
+        :param train_datasets: Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
+
+        :return: The url of the commit of your model in the repository on the Hugging Face Hub.
+        """
         api = HfApi(token=token)
         repo_url = api.create_repo(
             repo_id=repo_id,
@@ -756,6 +804,7 @@ class SentenceTransformer(nn.Sequential):
                     model_name=repo_url.repo_id,
                     create_model_card=create_model_card,
                     train_datasets=train_datasets,
+                    safe_serialization=safe_serialization,
                 )
                 folder_url = api.upload_folder(repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message)
 

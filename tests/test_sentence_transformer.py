@@ -71,7 +71,7 @@ def test_to() -> None:
     assert model.device.type == "cpu", "Ensure that setting `_target_device` doesn't crash."
 
 
-def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_push_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     def mock_create_repo(self, repo_id, **kwargs):
         return RepoUrl(f"https://huggingface.co/{repo_id}")
 
@@ -99,10 +99,23 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
     monkeypatch.setattr(HfApi, "list_repo_refs", mock_list_repo_refs)
 
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-    url = model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+
+    url = model.push_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors")
     assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
     assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
     mock_upload_folder_kwargs.clear()
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        url = model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+        assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
+        mock_upload_folder_kwargs.clear()
+        assert len(caplog.record_tuples) == 1
+        assert (
+            caplog.record_tuples[0][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
+        )
 
     with pytest.raises(
         ValueError, match="Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id`."
@@ -116,9 +129,13 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
         )
         assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
         assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
-        assert len(caplog.record_tuples) == 1
+        assert len(caplog.record_tuples) == 2
         assert (
             caplog.record_tuples[0][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
+        )
+        assert (
+            caplog.record_tuples[1][2]
             == 'Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
         )
     mock_upload_folder_kwargs.clear()
@@ -128,19 +145,30 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
         url = model.save_to_hub("stsb-bert-tiny-safetensors", organization="sentence-transformers-testing")
         assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
         assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
-        assert len(caplog.record_tuples) == 1
+        assert len(caplog.record_tuples) == 2
         assert (
             caplog.record_tuples[0][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
+        )
+        assert (
+            caplog.record_tuples[1][2]
             == 'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
         )
     mock_upload_folder_kwargs.clear()
 
-    url = model.save_to_hub(
-        "sentence-transformers-testing/stsb-bert-tiny-safetensors", local_model_path="my_fake_local_model_path"
-    )
-    assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
-    assert mock_upload_folder_kwargs["folder_path"] == "my_fake_local_model_path"
-    assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        url = model.save_to_hub(
+            "sentence-transformers-testing/stsb-bert-tiny-safetensors", local_model_path="my_fake_local_model_path"
+        )
+        assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        assert mock_upload_folder_kwargs["folder_path"] == "my_fake_local_model_path"
+        assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
+        assert len(caplog.record_tuples) == 1
+        assert (
+            caplog.record_tuples[0][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
+        )
     mock_upload_folder_kwargs.clear()
 
     # Incorrect usage: Using deprecated "repo_name" positional argument
@@ -149,10 +177,14 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
         url = model.save_to_hub(repo_name="sentence-transformers-testing/stsb-bert-tiny-safetensors")
         assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
         assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
-        assert len(caplog.record_tuples) == 1
+        assert len(caplog.record_tuples) == 2
         assert (
             caplog.record_tuples[0][2]
             == "Providing a `repo_name` keyword argument to `save_to_hub` is deprecated, please use `repo_id` instead."
+        )
+        assert (
+            caplog.record_tuples[1][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
         )
     mock_upload_folder_kwargs.clear()
 
@@ -163,15 +195,19 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
             "stsb-bert-tiny-safetensors",  # repo_name
             "sentence-transformers-testing",  # organization
             True,  # private
-            "Adding new awesome Model!",  # commit message
+            commit_message="Adding new awesome Model!",
             exist_ok=True,
         )
         assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
         assert mock_upload_folder_kwargs["commit_message"] == "Adding new awesome Model!"
         assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
-        assert len(caplog.record_tuples) == 1
+        assert len(caplog.record_tuples) == 2
         assert (
             caplog.record_tuples[0][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
+        )
+        assert (
+            caplog.record_tuples[1][2]
             == 'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
         )
 
