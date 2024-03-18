@@ -470,7 +470,7 @@ class CrossEncoder(PushToHubMixin):
         return self.save(path, **kwargs)
 
     @wraps(PushToHubMixin.push_to_hub)
-    def push_to_hub(self, *args, **kwargs):
+    def push_to_hub(self, repo_id: str, **kwargs) -> str:
         tags = kwargs.get("tags", [])
         kwargs["tags"] = [tags] if isinstance(tags, str) else tags
-        return super().push_to_hub(*args, **kwargs)
+        return super().push_to_hub(repo_id=repo_id, **kwargs)
