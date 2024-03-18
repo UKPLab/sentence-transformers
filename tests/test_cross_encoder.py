@@ -5,6 +5,8 @@ Tests that the pretrained models produce the correct scores on the STSbenchmark 
 import csv
 import gzip
 import os
+from pathlib import Path
+import tempfile
 
 import pytest
 import torch
@@ -151,3 +153,21 @@ def test_rank() -> None:
     ranks = model.rank(query, corpus)
     pred_ranking = [rank["corpus_id"] for rank in ranks]
     assert pred_ranking == expected_ranking
+
+
+@pytest.mark.parametrize("safe_serialization", [True, False, None])
+def test_safe_serialization(safe_serialization: bool) -> None:
+    with tempfile.TemporaryDirectory() as cache_folder:
+        model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
+        if safe_serialization:
+            model.save(cache_folder, safe_serialization=safe_serialization)
+            model_files = list(Path(cache_folder).glob("**/model.safetensors"))
+            assert 1 == len(model_files)
+        elif safe_serialization is None:
+            model.save(cache_folder)
+            model_files = list(Path(cache_folder).glob("**/model.safetensors"))
+            assert 1 == len(model_files)
+        else:
+            model.save(cache_folder, safe_serialization=safe_serialization)
+            model_files = list(Path(cache_folder).glob("**/pytorch_model.bin"))
+            assert 1 == len(model_files)
