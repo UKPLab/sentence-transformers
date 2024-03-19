@@ -1,5 +1,5 @@
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.util import quantize_embeddings, semantic_search_usearch
+from sentence_transformers.util import quantize_embeddings, semantic_search_faiss
 from datasets import load_dataset
 
 # 1. Load the quora corpus with questions
@@ -23,15 +23,15 @@ full_corpus_embeddings = model.encode(corpus, normalize_embeddings=True, show_pr
 query_embeddings = model.encode(queries, normalize_embeddings=True)
 
 for exact in (True, False):
-    for corpus_precision in ("float32", "int8", "binary"):
+    for corpus_precision in ("float32", "uint8", "ubinary"):
         corpus_embeddings = quantize_embeddings(full_corpus_embeddings, precision=corpus_precision)
         # NOTE: We can also pass "precision=..." to the encode method to quantize the embeddings directly,
         # but we want to keep the full precision embeddings to act as a calibration dataset for quantizing
         # the query embeddings. This is important only if you are using uint8 or int8 precision
 
-        # 5. Perform semantic search using usearch
+        # 5. Perform semantic search using FAISS
         oversampling = 4
-        results, search_time = semantic_search_usearch(
+        results, search_time = semantic_search_faiss(
             query_embeddings,
             corpus_embeddings=corpus_embeddings,
             corpus_precision=corpus_precision,
