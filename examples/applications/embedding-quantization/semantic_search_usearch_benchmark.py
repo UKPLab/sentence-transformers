@@ -43,7 +43,7 @@ for exact in (True, False):
         )
 
         print(
-            f"{'Exact' if exact else 'Approximate'} search time using {corpus_precision} corpus: {search_time:.6f} seconds"(
+            f"{'Exact' if exact else 'Approximate'} search time using {corpus_precision} corpus: {search_time:.6f} seconds" + (
                 f" (oversampling: {oversampling})" if corpus_precision != "float32" else ""
             )
         )
