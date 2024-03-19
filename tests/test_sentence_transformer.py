@@ -341,3 +341,42 @@ def test_encode_fp16() -> None:
     tiny_model.half()
     embeddings = tiny_model.encode(["Hello there!"], convert_to_tensor=True)
     assert embeddings.dtype == torch.float16
+
+
+@pytest.mark.parametrize("convert_to_tensor", [True, False])
+@pytest.mark.parametrize("convert_to_numpy", [True, False])
+@pytest.mark.parametrize(
+    ("precision", "expected_torch_dtype", "expected_numpy_dtype"),
+    [
+        (None, torch.float32, np.float32),
+        ("float32", torch.float32, np.float32),
+        ("int8", torch.int8, np.int8),
+        ("uint8", torch.uint8, np.uint8),
+        ("binary", torch.int8, np.int8),
+        ("ubinary", torch.uint8, np.uint8),
+    ],
+)
+def test_encode_quantization(
+    stsb_bert_tiny_model_reused: SentenceTransformer,
+    convert_to_tensor: bool,
+    convert_to_numpy: bool,
+    precision: str,
+    expected_torch_dtype,
+    expected_numpy_dtype,
+) -> None:
+    tiny_model = stsb_bert_tiny_model_reused
+    embeddings = tiny_model.encode(
+        ["One sentence", "Another sentence"],
+        convert_to_tensor=convert_to_tensor,
+        convert_to_numpy=convert_to_numpy,
+        precision=precision,
+    )
+    if convert_to_tensor:
+        assert embeddings[0].dtype == expected_torch_dtype
+        assert isinstance(embeddings, torch.Tensor)
+    elif convert_to_numpy:
+        assert embeddings[0].dtype == expected_numpy_dtype
+        assert isinstance(embeddings, np.ndarray)
+    else:
+        assert embeddings[0].dtype == expected_torch_dtype
+        assert isinstance(embeddings, list)
