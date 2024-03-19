@@ -338,7 +338,8 @@ def semantic_search_faiss(
     calibration_embeddings: Optional[np.ndarray] = None,
     rerank: bool = True,
     exact: bool = True,
-) -> Tuple[List[List[Dict[str, Union[int, float]]]], float]:
+    output_index: bool = False,
+) -> Tuple[List[List[Dict[str, Union[int, float]]]], float, "faiss.Index"]:
     """
     Performs semantic search using the FAISS library.
 
@@ -377,9 +378,12 @@ def semantic_search_faiss(
     :type rerank: bool
     :param exact: Whether to use exact search or approximate search. Default is True.
     :type exact: bool
+    :param output_index: Whether to output the FAISS index used for the search. Default is False.
+    :type output_index: bool
 
-    :return: A tuple containing a list of search results and the time taken for the search.
-    :rtype: Tuple[List[List[Dict[str, Union[int, float]]]], float]
+    :return: A tuple containing a list of search results and the time taken for the search. If `output_index` is True,
+        the tuple will also contain the FAISS index used for the search.
+    :rtype: Tuple[List[List[Dict[str, Union[int, float]]]], float] or Tuple[List[List[Dict[str, Union[int, float]]]], float, "faiss.Index"]
     :raises ValueError: If both `corpus_embeddings` and `corpus_index` are provided or if neither is provided.
 
     The list of search results is in the format: [[{"corpus_id": int, "score": float}, ...], ...]
@@ -458,13 +462,19 @@ def semantic_search_faiss(
 
     delta_t = time.time() - start_t
 
-    return [
+    outputs = (
         [
-            {"corpus_id": int(neighbor), "score": float(score)}
-            for score, neighbor in zip(scores[query_id], indices[query_id])
-        ]
-        for query_id in range(len(query_embeddings))
-    ], delta_t
+            [
+                {"corpus_id": int(neighbor), "score": float(score)}
+                for score, neighbor in zip(scores[query_id], indices[query_id])
+            ]
+            for query_id in range(len(query_embeddings))
+        ],
+        delta_t,
+    )
+    if output_index:
+        outputs = (*outputs, corpus_index)
+    return outputs
 
 
 def semantic_search_usearch(
@@ -478,7 +488,8 @@ def semantic_search_usearch(
     calibration_embeddings: Optional[np.ndarray] = None,
     rerank: bool = True,
     exact: bool = True,
-) -> Tuple[List[List[Dict[str, Union[int, float]]]], float]:
+    output_index: bool = False,
+) -> Tuple[List[List[Dict[str, Union[int, float]]]], float, "usearch.index.Index"]:
     """
     Performs semantic search using the usearch library.
 
@@ -517,10 +528,13 @@ def semantic_search_usearch(
     :type rerank: bool
     :param exact: Whether to use exact search or approximate search. Default is True.
     :type exact: bool
+    :param output_index: Whether to output the usearch index used for the search. Default is False.
+    :type output_index: bool
 
-    :return: A tuple containing a list of search results and the time taken for the search.
-    :rtype: Tuple[List[List[Dict[str, Union[int, float]]]], float]
-    :raises ValueError: If both `corpus_embeddings` and `corpus_index` are provided or if `corpus_precision` is not one of ["float32", "int8", "binary"].
+    :return: A tuple containing a list of search results and the time taken for the search. If `output_index` is True,
+        the tuple will also contain the usearch index used for the search.
+    :rtype: Tuple[List[List[Dict[str, Union[int, float]]]], float] or Tuple[List[List[Dict[str, Union[int, float]]]], float, "usearch.index.Index"]
+    :raises ValueError: If both `corpus_embeddings` and `corpus_index` are provided or if neither is provided.
 
     The list of search results is in the format: [[{"corpus_id": int, "score": float}, ...], ...]
     The time taken for the search is a float value.
@@ -600,13 +614,19 @@ def semantic_search_usearch(
 
     delta_t = time.time() - start_t
 
-    return [
+    outputs = (
         [
-            {"corpus_id": int(neighbor), "score": float(score)}
-            for score, neighbor in zip(scores[query_id], indices[query_id])
-        ]
-        for query_id in range(len(query_embeddings))
-    ], delta_t
+            [
+                {"corpus_id": int(neighbor), "score": float(score)}
+                for score, neighbor in zip(scores[query_id], indices[query_id])
+            ]
+            for query_id in range(len(query_embeddings))
+        ],
+        delta_t,
+    )
+    if output_index:
+        outputs = (*outputs, corpus_index)
+    return outputs
 
 
 def http_get(url, path) -> None:
