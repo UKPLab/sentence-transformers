@@ -400,13 +400,7 @@ def semantic_search_faiss(
 
     # If corpus_index is not provided, create a new index
     if corpus_index is None:
-        if corpus_precision == "float32":
-            if exact:
-                corpus_index = faiss.IndexFlatIP(corpus_embeddings.shape[1])
-            else:
-                corpus_index = faiss.IndexHNSWFlat(corpus_embeddings.shape[1], 16)
-
-        elif corpus_precision == "uint8":
+        if corpus_precision in ("float32", "uint8"):
             if exact:
                 corpus_index = faiss.IndexFlatIP(corpus_embeddings.shape[1])
             else:
