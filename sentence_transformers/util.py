@@ -345,10 +345,10 @@ def semantic_search_faiss(
 
     Reranking will be performed if:
     1. `rerank` is True
-    2. The query embeddings are in float32
-    3. The corpus precision is not float32
+    2. The query embeddings are not quantized
+    3. The corpus is quantized, i.e. the corpus precision is not float32
 
-    :param query_embeddings: Embeddings of the query sentences. Ideally in "float32" for optimal performance.
+    :param query_embeddings: Embeddings of the query sentences. Ideally not quantized to allow for reranking.
     :type query_embeddings: np.ndarray
     :param corpus_embeddings: Embeddings of the corpus sentences. Either `corpus_embeddings` or `corpus_index` should
         be used, not both. The embeddings can be quantized to "int8" or "binary" for more efficient search.
@@ -374,7 +374,7 @@ def semantic_search_faiss(
         embeddings. This is not recommended.
     :type calibration_embeddings: Optional[np.ndarray]
     :param rerank: Whether to perform reranking. Note that reranking still will only be used if the query embeddings
-        are in float32 and the corpus precision is not float32. Default is True.
+        are not quantized and the corpus is quantized, i.e. the corpus precision is not "float32". Default is True.
     :type rerank: bool
     :param exact: Whether to use exact search or approximate search. Default is True.
     :type exact: bool
@@ -423,7 +423,7 @@ def semantic_search_faiss(
     # oversampling factor
     rerank_embeddings = None
     k = top_k
-    if query_embeddings.dtype == np.float32:
+    if query_embeddings.dtype not in (np.uint8, np.int8):
         if corpus_precision != "float32" and rerank:
             rerank_embeddings = query_embeddings
             k *= oversampling
@@ -495,10 +495,10 @@ def semantic_search_usearch(
 
     Reranking will be performed if:
     1. `rerank` is True
-    2. The query embeddings are in float32
-    3. The corpus precision is not float32
+    2. The query embeddings are not quantized
+    3. The corpus is quantized, i.e. the corpus precision is not float32
 
-    :param query_embeddings: Embeddings of the query sentences. Ideally in "float32" for optimal performance.
+    :param query_embeddings: Embeddings of the query sentences. Ideally not quantized to allow for reranking.
     :type query_embeddings: np.ndarray
     :param corpus_embeddings: Embeddings of the corpus sentences. Either `corpus_embeddings` or `corpus_index` should
         be used, not both. The embeddings can be quantized to "int8" or "binary" for more efficient search.
@@ -524,7 +524,7 @@ def semantic_search_usearch(
         embeddings. This is not recommended.
     :type calibration_embeddings: Optional[np.ndarray]
     :param rerank: Whether to perform reranking. Note that reranking still will only be used if the query embeddings
-        are in float32 and the corpus precision is not float32. Default is True.
+        are not quantized and the corpus is quantized, i.e. the corpus precision is not "float32". Default is True.
     :type rerank: bool
     :param exact: Whether to use exact search or approximate search. Default is True.
     :type exact: bool
@@ -576,7 +576,7 @@ def semantic_search_usearch(
     # oversampling factor
     rerank_embeddings = None
     k = top_k
-    if query_embeddings.dtype == np.float32:
+    if query_embeddings.dtype not in (np.uint8, np.int8):
         if corpus_index.dtype != ScalarKind.F32 and rerank:
             rerank_embeddings = query_embeddings
             k *= oversampling
@@ -929,7 +929,7 @@ def quantize_embeddings(
     Quantizes embeddings to a lower precision. This can be used to reduce the memory footprint and increase the
     speed of similarity search. The supported precisions are "float32", "int8", "uint8", "binary", and "ubinary".
 
-    :param embeddings: Embeddings with dtype float32 to convert
+    :param embeddings: Unquantized (e.g. float) embeddings with to quantize to a given precision
     :param precision: The precision to convert to. Options are "float32", "int8", "uint8", "binary", "ubinary".
     :param ranges: Ranges for quantization of embeddings. This is only used for int8 quantization, where the ranges
         refers to the minimum and maximum values for each dimension. So, it's a 2D array with shape (2, embedding_dim).
@@ -948,11 +948,11 @@ def quantize_embeddings(
         if isinstance(embeddings[0], Tensor):
             embeddings = [embedding.cpu().numpy() for embedding in embeddings]
         embeddings = np.array(embeddings)
-    if embeddings.dtype != np.float32:
-        raise Exception("Embeddings to quantize must be of type float32")
+    if embeddings.dtype in (np.uint8, np.int8):
+        raise Exception("Embeddings to quantize must be float rather than int8 or uint8.")
 
     if precision == "float32":
-        return embeddings
+        return embeddings.astype(np.float32)
 
     if precision.endswith("int8"):
         # Either use the 1. provided ranges, 2. the calibration dataset or 3. the provided embeddings
