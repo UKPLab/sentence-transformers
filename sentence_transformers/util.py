@@ -347,6 +347,8 @@ def semantic_search_faiss(
     1. `rescore` is True
     2. The query embeddings are not quantized
     3. The corpus is quantized, i.e. the corpus precision is not float32
+    Only if these conditions are true, will we search for `top_k * rescore_multiplier` samples and then rescore to only
+    keep `top_k`.
 
     :param query_embeddings: Embeddings of the query sentences. Ideally not quantized to allow for rescoring.
     :type query_embeddings: np.ndarray
@@ -497,6 +499,8 @@ def semantic_search_usearch(
     1. `rescore` is True
     2. The query embeddings are not quantized
     3. The corpus is quantized, i.e. the corpus precision is not float32
+    Only if these conditions are true, will we search for `top_k * rescore_multiplier` samples and then rescore to only
+    keep `top_k`.
 
     :param query_embeddings: Embeddings of the query sentences. Ideally not quantized to allow for rescoring.
     :type query_embeddings: np.ndarray
