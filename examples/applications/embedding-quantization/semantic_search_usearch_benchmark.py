@@ -30,19 +30,19 @@ for exact in (True, False):
         # the query embeddings. This is important only if you are using uint8 or int8 precision
 
         # 5. Perform semantic search using usearch
-        oversampling = 4
+        rescore_multiplier = 4
         results, search_time = semantic_search_usearch(
             query_embeddings,
             corpus_embeddings=corpus_embeddings,
             corpus_precision=corpus_precision,
             top_k=10,
-            oversampling=oversampling,
             calibration_embeddings=full_corpus_embeddings,
-            rerank=True,
+            rescore=corpus_precision != "float32",
+            rescore_multiplier=rescore_multiplier,
             exact=exact,
         )
 
         print(
             f"{'Exact' if exact else 'Approximate'} search time using {corpus_precision} corpus: {search_time:.6f} seconds"
-            + (f" (oversampling: {oversampling})" if corpus_precision != "float32" else "")
+            + (f" (rescore_multiplier: {rescore_multiplier})" if corpus_precision != "float32" else "")
         )

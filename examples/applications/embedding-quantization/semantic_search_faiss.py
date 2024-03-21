@@ -48,9 +48,9 @@ while True:
         corpus_embeddings=corpus_embeddings if corpus_index is None else None,
         corpus_precision=corpus_precision,
         top_k=10,
-        oversampling=4,
         calibration_embeddings=full_corpus_embeddings,
-        rerank=True,
+        rescore=corpus_precision != "float32",
+        rescore_multiplier=4,
         exact=True,
         output_index=True,
     )
@@ -61,22 +61,22 @@ while True:
     # recalculated for every query.
 
     # This function will 1) quantize the query embeddings to the same precision as the corpus embeddings,
-    # 2) perform the semantic search using FAISS, 3) rerank the results using the full precision embeddings,
+    # 2) perform the semantic search using FAISS, 3) rescore the results using the full precision embeddings,
     # and 4) return the results and the search time (and perhaps the FAISS index).
 
     # `corpus_precision` must be the same as the precision used to quantize the corpus embeddings.
     # It is used to convert the query embeddings to the same precision as the corpus embeddings.
     # `top_k` determines how many results are returned for each query.
-    # `oversampling` is a parameter for the reranking step. Rather than searching for the top_k results,
-    # we search for top_k * oversampling results and rerank the top_k results using the full precision embeddings.
-    # So, higher values of oversampling will give better results, but will be slower.
+    # `rescore_multiplier` is a parameter for the rescoring step. Rather than searching for the top_k results,
+    # we search for top_k * rescore_multiplier results and rescore the top_k results using the full precision embeddings.
+    # So, higher values of rescore_multiplier will give better results, but will be slower.
 
     # `calibration_embeddings` is a set of embeddings used to calibrate the quantization of the query embeddings.
     # This is important only if you are using uint8 or int8 precision. In practice, this is used to calculate
     # the minimum and maximum values of each of the embedding dimensions, which are then used to determine the
     # quantization thresholds.
 
-    # `rerank` determines whether to rerank the results using the full precision embeddings, if False & the
+    # `rescore` determines whether to rescore the results using the full precision embeddings, if False & the
     # corpus is quantized, the results will be very poor. `exact` determines whether to use the exact search
     # or the approximate search method in FAISS.
 
