@@ -422,7 +422,7 @@ def semantic_search_faiss(
 
     # If rescoring is enabled and the query embeddings are in float32, we need to quantize them
     # to the same precision as the corpus embeddings. Also update the top_k value to account for the
-    # oversampling factor
+    # rescore_multiplier
     rescore_embeddings = None
     k = top_k
     if query_embeddings.dtype not in (np.uint8, np.int8):
@@ -577,7 +577,7 @@ def semantic_search_usearch(
 
     # If rescoring is enabled and the query embeddings are in float32, we need to quantize them
     # to the same precision as the corpus embeddings. Also update the top_k value to account for the
-    # oversampling factor
+    # rescore_multiplier
     rescore_embeddings = None
     k = top_k
     if query_embeddings.dtype not in (np.uint8, np.int8):
