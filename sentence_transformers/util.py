@@ -351,41 +351,29 @@ def semantic_search_faiss(
     keep `top_k`.
 
     :param query_embeddings: Embeddings of the query sentences. Ideally not quantized to allow for rescoring.
-    :type query_embeddings: np.ndarray
     :param corpus_embeddings: Embeddings of the corpus sentences. Either `corpus_embeddings` or `corpus_index` should
         be used, not both. The embeddings can be quantized to "int8" or "binary" for more efficient search.
-    :type corpus_embeddings: Optional[np.ndarray]
     :param corpus_index: FAISS index for the corpus sentences. Either `corpus_embeddings` or `corpus_index` should
         be used, not both.
-    :type corpus_index: Optional["faiss.Index"]
     :param corpus_precision: Precision of the corpus embeddings. The options are "float32", "int8", or "binary".
         Default is "float32".
-    :type corpus_precision: Literal["float32", "uint8", "ubinary"]
     :param top_k: Number of top results to retrieve. Default is 10.
-    :type top_k: int
     :param ranges: Ranges for quantization of embeddings. This is only used for int8 quantization, where the ranges
         refers to the minimum and maximum values for each dimension. So, it's a 2D array with shape (2, embedding_dim).
         Default is None, which means that the ranges will be calculated from the calibration embeddings.
-    :type ranges: Optional[np.ndarray]
     :param calibration_embeddings: Embeddings used for calibration during quantization. This is only used for int8
         quantization, where the calibration embeddings can be used to compute ranges, i.e. the minimum and maximum
         values for each dimension. Default is None, which means that the ranges will be calculated from the query
         embeddings. This is not recommended.
-    :type calibration_embeddings: Optional[np.ndarray]
     :param rescore: Whether to perform rescoring. Note that rescoring still will only be used if the query embeddings
         are not quantized and the corpus is quantized, i.e. the corpus precision is not "float32". Default is True.
-    :type rescore: bool
     :param rescore_multiplier: Oversampling factor for rescoring. The code will now search `top_k * rescore_multiplier` samples
         and then rescore to only keep `top_k`. Default is 2.
-    :type rescore_multiplier: int
     :param exact: Whether to use exact search or approximate search. Default is True.
-    :type exact: bool
     :param output_index: Whether to output the FAISS index used for the search. Default is False.
-    :type output_index: bool
 
     :return: A tuple containing a list of search results and the time taken for the search. If `output_index` is True,
         the tuple will also contain the FAISS index used for the search.
-    :rtype: Tuple[List[List[Dict[str, Union[int, float]]]], float] or Tuple[List[List[Dict[str, Union[int, float]]]], float, "faiss.Index"]
     :raises ValueError: If both `corpus_embeddings` and `corpus_index` are provided or if neither is provided.
 
     The list of search results is in the format: [[{"corpus_id": int, "score": float}, ...], ...]
@@ -508,41 +496,29 @@ def semantic_search_usearch(
     keep `top_k`.
 
     :param query_embeddings: Embeddings of the query sentences. Ideally not quantized to allow for rescoring.
-    :type query_embeddings: np.ndarray
     :param corpus_embeddings: Embeddings of the corpus sentences. Either `corpus_embeddings` or `corpus_index` should
         be used, not both. The embeddings can be quantized to "int8" or "binary" for more efficient search.
-    :type corpus_embeddings: Optional[np.ndarray]
     :param corpus_index: usearch index for the corpus sentences. Either `corpus_embeddings` or `corpus_index` should
         be used, not both.
-    :type corpus_index: Optional["usearch.Index"]
     :param corpus_precision: Precision of the corpus embeddings. The options are "float32", "int8", or "binary".
         Default is "float32".
-    :type corpus_precision: Literal["float32", "int8", "binary"]
     :param top_k: Number of top results to retrieve. Default is 10.
-    :type top_k: int
     :param ranges: Ranges for quantization of embeddings. This is only used for int8 quantization, where the ranges
         refers to the minimum and maximum values for each dimension. So, it's a 2D array with shape (2, embedding_dim).
         Default is None, which means that the ranges will be calculated from the calibration embeddings.
-    :type ranges: Optional[np.ndarray]
     :param calibration_embeddings: Embeddings used for calibration during quantization. This is only used for int8
         quantization, where the calibration embeddings can be used to compute ranges, i.e. the minimum and maximum
         values for each dimension. Default is None, which means that the ranges will be calculated from the query
         embeddings. This is not recommended.
-    :type calibration_embeddings: Optional[np.ndarray]
     :param rescore: Whether to perform rescoring. Note that rescoring still will only be used if the query embeddings
         are not quantized and the corpus is quantized, i.e. the corpus precision is not "float32". Default is True.
-    :type rescore: bool
     :param rescore_multiplier: Oversampling factor for rescoring. The code will now search `top_k * rescore_multiplier` samples
         and then rescore to only keep `top_k`. Default is 2.
-    :type rescore_multiplier: int
     :param exact: Whether to use exact search or approximate search. Default is True.
-    :type exact: bool
     :param output_index: Whether to output the usearch index used for the search. Default is False.
-    :type output_index: bool
 
     :return: A tuple containing a list of search results and the time taken for the search. If `output_index` is True,
         the tuple will also contain the usearch index used for the search.
-    :rtype: Tuple[List[List[Dict[str, Union[int, float]]]], float] or Tuple[List[List[Dict[str, Union[int, float]]]], float, "usearch.index.Index"]
     :raises ValueError: If both `corpus_embeddings` and `corpus_index` are provided or if neither is provided.
 
     The list of search results is in the format: [[{"corpus_id": int, "score": float}, ...], ...]
