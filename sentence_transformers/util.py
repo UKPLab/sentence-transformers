@@ -426,15 +426,26 @@ def semantic_search_faiss(
     rescore_embeddings = None
     k = top_k
     if query_embeddings.dtype not in (np.uint8, np.int8):
-        if corpus_precision != "float32" and rescore:
-            rescore_embeddings = query_embeddings
-            k *= rescore_multiplier
+        if rescore:
+            if corpus_precision != "float32":
+                rescore_embeddings = query_embeddings
+                k *= rescore_multiplier
+            else:
+                logger.warning(
+                    "Rescoring is enabled but the corpus is not quantized. Either pass `rescore=False` or "
+                    'quantize the corpus embeddings with `quantize_embeddings(embeddings, precision="...") `'
+                    'and pass `corpus_precision="..."` to `semantic_search_faiss`.'
+                )
 
         query_embeddings = quantize_embeddings(
             query_embeddings,
             precision=corpus_precision,
             ranges=ranges,
             calibration_embeddings=calibration_embeddings,
+        )
+    elif rescore:
+        logger.warning(
+            "Rescoring is enabled but the query embeddings are quantized. Either pass `rescore=False` or don't quantize the query embeddings."
         )
 
     # Perform the search using the usearch index
@@ -581,15 +592,26 @@ def semantic_search_usearch(
     rescore_embeddings = None
     k = top_k
     if query_embeddings.dtype not in (np.uint8, np.int8):
-        if corpus_index.dtype != ScalarKind.F32 and rescore:
-            rescore_embeddings = query_embeddings
-            k *= rescore_multiplier
+        if rescore:
+            if corpus_index.dtype != ScalarKind.F32:
+                rescore_embeddings = query_embeddings
+                k *= rescore_multiplier
+            else:
+                logger.warning(
+                    "Rescoring is enabled but the corpus is not quantized. Either pass `rescore=False` or "
+                    'quantize the corpus embeddings with `quantize_embeddings(embeddings, precision="...") `'
+                    'and pass `corpus_precision="..."` to `semantic_search_usearch`.'
+                )
 
         query_embeddings = quantize_embeddings(
             query_embeddings,
             precision=corpus_precision,
             ranges=ranges,
             calibration_embeddings=calibration_embeddings,
+        )
+    elif rescore:
+        logger.warning(
+            "Rescoring is enabled but the query embeddings are quantized. Either pass `rescore=False` or don't quantize the query embeddings."
         )
 
     # Perform the search using the usearch index
