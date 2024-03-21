@@ -333,22 +333,22 @@ def semantic_search_faiss(
     corpus_index: Optional["faiss.Index"] = None,
     corpus_precision: Literal["float32", "uint8", "ubinary"] = "float32",
     top_k: int = 10,
-    oversampling: int = 2,
     ranges: Optional[np.ndarray] = None,
     calibration_embeddings: Optional[np.ndarray] = None,
-    rerank: bool = True,
+    rescore: bool = True,
+    rescore_multiplier: int = 2,
     exact: bool = True,
     output_index: bool = False,
 ) -> Tuple[List[List[Dict[str, Union[int, float]]]], float, "faiss.Index"]:
     """
     Performs semantic search using the FAISS library.
 
-    Reranking will be performed if:
-    1. `rerank` is True
+    Rescoring will be performed if:
+    1. `rescore` is True
     2. The query embeddings are not quantized
     3. The corpus is quantized, i.e. the corpus precision is not float32
 
-    :param query_embeddings: Embeddings of the query sentences. Ideally not quantized to allow for reranking.
+    :param query_embeddings: Embeddings of the query sentences. Ideally not quantized to allow for rescoring.
     :type query_embeddings: np.ndarray
     :param corpus_embeddings: Embeddings of the corpus sentences. Either `corpus_embeddings` or `corpus_index` should
         be used, not both. The embeddings can be quantized to "int8" or "binary" for more efficient search.
@@ -361,9 +361,6 @@ def semantic_search_faiss(
     :type corpus_precision: Literal["float32", "uint8", "ubinary"]
     :param top_k: Number of top results to retrieve. Default is 10.
     :type top_k: int
-    :param oversampling: Oversampling factor for reranking. The code will now search `top_k * oversampling` samples
-        and then rerank to only keep `top_k`. Default is 2.
-    :type oversampling: int
     :param ranges: Ranges for quantization of embeddings. This is only used for int8 quantization, where the ranges
         refers to the minimum and maximum values for each dimension. So, it's a 2D array with shape (2, embedding_dim).
         Default is None, which means that the ranges will be calculated from the calibration embeddings.
@@ -373,9 +370,12 @@ def semantic_search_faiss(
         values for each dimension. Default is None, which means that the ranges will be calculated from the query
         embeddings. This is not recommended.
     :type calibration_embeddings: Optional[np.ndarray]
-    :param rerank: Whether to perform reranking. Note that reranking still will only be used if the query embeddings
+    :param rescore: Whether to perform rescoring. Note that rescoring still will only be used if the query embeddings
         are not quantized and the corpus is quantized, i.e. the corpus precision is not "float32". Default is True.
-    :type rerank: bool
+    :type rescore: bool
+    :param rescore_multiplier: Oversampling factor for rescoring. The code will now search `top_k * rescore_multiplier` samples
+        and then rescore to only keep `top_k`. Default is 2.
+    :type rescore_multiplier: int
     :param exact: Whether to use exact search or approximate search. Default is True.
     :type exact: bool
     :param output_index: Whether to output the FAISS index used for the search. Default is False.
@@ -418,15 +418,15 @@ def semantic_search_faiss(
 
         corpus_index.add(corpus_embeddings)
 
-    # If reranking is enabled and the query embeddings are in float32, we need to quantize them
+    # If rescoring is enabled and the query embeddings are in float32, we need to quantize them
     # to the same precision as the corpus embeddings. Also update the top_k value to account for the
     # oversampling factor
-    rerank_embeddings = None
+    rescore_embeddings = None
     k = top_k
     if query_embeddings.dtype not in (np.uint8, np.int8):
-        if corpus_precision != "float32" and rerank:
-            rerank_embeddings = query_embeddings
-            k *= oversampling
+        if corpus_precision != "float32" and rescore:
+            rescore_embeddings = query_embeddings
+            k *= rescore_multiplier
 
         query_embeddings = quantize_embeddings(
             query_embeddings,
@@ -439,8 +439,8 @@ def semantic_search_faiss(
     start_t = time.time()
     scores, indices = corpus_index.search(query_embeddings, k)
 
-    # If reranking is enabled, we need to rerank the results using the rerank_embeddings
-    if rerank_embeddings is not None:
+    # If rescoring is enabled, we need to rescore the results using the rescore_embeddings
+    if rescore_embeddings is not None:
         top_k_embeddings = np.array(
             [[corpus_index.reconstruct(idx.item()) for idx in query_indices] for query_indices in indices]
         )
@@ -450,15 +450,15 @@ def semantic_search_faiss(
         else:
             top_k_embeddings = top_k_embeddings.astype(int)
 
-        # rerank_embeddings: [num_queries, embedding_dim]
+        # rescore_embeddings: [num_queries, embedding_dim]
         # top_k_embeddings: [num_queries, top_k, embedding_dim]
         # updated_scores: [num_queries, top_k]
         # We use einsum to calculate the dot product between the query and the top_k embeddings, equivalent to looping
-        # over the queries and calculating 'rerank_embeddings[i] @ top_k_embeddings[i].T'
-        reranked_scores = np.einsum("ij,ikj->ik", rerank_embeddings, top_k_embeddings)
-        reranked_indices = np.argsort(-reranked_scores)[:, :top_k]
-        indices = indices[np.arange(len(query_embeddings))[:, None], reranked_indices]
-        scores = reranked_scores[:, :top_k]
+        # over the queries and calculating 'rescore_embeddings[i] @ top_k_embeddings[i].T'
+        rescored_scores = np.einsum("ij,ikj->ik", rescore_embeddings, top_k_embeddings)
+        rescored_indices = np.argsort(-rescored_scores)[:, :top_k]
+        indices = indices[np.arange(len(query_embeddings))[:, None], rescored_indices]
+        scores = rescored_scores[:, :top_k]
 
     delta_t = time.time() - start_t
 
@@ -483,22 +483,22 @@ def semantic_search_usearch(
     corpus_index: Optional["usearch.index.Index"] = None,
     corpus_precision: Literal["float32", "int8", "binary"] = "float32",
     top_k: int = 10,
-    oversampling: int = 2,
     ranges: Optional[np.ndarray] = None,
     calibration_embeddings: Optional[np.ndarray] = None,
-    rerank: bool = True,
+    rescore: bool = True,
+    rescore_multiplier: int = 2,
     exact: bool = True,
     output_index: bool = False,
 ) -> Tuple[List[List[Dict[str, Union[int, float]]]], float, "usearch.index.Index"]:
     """
     Performs semantic search using the usearch library.
 
-    Reranking will be performed if:
-    1. `rerank` is True
+    Rescoring will be performed if:
+    1. `rescore` is True
     2. The query embeddings are not quantized
     3. The corpus is quantized, i.e. the corpus precision is not float32
 
-    :param query_embeddings: Embeddings of the query sentences. Ideally not quantized to allow for reranking.
+    :param query_embeddings: Embeddings of the query sentences. Ideally not quantized to allow for rescoring.
     :type query_embeddings: np.ndarray
     :param corpus_embeddings: Embeddings of the corpus sentences. Either `corpus_embeddings` or `corpus_index` should
         be used, not both. The embeddings can be quantized to "int8" or "binary" for more efficient search.
@@ -511,9 +511,6 @@ def semantic_search_usearch(
     :type corpus_precision: Literal["float32", "int8", "binary"]
     :param top_k: Number of top results to retrieve. Default is 10.
     :type top_k: int
-    :param oversampling: Oversampling factor for reranking. The code will now search `top_k * oversampling` samples
-        and then rerank to only keep `top_k`. Default is 2.
-    :type oversampling: int
     :param ranges: Ranges for quantization of embeddings. This is only used for int8 quantization, where the ranges
         refers to the minimum and maximum values for each dimension. So, it's a 2D array with shape (2, embedding_dim).
         Default is None, which means that the ranges will be calculated from the calibration embeddings.
@@ -523,9 +520,12 @@ def semantic_search_usearch(
         values for each dimension. Default is None, which means that the ranges will be calculated from the query
         embeddings. This is not recommended.
     :type calibration_embeddings: Optional[np.ndarray]
-    :param rerank: Whether to perform reranking. Note that reranking still will only be used if the query embeddings
+    :param rescore: Whether to perform rescoring. Note that rescoring still will only be used if the query embeddings
         are not quantized and the corpus is quantized, i.e. the corpus precision is not "float32". Default is True.
-    :type rerank: bool
+    :type rescore: bool
+    :param rescore_multiplier: Oversampling factor for rescoring. The code will now search `top_k * rescore_multiplier` samples
+        and then rescore to only keep `top_k`. Default is 2.
+    :type rescore_multiplier: int
     :param exact: Whether to use exact search or approximate search. Default is True.
     :type exact: bool
     :param output_index: Whether to output the usearch index used for the search. Default is False.
@@ -571,15 +571,15 @@ def semantic_search_usearch(
             )
         corpus_index.add(np.arange(len(corpus_embeddings)), corpus_embeddings)
 
-    # If reranking is enabled and the query embeddings are in float32, we need to quantize them
+    # If rescoring is enabled and the query embeddings are in float32, we need to quantize them
     # to the same precision as the corpus embeddings. Also update the top_k value to account for the
     # oversampling factor
-    rerank_embeddings = None
+    rescore_embeddings = None
     k = top_k
     if query_embeddings.dtype not in (np.uint8, np.int8):
-        if corpus_index.dtype != ScalarKind.F32 and rerank:
-            rerank_embeddings = query_embeddings
-            k *= oversampling
+        if corpus_index.dtype != ScalarKind.F32 and rescore:
+            rescore_embeddings = query_embeddings
+            k *= rescore_multiplier
 
         query_embeddings = quantize_embeddings(
             query_embeddings,
@@ -594,23 +594,23 @@ def semantic_search_usearch(
     scores = matches.distances
     indices = matches.keys
 
-    # If reranking is enabled, we need to rerank the results using the rerank_embeddings
-    if rerank_embeddings is not None:
+    # If rescoring is enabled, we need to rescore the results using the rescore_embeddings
+    if rescore_embeddings is not None:
         top_k_embeddings = np.array([corpus_index.get(query_indices) for query_indices in indices])
         # If the corpus precision is binary, we need to unpack the bits
         if corpus_precision == "binary":
             top_k_embeddings = np.unpackbits(top_k_embeddings.astype(np.uint8), axis=-1)
         top_k_embeddings = top_k_embeddings.astype(int)
 
-        # rerank_embeddings: [num_queries, embedding_dim]
+        # rescore_embeddings: [num_queries, embedding_dim]
         # top_k_embeddings: [num_queries, top_k, embedding_dim]
         # updated_scores: [num_queries, top_k]
         # We use einsum to calculate the dot product between the query and the top_k embeddings, equivalent to looping
-        # over the queries and calculating 'rerank_embeddings[i] @ top_k_embeddings[i].T'
-        reranked_scores = np.einsum("ij,ikj->ik", rerank_embeddings, top_k_embeddings)
-        reranked_indices = np.argsort(-reranked_scores)[:, :top_k]
-        indices = indices[np.arange(len(query_embeddings))[:, None], reranked_indices]
-        scores = reranked_scores[:, :top_k]
+        # over the queries and calculating 'rescore_embeddings[i] @ top_k_embeddings[i].T'
+        rescored_scores = np.einsum("ij,ikj->ik", rescore_embeddings, top_k_embeddings)
+        rescored_indices = np.argsort(-rescored_scores)[:, :top_k]
+        indices = indices[np.arange(len(query_embeddings))[:, None], rescored_indices]
+        scores = rescored_scores[:, :top_k]
 
     delta_t = time.time() - start_t
 
