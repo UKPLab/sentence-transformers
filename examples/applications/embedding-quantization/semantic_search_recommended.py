@@ -78,7 +78,6 @@ def search(query, top_k: int = 10, rescore_multiplier: int = 4):
     # 3. Search the binary index
     start_time = time.time()
     _scores, binary_ids = binary_index.search(query_embedding_ubinary, top_k * rescore_multiplier)
-    # return _scores[0], binary_ids[0], {}
     binary_ids = binary_ids[0]
     search_time = time.time() - start_time
 
