@@ -5,6 +5,7 @@ from .LoggingHandler import LoggingHandler
 from .SentenceTransformer import SentenceTransformer
 from .readers import InputExample
 from .cross_encoder.CrossEncoder import CrossEncoder
+from .quantization import quantize_embeddings
 
 __all__ = [
     "LoggingHandler",
@@ -13,4 +14,5 @@ __all__ = [
     "SentenceTransformer",
     "InputExample",
     "CrossEncoder",
+    "quantize_embeddings",
 ]

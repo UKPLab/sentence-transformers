@@ -4,7 +4,7 @@ import os
 import shutil
 from collections import OrderedDict
 import warnings
-from typing import List, Dict, Tuple, Iterable, Type, Union, Callable, Optional, TYPE_CHECKING
+from typing import List, Dict, Literal, Tuple, Iterable, Type, Union, Callable, Optional, TYPE_CHECKING
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -32,6 +32,7 @@ from .util import (
     save_to_hub_args_decorator,
     get_device_name,
 )
+from .quantization import quantize_embeddings
 from .models import Transformer, Pooling, Normalize
 from .model_card_templates import ModelCardTemplate
 from . import __version__
@@ -253,6 +254,7 @@ class SentenceTransformer(nn.Sequential):
         batch_size: int = 32,
         show_progress_bar: bool = None,
         output_value: str = "sentence_embedding",
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
         device: str = None,
@@ -275,6 +277,10 @@ class SentenceTransformer(nn.Sequential):
         :param output_value: The type of embeddings to return: "sentence_embedding" to get sentence embeddings,
             "token_embeddings" to get wordpiece token embeddings, and `None`, to get all output values. Defaults
             to "sentence_embedding".
+        :param precision: The precision to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or
+            "ubinary". All non-float32 precisions are quantized embeddings. Quantized embeddings are smaller in
+            size and faster to compute, but may have a lower accuracy. They are useful for reducing the size
+            of the embeddings of a corpus for semantic search, among other tasks. Defaults to "float32".
         :param convert_to_numpy: Whether the output should be a list of numpy vectors. If False, it is a list of PyTorch tensors.
         :param convert_to_tensor: Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
         :param device: Which `torch.device` to use for the computation.
@@ -377,13 +383,22 @@ class SentenceTransformer(nn.Sequential):
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
+        if precision and precision != "float32":
+            all_embeddings = quantize_embeddings(all_embeddings, precision=precision)
+
         if convert_to_tensor:
             if len(all_embeddings):
-                all_embeddings = torch.stack(all_embeddings)
+                if isinstance(all_embeddings, np.ndarray):
+                    all_embeddings = torch.from_numpy(all_embeddings)
+                else:
+                    all_embeddings = torch.stack(all_embeddings)
             else:
                 all_embeddings = torch.Tensor()
         elif convert_to_numpy:
-            all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
+            if not isinstance(all_embeddings, np.ndarray):
+                all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
+        elif isinstance(all_embeddings, np.ndarray):
+            all_embeddings = [torch.from_numpy(embedding) for embedding in all_embeddings]
 
         if input_was_string:
             all_embeddings = all_embeddings[0]
