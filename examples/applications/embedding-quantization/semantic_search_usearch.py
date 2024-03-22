@@ -1,6 +1,6 @@
 import time
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.util import quantize_embeddings, semantic_search_usearch
+from sentence_transformers.quantization import quantize_embeddings, semantic_search_usearch
 from datasets import load_dataset
 
 # 1. Load the quora corpus with questions

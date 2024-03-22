@@ -29,10 +29,10 @@ from .util import (
     is_sentence_transformer_model,
     load_dir_path,
     load_file_path,
-    quantize_embeddings,
     save_to_hub_args_decorator,
     get_device_name,
 )
+from .quantization import quantize_embeddings
 from .models import Transformer, Pooling, Normalize
 from .model_card_templates import ModelCardTemplate
 from . import __version__

@@ -1,5 +1,5 @@
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.util import quantize_embeddings, semantic_search_faiss
+from sentence_transformers.quantization import quantize_embeddings, semantic_search_faiss
 from datasets import load_dataset
 
 # 1. Load the quora corpus with questions
