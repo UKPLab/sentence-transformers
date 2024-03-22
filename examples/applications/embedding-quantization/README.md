@@ -4,7 +4,7 @@ Embeddings may be challenging to scale up, which leads to expensive solutions an
 
 However, there is a new approach to counter this problem; it entails reducing the size of each of the individual values in the embedding: **Quantization**. Experiments on quantization have shown that we can maintain a large amount of performance while significantly speeding up computation and saving on memory, storage, and costs.
 
-To learn more about Embedding Quantization and their performance, please read the blogpost by [Sentence Transformers and mixedbread.ai](https://huggingface.co/blog/embedding-quantization).
+To learn more about Embedding Quantization and their performance, please read the [blogpost](https://huggingface.co/blog/embedding-quantization) by Sentence Transformers and mixedbread.ai.
 
 ## Binary Quantization
 
