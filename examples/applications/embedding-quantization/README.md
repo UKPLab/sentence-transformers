@@ -38,6 +38,11 @@ embeddings = model.encode(["I am driving to the lake.", "It is a beautiful day."
 binary_embeddings = quantize_embeddings(embeddings, precision="binary")
 ```
 
+**References:**
+* <a href="https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1"><code>mixedbread-ai/mxbai-embed-large-v1</code></a>
+* <a href="../../../docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode"><code>SentenceTransformer.encode</code></a>
+* <a href="../../../docs/package_reference/quantization.html#sentence_transformers.quantization.quantize_embeddings"><code>quantize_embeddings</code></a>
+
 Here you can see the differences between default `float32` embeddings and binary embeddings in terms of shape, size, and `numpy` dtype:
 
 ```python
@@ -100,6 +105,11 @@ int8_embeddings = quantize_embeddings(
 )
 ```
 
+**References:**
+* <a href="https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1"><code>mixedbread-ai/mxbai-embed-large-v1</code></a>
+* <a href="../../../docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode"><code>SentenceTransformer.encode</code></a>
+* <a href="../../../docs/package_reference/quantization.html#sentence_transformers.quantization.quantize_embeddings"><code>quantize_embeddings</code></a>
+
 Here you can see the differences between default `float32` embeddings and `int8` scalar embeddings in terms of shape, size, and `numpy` dtype:
 
 ```python
@@ -139,8 +149,8 @@ The following scripts can be used to experiment with embedding quantization for 
 * **Recommended Retrieval**:
   * [semantic_search_recommended.py](semantic_search_recommended.py): This script combines binary search with scalar rescoring, much like the above demo, for cheap, efficient, and performant retrieval.
 * **Usage**:
-  * [semantic_search_faiss.py](semantic_search_faiss.py): This script showcases regular usage of binary or scalar quantization, retrieval, and rescoring using FAISS, by using the :meth:`semantic_search_faiss` utility function.
-  * [semantic_search_usearch.py](semantic_search_usearch.py): This script showcases regular usage of binary or scalar quantization, retrieval, and rescoring using USearch, by using the :meth:`semantic_search_usearch` utility function.
+  * [semantic_search_faiss.py](semantic_search_faiss.py): This script showcases regular usage of binary or scalar quantization, retrieval, and rescoring using FAISS, by using the <a href="../../../docs/package_reference/quantization.html#sentence_transformers.quantization.semantic_search_faiss"><code>semantic_search_faiss</code></a> utility function.
+  * [semantic_search_usearch.py](semantic_search_usearch.py): This script showcases regular usage of binary or scalar quantization, retrieval, and rescoring using USearch, by using the <a href="../../../docs/package_reference/quantization.html#sentence_transformers.quantization.semantic_search_usearch"><code>semantic_search_usearch</code></a> utility function.
 * **Benchmarks**:
-  * [semantic_search_faiss_benchmark.py](semantic_search_faiss_benchmark.py): This script includes a retrieval speed benchmark of `float32` retrieval, binary retrieval + rescoring, and scalar retrieval + rescoring, using FAISS. It uses the :meth:`semantic_search_faiss` utility function. Our benchmarks especially show show speedups for `ubinary`.
-  * [semantic_search_usearch_benchmark.py](semantic_search_usearch_benchmark.py): This script includes a retrieval speed benchmark of `float32` retrieval, binary retrieval + rescoring, and scalar retrieval + rescoring, using USearch. It uses the :meth:`semantic_search_usearch` utility function. Our experiments show large speedups on newer hardware, particularly for `int8`.
+  * [semantic_search_faiss_benchmark.py](semantic_search_faiss_benchmark.py): This script includes a retrieval speed benchmark of `float32` retrieval, binary retrieval + rescoring, and scalar retrieval + rescoring, using FAISS. It uses the <a href="../../../docs/package_reference/quantization.html#sentence_transformers.quantization.semantic_search_faiss"><code>semantic_search_faiss</code></a> utility function. Our benchmarks especially show show speedups for `ubinary`.
+  * [semantic_search_usearch_benchmark.py](semantic_search_usearch_benchmark.py): This script includes a retrieval speed benchmark of `float32` retrieval, binary retrieval + rescoring, and scalar retrieval + rescoring, using USearch. It uses the <a href="../../../docs/package_reference/quantization.html#sentence_transformers.quantization.semantic_search_usearch"><code>semantic_search_usearch</code></a> utility function. Our experiments show large speedups on newer hardware, particularly for `int8`.
