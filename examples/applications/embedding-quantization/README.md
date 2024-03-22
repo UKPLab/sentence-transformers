@@ -127,6 +127,19 @@ float32
 int8
 ```
 
+### Combining Binary and Scalar Quantization
+
+It is possible to combine binary and scalar quantization to get the best of both worlds: the extreme speed from binary embeddings and the great performance preservation of scalar embeddings with rescoring. See the [demo](#Demo) below for a real-life implementation of this approach involving 41 million texts from Wikipedia. The pipeline for that setup is as follows:
+
+1. The query is embedded using the [`mixedbread-ai/mxbai-embed-large-v1`](https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1) SentenceTransformer model.
+2. The query is quantized to binary using the <a href="../../../docs/package_reference/quantization.html#sentence_transformers.quantization.quantize_embeddings"><code>quantize_embeddings</code></a> function from the `sentence-transformers` library.
+3. A binary index (41M binary embeddings; 5.2GB of memory/disk space) is searched using the quantized query for the top 40 documents.
+4. The top 40 documents are loaded on the fly from an int8 index on disk (41M int8 embeddings; 0 bytes of memory, 47.5GB of disk space).
+5. The top 40 documents are rescored using the float32 query and the int8 embeddings to get the top 10 documents.
+6. The top 10 documents are sorted by score and displayed.
+
+Through this approach, we use 5.2GB of memory and 52GB of disk space for the indices. This is considerably less than normal retrieval, for which we would require 200GB of memory and 200GB of disk space. Especially as you scale up even further, this will result in notable reductions in both latency and costs.
+
 ## Additional extensions
 
 Note that embedding quantization can be combined with other approaches to improve retrieval efficiency, such as [Matryoshka Embeddings](../../training/matryoshka/README.md). Additionally, the [Retrieve & Re-Rank](../retrieve_rerank/README.md) also works very well with quantized embeddings, i.e. you can still use a Cross-Encoder to rerank.
