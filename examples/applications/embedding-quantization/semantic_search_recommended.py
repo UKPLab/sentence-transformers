@@ -21,9 +21,7 @@ from usearch.index import Index
 # Normally you don't use this prompt for documents, but only for the queries
 model = SentenceTransformer(
     "mixedbread-ai/mxbai-embed-large-v1",
-    prompts={
-        "query": "Represent this sentence for searching relevant passages: "
-    },
+    prompts={"query": "Represent this sentence for searching relevant passages: "},
     default_prompt_name="query",
 )
 
