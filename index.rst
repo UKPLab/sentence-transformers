@@ -140,6 +140,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
 
    examples/applications/computing-embeddings/README
    docs/usage/semantic_textual_similarity
+   examples/applications/embedding-quantization/README
    examples/applications/semantic-search/README
    examples/applications/retrieve_rerank/README
    examples/applications/clustering/README

@@ -15,6 +15,7 @@ from datasets import load_dataset
 
 import faiss
 from usearch.index import Index
+# We use usearch as it can efficiently load int8 vectors from disk.
 
 # Load the model
 # NOTE: Because we are only comparing questions here, we will use the "query" prompt for everything.
