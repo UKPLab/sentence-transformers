@@ -1,3 +1,5 @@
+import torch
+from sentence_transformers.util import surprise_dev, surprise_score
 from . import SentenceEvaluator
 import logging
 import os
@@ -41,9 +43,11 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         batch_size: int = 32,
         show_progress_bar: bool = False,
         write_csv: bool = True,
+        train_texts: List[str] = None,
     ):
         self.sentences1 = sentences1
         self.sentences2 = sentences2
+        self.train_texts = train_texts or []
         self.labels = labels
 
         assert len(self.sentences1) == len(self.sentences2)
@@ -92,6 +96,20 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             "dot_recall",
             "dot_f1_threshold",
             "dot_ap",
+            "surprise_accuracy",
+            "surprise_accuracy_threshold",
+            "surprise_f1",
+            "surprise_precision",
+            "surprise_recall",
+            "surprise_f1_threshold",
+            "surprise_ap",
+            "surprise-dev_accuracy",
+            "surprise-dev_accuracy_threshold",
+            "surprise-dev_f1",
+            "surprise-dev_precision",
+            "surprise-dev_recall",
+            "surprise-dev_f1_threshold",
+            "surprise-dev_ap",
         ]
 
     @classmethod
@@ -163,10 +181,32 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             )
             embeddings1 = embeddings[: len(self.sentences1)]
             embeddings2 = embeddings[len(self.sentences1) :]
+        ensemble = (
+            model.encode(
+                self.train_texts,
+                batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
+                convert_to_tensor=True,
+            )
+            if self.train_texts
+            else None
+        )
 
         cosine_scores = 1 - paired_cosine_distances(embeddings1, embeddings2)
         manhattan_distances = paired_manhattan_distances(embeddings1, embeddings2)
         euclidean_distances = paired_euclidean_distances(embeddings1, embeddings2)
+        surprise_scores = surprise_score(
+            torch.tensor(embeddings1).to(ensemble.device),
+            torch.tensor(embeddings2).to(ensemble.device),
+            ensemble,
+        )
+        surprise_scores = surprise_scores.diagonal().cpu().numpy()
+        surprise_devs = surprise_dev(
+            torch.tensor(embeddings1).to(ensemble.device),
+            torch.tensor(embeddings2).to(ensemble.device),
+            ensemble,
+        )
+        surprise_devs = surprise_devs.diagonal().cpu().numpy()
 
         embeddings1_np = np.asarray(embeddings1)
         embeddings2_np = np.asarray(embeddings2)
@@ -179,6 +219,8 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             ["manhattan", "Manhattan-Distance", manhattan_distances, False],
             ["euclidean", "Euclidean-Distance", euclidean_distances, False],
             ["dot", "Dot-Product", dot_scores, True],
+            ["surprise", "Surprise-Similarity", surprise_scores, True],
+            ["surprise-dev", "Surprise-Similarity-Dev", surprise_devs, True],
         ]:
             acc, acc_threshold = self.find_best_acc_and_threshold(scores, labels, reverse)
             f1, precision, recall, f1_threshold = self.find_best_f1_and_threshold(scores, labels, reverse)

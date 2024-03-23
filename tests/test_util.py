@@ -79,3 +79,56 @@ def test_pairwise_scores() -> None:
     sklearn_pairwise = 1 - sklearn.metrics.pairwise.paired_cosine_distances(a, b)
     pytorch_cos_scores = util.pairwise_cos_sim(a, b).numpy()
     assert np.allclose(sklearn_pairwise, pytorch_cos_scores)
+
+
+def test_surprise_score():
+    a = np.random.randn(10, 100)
+    b = np.random.randn(20, 100)
+    ensemble = np.random.randn(30, 100)
+
+    scores = util.surprise_score(a, b, ensemble)
+    assert scores.shape == (10, 20)
+    assert torch.all(torch.isfinite(scores))
+    assert torch.all(scores >= 0)
+    assert torch.all(scores <= 1)
+
+
+def test_surprise_score_normalize():
+    a = np.random.randn(10, 100)
+    b = np.random.randn(20, 100)
+    ensemble = np.random.randn(30, 100)
+
+    score = util.surprise_score(a, b, ensemble)
+    score_no_norm = util.SurpriseScore(ensemble, normalize=True)(a, b)
+    assert torch.allclose(score, score_no_norm)
+
+
+def test_surprise_score_no_normalize():
+    a = np.random.randn(10, 100)
+    b = np.random.randn(20, 100)
+    ensemble = np.random.randn(30, 100)
+
+    score = util.surprise_dev(a, b, ensemble)
+    score_no_norm = util.SurpriseScore(ensemble, normalize=False)(a, b)
+    assert torch.allclose(score, score_no_norm)
+
+
+def test_surprise_score_class():
+    a = np.random.randn(10, 100)
+    b = np.random.randn(20, 100)
+    ensemble = np.random.randn(30, 100)
+
+    scorer = util.SurpriseScore(ensemble)
+    score_b = scorer(a, b)
+    mean_b, std_b = scorer.mean, scorer.std
+
+    c = np.random.randn(40, 100)
+    score_c = scorer(a, c)
+    mean_c, std_c = scorer.mean, scorer.std
+
+    assert mean_b.shape == (20,)
+    assert std_b.shape == (20,)
+    assert score_b.shape == (10, 20)
+    assert mean_c.shape == (40,)
+    assert std_c.shape == (40,)
+    assert score_c.shape == (10, 40)
