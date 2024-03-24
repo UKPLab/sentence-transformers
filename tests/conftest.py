@@ -12,6 +12,11 @@ def stsb_bert_tiny_model() -> SentenceTransformer:
     return SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
 
 
+@pytest.fixture(scope="session")
+def stsb_bert_tiny_model_reused() -> SentenceTransformer:
+    return SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+
+
 @pytest.fixture()
 def paraphrase_distilroberta_base_v1_model() -> SentenceTransformer:
     return SentenceTransformer("paraphrase-distilroberta-base-v1")
