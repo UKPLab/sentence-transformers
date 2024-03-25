@@ -3,7 +3,7 @@ import logging
 import os
 from collections import OrderedDict
 import warnings
-from typing import List, Dict, Tuple, Iterable, Union, Optional, TYPE_CHECKING
+from typing import List, Dict, Literal, Tuple, Iterable, Union, Optional, TYPE_CHECKING
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -29,6 +29,7 @@ from .util import (
     save_to_hub_args_decorator,
     get_device_name,
 )
+from .quantization import quantize_embeddings
 from .models import Transformer, Pooling, Normalize
 from .model_card_templates import ModelCardTemplate
 from .fit_mixin import FitMixin
@@ -251,6 +252,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         batch_size: int = 32,
         show_progress_bar: bool = None,
         output_value: str = "sentence_embedding",
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
         device: str = None,
@@ -273,14 +275,19 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         :param output_value: The type of embeddings to return: "sentence_embedding" to get sentence embeddings,
             "token_embeddings" to get wordpiece token embeddings, and `None`, to get all output values. Defaults
             to "sentence_embedding".
+        :param precision: The precision to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or
+            "ubinary". All non-float32 precisions are quantized embeddings. Quantized embeddings are smaller in
+            size and faster to compute, but may have a lower accuracy. They are useful for reducing the size
+            of the embeddings of a corpus for semantic search, among other tasks. Defaults to "float32".
         :param convert_to_numpy: Whether the output should be a list of numpy vectors. If False, it is a list of PyTorch tensors.
         :param convert_to_tensor: Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
         :param device: Which `torch.device` to use for the computation.
         :param normalize_embeddings: Whether to normalize returned vectors to have length 1. In that case,
             the faster dot-product (util.dot_score) instead of cosine similarity can be used.
 
-        :return: By default, a list of tensors is returned. If convert_to_tensor, a stacked tensor is returned.
-            If convert_to_numpy, a numpy matrix is returned.
+        :return: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned. If only one string
+            input is provided, then the output is a 1d array with shape [output_dimension]. If `convert_to_tensor`, a
+            torch Tensor is returned instead.
         """
         self.eval()
         if show_progress_bar is None:
@@ -374,13 +381,22 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
+        if precision and precision != "float32":
+            all_embeddings = quantize_embeddings(all_embeddings, precision=precision)
+
         if convert_to_tensor:
             if len(all_embeddings):
-                all_embeddings = torch.stack(all_embeddings)
+                if isinstance(all_embeddings, np.ndarray):
+                    all_embeddings = torch.from_numpy(all_embeddings)
+                else:
+                    all_embeddings = torch.stack(all_embeddings)
             else:
                 all_embeddings = torch.Tensor()
         elif convert_to_numpy:
-            all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
+            if not isinstance(all_embeddings, np.ndarray):
+                all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
+        elif isinstance(all_embeddings, np.ndarray):
+            all_embeddings = [torch.from_numpy(embedding) for embedding in all_embeddings]
 
         if input_was_string:
             all_embeddings = all_embeddings[0]
@@ -473,7 +489,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         :param chunk_size: Sentences are chunked and sent to the individual processes. If none, it determine a sensible size.
         :param normalize_embeddings: Whether to normalize returned vectors to have length 1. In that case,
             the faster dot-product (util.dot_score) instead of cosine similarity can be used.
-        :return: Numpy matrix with all embeddings
+        :return: 2d numpy array with shape [num_inputs, output_dimension]
         """
 
         if chunk_size is None:
@@ -574,7 +590,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         model_name: Optional[str] = None,
         create_model_card: bool = True,
         train_datasets: Optional[List[str]] = None,
-        safe_serialization: bool = True,  # <- TODO, probably via #2426?
+        safe_serialization: bool = True,
     ):
         """
         Saves all elements for this seq. sentence embedder into different sub-folders
@@ -583,6 +599,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         :param model_name: Optional model name
         :param create_model_card: If True, create a README.md with basic information about this model
         :param train_datasets: Optional list with the names of the datasets used to to train the model
+        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
         """
         if path is None:
             return
@@ -615,7 +632,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 model_path = os.path.join(path, str(idx) + "_" + type(module).__name__)
 
             os.makedirs(model_path, exist_ok=True)
-            module.save(model_path)
+            if isinstance(module, Transformer):
+                module.save(model_path, safe_serialization=safe_serialization)
+            else:
+                module.save(model_path)
+
             modules_config.append(
                 {"idx": idx, "name": name, "path": os.path.basename(model_path), "type": type(module).__module__}
             )
@@ -693,18 +714,22 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         organization: Optional[str] = None,
         token: Optional[str] = None,
         private: Optional[bool] = None,
+        safe_serialization: bool = True,
         commit_message: str = "Add new SentenceTransformer model.",
         local_model_path: Optional[str] = None,
         exist_ok: bool = False,
         replace_model_card: bool = False,
         train_datasets: Optional[List[str]] = None,
-    ):
+    ) -> str:
         """
+        DEPRECATED, use `push_to_hub` instead.
+
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
         :param repo_id: Repository name for your model in the Hub, including the user or organization.
         :param token: An authentication token (See https://huggingface.co/settings/token)
         :param private: Set to true, for hosting a private model
+        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
         :param commit_message: Message to commit while pushing.
         :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
         :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
@@ -714,6 +739,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         :return: The url of the commit of your model in the repository on the Hugging Face Hub.
         """
+        logger.warning(
+            "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers."
+            " Please use `push_to_hub` instead for future model uploads."
+        )
+
         if organization:
             if "/" not in repo_id:
                 logger.warning(
@@ -729,6 +759,45 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     f'Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id="{repo_id}"` instead.'
                 )
 
+        return self.push_to_hub(
+            repo_id=repo_id,
+            token=token,
+            private=private,
+            safe_serialization=safe_serialization,
+            commit_message=commit_message,
+            local_model_path=local_model_path,
+            exist_ok=exist_ok,
+            replace_model_card=replace_model_card,
+            train_datasets=train_datasets,
+        )
+
+    def push_to_hub(
+        self,
+        repo_id: str,
+        token: Optional[str] = None,
+        private: Optional[bool] = None,
+        safe_serialization: bool = True,
+        commit_message: str = "Add new SentenceTransformer model.",
+        local_model_path: Optional[str] = None,
+        exist_ok: bool = False,
+        replace_model_card: bool = False,
+        train_datasets: Optional[List[str]] = None,
+    ) -> str:
+        """
+        Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
+
+        :param repo_id: Repository name for your model in the Hub, including the user or organization.
+        :param token: An authentication token (See https://huggingface.co/settings/token)
+        :param private: Set to true, for hosting a private model
+        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
+        :param commit_message: Message to commit while pushing.
+        :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
+        :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
+        :param replace_model_card: If true, replace an existing model card in the hub with the automatically created model card
+        :param train_datasets: Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
+
+        :return: The url of the commit of your model in the repository on the Hugging Face Hub.
+        """
         api = HfApi(token=token)
         repo_url = api.create_repo(
             repo_id=repo_id,
@@ -749,6 +818,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     model_name=repo_url.repo_id,
                     create_model_card=create_model_card,
                     train_datasets=train_datasets,
+                    safe_serialization=safe_serialization,
                 )
                 folder_url = api.upload_folder(repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message)
 

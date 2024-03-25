@@ -20,6 +20,7 @@ from .AnglELoss import AnglELoss
 from .OnlineContrastiveLoss import OnlineContrastiveLoss
 from .MegaBatchMarginLoss import MegaBatchMarginLoss
 from .DenoisingAutoEncoderLoss import DenoisingAutoEncoderLoss
+from .GISTEmbedLoss import GISTEmbedLoss
 
 # Triplet losses
 from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
@@ -50,6 +51,7 @@ __all__ = [
     "OnlineContrastiveLoss",
     "MegaBatchMarginLoss",
     "DenoisingAutoEncoderLoss",
+    "GISTEmbedLoss",
     "BatchHardTripletLoss",
     "BatchHardTripletLossDistanceFunction",
     "BatchHardSoftMarginTripletLoss",

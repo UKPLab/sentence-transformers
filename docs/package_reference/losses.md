@@ -75,6 +75,11 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 .. autoclass:: sentence_transformers.losses.DenoisingAutoEncoderLoss
 ```
 
+## GISTEmbedLoss
+```eval_rst
+.. autoclass:: sentence_transformers.losses.GISTEmbedLoss
+```
+
 ## MSELoss
 ```eval_rst
 .. autoclass:: sentence_transformers.losses.MSELoss

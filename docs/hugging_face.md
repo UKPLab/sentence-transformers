@@ -71,19 +71,19 @@ pip install huggingface_hub
 huggingface-cli login
 ```
 
-Then, you can share your SentenceTransformers models by calling the [`save_to_hub` method](https://www.sbert.net/docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.save_to_hub) from a trained model. By default, the model will be uploaded to your account, but you can upload to an [organization](https://huggingface.co/docs/hub/organizations) by passing setting an `organization` parameter. `save_to_hub` automatically generates a model card, an inference widget, example code snippets, and more.
+Then, you can share your SentenceTransformers models by calling the [`push_to_hub` method](https://www.sbert.net/docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.push_to_hub) from a trained model. By default, the model will be uploaded to your account, but you can upload to an [organization](https://huggingface.co/docs/hub/organizations) by providing the organization as a part of the `repo_id`, e.g. `model.push_to_hub("my_organization/my_model_name")`. `push_to_hub` automatically generates a model card, an inference widget, example code snippets, and more.
 
 ```py
 from sentence_transformers import SentenceTransformer
 
 # Load or train a model
-model.save_to_hub("my_new_model")
+model.push_to_hub("my_new_model")
 ```
 
 You can automatically add to the Hub's model card a list of datasets you used to train the model with the argument `train_datasets: Optional[List[str]] = None)`. See the "Datasets used to train" section in the [ITESM/sentece-embeddings-BETO](https://huggingface.co/ITESM/sentece-embeddings-BETO) model for an example of the final result.
 
 ```py
-model.save_to_hub("my_new_model", train_datasets=["GEM/wiki_lingua", "code_search_net"])
+model.push_to_hub("my_new_model", train_datasets=["GEM/wiki_lingua", "code_search_net"])
 ```
 
 ## Sharing your embeddings

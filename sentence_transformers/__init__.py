@@ -1,4 +1,4 @@
-__version__ = "2.6.0.dev0"
+__version__ = "2.7.0.dev0"
 __MODEL_HUB_ORGANIZATION__ = "sentence-transformers"
 from .datasets import SentencesDataset, ParallelSentencesDataset
 from .LoggingHandler import LoggingHandler
@@ -8,6 +8,7 @@ from .cross_encoder.CrossEncoder import CrossEncoder
 from .trainer import SentenceTransformerTrainer
 from .data_collator import SentenceTransformerDataCollator
 from .training_args import TrainingArguments
+from .quantization import quantize_embeddings
 
 __all__ = [
     "LoggingHandler",
@@ -19,4 +20,5 @@ __all__ = [
     "SentenceTransformerTrainer",
     "SentenceTransformerDataCollator",
     "TrainingArguments",
+    "quantize_embeddings",
 ]
