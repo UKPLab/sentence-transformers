@@ -36,6 +36,7 @@ from .quantization import quantize_embeddings
 from .models import Transformer, Pooling, Normalize
 from .model_card_templates import ModelCardTemplate
 from . import __version__
+from .SimilarityFunctions import SimilarityFunction
 
 logger = logging.getLogger(__name__)
 
@@ -203,6 +204,8 @@ class SentenceTransformer(nn.Sequential):
                     revision=revision,
                     trust_remote_code=trust_remote_code,
                 )
+        else:
+            self.score_function_name = None
 
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
@@ -211,6 +214,17 @@ class SentenceTransformer(nn.Sequential):
         if device is None:
             device = get_device_name()
             logger.info("Use pytorch device_name: {}".format(device))
+
+        if self.score_function_name is not None:
+            if self.score_function_name not in SimilarityFunction.possible_values():
+                raise ValueError(
+                    "The provided value is {}, but available values are {}.".format(
+                        self.score_function_name, SimilarityFunction.possible_values()
+                    )
+                )
+
+            self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
+            self.score_function_pairwise = SimilarityFunction.map_to_pairwise_function(self.score_function_name)
 
         self.to(device)
 
@@ -618,6 +632,9 @@ class SentenceTransformer(nn.Sequential):
                 "transformers": transformers.__version__,
                 "pytorch": torch.__version__,
             }
+
+        if "score_function" not in self._model_config:
+            self._model_config["score_function"] = self.score_function_name
 
         with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
             config = self._model_config.copy()
@@ -1064,6 +1081,10 @@ class SentenceTransformer(nn.Sequential):
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
+            if self.score_function_name is not None:
+                self.score_function = SimilarityFunction.map_to_function(self.score_function_name)
+                self.score_function_pairwise = SimilarityFunction.map_to_pairwise_function(self.score_function_name)
+
         if evaluator is None and output_path is not None:  # No evaluator, but output path: save final model version
             self.save(output_path)
 
@@ -1097,6 +1118,8 @@ class SentenceTransformer(nn.Sequential):
                 callback(score, epoch, steps)
             if score > self.best_score:
                 self.best_score = score
+                if hasattr(evaluator, "best_scoring_function") and evaluator.best_scoring_function is not None:
+                    self.score_function_name = evaluator.best_scoring_function
                 if save_best_model:
                     self.save(output_path)
 
@@ -1138,6 +1161,7 @@ class SentenceTransformer(nn.Sequential):
             tokenizer_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
+        self.score_function_name = None
         return [transformer_model, pooling_model]
 
     def _load_sbert_model(
@@ -1173,6 +1197,14 @@ class SentenceTransformer(nn.Sequential):
                         self._model_config["__version__"]["sentence_transformers"], __version__
                     )
                 )
+
+            if "score_function" in self._model_config:
+                logger.info(
+                    "The loaded model uses the {} score function.\n".format(self._model_config["score_function"])
+                )
+                self.score_function_name = self._model_config["score_function"]
+            else:
+                self.score_function_name = None
 
             # Set prompts if not already overridden by the __init__ calls
             if not self.prompts:

@@ -1,4 +1,5 @@
 from . import SentenceEvaluator
+from . import SimilarityFunction
 import torch
 from torch import Tensor
 import logging
@@ -6,7 +7,7 @@ from tqdm import trange
 from ..util import cos_sim, dot_score
 import os
 import numpy as np
-from typing import List, Dict, Set, Callable
+from typing import List, Dict, Set, Callable, Union
 import heapq
 
 
@@ -36,11 +37,11 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         batch_size: int = 32,
         name: str = "",
         write_csv: bool = True,
-        score_functions: Dict[str, Callable[[Tensor, Tensor], Tensor]] = {
-            "cos_sim": cos_sim,
-            "dot_score": dot_score,
+        similarity_fct: Dict[str, Callable[[Tensor, Tensor], Tensor]] = {
+            SimilarityFunction.COSINE.value: cos_sim,
+            SimilarityFunction.DOT_SCORE.value: dot_score,
         },  # Score function, higher=more similar
-        main_score_function: str = None,
+        main_score_function: Union[str, SimilarityFunction] = SimilarityFunction.COSINE.value,
     ):
         self.queries_ids = []
         for qid in queries:
@@ -64,9 +65,12 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.batch_size = batch_size
         self.name = name
         self.write_csv = write_csv
-        self.score_functions = score_functions
-        self.score_function_names = sorted(list(self.score_functions.keys()))
-        self.main_score_function = main_score_function
+        self.similarity_fct = similarity_fct
+        self.similarity_fct_names = sorted(x for x in self.similarity_fct.keys())
+        self.main_score_function = (
+            main_score_function.value if isinstance(main_score_function, SimilarityFunction) else main_score_function
+        )
+        self.best_scoring_function = self.main_score_function
 
         if name:
             name = "_" + name
@@ -74,7 +78,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.csv_file: str = "Information-Retrieval_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps"]
 
-        for score_name in self.score_function_names:
+        for score_name in self.similarity_fct_names:
             for k in accuracy_at_k:
                 self.csv_headers.append("{}-Accuracy@{}".format(score_name, k))
 
@@ -117,7 +121,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 fOut = open(csv_path, mode="a", encoding="utf-8")
 
             output_data = [epoch, steps]
-            for name in self.score_function_names:
+            for name in self.similarity_fct_names:
                 for k in self.accuracy_at_k:
                     output_data.append(scores[name]["accuracy@k"][k])
 
@@ -138,8 +142,10 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             fOut.write("\n")
             fOut.close()
 
-        if self.main_score_function is None:
-            return max([scores[name]["map@k"][max(self.map_at_k)] for name in self.score_function_names])
+        if self.best_scoring_function is None:
+            max_key_map_at_k = max(scores, key=lambda x: scores[x]["map@k"][max(self.map_at_k)])
+            self.best_scoring_function = max_key_map_at_k
+            return scores[max_key_map_at_k]["map@k"][max(self.map_at_k)]
         else:
             return scores[self.main_score_function]["map@k"][max(self.map_at_k)]
 
@@ -161,7 +167,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         )
 
         queries_result_list = {}
-        for name in self.score_functions:
+        for name in self.similarity_fct_names:
             queries_result_list[name] = [[] for _ in range(len(query_embeddings))]
 
         # Iterate over chunks of the corpus
@@ -182,7 +188,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 sub_corpus_embeddings = corpus_embeddings[corpus_start_idx:corpus_end_idx]
 
             # Compute cosine similarites
-            for name, score_function in self.score_functions.items():
+            for name, score_function in self.similarity_fct.items():
                 pair_scores = score_function(query_embeddings, sub_corpus_embeddings)
 
                 # Get top-k values
@@ -214,10 +220,10 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         logger.info("Corpus: {}\n".format(len(self.corpus)))
 
         # Compute scores
-        scores = {name: self.compute_metrics(queries_result_list[name]) for name in self.score_functions}
+        scores = {name: self.compute_metrics(queries_result_list[name]) for name in self.similarity_fct}
 
         # Output
-        for name in self.score_function_names:
+        for name in self.similarity_fct_names:
             logger.info("Score-Function: {}".format(name))
             self.output_scores(scores[name])
 

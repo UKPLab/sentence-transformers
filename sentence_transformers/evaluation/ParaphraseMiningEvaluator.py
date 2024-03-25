@@ -1,10 +1,12 @@
 from . import SentenceEvaluator
+from . import SimilarityFunction
 import logging
 from sentence_transformers.util import paraphrase_mining
 import os
 import csv
+import numpy as np
 
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 from collections import defaultdict
 
 
@@ -14,7 +16,7 @@ logger = logging.getLogger(__name__)
 class ParaphraseMiningEvaluator(SentenceEvaluator):
     """
     Given a large set of sentences, this evaluator performs paraphrase (duplicate) mining and
-    identifies the pairs with the highest similarity. It compare the extracted paraphrase pairs
+    identifies the pairs with the highest similarity. It compares the extracted paraphrase pairs
     with a set of gold labels and computes the F1 score.
     """
 
@@ -32,6 +34,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         batch_size: int = 16,
         name: str = "",
         write_csv: bool = True,
+        similarity_fct: Union[str, SimilarityFunction] = SimilarityFunction.COSINE.value,
     ):
         """
 
@@ -93,6 +96,14 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "precision", "recall", "f1", "threshold", "average_precision"]
         self.write_csv = write_csv
 
+        self.best_scoring_function = (
+            similarity_fct.value if isinstance(similarity_fct, SimilarityFunction) else similarity_fct
+        )
+        if self.best_scoring_function is None:
+            self.sim_fcts_to_check = SimilarityFunction.possible_values()
+        else:
+            self.sim_fcts_to_check = [self.best_scoring_function]
+
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             out_txt = f" after epoch {epoch}:" if steps == -1 else f" in epoch {epoch} after {steps} steps:"
@@ -101,48 +112,69 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
 
         logger.info("Paraphrase Mining Evaluation on " + self.name + " dataset" + out_txt)
 
-        # Compute embedding for the sentences
-        pairs_list = paraphrase_mining(
-            model,
-            self.sentences,
-            self.show_progress_bar,
-            self.batch_size,
-            self.query_chunk_size,
-            self.corpus_chunk_size,
-            self.max_pairs,
-            self.top_k,
-        )
+        aps, thresholds, precisions, recalls, f1s = [], [], [], [], []
+        for sim_fct_str in self.sim_fcts_to_check:
+            sim_fct_mapping = SimilarityFunction.map_to_pairwise_function(sim_fct_str)
 
-        logger.info("Number of candidate pairs: " + str(len(pairs_list)))
+            # Compute embedding for the sentences
+            pairs_list = paraphrase_mining(
+                model,
+                self.sentences,
+                self.show_progress_bar,
+                self.batch_size,
+                self.query_chunk_size,
+                self.corpus_chunk_size,
+                self.max_pairs,
+                self.top_k,
+                score_function=sim_fct_mapping,
+            )
 
-        # Compute F1 score and Average Precision
-        n_extract = n_correct = 0
-        threshold = 0
-        best_f1 = best_recall = best_precision = 0
+            logger.info("Number of candidate pairs: " + str(len(pairs_list)))
 
-        average_precision = 0
+            # Compute F1 score and Average Precision
+            n_extract = n_correct = 0
+            threshold = 0
+            best_f1 = best_recall = best_precision = 0
 
-        for idx in range(len(pairs_list)):
-            score, i, j = pairs_list[idx]
-            id1 = self.ids[i]
-            id2 = self.ids[j]
+            average_precision = 0
 
-            # Compute optimal threshold and F1-score
-            n_extract += 1
-            if self.duplicates[id1][id2] or self.duplicates[id2][id1]:
-                n_correct += 1
-                precision = n_correct / n_extract
-                recall = n_correct / self.total_num_duplicates
-                f1 = 2 * precision * recall / (precision + recall)
-                average_precision += precision
-                if f1 > best_f1:
-                    best_f1 = f1
-                    best_precision = precision
-                    best_recall = recall
-                    threshold = (pairs_list[idx][0] + pairs_list[min(idx + 1, len(pairs_list) - 1)][0]) / 2
+            for idx in range(len(pairs_list)):
+                score, i, j = pairs_list[idx]
+                id1 = self.ids[i]
+                id2 = self.ids[j]
 
-        average_precision = average_precision / self.total_num_duplicates
+                # Compute optimal threshold and F1-score
+                n_extract += 1
+                if self.duplicates[id1][id2] or self.duplicates[id2][id1]:
+                    n_correct += 1
+                    precision = n_correct / n_extract
+                    recall = n_correct / self.total_num_duplicates
+                    f1 = 2 * precision * recall / (precision + recall)
+                    average_precision += precision
+                    if f1 > best_f1:
+                        best_f1 = f1
+                        best_precision = precision
+                        best_recall = recall
+                        threshold = (pairs_list[idx][0] + pairs_list[min(idx + 1, len(pairs_list) - 1)][0]) / 2
 
+            average_precision = average_precision / self.total_num_duplicates
+
+            aps.append(average_precision)
+            thresholds.append(threshold)
+            precisions.append(best_precision)
+            recalls.append(best_recall)
+            f1s.append(best_f1)
+
+        best_idx = np.argmax(aps)
+        self.best_scoring_function = self.sim_fcts_to_check[best_idx]
+
+        average_precision = aps[best_idx]
+        threshold = thresholds[best_idx]
+        best_precision = precisions[best_idx]
+        best_recall = recalls[best_idx]
+        best_f1 = f1s[best_idx]
+
+        logger.info("Using {} similarity function:".format(self.best_scoring_function))
         logger.info("Average Precision: {:.2f}".format(average_precision * 100))
         logger.info("Optimal threshold: {:.4f}".format(threshold))
         logger.info("Precision: {:.2f}".format(best_precision * 100))
@@ -155,11 +187,33 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
                 with open(csv_path, newline="", mode="w", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow(self.csv_headers)
-                    writer.writerow([epoch, steps, best_precision, best_recall, best_f1, threshold, average_precision])
+                    writer.writerow(
+                        [
+                            epoch,
+                            steps,
+                            best_precision,
+                            best_recall,
+                            best_f1,
+                            threshold,
+                            average_precision,
+                            self.best_scoring_function,
+                        ]
+                    )
             else:
                 with open(csv_path, newline="", mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
-                    writer.writerow([epoch, steps, best_precision, best_recall, best_f1, threshold, average_precision])
+                    writer.writerow(
+                        [
+                            epoch,
+                            steps,
+                            best_precision,
+                            best_recall,
+                            best_f1,
+                            threshold,
+                            average_precision,
+                            self.best_scoring_function,
+                        ]
+                    )
 
         return average_precision
 
