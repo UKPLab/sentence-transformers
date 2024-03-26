@@ -1,5 +1,5 @@
 from torch import nn
-from transformers import AutoModel, AutoTokenizer, AutoConfig, T5Config, MT5Config
+from transformers import AutoModel, AutoTokenizer, AutoConfig, T5Config, MT5Config, OPTConfig
 import json
 from typing import List, Dict, Optional, Union, Tuple
 import os
@@ -33,6 +33,7 @@ class Transformer(nn.Module):
         self.do_lower_case = do_lower_case
 
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
+        print("\033[33m config of type", type(config), "\033[0m")
         self._load_model(model_name_or_path, config, cache_dir, **model_args)
 
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -61,10 +62,18 @@ class Transformer(nn.Module):
             self._load_t5_model(model_name_or_path, config, cache_dir, **model_args)
         elif isinstance(config, MT5Config):
             self._load_mt5_model(model_name_or_path, config, cache_dir, **model_args)
+        elif isinstance(config, OPTConfig):
+            self._load_opt_model(model_name_or_path, config, cache_dir, **model_args)
         else:
             self.auto_model = AutoModel.from_pretrained(
                 model_name_or_path, config=config, cache_dir=cache_dir, **model_args
             )
+
+    def _load_opt_model(self, model_name_or_path, config, cache_dir, **model_args):
+        from optimum.onnxruntime import ORTModelForFeatureExtraction
+        self.auto_model = ORTModelForFeatureExtraction.from_pretrained(model_name_or_path, config=config,
+                                                                       provider="CUDAExecutionProvider",
+                                                                       cache_dir=cache_dir, **model_args)
 
     def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args):
         """Loads the encoder model from T5"""
