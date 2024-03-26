@@ -42,6 +42,7 @@ class TranslationEvaluator(SentenceEvaluator):
         :param write_csv:
             Write results to CSV file
         """
+        super().__init__()
         self.source_sentences = source_sentences
         self.target_sentences = target_sentences
         self.name = name

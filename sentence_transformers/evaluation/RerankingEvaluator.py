@@ -35,6 +35,7 @@ class RerankingEvaluator(SentenceEvaluator):
         use_batched_encoding: bool = True,
         mrr_at_k: Optional[int] = None,
     ):
+        super().__init__()
         self.samples = samples
         self.name = name
         if mrr_at_k is not None:

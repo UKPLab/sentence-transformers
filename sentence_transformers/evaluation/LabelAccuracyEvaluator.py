@@ -26,6 +26,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         :param dataloader:
             the data for the evaluation
         """
+        super().__init__()
         self.dataloader = dataloader
         self.name = name
         self.softmax_model = softmax_model

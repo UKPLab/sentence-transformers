@@ -5,6 +5,9 @@ from .LoggingHandler import LoggingHandler
 from .SentenceTransformer import SentenceTransformer
 from .readers import InputExample
 from .cross_encoder.CrossEncoder import CrossEncoder
+from .trainer import SentenceTransformerTrainer
+from .data_collator import SentenceTransformerDataCollator
+from .training_args import TrainingArguments
 from .quantization import quantize_embeddings
 
 __all__ = [
@@ -14,5 +17,8 @@ __all__ = [
     "SentenceTransformer",
     "InputExample",
     "CrossEncoder",
+    "SentenceTransformerTrainer",
+    "SentenceTransformerDataCollator",
+    "TrainingArguments",
     "quantize_embeddings",
 ]

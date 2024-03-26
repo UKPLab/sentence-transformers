@@ -128,4 +128,4 @@ model.fit(
 
 model = SentenceTransformer(model_save_path)
 test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name="sts-test")
-model.evaluate(evaluator)
+model.evaluate(test_evaluator)

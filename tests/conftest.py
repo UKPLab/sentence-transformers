@@ -5,6 +5,7 @@ import pytest
 
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from sentence_transformers.models import Transformer, Pooling
+from datasets import load_dataset, DatasetDict
 
 
 @pytest.fixture()
@@ -38,6 +39,11 @@ def distilbert_base_uncased_model() -> SentenceTransformer:
     pooling_model = Pooling(word_embedding_model.get_word_embedding_dimension())
     model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
     return model
+
+
+@pytest.fixture(scope="session")
+def stsb_dataset_dict() -> DatasetDict:
+    return load_dataset("mteb/stsbenchmark-sts")
 
 
 @pytest.fixture()

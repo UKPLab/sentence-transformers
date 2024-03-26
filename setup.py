@@ -26,6 +26,8 @@ setup(
         "scipy",
         "huggingface-hub>=0.15.1",
         "Pillow",
+        "datasets",
+        "accelerate>=0.20.3",
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

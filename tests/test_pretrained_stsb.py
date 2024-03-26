@@ -37,7 +37,8 @@ def pretrained_model_score(
 
     evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name="sts-test")
 
-    score = model.evaluate(evaluator) * 100
+    scores = model.evaluate(evaluator)
+    score = scores[evaluator.primary_metric] * 100
     print(model_name, "{:.2f} vs. exp: {:.2f}".format(score, expected_score))
     assert score > expected_score or abs(score - expected_score) < 0.1
 

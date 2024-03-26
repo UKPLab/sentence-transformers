@@ -46,6 +46,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         :param precision: The precision to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or
             "ubinary". Defaults to None.
         """
+        super().__init__()
         self.sentences1 = sentences1
         self.sentences2 = sentences2
         self.scores = scores
@@ -190,15 +191,23 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                     ]
                 )
 
-        if self.main_similarity == SimilarityFunction.COSINE:
-            return eval_spearman_cosine
-        elif self.main_similarity == SimilarityFunction.EUCLIDEAN:
-            return eval_spearman_euclidean
-        elif self.main_similarity == SimilarityFunction.MANHATTAN:
-            return eval_spearman_manhattan
-        elif self.main_similarity == SimilarityFunction.DOT_PRODUCT:
-            return eval_spearman_dot
-        elif self.main_similarity is None:
-            return max(eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot)
-        else:
-            raise ValueError("Unknown main_similarity value")
+        self.primary_metric = {
+            SimilarityFunction.COSINE: "spearman_cosine",
+            SimilarityFunction.EUCLIDEAN: "spearman_euclidean",
+            SimilarityFunction.MANHATTAN: "spearman_manhattan",
+            SimilarityFunction.DOT_PRODUCT: "spearman_dot",
+        }.get(self.main_similarity, "spearman_max")
+        return {
+            "pearson_cosine": eval_pearson_cosine,
+            "spearman_cosine": eval_spearman_cosine,
+            "pearson_manhattan": eval_pearson_manhattan,
+            "spearman_manhattan": eval_spearman_manhattan,
+            "pearson_euclidean": eval_pearson_euclidean,
+            "spearman_euclidean": eval_spearman_euclidean,
+            "pearson_dot": eval_pearson_dot,
+            "spearman_dot": eval_spearman_dot,
+            "pearson_max": max(eval_pearson_cosine, eval_pearson_manhattan, eval_pearson_euclidean, eval_pearson_dot),
+            "spearman_max": max(
+                eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot
+            ),
+        }

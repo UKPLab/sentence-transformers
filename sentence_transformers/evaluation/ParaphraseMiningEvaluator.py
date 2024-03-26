@@ -48,6 +48,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         :param name: Name of the experiment
         :param write_csv: Write results to CSV file
         """
+        super().__init__()
         self.sentences = []
         self.ids = []
 

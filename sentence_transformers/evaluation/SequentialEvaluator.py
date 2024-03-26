@@ -11,6 +11,7 @@ class SequentialEvaluator(SentenceEvaluator):
     """
 
     def __init__(self, evaluators: Iterable[SentenceEvaluator], main_score_function=lambda scores: scores[-1]):
+        super().__init__()
         self.evaluators = evaluators
         self.main_score_function = main_score_function
 
