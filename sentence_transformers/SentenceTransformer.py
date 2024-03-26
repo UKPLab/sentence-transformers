@@ -214,6 +214,10 @@ class SentenceTransformer(nn.Sequential):
 
         self.to(device)
 
+        if self.device.type == 'hpu':
+            import habana_frameworks.torch as ht
+            ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
+
         if self.default_prompt_name is not None and self.default_prompt_name not in self.prompts:
             raise ValueError(
                 f"Default prompt name '{self.default_prompt_name}' not found in the configured prompts "
@@ -566,7 +570,7 @@ class SentenceTransformer(nn.Sequential):
         """
         Tokenizes the texts
         """
-        return self._first_module().tokenize(texts)
+        return self._first_module().tokenize(texts, self.device.type)
 
     def get_sentence_features(self, *features):
         return self._first_module().get_sentence_features(*features)
