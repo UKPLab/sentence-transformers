@@ -5,7 +5,7 @@ import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 from scipy.stats import pearsonr, spearmanr
 import numpy as np
-from typing import List
+from typing import List, Literal, Optional
 from ..readers import InputExample
 
 
@@ -32,6 +32,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         name: str = "",
         show_progress_bar: bool = False,
         write_csv: bool = True,
+        precision: Optional[Literal["float32", "int8", "uint8", "binary", "ubinary"]] = None,
     ):
         """
         Constructs an evaluator based for the dataset
@@ -42,11 +43,14 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         :param sentences2: List with the second sentence in a pair
         :param scores: Similarity score between sentences1[i] and sentences2[i]
         :param write_csv: Write results to a CSV file
+        :param precision: The precision to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or
+            "ubinary". Defaults to None.
         """
         self.sentences1 = sentences1
         self.sentences2 = sentences2
         self.scores = scores
         self.write_csv = write_csv
+        self.precision = precision
 
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.scores)
@@ -61,7 +65,12 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             )
         self.show_progress_bar = show_progress_bar
 
-        self.csv_file = "similarity_evaluation" + ("_" + name if name else "") + "_results.csv"
+        self.csv_file = (
+            "similarity_evaluation"
+            + ("_" + name if name else "")
+            + ("_" + precision if precision else "")
+            + "_results.csv"
+        )
         self.csv_headers = [
             "epoch",
             "steps",
@@ -103,13 +112,25 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_numpy=True,
+            precision=self.precision,
+            normalize_embeddings=bool(self.precision),
         )
         embeddings2 = model.encode(
             self.sentences2,
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_numpy=True,
+            precision=self.precision,
+            normalize_embeddings=bool(self.precision),
         )
+        # Binary and ubinary embeddings are packed, so we need to unpack them for the distance metrics
+        if self.precision == "binary":
+            embeddings1 = (embeddings1 + 128).astype(np.uint8)
+            embeddings2 = (embeddings2 + 128).astype(np.uint8)
+        if self.precision in ("ubinary", "binary"):
+            embeddings1 = np.unpackbits(embeddings1, axis=1)
+            embeddings2 = np.unpackbits(embeddings2, axis=1)
+
         labels = self.scores
 
         cosine_scores = 1 - (paired_cosine_distances(embeddings1, embeddings2))
