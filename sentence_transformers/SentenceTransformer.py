@@ -843,7 +843,9 @@ class SentenceTransformer(nn.Sequential):
         """
         texts = [example.texts for example in batch]
         sentence_features = [self.tokenize(sentence) for sentence in zip(*texts)]
-        labels = torch.tensor([example.label for example in batch])
+        # Handle Inefficiency warning thrown: "Creating a tensor from a list of numpy.ndarrays is extremely slow..."
+        # labels = torch.tensor([example.label for example in batch])
+        labels = torch.tensor(np.array([example.label for example in batch]))
         return sentence_features, labels
 
     def _text_length(self, text: Union[List[int], List[List[int]]]):
