@@ -140,7 +140,7 @@ def semantic_search_faiss(
         rescored_scores = np.einsum("ij,ikj->ik", rescore_embeddings, top_k_embeddings)
         rescored_indices = np.argsort(-rescored_scores)[:, :top_k]
         indices = indices[np.arange(len(query_embeddings))[:, None], rescored_indices]
-        scores = rescored_scores[:, :top_k]
+        scores = rescored_scores[np.arange(len(query_embeddings))[:, None], rescored_indices]
 
     delta_t = time.time() - start_t
 
@@ -293,7 +293,7 @@ def semantic_search_usearch(
         rescored_scores = np.einsum("ij,ikj->ik", rescore_embeddings, top_k_embeddings)
         rescored_indices = np.argsort(-rescored_scores)[:, :top_k]
         indices = indices[np.arange(len(query_embeddings))[:, None], rescored_indices]
-        scores = rescored_scores[:, :top_k]
+        scores = rescored_scores[np.arange(len(query_embeddings))[:, None], rescored_indices]
 
     delta_t = time.time() - start_t
 
