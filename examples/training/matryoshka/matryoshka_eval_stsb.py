@@ -7,7 +7,7 @@ import argparse
 from contextlib import contextmanager
 from functools import wraps
 import os
-from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 from datasets import load_dataset
 import numpy as np
@@ -70,8 +70,8 @@ def _grouped_barplot_ratios(
         ax: plt.Axes = plt.subplots()
     # Sort each by x
     group_name_to_x_to_y = {
-        model_name: dict(sorted(dim_to_score.items(), key=lambda x: x[0]))
-        for model_name, dim_to_score in group_name_to_x_to_y.items()
+        group_name: dict(sorted(x_to_y.items(), key=lambda x: x[0]))
+        for group_name, x_to_y in group_name_to_x_to_y.items()
     }
     # Check that all x are the same
     xticks = None
@@ -82,10 +82,8 @@ def _grouped_barplot_ratios(
         xticks = _xticks
     xticks = sorted(xticks)
 
-    # Max score is the denominator in the ratio/fraction
-    model_name_to_max_score = {
-        model_name: max(dim_to_score.values()) for model_name, dim_to_score in group_name_to_x_to_y.items()
-    }
+    # Max y will be the denominator in the ratio/fraction
+    group_name_to_max_y = {group_name: max(x_to_y.values()) for group_name, x_to_y in group_name_to_x_to_y.items()}
     num_groups = len(group_name_to_x_to_y)
     bar_width = np.diff(xticks).min() / (num_groups + 1)
     # bar_width is the solution to this equation:
@@ -101,12 +99,13 @@ def _grouped_barplot_ratios(
             for xtick in xticks
         ]
     ).T
+    # xs are the center of where the bar goes on the x axis. They have to be manually set
     min_ratio = np.inf
-    for i, (model_name, dim_to_score) in enumerate(group_name_to_x_to_y.items()):
-        max_score = model_name_to_max_score[model_name]
-        scores = [score / max_score for score in dim_to_score.values()]
-        min_ratio = min(min_ratio, min(scores))
-        ax.bar(xs[i], scores, bar_width, label=model_name)
+    for i, (group_name, x_to_y) in enumerate(group_name_to_x_to_y.items()):
+        max_y = group_name_to_max_y[group_name]
+        ys = [y / max_y for y in x_to_y.values()]
+        min_ratio = min(min_ratio, min(ys))
+        ax.bar(xs[i], ys, bar_width, label=group_name)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticks)
     ax.grid(linestyle="--")
@@ -183,8 +182,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     plot_filename: str = args.plot_filename
-    model_names: list[str] = args.model_names
-    DIMENSIONS: list[int] = args.dimensions
+    model_names: List[str] = args.model_names
+    DIMENSIONS: List[int] = args.dimensions
 
     # Load STSb
     stsb_test = load_dataset("mteb/stsbenchmark-sts", split="test")
@@ -197,10 +196,10 @@ if __name__ == "__main__":
     )
 
     # Run test_evaluator
-    model_name_to_dim_to_score: dict[str, dict[int, float]] = {}
+    model_name_to_dim_to_score: Dict[str, Dict[int, float]] = {}
     for model_name in tqdm(model_names, desc="Evaluating models"):
         model = SentenceTransformer(model_name)
-        dim_to_score: dict[int, float] = {}
+        dim_to_score: Dict[int, float] = {}
         for dim in tqdm(DIMENSIONS, desc=f"Evaluating {model_name}"):
             output_path = os.path.join(model_name, f"dim-{dim}")
             os.makedirs(output_path)
