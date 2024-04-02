@@ -146,6 +146,7 @@ def plot_across_dimensions(
     ax2.set_ylabel("Ratio of maximum performance")
 
     fig.suptitle(title)
+    fig.tight_layout()
     fig.savefig(filename)
 
 
