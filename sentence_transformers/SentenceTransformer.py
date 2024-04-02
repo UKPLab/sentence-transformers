@@ -214,8 +214,9 @@ class SentenceTransformer(nn.Sequential):
 
         self.to(device)
 
-        if self.device.type == 'hpu':
+        if self.device.type == "hpu":
             import habana_frameworks.torch as ht
+
             ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
 
         if self.default_prompt_name is not None and self.default_prompt_name not in self.prompts:
