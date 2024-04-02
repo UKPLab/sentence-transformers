@@ -117,9 +117,7 @@ def plot_across_dimensions(
     model_name_to_dim_to_score: Dict[str, Dict[int, float]],
     filename: str,
     figsize: Tuple[float, float] = (7, 7),
-    title: str = (
-        "STSB test score for various embedding dimensions (via truncation),\nwith and " "without Matryoshka loss"
-    ),
+    title: str = "STSB test score for various embedding dimensions (via truncation),\nwith and without Matryoshka loss",
 ) -> None:
     # Sort each by key
     model_name_to_dim_to_score = {
