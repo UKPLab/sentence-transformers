@@ -452,7 +452,7 @@ class CrossEncoder(PushToHubMixin):
                 if save_best_model:
                     self.save(output_path)
 
-    def save(self, path: str, **kwargs) -> None:
+    def save(self, path: str, safe_serialization: bool = True, **kwargs) -> None:
         """
         Saves all model and tokenizer to path
         """
@@ -460,14 +460,14 @@ class CrossEncoder(PushToHubMixin):
             return
 
         logger.info("Save model to {}".format(path))
-        self.model.save_pretrained(path, **kwargs)
+        self.model.save_pretrained(path, safe_serialization=safe_serialization, **kwargs)
         self.tokenizer.save_pretrained(path, **kwargs)
 
-    def save_pretrained(self, path: str, **kwargs) -> None:
+    def save_pretrained(self, path: str, safe_serialization: bool = True, **kwargs) -> None:
         """
         Same function as save
         """
-        return self.save(path, **kwargs)
+        return self.save(path, safe_serialization=safe_serialization, **kwargs)
 
     @wraps(PushToHubMixin.push_to_hub)
     def push_to_hub(self, repo_id: str, **kwargs) -> str:

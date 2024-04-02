@@ -1,25 +1,19 @@
 """
 The system trains BERT (or any other transformer model like RoBERTa, DistilBERT etc.) on the SNLI + MultiNLI (AllNLI) dataset
-with MatryoshkaLoss using MultipleNegativesRankingLoss. This trains a model at output dimensions [768, 512, 256, 128, 64].
-Entailments are positive pairs and the contradiction on AllNLI dataset is added as a hard negative.
-At every 10% training steps, the model is evaluated on the STS benchmark dataset
-
-The difference between this script and matryoshka_nli.py is that this script uses a reduced dimensionality of the base
-model by adding a Dense layer with `reduced_dim=256` output dimensions. This might be useful when your desired output
-dimensionality is lower than the base model's default output dimensionality.
+with GISTEmbedLoss, using all-MiniLM-L6-v2 as an efficient guiding model. Entailments are positive pairs and the contradiction
+on AllNLI dataset is added as a hard negative. At every 10% training steps, the model is evaluated on the STS benchmark dataset
 
 Usage:
-python matryoshka_nli_reduced_dim.py
+python training_nli_v3.py
 
 OR
-python matryoshka_nli_reduced_dim.py pretrained_transformer_model_name
+python training_nli_v3.py pretrained_transformer_model_name
 """
 
 import math
-from datasets import load_dataset
 from sentence_transformers import models, losses, datasets
 from sentence_transformers import LoggingHandler, SentenceTransformer, util, InputExample
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SimilarityFunction
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 import logging
 from datetime import datetime
 import sys
@@ -38,25 +32,28 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else "distilroberta-base"
 train_batch_size = 128  # The larger you select this, the better the results (usually). But it requires more GPU memory
 max_seq_length = 75
 num_epochs = 1
-reduced_dim = 256
 
 # Save path of the model
 model_save_path = (
-    "output/matryoshka_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    "output/training_nli_v3_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 
 
 # Here we define our SentenceTransformer model
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode="mean")
-dense = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=reduced_dim)
-model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dense])
+model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 # Check if dataset exists. If not, download and extract  it
 nli_dataset_path = "data/AllNLI.tsv.gz"
+sts_dataset_path = "data/stsbenchmark.tsv.gz"
 
 if not os.path.exists(nli_dataset_path):
     util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
+
+if not os.path.exists(sts_dataset_path):
+    util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
+
 
 # Read the AllNLI.tsv.gz file and create the training dataset
 logging.info("Read AllNLI train dataset")
@@ -101,17 +98,25 @@ logging.info("Train samples: {}".format(len(train_samples)))
 train_dataloader = datasets.NoDuplicatesDataLoader(train_samples, batch_size=train_batch_size)
 
 
-# Our training loss
-train_loss = losses.MultipleNegativesRankingLoss(model)
-train_loss = losses.MatryoshkaLoss(model, train_loss, [256, 128, 64, 32, 16])
+# The guiding model
+guide_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-stsb_dev = load_dataset("mteb/stsbenchmark-sts", split="validation")
-dev_evaluator = EmbeddingSimilarityEvaluator(
-    stsb_dev["sentence1"],
-    stsb_dev["sentence2"],
-    [score / 5 for score in stsb_dev["score"]],
-    main_similarity=SimilarityFunction.COSINE,
-    name="sts-dev",
+# Our training loss
+train_loss = losses.GISTEmbedLoss(model, guide_model)
+
+
+# Read STSbenchmark dataset and use it as development set
+logging.info("Read STSbenchmark dev dataset")
+dev_samples = []
+with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
+    for row in reader:
+        if row["split"] == "dev":
+            score = float(row["score"]) / 5.0  # Normalize score to range 0 ... 1
+            dev_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
+
+dev_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
+    dev_samples, batch_size=train_batch_size, name="sts-dev"
 )
 
 # Configure the training
@@ -137,26 +142,16 @@ model.fit(
 #
 ##############################################################################
 
+test_samples = []
+with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
+    for row in reader:
+        if row["split"] == "test":
+            score = float(row["score"]) / 5.0  # Normalize score to range 0 ... 1
+            test_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
 
 model = SentenceTransformer(model_save_path)
-stsb_test = load_dataset("mteb/stsbenchmark-sts", split="test")
-test_evaluator = EmbeddingSimilarityEvaluator(
-    stsb_test["sentence1"],
-    stsb_test["sentence2"],
-    [score / 5 for score in stsb_test["score"]],
-    main_similarity=SimilarityFunction.COSINE,
-    name="sts-test",
+test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
+    test_samples, batch_size=train_batch_size, name="sts-test"
 )
 test_evaluator(model, output_path=model_save_path)
-
-# Optionally, save the model to the Hugging Face Hub!
-# It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
-model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
-try:
-    model.push_to_hub(f"{model_name}-nli-matryoshka-{reduced_dim}")
-except Exception:
-    logging.error(
-        "Error uploading model to the Hugging Face Hub. To upload it manually, you can run "
-        f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({model_save_path!r})` "
-        f"and saving it using `model.push_to_hub('{model_name}-nli-matryoshka-{reduced_dim}')`."
-    )
