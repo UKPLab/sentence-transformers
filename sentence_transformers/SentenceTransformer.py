@@ -213,11 +213,7 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device_name: {}".format(device))
 
         self.to(device)
-
-        if self.device.type == "hpu":
-            import habana_frameworks.torch as ht
-
-            ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
+        self.is_hpu_graph_enabled = False
 
         if self.default_prompt_name is not None and self.default_prompt_name not in self.prompts:
             raise ValueError(
@@ -296,6 +292,11 @@ class SentenceTransformer(nn.Sequential):
             input is provided, then the output is a 1d array with shape [output_dimension]. If `convert_to_tensor`, a
             torch Tensor is returned instead.
         """
+        if self.device.type == 'hpu' and not self.is_hpu_graph_enabled:
+            import habana_frameworks.torch as ht
+            ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
+            self.is_hpu_graph_enabled = True
+
         self.eval()
         if show_progress_bar is None:
             show_progress_bar = (
