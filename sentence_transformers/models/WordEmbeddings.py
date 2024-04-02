@@ -50,8 +50,8 @@ class WordEmbeddings(nn.Module):
         )
         return features
 
-    def tokenize(self, texts: List[str]):
-        tokenized_texts = [self.tokenizer.tokenize(text) for text in texts]
+    def tokenize(self, texts: List[str], **kwargs):
+        tokenized_texts = [self.tokenizer.tokenize(text, **kwargs) for text in texts]
         sentence_lengths = [len(tokens) for tokens in tokenized_texts]
         max_len = max(sentence_lengths)
 

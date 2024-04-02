@@ -571,7 +571,16 @@ class SentenceTransformer(nn.Sequential):
         """
         Tokenizes the texts
         """
-        return self._first_module().tokenize(texts, self.device.type)
+        kwargs = {}
+        # HPU models reach optimal performance if the padding is not dynamic
+        if self.device.type == "hpu":
+            kwargs["padding"] = "max_length"
+
+        try:
+            return self._first_module().tokenize(texts, **kwargs)
+        except TypeError:
+            # In case some Module does not allow for kwargs in tokenize, we also try without any
+            return self._first_module().tokenize(texts)
 
     def get_sentence_features(self, *features):
         return self._first_module().get_sentence_features(*features)

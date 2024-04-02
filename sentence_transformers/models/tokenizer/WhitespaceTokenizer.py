@@ -26,7 +26,7 @@ class WhitespaceTokenizer(WordTokenizer):
         self.vocab = vocab
         self.word2idx = collections.OrderedDict([(word, idx) for idx, word in enumerate(vocab)])
 
-    def tokenize(self, text: str) -> List[int]:
+    def tokenize(self, text: str, **kwargs) -> List[int]:
         if self.do_lower_case:
             text = text.lower()
 
