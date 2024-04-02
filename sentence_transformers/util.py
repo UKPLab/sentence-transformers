@@ -612,5 +612,4 @@ def get_device_name() -> Literal["mps", "cuda", "npu", "hpu", "cpu"]:
 
         if hthpu.is_available():
             return "hpu"
-    else:
-        return "cpu"
+    return "cpu"
