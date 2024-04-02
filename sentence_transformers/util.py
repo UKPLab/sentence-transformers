@@ -608,8 +608,6 @@ def get_device_name() -> Literal["mps", "cuda", "npu", "hpu", "cpu"]:
     elif is_torch_npu_available():
         return "npu"
     elif importlib.util.find_spec("habana_frameworks") is not None:
-        print(" habana_frameworks installed")
-
         import habana_frameworks.torch.hpu as hthpu
 
         if hthpu.is_available():
