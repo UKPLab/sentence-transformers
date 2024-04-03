@@ -594,7 +594,7 @@ class SentenceTransformer(nn.Sequential):
         return output_dim
 
     @contextmanager
-    def truncate_sentence_embeddings(self, output_dim: int | None):
+    def truncate_sentence_embeddings(self, output_dim: Optional[int]):
         """
         In this context, `model.encode` outputs sentence embeddings truncated at dimension `output_dim`.
 
