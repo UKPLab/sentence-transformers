@@ -6,7 +6,6 @@ import numpy as np
 
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import get_device_name
-from sentence_transformers.models import Transformer, Pooling
 
 
 def test_encode_token_embeddings(paraphrase_distilroberta_base_v1_model: SentenceTransformer) -> None:
