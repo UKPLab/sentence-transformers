@@ -431,26 +431,26 @@ def test_encode_truncate(
                 normalize(util.truncate_embeddings(embeddings_full_unnormalized, expected_dim)),
             )
 
-    # Test init w/o setting output_dim (it's None)
+    # Test init w/o setting truncate_dim (it's None)
     original_output_dim: int = model.get_sentence_embedding_dimension()
     test(model, expected_dim=original_output_dim)
 
-    # Test init w/ a set output_dim
-    output_dim = int(original_output_dim / 4)
-    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors", output_dim=output_dim)
-    test(model, expected_dim=output_dim)
+    # Test init w/ a set truncate_dim
+    truncate_dim = int(original_output_dim / 4)
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors", truncate_dim=truncate_dim)
+    test(model, expected_dim=truncate_dim)
 
     # Test setting the attribute after init to a greater dimension
-    new_output_dim = 2 * output_dim
-    model.output_dim = new_output_dim
-    test(model, expected_dim=new_output_dim)
+    new_truncate_dim = 2 * truncate_dim
+    model.truncate_dim = new_truncate_dim
+    test(model, expected_dim=new_truncate_dim)
 
     # Test context manager
-    final_ouptut_dim = int(original_output_dim / 8)
-    with model.truncate_dim(final_ouptut_dim):
-        test(model, expected_dim=final_ouptut_dim)
-    test(model, expected_dim=new_output_dim)  # b/c we've exited the context
+    final_truncate_dim = int(original_output_dim / 8)
+    with model.truncate_sentence_embeddings(final_truncate_dim):
+        test(model, expected_dim=final_truncate_dim)
+    test(model, expected_dim=new_truncate_dim)  # b/c we've exited the context
 
     # Test w/ an ouptut_dim that's larger than the original_output_dim. No truncation ends up happening
-    model.output_dim = 2 * original_output_dim
+    model.truncate_dim = 2 * original_output_dim
     test(model, expected_dim=original_output_dim)

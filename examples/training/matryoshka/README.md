@@ -65,7 +65,7 @@ matryoshka_dim = 64
 model = SentenceTransformer(
     "nomic-ai/nomic-embed-text-v1.5",
     trust_remote_code=True,
-    output_dim=matryoshka_dim,
+    truncate_dim=matryoshka_dim,
 )
 
 embeddings = model.encode(

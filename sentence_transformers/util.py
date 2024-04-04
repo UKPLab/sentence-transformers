@@ -143,22 +143,22 @@ def normalize_embeddings(embeddings: Tensor) -> Tensor:
 
 
 @overload
-def truncate_embeddings(embeddings: np.ndarray, output_dim: Optional[int]) -> np.ndarray: ...
+def truncate_embeddings(embeddings: np.ndarray, truncate_dim: Optional[int]) -> np.ndarray: ...
 
 
 @overload
-def truncate_embeddings(embeddings: torch.Tensor, output_dim: Optional[int]) -> torch.Tensor: ...
+def truncate_embeddings(embeddings: torch.Tensor, truncate_dim: Optional[int]) -> torch.Tensor: ...
 
 
 def truncate_embeddings(
-    embeddings: Union[np.ndarray, torch.Tensor], output_dim: Optional[int]
+    embeddings: Union[np.ndarray, torch.Tensor], truncate_dim: Optional[int]
 ) -> Union[np.ndarray, torch.Tensor]:
     """
     :param embeddings: Embeddings to truncate.
-    :param output_dim: Number of dimensions to truncate sentence embeddings to. `None` does no truncation.
+    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation.
     :return: Truncated embeddings.
     """
-    return embeddings[..., :output_dim]
+    return embeddings[..., :truncate_dim]
 
 
 def paraphrase_mining(

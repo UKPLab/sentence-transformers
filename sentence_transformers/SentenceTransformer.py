@@ -70,7 +70,7 @@ class SentenceTransformer(nn.Sequential):
         This option should only be set to True for repositories you trust and in which you have read the code, as it
         will execute code present on the Hub on your local machine.
     :param token: Hugging Face authentication token to download private models.
-    :param output_dim: Number of dimensions to truncate sentence embeddings to. `None` does no truncation.
+    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation.
     """
 
     def __init__(
@@ -85,12 +85,12 @@ class SentenceTransformer(nn.Sequential):
         revision: Optional[str] = None,
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
-        output_dim: Optional[int] = None,
+        truncate_dim: Optional[int] = None,
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
-        self.output_dim = output_dim
+        self.truncate_dim = truncate_dim
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -294,7 +294,8 @@ class SentenceTransformer(nn.Sequential):
 
         :return: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned. If only one string
             input is provided, then the output is a 1d array with shape [output_dimension]. If `convert_to_tensor`, a
-            torch Tensor is returned instead. If `self.output_dim is not None` then output_dimension is `self.output_dim`.
+            torch Tensor is returned instead. If `self.truncate_dim <= output_dimension` then output_dimension is
+            `self.truncate_dim`.
         """
         self.eval()
         if show_progress_bar is None:
@@ -377,7 +378,7 @@ class SentenceTransformer(nn.Sequential):
                 else:  # Sentence embeddings
                     embeddings: torch.Tensor = out_features[output_value]
                     embeddings = embeddings.detach()
-                    embeddings = truncate_embeddings(embeddings, self.output_dim)
+                    embeddings = truncate_embeddings(embeddings, self.truncate_dim)
                     if normalize_embeddings:
                         embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
 
@@ -587,21 +588,21 @@ class SentenceTransformer(nn.Sequential):
             if callable(sent_embedding_dim_method):
                 output_dim = sent_embedding_dim_method()
                 break
-        if self.output_dim is not None:
+        if self.truncate_dim is not None:
             # The user requested truncation. If they set it to a dim greater than output_dim,
-            # no truncation will actually happen. So return output_dim insead of self.output_dim
-            return min(output_dim or np.inf, self.output_dim)
+            # no truncation will actually happen. So return output_dim insead of self.truncate_dim
+            return min(output_dim or np.inf, self.truncate_dim)
         return output_dim
 
     @contextmanager
-    def truncate_dim(self, output_dim: Optional[int]):
+    def truncate_sentence_embeddings(self, truncate_dim: Optional[int]):
         """
-        In this context, `model.encode` outputs sentence embeddings truncated at dimension `output_dim`.
+        In this context, `model.encode` outputs sentence embeddings truncated at dimension `truncate_dim`.
 
         This may be useful when you are using the same model for different applications where different dimensions
         are needed.
 
-        :param output_dim: Number of dimensions to truncate sentence embeddings to. `None` does no truncation.
+        :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation.
 
         Example::
 
@@ -609,17 +610,17 @@ class SentenceTransformer(nn.Sequential):
 
             model = SentenceTransformer("model-name")
 
-            with model.truncate_dim(output_dim=16):
+            with model.truncate_sentence_embeddings(truncate_dim=16):
                 embeddings_truncated = model.encode(["hello there", "hiya"])
             assert embeddings_truncated.shape[-1] == 16
 
         """
-        original_output_dim = self.output_dim
+        original_output_dim = self.truncate_dim
         try:
-            self.output_dim = output_dim
+            self.truncate_dim = truncate_dim
             yield
         finally:
-            self.output_dim = original_output_dim
+            self.truncate_dim = original_output_dim
 
     def _first_module(self):
         """Returns the first module of this sequential embedder"""
