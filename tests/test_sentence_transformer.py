@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 import re
 import tempfile
-from typing import List, Union
+from typing import Dict, List, Literal, Optional, Union, cast
 
 import numpy as np
 import pytest
@@ -386,12 +386,17 @@ def test_encode_quantization(
         assert isinstance(embeddings, list)
 
 
+@pytest.mark.parametrize("sentences", ("Single sentence", ["One sentence", "Another sentence"]))
 @pytest.mark.parametrize("convert_to_tensor", [True, False])
 @pytest.mark.parametrize("convert_to_numpy", [True, False])
 @pytest.mark.parametrize("normalize_embeddings", [True, False])
-@pytest.mark.parametrize("sentences", ("Single sentence", ["One sentence", "Another sentence"]))
+@pytest.mark.parametrize("output_value", ["sentence_embedding", None])
 def test_encode_truncate(
-    sentences: Union[str, List[str]], convert_to_tensor: bool, convert_to_numpy: bool, normalize_embeddings: bool
+    sentences: Union[str, List[str]],
+    convert_to_tensor: bool,
+    convert_to_numpy: bool,
+    normalize_embeddings: bool,
+    output_value: Optional[Literal["sentence_embedding"]],
 ) -> None:
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
     embeddings_full_unnormalized: torch.Tensor = model.encode(
@@ -399,12 +404,26 @@ def test_encode_truncate(
     )  # These are raw embeddings which serve as the reference to test against
 
     def test(model: SentenceTransformer, expected_dim: int):
-        embeddings = model.encode(
+        outputs = model.encode(
             sentences,
+            output_value=output_value,
             convert_to_tensor=convert_to_tensor,
             convert_to_numpy=convert_to_numpy,
             normalize_embeddings=normalize_embeddings,
         )
+
+        # Extract the sentence embeddings out of outputs
+        if output_value is None:
+            # We get the whole plate
+            if not isinstance(outputs, List):
+                embeddings = outputs["sentence_embedding"]
+            else:
+                outputs = cast(List[Dict[str, torch.Tensor]], outputs)
+                # TODO: can overload model.encode if ppl want type checker compatibility
+                embeddings = [out_features["sentence_embedding"] for out_features in outputs]
+        else:
+            embeddings = outputs
+
         # Test shape
         if isinstance(embeddings, list):  # list of tensors
             embeddings_shape = (len(embeddings), embeddings[0].shape[-1])
@@ -422,14 +441,18 @@ def test_encode_truncate(
             # On a non-cpu device, the device of torch.from_numpy(embeddings) is always CPU
 
         # Test content
-        if not normalize_embeddings:
-            assert torch.allclose(embeddings, util.truncate_embeddings(embeddings_full_unnormalized, expected_dim))
+        if normalize_embeddings:
+            if output_value is None:
+                # Currently, normalization is not performed; it's the raw output of the forward pass
+                pass
+            else:
+                normalize = partial(torch.nn.functional.normalize, p=2, dim=-1)
+                assert torch.allclose(
+                    embeddings,
+                    normalize(util.truncate_embeddings(embeddings_full_unnormalized, expected_dim)),
+                )
         else:
-            normalize = partial(torch.nn.functional.normalize, p=2, dim=-1)
-            assert torch.allclose(
-                embeddings,
-                normalize(util.truncate_embeddings(embeddings_full_unnormalized, expected_dim)),
-            )
+            assert torch.allclose(embeddings, util.truncate_embeddings(embeddings_full_unnormalized, expected_dim))
 
     # Test init w/o setting truncate_dim (it's None)
     original_output_dim: int = model.get_sentence_embedding_dimension()

@@ -361,6 +361,9 @@ class SentenceTransformer(nn.Sequential):
 
             with torch.no_grad():
                 out_features = self.forward(features)
+                out_features["sentence_embedding"] = truncate_embeddings(
+                    out_features["sentence_embedding"], self.truncate_dim
+                )
 
                 if output_value == "token_embeddings":
                     embeddings = []
@@ -376,9 +379,8 @@ class SentenceTransformer(nn.Sequential):
                         row = {name: out_features[name][sent_idx] for name in out_features}
                         embeddings.append(row)
                 else:  # Sentence embeddings
-                    embeddings: torch.Tensor = out_features[output_value]
+                    embeddings = out_features[output_value]
                     embeddings = embeddings.detach()
-                    embeddings = truncate_embeddings(embeddings, self.truncate_dim)
                     if normalize_embeddings:
                         embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
 
