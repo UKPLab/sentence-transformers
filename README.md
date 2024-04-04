@@ -145,6 +145,22 @@ and many more use-cases.
 
 For all examples, see [examples/applications](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications).
 
+## Development setup
+
+After cloning the repo (or a fork) to your machine, in a virtual environment, run:
+
+```
+python -m pip install -e ".[dev]"
+
+pre-commit install
+```
+
+To test your changes, run:
+
+```
+pytest
+```
+
 ## Citing & Authors
 
 If you find this repository helpful, feel free to cite our publication [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084):

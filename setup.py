@@ -27,6 +27,13 @@ setup(
         "huggingface-hub>=0.15.1",
         "Pillow",
     ],
+    extras_require={
+        "dev": [
+            "pre-commit",
+            "pytest",
+            "ruff>=0.3.0",
+        ],
+    },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
