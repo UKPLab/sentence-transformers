@@ -70,7 +70,8 @@ class SentenceTransformer(nn.Sequential):
         This option should only be set to True for repositories you trust and in which you have read the code, as it
         will execute code present on the Hub on your local machine.
     :param token: Hugging Face authentication token to download private models.
-    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation.
+    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
+        only applicable during inference when `.encode` is called.
     """
 
     def __init__(

@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from . import SentenceEvaluator, SimilarityFunction
 import logging
 import os
@@ -33,6 +34,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         show_progress_bar: bool = False,
         write_csv: bool = True,
         precision: Optional[Literal["float32", "int8", "uint8", "binary", "ubinary"]] = None,
+        truncate_dim: Optional[int] = None,
     ):
         """
         Constructs an evaluator based for the dataset
@@ -45,12 +47,15 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         :param write_csv: Write results to a CSV file
         :param precision: The precision to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or
             "ubinary". Defaults to None.
+        :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current
+            truncation dimension. Defaults to None.
         """
         self.sentences1 = sentences1
         self.sentences2 = sentences2
         self.scores = scores
         self.write_csv = write_csv
         self.precision = precision
+        self.truncate_dim = truncate_dim
 
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.scores)
@@ -107,22 +112,23 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
         logger.info("EmbeddingSimilarityEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
 
-        embeddings1 = model.encode(
-            self.sentences1,
-            batch_size=self.batch_size,
-            show_progress_bar=self.show_progress_bar,
-            convert_to_numpy=True,
-            precision=self.precision,
-            normalize_embeddings=bool(self.precision),
-        )
-        embeddings2 = model.encode(
-            self.sentences2,
-            batch_size=self.batch_size,
-            show_progress_bar=self.show_progress_bar,
-            convert_to_numpy=True,
-            precision=self.precision,
-            normalize_embeddings=bool(self.precision),
-        )
+        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+            embeddings1 = model.encode(
+                self.sentences1,
+                batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
+                convert_to_numpy=True,
+                precision=self.precision,
+                normalize_embeddings=bool(self.precision),
+            )
+            embeddings2 = model.encode(
+                self.sentences2,
+                batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
+                convert_to_numpy=True,
+                precision=self.precision,
+                normalize_embeddings=bool(self.precision),
+            )
         # Binary and ubinary embeddings are packed, so we need to unpack them for the distance metrics
         if self.precision == "binary":
             embeddings1 = (embeddings1 + 128).astype(np.uint8)
