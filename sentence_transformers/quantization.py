@@ -277,6 +277,11 @@ def semantic_search_usearch(
     scores = matches.distances
     indices = matches.keys
 
+    if scores.ndim < 2:
+        scores = np.atleast_2d(scores)
+    if indices.ndim < 2:
+        indices = np.atleast_2d(indices)
+
     # If rescoring is enabled, we need to rescore the results using the rescore_embeddings
     if rescore_embeddings is not None:
         top_k_embeddings = np.array([corpus_index.get(query_indices) for query_indices in indices])
