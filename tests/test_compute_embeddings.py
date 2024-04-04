@@ -25,13 +25,12 @@ def test_encode_token_embeddings(paraphrase_distilroberta_base_v1_model: Sentenc
     assert len(emb) == len(sent)
 
     device = get_device_name()
-    if device == 'hpu':
+    if device == "hpu":
         for s, e in zip(sent, emb):
             assert len(model.tokenize([s])["input_ids"][0]) == model.get_max_seq_length()
     else:
         for s, e in zip(sent, emb):
             assert len(model.tokenize([s])["input_ids"][0]) == e.shape[0]
-
 
 
 def test_encode_single_sentences(paraphrase_distilroberta_base_v1_model: SentenceTransformer) -> None:

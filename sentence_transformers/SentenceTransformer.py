@@ -292,8 +292,9 @@ class SentenceTransformer(nn.Sequential):
             input is provided, then the output is a 1d array with shape [output_dimension]. If `convert_to_tensor`, a
             torch Tensor is returned instead.
         """
-        if self.device.type == 'hpu' and not self.is_hpu_graph_enabled:
+        if self.device.type == "hpu" and not self.is_hpu_graph_enabled:
             import habana_frameworks.torch as ht
+
             ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
             self.is_hpu_graph_enabled = True
 
