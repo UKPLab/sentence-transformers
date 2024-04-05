@@ -1,3 +1,4 @@
+from itertools import islice
 import json
 import logging
 import os
@@ -44,7 +45,7 @@ if TYPE_CHECKING:
     from sentence_transformers.readers import InputExample
 
 
-class SentenceTransformer(nn.Sequential):
+class SentenceTransformer(nn.ModuleDict):
     """
     Loads or creates a SentenceTransformer model that can be used to map sentences / text to embeddings.
 
@@ -53,6 +54,8 @@ class SentenceTransformer(nn.Sequential):
         from the Hugging Face Hub with that name.
     :param modules: A list of torch Modules that should be called sequentially, can be used to create custom
         SentenceTransformer models from scratch.
+    :param module_kwargs: An iterable of lists that specifies which keyword arguments of `forward` are passed
+        to which components in `modules`. If None, no keyword arguments are forwarded to the modules.
     :param device: Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
         can be used.
     :param prompts: A dictionary with prompts for the model. The key is the prompt name, the value is the prompt text.
@@ -74,6 +77,7 @@ class SentenceTransformer(nn.Sequential):
         self,
         model_name_or_path: Optional[str] = None,
         modules: Optional[Iterable[nn.Module]] = None,
+        module_kwargs: Optional[Iterable[List[str]]] = None,
         device: Optional[str] = None,
         prompts: Optional[Dict[str, str]] = None,
         default_prompt_name: Optional[str] = None,
@@ -188,7 +192,7 @@ class SentenceTransformer(nn.Sequential):
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
             if is_sentence_transformer_model(model_name_or_path, token, cache_folder=cache_folder, revision=revision):
-                modules = self._load_sbert_model(
+                modules, module_kwargs = self._load_sbert_model(
                     model_name_or_path,
                     token=token,
                     cache_folder=cache_folder,
@@ -196,7 +200,7 @@ class SentenceTransformer(nn.Sequential):
                     trust_remote_code=trust_remote_code,
                 )
             else:
-                modules = self._load_auto_model(
+                modules, module_kwargs = self._load_auto_model(
                     model_name_or_path,
                     token=token,
                     cache_folder=cache_folder,
@@ -207,7 +211,20 @@ class SentenceTransformer(nn.Sequential):
         if modules is not None and not isinstance(modules, OrderedDict):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
 
+        if module_kwargs is None:
+            module_kwargs = OrderedDict([(str(idx), []) for idx in range(len(modules))])
+        elif module_kwargs is not None and not isinstance(module_kwargs, OrderedDict):
+            if len(module_kwargs) != len(modules):
+                raise ValueError(
+                    f"Length of 'module_kwargs' should match length "
+                    f"of 'modules' but got {len(module_kwargs)} and {len(modules)}."
+                )
+            module_kwargs = OrderedDict([(str(idx), kwargs) for idx, kwargs in enumerate(module_kwargs)])
+
         super().__init__(modules)
+        # self._module_kwargs maps submodule names to the kwargs they receive in `forward`
+        self._module_kwargs = module_kwargs
+
         if device is None:
             device = get_device_name()
             logger.info("Use pytorch device_name: {}".format(device))
@@ -246,6 +263,30 @@ class SentenceTransformer(nn.Sequential):
                     "Either update the model configuration or call `model.set_pooling_include_prompt(False)` after loading the model."
                 )
 
+    def _split_kwargs(self, kwargs: Dict) -> List[Dict]:
+        """Given kwargs from the forward method, distribute them to the submodules."""
+        provided_keys = set(kwargs.keys())
+        required_keys = set()
+        for keys in self._module_kwargs.values():
+            required_keys = required_keys.union(set(keys))
+        if not provided_keys.issubset(required_keys):
+            raise ValueError(
+                f"Expected keyword arguments to be subset of {required_keys if len(required_keys)>0 else '{}'} "
+                f"but got {provided_keys if len(provided_keys)>0 else '{}'}"
+            )
+        result = []
+        for mod_keys in self._module_kwargs.values():
+            current_kwargs = {key: kwargs[key] for key in mod_keys}
+            result.append(current_kwargs)
+        return result
+
+    def forward(self, *args, **kwargs):
+        split_kwargs = self._split_kwargs(kwargs)
+        result = self._first_module()(*args, **split_kwargs[0])
+        for mod, current_kwargs in islice(zip(self._modules.values(), split_kwargs), 1, None):
+            result = mod(result, **current_kwargs)
+        return result
+
     def encode(
         self,
         sentences: Union[str, List[str]],
@@ -259,6 +300,7 @@ class SentenceTransformer(nn.Sequential):
         convert_to_tensor: bool = False,
         device: str = None,
         normalize_embeddings: bool = False,
+        **kwargs,
     ) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings.
@@ -354,7 +396,7 @@ class SentenceTransformer(nn.Sequential):
             features.update(extra_features)
 
             with torch.no_grad():
-                out_features = self.forward(features)
+                out_features = self.forward(features, **kwargs)
 
                 if output_value == "token_embeddings":
                     embeddings = []
@@ -471,6 +513,7 @@ class SentenceTransformer(nn.Sequential):
         batch_size: int = 32,
         chunk_size: int = None,
         normalize_embeddings: bool = False,
+        **kwargs,
     ):
         """
         This method allows to run encode() on multiple GPUs. The sentences are chunked into smaller packages
@@ -506,12 +549,12 @@ class SentenceTransformer(nn.Sequential):
         for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings])
+                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings, kwargs])
                 last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings])
+            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings, kwargs])
             last_chunk_id += 1
 
         output_queue = pool["output"]
@@ -526,7 +569,7 @@ class SentenceTransformer(nn.Sequential):
         """
         while True:
             try:
-                chunk_id, batch_size, sentences, prompt_name, prompt, normalize_embeddings = input_queue.get()
+                chunk_id, batch_size, sentences, prompt_name, prompt, normalize_embeddings, kwargs = input_queue.get()
                 embeddings = model.encode(
                     sentences,
                     prompt_name=prompt_name,
@@ -536,6 +579,7 @@ class SentenceTransformer(nn.Sequential):
                     convert_to_numpy=True,
                     batch_size=batch_size,
                     normalize_embeddings=normalize_embeddings,
+                    **kwargs,
                 )
 
                 results_queue.put([chunk_id, embeddings])
@@ -1138,7 +1182,7 @@ class SentenceTransformer(nn.Sequential):
             tokenizer_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
-        return [transformer_model, pooling_model]
+        return [transformer_model, pooling_model], OrderedDict([("0", []), ("1", [])])
 
     def _load_sbert_model(
         self,
@@ -1199,6 +1243,7 @@ class SentenceTransformer(nn.Sequential):
             modules_config = json.load(fIn)
 
         modules = OrderedDict()
+        modules_keys = OrderedDict()  # maps module names to the kwargs they receive in `forward`
         for module_config in modules_config:
             module_class = import_from_string(module_config["type"])
             # For Transformer, don't load the full directory, rely on `transformers` instead
@@ -1245,8 +1290,9 @@ class SentenceTransformer(nn.Sequential):
                     )
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
+            modules_keys[module_config["name"]] = module_config.get("kwargs", [])
 
-        return modules
+        return modules, modules_keys
 
     @staticmethod
     def load(input_path):
