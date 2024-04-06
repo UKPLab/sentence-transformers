@@ -335,6 +335,21 @@ def test_save_load_prompts() -> None:
         assert fresh_model.default_prompt_name == "query"
 
 
+def test_load_with_auto_dtype() -> None:
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+
+    assert model.encode(["Hello there!"], convert_to_tensor=True).dtype == torch.float32
+
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        fp16_model_dir = Path(tmp_folder) / "fp16_model"
+        model.half()
+        model.save(str(fp16_model_dir))
+        del model
+
+        fp16_model = SentenceTransformer(str(fp16_model_dir))
+        assert fp16_model.encode(["Hello there!"], convert_to_tensor=True).dtype == torch.float16
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
 def test_encode_fp16() -> None:
     tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")

@@ -63,7 +63,7 @@ class Transformer(nn.Module):
             self._load_mt5_model(model_name_or_path, config, cache_dir, **model_args)
         else:
             self.auto_model = AutoModel.from_pretrained(
-                model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+                model_name_or_path, config=config, cache_dir=cache_dir, **model_args, torch_dtype="auto"
             )
 
     def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args):
