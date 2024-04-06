@@ -335,7 +335,7 @@ def test_save_load_prompts() -> None:
         assert fresh_model.default_prompt_name == "query"
 
 
-def test_load_with_auto_dtype() -> None:
+def test_load_defaults_to_auto_dtype() -> None:
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
 
     assert model.encode(["Hello there!"], convert_to_tensor=True).dtype == torch.float32
@@ -348,6 +348,17 @@ def test_load_with_auto_dtype() -> None:
 
         fp16_model = SentenceTransformer(str(fp16_model_dir))
         assert fp16_model.encode(["Hello there!"], convert_to_tensor=True).dtype == torch.float16
+
+
+def test_load_with_dtype_arg() -> None:
+    transformer = Transformer(
+        "sentence-transformers-testing/stsb-bert-tiny-safetensors",
+        model_args={"torch_dtype": torch.float16},
+    )
+    pooling = Pooling(transformer.get_word_embedding_dimension())
+    pytorch_model = SentenceTransformer(modules=[transformer, pooling])
+
+    assert pytorch_model.encode(["Hello there!"], convert_to_tensor=True).dtype == torch.float16
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")

@@ -62,8 +62,10 @@ class Transformer(nn.Module):
         elif isinstance(config, MT5Config):
             self._load_mt5_model(model_name_or_path, config, cache_dir, **model_args)
         else:
+            if "torch_dtype" not in model_args:
+                model_args["torch_dtype"] = "auto"
             self.auto_model = AutoModel.from_pretrained(
-                model_name_or_path, config=config, cache_dir=cache_dir, **model_args, torch_dtype="auto"
+                model_name_or_path, config=config, cache_dir=cache_dir, **model_args
             )
 
     def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args):
