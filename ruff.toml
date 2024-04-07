@@ -1,5 +1,3 @@
-include = ["examples/**/*.py", "sentence_transformers/**/*.py", "tests/**/*.py", "docs/**/*.py", "setup.py"]
-
 lint.ignore-init-module-imports = true
 
 line-length = 119
