@@ -1,13 +1,13 @@
 from . import InputExample
-import csv
-import gzip
 import os
+
 
 class LabelSentenceReader:
     """Reads in a file that has at least two columns: a label and a sentence.
     This reader can for example be used with the BatchHardTripletLoss.
     Maps labels automatically to integers"""
-    def __init__(self, folder, label_col_idx=0, sentence_col_idx=1, separator='\t'):
+
+    def __init__(self, folder, label_col_idx=0, sentence_col_idx=1, separator="\t"):
         self.folder = folder
         self.label_map = {}
         self.label_col_idx = label_col_idx

@@ -13,8 +13,9 @@ For a list of available models, see [Pretrained Models](https://www.sbert.net/do
 You can use the models in the following way:
 ```python
 from sentence_transformers import SentenceTransformer
-embedder = SentenceTransformer('model-name')
-embeddings = embedder.encode(['Hello World', 'Hallo Welt', 'Hola mundo'])
+
+embedder = SentenceTransformer("model-name")
+embeddings = embedder.encode(["Hello World", "Hallo Welt", "Hola mundo"])
 print(embeddings)
 ```
 
@@ -108,12 +109,12 @@ The idea is based on a fixed (monolingual) **teacher model**, that produces sent
 
 In the above figure, the student model should map *Hello World* and the German translation *Hallo Welt* to the vector of *teacher_model('Hello World')*. We achieve this by training the student model using mean squared error (MSE) loss.
 
-In our experiments we initiliazed the student model with the multilingual XLM-RoBERTa model. 
+In our experiments we initialized the student model with the multilingual XLM-RoBERTa model. 
 
 ## Training 
 For a **fully automatic code example**, see [make_multilingual.py](make_multilingual.py). 
 
-This scripts downloads the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md?), a corpus with transcripts and translations from TED and TEDx talks. It than extends a monolingual model to several languages (en, de, es, it, fr, ar, tr). TED2020 contains parallel data for more than 100 languages, hence, you can simple change the script and train a multilingual model in your favorite languages.
+This scripts downloads the parallel sentences corpus, a corpus with transcripts and translations from talks. It than extends a monolingual model to several languages (en, de, es, it, fr, ar, tr). This corpus contains parallel data for more than 100 languages, hence, you can simple change the script and train a multilingual model in your favorite languages.
 
 
 
@@ -140,9 +141,9 @@ You can load such a training file using the *ParallelSentencesDataset* class:
 from sentence_transformers.datasets import ParallelSentencesDataset
 
 train_data = ParallelSentencesDataset(student_model=student_model, teacher_model=teacher_model)
-train_data.load_data('path/to/tab/separated/train-en-de.tsv')
-train_data.load_data('path/to/tab/separated/train-en-es.tsv.gz')
-train_data.load_data('path/to/tab/separated/train-en-fr.tsv.gz')
+train_data.load_data("path/to/tab/separated/train-en-de.tsv")
+train_data.load_data("path/to/tab/separated/train-en-es.tsv.gz")
+train_data.load_data("path/to/tab/separated/train-en-fr.tsv.gz")
 
 train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.MSELoss(model=student_model)
@@ -158,7 +159,7 @@ A great website for a vast number of parallel (translated) datasets is [OPUS](ht
 The [examples/training/multilingual](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/multilingual/) folder contains some scripts that downloads parallel training data and brings it into the right format:
 - [get_parallel_data_opus.py](get_parallel_data_opus.py): This script downloads data from the [OPUS](http://opus.nlpl.eu/) website.
 - [get_parallel_data_tatoeba.py](get_parallel_data_tatoeba.py): This script downloads data from the [Tatoeba](https://tatoeba.org/) website, a website for language learners with example sentences for more than many languages.
-- [get_parallel_data_ted2020.py](get_parallel_data_ted2020.py): This script downloads data the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md), which contains transcripts and translations of more than 4,000 TED and TEDx talks in 100+ languages.
+- [get_parallel_data_talks.py](get_parallel_data_talks.py): This script downloads data the parallel sentences corpus, which contains transcripts and translations of more than 4,000 talks in 100+ languages.
 
 ## Evaluation
 
@@ -169,7 +170,7 @@ You can measure the mean squared error (MSE) between the student embeddings and 
 
 ```python
 # src_sentences and trg_sentences are lists of translated sentences, such that trg_sentences[i] is the translation of src_sentences[i]
- dev_mse = evaluation.MSEEvaluator(src_sentences, trg_sentences, teacher_model=teacher_model)
+dev_mse = evaluation.MSEEvaluator(src_sentences, trg_sentences, teacher_model=teacher_model)
 ```
 
 This evaluator computes the teacher embeddings for the `src_sentences`, for example, for English. During training, the student model is used to compute embeddings for the `trg_sentences`, for example, for Spanish. The distance between teacher and student embeddings is measures. Lower scores indicate a better performance.
@@ -181,7 +182,12 @@ For each sentence pair, we check if their embeddings are the closest using cosin
 
 ```python
 # src_sentences and trg_sentences are lists of translated sentences, such that trg_sentences[i] is the translation of src_sentences[i]
-dev_trans_acc = evaluation.TranslationEvaluator(src_sentences, trg_sentences, name=os.path.basename(dev_file),batch_size=inference_batch_size)
+dev_trans_acc = evaluation.TranslationEvaluator(
+    src_sentences,
+    trg_sentences,
+    name=os.path.basename(dev_file),
+    batch_size=inference_batch_size,
+)
 ```
 
 ### Multi-Lingual Semantic Textual Similarity
@@ -191,7 +197,7 @@ You can also measure the semantic textual similarity (STS) between sentence pair
 sts_evaluator = evaluation.EmbeddingSimilarityEvaluatorFromList(sentences1, sentences2, scores)
 ```
 
-Where `sentences1` and `sentences2` are lists of sentences and score is numeric value indicating the sematic similarity between `sentences1[i]` and `sentences2[i]`.
+Where `sentences1` and `sentences2` are lists of sentences and score is numeric value indicating the semantic similarity between `sentences1[i]` and `sentences2[i]`.
 
 
 ## Citation
