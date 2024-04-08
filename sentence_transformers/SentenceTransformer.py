@@ -1242,19 +1242,19 @@ class SentenceTransformer(nn.Sequential):
                 if "model_args" in kwargs:
                     kwargs["model_args"].update(hub_kwargs)
                 else:
-                    kwargs["model_args"] = hub_kwargs
+                    kwargs["model_args"] = hub_kwargs.copy()
                 if "tokenizer_args" in kwargs:
                     kwargs["tokenizer_args"].update(hub_kwargs)
                 else:
-                    kwargs["tokenizer_args"] = hub_kwargs
+                    kwargs["tokenizer_args"] = hub_kwargs.copy()
                 
                 if "model_args" in kwargs:
                     if kwargs["model_args"] is not None:
                         kwargs["model_args"].update(custom_hf_params)
                     else:
-                        kwargs["model_args"] = custom_hf_params
+                        kwargs["model_args"] = custom_hf_params.copy()
                 else:
-                    kwargs["model_args"] = custom_hf_params
+                    kwargs["model_args"] = custom_hf_params.copy()
 
                 module = Transformer(model_name_or_path, cache_dir=cache_folder, **kwargs)
             else:
