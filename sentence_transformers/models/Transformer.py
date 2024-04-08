@@ -113,7 +113,7 @@ class Transformer(nn.Module):
     def get_word_embedding_dimension(self) -> int:
         return self.auto_model.config.hidden_size
 
-    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]]):
+    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]], padding: Union[str, bool] = True):
         """
         Tokenizes a text and maps tokens to token-ids
         """
@@ -145,7 +145,7 @@ class Transformer(nn.Module):
         output.update(
             self.tokenizer(
                 *to_tokenize,
-                padding=True,
+                padding=padding,
                 truncation="longest_first",
                 return_tensors="pt",
                 max_length=self.max_seq_length,

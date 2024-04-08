@@ -213,6 +213,7 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device_name: {}".format(device))
 
         self.to(device)
+        self.is_hpu_graph_enabled = False
 
         if self.default_prompt_name is not None and self.default_prompt_name not in self.prompts:
             raise ValueError(
@@ -291,6 +292,12 @@ class SentenceTransformer(nn.Sequential):
             input is provided, then the output is a 1d array with shape [output_dimension]. If `convert_to_tensor`, a
             torch Tensor is returned instead.
         """
+        if self.device.type == "hpu" and not self.is_hpu_graph_enabled:
+            import habana_frameworks.torch as ht
+
+            ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
+            self.is_hpu_graph_enabled = True
+
         self.eval()
         if show_progress_bar is None:
             show_progress_bar = (
@@ -566,7 +573,16 @@ class SentenceTransformer(nn.Sequential):
         """
         Tokenizes the texts
         """
-        return self._first_module().tokenize(texts)
+        kwargs = {}
+        # HPU models reach optimal performance if the padding is not dynamic
+        if self.device.type == "hpu":
+            kwargs["padding"] = "max_length"
+
+        try:
+            return self._first_module().tokenize(texts, **kwargs)
+        except TypeError:
+            # In case some Module does not allow for kwargs in tokenize, we also try without any
+            return self._first_module().tokenize(texts)
 
     def get_sentence_features(self, *features):
         return self._first_module().get_sentence_features(*features)
