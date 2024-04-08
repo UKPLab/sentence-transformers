@@ -10,7 +10,7 @@ import torch
 import numpy as np
 import queue
 import logging
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, overload
 
 from transformers import is_torch_npu_available
 from huggingface_hub import snapshot_download, hf_hub_download
@@ -140,6 +140,25 @@ def normalize_embeddings(embeddings: Tensor) -> Tensor:
     Normalizes the embeddings matrix, so that each sentence embedding has unit length
     """
     return torch.nn.functional.normalize(embeddings, p=2, dim=1)
+
+
+@overload
+def truncate_embeddings(embeddings: np.ndarray, truncate_dim: Optional[int]) -> np.ndarray: ...
+
+
+@overload
+def truncate_embeddings(embeddings: torch.Tensor, truncate_dim: Optional[int]) -> torch.Tensor: ...
+
+
+def truncate_embeddings(
+    embeddings: Union[np.ndarray, torch.Tensor], truncate_dim: Optional[int]
+) -> Union[np.ndarray, torch.Tensor]:
+    """
+    :param embeddings: Embeddings to truncate.
+    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation.
+    :return: Truncated embeddings.
+    """
+    return embeddings[..., :truncate_dim]
 
 
 def paraphrase_mining(

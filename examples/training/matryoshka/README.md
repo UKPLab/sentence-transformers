@@ -54,16 +54,20 @@ loss = Matryoshka2dLoss(model=model, loss=base_loss, matryoshka_dims=[768, 512, 
 
 ## Inference
 
-After a model has been trained using a Matryoshka loss, you can then run inference with it using <a href="../../../docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode"><code>SentenceTransformers.encode</code></a>. You must then truncate the resulting embeddings, and it is recommended to renormalize the embeddings.
+After a model has been trained using a Matryoshka loss, you can then run inference with it using <a href="../../../docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode"><code>SentenceTransformers.encode</code></a>.
 
 ```python
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim
 import torch.nn.functional as F
 
-model = SentenceTransformer("nomic-ai/nomic-embed-text-v1.5", trust_remote_code=True)
-
 matryoshka_dim = 64
+model = SentenceTransformer(
+    "nomic-ai/nomic-embed-text-v1.5",
+    trust_remote_code=True,
+    truncate_dim=matryoshka_dim,
+)
+
 embeddings = model.encode(
     [
         "search_query: What is TSNE?",
@@ -71,7 +75,7 @@ embeddings = model.encode(
         "search_document: Amelia Mary Earhart was an American aviation pioneer and writer.",
     ]
 )
-embeddings = embeddings[..., :matryoshka_dim]  # Shrink the embedding dimensions
+assert embeddings.shape[-1] == matryoshka_dim
 
 similarities = cos_sim(embeddings[0], embeddings[1:])
 # => tensor([[0.7839, 0.4933]])
@@ -86,6 +90,7 @@ See the following scripts as examples of how to apply the <a href="../../../docs
 
 * **[matryoshka_nli.py](matryoshka_nli.py)**: This example uses the MultipleNegativesRankingLoss with MatryoshkaLoss to train a strong embedding model using Natural Language Inference (NLI) data. It is an adaptation of the [NLI](../nli/README) documentation.
 * **[matryoshka_nli_reduced_dim.py](matryoshka_nli_reduced_dim.py)**: This example uses the MultipleNegativesRankingLoss with MatryoshkaLoss to train a strong embedding model with a small maximum output dimension of 256. It trains using Natural Language Inference (NLI) data, and is an adaptation of the [NLI](../nli/README) documentation.
+* **[matryoshka_eval_stsb.py](matryoshka_eval_stsb.py)**: This example evaluates the embedding model trained with MatryoshkaLoss in [matryoshka_nli.py](matryoshka_nli.py) on the test set of the STSBenchmark dataset, and compares it to a non-Matryoshka trained model.
 * **[matryoshka_sts.py](matryoshka_sts.py)**: This example uses the CoSENTLoss with MatryoshkaLoss to train an embedding model on the training set of the STSBenchmark dataset. It is an adaptation of the [STS](../sts/README) documentation.
 
 And the following scripts to see how to apply <a href="../../../docs/package_reference/losses.html#matryoshka2dloss"><code>Matryoshka2dLoss</code></a>:

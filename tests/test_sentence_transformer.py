@@ -2,12 +2,15 @@
 Tests general behaviour of the SentenceTransformer class
 """
 
+from functools import partial
 import json
 import logging
 import os
 from pathlib import Path
 import re
 import tempfile
+from typing import Dict, List, Literal, Optional, Union, cast
+
 import numpy as np
 import pytest
 
@@ -15,6 +18,7 @@ from huggingface_hub import HfApi, RepoUrl, GitRefs, GitRefInfo
 import torch
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Normalize, Transformer, Pooling
+from sentence_transformers import util
 
 
 def test_load_with_safetensors() -> None:
@@ -380,3 +384,96 @@ def test_encode_quantization(
     else:
         assert embeddings[0].dtype == expected_torch_dtype
         assert isinstance(embeddings, list)
+
+
+@pytest.mark.parametrize("sentences", ("Single sentence", ["One sentence", "Another sentence"]))
+@pytest.mark.parametrize("convert_to_tensor", [True, False])
+@pytest.mark.parametrize("convert_to_numpy", [True, False])
+@pytest.mark.parametrize("normalize_embeddings", [True, False])
+@pytest.mark.parametrize("output_value", ["sentence_embedding", None])
+def test_encode_truncate(
+    sentences: Union[str, List[str]],
+    convert_to_tensor: bool,
+    convert_to_numpy: bool,
+    normalize_embeddings: bool,
+    output_value: Optional[Literal["sentence_embedding"]],
+) -> None:
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    embeddings_full_unnormalized: torch.Tensor = model.encode(
+        sentences, convert_to_numpy=False, convert_to_tensor=True
+    )  # These are raw embeddings which serve as the reference to test against
+
+    def test(model: SentenceTransformer, expected_dim: int):
+        outputs = model.encode(
+            sentences,
+            output_value=output_value,
+            convert_to_tensor=convert_to_tensor,
+            convert_to_numpy=convert_to_numpy,
+            normalize_embeddings=normalize_embeddings,
+        )
+
+        # Extract the sentence embeddings out of outputs
+        if output_value is None:
+            # We get the whole plate
+            if not isinstance(outputs, List):
+                embeddings = outputs["sentence_embedding"]
+            else:
+                outputs = cast(List[Dict[str, torch.Tensor]], outputs)
+                # TODO: can overload model.encode if ppl want type checker compatibility
+                embeddings = [out_features["sentence_embedding"] for out_features in outputs]
+        else:
+            embeddings = outputs
+
+        # Test shape
+        if isinstance(embeddings, list):  # list of tensors
+            embeddings_shape = (len(embeddings), embeddings[0].shape[-1])
+        else:
+            embeddings_shape = embeddings.shape
+        expected_shape = (expected_dim,) if isinstance(sentences, str) else (len(sentences), expected_dim)
+        assert embeddings_shape == expected_shape
+        assert model.get_sentence_embedding_dimension() == expected_dim
+
+        # Convert embeddings to a torch Tensor for ease of testing
+        if isinstance(embeddings, list):
+            embeddings = torch.stack(embeddings)
+        elif isinstance(embeddings, np.ndarray):
+            embeddings = torch.from_numpy(embeddings).to(embeddings_full_unnormalized.device)
+            # On a non-cpu device, the device of torch.from_numpy(embeddings) is always CPU
+
+        # Test content
+        if normalize_embeddings:
+            if output_value is None:
+                # Currently, normalization is not performed; it's the raw output of the forward pass
+                pass
+            else:
+                normalize = partial(torch.nn.functional.normalize, p=2, dim=-1)
+                assert torch.allclose(
+                    embeddings,
+                    normalize(util.truncate_embeddings(embeddings_full_unnormalized, expected_dim)),
+                )
+        else:
+            assert torch.allclose(embeddings, util.truncate_embeddings(embeddings_full_unnormalized, expected_dim))
+
+    # Test init w/o setting truncate_dim (it's None)
+    original_output_dim: int = model.get_sentence_embedding_dimension()
+    test(model, expected_dim=original_output_dim)
+
+    # Test init w/ a set truncate_dim
+    truncate_dim = int(original_output_dim / 4)
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors", truncate_dim=truncate_dim)
+    test(model, expected_dim=truncate_dim)
+
+    # Test setting the attribute after init to a greater dimension
+    new_truncate_dim = 2 * truncate_dim
+    model.truncate_dim = new_truncate_dim
+    test(model, expected_dim=new_truncate_dim)
+
+    # Test context manager
+    final_truncate_dim = int(original_output_dim / 8)
+    with model.truncate_sentence_embeddings(final_truncate_dim):
+        test(model, expected_dim=final_truncate_dim)
+    test(model, expected_dim=new_truncate_dim)  # b/c we've exited the context
+
+    # Test w/ an ouptut_dim that's larger than the original_output_dim. No truncation ends up happening
+    model.truncate_dim = 2 * original_output_dim
+    test(model, expected_dim=original_output_dim)
