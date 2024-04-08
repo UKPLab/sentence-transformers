@@ -10,19 +10,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def degree_centrality_scores(
     similarity_matrix,
     threshold=None,
     increase_power=True,
 ):
-    if not (
-        threshold is None
-        or isinstance(threshold, float)
-        and 0 <= threshold < 1
-    ):
+    if not (threshold is None or isinstance(threshold, float) and 0 <= threshold < 1):
         raise ValueError(
-            '\'threshold\' should be a floating-point number '
-            'from the interval [0, 1) or None',
+            "'threshold' should be a floating-point number " "from the interval [0, 1) or None",
         )
 
     if threshold is None:
@@ -81,7 +77,7 @@ def connected_nodes(matrix):
 def create_markov_matrix(weights_matrix):
     n_1, n_2 = weights_matrix.shape
     if n_1 != n_2:
-        raise ValueError('\'weights_matrix\' should be square')
+        raise ValueError("'weights_matrix' should be square")
 
     row_sum = weights_matrix.sum(axis=1, keepdims=True)
 
@@ -107,7 +103,7 @@ def stationary_distribution(
 ):
     n_1, n_2 = transition_matrix.shape
     if n_1 != n_2:
-        raise ValueError('\'transition_matrix\' should be square')
+        raise ValueError("'transition_matrix' should be square")
 
     distribution = np.zeros(n_1)
 

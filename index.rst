@@ -3,7 +3,7 @@ SentenceTransformers Documentation
 
 SentenceTransformers is a Python framework for state-of-the-art sentence, text and image embeddings. The initial work is described in our paper `Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks <https://arxiv.org/abs/1908.10084>`_.
 
-You can use this framework to compute sentence / text embeddings for more than 100 languages. These embeddings can then be compared e.g. with cosine-similarity to find sentences with a similar meaning. This can be useful for `semantic textual similar <docs/usage/semantic_textual_similarity.html>`_, `semantic search <examples/applications/semantic-search/README.html>`_, or `paraphrase mining <examples/applications/paraphrase-mining/README.html>`_.
+You can use this framework to compute sentence / text embeddings for more than 100 languages. These embeddings can then be compared e.g. with cosine-similarity to find sentences with a similar meaning. This can be useful for `semantic textual similarity <docs/usage/semantic_textual_similarity.html>`_, `semantic search <examples/applications/semantic-search/README.html>`_, or `paraphrase mining <examples/applications/paraphrase-mining/README.html>`_.
 
 The framework is based on `PyTorch <https://pytorch.org/>`_ and `Transformers <https://huggingface.co/transformers/>`_ and offers a large collection of `pre-trained models <docs/pretrained_models.html>`_ tuned for various tasks. Further, it is easy to `fine-tune your own models <docs/training/overview.html>`_.
 
@@ -18,7 +18,7 @@ You can install it using pip:
    pip install -U sentence-transformers
 
 
-We recommend **Python 3.6** or higher, and at least **PyTorch 1.6.0**. See `installation <docs/installation.html>`_ for further installation options, especially if you want to use a GPU.
+We recommend **Python 3.8** or higher, and at least **PyTorch 1.11.0**. See `installation <docs/installation.html>`_ for further installation options, especially if you want to use a GPU.
 
 
 
@@ -29,17 +29,19 @@ The usage is as simple as:
 .. code-block:: python
 
     from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    #Our sentences we like to encode
-    sentences = ['This framework generates embeddings for each input sentence',
-        'Sentences are passed as a list of string.',
-        'The quick brown fox jumps over the lazy dog.']
+    # Our sentences to encode
+    sentences = [
+        "This framework generates embeddings for each input sentence",
+        "Sentences are passed as a list of string.",
+        "The quick brown fox jumps over the lazy dog."
+    ]
 
-    #Sentences are encoded by calling model.encode()
+    # Sentences are encoded by calling model.encode()
     embeddings = model.encode(sentences)
 
-    #Print the embeddings
+    # Print the embeddings
     for sentence, embedding in zip(sentences, embeddings):
         print("Sentence:", sentence)
         print("Embedding:", embedding)
@@ -51,7 +53,7 @@ The usage is as simple as:
 Performance
 =========================
 
-Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed. Have a look at `Pre-Trained Models <https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models/>`_ for an overview of available models and the respective performance on different tasks.
+Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed. Have a look at `Pre-Trained Models <docs/pretrained_models.html>`_ for an overview of available models and the respective performance on different tasks.
 
 
 
@@ -61,12 +63,9 @@ Our models are evaluated extensively and achieve state-of-the-art performance on
 Contact
 =========================
 
-Contact person: Nils Reimers, info@nils-reimers.de
+Contact person: Tom Aarsen, tom.aarsen@huggingface.co
 
-https://www.ukp.tu-darmstadt.de/
-
-
-Don't hesitate to send us an e-mail or report an issue, if something is broken (and it shouldn't be) or if you have further questions.
+Don't hesitate to open an issue on the `repository <https://github.com/UKPLab/sentence-transformers>`_ if something is broken (and it shouldn't be) or if you have further questions.
 
 *This repository contains experimental software and is published for the sole purpose of giving additional background details on the respective publication.*
 
@@ -141,6 +140,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
 
    examples/applications/computing-embeddings/README
    docs/usage/semantic_textual_similarity
+   examples/applications/embedding-quantization/README
    examples/applications/semantic-search/README
    examples/applications/retrieve_rerank/README
    examples/applications/clustering/README
@@ -154,10 +154,14 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    :caption: Training
 
    docs/training/overview
+   docs/training/loss_overview
+   examples/training/matryoshka/README
+   examples/training/adaptive_layer/README
    examples/training/multilingual/README
    examples/training/distillation/README
    examples/training/cross-encoder/README
    examples/training/data_augmentation/README
+   examples/training/datasets/README
 
 .. toctree::
    :maxdepth: 2
@@ -182,6 +186,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
 
    docs/package_reference/SentenceTransformer
    docs/package_reference/util
+   docs/package_reference/quantization
    docs/package_reference/models
    docs/package_reference/losses
    docs/package_reference/evaluation

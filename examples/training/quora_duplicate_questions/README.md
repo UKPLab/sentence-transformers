@@ -11,7 +11,8 @@ Currently the following models trained on Quora Duplicate Questions are availabl
 You can load & use pre-trained models like this:
 ```python
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('model_name')
+
+model = SentenceTransformer("model_name")
 ```
 
 
@@ -63,10 +64,15 @@ An improved version of contrastive loss is OnlineContrastiveLoss, which looks wh
 The loss can be used like this:
 ```python
 train_samples = []
-with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+with open(
+    os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding="utf8"
+) as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
-        sample = InputExample(texts=[row['question1'], row['question2']], label=int(row['is_duplicate']))
+        sample = InputExample(
+            texts=[row["question1"], row["question2"]],
+            label=int(row["is_duplicate"]),
+        )
         train_samples.append(sample)
 
 
@@ -95,12 +101,16 @@ MultipleNegativesRankingLoss now uses all *b_j* with j != i as negative example 
 Using the loss is easy and does not require tuning of any hyperparameters:
 ```python
 train_samples = []
-with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding="utf8") as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
-        if row['is_duplicate'] == '1':
-            train_samples.append(InputExample(texts=[row['question1'], row['question2']], label=1))
-            train_samples.append(InputExample(texts=[row['question2'], row['question1']], label=1)) #if A is a duplicate of B, then B is a duplicate of A
+        if row["is_duplicate"] == "1":
+            train_samples.append(
+                InputExample(texts=[row["question1"], row["question2"]], label=1)
+            )
+            train_samples.append(
+                InputExample(texts=[row["question2"], row["question1"]], label=1)
+            )  # if A is a duplicate of B, then B is a duplicate of A
 
 
 # After reading the train_samples, we create a SentencesDataset and a DataLoader
@@ -113,44 +123,69 @@ We only use the positive examples. As 'is_duplicate' is a symmetric relation, we
 
 **Note 1:** Increasing the batch sizes usually yields better results, as the task gets harder. It is more difficult to identify the correct duplicate question out of a set of 100 questions than out of a set of only 10 questions. So it is advisable to set the training batch size as large as possible. I trained it with a batch size of 350 on 32 GB GPU memory.
 
-**Note 2:** MultipleNegativesRankingLoss only works if *(a_i, b_j)* with j != i is actually a negative, non-duplicate question pair. In few instances, this assumption is wrong. But in the majority of cases, if we sample two random questions, they are not duplicates. If your dataset cannot fullfil this property,  MultipleNegativesRankingLoss might not work well.
+**Note 2:** MultipleNegativesRankingLoss only works if *(a_i, b_j)* with j != i is actually a negative, non-duplicate question pair. In few instances, this assumption is wrong. But in the majority of cases, if we sample two random questions, they are not duplicates. If your dataset cannot fulfil this property,  MultipleNegativesRankingLoss might not work well.
 
 ### Multi-Task-Learning
 Contrastive Loss works well for pair classification, i.e., given two pairs, are these duplicates or not. It pushes negative pairs far away in vector space, so that the distinguishing between duplicate and non-duplicate pairs works good.
 
-MultipleNegativesRankingLoss on the other sides mainly reduces the distance between positive pairs out of large set of possible candidates. However, the distance between  non-duplicate questions is not so large, so that this loss does not work that weill for pair classification.
+MultipleNegativesRankingLoss on the other sides mainly reduces the distance between positive pairs out of large set of possible candidates. However, the distance between  non-duplicate questions is not so large, so that this loss does not work that well for pair classification.
 
 In [training_multi-task-learning.py](training_multi-task-learning.py) I demonstrate how we can train the network with both losses. The essential code is to define both losses and to pass it to the fit method.
 ```python
 train_samples_MultipleNegativesRankingLoss = []
 train_samples_ContrastiveLoss = []
 
-with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding="utf8") as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
-        train_samples_ContrastiveLoss.append(InputExample(texts=[row['question1'], row['question2']], label=int(row['is_duplicate'])))
-        if row['is_duplicate'] == '1':
-            train_samples_MultipleNegativesRankingLoss.append(InputExample(texts=[row['question1'], row['question2']], label=1))
-            train_samples_MultipleNegativesRankingLoss.append(InputExample(texts=[row['question2'], row['question1']], label=1))  # if A is a duplicate of B, then B is a duplicate of A
+        train_samples_ContrastiveLoss.append(
+            InputExample(
+                texts=[row["question1"], row["question2"]],
+                label=int(row["is_duplicate"]),
+            )
+        )
+        if row["is_duplicate"] == "1":
+            train_samples_MultipleNegativesRankingLoss.append(
+                InputExample(texts=[row["question1"], row["question2"]], label=1)
+            )
+            train_samples_MultipleNegativesRankingLoss.append(
+                InputExample(texts=[row["question2"], row["question1"]], label=1)
+            )  # if A is a duplicate of B, then B is a duplicate of A
 
 # Create data loader and loss for MultipleNegativesRankingLoss
-train_dataset_MultipleNegativesRankingLoss = SentencesDataset(train_samples_MultipleNegativesRankingLoss, model=model)
-train_dataloader_MultipleNegativesRankingLoss = DataLoader(train_dataset_MultipleNegativesRankingLoss, shuffle=True, batch_size=train_batch_size)
+train_dataset_MultipleNegativesRankingLoss = SentencesDataset(
+    train_samples_MultipleNegativesRankingLoss, model=model
+)
+train_dataloader_MultipleNegativesRankingLoss = DataLoader(
+    train_dataset_MultipleNegativesRankingLoss,
+    shuffle=True,
+    batch_size=train_batch_size,
+)
 train_loss_MultipleNegativesRankingLoss = losses.MultipleNegativesRankingLoss(model)
 
 
 # Create data loader and loss for OnlineContrastiveLoss
-train_dataset_ConstrativeLoss = SentencesDataset(train_samples_ConstrativeLoss, model=model)
-train_dataloader_ConstrativeLoss = DataLoader(train_dataset_ConstrativeLoss, shuffle=True, batch_size=train_batch_size)
-train_loss_ConstrativeLoss = losses.OnlineContrastiveLoss(model=model, distance_metric=distance_metric, margin=margin)
+train_dataset_ConstrativeLoss = SentencesDataset(
+    train_samples_ConstrativeLoss, model=model
+)
+train_dataloader_ConstrativeLoss = DataLoader(
+    train_dataset_ConstrativeLoss, shuffle=True, batch_size=train_batch_size
+)
+train_loss_ConstrativeLoss = losses.OnlineContrastiveLoss(
+    model=model, distance_metric=distance_metric, margin=margin
+)
 
 # .....
 # Train the model
-model.fit(train_objectives=[(train_dataloader_MultipleNegativesRankingLoss, train_loss_MultipleNegativesRankingLoss), (train_dataloader_ConstrativeLoss, train_loss_ConstrativeLoss)],
-          evaluator=seq_evaluator,
-          epochs=num_epochs,
-          warmup_steps=1000,
-          output_path=model_save_path
-          )
+model.fit(
+    train_objectives=[
+        (train_dataloader_MultipleNegativesRankingLoss, train_loss_MultipleNegativesRankingLoss),
+        (train_dataloader_ConstrativeLoss, train_loss_ConstrativeLoss),
+    ],
+    evaluator=seq_evaluator,
+    epochs=num_epochs,
+    warmup_steps=1000,
+    output_path=model_save_path,
+)
 ```
 

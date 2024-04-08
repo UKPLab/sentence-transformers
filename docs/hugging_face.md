@@ -18,7 +18,8 @@ Any pre-trained models from the Hub can be loaded with a single line of code:
 
 ```py
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('model_name')
+
+model = SentenceTransformer("model_name")
 ```
 
 You can even click `Use in sentence-transformers` to get a code snippet that you can copy and paste! 
@@ -32,11 +33,14 @@ Here is an example that loads the [multi-qa-MiniLM-L6-cos-v1 model](https://hugg
 
 ```py
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1')
 
-query_embedding = model.encode('How big is London')
-passage_embedding = model.encode(['London has 9,787,426 inhabitants at the 2011 census',
-                                  'London is known for its finacial district'])
+model = SentenceTransformer("multi-qa-MiniLM-L6-cos-v1")
+
+query_embedding = model.encode("How big is London")
+passage_embedding = model.encode([
+    "London has 9,787,426 inhabitants at the 2011 census",
+    "London is known for its finacial district",
+])
 
 print("Similarity:", util.dot_score(query_embedding, passage_embedding))
 ```
@@ -51,7 +55,7 @@ answer_1 = "<A>All plans come with unlimited private models and datasets."
 answer_2 = "<A>AutoNLP is an automatic way to train and deploy state-of-the-art NLP models, seamlessly integrated with the Hugging Face ecosystem."
 answer_3 = "<A>Based on how much training data and model variants are created, we send you a compute cost and payment link - as low as $10 per job."
 
-model = SentenceTransformer('clips/mfaq')
+model = SentenceTransformer("clips/mfaq")
 query_embedding = model.encode(question)
 corpus_embeddings = model.encode([answer_1, answer_2, answer_3])
 
@@ -67,19 +71,19 @@ pip install huggingface_hub
 huggingface-cli login
 ```
 
-Then, you can share your SentenceTransformers models by calling the [`save_to_hub` method](https://www.sbert.net/docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.save_to_hub) from a trained model. By default, the model will be uploaded to your account, but you can upload to an [organization](https://huggingface.co/docs/hub/organizations) by passing setting an `organization` parameter. `save_to_hub` automatically generates a model card, an inference widget, example code snippets, and more.
+Then, you can share your SentenceTransformers models by calling the [`push_to_hub` method](https://www.sbert.net/docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.push_to_hub) from a trained model. By default, the model will be uploaded to your account, but you can upload to an [organization](https://huggingface.co/docs/hub/organizations) by providing the organization as a part of the `repo_id`, e.g. `model.push_to_hub("my_organization/my_model_name")`. `push_to_hub` automatically generates a model card, an inference widget, example code snippets, and more.
 
 ```py
 from sentence_transformers import SentenceTransformer
 
 # Load or train a model
-model.save_to_hub("my_new_model")
+model.push_to_hub("my_new_model")
 ```
 
 You can automatically add to the Hub's model card a list of datasets you used to train the model with the argument `train_datasets: Optional[List[str]] = None)`. See the "Datasets used to train" section in the [ITESM/sentece-embeddings-BETO](https://huggingface.co/ITESM/sentece-embeddings-BETO) model for an example of the final result.
 
 ```py
-model.save_to_hub("my_new_model", train_datasets=["GEM/wiki_lingua", "code_search_net"])
+model.push_to_hub("my_new_model", train_datasets=["GEM/wiki_lingua", "code_search_net"])
 ```
 
 ## Sharing your embeddings

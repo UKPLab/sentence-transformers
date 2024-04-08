@@ -21,14 +21,14 @@ The depicted architecture, consisting of a BERT layer and a pooling layer is one
 
 ## Creating Networks from Scratch
  
- In the quick start & usage examples, we used pre-trained SentenceTransformer models that already come with a BERT layer and a pooling layer.
- 
- But we can create the networks architectures from scratch by defining the individual layers. For example, the following code would create the depicted network architecture:
- 
+In the quick start & usage examples, we used pre-trained SentenceTransformer models that already come with a BERT layer and a pooling layer.
+
+But we can create the networks architectures from scratch by defining the individual layers. For example, the following code would create the depicted network architecture:
+
 ```python
 from sentence_transformers import SentenceTransformer, models
 
-word_embedding_model = models.Transformer('bert-base-uncased', max_seq_length=256)
+word_embedding_model = models.Transformer("bert-base-uncased", max_seq_length=256)
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
 
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
@@ -41,29 +41,50 @@ We can also construct more complex models:
 from sentence_transformers import SentenceTransformer, models
 from torch import nn
 
-word_embedding_model = models.Transformer('bert-base-uncased', max_seq_length=256)
+word_embedding_model = models.Transformer("bert-base-uncased", max_seq_length=256)
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
-dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=256, activation_function=nn.Tanh())
+dense_model = models.Dense(
+    in_features=pooling_model.get_sentence_embedding_dimension(),
+    out_features=256,
+    activation_function=nn.Tanh(),
+)
 
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dense_model])
 ```
 
 Here, we add on top of the pooling layer a fully connected dense layer with Tanh activation, which performs a down-project to 256 dimensions. Hence, embeddings by this model will only have 256 instead of 768 dimensions.
 
+Additionally, we can also create SentenceTransformer models from scratch for image search by loading any CLIP model from the Hugging Face Hub or a local path:
+
+```py
+from sentence_transformers import SentenceTransformer, models
+
+image_embedding_model = models.CLIPModel("openai/clip-vit-base-patch32")
+model = SentenceTransformer(modules=[image_embedding_model])
+```
+
 For all available building blocks see [» Models Package Reference](../package_reference/models.md)
 
 ## Training Data 
+
+To train a SentenceTransformer model, you need to inform it somehow that two sentences have a certain degree of similarity. Therefore, each example in the data requires a label or structure that allows the model to understand whether two sentences are similar or different.
+
+Unfortunately, there is no single way to prepare your data to train a Sentence Transformers model. It largely depends on your goals and the structure of your data. If you don't have an explicit label, which is the most likely scenario, you can derive it from the design of the documents where you obtained the sentences. For example, two sentences in the same report should be more comparable than two sentences in different reports. Neighboring sentences might be more comparable than non-neighboring sentences. 
+
+For more information on available datasets for training SentenceTransformers models see [» Datasets Reference](../examples/training/datasets/README.md).
  
- To represent our training data, we use the `InputExample` class to store training examples. As parameters, it accepts texts, which is a list of strings representing our pairs (or triplets). Further, we can also pass a label (either float or int). The following shows a simple example, where we pass text pairs to `InputExample` together with a label indicating the semantic similarity.
+To represent our training data, we use the `InputExample` class to store training examples. As parameters, it accepts texts, which is a list of strings representing our pairs (or triplets). Further, we can also pass a label (either float or int). The following shows a simple example, where we pass text pairs to `InputExample` together with a label indicating the semantic similarity.
  
  ```python
-from sentence_transformers import SentenceTransformer, InputExample
-from torch.utils.data import DataLoader
+ from sentence_transformers import SentenceTransformer, InputExample
+ from torch.utils.data import DataLoader
 
-model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=0.8),
-    InputExample(texts=['Another pair', 'Unrelated sentence'], label=0.3)]
-train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
+ model = SentenceTransformer("distilbert-base-nli-mean-tokens")
+ train_examples = [
+     InputExample(texts=["My first sentence", "My second sentence"], label=0.8),
+     InputExample(texts=["Another pair", "Unrelated sentence"], label=0.3),
+ ]
+ train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
  ```
 
 We wrap our `train_examples` with the standard PyTorch `DataLoader`, which shuffles our data and produces batches of certain sizes.
@@ -92,18 +113,20 @@ A minimal example with `CosineSimilarityLoss` is the following:
 from sentence_transformers import SentenceTransformer, InputExample, losses
 from torch.utils.data import DataLoader
 
-#Define the model. Either from scratch of by loading a pre-trained model
-model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+# Define the model. Either from scratch of by loading a pre-trained model
+model = SentenceTransformer("distilbert-base-nli-mean-tokens")
 
-#Define your train examples. You need more than just two examples...
-train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=0.8),
-    InputExample(texts=['Another pair', 'Unrelated sentence'], label=0.3)]
+# Define your train examples. You need more than just two examples...
+train_examples = [
+    InputExample(texts=["My first sentence", "My second sentence"], label=0.8),
+    InputExample(texts=["Another pair", "Unrelated sentence"], label=0.3),
+]
 
-#Define your train dataset, the dataloader and the train loss
+# Define your train dataset, the dataloader and the train loss
 train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
 train_loss = losses.CosineSimilarityLoss(model)
 
-#Tune the model
+# Tune the model
 model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_steps=100)
 ```
 
@@ -124,15 +147,30 @@ During training, we usually want to measure the performance to see if the perfor
 The usage is simple:
 ```python
 from sentence_transformers import evaluation
-sentences1 = ['This list contains the first column', 'With your sentences', 'You want your model to evaluate on']
-sentences2 = ['Sentences contains the other column', 'The evaluator matches sentences1[i] with sentences2[i]', 'Compute the cosine similarity and compares it to scores[i]']
+
+sentences1 = [
+    "This list contains the first column",
+    "With your sentences",
+    "You want your model to evaluate on",
+]
+sentences2 = [
+    "Sentences contains the other column",
+    "The evaluator matches sentences1[i] with sentences2[i]",
+    "Compute the cosine similarity and compares it to scores[i]",
+]
 scores = [0.3, 0.6, 0.2]
 
 evaluator = evaluation.EmbeddingSimilarityEvaluator(sentences1, sentences2, scores)
 
 # ... Your other code to load training data
 
-model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_steps=100, evaluator=evaluator, evaluation_steps=500)
+model.fit(
+    train_objectives=[(train_dataloader, train_loss)],
+    epochs=1,
+    warmup_steps=100,
+    evaluator=evaluator,
+    evaluation_steps=500,
+)
 ```
 
 
@@ -142,7 +180,7 @@ model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_st
 
 First, we load a pre-trained model from the server:
 ```python
-model = SentenceTransformer('bert-base-nli-mean-tokens')
+model = SentenceTransformer("bert-base-nli-mean-tokens")
 ```
 
 
@@ -151,26 +189,30 @@ The next steps are as before. We specify training and dev data:
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)
 
-evaluator = EmbeddingSimilarityEvaluator.from_input_examples(sts_reader.get_examples('sts-dev.csv'))
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
+    sts_reader.get_examples("sts-dev.csv")
+)
 ```
 
 In that example, we use CosineSimilarityLoss, which computes the cosine similarity between two sentences and compares this score with a provided gold similarity score.
 
 Then we can train as before:
 ```python
-model.fit(train_objectives=[(train_dataloader, train_loss)],
-          evaluator=evaluator,
-          epochs=num_epochs,
-          evaluation_steps=1000,
-          warmup_steps=warmup_steps,
-          output_path=model_save_path)
+model.fit(
+    train_objectives=[(train_dataloader, train_loss)],
+    evaluator=evaluator,
+    epochs=num_epochs,
+    evaluation_steps=1000,
+    warmup_steps=warmup_steps,
+    output_path=model_save_path,
+)
 ```
 
 
 ## Loading Custom SentenceTransformer Models
 Loading trained models is easy. You can specify a path:
 ```python
-model = SentenceTransformer('./my/path/to/model/')
+model = SentenceTransformer("./my/path/to/model/")
 ```
 Note: It is important that a / or \ is present in the path, otherwise, it is not recognized as a path.
 
@@ -178,7 +220,7 @@ You can also host the training output on a server and download it:
  ```python
 model = SentenceTransformer('http://www.server.com/path/to/model/my_model.zip')
 ```
-With the first call, the model is downloaded and stored in the local torch cache-folder (`~/.cache/torch/sentence_transformers`). In order to work, you must zip all files and subfolders of your model. 
+With the first call, the model is downloaded and stored in the local Hugging Face cache folder (`~/.cache/huggingface`). In order to work, you must zip all files and subfolders of your model.
 
 
 
@@ -191,7 +233,8 @@ This code allows multi-task learning with training data from different datasets 
 Depending on the task, you might want to add special tokens to the tokenizer and the Transformer model. You can use the following code-snippet to achieve this:
 ```python
 from sentence_transformers import SentenceTransformer, models
-word_embedding_model = models.Transformer('bert-base-uncased')
+
+word_embedding_model = models.Transformer("bert-base-uncased")
 
 tokens = ["[DOC]", "[QRY]"]
 word_embedding_model.tokenizer.add_tokens(tokens, special_tokens=True)
@@ -204,7 +247,8 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 If you want to extend the vocabulary for an existent SentenceTransformer model, you can use the following code:
 ```python
 from sentence_transformers import SentenceTransformer, models
-model = SentenceTransformer('all-MiniLM-L6-v2')
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
 word_embedding_model = model._first_module()
 
 tokens = ["[DOC]", "[QRY]"]
@@ -218,7 +262,7 @@ In the above example, the two new tokens `[DOC]` and `[QRY]` are added to the mo
 ## Best Transformer Model
 The quality of your text embedding model depends on which transformer model you choose. Sadly we cannot infer from a better performance on e.g. the GLUE or SuperGLUE benchmark that this model will also yield better representations.
 
-To test the suitability of transformer models, I use the [training_nli_v2.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/nli/training_nli_v2.py) script and train on 560k (anchor, positive, negative)-triplets for 1 epoch with batch size 64. I then evaluate on 14 diverse text similarity tasks (clustering, sematic search, duplicate decection etc.) from various domains.
+To test the suitability of transformer models, I use the [training_nli_v2.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/nli/training_nli_v2.py) script and train on 560k (anchor, positive, negative)-triplets for 1 epoch with batch size 64. I then evaluate on 14 diverse text similarity tasks (clustering, semantic search, duplicate detection etc.) from various domains.
 
 In the following table you find the performance for different models and their performance on this benchmark:
 

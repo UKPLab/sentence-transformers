@@ -8,17 +8,19 @@ For larger collections, *util* offers the *paraphrase_mining* function that can 
 ```python
 from sentence_transformers import SentenceTransformer, util
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # Single list of sentences - Possible tens of thousands of sentences
-sentences = ['The cat sits outside',
-             'A man is playing guitar',
-             'I love pasta',
-             'The new movie is awesome',
-             'The cat plays in the garden',
-             'A woman watches TV',
-             'The new movie is so great',
-             'Do you like pizza?']
+sentences = [
+    "The cat sits outside",
+    "A man is playing guitar",
+    "I love pasta",
+    "The new movie is awesome",
+    "The cat plays in the garden",
+    "A woman watches TV",
+    "The new movie is so great",
+    "Do you like pizza?",
+]
 
 paraphrases = util.paraphrase_mining(model, sentences)
 

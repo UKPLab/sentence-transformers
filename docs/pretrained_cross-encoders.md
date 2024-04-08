@@ -10,12 +10,15 @@ This page lists available **pretrained Cross-Encoders**. Cross-Encoders require 
 These models can be used like this:
 ```python
 from sentence_transformers import CrossEncoder
-model = CrossEncoder('model_name', max_length=512)
-scores = model.predict([('Query1', 'Paragraph1'), ('Query1', 'Paragraph2')])
 
-#For Example
-scores = model.predict([('How many people live in Berlin?', 'Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers.'), 
-                        ('How many people live in Berlin?', 'Berlin is well known for its museums.')])
+model = CrossEncoder("model_name", max_length=512)
+scores = model.predict([("Query1", "Paragraph1"), ("Query1", "Paragraph2")])
+
+# For Example
+scores = model.predict([
+    ("How many people live in Berlin?", "Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers."),
+    ("How many people live in Berlin?", "Berlin is well known for its museums."),
+])
 ```
 
 - **cross-encoder/ms-marco-TinyBERT-L-2-v2** - MRR@10 on MS Marco Dev Set: 32.56
@@ -42,8 +45,9 @@ QNLI is based on the [SQuAD dataset](https://rajpurkar.github.io/SQuAD-explorer/
 The following models can be used like this:
 ```python
 from sentence_transformers import CrossEncoder
-model = CrossEncoder('model_name')
-scores = model.predict([('Sent A1', 'Sent B1'), ('Sent A2', 'Sent B2')])
+
+model = CrossEncoder("model_name")
+scores = model.predict([("Sent A1", "Sent B1"), ("Sent A2", "Sent B2")])
 ```
 
 They return a score  0...1 indicating the semantic similarity of the given sentence pair.
@@ -75,11 +79,15 @@ Given two sentences, are these contradicting each other, entailing one the other
 
 ```python
 from sentence_transformers import CrossEncoder
-model = CrossEncoder('model_name')
-scores = model.predict([('A man is eating pizza', 'A man eats something'), ('A black race car starts up in front of a crowd of people.', 'A man is driving down a lonely road.')])
 
-#Convert scores to labels
-label_mapping = ['contradiction', 'entailment', 'neutral']
+model = CrossEncoder("model_name")
+scores = model.predict([
+    ("A man is eating pizza", "A man eats something"),
+    ("A black race car starts up in front of a crowd of people.", "A man is driving down a lonely road."),
+])
+
+# Convert scores to labels
+label_mapping = ["contradiction", "entailment", "neutral"]
 labels = [label_mapping[score_max] for score_max in scores.argmax(axis=1)]
 ```
 
