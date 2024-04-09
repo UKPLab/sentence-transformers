@@ -1,8 +1,9 @@
+from contextlib import nullcontext
 from sentence_transformers.evaluation import SentenceEvaluator
 import logging
 import os
 import csv
-from typing import List
+from typing import List, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,8 @@ class MSEEvaluator(SentenceEvaluator):
     :param batch_size: Batch size to compute sentence embeddings
     :param name: Name of the evaluator
     :param write_csv: Write results to CSV file
+    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
+        dimension. Defaults to None.
     """
 
     def __init__(
@@ -35,10 +38,15 @@ class MSEEvaluator(SentenceEvaluator):
         batch_size: int = 32,
         name: str = "",
         write_csv: bool = True,
+        truncate_dim: Optional[int] = None,
     ):
-        self.source_embeddings = teacher_model.encode(
-            source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True
-        )
+        self.truncate_dim = truncate_dim
+        with nullcontext() if self.truncate_dim is None else teacher_model.truncate_sentence_embeddings(
+            self.truncate_dim
+        ):
+            self.source_embeddings = teacher_model.encode(
+                source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True
+            )
 
         self.target_sentences = target_sentences
         self.show_progress_bar = show_progress_bar
@@ -58,12 +66,13 @@ class MSEEvaluator(SentenceEvaluator):
         else:
             out_txt = ":"
 
-        target_embeddings = model.encode(
-            self.target_sentences,
-            show_progress_bar=self.show_progress_bar,
-            batch_size=self.batch_size,
-            convert_to_numpy=True,
-        )
+        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+            target_embeddings = model.encode(
+                self.target_sentences,
+                show_progress_bar=self.show_progress_bar,
+                batch_size=self.batch_size,
+                convert_to_numpy=True,
+            )
 
         mse = ((self.source_embeddings - target_embeddings) ** 2).mean()
         mse *= 100

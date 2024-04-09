@@ -1,9 +1,10 @@
+from contextlib import nullcontext
 from . import SentenceEvaluator, SimilarityFunction
 import logging
 import os
 import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
-from typing import List
+from typing import List, Optional
 from ..readers import InputExample
 
 
@@ -26,6 +27,7 @@ class TripletEvaluator(SentenceEvaluator):
         batch_size: int = 16,
         show_progress_bar: bool = False,
         write_csv: bool = True,
+        truncate_dim: Optional[int] = None,
     ):
         """
         :param anchors: Sentences to check similarity to. (e.g. a query)
@@ -36,11 +38,14 @@ class TripletEvaluator(SentenceEvaluator):
         :param batch_size: Batch size used to compute embeddings
         :param show_progress_bar: If true, prints a progress bar
         :param write_csv: Write results to a CSV file
+        :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current
+            truncation dimension. Defaults to None.
         """
         self.anchors = anchors
         self.positives = positives
         self.negatives = negatives
         self.name = name
+        self.truncate_dim = truncate_dim
 
         assert len(self.anchors) == len(self.positives)
         assert len(self.anchors) == len(self.negatives)
@@ -84,15 +89,25 @@ class TripletEvaluator(SentenceEvaluator):
         num_triplets = 0
         num_correct_cos_triplets, num_correct_manhattan_triplets, num_correct_euclidean_triplets = 0, 0, 0
 
-        embeddings_anchors = model.encode(
-            self.anchors, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True
-        )
-        embeddings_positives = model.encode(
-            self.positives, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True
-        )
-        embeddings_negatives = model.encode(
-            self.negatives, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True
-        )
+        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+            embeddings_anchors = model.encode(
+                self.anchors,
+                batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
+                convert_to_numpy=True,
+            )
+            embeddings_positives = model.encode(
+                self.positives,
+                batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
+                convert_to_numpy=True,
+            )
+            embeddings_negatives = model.encode(
+                self.negatives,
+                batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
+                convert_to_numpy=True,
+            )
 
         # Cosine distance
         pos_cos_distance = paired_cosine_distances(embeddings_anchors, embeddings_positives)
