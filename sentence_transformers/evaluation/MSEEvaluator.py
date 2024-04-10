@@ -60,11 +60,13 @@ class MSEEvaluator(SentenceEvaluator):
     def __call__(self, model, output_path, epoch=-1, steps=-1):
         if epoch != -1:
             if steps == -1:
-                out_txt = " after epoch {}:".format(epoch)
+                out_txt = f" after epoch {epoch}"
             else:
-                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
+                out_txt = f" in epoch {epoch} after {steps} steps"
         else:
-            out_txt = ":"
+            out_txt = ""
+        if self.truncate_dim is not None:
+            out_txt += f" (truncated to {self.truncate_dim})"
 
         with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
             target_embeddings = model.encode(
@@ -77,7 +79,7 @@ class MSEEvaluator(SentenceEvaluator):
         mse = ((self.source_embeddings - target_embeddings) ** 2).mean()
         mse *= 100
 
-        logger.info("MSE evaluation (lower = better) on " + self.name + " dataset" + out_txt)
+        logger.info(f"MSE evaluation (lower = better) on the {self.name} dataset{out_txt}:")
         logger.info("MSE (*100):\t{:4f}".format(mse))
 
         if output_path is not None and self.write_csv:

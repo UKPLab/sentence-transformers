@@ -96,15 +96,16 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs) -> float:
         if epoch != -1:
-            out_txt = (
-                " after epoch {}:".format(epoch)
-                if steps == -1
-                else " in epoch {} after {} steps:".format(epoch, steps)
-            )
+            if steps == -1:
+                out_txt = f" after epoch {epoch}"
+            else:
+                out_txt = f" in epoch {epoch} after {steps} steps"
         else:
-            out_txt = ":"
+            out_txt = ""
+        if self.truncate_dim is not None:
+            out_txt += f" (truncated to {self.truncate_dim})"
 
-        logger.info("Information Retrieval Evaluation on " + self.name + " dataset" + out_txt)
+        logger.info(f"Information Retrieval Evaluation of the model on the {self.name} dataset{out_txt}:")
 
         scores = self.compute_metrices(model, *args, **kwargs)
 
