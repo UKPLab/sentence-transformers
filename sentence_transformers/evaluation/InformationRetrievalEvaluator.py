@@ -1,3 +1,4 @@
+from sentence_transformers import SentenceTransformer
 from . import SentenceEvaluator
 import torch
 from torch import Tensor
@@ -91,7 +92,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             for k in map_at_k:
                 self.csv_headers.append("{}-MAP@{}".format(score_name, k))
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+    ) -> float:
         if epoch != -1:
             out_txt = (
                 " after epoch {}:".format(epoch)
@@ -143,7 +146,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         else:
             return scores[self.main_score_function]["map@k"][max(self.map_at_k)]
 
-    def compute_metrices(self, model, corpus_model=None, corpus_embeddings: Tensor = None) -> Dict[str, float]:
+    def compute_metrices(
+        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor = None
+    ) -> Dict[str, float]:
         if corpus_model is None:
             corpus_model = model
 
