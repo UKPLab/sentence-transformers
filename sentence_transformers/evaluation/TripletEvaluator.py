@@ -1,3 +1,4 @@
+from sentence_transformers import SentenceTransformer
 from contextlib import nullcontext
 from . import SentenceEvaluator, SimilarityFunction
 import logging
@@ -75,7 +76,7 @@ class TripletEvaluator(SentenceEvaluator):
             negatives.append(example.texts[2])
         return cls(anchors, positives, negatives, **kwargs)
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"

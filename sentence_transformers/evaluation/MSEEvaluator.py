@@ -1,3 +1,4 @@
+from sentence_transformers import SentenceTransformer
 from contextlib import nullcontext
 from sentence_transformers.evaluation import SentenceEvaluator
 import logging
@@ -57,7 +58,7 @@ class MSEEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "MSE"]
         self.write_csv = write_csv
 
-    def __call__(self, model, output_path, epoch=-1, steps=-1):
+    def __call__(self, model: SentenceTransformer, output_path, epoch=-1, steps=-1):
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"

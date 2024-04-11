@@ -1,3 +1,4 @@
+from sentence_transformers import SentenceTransformer
 from contextlib import nullcontext
 from . import SentenceEvaluator
 import logging
@@ -99,7 +100,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "precision", "recall", "f1", "threshold", "average_precision"]
         self.write_csv = write_csv
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
