@@ -6,7 +6,7 @@ from ..util import pytorch_cos_sim
 import os
 import csv
 import numpy as np
-from typing import List, Optional
+from typing import Dict, List, Optional
 import torch
 
 
@@ -73,7 +73,9 @@ class TranslationEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.primary_metric = "mean_accuracy"
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"

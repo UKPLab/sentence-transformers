@@ -1,3 +1,4 @@
+from typing import Dict
 from sentence_transformers import SentenceTransformer
 from . import SentenceEvaluator
 import torch
@@ -40,7 +41,9 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "accuracy"]
         self.primary_metric = "accuracy"
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         model.eval()
         total = 0
         correct = 0

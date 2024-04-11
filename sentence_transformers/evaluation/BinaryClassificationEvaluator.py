@@ -7,7 +7,7 @@ import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 from sklearn.metrics import average_precision_score
 import numpy as np
-from typing import List, Optional
+from typing import Dict, List, Optional
 from ..readers import InputExample
 
 
@@ -115,7 +115,9 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             scores.append(example.label)
         return cls(sentences1, sentences2, scores, **kwargs)
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"

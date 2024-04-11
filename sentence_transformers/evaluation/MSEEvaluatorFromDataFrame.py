@@ -79,7 +79,9 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             all_src_embeddings = teacher_model.encode(all_source_sentences, batch_size=self.batch_size)
         self.teacher_embeddings = {sent: emb for sent, emb in zip(all_source_sentences, all_src_embeddings)}
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1):
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         model.eval()
 
         mse_scores = []

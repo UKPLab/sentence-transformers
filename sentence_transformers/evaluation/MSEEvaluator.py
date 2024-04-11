@@ -4,7 +4,7 @@ from sentence_transformers.evaluation import SentenceEvaluator
 import logging
 import os
 import csv
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ class MSEEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.primary_metric = "negative_mse"
 
-    def __call__(self, model: SentenceTransformer, output_path, epoch=-1, steps=-1):
+    def __call__(self, model: SentenceTransformer, output_path, epoch=-1, steps=-1) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
