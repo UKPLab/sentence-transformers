@@ -282,7 +282,7 @@ class SentenceTransformerTrainer(Trainer):
 
         # If 'even_batches' is True, it will use the initial few samples to pad out the last sample. This can
         # cause issues with multi-dataset training, so we want to set this to False.
-        # For evaluation, setting 'even_batches' to False results in the hanging, so we keep it as True there.
+        # For evaluation, setting 'even_batches' to False results in hanging, so we keep it as True there.
         self.accelerator.even_batches = False
         self._train_dataloader = self.accelerator.prepare(DataLoader(train_dataset, **dataloader_params))
         return self._train_dataloader
@@ -330,7 +330,7 @@ class SentenceTransformerTrainer(Trainer):
 
         # If 'even_batches' is True, it will use the initial few samples to pad out the last sample. This can
         # cause issues with multi-dataset training, so we want to set this to False during training.
-        # For evaluation, setting 'even_batches' to False results in the hanging, so we keep it as True here.
+        # For evaluation, setting 'even_batches' to False results in hanging, so we keep it as True here.
         self.accelerator.even_batches = True
         return self.accelerator.prepare(DataLoader(eval_dataset, **dataloader_params))
 
