@@ -134,21 +134,6 @@ class ModelCardCallback(TrainerCallback):
         metrics: Dict[str, float],
         **kwargs,
     ) -> None:
-        """
-        ignore_suffixes = ("_steps_per_second", "_samples_per_second", "epoch", "_runtime")
-        ignore_contains = []
-        loss_keys = [key for key in metrics if key.endswith("_spearman_cosine")]
-        # Ignore all other Spearman/Pearson correlations if one is present
-        if loss_keys:
-            ignore_contains += ["spearman", "pearson"]
-
-        loss_keys = [
-            key
-            for key in metrics
-            if key in loss_keys
-            or (not key.endswith(ignore_suffixes) and not any(contains in key for contains in ignore_contains))
-        ]
-        """
         loss_dict = {" ".join(key.split("_")[1:]): metrics[key] for key in metrics if key.endswith("_loss")}
         if (
             model.model_card_data.training_logs
