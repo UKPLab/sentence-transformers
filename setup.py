@@ -16,6 +16,7 @@ setup(
     url="https://www.SBERT.net",
     download_url="https://github.com/UKPLab/sentence-transformers/",
     packages=find_packages(),
+    include_package_data=True,
     python_requires=">=3.8.0",
     install_requires=[
         "transformers>=4.32.0,<5.0.0",
