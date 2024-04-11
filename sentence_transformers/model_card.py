@@ -134,7 +134,7 @@ class ModelCardCallback(TrainerCallback):
         metrics: Dict[str, float],
         **kwargs,
     ) -> None:
-        '''
+        """
         ignore_suffixes = ("_steps_per_second", "_samples_per_second", "epoch", "_runtime")
         ignore_contains = []
         loss_keys = [key for key in metrics if key.endswith("_spearman_cosine")]
@@ -148,7 +148,7 @@ class ModelCardCallback(TrainerCallback):
             if key in loss_keys
             or (not key.endswith(ignore_suffixes) and not any(contains in key for contains in ignore_contains))
         ]
-        '''
+        """
         loss_dict = {" ".join(key.split("_")[1:]): metrics[key] for key in metrics if key.endswith("_loss")}
         if (
             model.model_card_data.training_logs
@@ -452,10 +452,7 @@ class SentenceTransformerModelCardData(CardData):
                 epoch = self.trainer.state.epoch
             training_log_metrics = {key: value for key, value in metrics.items() if key in primary_metrics}
 
-            if (
-                self.training_logs
-                and self.training_logs[-1]["Step"] == step
-            ):
+            if self.training_logs and self.training_logs[-1]["Step"] == step:
                 self.training_logs[-1].update(training_log_metrics)
             else:
                 self.training_logs.append(
@@ -575,7 +572,10 @@ class SentenceTransformerModelCardData(CardData):
                 counter = Counter(subsection)
                 dataset_info["stats"][column] = {
                     "dtype": "int",
-                    "data": {key: f"{'~' if len(counter) > 1 else ''}{counter[key] / len(subsection):.2%}" for key in sorted(counter)},
+                    "data": {
+                        key: f"{'~' if len(counter) > 1 else ''}{counter[key] / len(subsection):.2%}"
+                        for key in sorted(counter)
+                    },
                 }
             elif isinstance(first, float):
                 dataset_info["stats"][column] = {
@@ -620,7 +620,7 @@ class SentenceTransformerModelCardData(CardData):
         for sample_idx in range(num_samples):
             columns = {}
             for column in dataset.column_names:
-                value = dataset_info['examples'][column][sample_idx]
+                value = dataset_info["examples"][column][sample_idx]
                 # If the value is a long list, truncate it
                 if isinstance(value, list) and len(value) > 5:
                     value = str(value[:5])[:-1] + ", ...]"
@@ -771,7 +771,7 @@ class SentenceTransformerModelCardData(CardData):
                         task_name=description,
                         task_type=description.lower().replace(" ", "-"),
                         dataset_type=dataset_name or "unknown",
-                        dataset_name=dataset_name.replace("_", " ").replace("-", " ")  or "Unknown",
+                        dataset_name=dataset_name.replace("_", " ").replace("-", " ") or "Unknown",
                         metric_name=metric_key.replace("_", " ").title(),
                         metric_type=metric_key,
                         metric_value=metric_value,
@@ -877,7 +877,7 @@ class SentenceTransformerModelCardData(CardData):
         if self.training_logs:
             try:
                 super_dict.update(self.format_training_logs())
-            except Exception:
+            except Exception as exc:
                 logger.warning(f"Error while formatting training logs: {exc}")
 
         super_dict["hide_eval_lines"] = len(self.training_logs) > 100

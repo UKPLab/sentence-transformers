@@ -29,6 +29,13 @@ setup(
         "datasets",
         "accelerate>=0.20.3",
     ],
+    extras_require={
+        "dev": [
+            "pre-commit",
+            "pytest",
+            "ruff>=0.3.0",
+        ],
+    },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",

@@ -93,7 +93,7 @@ def search(query, top_k: int = 10, rescore_multiplier: int = 4):
 
     # 6. Sort the scores and return the top_k
     start_time = time.time()
-    indices = scores.argsort()[:top_k]
+    indices = (-scores).argsort()[:top_k]
     top_k_indices = binary_ids[indices]
     top_k_scores = scores[indices]
     sort_time = time.time() - start_time

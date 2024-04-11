@@ -1,10 +1,7 @@
-
-check_dirs := examples sentence_transformers tests docs setup.py
-
 quality:
-	ruff check $(check_dirs)
-	ruff format --check $(check_dirs)
+	ruff check
+	ruff format --check
 
 style:
-	ruff check $(check_dirs) --fix
-	ruff format $(check_dirs)
+	ruff check --fix
+	ruff format

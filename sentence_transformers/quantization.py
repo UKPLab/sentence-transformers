@@ -140,7 +140,7 @@ def semantic_search_faiss(
         rescored_scores = np.einsum("ij,ikj->ik", rescore_embeddings, top_k_embeddings)
         rescored_indices = np.argsort(-rescored_scores)[:, :top_k]
         indices = indices[np.arange(len(query_embeddings))[:, None], rescored_indices]
-        scores = rescored_scores[:, :top_k]
+        scores = rescored_scores[np.arange(len(query_embeddings))[:, None], rescored_indices]
 
     delta_t = time.time() - start_t
 
@@ -277,6 +277,11 @@ def semantic_search_usearch(
     scores = matches.distances
     indices = matches.keys
 
+    if scores.ndim < 2:
+        scores = np.atleast_2d(scores)
+    if indices.ndim < 2:
+        indices = np.atleast_2d(indices)
+
     # If rescoring is enabled, we need to rescore the results using the rescore_embeddings
     if rescore_embeddings is not None:
         top_k_embeddings = np.array([corpus_index.get(query_indices) for query_indices in indices])
@@ -293,7 +298,7 @@ def semantic_search_usearch(
         rescored_scores = np.einsum("ij,ikj->ik", rescore_embeddings, top_k_embeddings)
         rescored_indices = np.argsort(-rescored_scores)[:, :top_k]
         indices = indices[np.arange(len(query_embeddings))[:, None], rescored_indices]
-        scores = rescored_scores[:, :top_k]
+        scores = rescored_scores[np.arange(len(query_embeddings))[:, None], rescored_indices]
 
     delta_t = time.time() - start_t
 

@@ -1,3 +1,5 @@
+from functools import wraps
+
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoConfig
 import numpy as np
 import logging
@@ -9,6 +11,8 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
 from transformers import is_torch_npu_available
+from transformers.utils import PushToHubMixin
+
 from .. import SentenceTransformer, util
 from ..evaluation import SentenceEvaluator
 from ..util import get_device_name
@@ -17,7 +21,7 @@ from ..util import get_device_name
 logger = logging.getLogger(__name__)
 
 
-class CrossEncoder:
+class CrossEncoder(PushToHubMixin):
     """
     A CrossEncoder takes exactly two sentences / texts as input and either predicts
     a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
@@ -448,19 +452,45 @@ class CrossEncoder:
                 if save_best_model:
                     self.save(output_path)
 
-    def save(self, path: str, safe_serialization: bool = True) -> None:
+    def save(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
         """
-        Saves all model and tokenizer to path
+        Saves the model and tokenizer to path; identical to `save_pretrained`
         """
         if path is None:
             return
 
         logger.info("Save model to {}".format(path))
-        self.model.save_pretrained(path, safe_serialization=safe_serialization)
-        self.tokenizer.save_pretrained(path)
+        self.model.save_pretrained(path, safe_serialization=safe_serialization, **kwargs)
+        self.tokenizer.save_pretrained(path, **kwargs)
 
-    def save_pretrained(self, path: str) -> None:
+    def save_pretrained(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
         """
-        Same function as save
+        Saves the model and tokenizer to path; identical to `save`
         """
-        return self.save(path)
+        return self.save(path, safe_serialization=safe_serialization, **kwargs)
+
+    @wraps(PushToHubMixin.push_to_hub)
+    def push_to_hub(
+        self,
+        repo_id: str,
+        *,
+        commit_message: Optional[str] = None,
+        private: Optional[bool] = None,
+        safe_serialization: bool = True,
+        tags: Optional[List[str]] = None,
+        **kwargs,
+    ) -> str:
+        if isinstance(tags, str):
+            tags = [tags]
+        elif tags is None:
+            tags = []
+        if "cross-encoder" not in tags:
+            tags.insert(0, "cross-encoder")
+        return super().push_to_hub(
+            repo_id=repo_id,
+            safe_serialization=safe_serialization,
+            commit_message=commit_message,
+            private=private,
+            tags=tags,
+            **kwargs,
+        )

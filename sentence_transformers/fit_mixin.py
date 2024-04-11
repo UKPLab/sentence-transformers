@@ -228,7 +228,7 @@ class FitMixin:
             if add_label_column:
                 dataset = dataset.add_column("label", labels)
             train_dataset_dict[f"_dataset_{loader_idx}"] = dataset
-        
+
         train_dataset_dict = DatasetDict(train_dataset_dict)
 
         def _default_checkpoint_dir() -> str:

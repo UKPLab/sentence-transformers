@@ -401,7 +401,7 @@ class WordTokenizer(ABC):
         pass
 
     @abstractmethod
-    def tokenize(self, text: str) -> List[int]:
+    def tokenize(self, text: str, **kwargs) -> List[int]:
         pass
 
     @abstractmethod

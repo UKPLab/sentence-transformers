@@ -14,8 +14,6 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-# sphinx-build -c . -a -E .. _build
-
 from recommonmark.transform import AutoStructify
 import os
 from sphinx.domains import Domain
