@@ -58,6 +58,7 @@ class TranslationEvaluator(SentenceEvaluator):
         self.csv_file = "translation_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps", "src2trg", "trg2src"]
         self.write_csv = write_csv
+        self.primary_metric = "mean_accuracy"
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
@@ -130,4 +131,12 @@ class TranslationEvaluator(SentenceEvaluator):
 
                 writer.writerow([epoch, steps, acc_src2trg, acc_trg2src])
 
-        return (acc_src2trg + acc_trg2src) / 2
+        metrics = {
+            "src2trg_accuracy": acc_src2trg,
+            "trg2src_accuracy": acc_trg2src,
+            "mean_accuracy": (acc_src2trg + acc_trg2src) / 2,
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
+

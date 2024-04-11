@@ -16,8 +16,24 @@ class SequentialEvaluator(SentenceEvaluator):
         self.main_score_function = main_score_function
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+        evaluations = []
         scores = []
-        for evaluator in self.evaluators:
-            scores.append(evaluator(model, output_path, epoch, steps))
+        for evaluator_idx, evaluator in enumerate(self.evaluators):
+            evaluation = evaluator(model, output_path, epoch, steps)
 
-        return self.main_score_function(scores)
+            if not isinstance(evaluation, dict):
+                scores.append(evaluation)
+                evaluation = {f"evaluator_{evaluator_idx}": evaluation}
+            else:
+                if hasattr(evaluation, "primary_metric"):
+                    scores.append(evaluation[evaluation.primary_metric])
+                else:
+                    scores.append(evaluation[list(evaluation.keys())[0]])
+
+            evaluations.append(evaluation)
+
+        self.primary_metric = "sequential_score"
+        main_score = self.main_score_function(scores)
+        results = {key: value for evaluation in evaluations for key, value in evaluation.items()}
+        results["sequential_score"] = main_score
+        return results

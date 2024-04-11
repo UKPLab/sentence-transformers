@@ -120,3 +120,16 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
         triplet_loss = tl.mean()
 
         return triplet_loss
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{hermans2017defense,
+    title={In Defense of the Triplet Loss for Person Re-Identification}, 
+    author={Alexander Hermans and Lucas Beyer and Bastian Leibe},
+    year={2017},
+    eprint={1703.07737},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
+}
+"""

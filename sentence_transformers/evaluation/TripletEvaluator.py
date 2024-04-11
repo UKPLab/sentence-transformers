@@ -140,11 +140,17 @@ class TripletEvaluator(SentenceEvaluator):
                     writer = csv.writer(f)
                     writer.writerow([epoch, steps, accuracy_cos, accuracy_manhattan, accuracy_euclidean])
 
-        if self.main_distance_function == SimilarityFunction.COSINE:
-            return accuracy_cos
-        if self.main_distance_function == SimilarityFunction.MANHATTAN:
-            return accuracy_manhattan
-        if self.main_distance_function == SimilarityFunction.EUCLIDEAN:
-            return accuracy_euclidean
-
-        return max(accuracy_cos, accuracy_manhattan, accuracy_euclidean)
+        self.primary_metric = {
+            SimilarityFunction.COSINE: "accuracy_cosine",
+            SimilarityFunction.EUCLIDEAN: "accuracy_euclidean",
+            SimilarityFunction.MANHATTAN: "accuracy_manhattan",
+        }.get(self.main_distance_function, "accuracy_max")
+        metrics = {
+            "accuracy_cosine": accuracy_cos,
+            "accuracy_manhattan": accuracy_manhattan,
+            "accuracy_euclidean": accuracy_euclidean,
+            "accuracy_max": max(accuracy_cos, accuracy_manhattan, accuracy_euclidean),
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics

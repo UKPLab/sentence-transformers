@@ -117,3 +117,16 @@ class BatchAllTripletLoss(nn.Module):
         triplet_loss = triplet_loss.sum() / (num_positive_triplets + 1e-16)
 
         return triplet_loss
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{hermans2017defense,
+    title={In Defense of the Triplet Loss for Person Re-Identification}, 
+    author={Alexander Hermans and Lucas Beyer and Bastian Leibe},
+    year={2017},
+    eprint={1703.07737},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
+}
+"""

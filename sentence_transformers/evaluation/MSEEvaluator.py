@@ -49,6 +49,7 @@ class MSEEvaluator(SentenceEvaluator):
         self.csv_file = "mse_evaluation_" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps", "MSE"]
         self.write_csv = write_csv
+        self.primary_metric = "negative_mse"
 
     def __call__(self, model, output_path, epoch=-1, steps=-1):
         if epoch != -1:
@@ -82,4 +83,12 @@ class MSEEvaluator(SentenceEvaluator):
 
                 writer.writerow([epoch, steps, mse])
 
-        return -mse  # Return negative score as SentenceTransformers maximizes the performance
+        # Return negative score as SentenceTransformers maximizes the performance
+        metrics = {"negative_mse": -mse}
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
+
+    @property
+    def description(self) -> str:
+        return "Knowledge Distillation"

@@ -141,3 +141,21 @@ class MegaBatchMarginLoss(nn.Module):
         negatives_max, _ = torch.max(negative_scores, dim=1)
         losses = F.relu(self.positive_margin - positive_scores) + F.relu(negatives_max - self.negative_margin)
         return losses.mean()
+
+    @property
+    def citation(self) -> str:
+        return """
+@inproceedings{wieting-gimpel-2018-paranmt,
+    title = "{P}ara{NMT}-50{M}: Pushing the Limits of Paraphrastic Sentence Embeddings with Millions of Machine Translations",
+    author = "Wieting, John and Gimpel, Kevin",
+    editor = "Gurevych, Iryna and Miyao, Yusuke",
+    booktitle = "Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = jul,
+    year = "2018",
+    address = "Melbourne, Australia",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/P18-1042",
+    doi = "10.18653/v1/P18-1042",
+    pages = "451--462",
+}
+"""

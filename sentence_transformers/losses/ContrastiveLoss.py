@@ -95,3 +95,18 @@ class ContrastiveLoss(nn.Module):
             labels.float() * distances.pow(2) + (1 - labels).float() * F.relu(self.margin - distances).pow(2)
         )
         return losses.mean() if self.size_average else losses.sum()
+
+    @property
+    def citation(self) -> str:
+        return """
+@inproceedings{hadsell2006dimensionality,
+    author={Hadsell, R. and Chopra, S. and LeCun, Y.},
+    booktitle={2006 IEEE Computer Society Conference on Computer Vision and Pattern Recognition (CVPR'06)}, 
+    title={Dimensionality Reduction by Learning an Invariant Mapping}, 
+    year={2006},
+    volume={2},
+    number={},
+    pages={1735-1742},
+    doi={10.1109/CVPR.2006.100}
+}
+"""

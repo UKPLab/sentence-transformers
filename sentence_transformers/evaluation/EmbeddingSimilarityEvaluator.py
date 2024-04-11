@@ -176,7 +176,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             SimilarityFunction.MANHATTAN: "spearman_manhattan",
             SimilarityFunction.DOT_PRODUCT: "spearman_dot",
         }.get(self.main_similarity, "spearman_max")
-        return {
+        metrics = {
             "pearson_cosine": eval_pearson_cosine,
             "spearman_cosine": eval_spearman_cosine,
             "pearson_manhattan": eval_pearson_manhattan,
@@ -190,3 +190,10 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                 eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot
             ),
         }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
+
+    @property
+    def description(self) -> str:
+        return "Semantic Similarity"

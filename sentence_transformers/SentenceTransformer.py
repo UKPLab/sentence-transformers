@@ -2,6 +2,7 @@ import json
 import logging
 import os
 from collections import OrderedDict
+from pathlib import Path
 import warnings
 from typing import List, Dict, Literal, Tuple, Iterable, Union, Optional, TYPE_CHECKING
 import numpy as np
@@ -17,6 +18,8 @@ import math
 import queue
 import tempfile
 
+from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
+
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
@@ -31,7 +34,6 @@ from .util import (
 )
 from .quantization import quantize_embeddings
 from .models import Transformer, Pooling, Normalize
-from .model_card_templates import ModelCardTemplate
 from .fit_mixin import FitMixin
 from . import __version__
 
@@ -80,10 +82,12 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         revision: Optional[str] = None,
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
+        model_card_data: Optional[SentenceTransformerModelCardData] = None,
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
+        self.model_card_data = model_card_data or SentenceTransformerModelCardData()
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -243,6 +247,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     "Instructor models require `include_prompt=False` in the pooling configuration. "
                     "Either update the model configuration or call `model.set_pooling_include_prompt(False)` after loading the model."
                 )
+
+        # Pass the model to the model card data for later use in generating a model card upon saving this model
+        self.model_card_data.register_model(self)
 
     def encode(
         self,
@@ -649,63 +656,27 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             self._create_model_card(path, model_name, train_datasets)
 
     def _create_model_card(
-        self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = None
+        self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = "deprecated"
     ):
         """
         Create an automatic model and stores it in path
         """
-        if self._model_card_text is not None and len(self._model_card_text) > 0:
-            model_card = self._model_card_text
+        if model_name:
+            model_path = Path(model_name)
+            if not model_path.exists() and not self.model_card_data.model_id:
+                self.model_card_data.model_id = model_name
+
+        try:
+            model_card = generate_model_card(self)
+        except Exception as exc:
+            logger.error(
+                f"Error while generating model card: {exc}\n"
+                "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with these logs.\n"
+                "Skipping model card creation."
+            )
         else:
-            tags = ModelCardTemplate.__TAGS__.copy()
-            model_card = ModelCardTemplate.__MODEL_CARD__
-
-            if (
-                len(self._modules) == 2
-                and isinstance(self._first_module(), Transformer)
-                and isinstance(self._last_module(), Pooling)
-                and self._last_module().get_pooling_mode_str() in ["cls", "max", "mean"]
-            ):
-                pooling_module = self._last_module()
-                pooling_mode = pooling_module.get_pooling_mode_str()
-                model_card = model_card.replace(
-                    "{USAGE_TRANSFORMERS_SECTION}", ModelCardTemplate.__USAGE_TRANSFORMERS__
-                )
-                pooling_fct_name, pooling_fct = ModelCardTemplate.model_card_get_pooling_function(pooling_mode)
-                model_card = (
-                    model_card.replace("{POOLING_FUNCTION}", pooling_fct)
-                    .replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
-                    .replace("{POOLING_MODE}", pooling_mode)
-                )
-                tags.append("transformers")
-
-            # Print full model
-            model_card = model_card.replace("{FULL_MODEL_STR}", str(self))
-
-            # Add tags
-            model_card = model_card.replace("{TAGS}", "\n".join(["- " + t for t in tags]))
-
-            datasets_str = ""
-            if train_datasets is not None:
-                datasets_str = "datasets:\n" + "\n".join(["- " + d for d in train_datasets])
-            model_card = model_card.replace("{DATASETS}", datasets_str)
-
-            # Add dim info
-            self._model_card_vars["{NUM_DIMENSIONS}"] = self.get_sentence_embedding_dimension()
-
-            # Replace vars we created while using the model
-            for name, value in self._model_card_vars.items():
-                model_card = model_card.replace(name, str(value))
-
-            # Replace remaining vars with default values
-            for name, value in ModelCardTemplate.__DEFAULT_VARS__.items():
-                model_card = model_card.replace(name, str(value))
-
-        if model_name is not None:
-            model_card = model_card.replace("{MODEL_NAME}", model_name.strip())
-
-        with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
-            fOut.write(model_card.strip())
+            with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
+                fOut.write(model_card)
 
     @save_to_hub_args_decorator
     def save_to_hub(
@@ -806,6 +777,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             exist_ok=exist_ok,
         )
         repo_id = repo_url.repo_id  # Update the repo_id in case the old repo_id didn't contain a user or organization
+        self.model_card_data.set_model_id(repo_id)
         if local_model_path:
             folder_url = api.upload_folder(
                 repo_id=repo_id, folder_path=local_model_path, commit_message=commit_message
@@ -881,6 +853,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             tokenizer_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
+        self.model_card_data.set_base_model(model_name_or_path)
         return [transformer_model, pooling_model]
 
     def _load_sbert_model(

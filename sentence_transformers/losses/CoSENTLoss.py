@@ -83,3 +83,15 @@ class CoSENTLoss(nn.Module):
 
     def get_config_dict(self):
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
+
+    @property
+    def citation(self) -> str:
+        return """
+@online{kexuefm-8847,
+    title={CoSENT: A more efficient sentence vector scheme than Sentence-BERT},
+    author={Su Jianlin},
+    year={2022},
+    month={Jan},
+    url={https://kexue.fm/archives/8847},
+}
+"""

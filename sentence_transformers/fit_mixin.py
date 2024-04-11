@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from tqdm.autonotebook import trange
 from datasets import Dataset, DatasetDict
 from transformers import TrainerCallback, TrainerState, TrainerControl
-from sentence_transformers.training_args import TrainingArguments
+from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 
 from .evaluation import SentenceEvaluator
 from .util import (
@@ -54,7 +54,7 @@ class SaveModelCallback(TrainerCallback):
 
     def on_evaluate(
         self,
-        args: TrainingArguments,
+        args: SentenceTransformerTrainingArguments,
         state: TrainerState,
         control: TrainerControl,
         metrics: Dict[str, Any],
@@ -71,7 +71,7 @@ class SaveModelCallback(TrainerCallback):
 
     def on_train_end(
         self,
-        args: TrainingArguments,
+        args: SentenceTransformerTrainingArguments,
         state: TrainerState,
         control: TrainerControl,
         model: "SentenceTransformer",
@@ -96,7 +96,7 @@ class EvaluatorCallback(TrainerCallback):
 
     def on_epoch_end(
         self,
-        args: transformers.TrainingArguments,
+        args: SentenceTransformerTrainingArguments,
         state: TrainerState,
         control: TrainerControl,
         model: "SentenceTransformer",
@@ -207,6 +207,7 @@ class FitMixin:
 
         batch_size = None
         # Convert dataloaders into a DatasetDict
+        # TODO: This should be done in a more efficient way
         train_dataset_dict = {}
         for loader_idx, data_loader in enumerate(data_loaders, start=1):
             batch_size = getattr(data_loader, "batch_size", batch_size)
@@ -217,9 +218,17 @@ class FitMixin:
                 texts += batch_texts
                 labels += batch_labels
             dataset = Dataset.from_dict({f"sentence_{idx}": text for idx, text in enumerate(zip(*texts))})
-            if set(labels) != {0}:
+            # Add label column, unless all labels are 0 (the default value for `labels` in InputExample)
+            add_label_column = True
+            try:
+                if set(labels) == {0}:
+                    add_label_column = False
+            except TypeError:
+                pass
+            if add_label_column:
                 dataset = dataset.add_column("label", labels)
-            train_dataset_dict[f"dataset_{loader_idx}"] = dataset
+            train_dataset_dict[f"_dataset_{loader_idx}"] = dataset
+        
         train_dataset_dict = DatasetDict(train_dataset_dict)
 
         def _default_checkpoint_dir() -> str:
@@ -231,7 +240,7 @@ class FitMixin:
             return dir_name
 
         # Convert loss_fns into a dict with `dataset_{idx}` keys
-        loss_fn_dict = {f"dataset_{idx}": loss_fn for idx, loss_fn in enumerate(loss_fns, start=1)}
+        loss_fn_dict = {f"_dataset_{idx}": loss_fn for idx, loss_fn in enumerate(loss_fns, start=1)}
         # TODO: Test model checkpointing & loading
 
         # Use steps_per_epoch to perhaps set max_steps
@@ -246,7 +255,7 @@ class FitMixin:
                 )
                 steps_per_epoch = None
 
-        args = TrainingArguments(
+        args = SentenceTransformerTrainingArguments(
             output_dir=checkpoint_path or _default_checkpoint_dir(),
             round_robin_sampler=True,
             per_device_train_batch_size=batch_size,
@@ -287,8 +296,6 @@ class FitMixin:
 
         # Create callbacks
         callbacks = []
-        if output_path is not None:
-            callbacks.append(SaveModelCallback(output_path, evaluator, save_best_model))
         if evaluator is not None:
             callbacks.append(EvaluatorCallback(evaluator))
             if callback is not None:
@@ -308,6 +315,9 @@ class FitMixin:
         for callback in trainer.callback_handler.callbacks:
             if isinstance(callback, EvaluatorCallback):
                 callback.trainer = trainer
+
+        if output_path is not None:
+            trainer.add_callback(SaveModelCallback(output_path, evaluator, save_best_model))
 
         trainer.train()
 

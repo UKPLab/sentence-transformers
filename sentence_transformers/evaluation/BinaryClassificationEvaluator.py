@@ -95,6 +95,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             "dot_f1_threshold",
             "dot_ap",
         ]
+        self.primary_metric = "cosine_accuracy"
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -140,15 +141,17 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                     writer = csv.writer(f)
                     writer.writerow(file_output_data)
 
-        scores_dict = {
+        metrics = {
             f"{short_name}_{metric}": value
             for short_name, values in scores.items()
             for metric, value in values.items()
         }
-        scores_dict.update(
+        metrics.update(
             {f"max_{metric}": max(scores[short_name][metric] for short_name in scores) for metric in scores["cosine"]}
         )
-        return scores_dict
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
 
     def compute_metrices(self, model):
         try:

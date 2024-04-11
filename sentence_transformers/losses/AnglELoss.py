@@ -54,3 +54,16 @@ class AnglELoss(losses.CoSENTLoss):
                 train_loss = losses.AnglELoss(model=model)
         """
         super().__init__(model, scale, similarity_fct=util.pairwise_angle_sim)
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{li2023angleoptimized,
+    title={AnglE-optimized Text Embeddings}, 
+    author={Xianming Li and Jing Li},
+    year={2023},
+    eprint={2309.12871},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
+}
+"""

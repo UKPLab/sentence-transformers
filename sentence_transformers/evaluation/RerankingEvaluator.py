@@ -65,6 +65,7 @@ class RerankingEvaluator(SentenceEvaluator):
             "NDCG@{}".format(self.at_k),
         ]
         self.write_csv = write_csv
+        self.primary_metric = "map"
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
@@ -112,7 +113,14 @@ class RerankingEvaluator(SentenceEvaluator):
 
                 writer.writerow([epoch, steps, mean_ap, mean_mrr, mean_ndcg])
 
-        return mean_ap
+        metrics = {
+            "map": mean_ap,
+            f"mrr@{self.at_k}": mean_mrr,
+            f"ndcg@{self.at_k}": mean_ndcg,
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
 
     def compute_metrices(self, model):
         return (

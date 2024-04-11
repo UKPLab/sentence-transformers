@@ -242,3 +242,16 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
     def get_config_dict(self):
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{gao2021scaling,
+    title={Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup}, 
+    author={Luyu Gao and Yunyi Zhang and Jiawei Han and Jamie Callan},
+    year={2021},
+    eprint={2101.06983},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG}
+}
+"""

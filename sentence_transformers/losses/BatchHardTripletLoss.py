@@ -238,3 +238,16 @@ class BatchHardTripletLoss(nn.Module):
         # Uses broadcasting where the 1st argument has shape (1, batch_size) and the 2nd (batch_size, 1)
 
         return ~(labels.unsqueeze(0) == labels.unsqueeze(1))
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{hermans2017defense,
+    title={In Defense of the Triplet Loss for Person Re-Identification}, 
+    author={Alexander Hermans and Lucas Beyer and Bastian Leibe},
+    year={2017},
+    eprint={1703.07737},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
+}
+"""

@@ -86,6 +86,18 @@ class ContrastiveTensionLoss(nn.Module):
         loss = self.criterion(sim_scores, labels.type_as(sim_scores))
         return loss
 
+    @property
+    def citation(self) -> str:
+        return """
+@inproceedings{carlsson2021semantic,
+    title={Semantic Re-tuning with Contrastive Tension},
+    author={Fredrik Carlsson and Amaru Cuba Gyllensten and Evangelia Gogoulou and Erik Ylip{\"a}{\"a} Hellqvist and Magnus Sahlgren},
+    booktitle={International Conference on Learning Representations},
+    year={2021},
+    url={https://openreview.net/forum?id=Ov_sMNau-PF}
+}
+"""
+
 
 class ContrastiveTensionLossInBatchNegatives(nn.Module):
     def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim):
@@ -160,6 +172,18 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
         scores = self.similarity_fct(embeddings_a, embeddings_b) * self.logit_scale.exp()  # self.scale
         labels = torch.tensor(range(len(scores)), dtype=torch.long, device=scores.device)
         return (self.cross_entropy_loss(scores, labels) + self.cross_entropy_loss(scores.t(), labels)) / 2
+
+    @property
+    def citation(self) -> str:
+        return """
+@inproceedings{carlsson2021semantic,
+    title={Semantic Re-tuning with Contrastive Tension},
+    author={Fredrik Carlsson and Amaru Cuba Gyllensten and Evangelia Gogoulou and Erik Ylip{\"a}{\"a} Hellqvist and Magnus Sahlgren},
+    booktitle={International Conference on Learning Representations},
+    year={2021},
+    url={https://openreview.net/forum?id=Ov_sMNau-PF}
+}
+"""
 
 
 ################# CT Data Loader #################

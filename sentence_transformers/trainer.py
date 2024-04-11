@@ -7,6 +7,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, ConcatDataset, Dataset
 from transformers import PreTrainedTokenizerBase, Trainer, EvalPrediction, TrainerCallback
+from transformers.integrations import WandbCallback
 from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.training_args import ParallelMode
 
@@ -15,11 +16,13 @@ from transformers.trainer_utils import EvalLoopOutput
 from transformers.data.data_collator import DataCollator
 from sentence_transformers.losses import CoSENTLoss
 
-from sentence_transformers.training_args import TrainingArguments
+from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator
 from sentence_transformers.sampler import ProportionalBatchSampler, RoundRobinBatchSampler
 from sentence_transformers.util import disable_logging
+
+from sentence_transformers.model_card import ModelCardCallback
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +34,10 @@ class SentenceTransformerTrainer(Trainer):
     def __init__(
         self,
         model: Optional["SentenceTransformer"] = None,
-        args: TrainingArguments = None,
+        args: SentenceTransformerTrainingArguments = None,
         train_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
         eval_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
-        loss: Optional[nn.Module] = None,
+        loss: Optional[Union[Dict[str, nn.Module], nn.Module]] = None,
         evaluator: Optional[SentenceEvaluator] = None,
         data_collator: Optional[DataCollator] = None,
         tokenizer: Optional[Union[PreTrainedTokenizerBase, Callable]] = None,
@@ -47,11 +50,22 @@ class SentenceTransformerTrainer(Trainer):
         if args is None:
             output_dir = "tmp_trainer"
             logger.info(f"No `TrainingArguments` passed, using `output_dir={output_dir}`.")
-            args = TrainingArguments(output_dir=output_dir)
-        elif not isinstance(args, TrainingArguments):
+            args = SentenceTransformerTrainingArguments(output_dir=output_dir)
+        elif not isinstance(args, SentenceTransformerTrainingArguments):
             raise ValueError("Please use `TrainingArguments` imported from `sentence_transformers`.")
+
+        # Get a dictionary of the default training arguments, so we can determine which arguments have been changed
+        # for the model card
+        default_args_dict = SentenceTransformerTrainingArguments(output_dir="unused").to_dict()
+
+        # If the model ID is set via the SentenceTransformerTrainingArguments, but not via the SentenceTransformerModelCardData,
+        # then we can set it here for the model card regardless
+        if args.hub_model_id and not model.model_card_data.model_id:
+            model.model_card_data.set_model_id(args.hub_model_id)
+
         if tokenizer is None and isinstance(model.tokenizer, PreTrainedTokenizerBase):
             tokenizer = model.tokenizer
+
         if data_collator is None:
             data_collator = SentenceTransformerDataCollator(tokenize_fn=model.tokenize)
         super().__init__(
@@ -67,9 +81,14 @@ class SentenceTransformerTrainer(Trainer):
             optimizers=optimizers,
             preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         )
+        # Set the W&B project via environment variables if it's not already set
+        if any([isinstance(callback, WandbCallback) for callback in self.callback_handler.callbacks]):
+            os.environ.setdefault("WANDB_PROJECT", "sentence-transformers")
+
         if loss is None:
             logger.info("No `loss` passed, using `losses.CoSENTLoss` as a default option.")
             loss = CoSENTLoss(self.model)
+
         self.loss = loss
         if isinstance(loss, dict):
             self.loss = {dataset_name: loss_fn.to(self.model.device) for dataset_name, loss_fn in loss.items()}
@@ -88,6 +107,11 @@ class SentenceTransformerTrainer(Trainer):
         else:
             self.loss.to(self.model.device)
         self.evaluator = evaluator
+
+        # Add a callback responsible for automatically tracking data required for the automatic model card generation
+        model_card_callback = ModelCardCallback(self, default_args_dict)
+        self.add_callback(model_card_callback)
+        model_card_callback.on_init_end(self.args, self.state, self.control, self.model)
 
     def add_dataset_name_column(self, dataset_dict: DatasetDict) -> DatasetDict:
         for key, dataset in dataset_dict.items():
@@ -282,14 +306,12 @@ class SentenceTransformerTrainer(Trainer):
         eval_dataset = eval_dataset if eval_dataset is not None else self.eval_dataset
         data_collator = self.data_collator
 
+        # TODO: Correctly validate the column names for the eval_dataset
         if isinstance(eval_dataset, DatasetDict):
             sizes = [len(ds) for ds in eval_dataset.values()]
-            for dataset_name, dataset in eval_dataset.items():
-                self.validate_column_names(dataset, dataset_name=dataset_name)
             eval_dataset = self.add_dataset_name_column(eval_dataset)
             eval_dataset = ConcatDataset(eval_dataset.values())
         else:
-            self.validate_column_names(eval_dataset)
             sizes = [len(eval_dataset)]
 
         batch_sampler_class = RoundRobinBatchSampler if self.args.round_robin_sampler else ProportionalBatchSampler
