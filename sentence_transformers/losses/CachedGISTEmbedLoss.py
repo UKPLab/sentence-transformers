@@ -6,7 +6,6 @@ from torch import nn, Tensor
 from torch.utils.checkpoint import get_device_states, set_device_states
 from typing import Iterable, Dict, Iterator, List, Optional, Tuple
 from sentence_transformers import SentenceTransformer
-from sentence_transformers import util
 import tqdm
 from sentence_transformers.models import Transformer
 
@@ -63,44 +62,29 @@ class CachedGISTEmbedLoss(nn.Module):
         model: SentenceTransformer,
         guide: SentenceTransformer,
         temperature: float = 0.01,
-        similarity_fct: callable[[Tensor, Tensor], Tensor] = util.cos_sim,
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
     ):
         """
-        Boosted version of MultipleNegativesRankingLoss (https://arxiv.org/pdf/1705.00652.pdf) by GradCache (https://arxiv.org/pdf/2101.06983.pdf).
-
-        Constrastive learning (here our MNRL loss) with in-batch negatives is usually hard to work with large batch sizes due to (GPU) memory limitation.
-        Even with batch-scaling methods like gradient-scaling, it cannot work either. This is because the in-batch negatives make the data points within
-        the same batch non-independent and thus the batch cannot be broke down into mini-batches. GradCache is a smart way to solve this problem.
-        It achieves the goal by dividing the computation into two stages of embedding and loss calculation, which both can be scaled by mini-batches.
-        As a result, memory of constant size (e.g. that works with batch size = 32) can now process much larger batches (e.g. 65536).
-
-        In detail:
-
-            (1) It first does a quick embedding step without gradients/computation graphs to get all the embeddings;
-            (2) Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings;
-            (3) A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain.
-
-        Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in mini-batches and
-        requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
+        This loss is a combination of GISTEmbedLoss and CachedMultipleNegativeRankingLoss.
+        Typically, MNR Loss requires a larger batch size for better performance.
+        GISTEmbedLoss yields stronger training signals than MNR Loss due to the use of a guide model for in-batch negative sample selection. Meanwhile, CachedMNR Loss allows for scaling of the batch size by dividing the computation into two stages of embedding and loss calculation, which both can be scaled by mini-batches(https://arxiv.org/pdf/2101.06983.pdf). By combining the guided selection from GISTEmbedLoss and Gradient Cache by CachedMNRLoss, it is possible to reduce memory usage while maintaining performance levels comparable to those of GISTEmbedLoss.
 
         :param model: SentenceTransformer model
-        :param scale: Output of similarity function is multiplied by scale value
-        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+        :param guide: SentenceTransformer model to guide the in-batch negative sample selection.
+        :param temperature: Temperature parameter to scale the cosine similarities.
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
             - Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup: https://arxiv.org/pdf/2101.06983.pdf
+            - GISTEmbed: Guided In-sample Selection of Training Negatives for Text Embedding Fine-tuning https://arxiv.org/abs/2402.16829
 
         Requirements:
             1. (anchor, positive) pairs or (anchor, positive, negative pairs)
             2. Should be used with large batch sizes for superior performance, but has slower training time than :class:`MultipleNegativesRankingLoss`
 
         Relations:
-            - Equivalent to :class:`MultipleNegativesRankingLoss`, but with caching that allows for much higher batch sizes
-            (and thus better performance) without extra memory usage. This loss also trains roughly 2x to 2.4x slower than
-            :class:`MultipleNegativesRankingLoss`.
+            - Equivalent to :class:`GISTEmbedLoss`, but with caching that allows for much higher batch sizes
 
         Inputs:
             +---------------------------------------+--------+
@@ -118,12 +102,14 @@ class CachedGISTEmbedLoss(nn.Module):
                 from torch.utils.data import DataLoader
 
                 model = SentenceTransformer('distilbert-base-uncased')
+                guide = SentenceTransformer('avsolatorio/GIST-small-Embedding-v0')
+
                 train_examples = [
                     InputExample(texts=['Anchor 1', 'Positive 1']),
                     InputExample(texts=['Anchor 2', 'Positive 2']),
                 ]
                 train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=1024)  # Here we can try much larger batch sizes!
-                train_loss = losses.CachedGISTEmbedLoss(model=model, mini_batch_size = 32)
+                train_loss = losses.CachedGISTEmbedLoss(model=model, mini_batch_size=32, guide=guide)
                 model.fit(
                     [(train_dataloader, train_loss)],
                     epochs=10,
@@ -131,7 +117,6 @@ class CachedGISTEmbedLoss(nn.Module):
         """
         super(CachedGISTEmbedLoss, self).__init__()
         self.model = model
-        # self.scale = scale
         self.guide = guide
         self.temperature = temperature
         self.similarity_fct = nn.CosineSimilarity(dim=-1)
@@ -168,7 +153,6 @@ class CachedGISTEmbedLoss(nn.Module):
             with grad_context():
                 random_state = RandContext(*sentence_feature_minibatch.values()) if copy_random_state else None
                 reps = self.model(sentence_feature_minibatch)["sentence_embedding"]  # (mbsz, hdim)
-            # TODO: Compute guide embeddings
             with torch.no_grad():
                 if self.must_retokenize:
                     decoded = self.model.tokenizer.batch_decode(
@@ -225,11 +209,11 @@ class CachedGISTEmbedLoss(nn.Module):
         else:
             raise ValueError("Expected 2 or 3 embeddings, got {}".format(len(reps)))
 
-        # Concatenate the lists into single tensors.
         anchor = torch.cat(anchor, dim=0)
         positive = torch.cat(positive, dim=0)
         anchor_guide = torch.cat(anchor_guide, dim=0)
         positive_guide = torch.cat(positive_guide, dim=0)
+        # Handle the case where we have a negative sample
         if negative:
             negative = torch.cat(negative, dim=0)
             negative_guide = torch.cat(negative_guide, dim=0)
@@ -255,7 +239,8 @@ class CachedGISTEmbedLoss(nn.Module):
         ):
             e = b + self.mini_batch_size
             # Compute similarity scores for current mini-batch.
-            ap_sim = self.sim_matrix(anchor[b:e], positive)
+            # anchor (mbsz,hdim), positive (bsz,hdim)
+            ap_sim = self.sim_matrix(anchor[b:e], positive)  # (mbsz,bsz)
             aa_sim = self.sim_matrix(anchor[b:e], anchor)
             pp_sim = self.sim_matrix(positive[b:e], positive)
 
@@ -299,8 +284,6 @@ class CachedGISTEmbedLoss(nn.Module):
                 with_grad=False,
                 copy_random_state=True,
             ):
-                # TODO: reps contains reps_mbs contains reps_mb, reps contains each feature
-                # anchor + pos + neg, then for each of these contains minibatch
                 reps_mbs.append(reps_mb.detach().requires_grad_())
                 reps_guided_mbs.append(reps_guided_mb.detach())  # does not requires gradient
                 random_state_mbs.append(random_state)
@@ -310,7 +293,6 @@ class CachedGISTEmbedLoss(nn.Module):
 
         # Step (2): Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings
         loss = self.calculate_loss_and_cache_gradients(reps, reps_guided)
-        print(loss)
         # Step (3): A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain
         loss.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self))
         return loss
