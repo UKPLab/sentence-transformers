@@ -1,10 +1,12 @@
+from sentence_transformers import SentenceTransformer
+from contextlib import nullcontext
 from . import SentenceEvaluator
 import logging
 from ..util import pytorch_cos_sim
 import os
 import csv
 import numpy as np
-from typing import List
+from typing import List, Optional
 import torch
 
 
@@ -27,6 +29,7 @@ class TranslationEvaluator(SentenceEvaluator):
         name: str = "",
         print_wrong_matches: bool = False,
         write_csv: bool = True,
+        truncate_dim: Optional[int] = None,
     ):
         """
         Constructs an evaluator based for the dataset
@@ -37,10 +40,19 @@ class TranslationEvaluator(SentenceEvaluator):
             List of sentences in source language
         :param target_sentences:
             List of sentences in target language
+        :param show_progress_bar:
+            Show progress bar when computing embeddings
+        :param batch_size:
+            Batch size to compute sentence embeddings
+        :param name:
+            Name of the evaluator
         :param print_wrong_matches:
             Prints incorrect matches
         :param write_csv:
             Write results to CSV file
+        :param truncate_dim:
+            The dimension to truncate sentence embeddings to. `None` uses the model's current truncation dimension.
+            Defaults to None.
         """
         self.source_sentences = source_sentences
         self.target_sentences = target_sentences
@@ -48,6 +60,7 @@ class TranslationEvaluator(SentenceEvaluator):
         self.batch_size = batch_size
         self.show_progress_bar = show_progress_bar
         self.print_wrong_matches = print_wrong_matches
+        self.truncate_dim = truncate_dim
 
         assert len(self.source_sentences) == len(self.target_sentences)
 
@@ -58,33 +71,36 @@ class TranslationEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "src2trg", "trg2src"]
         self.write_csv = write_csv
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             if steps == -1:
-                out_txt = " after epoch {}:".format(epoch)
+                out_txt = f" after epoch {epoch}"
             else:
-                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
+                out_txt = f" in epoch {epoch} after {steps} steps"
         else:
-            out_txt = ":"
+            out_txt = ""
+        if self.truncate_dim is not None:
+            out_txt += f" (truncated to {self.truncate_dim})"
 
-        logger.info("Evaluating translation matching Accuracy on " + self.name + " dataset" + out_txt)
+        logger.info(f"Evaluating translation matching Accuracy of the model on the {self.name} dataset{out_txt}:")
 
-        embeddings1 = torch.stack(
-            model.encode(
-                self.source_sentences,
-                show_progress_bar=self.show_progress_bar,
-                batch_size=self.batch_size,
-                convert_to_numpy=False,
+        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+            embeddings1 = torch.stack(
+                model.encode(
+                    self.source_sentences,
+                    show_progress_bar=self.show_progress_bar,
+                    batch_size=self.batch_size,
+                    convert_to_numpy=False,
+                )
             )
-        )
-        embeddings2 = torch.stack(
-            model.encode(
-                self.target_sentences,
-                show_progress_bar=self.show_progress_bar,
-                batch_size=self.batch_size,
-                convert_to_numpy=False,
+            embeddings2 = torch.stack(
+                model.encode(
+                    self.target_sentences,
+                    show_progress_bar=self.show_progress_bar,
+                    batch_size=self.batch_size,
+                    convert_to_numpy=False,
+                )
             )
-        )
 
         cos_sims = pytorch_cos_sim(embeddings1, embeddings2).detach().cpu().numpy()
 

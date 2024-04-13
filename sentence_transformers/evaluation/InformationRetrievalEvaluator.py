@@ -1,3 +1,5 @@
+from sentence_transformers import SentenceTransformer
+from contextlib import nullcontext
 from . import SentenceEvaluator
 import torch
 from torch import Tensor
@@ -6,7 +8,7 @@ from tqdm import trange
 from ..util import cos_sim, dot_score
 import os
 import numpy as np
-from typing import List, Dict, Set, Callable
+from typing import List, Dict, Optional, Set, Callable
 import heapq
 
 
@@ -36,6 +38,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         batch_size: int = 32,
         name: str = "",
         write_csv: bool = True,
+        truncate_dim: Optional[int] = None,
         score_functions: Dict[str, Callable[[Tensor, Tensor], Tensor]] = {
             "cos_sim": cos_sim,
             "dot_score": dot_score,
@@ -67,6 +70,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.score_functions = score_functions
         self.score_function_names = sorted(list(self.score_functions.keys()))
         self.main_score_function = main_score_function
+        self.truncate_dim = truncate_dim
 
         if name:
             name = "_" + name
@@ -91,17 +95,20 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             for k in map_at_k:
                 self.csv_headers.append("{}-MAP@{}".format(score_name, k))
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+    ) -> float:
         if epoch != -1:
-            out_txt = (
-                " after epoch {}:".format(epoch)
-                if steps == -1
-                else " in epoch {} after {} steps:".format(epoch, steps)
-            )
+            if steps == -1:
+                out_txt = f" after epoch {epoch}"
+            else:
+                out_txt = f" in epoch {epoch} after {steps} steps"
         else:
-            out_txt = ":"
+            out_txt = ""
+        if self.truncate_dim is not None:
+            out_txt += f" (truncated to {self.truncate_dim})"
 
-        logger.info("Information Retrieval Evaluation on " + self.name + " dataset" + out_txt)
+        logger.info(f"Information Retrieval Evaluation of the model on the {self.name} dataset{out_txt}:")
 
         scores = self.compute_metrices(model, *args, **kwargs)
 
@@ -143,7 +150,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         else:
             return scores[self.main_score_function]["map@k"][max(self.map_at_k)]
 
-    def compute_metrices(self, model, corpus_model=None, corpus_embeddings: Tensor = None) -> Dict[str, float]:
+    def compute_metrices(
+        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor = None
+    ) -> Dict[str, float]:
         if corpus_model is None:
             corpus_model = model
 
@@ -156,9 +165,13 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         )
 
         # Compute embedding for the queries
-        query_embeddings = model.encode(
-            self.queries, show_progress_bar=self.show_progress_bar, batch_size=self.batch_size, convert_to_tensor=True
-        )
+        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+            query_embeddings = model.encode(
+                self.queries,
+                show_progress_bar=self.show_progress_bar,
+                batch_size=self.batch_size,
+                convert_to_tensor=True,
+            )
 
         queries_result_list = {}
         for name in self.score_functions:
@@ -172,12 +185,15 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
             # Encode chunk of corpus
             if corpus_embeddings is None:
-                sub_corpus_embeddings = corpus_model.encode(
-                    self.corpus[corpus_start_idx:corpus_end_idx],
-                    show_progress_bar=False,
-                    batch_size=self.batch_size,
-                    convert_to_tensor=True,
-                )
+                with nullcontext() if self.truncate_dim is None else corpus_model.truncate_sentence_embeddings(
+                    self.truncate_dim
+                ):
+                    sub_corpus_embeddings = corpus_model.encode(
+                        self.corpus[corpus_start_idx:corpus_end_idx],
+                        show_progress_bar=False,
+                        batch_size=self.batch_size,
+                        convert_to_tensor=True,
+                    )
             else:
                 sub_corpus_embeddings = corpus_embeddings[corpus_start_idx:corpus_end_idx]
 

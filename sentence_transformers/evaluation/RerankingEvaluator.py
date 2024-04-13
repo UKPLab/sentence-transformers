@@ -1,3 +1,5 @@
+from sentence_transformers import SentenceTransformer
+from contextlib import nullcontext
 from . import SentenceEvaluator
 import logging
 import numpy as np
@@ -7,7 +9,7 @@ from ..util import cos_sim
 import torch
 from sklearn.metrics import average_precision_score, ndcg_score
 import tqdm
-from typing import Optional
+from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +21,20 @@ class RerankingEvaluator(SentenceEvaluator):
     Given a query and a list of documents, it computes the score [query, doc_i] for all possible
     documents and sorts them in decreasing order. Then, MRR@10, NDCG@10 and MAP is compute to measure the quality of the ranking.
 
-    :param samples: Must be a list and each element is of the form: {'query': '', 'positive': [], 'negative': []}. Query is the search query,
-     positive is a list of positive (relevant) documents, negative is a list of negative (irrelevant) documents.
+    :param samples: Must be a list and each element is of the form: {'query': '', 'positive': [], 'negative': []}.
+        Query is the search query, positive is a list of positive (relevant) documents, negative is a list of negative
+        (irrelevant) documents.
+
+    :param at_k: Only consider the top k most similar documents to each query for the evaluation
+    :param name: Name of the evaluator
+    :param write_csv: Write results to CSV file
+    :param similarity_fct: similarity function between sentence embeddings. By default, cosine similarity.
+    :param batch_size: Batch size to compute sentence embeddings
+    :param show_progress_bar: Show progress bar when computing embeddings
+    :param use_batched_encoding: Whether or not to encode queries and documents in batches for greater speed, or 1-by-1
+        to save memory
+    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
+        dimension. Defaults to None.
     """
 
     def __init__(
@@ -29,23 +43,27 @@ class RerankingEvaluator(SentenceEvaluator):
         at_k: int = 10,
         name: str = "",
         write_csv: bool = True,
-        similarity_fct=cos_sim,
+        similarity_fct: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = cos_sim,
         batch_size: int = 64,
         show_progress_bar: bool = False,
         use_batched_encoding: bool = True,
+        truncate_dim: Optional[int] = None,
         mrr_at_k: Optional[int] = None,
     ):
         self.samples = samples
         self.name = name
+
         if mrr_at_k is not None:
             logger.warning(f"The `mrr_at_k` parameter has been deprecated; please use `at_k={mrr_at_k}` instead.")
             self.at_k = mrr_at_k
         else:
             self.at_k = at_k
+
         self.similarity_fct = similarity_fct
         self.batch_size = batch_size
         self.show_progress_bar = show_progress_bar
         self.use_batched_encoding = use_batched_encoding
+        self.truncate_dim = truncate_dim
 
         if isinstance(self.samples, dict):
             self.samples = list(self.samples.values())
@@ -65,16 +83,18 @@ class RerankingEvaluator(SentenceEvaluator):
         ]
         self.write_csv = write_csv
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             if steps == -1:
-                out_txt = " after epoch {}:".format(epoch)
+                out_txt = f" after epoch {epoch}"
             else:
-                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
+                out_txt = f" in epoch {epoch} after {steps} steps"
         else:
-            out_txt = ":"
+            out_txt = ""
+        if self.truncate_dim is not None:
+            out_txt += f" (truncated to {self.truncate_dim})"
 
-        logger.info("RerankingEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
+        logger.info(f"RerankingEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
 
         scores = self.compute_metrices(model)
         mean_ap = scores["map"]
@@ -129,22 +149,23 @@ class RerankingEvaluator(SentenceEvaluator):
         all_ndcg_scores = []
         all_ap_scores = []
 
-        all_query_embs = model.encode(
-            [sample["query"] for sample in self.samples],
-            convert_to_tensor=True,
-            batch_size=self.batch_size,
-            show_progress_bar=self.show_progress_bar,
-        )
+        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+            all_query_embs = model.encode(
+                [sample["query"] for sample in self.samples],
+                convert_to_tensor=True,
+                batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
+            )
 
-        all_docs = []
+            all_docs = []
 
-        for sample in self.samples:
-            all_docs.extend(sample["positive"])
-            all_docs.extend(sample["negative"])
+            for sample in self.samples:
+                all_docs.extend(sample["positive"])
+                all_docs.extend(sample["negative"])
 
-        all_docs_embs = model.encode(
-            all_docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar
-        )
+            all_docs_embs = model.encode(
+                all_docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar
+            )
 
         # Compute scores
         query_idx, docs_idx = 0, 0
@@ -210,10 +231,13 @@ class RerankingEvaluator(SentenceEvaluator):
             docs = positive + negative
             is_relevant = [1] * len(positive) + [0] * len(negative)
 
-            query_emb = model.encode(
-                [query], convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False
-            )
-            docs_emb = model.encode(docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False)
+            with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+                query_emb = model.encode(
+                    [query], convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False
+                )
+                docs_emb = model.encode(
+                    docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False
+                )
 
             pred_scores = self.similarity_fct(query_emb, docs_emb)
             if len(pred_scores.shape) > 1:

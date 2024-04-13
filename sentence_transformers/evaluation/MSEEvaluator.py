@@ -1,8 +1,10 @@
+from sentence_transformers import SentenceTransformer
+from contextlib import nullcontext
 from sentence_transformers.evaluation import SentenceEvaluator
 import logging
 import os
 import csv
-from typing import List
+from typing import List, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +26,8 @@ class MSEEvaluator(SentenceEvaluator):
     :param batch_size: Batch size to compute sentence embeddings
     :param name: Name of the evaluator
     :param write_csv: Write results to CSV file
+    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
+        dimension. Defaults to None.
     """
 
     def __init__(
@@ -35,10 +39,15 @@ class MSEEvaluator(SentenceEvaluator):
         batch_size: int = 32,
         name: str = "",
         write_csv: bool = True,
+        truncate_dim: Optional[int] = None,
     ):
-        self.source_embeddings = teacher_model.encode(
-            source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True
-        )
+        self.truncate_dim = truncate_dim
+        with nullcontext() if self.truncate_dim is None else teacher_model.truncate_sentence_embeddings(
+            self.truncate_dim
+        ):
+            self.source_embeddings = teacher_model.encode(
+                source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True
+            )
 
         self.target_sentences = target_sentences
         self.show_progress_bar = show_progress_bar
@@ -49,26 +58,29 @@ class MSEEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "MSE"]
         self.write_csv = write_csv
 
-    def __call__(self, model, output_path, epoch=-1, steps=-1):
+    def __call__(self, model: SentenceTransformer, output_path, epoch=-1, steps=-1):
         if epoch != -1:
             if steps == -1:
-                out_txt = " after epoch {}:".format(epoch)
+                out_txt = f" after epoch {epoch}"
             else:
-                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
+                out_txt = f" in epoch {epoch} after {steps} steps"
         else:
-            out_txt = ":"
+            out_txt = ""
+        if self.truncate_dim is not None:
+            out_txt += f" (truncated to {self.truncate_dim})"
 
-        target_embeddings = model.encode(
-            self.target_sentences,
-            show_progress_bar=self.show_progress_bar,
-            batch_size=self.batch_size,
-            convert_to_numpy=True,
-        )
+        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+            target_embeddings = model.encode(
+                self.target_sentences,
+                show_progress_bar=self.show_progress_bar,
+                batch_size=self.batch_size,
+                convert_to_numpy=True,
+            )
 
         mse = ((self.source_embeddings - target_embeddings) ** 2).mean()
         mse *= 100
 
-        logger.info("MSE evaluation (lower = better) on " + self.name + " dataset" + out_txt)
+        logger.info(f"MSE evaluation (lower = better) on the {self.name} dataset{out_txt}:")
         logger.info("MSE (*100):\t{:4f}".format(mse))
 
         if output_path is not None and self.write_csv:
