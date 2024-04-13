@@ -21,6 +21,7 @@ from .OnlineContrastiveLoss import OnlineContrastiveLoss
 from .MegaBatchMarginLoss import MegaBatchMarginLoss
 from .DenoisingAutoEncoderLoss import DenoisingAutoEncoderLoss
 from .GISTEmbedLoss import GISTEmbedLoss
+from .CachedGISTEmbedLoss import CachedGISTEmbedLoss
 
 # Triplet losses
 from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
@@ -42,6 +43,7 @@ __all__ = [
     "MSELoss",
     "ContrastiveLoss",
     "SiameseDistanceMetric",
+    "CachedGISTEmbedLoss",
     "CachedMultipleNegativesRankingLoss",
     "ContrastiveTensionLoss",
     "ContrastiveTensionLossInBatchNegatives",
