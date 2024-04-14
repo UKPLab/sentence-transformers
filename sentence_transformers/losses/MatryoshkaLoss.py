@@ -110,6 +110,21 @@ class MatryoshkaLoss(nn.Module):
         self.matryoshka_weights = matryoshka_weights
         self.n_dims_per_step = n_dims_per_step
 
+    @property
+    def matryoshka_dims(self):
+        return self._matryoshka_dims
+
+    @matryoshka_dims.setter
+    def matryoshka_dims(self, matryoshka_dims: List[int]):
+        model_output_dim = self.model.get_sentence_embedding_dimension()
+        for dim in matryoshka_dims:
+            if dim > model_output_dim:
+                raise ValueError(
+                    f"Dimension {dim} in matryoshka_dims is greater than the model's output dimension: "
+                    f"{model_output_dim}."
+                )
+        self._matryoshka_dims = matryoshka_dims
+
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         original_forward = self.model.forward
         try:
