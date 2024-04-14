@@ -21,6 +21,11 @@ class ForwardDecorator:
         self.idx = 0
 
     def shrink(self, tensor: Tensor) -> Tensor:
+        tensor_dim = tensor.shape[-1]
+        if self.dim > tensor_dim:
+            raise ValueError(
+                f"Dimension {self.dim} in matryoshka_dims is greater than the model's embedding dimension: {tensor_dim}"
+            )
         tensor = tensor[..., : self.dim]
         tensor = F.normalize(tensor, p=2, dim=-1)
         return tensor
@@ -109,21 +114,6 @@ class MatryoshkaLoss(nn.Module):
             matryoshka_weights = [1] * len(matryoshka_dims)
         self.matryoshka_weights = matryoshka_weights
         self.n_dims_per_step = n_dims_per_step
-
-    @property
-    def matryoshka_dims(self):
-        return self._matryoshka_dims
-
-    @matryoshka_dims.setter
-    def matryoshka_dims(self, matryoshka_dims: List[int]):
-        model_output_dim = self.model.get_sentence_embedding_dimension()
-        for dim in matryoshka_dims:
-            if dim > model_output_dim:
-                raise ValueError(
-                    f"Dimension {dim} in matryoshka_dims is greater than the model's output dimension: "
-                    f"{model_output_dim}."
-                )
-        self._matryoshka_dims = matryoshka_dims
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         original_forward = self.model.forward
