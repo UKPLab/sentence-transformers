@@ -23,3 +23,5 @@ build
 htmlcov
 .coverage
 .venv
+
+data/
