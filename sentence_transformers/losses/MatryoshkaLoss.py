@@ -24,7 +24,7 @@ class ForwardDecorator:
         tensor_dim = tensor.shape[-1]
         if self.dim > tensor_dim:
             raise ValueError(
-                f"Dimension {self.dim} in matryoshka_dims is greater than the model's embedding dimension: {tensor_dim}"
+                f"Dimension {self.dim} in matryoshka_dims cannot be greater than the model's embedding dimension: {tensor_dim}"
             )
         tensor = tensor[..., : self.dim]
         tensor = F.normalize(tensor, p=2, dim=-1)
