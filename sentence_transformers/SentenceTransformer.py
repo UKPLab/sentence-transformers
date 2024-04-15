@@ -597,7 +597,7 @@ class SentenceTransformer(nn.Sequential):
     def get_sentence_features(self, *features):
         return self._first_module().get_sentence_features(*features)
 
-    def get_sentence_embedding_dimension(self):
+    def get_sentence_embedding_dimension(self) -> Optional[int]:
         """
         :return: The number of dimensions in the output of `encode`. If it's not known, it's `None`.
         """
