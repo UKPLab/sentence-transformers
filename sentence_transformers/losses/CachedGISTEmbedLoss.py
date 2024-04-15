@@ -235,7 +235,7 @@ class CachedGISTEmbedLoss(nn.Module):
             guided_aa_sim = self.sim_matrix(anchor_guide[b:e], anchor_guide)
             guided_pp_sim = self.sim_matrix(positive_guide[b:e], positive_guide)
             # Define the anchor threshold
-            guided_sim = guided_ap_sim.diagonal().view(-1, 1)
+            guided_sim = guided_ap_sim.diagonal(offset=b).view(-1, 1)
 
             # Compute similarity scores for current mini-batch.
             # anchor (mbsz,hdim), positive (bsz,hdim)
