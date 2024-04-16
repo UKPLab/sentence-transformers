@@ -64,11 +64,11 @@ class SentenceTransformer(nn.Sequential):
     :param default_prompt_name: The name of the prompt that should be used by default. If not set,
         no prompt will be applied.
     :param cache_folder: Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
-    :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
-        for a stored model on Hugging Face.
     :param trust_remote_code: Whether or not to allow for custom models defined on the Hub in their own modeling files.
         This option should only be set to True for repositories you trust and in which you have read the code, as it
         will execute code present on the Hub on your local machine.
+    :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
+        for a stored model on Hugging Face.
     :param token: Hugging Face authentication token to download private models.
     :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
         only applicable during inference when `.encode` is called.
