@@ -66,9 +66,16 @@ class CachedGISTEmbedLoss(nn.Module):
         show_progress_bar: bool = False,
     ):
         """
-        This loss is a combination of GISTEmbedLoss and CachedMultipleNegativeRankingLoss.
-        Typically, MNR Loss requires a larger batch size for better performance.
-        GISTEmbedLoss yields stronger training signals than MNR Loss due to the use of a guide model for in-batch negative sample selection. Meanwhile, CachedMNR Loss allows for scaling of the batch size by dividing the computation into two stages of embedding and loss calculation, which both can be scaled by mini-batches(https://arxiv.org/pdf/2101.06983.pdf). By combining the guided selection from GISTEmbedLoss and Gradient Cache by CachedMNRLoss, it is possible to reduce memory usage while maintaining performance levels comparable to those of GISTEmbedLoss.
+        This loss is a combination of :class:`GISTEmbedLoss` and :class:`CachedMultipleNegativesRankingLoss`.
+        Typically, :class:`MultipleNegativesRankingLoss` requires a larger batch size for better performance.
+        :class:`GISTEmbedLoss` yields stronger training signals than :class:`MultipleNegativesRankingLoss` due to the
+        use of a guide model for in-batch negative sample selection. Meanwhile, :class:`CachedMultipleNegativesRankingLoss`
+        allows for scaling of the batch size by dividing the computation into two stages of embedding and loss
+        calculation, which both can be scaled by mini-batches (https://arxiv.org/pdf/2101.06983.pdf).
+
+        By combining the guided selection from :class:`GISTEmbedLoss` and Gradient Cache from
+        :class:`CachedMultipleNegativesRankingLoss`, it is possible to reduce memory usage while maintaining performance
+        levels comparable to those of :class:`GISTEmbedLoss`.
 
         :param model: SentenceTransformer model
         :param guide: SentenceTransformer model to guide the in-batch negative sample selection.
