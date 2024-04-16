@@ -63,11 +63,7 @@ class CrossEncoder(PushToHubMixin):
         default_activation_function=None,
         classifier_dropout: float = None,
     ):
-        self.config = AutoConfig.from_pretrained(
-            model_name,
-            trust_remote_code=trust_remote_code,
-            revision=revision
-        )
+        self.config = AutoConfig.from_pretrained(model_name, trust_remote_code=trust_remote_code, revision=revision)
         classifier_trained = True
         if self.config.architectures is not None:
             classifier_trained = any(
