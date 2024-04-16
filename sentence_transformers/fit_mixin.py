@@ -12,7 +12,13 @@ from torch.utils.data import DataLoader
 from tqdm.autonotebook import trange
 from datasets import Dataset, DatasetDict
 from transformers import TrainerCallback, TrainerState, TrainerControl
-from sentence_transformers.training_args import SentenceTransformerTrainingArguments
+from sentence_transformers.datasets.SentenceLabelDataset import SentenceLabelDataset
+from sentence_transformers.datasets.NoDuplicatesDataLoader import NoDuplicatesDataLoader
+from sentence_transformers.training_args import (
+    SentenceTransformerTrainingArguments,
+    MultiDatasetBatchSamplers,
+    BatchSamplers,
+)
 
 from .evaluation import SentenceEvaluator
 from .util import (
@@ -206,10 +212,16 @@ class FitMixin:
             data_loader.collate_fn = identity
 
         batch_size = None
+        batch_sampler = BatchSamplers.BATCH_SAMPLER
         # Convert dataloaders into a DatasetDict
         # TODO: This should be done in a more efficient way
         train_dataset_dict = {}
         for loader_idx, data_loader in enumerate(data_loaders, start=1):
+            if isinstance(data_loader, NoDuplicatesDataLoader):
+                batch_sampler = BatchSamplers.NO_DUPLICATES
+            elif isinstance(data_loader.dataset, SentenceLabelDataset):
+                batch_sampler = BatchSamplers.GROUP_BY_LABEL
+
             batch_size = getattr(data_loader, "batch_size", batch_size)
             texts = []
             labels = []
@@ -257,7 +269,8 @@ class FitMixin:
 
         args = SentenceTransformerTrainingArguments(
             output_dir=checkpoint_path or _default_checkpoint_dir(),
-            round_robin_sampler=True,
+            batch_sampler=batch_sampler,
+            multi_dataset_batch_sampler=MultiDatasetBatchSamplers.ROUND_ROBIN,
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
             num_train_epochs=epochs,

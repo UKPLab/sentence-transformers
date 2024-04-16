@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECK
 
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, ConcatDataset, Dataset
+from torch.utils.data import DataLoader, ConcatDataset, Dataset, BatchSampler, SubsetRandomSampler
 from transformers import PreTrainedTokenizerBase, Trainer, EvalPrediction, TrainerCallback
 from transformers.integrations import WandbCallback
 from transformers.trainer import TRAINING_ARGS_NAME
@@ -16,10 +16,20 @@ from transformers.trainer_utils import EvalLoopOutput
 from transformers.data.data_collator import DataCollator
 from sentence_transformers.losses import CoSENTLoss
 
-from sentence_transformers.training_args import SentenceTransformerTrainingArguments
+from sentence_transformers.training_args import (
+    SentenceTransformerTrainingArguments,
+    BatchSamplers,
+    MultiDatasetBatchSamplers,
+)
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator
-from sentence_transformers.sampler import ProportionalBatchSampler, RoundRobinBatchSampler
+from sentence_transformers.sampler import (
+    DefaultBatchSampler,
+    GroupByLabelBatchSampler,
+    NoDuplicatesBatchSampler,
+    ProportionalBatchSampler,
+    RoundRobinBatchSampler,
+)
 from sentence_transformers.util import disable_logging
 
 from sentence_transformers.model_card import ModelCardCallback
@@ -241,6 +251,61 @@ class SentenceTransformerTrainer(Trainer):
                 f"The following column names are invalid in your {dataset_name + ' ' if dataset_name else ''}dataset: {list(overlap)}."
             )
 
+    def get_batch_sampler(
+        self,
+        dataset: Dataset,
+        batch_size: int,
+        drop_last: bool,
+        valid_label_columns: Optional[List[str]] = None,
+        generator: Optional[torch.Generator] = None,
+    ) -> BatchSampler:
+        if self.args.batch_sampler == BatchSamplers.NO_DUPLICATES:
+            return NoDuplicatesBatchSampler(
+                dataset=dataset,
+                batch_size=batch_size,
+                drop_last=drop_last,
+                valid_label_columns=valid_label_columns,
+                generator=generator,
+            )
+
+        if self.args.batch_sampler == BatchSamplers.GROUP_BY_LABEL:
+            return GroupByLabelBatchSampler(
+                dataset=dataset,
+                batch_size=batch_size,
+                drop_last=drop_last,
+                valid_label_columns=valid_label_columns,
+            )
+
+        if self.args.batch_sampler == BatchSamplers.BATCH_SAMPLER:
+            return DefaultBatchSampler(
+                SubsetRandomSampler(range(len(dataset)), generator=generator),
+                batch_size=batch_size,
+                drop_last=drop_last,
+            )
+
+    def get_multi_dataset_batch_sampler(
+        self,
+        dataset: ConcatDataset,
+        batch_samplers: List[BatchSampler],
+        generator: Optional[torch.Generator] = None,
+        seed: Optional[int] = 0,
+    ) -> BatchSampler:
+        if self.args.multi_dataset_batch_sampler == MultiDatasetBatchSamplers.ROUND_ROBIN:
+            return RoundRobinBatchSampler(
+                dataset=dataset,
+                batch_samplers=batch_samplers,
+                generator=generator,
+                seed=seed,
+            )
+
+        if self.args.multi_dataset_batch_sampler == MultiDatasetBatchSamplers.PROPORTIONAL:
+            return ProportionalBatchSampler(
+                dataset=dataset,
+                batch_samplers=batch_samplers,
+                generator=generator,
+                seed=seed,
+            )
+
     def get_train_dataloader(self) -> DataLoader:
         """
         Returns the training [`~torch.utils.data.DataLoader`].
@@ -256,28 +321,50 @@ class SentenceTransformerTrainer(Trainer):
         train_dataset = self.train_dataset
         data_collator = self.data_collator
 
+        generator = torch.Generator()
+        if self.args.seed:
+            generator.manual_seed(self.args.seed)
+
         if isinstance(train_dataset, DatasetDict):
-            sizes = [len(ds) for ds in train_dataset.values()]
             for dataset_name, dataset in train_dataset.items():
                 self.validate_column_names(dataset, dataset_name=dataset_name)
             train_dataset = self.add_dataset_name_column(train_dataset)
+            batch_samplers = [
+                self.get_batch_sampler(
+                    dataset,
+                    batch_size=self.args.per_device_train_batch_size,
+                    drop_last=self.args.dataloader_drop_last,
+                    valid_label_columns=data_collator.valid_label_columns,
+                    generator=generator,
+                )
+                for dataset in train_dataset.values()
+            ]
+
             train_dataset = ConcatDataset(train_dataset.values())
+            batch_sampler = self.get_multi_dataset_batch_sampler(
+                dataset=train_dataset,
+                batch_samplers=batch_samplers,
+                generator=generator,
+                seed=self.args.seed,
+            )
+
         else:
             self.validate_column_names(train_dataset)
-            sizes = [len(train_dataset)]
 
-        batch_sampler_class = RoundRobinBatchSampler if self.args.round_robin_sampler else ProportionalBatchSampler
+            batch_sampler = self.get_batch_sampler(
+                train_dataset,
+                batch_size=self.args.train_batch_size,
+                drop_last=self.args.dataloader_drop_last,
+                valid_label_columns=data_collator.valid_label_columns,
+                generator=generator,
+            )
+
         dataloader_params = {
             "collate_fn": data_collator,
             "num_workers": self.args.dataloader_num_workers,
             "pin_memory": self.args.dataloader_pin_memory,
             "persistent_workers": self.args.dataloader_persistent_workers,
-            "batch_sampler": batch_sampler_class(
-                lengths=sizes,
-                batch_size=self.args.train_batch_size,
-                drop_last=self.args.dataloader_drop_last,
-                seed=self.args.seed,
-            ),
+            "batch_sampler": batch_sampler,
         }
 
         # If 'even_batches' is True, it will use the initial few samples to pad out the last sample. This can
@@ -306,26 +393,47 @@ class SentenceTransformerTrainer(Trainer):
         eval_dataset = eval_dataset if eval_dataset is not None else self.eval_dataset
         data_collator = self.data_collator
 
+        generator = torch.Generator()
+        if self.args.seed:
+            generator.manual_seed(self.args.seed)
+
         # TODO: Correctly validate the column names for the eval_dataset
         if isinstance(eval_dataset, DatasetDict):
-            sizes = [len(ds) for ds in eval_dataset.values()]
             eval_dataset = self.add_dataset_name_column(eval_dataset)
-            eval_dataset = ConcatDataset(eval_dataset.values())
-        else:
-            sizes = [len(eval_dataset)]
+            eval_dataset = self.add_dataset_name_column(eval_dataset)
+            batch_samplers = [
+                self.get_batch_sampler(
+                    dataset,
+                    batch_size=self.args.per_device_eval_batch_size,
+                    drop_last=self.args.dataloader_drop_last,
+                    valid_label_columns=data_collator.valid_label_columns,
+                    generator=generator,
+                )
+                for dataset in eval_dataset.values()
+            ]
 
-        batch_sampler_class = RoundRobinBatchSampler if self.args.round_robin_sampler else ProportionalBatchSampler
+            eval_dataset = ConcatDataset(eval_dataset.values())
+            batch_sampler = self.get_multi_dataset_batch_sampler(
+                dataset=eval_dataset,
+                batch_samplers=batch_samplers,
+                generator=generator,
+                seed=self.args.seed,
+            )
+        else:
+            batch_sampler = self.get_batch_sampler(
+                eval_dataset,
+                batch_size=self.args.train_batch_size,
+                drop_last=self.args.dataloader_drop_last,
+                valid_label_columns=data_collator.valid_label_columns,
+                generator=generator,
+            )
+
         dataloader_params = {
             "collate_fn": data_collator,
             "num_workers": self.args.dataloader_num_workers,
             "pin_memory": self.args.dataloader_pin_memory,
             "persistent_workers": self.args.dataloader_persistent_workers,
-            "batch_sampler": batch_sampler_class(
-                lengths=sizes,
-                batch_size=self.args.train_batch_size,
-                drop_last=self.args.dataloader_drop_last,
-                seed=self.args.seed,
-            ),
+            "batch_sampler": batch_sampler,
         }
 
         # If 'even_batches' is True, it will use the initial few samples to pad out the last sample. This can
