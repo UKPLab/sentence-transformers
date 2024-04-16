@@ -18,7 +18,7 @@ setup(
     packages=find_packages(),
     python_requires=">=3.8.0",
     install_requires=[
-        "transformers>=4.32.0,<5.0.0",
+        "transformers>=4.34.0,<5.0.0",
         "tqdm",
         "torch>=1.11.0",
         "numpy",
