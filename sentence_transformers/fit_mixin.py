@@ -219,7 +219,7 @@ class FitMixin:
         for loader_idx, data_loader in enumerate(data_loaders, start=1):
             if isinstance(data_loader, NoDuplicatesDataLoader):
                 batch_sampler = BatchSamplers.NO_DUPLICATES
-            elif isinstance(data_loader.dataset, SentenceLabelDataset):
+            elif hasattr(data_loader, "dataset") and isinstance(data_loader.dataset, SentenceLabelDataset):
                 batch_sampler = BatchSamplers.GROUP_BY_LABEL
 
             batch_size = getattr(data_loader, "batch_size", batch_size)
