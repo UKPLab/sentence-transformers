@@ -386,7 +386,7 @@ class SentenceTransformerModelCardData(CardData):
         num_samples_to_encode = 500
         source_sentences = set()
         for dataset_name in tqdm(dataset_names, desc="Computing widget examples", unit="example", leave=False):
-            # Sample 1000 examples from the dataset, get the 100 shortest texts and encode them
+            # Sample 1000 examples from the dataset, get the 500 shortest texts and encode them
             dataset_size = len(dataset[dataset_name])
             samples = dataset[dataset_name].select(
                 random.sample(range(dataset_size), k=min(num_samples, dataset_size))
@@ -394,17 +394,20 @@ class SentenceTransformerModelCardData(CardData):
             all_texts = {
                 value
                 for sample in samples
-                for value in sample.values()
-                if isinstance(value, str) and value not in source_sentences
+                for key, value in sample.items()
+                if isinstance(value, str) and value not in source_sentences and key != "dataset_name"
             }
+            if len(all_texts) < 5:
+                continue
+
             all_texts = sorted(all_texts, key=len)[:num_samples_to_encode]
             embeddings = self.model.encode(all_texts, show_progress_bar=False)
 
             # Select a relatively short example from the dataset as the source,
             # and find the most similar, median, and dissimilar examples
-            source_sentence_idx, source_sentence = sorted(
-                [(idx, text) for idx, text in enumerate(all_texts)], key=lambda x: len(x[1])
-            )[min(len(all_texts), 10)]
+            source_sentence_idx, source_sentence = sorted(list(enumerate(all_texts)), key=lambda x: len(x[1]))[
+                min(len(all_texts) - 1, 10)
+            ]
             _, indices = cos_sim(embeddings[source_sentence_idx], embeddings)[0].sort()
             similar_sentence = all_texts[indices[-2]]
             median_sentence = all_texts[len(all_texts) // 2]
@@ -416,7 +419,8 @@ class SentenceTransformerModelCardData(CardData):
                 }
             )
             source_sentences.add(source_sentence)
-        self.predict_example = [source_sentence, similar_sentence, median_sentence]
+
+            self.predict_example = [source_sentence, similar_sentence, median_sentence]
 
     def set_evaluation_metrics(self, evaluator: "SentenceEvaluator", metrics: Dict[str, Any]):
         self.eval_results_dict[evaluator] = copy(metrics)
