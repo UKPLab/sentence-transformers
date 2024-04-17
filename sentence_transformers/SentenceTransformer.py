@@ -4,7 +4,7 @@ import os
 import shutil
 from collections import OrderedDict
 import warnings
-from typing import List, Dict, Literal, Tuple, Iterable, Type, Union, Callable, Optional, TYPE_CHECKING
+from typing import List, Dict, Literal, Tuple, Iterable, Type, Union, Callable, Optional, TYPE_CHECKING, Any
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -82,6 +82,7 @@ class SentenceTransformer(nn.Sequential):
         revision: Optional[str] = None,
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
+        model_args: Optional[Dict[str, Any]] = None
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
@@ -194,6 +195,7 @@ class SentenceTransformer(nn.Sequential):
                     cache_folder=cache_folder,
                     revision=revision,
                     trust_remote_code=trust_remote_code,
+                    model_args=model_args
                 )
             else:
                 modules = self._load_auto_model(
@@ -202,6 +204,7 @@ class SentenceTransformer(nn.Sequential):
                     cache_folder=cache_folder,
                     revision=revision,
                     trust_remote_code=trust_remote_code,
+                    model_args=model_args
                 )
 
         if modules is not None and not isinstance(modules, OrderedDict):
@@ -1122,6 +1125,7 @@ class SentenceTransformer(nn.Sequential):
         cache_folder: Optional[str],
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
+        model_args: Optional[Dict[str, Any]] = None
     ):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
@@ -1134,7 +1138,8 @@ class SentenceTransformer(nn.Sequential):
         transformer_model = Transformer(
             model_name_or_path,
             cache_dir=cache_folder,
-            model_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
+            model_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision} | (
+                        model_args or {}),
             tokenizer_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
@@ -1147,6 +1152,7 @@ class SentenceTransformer(nn.Sequential):
         cache_folder: Optional[str],
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
+        model_args: Optional[Dict[str, Any]] = None
     ):
         """
         Loads a full sentence-transformers model
@@ -1226,6 +1232,9 @@ class SentenceTransformer(nn.Sequential):
                     kwargs["model_args"].update(hub_kwargs)
                 else:
                     kwargs["model_args"] = hub_kwargs
+                if model_args is not None:
+                    kwargs["model_args"].update(model_args)
+
                 if "tokenizer_args" in kwargs:
                     kwargs["tokenizer_args"].update(hub_kwargs)
                 else:
