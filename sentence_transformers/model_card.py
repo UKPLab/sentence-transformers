@@ -642,11 +642,8 @@ class SentenceTransformerModelCardData(CardData):
     ) -> Dict[str, Any]:
         if dataset:
             if dataset_metadata and (
-                (
-                    isinstance(self.trainer.train_dataset, DatasetDict)
-                    and len(dataset_metadata) != len(self.trainer.train_dataset)
-                )
-                or (isinstance(self.trainer.train_dataset, Dataset) and len(dataset_metadata) != 1)
+                (isinstance(dataset, DatasetDict) and len(dataset_metadata) != len(dataset))
+                or (isinstance(dataset, Dataset) and len(dataset_metadata) != 1)
             ):
                 logger.warning(
                     f"The number of `{dataset_type}_datasets` in the model card data does not match the number of {dataset_type} datasets in the Trainer. "
@@ -655,25 +652,21 @@ class SentenceTransformerModelCardData(CardData):
                 dataset_metadata = []
 
             if not dataset_metadata:
-                dataset_metadata = self.infer_datasets(self.trainer.train_dataset)
+                dataset_metadata = self.infer_datasets(dataset)
 
-            if isinstance(self.trainer.train_dataset, DatasetDict):
+            if isinstance(dataset, DatasetDict):
                 dataset_metadata = [
                     self.compute_dataset_metrics(
-                        dataset,
+                        dataset_value,
                         dataset_info,
                         self.trainer.loss[dataset_name] if isinstance(self.trainer.loss, dict) else self.trainer.loss,
                     )
-                    for dataset_name, dataset, dataset_info in zip(
-                        self.trainer.train_dataset.keys(),
-                        self.trainer.train_dataset.values(),
-                        dataset_metadata,
+                    for dataset_name, dataset_value, dataset_info in zip(
+                        dataset.keys(), dataset.values(), dataset_metadata
                     )
                 ]
             else:
-                dataset_metadata = [
-                    self.compute_dataset_metrics(self.trainer.train_dataset, dataset_metadata[0], self.trainer.loss)
-                ]
+                dataset_metadata = [self.compute_dataset_metrics(dataset, dataset_metadata[0], self.trainer.loss)]
 
         return self.validate_datasets(dataset_metadata)
 
