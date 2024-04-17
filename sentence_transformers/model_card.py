@@ -829,8 +829,7 @@ class SentenceTransformerModelCardData(CardData):
 
         # Extract some meaningful examples from the evaluation or training dataset to showcase the performance
         if self.trainer and self.widget_step < self.trainer.state.global_step and self.generate_widget_examples:
-            dataset = self.trainer.eval_dataset or self.trainer.train_dataset
-            if dataset:
+            if dataset := self.trainer.eval_dataset or self.trainer.train_dataset:
                 self.set_widget_examples(dataset)
                 self.widget_step = self.trainer.state.global_step
 
