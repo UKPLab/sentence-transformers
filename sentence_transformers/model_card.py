@@ -527,14 +527,20 @@ class SentenceTransformerModelCardData(CardData):
     ) -> Dict[str, str]:
         """
         Given a dataset, compute the following:
-        Dataset Size
-        Columns
-        Stats
-            Strings: min, mean, max word count/token length
-            Integers: Counter() instance
-            Floats: min, mean, max range?
-        ~3 Example samples
+        * Dataset Size
+        * Dataset Columns
+        * Dataset Stats
+            - Strings: min, mean, max word count/token length
+            - Integers: Counter() instance
+            - Floats: min, mean, max range
+            - List: number of elements or min, mean, max number of elements
+        * 3 Example samples
+        * Loss function name
+            - Loss function config
         """
+        if not dataset:
+            return {}
+
         dataset_info["size"] = len(dataset)
         dataset_info["columns"] = [f"<code>{column}</code>" for column in dataset.column_names]
         dataset_info["stats"] = {}
