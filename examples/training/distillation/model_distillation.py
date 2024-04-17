@@ -205,6 +205,6 @@ student_model.fit(
     evaluation_steps=5000,
     output_path=output_path,
     save_best_model=True,
-    optimizer_params={"lr": 1e-4, "eps": 1e-6, "correct_bias": False},
+    optimizer_params={"lr": 1e-4, "eps": 1e-6},
     use_amp=True,
 )
