@@ -211,7 +211,7 @@ class FitMixin:
         for data_loader in data_loaders:
             data_loader.collate_fn = identity
 
-        batch_size = None
+        batch_size = 8
         batch_sampler = BatchSamplers.BATCH_SAMPLER
         # Convert dataloaders into a DatasetDict
         # TODO: This should be done in a more efficient way
