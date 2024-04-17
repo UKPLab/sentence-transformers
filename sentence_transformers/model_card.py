@@ -599,6 +599,8 @@ class SentenceTransformerModelCardData(CardData):
                             "max": f"{max(counter)} elements",
                         },
                     }
+            else:
+                dataset_info["stats"][column] = {"dtype": fullname(first), "data": {}}
 
         def to_html_list(data: dict):
             return "<ul><li>" + "</li><li>".join(f"{key}: {value}" for key, value in data.items()) + "</li></ul>"
