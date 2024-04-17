@@ -335,6 +335,7 @@ def test_save_load_prompts() -> None:
         assert fresh_model.default_prompt_name == "query"
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
 def test_load_with_model_args() -> None:
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
 
