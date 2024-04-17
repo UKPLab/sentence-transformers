@@ -2,7 +2,7 @@
 The system trains BERT (or any other transformer model like RoBERTa, DistilBERT etc.) on the SNLI + MultiNLI (AllNLI) dataset
 with MatryoshkaLoss using MultipleNegativesRankingLoss. This trains a model at output dimensions [768, 512, 256, 128, 64].
 Entailments are positive pairs and the contradiction on AllNLI dataset is added as a hard negative.
-At every 10% training steps, the model is evaluated on the STS benchmark dataset
+At every 10% training steps, the model is evaluated on the STS benchmark dataset at the different output dimensions.
 
 The difference between this script and matryoshka_nli.py is that this script uses a reduced dimensionality of the base
 model by adding a Dense layer with `reduced_dim=256` output dimensions. This might be useful when your desired output
@@ -19,7 +19,7 @@ import math
 from datasets import load_dataset
 from sentence_transformers import models, losses, datasets
 from sentence_transformers import LoggingHandler, SentenceTransformer, util, InputExample
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SimilarityFunction
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SequentialEvaluator, SimilarityFunction
 import logging
 from datetime import datetime
 import sys
@@ -39,6 +39,7 @@ train_batch_size = 128  # The larger you select this, the better the results (us
 max_seq_length = 75
 num_epochs = 1
 reduced_dim = 256
+matryoshka_dims = [256, 128, 64, 32, 16]
 
 # Save path of the model
 model_save_path = (
@@ -103,16 +104,22 @@ train_dataloader = datasets.NoDuplicatesDataLoader(train_samples, batch_size=tra
 
 # Our training loss
 train_loss = losses.MultipleNegativesRankingLoss(model)
-train_loss = losses.MatryoshkaLoss(model, train_loss, [256, 128, 64, 32, 16])
+train_loss = losses.MatryoshkaLoss(model, train_loss, matryoshka_dims=matryoshka_dims)
 
 stsb_dev = load_dataset("mteb/stsbenchmark-sts", split="validation")
-dev_evaluator = EmbeddingSimilarityEvaluator(
-    stsb_dev["sentence1"],
-    stsb_dev["sentence2"],
-    [score / 5 for score in stsb_dev["score"]],
-    main_similarity=SimilarityFunction.COSINE,
-    name="sts-dev",
-)
+evaluators = []
+for dim in matryoshka_dims:
+    evaluators.append(
+        EmbeddingSimilarityEvaluator(
+            stsb_dev["sentence1"],
+            stsb_dev["sentence2"],
+            [score / 5 for score in stsb_dev["score"]],
+            main_similarity=SimilarityFunction.COSINE,
+            name=f"sts-dev-{dim}",
+            truncate_dim=dim,
+        )
+    )
+dev_evaluator = SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[0])
 
 # Configure the training
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
@@ -140,14 +147,21 @@ model.fit(
 
 model = SentenceTransformer(model_save_path)
 stsb_test = load_dataset("mteb/stsbenchmark-sts", split="test")
-test_evaluator = EmbeddingSimilarityEvaluator(
-    stsb_test["sentence1"],
-    stsb_test["sentence2"],
-    [score / 5 for score in stsb_test["score"]],
-    main_similarity=SimilarityFunction.COSINE,
-    name="sts-test",
-)
+evaluators = []
+for dim in matryoshka_dims:
+    evaluators.append(
+        EmbeddingSimilarityEvaluator(
+            stsb_test["sentence1"],
+            stsb_test["sentence2"],
+            [score / 5 for score in stsb_test["score"]],
+            main_similarity=SimilarityFunction.COSINE,
+            name=f"sts-test-{dim}",
+            truncate_dim=dim,
+        )
+    )
+test_evaluator = SequentialEvaluator(evaluators)
 test_evaluator(model, output_path=model_save_path)
+
 
 # Optionally, save the model to the Hugging Face Hub!
 # It is recommended to run `huggingface-cli login` to log into your Hugging Face account first

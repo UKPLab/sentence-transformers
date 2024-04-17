@@ -21,6 +21,11 @@ class ForwardDecorator:
         self.idx = 0
 
     def shrink(self, tensor: Tensor) -> Tensor:
+        tensor_dim = tensor.shape[-1]
+        if self.dim > tensor_dim:
+            raise ValueError(
+                f"Dimension {self.dim} in matryoshka_dims cannot be greater than the model's embedding dimension: {tensor_dim}"
+            )
         tensor = tensor[..., : self.dim]
         tensor = F.normalize(tensor, p=2, dim=-1)
         return tensor
@@ -112,21 +117,22 @@ class MatryoshkaLoss(nn.Module):
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         original_forward = self.model.forward
-        decorated_forward = ForwardDecorator(original_forward)
-        self.model.forward = decorated_forward
+        try:
+            decorated_forward = ForwardDecorator(original_forward)
+            self.model.forward = decorated_forward
 
-        dim_indices = range(len(self.matryoshka_dims))
-        if self.n_dims_per_step > 0 and self.n_dims_per_step < len(dim_indices):
-            dim_indices = random.sample(dim_indices, self.n_dims_per_step)
+            dim_indices = range(len(self.matryoshka_dims))
+            if self.n_dims_per_step > 0 and self.n_dims_per_step < len(dim_indices):
+                dim_indices = random.sample(dim_indices, self.n_dims_per_step)
 
-        loss = 0.0
-        for idx in dim_indices:
-            dim = self.matryoshka_dims[idx]
-            weight = self.matryoshka_weights[idx]
-            decorated_forward.set_dim(dim)
-            loss += weight * self.loss(sentence_features, labels)
-
-        self.model.forward = original_forward
+            loss = 0.0
+            for idx in dim_indices:
+                dim = self.matryoshka_dims[idx]
+                weight = self.matryoshka_weights[idx]
+                decorated_forward.set_dim(dim)
+                loss += weight * self.loss(sentence_features, labels)
+        finally:
+            self.model.forward = original_forward
         return loss
 
     def get_config_dict(self) -> Dict[str, Any]:

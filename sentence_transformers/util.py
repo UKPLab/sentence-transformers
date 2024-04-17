@@ -10,7 +10,7 @@ import torch
 import numpy as np
 import queue
 import logging
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, overload
 
 from transformers import is_torch_npu_available
 from huggingface_hub import snapshot_download, hf_hub_download
@@ -140,6 +140,25 @@ def normalize_embeddings(embeddings: Tensor) -> Tensor:
     Normalizes the embeddings matrix, so that each sentence embedding has unit length
     """
     return torch.nn.functional.normalize(embeddings, p=2, dim=1)
+
+
+@overload
+def truncate_embeddings(embeddings: np.ndarray, truncate_dim: Optional[int]) -> np.ndarray: ...
+
+
+@overload
+def truncate_embeddings(embeddings: torch.Tensor, truncate_dim: Optional[int]) -> torch.Tensor: ...
+
+
+def truncate_embeddings(
+    embeddings: Union[np.ndarray, torch.Tensor], truncate_dim: Optional[int]
+) -> Union[np.ndarray, torch.Tensor]:
+    """
+    :param embeddings: Embeddings to truncate.
+    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation.
+    :return: Truncated embeddings.
+    """
+    return embeddings[..., :truncate_dim]
 
 
 def paraphrase_mining(
@@ -592,7 +611,7 @@ def save_to_hub_args_decorator(func):
     return wrapper
 
 
-def get_device_name() -> Literal["mps", "cuda", "npu", "cpu"]:
+def get_device_name() -> Literal["mps", "cuda", "npu", "hpu", "cpu"]:
     """
     Returns the name of the device where this module is running on.
     It's simple implementation that doesn't cover cases when more powerful GPUs are available and
@@ -607,5 +626,9 @@ def get_device_name() -> Literal["mps", "cuda", "npu", "cpu"]:
         return "mps"
     elif is_torch_npu_available():
         return "npu"
-    else:
-        return "cpu"
+    elif importlib.util.find_spec("habana_frameworks") is not None:
+        import habana_frameworks.torch.hpu as hthpu
+
+        if hthpu.is_available():
+            return "hpu"
+    return "cpu"

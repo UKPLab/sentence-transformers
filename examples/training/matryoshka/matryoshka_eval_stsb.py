@@ -4,10 +4,8 @@ benchmark.
 """
 
 import argparse
-from contextlib import contextmanager
-from functools import wraps
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Dict, List, Optional, Tuple, cast
 
 from datasets import load_dataset
 import numpy as np
@@ -17,48 +15,7 @@ from sentence_transformers.evaluation import (
     EmbeddingSimilarityEvaluator,
     SimilarityFunction,
 )
-import torch
 from tqdm.auto import tqdm
-
-
-# Util to truncate
-# Should patch instance, not the class b/c maybe there are other models floating around
-# that shouldn't get truncated
-@contextmanager
-def _monkeypatch_instance_method(obj: Any, method_name: str, new_method: Callable):
-    original_method = getattr(obj, method_name)
-    # Need to use __get__ when patching instance methods
-    # https://stackoverflow.com/a/28127947/18758987
-    try:
-        setattr(obj, method_name, new_method.__get__(obj, obj.__class__))
-        yield
-    finally:
-        setattr(obj, method_name, original_method.__get__(obj, obj.__class__))
-
-
-@contextmanager
-def truncate_embeddings(model: SentenceTransformer, dim: int):
-    """
-    In this context, the `model` outputs embeddings truncated at dimension `dim`.
-
-    Parameters
-    ----------
-    model : SentenceTransformer
-        model where `model.encode` outputs a (D,) or (N, D) array or tensor of
-        embeddings given text(s)
-    dim : int
-        dimension to truncate at. So a (N, D) array becomes (N, `dim`)
-    """
-
-    original_encode = model.encode
-
-    @wraps(original_encode)
-    def encode(self, *args, **kwargs) -> Union[np.ndarray, torch.Tensor]:
-        embeddings = original_encode(*args, **kwargs)
-        return embeddings[..., :dim]
-
-    with _monkeypatch_instance_method(model, "encode", encode):
-        yield
 
 
 # Dimension plot
@@ -202,7 +159,7 @@ if __name__ == "__main__":
         for dim in tqdm(DIMENSIONS, desc=f"Evaluating {model_name}"):
             output_path = os.path.join(model_name, f"dim-{dim}")
             os.makedirs(output_path)
-            with truncate_embeddings(model, dim):
+            with model.truncate_sentence_embeddings(dim):
                 score = test_evaluator(model, output_path=output_path)
             print(f"Saved results to {output_path}")
             dim_to_score[dim] = score

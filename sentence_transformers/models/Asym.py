@@ -90,7 +90,7 @@ class Asym(nn.Sequential):
                 indent=2,
             )
 
-    def tokenize(self, texts: Union[List[str], List[Tuple[str, str]]]):
+    def tokenize(self, texts: Union[List[str], List[Tuple[str, str]]], **kwargs):
         """
         Tokenizes a text and maps tokens to token-ids
         """
@@ -105,7 +105,7 @@ class Asym(nn.Sequential):
                 module_key = text_key
 
             assert text_key == module_key  # Mixed batches are not allowed
-        return self.sub_modules[module_key][0].tokenize(texts)
+        return self.sub_modules[module_key][0].tokenize(texts, **kwargs)
 
     @staticmethod
     def load(input_path):

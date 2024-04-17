@@ -39,6 +39,9 @@ class CrossEncoder(PushToHubMixin):
     :param device: Device that should be used for the model. If None, it will use CUDA if available.
     :param tokenizer_args: Arguments passed to AutoTokenizer
     :param automodel_args: Arguments passed to AutoModelForSequenceClassification
+    :param trust_remote_code: Whether or not to allow for custom models defined on the Hub in their own modeling files.
+        This option should only be set to True for repositories you trust and in which you have read the code, as it
+        will execute code present on the Hub on your local machine.
     :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
         for a stored model on Hugging Face.
     :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that
@@ -55,11 +58,12 @@ class CrossEncoder(PushToHubMixin):
         device: str = None,
         tokenizer_args: Dict = {},
         automodel_args: Dict = {},
+        trust_remote_code: bool = False,
         revision: Optional[str] = None,
         default_activation_function=None,
         classifier_dropout: float = None,
     ):
-        self.config = AutoConfig.from_pretrained(model_name, revision=revision)
+        self.config = AutoConfig.from_pretrained(model_name, trust_remote_code=trust_remote_code, revision=revision)
         classifier_trained = True
         if self.config.architectures is not None:
             classifier_trained = any(
@@ -74,9 +78,8 @@ class CrossEncoder(PushToHubMixin):
 
         if num_labels is not None:
             self.config.num_labels = num_labels
-
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            model_name, config=self.config, revision=revision, **automodel_args
+            model_name, config=self.config, revision=revision, trust_remote_code=trust_remote_code, **automodel_args
         )
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision, **tokenizer_args)
         self.max_length = max_length
