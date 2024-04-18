@@ -24,8 +24,9 @@ if [ ! \( -d top1000 \) ]; then
   if [ ! \( -f top1000.dev.tar.gz \) ]; then
     wget https://msmarco.z22.web.core.windows.net/msmarcoranking/top1000.dev.tar.gz
   fi
-  tar -xvzf top1000.tar.gz -C top1000 &&
-  rm top1000.dev.tar.gz
+  tar -xvzf top1000.dev.tar.gz -C top1000 &&
+  rm top1000.dev.tar.gz &&
+  mv data/top1000/top1000.dev data/top1000/top1000.dev.tsv
 fi
 # wget https://msmarco.z22.web.core.windows.net/msmarcoranking/queries.tar.gz
 # wget https://msmarco.z22.web.core.windows.net/msmarcoranking/collection.tar.gz
