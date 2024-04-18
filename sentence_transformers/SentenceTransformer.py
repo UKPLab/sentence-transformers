@@ -5,7 +5,7 @@ import os
 from collections import OrderedDict
 from pathlib import Path
 import warnings
-from typing import List, Dict, Literal, Tuple, Iterable, Union, Optional, TYPE_CHECKING
+from typing import List, Dict, Literal, Tuple, Iterable, Union, Optional
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -40,10 +40,6 @@ from .fit_mixin import FitMixin
 from . import __version__
 
 logger = logging.getLogger(__name__)
-
-
-if TYPE_CHECKING:
-    pass
 
 
 class SentenceTransformer(nn.Sequential, FitMixin):
