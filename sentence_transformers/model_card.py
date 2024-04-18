@@ -682,7 +682,7 @@ class SentenceTransformerModelCardData(CardData):
             return True
         return False
 
-    def try_to_set_base_model(self):
+    def try_to_set_base_model(self) -> None:
         if isinstance(self.model[0], Transformer):
             base_model = self.model[0].auto_model.config._name_or_path
             base_model_path = Path(base_model)

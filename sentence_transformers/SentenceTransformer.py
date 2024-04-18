@@ -1021,6 +1021,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
 
+        self.model_card_data.set_base_model(model_name_or_path)
         return modules
 
     @staticmethod
