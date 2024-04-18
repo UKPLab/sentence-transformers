@@ -7,7 +7,7 @@ from pathlib import Path
 from platform import python_version
 import re
 from textwrap import indent
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Set, Tuple, Union
 import logging
 
 import accelerate
@@ -65,6 +65,8 @@ class ModelCardCallback(TrainerCallback):
         model: "SentenceTransformer",
         **kwargs,
     ):
+        from sentence_transformers.losses import AdaptiveLayerLoss, Matryoshka2dLoss, MatryoshkaLoss
+
         # Try to infer the dataset "name", "id" and "revision" from the dataset cache files
         if self.trainer.train_dataset:
             model.model_card_data.train_datasets = model.model_card_data.extract_dataset_metadata(
@@ -77,10 +79,23 @@ class ModelCardCallback(TrainerCallback):
             )
 
         if isinstance(self.trainer.loss, dict):
-            losses = self.trainer.loss.values()
+            losses = list(self.trainer.loss.values())
         else:
             losses = [self.trainer.loss]
-        model.model_card_data.set_citations(losses)
+        # Some losses are known to use other losses internally, e.g. MatryoshkaLoss, AdaptiveLayerLoss and Matryoshka2dLoss
+        # So, verify for `loss` attributes in the losses
+        loss_idx = 0
+        while loss_idx < len(losses):
+            loss = losses[loss_idx]
+            if (
+                isinstance(loss, (MatryoshkaLoss, AdaptiveLayerLoss, Matryoshka2dLoss))
+                and hasattr(loss, "loss")
+                and loss.loss not in losses
+            ):
+                losses.append(loss.loss)
+            loss_idx += 1
+
+        model.model_card_data.set_losses(losses)
 
     def on_train_begin(
         self,
@@ -271,6 +286,7 @@ class SentenceTransformerModelCardData(CardData):
     train_set_sentences_per_label_list: List[Dict[str, str]] = field(default_factory=list, init=False)
     code_carbon_callback: Optional[CodeCarbonCallback] = field(default=None, init=False)
     citations: Dict[str, str] = field(default_factory=dict, init=False)
+    loss_names: Set[str] = field(default_factory=set, init=False)
     best_model_step: Optional[int] = field(default=None, init=False)
     metrics: List[str] = field(default_factory=list, init=False)
     trainer: Optional["SentenceTransformerTrainer"] = field(default=None, init=False, repr=False)
@@ -342,7 +358,7 @@ class SentenceTransformerModelCardData(CardData):
             output_dataset_list.append(dataset)
         return output_dataset_list
 
-    def set_citations(self, losses: nn.Module) -> None:
+    def set_losses(self, losses: nn.Module) -> None:
         citations = {
             "Sentence Transformers": """
 @inproceedings{reimers-2019-sentence-bert,
@@ -371,6 +387,7 @@ class SentenceTransformerModelCardData(CardData):
             return losses[0]
 
         self.citations = {join_list(losses): citation for citation, losses in inverted_citations.items()}
+        self.loss_names = {loss.__class__.__name__: loss for loss in losses}
 
     def set_best_model_step(self, step: int) -> None:
         self.best_model_step = step
@@ -883,6 +900,8 @@ class SentenceTransformerModelCardData(CardData):
         super_dict["model_max_length"] = self.model.get_max_seq_length()
         super_dict["output_dimensionality"] = self.model.get_sentence_embedding_dimension()
         super_dict["model_string"] = str(self.model)
+
+        super_dict["tags"] += self.loss_names
 
         self.first_save = False
 
