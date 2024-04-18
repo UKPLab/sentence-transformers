@@ -1,4 +1,6 @@
+from pathlib import Path
 import re
+import tempfile
 import pytest
 from sentence_transformers import SentenceTransformerTrainer, SentenceTransformer, losses
 from datasets import DatasetDict
@@ -100,3 +102,26 @@ def test_trainer_invalid_column_names(
             ),
         ):
             trainer.train()
+
+
+def test_model_card_reuse(stsb_bert_tiny_model: SentenceTransformer):
+    assert stsb_bert_tiny_model._model_card_text
+    # Reuse the model card if no training was done
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model_path = Path(tmp_folder) / "tiny_model_local"
+        stsb_bert_tiny_model.save(str(model_path))
+
+        with open(model_path / "README.md", "r") as f:
+            model_card_text = f.read()
+        assert model_card_text == stsb_bert_tiny_model._model_card_text
+
+    # Create a new model card if a Trainer was initialized
+    SentenceTransformerTrainer(model=stsb_bert_tiny_model)
+
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model_path = Path(tmp_folder) / "tiny_model_local"
+        stsb_bert_tiny_model.save(str(model_path))
+
+        with open(model_path / "README.md", "r") as f:
+            model_card_text = f.read()
+        assert model_card_text != stsb_bert_tiny_model._model_card_text

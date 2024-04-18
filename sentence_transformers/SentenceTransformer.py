@@ -718,24 +718,31 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = "deprecated"
     ):
         """
-        Create an automatic model and stores it in path
+        Create an automatic model and stores it in path. If no training was done, and the loaded model was
+        a Sentence Transformer model already, then its model card is reused.
         """
         if model_name:
             model_path = Path(model_name)
             if not model_path.exists() and not self.model_card_data.model_id:
                 self.model_card_data.model_id = model_name
 
-        try:
-            model_card = generate_model_card(self)
-        except Exception as exc:
-            logger.error(
-                f"Error while generating model card: {exc}\n"
-                "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with these logs.\n"
-                "Skipping model card creation."
-            )
+        # If we loaded a Sentence Transformer model from the Hub, and no training was done, then
+        # we don't generate a new model card, but reuse the old one instead.
+        if self._model_card_text and self.model_card_data.trainer is None:
+            model_card = self._model_card_text
         else:
-            with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
-                fOut.write(model_card)
+            try:
+                model_card = generate_model_card(self)
+            except Exception as exc:
+                logger.error(
+                    f"Error while generating model card: {exc}\n"
+                    "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with these logs.\n"
+                    "Skipping model card creation."
+                )
+                return
+
+        with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
+            fOut.write(model_card)
 
     @save_to_hub_args_decorator
     def save_to_hub(
