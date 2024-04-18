@@ -621,6 +621,8 @@ class SentenceTransformerModelCardData(CardData):
                 # If the value is a long list, truncate it
                 if isinstance(value, list) and len(value) > 5:
                     value = str(value[:5])[:-1] + ", ...]"
+                # Avoid newlines in the table
+                value = value.replace("\n", "<br>")
                 columns[column] = f"<code>{value}</code>"
             examples_lines.append(columns)
         dataset_info["examples_table"] = indent(make_markdown_table(examples_lines).replace("-:|", "--|"), "  ")
@@ -830,8 +832,6 @@ class SentenceTransformerModelCardData(CardData):
         return results
 
     def to_dict(self) -> Dict[str, Any]:
-        super_dict = {field.name: getattr(self, field.name) for field in fields(self)}
-
         # Extract some meaningful examples from the evaluation or training dataset to showcase the performance
         if self.trainer and self.widget_step < self.trainer.state.global_step and self.generate_widget_examples:
             if dataset := self.trainer.eval_dataset or self.trainer.train_dataset:
@@ -844,8 +844,6 @@ class SentenceTransformerModelCardData(CardData):
                 self.try_to_set_base_model()
             except Exception:
                 pass
-            else:
-                super_dict["base_model"] = self.base_model
 
         # Set the model name
         if not self.model_name:
@@ -853,6 +851,8 @@ class SentenceTransformerModelCardData(CardData):
                 self.model_name = f"SentenceTransformer based on {self.base_model}"
             else:
                 self.model_name = "SentenceTransformer"
+
+        super_dict = {field.name: getattr(self, field.name) for field in fields(self)}
 
         # Compute required formats from the (usually post-training) evaluation data
         if self.eval_results_dict:

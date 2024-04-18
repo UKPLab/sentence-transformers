@@ -77,13 +77,13 @@ from sentence_transformers import SentenceTransformer
 model = SentenceTransformer("{{ model_id | default('sentence_transformers_model_id', true) }}")
 # Run inference
 sentences = [
-    "{{ predict_example[0] if predict_example else None | default("The weather is lovely today.", true) | replace('"', '\\"') }}",
-    "{{ predict_example[1] if predict_example else None | default("It's so sunny outside!", true) | replace('"', '\\"') }}",
-    "{{ predict_example[2] if predict_example else None | default("He drove to the stadium.", true) | replace('"', '\\"') }}",
+{%- for text in (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) %}
+    {{ "%r" | format(text) }},
+{%- endfor %}
 ]
 embeddings = model.encode(sentences)
 print(embeddings.shape)
-# [3, {{ output_dimensionality | default(1024, true) }}]
+# [{{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{ output_dimensionality | default(1024, true) }}]
 ```
 
 <!--
