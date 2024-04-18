@@ -7,7 +7,7 @@ from pathlib import Path
 from platform import python_version
 import re
 from textwrap import indent
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union
 import logging
 
 import accelerate
@@ -265,7 +265,6 @@ class SentenceTransformerModelCardData(CardData):
             "sentence-transformers",
             "sentence-similarity",
             "feature-extraction",
-            "generated",
         ]
     )
     base_model: Optional[str] = None
@@ -286,7 +285,6 @@ class SentenceTransformerModelCardData(CardData):
     train_set_sentences_per_label_list: List[Dict[str, str]] = field(default_factory=list, init=False)
     code_carbon_callback: Optional[CodeCarbonCallback] = field(default=None, init=False)
     citations: Dict[str, str] = field(default_factory=dict, init=False)
-    loss_names: Set[str] = field(default_factory=set, init=False)
     best_model_step: Optional[int] = field(default=None, init=False)
     metrics: List[str] = field(default_factory=list, init=False)
     trainer: Optional["SentenceTransformerTrainer"] = field(default=None, init=False, repr=False)
@@ -387,7 +385,7 @@ class SentenceTransformerModelCardData(CardData):
             return losses[0]
 
         self.citations = {join_list(losses): citation for citation, losses in inverted_citations.items()}
-        self.loss_names = {loss.__class__.__name__: loss for loss in losses}
+        self.tags += [f"loss:{loss}" for loss in {loss.__class__.__name__: loss for loss in losses}]
 
     def set_best_model_step(self, step: int) -> None:
         self.best_model_step = step
@@ -900,8 +898,6 @@ class SentenceTransformerModelCardData(CardData):
         super_dict["model_max_length"] = self.model.get_max_seq_length()
         super_dict["output_dimensionality"] = self.model.get_sentence_embedding_dimension()
         super_dict["model_string"] = str(self.model)
-
-        super_dict["tags"] += self.loss_names
 
         self.first_save = False
 
