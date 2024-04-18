@@ -364,6 +364,7 @@ class SentenceTransformerTrainer(Trainer):
             "num_workers": self.args.dataloader_num_workers,
             "pin_memory": self.args.dataloader_pin_memory,
             "persistent_workers": self.args.dataloader_persistent_workers,
+            "prefetch_factor": self.args.dataloader_prefetch_factor,
             "batch_sampler": batch_sampler,
         }
 
@@ -433,6 +434,7 @@ class SentenceTransformerTrainer(Trainer):
             "num_workers": self.args.dataloader_num_workers,
             "pin_memory": self.args.dataloader_pin_memory,
             "persistent_workers": self.args.dataloader_persistent_workers,
+            "prefetch_factor": self.args.dataloader_prefetch_factor,
             "batch_sampler": batch_sampler,
         }
 
@@ -442,7 +444,72 @@ class SentenceTransformerTrainer(Trainer):
         self.accelerator.even_batches = True
         return self.accelerator.prepare(DataLoader(eval_dataset, **dataloader_params))
 
-    # TODO: Also override the test_dataloader?
+    def get_test_dataloader(self, test_dataset: Dataset) -> DataLoader:
+        """
+        Returns the training [`~torch.utils.data.DataLoader`].
+
+        Subclass and override this method if you want to inject some custom behavior.
+
+        Args:
+            test_dataset (`torch.utils.data.Dataset`, *optional*):
+                The test dataset to use. If it is a [`~datasets.Dataset`], columns not accepted by the
+                `model.forward()` method are automatically removed. It must implement `__len__`.
+        """
+        data_collator = self.data_collator
+
+        generator = torch.Generator()
+        if self.args.seed:
+            generator.manual_seed(self.args.seed)
+
+        if isinstance(test_dataset, DatasetDict):
+            for dataset_name, dataset in test_dataset.items():
+                self.validate_column_names(dataset, dataset_name=dataset_name)
+            test_dataset = self.add_dataset_name_column(test_dataset)
+            batch_samplers = [
+                self.get_batch_sampler(
+                    dataset,
+                    batch_size=self.args.per_device_train_batch_size,
+                    drop_last=self.args.dataloader_drop_last,
+                    valid_label_columns=data_collator.valid_label_columns,
+                    generator=generator,
+                )
+                for dataset in test_dataset.values()
+            ]
+
+            test_dataset = ConcatDataset(test_dataset.values())
+            batch_sampler = self.get_multi_dataset_batch_sampler(
+                dataset=test_dataset,
+                batch_samplers=batch_samplers,
+                generator=generator,
+                seed=self.args.seed,
+            )
+
+        else:
+            self.validate_column_names(test_dataset)
+
+            batch_sampler = self.get_batch_sampler(
+                test_dataset,
+                batch_size=self.args.train_batch_size,
+                drop_last=self.args.dataloader_drop_last,
+                valid_label_columns=data_collator.valid_label_columns,
+                generator=generator,
+            )
+
+        dataloader_params = {
+            "collate_fn": data_collator,
+            "num_workers": self.args.dataloader_num_workers,
+            "pin_memory": self.args.dataloader_pin_memory,
+            "persistent_workers": self.args.dataloader_persistent_workers,
+            "prefetch_factor": self.args.dataloader_prefetch_factor,
+            "batch_sampler": batch_sampler,
+        }
+
+        # If 'even_batches' is True, it will use the initial few samples to pad out the last sample. This can
+        # cause issues with multi-dataset training, so we want to set this to False.
+        # For evaluation, setting 'even_batches' to False results in hanging, so we keep it as True there.
+        self.accelerator.even_batches = False
+        self._train_dataloader = self.accelerator.prepare(DataLoader(test_dataset, **dataloader_params))
+        return self._train_dataloader
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         # If we are executing this function, we are the process zero, so we don't check for that.
