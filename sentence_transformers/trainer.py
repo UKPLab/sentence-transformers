@@ -249,6 +249,7 @@ class SentenceTransformerTrainer(Trainer):
         if overlap := set(dataset.column_names) & {"return_loss", "dataset_name"}:
             raise ValueError(
                 f"The following column names are invalid in your {dataset_name + ' ' if dataset_name else ''}dataset: {list(overlap)}."
+                " Avoid using these column names, as they are reserved for internal use."
             )
 
     def get_batch_sampler(

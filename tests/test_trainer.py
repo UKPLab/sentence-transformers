@@ -77,7 +77,11 @@ def test_trainer_invalid_column_names(
         invalid_train_dataset = train_dataset.rename_column("sentence1", column_name)
         trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, train_dataset=invalid_train_dataset)
         with pytest.raises(
-            ValueError, match=re.escape(f"The following column names are invalid in your dataset: ['{column_name}'].")
+            ValueError,
+            match=re.escape(
+                f"The following column names are invalid in your dataset: ['{column_name}']."
+                " Avoid using these column names, as they are reserved for internal use."
+            ),
         ):
             trainer.train()
 
@@ -90,6 +94,9 @@ def test_trainer_invalid_column_names(
         trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, train_dataset=invalid_train_dataset)
         with pytest.raises(
             ValueError,
-            match=re.escape(f"The following column names are invalid in your stsb dataset: ['{column_name}']."),
+            match=re.escape(
+                f"The following column names are invalid in your stsb dataset: ['{column_name}']."
+                " Avoid using these column names, as they are reserved for internal use."
+            ),
         ):
             trainer.train()
