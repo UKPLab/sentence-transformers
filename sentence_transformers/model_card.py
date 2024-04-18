@@ -622,7 +622,7 @@ class SentenceTransformerModelCardData(CardData):
                 if isinstance(value, list) and len(value) > 5:
                     value = str(value[:5])[:-1] + ", ...]"
                 # Avoid newlines in the table
-                value = value.replace("\n", "<br>")
+                value = str(value).replace("\n", "<br>")
                 columns[column] = f"<code>{value}</code>"
             examples_lines.append(columns)
         dataset_info["examples_table"] = indent(make_markdown_table(examples_lines).replace("-:|", "--|"), "  ")
