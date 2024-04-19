@@ -226,7 +226,6 @@ class SentenceTransformerModelCardData(CardData):
             e.g. "semantic textual similarity, semantic search, paraphrase mining, text classification, clustering, and more".
         tags (`Optional[List[str]]`): A list of tags for the model,
             e.g. ["sentence-transformers", "sentence-similarity", "feature-extraction"].
-        base_model (`Optional[str]`): The base model ID used for the model, e.g. "microsoft/mpnet-base".
         generate_widget_examples (`bool`): Whether to generate widget examples on every model save.
 
     <Tip>
@@ -267,10 +266,11 @@ class SentenceTransformerModelCardData(CardData):
             "feature-extraction",
         ]
     )
-    base_model: Optional[str] = None
     generate_widget_examples: bool = True
 
     # Automatically filled by `ModelCardCallback` and the Trainer directly
+    base_model: Optional[str] = field(default=None, init=False)
+    base_model_revision: Optional[str] = field(default=None, init=False)
     non_default_hyperparameters: Dict[str, Any] = field(default_factory=dict, init=False)
     all_hyperparameters: Dict[str, Any] = field(default_factory=dict, init=False)
     eval_results_dict: Optional[Dict["SentenceEvaluator", Dict[str, Any]]] = field(default_factory=dict, init=False)
@@ -688,11 +688,17 @@ class SentenceTransformerModelCardData(CardData):
     def set_model_id(self, model_id: str) -> None:
         self.model_id = model_id
 
-    def set_base_model(self, model_id: str) -> None:
-        if is_on_huggingface(model_id):
-            self.base_model = model_id
-            return True
-        return False
+    def set_base_model(self, model_id: str, revision: Optional[str] = None) -> None:
+        try:
+            model_info = get_model_info(model_id)
+        except Exception:
+            # Getting the model info can fail for many reasons: model does not exist, no internet, outage, etc.
+            return False
+        self.base_model = model_info.id
+        if revision is None or revision == "main":
+            revision = model_info.sha
+        self.base_model_revision = revision
+        return True
 
     def try_to_set_base_model(self) -> None:
         if isinstance(self.model[0], Transformer):
@@ -906,24 +912,6 @@ class SentenceTransformerModelCardData(CardData):
             sort_keys=False,
             line_break=line_break,
         ).strip()
-
-
-def is_on_huggingface(repo_id: str, type: Literal["model", "dataset"] = "model") -> bool:
-    # Models with more than two 'sections' certainly are not public models
-    if len(repo_id.split("/")) > 2:
-        return False
-
-    try:
-        if type == "model":
-            get_model_info(repo_id)
-        elif type == "dataset":
-            get_dataset_info(repo_id)
-        else:
-            return False
-        return True
-    except Exception:
-        # Fetching models can fail for many reasons: Repository not existing, no internet access, HF down, etc.
-        return False
 
 
 def generate_model_card(model: "SentenceTransformer") -> str:

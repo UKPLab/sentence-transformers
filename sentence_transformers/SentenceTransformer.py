@@ -919,7 +919,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             tokenizer_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
-        self.model_card_data.set_base_model(model_name_or_path)
+        self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return [transformer_model, pooling_model]
 
     def _load_sbert_model(
@@ -1028,7 +1028,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
 
-        self.model_card_data.set_base_model(model_name_or_path)
+        if revision is None:
+            revision_path_part = Path(modules_json_path).parts[-2]
+            if len(revision_path_part) == 40:
+                revision = revision_path_part
+        self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return modules
 
     @staticmethod

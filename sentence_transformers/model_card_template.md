@@ -13,7 +13,11 @@ This is a [sentence-transformers](https://www.SBERT.net) model{% if base_model %
 ### Model Description
 - **Model Type:** Sentence Transformer
 {% if base_model -%}
+    {%- if base_model_revision -%}
+    - **Base model:** [{{ base_model }}](https://huggingface.co/{{ base_model }}) <!-- at revision {{ base_model_revision }} -->
+    {%- else -%}
     - **Base model:** [{{ base_model }}](https://huggingface.co/{{ base_model }})
+    {%- endif -%}
 {%- else -%}
     <!-- - **Base model:** [Unknown](https://huggingface.co/unknown) -->
 {%- endif %}
