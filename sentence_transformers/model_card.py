@@ -275,22 +275,17 @@ class SentenceTransformerModelCardData(CardData):
     all_hyperparameters: Dict[str, Any] = field(default_factory=dict, init=False)
     eval_results_dict: Optional[Dict["SentenceEvaluator", Dict[str, Any]]] = field(default_factory=dict, init=False)
     training_logs: List[Dict[str, float]] = field(default_factory=list, init=False)
-    metric_lines: List[Dict[str, float]] = field(default_factory=list, init=False)
     widget: List[Dict[str, str]] = field(default_factory=list, init=False)
-    widget_step: int = field(default=0, init=False)
     predict_example: Optional[str] = field(default=None, init=False)
     label_example_list: List[Dict[str, str]] = field(default_factory=list, init=False)
-    tokenizer_warning: bool = field(default=False, init=False)
-    train_set_metrics_list: List[Dict[str, str]] = field(default_factory=list, init=False)
-    train_set_sentences_per_label_list: List[Dict[str, str]] = field(default_factory=list, init=False)
     code_carbon_callback: Optional[CodeCarbonCallback] = field(default=None, init=False)
     citations: Dict[str, str] = field(default_factory=dict, init=False)
     best_model_step: Optional[int] = field(default=None, init=False)
-    metrics: List[str] = field(default_factory=list, init=False)
     trainer: Optional["SentenceTransformerTrainer"] = field(default=None, init=False, repr=False)
 
     # Utility fields
     first_save: bool = field(default=True, init=False)
+    widget_step: int = field(default=-1, init=False)
 
     # Computed once, always unchanged
     pipeline_tag: str = field(default="sentence-similarity", init=False)
