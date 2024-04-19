@@ -245,6 +245,17 @@ class SentenceTransformerTrainer(Trainer):
 
         return output
 
+    def _load_best_model(self) -> None:
+        # We want to ensure that this does not fail, and it may change if transformers updates how checkpoints are saved
+        try:
+            if checkpoint := self.state.best_model_checkpoint:
+                step = checkpoint.rsplit("-", 1)[-1]
+                self.model.model_card_data.set_best_model_step(int(step))
+        except Exception:
+            pass
+
+        return super()._load_best_model()
+
     def validate_column_names(self, dataset: Dataset, dataset_name: Optional[str] = None) -> bool:
         if overlap := set(dataset.column_names) & {"return_loss", "dataset_name"}:
             raise ValueError(

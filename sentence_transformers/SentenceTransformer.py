@@ -1094,4 +1094,14 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     @property
     def _no_split_modules(self) -> List[str]:
-        return self._first_module()._no_split_modules
+        try:
+            return self._first_module()._no_split_modules
+        except AttributeError:
+            return []
+
+    @property
+    def _keys_to_ignore_on_save(self) -> List[str]:
+        try:
+            return self._first_module()._keys_to_ignore_on_save
+        except AttributeError:
+            return []
