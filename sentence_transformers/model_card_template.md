@@ -153,12 +153,12 @@ You can finetune this model on your own dataset.
 {% if non_default_hyperparameters -%}
 #### Non-Default Hyperparameters
 
-{% for name, value in non_default_hyperparameters.items() %}- {{ name }}: {{ value }}
+{% for name, value in non_default_hyperparameters.items() %}- `{{ name }}`: {{ value }}
 {% endfor %}{%- endif %}
 #### All Hyperparameters
 <details><summary>Click to expand</summary>
 
-{% for name, value in all_hyperparameters.items() %}- {{ name }}: {{ value }}
+{% for name, value in all_hyperparameters.items() %}- `{{ name }}`: {{ value }}
 {% endfor %}
 </details>
 {% endif %}
