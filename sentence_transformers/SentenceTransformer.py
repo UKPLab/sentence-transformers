@@ -60,11 +60,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     :param default_prompt_name: The name of the prompt that should be used by default. If not set,
         no prompt will be applied.
     :param cache_folder: Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
-    :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
-        for a stored model on Hugging Face.
     :param trust_remote_code: Whether or not to allow for custom models defined on the Hub in their own modeling files.
         This option should only be set to True for repositories you trust and in which you have read the code, as it
         will execute code present on the Hub on your local machine.
+    :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
+        for a stored model on Hugging Face.
     :param token: Hugging Face authentication token to download private models.
     :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
         only applicable during inference when `.encode` is called.
@@ -598,7 +598,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     def get_sentence_features(self, *features):
         return self._first_module().get_sentence_features(*features)
 
-    def get_sentence_embedding_dimension(self):
+    def get_sentence_embedding_dimension(self) -> Optional[int]:
         """
         :return: The number of dimensions in the output of `encode`. If it's not known, it's `None`.
         """

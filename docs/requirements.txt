@@ -3,5 +3,5 @@
 sphinx<4
 Jinja2<3.1
 sphinx_markdown_tables
-recommonmark
+recommonmark==0.7.1
 -e ..
