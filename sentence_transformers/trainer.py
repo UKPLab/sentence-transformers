@@ -16,6 +16,7 @@ from transformers.trainer_utils import EvalLoopOutput
 from transformers.data.data_collator import DataCollator
 from sentence_transformers.losses import CoSENTLoss
 
+from sentence_transformers.models.Transformer import Transformer
 from sentence_transformers.training_args import (
     SentenceTransformerTrainingArguments,
     BatchSamplers,
@@ -247,6 +248,11 @@ class SentenceTransformerTrainer(Trainer):
 
     def _load_best_model(self) -> None:
         # We want to ensure that this does not fail, and it may change if transformers updates how checkpoints are saved
+        # Loading the best model is only supported for `transformers`-based models
+        if not isinstance(self.model[0], Transformer):
+            logger.info("Could not load best model, as the model is not a `transformers`-based model.")
+            return
+
         try:
             if checkpoint := self.state.best_model_checkpoint:
                 step = checkpoint.rsplit("-", 1)[-1]
@@ -254,7 +260,16 @@ class SentenceTransformerTrainer(Trainer):
         except Exception:
             pass
 
-        return super()._load_best_model()
+        # Override the model with the `tranformers`-based auto_model, and restore the original SentenceTransformers
+        # model with the loaded `transformers` model
+        full_model = self.model
+        self.model = self.model[0].auto_model
+        try:
+            return super()._load_best_model()
+        finally:
+            loaded_auto_model = self.model
+            self.model = full_model
+            self.model[0].auto_model = loaded_auto_model
 
     def validate_column_names(self, dataset: Dataset, dataset_name: Optional[str] = None) -> bool:
         if overlap := set(dataset.column_names) & {"return_loss", "dataset_name"}:
