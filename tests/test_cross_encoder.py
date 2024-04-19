@@ -1,9 +1,12 @@
 """
 Tests that the pretrained models produce the correct scores on the STSbenchmark dataset
 """
+
 import csv
 import gzip
 import os
+from pathlib import Path
+import tempfile
 
 import pytest
 import torch
@@ -125,3 +128,46 @@ def test_load_with_revision() -> None:
     main_prob = main_model.predict(test_sentences, convert_to_tensor=True)
     assert torch.equal(main_prob, latest_model.predict(test_sentences, convert_to_tensor=True))
     assert not torch.equal(main_prob, older_model.predict(test_sentences, convert_to_tensor=True))
+
+
+def test_rank() -> None:
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
+    # We want to compute the similarity between the query sentence
+    query = "A man is eating pasta."
+
+    # With all sentences in the corpus
+    corpus = [
+        "A man is eating food.",
+        "A man is eating a piece of bread.",
+        "The girl is carrying a baby.",
+        "A man is riding a horse.",
+        "A woman is playing violin.",
+        "Two men pushed carts through the woods.",
+        "A man is riding a white horse on an enclosed ground.",
+        "A monkey is playing drums.",
+        "A cheetah is running behind its prey.",
+    ]
+    expected_ranking = [0, 1, 3, 6, 2, 5, 7, 4, 8]
+
+    # 1. We rank all sentences in the corpus for the query
+    ranks = model.rank(query, corpus)
+    pred_ranking = [rank["corpus_id"] for rank in ranks]
+    assert pred_ranking == expected_ranking
+
+
+@pytest.mark.parametrize("safe_serialization", [True, False, None])
+def test_safe_serialization(safe_serialization: bool) -> None:
+    with tempfile.TemporaryDirectory() as cache_folder:
+        model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
+        if safe_serialization:
+            model.save(cache_folder, safe_serialization=safe_serialization)
+            model_files = list(Path(cache_folder).glob("**/model.safetensors"))
+            assert 1 == len(model_files)
+        elif safe_serialization is None:
+            model.save(cache_folder)
+            model_files = list(Path(cache_folder).glob("**/model.safetensors"))
+            assert 1 == len(model_files)
+        else:
+            model.save(cache_folder, safe_serialization=safe_serialization)
+            model_files = list(Path(cache_folder).glob("**/pytorch_model.bin"))
+            assert 1 == len(model_files)

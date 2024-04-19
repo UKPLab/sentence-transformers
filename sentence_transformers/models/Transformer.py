@@ -118,7 +118,7 @@ class Transformer(nn.Module):
     def get_word_embedding_dimension(self) -> int:
         return self.auto_model.config.hidden_size
 
-    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]]):
+    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]], padding: Union[str, bool] = True):
         """
         Tokenizes a text and maps tokens to token-ids
         """
@@ -150,7 +150,7 @@ class Transformer(nn.Module):
         output.update(
             self.tokenizer(
                 *to_tokenize,
-                padding=True,
+                padding=padding,
                 truncation="longest_first",
                 return_tensors="pt",
                 max_length=self.max_seq_length,
@@ -161,8 +161,8 @@ class Transformer(nn.Module):
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}
 
-    def save(self, output_path: str):
-        self.auto_model.save_pretrained(output_path)
+    def save(self, output_path: str, safe_serialization: bool = True):
+        self.auto_model.save_pretrained(output_path, safe_serialization=safe_serialization)
         self.tokenizer.save_pretrained(output_path)
 
         with open(os.path.join(output_path, "sentence_bert_config.json"), "w") as fOut:

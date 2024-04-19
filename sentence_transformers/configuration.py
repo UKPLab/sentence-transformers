@@ -18,6 +18,8 @@ class SentenceTransformerConfig(PretrainedConfig):
 
     def __init__(self, **kwargs) -> None:
         self.modules: List[str] = kwargs.pop("modules", [])
+        self.prompts = kwargs.pop("prompts", {})
+        self.default_prompt_name = kwargs.pop("default_prompt_name", None)
         self.__version__: Dict[str, str] = kwargs.pop(
             "__version__",
             {

@@ -1,10 +1,12 @@
+from sentence_transformers import SentenceTransformer
+from contextlib import nullcontext
 from . import SentenceEvaluator
 import logging
 from sentence_transformers.util import paraphrase_mining
 import os
 import csv
 
-from typing import List, Tuple, Dict
+from typing import List, Optional, Tuple, Dict
 from collections import defaultdict
 
 
@@ -32,6 +34,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         batch_size: int = 16,
         name: str = "",
         write_csv: bool = True,
+        truncate_dim: Optional[int] = None,
     ):
         """
 
@@ -47,6 +50,9 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         :param batch_size: Batch size for computing sentence embeddings
         :param name: Name of the experiment
         :param write_csv: Write results to CSV file
+        :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
+            dimension. Defaults to None.
+
         """
         self.sentences = []
         self.ids = []
@@ -62,6 +68,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.corpus_chunk_size = corpus_chunk_size
         self.max_pairs = max_pairs
         self.top_k = top_k
+        self.truncate_dim = truncate_dim
 
         self.duplicates = duplicates_dict if duplicates_dict is not None else defaultdict(lambda: defaultdict(bool))
         if duplicates_list is not None:
@@ -93,25 +100,31 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "precision", "recall", "f1", "threshold", "average_precision"]
         self.write_csv = write_csv
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
-            out_txt = f" after epoch {epoch}:" if steps == -1 else f" in epoch {epoch} after {steps} steps:"
+            if steps == -1:
+                out_txt = f" after epoch {epoch}"
+            else:
+                out_txt = f" in epoch {epoch} after {steps} steps"
         else:
-            out_txt = ":"
+            out_txt = ""
+        if self.truncate_dim is not None:
+            out_txt += f" (truncated to {self.truncate_dim})"
 
-        logger.info("Paraphrase Mining Evaluation on " + self.name + " dataset" + out_txt)
+        logger.info(f"Paraphrase Mining Evaluation of the model on the {self.name} dataset{out_txt}:")
 
         # Compute embedding for the sentences
-        pairs_list = paraphrase_mining(
-            model,
-            self.sentences,
-            self.show_progress_bar,
-            self.batch_size,
-            self.query_chunk_size,
-            self.corpus_chunk_size,
-            self.max_pairs,
-            self.top_k,
-        )
+        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+            pairs_list = paraphrase_mining(
+                model,
+                self.sentences,
+                self.show_progress_bar,
+                self.batch_size,
+                self.query_chunk_size,
+                self.corpus_chunk_size,
+                self.max_pairs,
+                self.top_k,
+            )
 
         logger.info("Number of candidate pairs: " + str(len(pairs_list)))
 

@@ -3,7 +3,7 @@ The script shows how to train Augmented SBERT (Domain-Transfer/Cross-Domain) str
 For our example below we consider STSb (source) and QQP (target) datasets respectively.
 
 Methodology:
-Three steps are followed for AugSBERT data-augmentation strategy with Domain Transfer / Cross-Domain - 
+Three steps are followed for AugSBERT data-augmentation strategy with Domain Transfer / Cross-Domain -
 1. Cross-Encoder aka BERT is trained over STSb (source) dataset.
 2. Cross-Encoder is used to label QQP training (target) dataset (Assume no labels/no annotations are provided).
 3. Bi-encoder aka SBERT is trained over the labeled QQP (target) dataset.
@@ -16,6 +16,7 @@ python train_sts_qqp_crossdomain.py
 OR
 python train_sts_qqp_crossdomain.py pretrained_transformer_model_name
 """
+
 from torch.utils.data import DataLoader
 from sentence_transformers import models, losses, util, LoggingHandler, SentenceTransformer
 from sentence_transformers.cross_encoder import CrossEncoder

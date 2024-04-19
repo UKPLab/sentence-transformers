@@ -1,6 +1,7 @@
 """
 Tests that the pretrained models produce the correct scores on the STSbenchmark dataset
 """
+
 import csv
 import gzip
 import os

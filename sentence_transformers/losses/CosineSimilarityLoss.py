@@ -8,7 +8,7 @@ class CosineSimilarityLoss(nn.Module):
     def __init__(self, model: SentenceTransformer, loss_fct=nn.MSELoss(), cos_score_transformation=nn.Identity()):
         """
         CosineSimilarityLoss expects that the InputExamples consists of two texts and a float label. It computes the
-        vectors ``u = model(sentence_A)`` and v = ``model(sentence_B)`` and measures the cosine-similarity between the two.
+        vectors ``u = model(sentence_A)`` and ``v = model(sentence_B)`` and measures the cosine-similarity between the two.
         By default, it minimizes the following loss: ``||input_label - cos_score_transformation(cosine_sim(u,v))||_2``.
 
         :param model: SentenceTransformer model
@@ -24,7 +24,8 @@ class CosineSimilarityLoss(nn.Module):
             1. Sentence pairs with corresponding similarity scores in range `[0, 1]`
 
         Relations:
-            - :class:`CoSENTLoss` seems to produce a stronger training signal than CosineSimilarityLoss. On our experiments, CoSENTLoss is recommended.
+            - :class:`CoSENTLoss` seems to produce a stronger training signal than CosineSimilarityLoss. In our experiments, CoSENTLoss is recommended.
+            - :class:`AnglELoss` is :class:`CoSENTLoss` with ``pairwise_angle_sim`` as the metric, rather than ``pairwise_cos_sim``. It also produces a stronger training signal than CosineSimilarityLoss.
 
         Inputs:
             +--------------------------------+------------------------+

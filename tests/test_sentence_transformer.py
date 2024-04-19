@@ -2,10 +2,15 @@
 Tests general behaviour of the SentenceTransformer class
 """
 
-
+from functools import partial
+import json
 import logging
 from pathlib import Path
+import re
 import tempfile
+from typing import Dict, List, Literal, Optional, Union, cast
+
+import numpy as np
 import pytest
 
 from huggingface_hub import HfApi, RepoUrl, GitRefs, GitRefInfo
@@ -13,6 +18,7 @@ import torch
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.configuration import SentenceTransformerConfig
 from sentence_transformers.models import Normalize, Transformer, Pooling
+from sentence_transformers import util
 
 
 def test_load_with_safetensors() -> None:
@@ -69,7 +75,7 @@ def test_to() -> None:
     assert model.device.type == "cpu", "Ensure that setting `_target_device` doesn't crash."
 
 
-def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_push_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     def mock_create_repo(self, repo_id, **kwargs):
         return RepoUrl(f"https://huggingface.co/{repo_id}")
 
@@ -97,10 +103,23 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
     monkeypatch.setattr(HfApi, "list_repo_refs", mock_list_repo_refs)
 
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-    url = model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+
+    url = model.push_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors")
     assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
     assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
     mock_upload_folder_kwargs.clear()
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        url = model.save_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+        assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
+        mock_upload_folder_kwargs.clear()
+        assert len(caplog.record_tuples) == 1
+        assert (
+            caplog.record_tuples[0][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
+        )
 
     with pytest.raises(
         ValueError, match="Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id`."
@@ -114,9 +133,13 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
         )
         assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
         assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
-        assert len(caplog.record_tuples) == 1
+        assert len(caplog.record_tuples) == 2
         assert (
             caplog.record_tuples[0][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
+        )
+        assert (
+            caplog.record_tuples[1][2]
             == 'Providing an `organization` to `save_to_hub` is deprecated, please only use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
         )
     mock_upload_folder_kwargs.clear()
@@ -126,19 +149,30 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
         url = model.save_to_hub("stsb-bert-tiny-safetensors", organization="sentence-transformers-testing")
         assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
         assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
-        assert len(caplog.record_tuples) == 1
+        assert len(caplog.record_tuples) == 2
         assert (
             caplog.record_tuples[0][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
+        )
+        assert (
+            caplog.record_tuples[1][2]
             == 'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
         )
     mock_upload_folder_kwargs.clear()
 
-    url = model.save_to_hub(
-        "sentence-transformers-testing/stsb-bert-tiny-safetensors", local_model_path="my_fake_local_model_path"
-    )
-    assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
-    assert mock_upload_folder_kwargs["folder_path"] == "my_fake_local_model_path"
-    assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        url = model.save_to_hub(
+            "sentence-transformers-testing/stsb-bert-tiny-safetensors", local_model_path="my_fake_local_model_path"
+        )
+        assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+        assert mock_upload_folder_kwargs["folder_path"] == "my_fake_local_model_path"
+        assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
+        assert len(caplog.record_tuples) == 1
+        assert (
+            caplog.record_tuples[0][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
+        )
     mock_upload_folder_kwargs.clear()
 
     # Incorrect usage: Using deprecated "repo_name" positional argument
@@ -147,10 +181,14 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
         url = model.save_to_hub(repo_name="sentence-transformers-testing/stsb-bert-tiny-safetensors")
         assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
         assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
-        assert len(caplog.record_tuples) == 1
+        assert len(caplog.record_tuples) == 2
         assert (
             caplog.record_tuples[0][2]
             == "Providing a `repo_name` keyword argument to `save_to_hub` is deprecated, please use `repo_id` instead."
+        )
+        assert (
+            caplog.record_tuples[1][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
         )
     mock_upload_folder_kwargs.clear()
 
@@ -161,17 +199,39 @@ def test_save_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
             "stsb-bert-tiny-safetensors",  # repo_name
             "sentence-transformers-testing",  # organization
             True,  # private
-            "Adding new awesome Model!",  # commit message
+            commit_message="Adding new awesome Model!",
             exist_ok=True,
         )
         assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
         assert mock_upload_folder_kwargs["commit_message"] == "Adding new awesome Model!"
         assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/123456"
-        assert len(caplog.record_tuples) == 1
+        assert len(caplog.record_tuples) == 2
         assert (
             caplog.record_tuples[0][2]
+            == "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers. Please use `push_to_hub` instead for future model uploads."
+        )
+        assert (
+            caplog.record_tuples[1][2]
             == 'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
         )
+
+
+@pytest.mark.parametrize("safe_serialization", [True, False, None])
+def test_safe_serialization(safe_serialization: bool) -> None:
+    with tempfile.TemporaryDirectory() as cache_folder:
+        model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+        if safe_serialization:
+            model.save(cache_folder, safe_serialization=safe_serialization)
+            model_files = list(Path(cache_folder).glob("**/model.safetensors"))
+            assert 1 == len(model_files)
+        elif safe_serialization is None:
+            model.save(cache_folder)
+            model_files = list(Path(cache_folder).glob("**/model.safetensors"))
+            assert 1 == len(model_files)
+        else:
+            model.save(cache_folder, safe_serialization=safe_serialization)
+            model_files = list(Path(cache_folder).glob("**/pytorch_model.bin"))
+            assert 1 == len(model_files)
 
 
 def test_load_with_revision() -> None:
@@ -209,3 +269,218 @@ def test_add_module() -> None:
         assert not fresh_tiny_model.config.empty_on_init
         fresh_tiny_model.add_module("Normalize", Normalize())
         assert len(fresh_tiny_model.config.modules) == 4
+        assert isinstance(fresh_tiny_model, SentenceTransformer)
+
+
+def test_prompts(caplog: pytest.LogCaptureFixture) -> None:
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    assert model.prompts == {}
+    assert model.default_prompt_name is None
+    texts = ["How to bake a chocolate cake", "Symptoms of the flu"]
+    no_prompt_embedding = model.encode(texts)
+    prompt_embedding = model.encode([f"query: {text}" for text in texts])
+    assert not np.array_equal(no_prompt_embedding, prompt_embedding)
+
+    for query in ["query: ", "query:", "query:   "]:
+        # Test prompt="... {}"
+        model.prompts = {}
+        assert np.array_equal(model.encode(texts, prompt=query), prompt_embedding)
+
+        # Test prompt_name="..."
+        model.prompts = {"query": query}
+        assert np.array_equal(model.encode(texts, prompt_name="query"), prompt_embedding)
+
+        caplog.clear()
+        # Test prompt_name="..." & prompt="..."
+        with caplog.at_level(logging.WARNING):
+            assert np.array_equal(model.encode(texts, prompt=query, prompt_name="query"), prompt_embedding)
+            assert len(caplog.record_tuples) == 1
+            assert (
+                caplog.record_tuples[0][2]
+                == "Encode with either a `prompt`, a `prompt_name`, or neither, but not both. "
+                "Ignoring the `prompt_name` in favor of `prompt`."
+            )
+
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query']."
+            ),
+        ):
+            model.encode(texts, prompt_name="invalid_prompt_name")
+
+
+def test_save_load_prompts() -> None:
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Default prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query']."
+        ),
+    ):
+        model = SentenceTransformer(
+            "sentence-transformers-testing/stsb-bert-tiny-safetensors",
+            prompts={"query": "query: "},
+            default_prompt_name="invalid_prompt_name",
+        )
+
+    model = SentenceTransformer(
+        "sentence-transformers-testing/stsb-bert-tiny-safetensors",
+        prompts={"query": "query: "},
+        default_prompt_name="query",
+    )
+    assert model.prompts == {"query": "query: "}
+    assert model.default_prompt_name == "query"
+
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model_path = Path(tmp_folder) / "tiny_model_local"
+        model.save(str(model_path))
+        config_path = model_path / "config_sentence_transformers.json"
+        assert config_path.exists()
+        with open(config_path, "r", encoding="utf8") as f:
+            saved_config = json.load(f)
+        assert saved_config["prompts"] == {"query": "query: "}
+        assert saved_config["default_prompt_name"] == "query"
+
+        fresh_model = SentenceTransformer(str(model_path))
+        assert fresh_model.prompts == {"query": "query: "}
+        assert fresh_model.default_prompt_name == "query"
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
+def test_encode_fp16() -> None:
+    tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    tiny_model.half()
+    embeddings = tiny_model.encode(["Hello there!"], convert_to_tensor=True)
+    assert embeddings.dtype == torch.float16
+
+
+@pytest.mark.parametrize("convert_to_tensor", [True, False])
+@pytest.mark.parametrize("convert_to_numpy", [True, False])
+@pytest.mark.parametrize(
+    ("precision", "expected_torch_dtype", "expected_numpy_dtype"),
+    [
+        (None, torch.float32, np.float32),
+        ("float32", torch.float32, np.float32),
+        ("int8", torch.int8, np.int8),
+        ("uint8", torch.uint8, np.uint8),
+        ("binary", torch.int8, np.int8),
+        ("ubinary", torch.uint8, np.uint8),
+    ],
+)
+def test_encode_quantization(
+    stsb_bert_tiny_model_reused: SentenceTransformer,
+    convert_to_tensor: bool,
+    convert_to_numpy: bool,
+    precision: str,
+    expected_torch_dtype,
+    expected_numpy_dtype,
+) -> None:
+    tiny_model = stsb_bert_tiny_model_reused
+    embeddings = tiny_model.encode(
+        ["One sentence", "Another sentence"],
+        convert_to_tensor=convert_to_tensor,
+        convert_to_numpy=convert_to_numpy,
+        precision=precision,
+    )
+    if convert_to_tensor:
+        assert embeddings[0].dtype == expected_torch_dtype
+        assert isinstance(embeddings, torch.Tensor)
+    elif convert_to_numpy:
+        assert embeddings[0].dtype == expected_numpy_dtype
+        assert isinstance(embeddings, np.ndarray)
+    else:
+        assert embeddings[0].dtype == expected_torch_dtype
+        assert isinstance(embeddings, list)
+
+
+@pytest.mark.parametrize("sentences", ("Single sentence", ["One sentence", "Another sentence"]))
+@pytest.mark.parametrize("convert_to_tensor", [True, False])
+@pytest.mark.parametrize("convert_to_numpy", [True, False])
+@pytest.mark.parametrize("normalize_embeddings", [True, False])
+@pytest.mark.parametrize("output_value", ["sentence_embedding", None])
+def test_encode_truncate(
+    sentences: Union[str, List[str]],
+    convert_to_tensor: bool,
+    convert_to_numpy: bool,
+    normalize_embeddings: bool,
+    output_value: Optional[Literal["sentence_embedding"]],
+) -> None:
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    embeddings_full_unnormalized: torch.Tensor = model.encode(
+        sentences, convert_to_numpy=False, convert_to_tensor=True
+    )  # These are raw embeddings which serve as the reference to test against
+
+    def test(model: SentenceTransformer, expected_dim: int):
+        outputs = model.encode(
+            sentences,
+            output_value=output_value,
+            convert_to_tensor=convert_to_tensor,
+            convert_to_numpy=convert_to_numpy,
+            normalize_embeddings=normalize_embeddings,
+        )
+
+        # Extract the sentence embeddings out of outputs
+        if output_value is None:
+            # We get the whole plate
+            if not isinstance(outputs, List):
+                embeddings = outputs["sentence_embedding"]
+            else:
+                outputs = cast(List[Dict[str, torch.Tensor]], outputs)
+                # TODO: can overload model.encode if ppl want type checker compatibility
+                embeddings = [out_features["sentence_embedding"] for out_features in outputs]
+        else:
+            embeddings = outputs
+
+        # Test shape
+        if isinstance(embeddings, list):  # list of tensors
+            embeddings_shape = (len(embeddings), embeddings[0].shape[-1])
+        else:
+            embeddings_shape = embeddings.shape
+        expected_shape = (expected_dim,) if isinstance(sentences, str) else (len(sentences), expected_dim)
+        assert embeddings_shape == expected_shape
+        assert model.get_sentence_embedding_dimension() == expected_dim
+
+        # Convert embeddings to a torch Tensor for ease of testing
+        if isinstance(embeddings, list):
+            embeddings = torch.stack(embeddings)
+        elif isinstance(embeddings, np.ndarray):
+            embeddings = torch.from_numpy(embeddings).to(embeddings_full_unnormalized.device)
+            # On a non-cpu device, the device of torch.from_numpy(embeddings) is always CPU
+
+        # Test content
+        if normalize_embeddings:
+            if output_value is None:
+                # Currently, normalization is not performed; it's the raw output of the forward pass
+                pass
+            else:
+                normalize = partial(torch.nn.functional.normalize, p=2, dim=-1)
+                assert torch.allclose(
+                    embeddings,
+                    normalize(util.truncate_embeddings(embeddings_full_unnormalized, expected_dim)),
+                )
+        else:
+            assert torch.allclose(embeddings, util.truncate_embeddings(embeddings_full_unnormalized, expected_dim))
+
+    # Test init w/o setting truncate_dim (it's None)
+    original_output_dim: int = model.get_sentence_embedding_dimension()
+    test(model, expected_dim=original_output_dim)
+
+    # Test init w/ a set truncate_dim
+    truncate_dim = int(original_output_dim / 4)
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors", truncate_dim=truncate_dim)
+    test(model, expected_dim=truncate_dim)
+
+    # Test setting the attribute after init to a greater dimension
+    new_truncate_dim = 2 * truncate_dim
+    model.truncate_dim = new_truncate_dim
+    test(model, expected_dim=new_truncate_dim)
+
+    # Test context manager
+    final_truncate_dim = int(original_output_dim / 8)
+    with model.truncate_sentence_embeddings(final_truncate_dim):
+        test(model, expected_dim=final_truncate_dim)
+    test(model, expected_dim=new_truncate_dim)  # b/c we've exited the context
+
+    # Test w/ an ouptut_dim that's larger than the original_output_dim. No truncation ends up happening
+    model.truncate_dim = 2 * original_output_dim
+    test(model, expected_dim=original_output_dim)

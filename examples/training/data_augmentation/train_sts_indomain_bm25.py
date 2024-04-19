@@ -9,9 +9,9 @@ link for download - https://www.elastic.co/downloads/elasticsearch
 Or to run it with Docker: https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
 
 Methodology:
-Three steps are followed for AugSBERT data-augmentation with BM25 Sampling - 
+Three steps are followed for AugSBERT data-augmentation with BM25 Sampling -
     1. Fine-tune cross-encoder (BERT) on gold STSb dataset
-    2. Fine-tuned Cross-encoder is used to label on BM25 sampled unlabeled pairs (silver STSb dataset) 
+    2. Fine-tuned Cross-encoder is used to label on BM25 sampled unlabeled pairs (silver STSb dataset)
     3. Bi-encoder (SBERT) is finally fine-tuned on both gold + silver STSb dataset
 
 Citation: https://arxiv.org/abs/2010.08240
@@ -25,6 +25,7 @@ python train_sts_indomain_bm25.py pretrained_transformer_model_name top_k
 python train_sts_indomain_bm25.py bert-base-uncased 3
 
 """
+
 from torch.utils.data import DataLoader
 from sentence_transformers import models, losses, util
 from sentence_transformers.cross_encoder import CrossEncoder

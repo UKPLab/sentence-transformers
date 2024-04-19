@@ -1,3 +1,5 @@
+from sentence_transformers import SentenceTransformer
+from contextlib import nullcontext
 from . import SentenceEvaluator
 import logging
 import os
@@ -5,7 +7,7 @@ import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 from sklearn.metrics import average_precision_score
 import numpy as np
-from typing import List
+from typing import List, Optional
 from ..readers import InputExample
 
 
@@ -30,6 +32,8 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
     :param batch_size: Batch size used to compute embeddings
     :param show_progress_bar: If true, prints a progress bar
     :param write_csv: Write results to a CSV file
+    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
+        dimension. Defaults to None.
     """
 
     def __init__(
@@ -41,10 +45,12 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         batch_size: int = 32,
         show_progress_bar: bool = False,
         write_csv: bool = True,
+        truncate_dim: Optional[int] = None,
     ):
         self.sentences1 = sentences1
         self.sentences2 = sentences2
         self.labels = labels
+        self.truncate_dim = truncate_dim
 
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.labels)
@@ -106,16 +112,18 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             scores.append(example.label)
         return cls(sentences1, sentences2, scores, **kwargs)
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             if steps == -1:
-                out_txt = f" after epoch {epoch}:"
+                out_txt = f" after epoch {epoch}"
             else:
-                out_txt = f" in epoch {epoch} after {steps} steps:"
+                out_txt = f" in epoch {epoch} after {steps} steps"
         else:
-            out_txt = ":"
+            out_txt = ""
+        if self.truncate_dim is not None:
+            out_txt += f" (truncated to {self.truncate_dim})"
 
-        logger.info("Binary Accuracy Evaluation of the model on " + self.name + " dataset" + out_txt)
+        logger.info(f"Binary Accuracy Evaluation of the model on the {self.name} dataset{out_txt}:")
 
         scores = self.compute_metrices(model)
 
@@ -144,25 +152,31 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         return main_score
 
     def compute_metrices(self, model):
-        try:
-            # If the sentences are hashable, then we can use a set to avoid embedding the same sentences multiple times
-            sentences = list(set(self.sentences1 + self.sentences2))
-            embeddings = model.encode(
-                sentences, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar, convert_to_numpy=True
-            )
-            emb_dict = {sent: emb for sent, emb in zip(sentences, embeddings)}
-            embeddings1 = [emb_dict[sent] for sent in self.sentences1]
-            embeddings2 = [emb_dict[sent] for sent in self.sentences2]
-        except TypeError:
-            # Otherwise we just embed everything, e.g. if the sentences are images for evaluating a CLIP model
-            embeddings = model.encode(
-                self.sentences1 + self.sentences2,
-                batch_size=self.batch_size,
-                show_progress_bar=self.show_progress_bar,
-                convert_to_numpy=True,
-            )
-            embeddings1 = embeddings[: len(self.sentences1)]
-            embeddings2 = embeddings[len(self.sentences1) :]
+        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+            try:
+                # If the sentences are hashable, then we can use a set to avoid embedding the same sentences multiple
+                # times
+                sentences = list(set(self.sentences1 + self.sentences2))
+            except TypeError:
+                # Otherwise we just embed everything, e.g. if the sentences are images for evaluating a CLIP model
+                embeddings = model.encode(
+                    self.sentences1 + self.sentences2,
+                    batch_size=self.batch_size,
+                    show_progress_bar=self.show_progress_bar,
+                    convert_to_numpy=True,
+                )
+                embeddings1 = embeddings[: len(self.sentences1)]
+                embeddings2 = embeddings[len(self.sentences1) :]
+            else:
+                embeddings = model.encode(
+                    sentences,
+                    batch_size=self.batch_size,
+                    show_progress_bar=self.show_progress_bar,
+                    convert_to_numpy=True,
+                )
+                emb_dict = {sent: emb for sent, emb in zip(sentences, embeddings)}
+                embeddings1 = [emb_dict[sent] for sent in self.sentences1]
+                embeddings2 = [emb_dict[sent] for sent in self.sentences2]
 
         cosine_scores = 1 - paired_cosine_distances(embeddings1, embeddings2)
         manhattan_distances = paired_manhattan_distances(embeddings1, embeddings2)

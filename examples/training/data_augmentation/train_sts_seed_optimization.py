@@ -4,13 +4,13 @@ We apply early stopping and evaluate the models over the dev set, to find out th
 
 For more details refer to -
 Fine-Tuning Pretrained Language Models:
-Weight Initializations, Data Orders, and Early Stopping by Dodge et al. 2020 
+Weight Initializations, Data Orders, and Early Stopping by Dodge et al. 2020
 https://arxiv.org/pdf/2002.06305.pdf
 
 Why Seed Optimization?
-Dodge et al. (2020) show a high dependence on the random seed for transformer based models like BERT, 
-as it converges to different minima that generalize differently to unseen data. This is especially the 
-case for small training datasets. 
+Dodge et al. (2020) show a high dependence on the random seed for transformer based models like BERT,
+as it converges to different minima that generalize differently to unseen data. This is especially the
+case for small training datasets.
 
 Citation: https://arxiv.org/abs/2010.08240
 
@@ -22,6 +22,7 @@ python train_sts_seed_optimization.py pretrained_transformer_model_name seed_cou
 
 python train_sts_seed_optimization.py bert-base-uncased 10 0.3
 """
+
 from torch.utils.data import DataLoader
 import math
 import torch

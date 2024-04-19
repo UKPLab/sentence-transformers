@@ -3,9 +3,9 @@ The script shows how to train Augmented SBERT (In-Domain) strategy for STSb data
 
 
 Methodology:
-Three steps are followed for AugSBERT data-augmentation strategy with Semantic Search - 
+Three steps are followed for AugSBERT data-augmentation strategy with Semantic Search -
     1. Fine-tune cross-encoder (BERT) on gold STSb dataset
-    2. Fine-tuned Cross-encoder is used to label on Sem. Search sampled unlabeled pairs (silver STSb dataset) 
+    2. Fine-tuned Cross-encoder is used to label on Sem. Search sampled unlabeled pairs (silver STSb dataset)
     3. Bi-encoder (SBERT) is finally fine-tuned on both gold + silver STSb dataset
 
 Citation: https://arxiv.org/abs/2010.08240
@@ -18,6 +18,7 @@ python train_sts_indomain_semantic.py pretrained_transformer_model_name top_k
 
 python train_sts_indomain_semantic.py bert-base-uncased 3
 """
+
 from torch.utils.data import DataLoader
 from sentence_transformers import models, losses, util
 from sentence_transformers import LoggingHandler, SentenceTransformer

@@ -10,6 +10,7 @@ In:
 2_programming_train_bi-encoder.py - We train a SentenceTransformer bi-encoder with these generated queries. This results in a model we can then use for semantic search (for the given Wikipedia articles).
 3_programming_semantic_search.py - Shows how the trained model can be used for semantic search
 """
+
 import json
 import gzip
 from transformers import T5Tokenizer, T5ForConditionalGeneration

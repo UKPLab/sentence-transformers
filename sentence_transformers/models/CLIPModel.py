@@ -1,3 +1,4 @@
+from typing import Union
 from torch import nn
 import transformers
 import torch
@@ -49,7 +50,7 @@ class CLIPModel(nn.Module):
 
         return features
 
-    def tokenize(self, texts):
+    def tokenize(self, texts, padding: Union[str, bool] = True):
         images = []
         texts_values = []
         image_text_info = []
@@ -62,14 +63,16 @@ class CLIPModel(nn.Module):
                 texts_values.append(data)
                 image_text_info.append(1)
 
-        if len(texts_values) == 0:
-            texts_values = None
-        if len(images) == 0:
-            images = None
+        encoding = {}
+        if len(texts_values):
+            encoding = self.processor.tokenizer(texts_values, return_tensors="pt", padding=padding)
 
-        inputs = self.processor(text=texts_values, images=images, return_tensors="pt", padding=True)
-        inputs["image_text_info"] = image_text_info
-        return inputs
+        if len(images):
+            image_features = self.processor.image_processor(images, return_tensors="pt")
+            encoding["pixel_values"] = image_features.pixel_values
+
+        encoding["image_text_info"] = image_text_info
+        return encoding
 
     def save(self, output_path: str):
         self.model.save_pretrained(output_path)

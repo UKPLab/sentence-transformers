@@ -6,7 +6,7 @@ with open("README.md", mode="r", encoding="utf-8") as readme_file:
 
 setup(
     name="sentence-transformers",
-    version="2.4.0.dev0",
+    version="2.7.0.dev0",
     author="Nils Reimers",
     author_email="info@nils-reimers.de",
     description="Multilingual text embeddings",
@@ -18,7 +18,7 @@ setup(
     packages=find_packages(),
     python_requires=">=3.8.0",
     install_requires=[
-        "transformers>=4.32.0,<5.0.0",
+        "transformers>=4.34.0,<5.0.0",
         "tqdm",
         "torch>=1.11.0",
         "numpy",
@@ -27,6 +27,13 @@ setup(
         "huggingface-hub>=0.15.1",
         "Pillow",
     ],
+    extras_require={
+        "dev": [
+            "pre-commit",
+            "pytest",
+            "ruff>=0.3.0",
+        ],
+    },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",

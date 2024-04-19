@@ -1,9 +1,12 @@
+from .AdaptiveLayerLoss import AdaptiveLayerLoss
 from .CosineSimilarityLoss import CosineSimilarityLoss
 from .SoftmaxLoss import SoftmaxLoss
 from .MultipleNegativesRankingLoss import MultipleNegativesRankingLoss
 from .MultipleNegativesSymmetricRankingLoss import MultipleNegativesSymmetricRankingLoss
 from .TripletLoss import TripletDistanceMetric, TripletLoss
 from .MarginMSELoss import MarginMSELoss
+from .MatryoshkaLoss import MatryoshkaLoss
+from .Matryoshka2dLoss import Matryoshka2dLoss
 from .MSELoss import MSELoss
 from .CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
 from .ContrastiveLoss import SiameseDistanceMetric, ContrastiveLoss
@@ -17,6 +20,8 @@ from .AnglELoss import AnglELoss
 from .OnlineContrastiveLoss import OnlineContrastiveLoss
 from .MegaBatchMarginLoss import MegaBatchMarginLoss
 from .DenoisingAutoEncoderLoss import DenoisingAutoEncoderLoss
+from .GISTEmbedLoss import GISTEmbedLoss
+from .CachedGISTEmbedLoss import CachedGISTEmbedLoss
 
 # Triplet losses
 from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
@@ -25,6 +30,7 @@ from .BatchSemiHardTripletLoss import BatchSemiHardTripletLoss
 from .BatchAllTripletLoss import BatchAllTripletLoss
 
 __all__ = [
+    "AdaptiveLayerLoss",
     "CosineSimilarityLoss",
     "SoftmaxLoss",
     "MultipleNegativesRankingLoss",
@@ -32,9 +38,12 @@ __all__ = [
     "TripletLoss",
     "TripletDistanceMetric",
     "MarginMSELoss",
+    "MatryoshkaLoss",
+    "Matryoshka2dLoss",
     "MSELoss",
     "ContrastiveLoss",
     "SiameseDistanceMetric",
+    "CachedGISTEmbedLoss",
     "CachedMultipleNegativesRankingLoss",
     "ContrastiveTensionLoss",
     "ContrastiveTensionLossInBatchNegatives",
@@ -44,6 +53,7 @@ __all__ = [
     "OnlineContrastiveLoss",
     "MegaBatchMarginLoss",
     "DenoisingAutoEncoderLoss",
+    "GISTEmbedLoss",
     "BatchHardTripletLoss",
     "BatchHardTripletLossDistanceFunction",
     "BatchHardSoftMarginTripletLoss",

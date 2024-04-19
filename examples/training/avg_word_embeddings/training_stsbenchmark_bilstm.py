@@ -4,6 +4,7 @@ for example with max-pooling (which gives a system like InferSent) or with mean-
 
 Note, you can also pass BERT embeddings to the BiLSTM.
 """
+
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses, util
