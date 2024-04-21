@@ -28,6 +28,13 @@ if [ ! \( -d top1000 \) ]; then
   rm top1000.dev.tar.gz &&
   mv data/top1000/top1000.dev data/top1000/top1000.dev.tsv
 fi
+if [ ! \( -d qrels \) ]; then
+  echo "Pulling Qrels"
+  mkdir -p qrels
+  if [ ! \( -f qrels.dev.tsv \) ]; then
+    wget https://msmarco.z22.web.core.windows.net/msmarcoranking/qrels.dev.tsv
+  fi
+fi
 # wget https://msmarco.z22.web.core.windows.net/msmarcoranking/queries.tar.gz
 # wget https://msmarco.z22.web.core.windows.net/msmarcoranking/collection.tar.gz
 # wget https://msmarco.z22.web.core.windows.net/msmarcoranking/top1000.dev.tar.gz

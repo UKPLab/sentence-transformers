@@ -28,7 +28,7 @@ def load_reference_from_stream(f):
                 pass
             else:
                 qids_to_relevant_passageids[qid] = []
-            qids_to_relevant_passageids[qid].append(int(l[2]))
+            qids_to_relevant_passageids[qid].append(int(l[1]))
         except:
             raise IOError('\"%s\" is not valid format' % l)
     return qids_to_relevant_passageids
