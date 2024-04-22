@@ -507,3 +507,20 @@ def test_similarity_score(stsb_bert_tiny_model_reused: SentenceTransformer, simi
     assert pairwise_scores.shape == (len(sentences) // 2,)
     if similarity_fn_name in ("cosine", "dot"):
         assert (pairwise_scores > 0.5).all()
+
+
+def test_similarity_score_save(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+    embeddings = model.encode(["Sentence 1", "Sentence 2"])
+    assert model.similarity_fn_name is None
+    cosine_scores = model.similarity(embeddings, embeddings)
+    # Using 'similarity' methods sets the default similarity function to 'cosine'
+    assert model.similarity_fn_name == "cosine"
+
+    model.similarity_fn_name = "euclidean"
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model.save(tmp_folder)
+        loaded_model = SentenceTransformer(tmp_folder)
+    assert loaded_model.similarity_fn_name == "euclidean"
+    dot_scores = model.similarity(embeddings, embeddings)
+    assert np.not_equal(cosine_scores, dot_scores).all()
