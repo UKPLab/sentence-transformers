@@ -1,14 +1,15 @@
 from contextlib import nullcontext
 
 from sentence_transformers import SentenceTransformer
-from . import SentenceEvaluator, SimilarityFunction
+from . import SentenceEvaluator
+from sentence_transformers.similarity_functions import SimilarityFunction
 import logging
 import os
 import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 from scipy.stats import pearsonr, spearmanr
 import numpy as np
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional, Union
 from ..readers import InputExample
 
 
@@ -31,7 +32,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         sentences2: List[str],
         scores: List[float],
         batch_size: int = 16,
-        main_similarity: SimilarityFunction = None,
+        main_similarity: Optional[Union[str, SimilarityFunction]] = None,
         name: str = "",
         show_progress_bar: bool = False,
         write_csv: bool = True,
@@ -63,7 +64,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.scores)
 
-        self.main_similarity = main_similarity
+        self.main_similarity = SimilarityFunction(main_similarity) if main_similarity else None
         self.name = name
 
         self.batch_size = batch_size

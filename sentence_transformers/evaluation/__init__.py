@@ -1,5 +1,4 @@
 from .SentenceEvaluator import SentenceEvaluator
-from .SimilarityFunction import SimilarityFunction
 from .BinaryClassificationEvaluator import BinaryClassificationEvaluator
 from .EmbeddingSimilarityEvaluator import EmbeddingSimilarityEvaluator
 from .InformationRetrievalEvaluator import InformationRetrievalEvaluator
@@ -14,7 +13,6 @@ from .RerankingEvaluator import RerankingEvaluator
 
 __all__ = [
     "SentenceEvaluator",
-    "SimilarityFunction",
     "BinaryClassificationEvaluator",
     "EmbeddingSimilarityEvaluator",
     "InformationRetrievalEvaluator",
