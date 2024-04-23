@@ -7,7 +7,7 @@ we want to find the most similar sentence in this corpus.
 This script outputs for various queries the top 5 most similar sentences in the corpus.
 """
 
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer
 import torch
 
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
@@ -40,8 +40,8 @@ for query in queries:
     query_embedding = embedder.encode(query, convert_to_tensor=True)
 
     # We use cosine-similarity and torch.topk to find the highest 5 scores
-    cos_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
-    top_results = torch.topk(cos_scores, k=top_k)
+    similarity_scores = embedder.similarity(query_embedding, corpus_embeddings)[0]
+    top_results = torch.topk(similarity_scores, k=top_k)
 
     print("\n\n======================\n\n")
     print("Query:", query)
