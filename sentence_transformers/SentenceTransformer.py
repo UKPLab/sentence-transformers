@@ -20,6 +20,7 @@ from tqdm.autonotebook import trange
 import math
 import queue
 import tempfile
+import copy
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
@@ -87,11 +88,13 @@ class SentenceTransformer(nn.Sequential):
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
         truncate_dim: Optional[int] = None,
+        padding: Union[str, bool] = True,
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
         self.truncate_dim = truncate_dim
+        self.padding = padding
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -305,6 +308,9 @@ class SentenceTransformer(nn.Sequential):
             ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
             self.is_hpu_graph_enabled = True
 
+            from optimum.habana.transformers.modeling_utils import adapt_transformers_to_gaudi
+            adapt_transformers_to_gaudi()
+
         self.eval()
         if show_progress_bar is None:
             show_progress_bar = (
@@ -368,7 +374,11 @@ class SentenceTransformer(nn.Sequential):
             features.update(extra_features)
 
             with torch.no_grad():
-                out_features = self.forward(features)
+                if self.device.type == "hpu":
+                    hpu_graph_out = self.forward(features)
+                    out_features = copy.deepcopy(hpu_graph_out)
+                else:
+                    out_features = self.forward(features)
                 out_features["sentence_embedding"] = truncate_embeddings(
                     out_features["sentence_embedding"], self.truncate_dim
                 )
@@ -585,8 +595,7 @@ class SentenceTransformer(nn.Sequential):
         """
         kwargs = {}
         # HPU models reach optimal performance if the padding is not dynamic
-        if self.device.type == "hpu":
-            kwargs["padding"] = "max_length"
+        kwargs["padding"] = self.padding
 
         try:
             return self._first_module().tokenize(texts, **kwargs)
