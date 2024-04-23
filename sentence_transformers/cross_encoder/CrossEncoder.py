@@ -44,7 +44,7 @@ class CrossEncoder(PushToHubMixin):
         will execute code present on the Hub on your local machine.
     :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
         for a stored model on Hugging Face.
-    :param local_files_only: If `True`, avoid downloading the model. Returns path to the local cached model if it exists.
+    :param local_files_only: If `True`, avoid downloading the model.
     :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that
         should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
         else nn.Identity()

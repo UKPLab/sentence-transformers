@@ -69,7 +69,7 @@ class SentenceTransformer(nn.Sequential):
         will execute code present on the Hub on your local machine.
     :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
         for a stored model on Hugging Face.
-    :param local_files_only: If `True`, avoid downloading the model. Returns path to the local cached model if it exists.
+    :param local_files_only: If `True`, avoid downloading the model.
     :param token: Hugging Face authentication token to download private models.
     :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
         only applicable during inference when `.encode` is called.
