@@ -69,6 +69,7 @@ class SentenceTransformer(nn.Sequential):
         will execute code present on the Hub on your local machine.
     :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
         for a stored model on Hugging Face.
+    :param local_files_only: If `True`, avoid downloading the model.
     :param token: Hugging Face authentication token to download private models.
     :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
         only applicable during inference when `.encode` is called.
@@ -84,6 +85,7 @@ class SentenceTransformer(nn.Sequential):
         cache_folder: Optional[str] = None,
         trust_remote_code: bool = False,
         revision: Optional[str] = None,
+        local_files_only: bool = False,
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
         truncate_dim: Optional[int] = None,
@@ -193,13 +195,20 @@ class SentenceTransformer(nn.Sequential):
                     # A model from sentence-transformers
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
-            if is_sentence_transformer_model(model_name_or_path, token, cache_folder=cache_folder, revision=revision):
+            if is_sentence_transformer_model(
+                model_name_or_path,
+                token,
+                cache_folder=cache_folder,
+                revision=revision,
+                local_files_only=local_files_only,
+            ):
                 modules = self._load_sbert_model(
                     model_name_or_path,
                     token=token,
                     cache_folder=cache_folder,
                     revision=revision,
                     trust_remote_code=trust_remote_code,
+                    local_files_only=local_files_only,
                 )
             else:
                 modules = self._load_auto_model(
@@ -208,6 +217,7 @@ class SentenceTransformer(nn.Sequential):
                     cache_folder=cache_folder,
                     revision=revision,
                     trust_remote_code=trust_remote_code,
+                    local_files_only=local_files_only,
                 )
 
         if modules is not None and not isinstance(modules, OrderedDict):
@@ -1185,6 +1195,7 @@ class SentenceTransformer(nn.Sequential):
         cache_folder: Optional[str],
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
+        local_files_only: bool = False,
     ):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
@@ -1197,8 +1208,18 @@ class SentenceTransformer(nn.Sequential):
         transformer_model = Transformer(
             model_name_or_path,
             cache_dir=cache_folder,
-            model_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
-            tokenizer_args={"token": token, "trust_remote_code": trust_remote_code, "revision": revision},
+            model_args={
+                "token": token,
+                "trust_remote_code": trust_remote_code,
+                "revision": revision,
+                "local_files_only": local_files_only,
+            },
+            tokenizer_args={
+                "token": token,
+                "trust_remote_code": trust_remote_code,
+                "revision": revision,
+                "local_files_only": local_files_only,
+            },
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
         return [transformer_model, pooling_model]
@@ -1210,6 +1231,7 @@ class SentenceTransformer(nn.Sequential):
         cache_folder: Optional[str],
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
+        local_files_only: bool = False,
     ):
         """
         Loads a full sentence-transformers model
@@ -1221,6 +1243,7 @@ class SentenceTransformer(nn.Sequential):
             token=token,
             cache_folder=cache_folder,
             revision=revision,
+            local_files_only=local_files_only,
         )
         if config_sentence_transformers_json_path is not None:
             with open(config_sentence_transformers_json_path) as fIn:
@@ -1245,7 +1268,12 @@ class SentenceTransformer(nn.Sequential):
 
         # Check if a readme exists
         model_card_path = load_file_path(
-            model_name_or_path, "README.md", token=token, cache_folder=cache_folder, revision=revision
+            model_name_or_path,
+            "README.md",
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
         )
         if model_card_path is not None:
             try:
@@ -1256,7 +1284,12 @@ class SentenceTransformer(nn.Sequential):
 
         # Load the modules of sentence transformer
         modules_json_path = load_file_path(
-            model_name_or_path, "modules.json", token=token, cache_folder=cache_folder, revision=revision
+            model_name_or_path,
+            "modules.json",
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
         )
         with open(modules_json_path) as fIn:
             modules_config = json.load(fIn)
@@ -1278,13 +1311,23 @@ class SentenceTransformer(nn.Sequential):
                     "sentence_xlnet_config.json",
                 ]:
                     config_path = load_file_path(
-                        model_name_or_path, config_name, token=token, cache_folder=cache_folder, revision=revision
+                        model_name_or_path,
+                        config_name,
+                        token=token,
+                        cache_folder=cache_folder,
+                        revision=revision,
+                        local_files_only=local_files_only,
                     )
                     if config_path is not None:
                         with open(config_path) as fIn:
                             kwargs = json.load(fIn)
                         break
-                hub_kwargs = {"token": token, "trust_remote_code": trust_remote_code, "revision": revision}
+                hub_kwargs = {
+                    "token": token,
+                    "trust_remote_code": trust_remote_code,
+                    "revision": revision,
+                    "local_files_only": local_files_only,
+                }
                 if "model_args" in kwargs:
                     kwargs["model_args"].update(hub_kwargs)
                 else:
@@ -1305,6 +1348,7 @@ class SentenceTransformer(nn.Sequential):
                         token=token,
                         cache_folder=cache_folder,
                         revision=revision,
+                        local_files_only=local_files_only,
                     )
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
