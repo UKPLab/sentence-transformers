@@ -1029,9 +1029,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             modules[module_config["name"]] = module
 
         if revision is None:
-            revision_path_part = Path(modules_json_path).parts[-2]
-            if len(revision_path_part) == 40:
-                revision = revision_path_part
+            path_parts = Path(modules_json_path)
+            if len(path_parts.parts) >= 2:
+                revision_path_part = Path(modules_json_path).parts[-2]
+                if len(revision_path_part) == 40:
+                    revision = revision_path_part
         self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return modules
 
