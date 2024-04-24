@@ -44,6 +44,7 @@ class CrossEncoder(PushToHubMixin):
         will execute code present on the Hub on your local machine.
     :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
         for a stored model on Hugging Face.
+    :param local_files_only: If `True`, avoid downloading the model.
     :param default_activation_function: Callable (like nn.Sigmoid) about the default activation function that
         should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
         else nn.Identity()
@@ -60,10 +61,13 @@ class CrossEncoder(PushToHubMixin):
         automodel_args: Dict = {},
         trust_remote_code: bool = False,
         revision: Optional[str] = None,
+        local_files_only: bool = False,
         default_activation_function=None,
         classifier_dropout: float = None,
     ):
-        self.config = AutoConfig.from_pretrained(model_name, trust_remote_code=trust_remote_code, revision=revision)
+        self.config = AutoConfig.from_pretrained(
+            model_name, trust_remote_code=trust_remote_code, revision=revision, local_files_only=local_files_only
+        )
         classifier_trained = True
         if self.config.architectures is not None:
             classifier_trained = any(
@@ -79,9 +83,16 @@ class CrossEncoder(PushToHubMixin):
         if num_labels is not None:
             self.config.num_labels = num_labels
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            model_name, config=self.config, revision=revision, trust_remote_code=trust_remote_code, **automodel_args
+            model_name,
+            config=self.config,
+            revision=revision,
+            trust_remote_code=trust_remote_code,
+            local_files_only=local_files_only,
+            **automodel_args,
         )
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision, **tokenizer_args)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_name, revision=revision, local_files_only=local_files_only, **tokenizer_args
+        )
         self.max_length = max_length
 
         if device is None:
