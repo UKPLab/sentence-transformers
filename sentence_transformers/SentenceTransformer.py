@@ -59,9 +59,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         titles in "}`.
     :param default_prompt_name: The name of the prompt that should be used by default. If not set,
         no prompt will be applied.
-    :param score_function_name: The name of the similarity function to use. Valid options are "cosine", "dot_product",
-        "euclidean", and "manhattan". If not set, it is automatically set after training or automatically set to
-        "cosine" if `compare` or `compare_pairwise` are called while `score_function_name` is still None.
+    :param similarity_fn_name: The name of the similarity function to use. Valid options are "cosine", "dot",
+        "euclidean", and "manhattan". If not set, it is automatically to "cosine" if `similarity` or
+        `similarity_pairwise` are called while `model.similarity_fn_name` is still `None`.
     :param cache_folder: Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
     :param trust_remote_code: Whether or not to allow for custom models defined on the Hub in their own modeling files.
         This option should only be set to True for repositories you trust and in which you have read the code, as it
@@ -81,7 +81,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         device: Optional[str] = None,
         prompts: Optional[Dict[str, str]] = None,
         default_prompt_name: Optional[str] = None,
-        score_function_name: Optional[Union[str, SimilarityFunction]] = None,
+        similarity_fn_name: Optional[Union[str, SimilarityFunction]] = None,
         cache_folder: Optional[str] = None,
         trust_remote_code: bool = False,
         revision: Optional[str] = None,
@@ -94,7 +94,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
-        self.similarity_fn_name = score_function_name
+        self.similarity_fn_name = similarity_fn_name
         self.truncate_dim = truncate_dim
         self.model_card_data = model_card_data or SentenceTransformerModelCardData()
         self._model_card_vars = {}
