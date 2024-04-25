@@ -4,6 +4,7 @@ import logging
 import os
 from collections import OrderedDict
 from pathlib import Path
+import traceback
 import warnings
 from typing import Callable, List, Dict, Literal, Tuple, Iterable, Union, Optional, overload
 import numpy as np
@@ -878,10 +879,10 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         else:
             try:
                 model_card = generate_model_card(self)
-            except Exception as exc:
+            except Exception:
                 logger.error(
-                    f"Error while generating model card: {exc}\n"
-                    "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with these logs.\n"
+                    f"Error while generating model card:\n{traceback.format_exc()}"
+                    "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with this traceback.\n"
                     "Skipping model card creation."
                 )
                 return
