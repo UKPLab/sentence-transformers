@@ -120,7 +120,6 @@ Then we can run inference with it using <a href="../../../docs/package_reference
 
 ```python
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.util import cos_sim
 
 model = SentenceTransformer("tomaarsen/mpnet-base-nli-adaptive-layer")
 new_num_layers = 3
@@ -134,7 +133,7 @@ embeddings = model.encode(
     ]
 )
 # Similarity of the first sentence with the other two
-similarities = cos_sim(embeddings[0], embeddings[1:])
+similarities = model.similarity(embeddings[0], embeddings[1:])
 # => tensor([[0.7761, 0.1655]])
 # compared to tensor([[ 0.7547, -0.0162]]) for the full model
 ```

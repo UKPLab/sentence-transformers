@@ -10,9 +10,6 @@ from textwrap import indent
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union
 import logging
 
-import accelerate
-import datasets
-import tokenizers
 import torch
 from torch import nn
 import transformers
@@ -206,6 +203,22 @@ YAML_FIELDS = [
 IGNORED_FIELDS = ["model", "trainer", "eval_results_dict"]
 
 
+def get_versions() -> Dict[str, Any]:
+    from accelerate import __version__ as accelerate_version
+    from datasets import __version__ as datasets_version
+    from tokenizers import __version__ as tokenizers_version
+
+    return {
+        "python": python_version(),
+        "sentence_transformers": sentence_transformers_version,
+        "transformers": transformers.__version__,
+        "torch": torch.__version__,
+        "accelerate": accelerate_version,
+        "datasets": datasets_version,
+        "tokenizers": tokenizers_version,
+    }
+
+
 @dataclass
 class SentenceTransformerModelCardData(CardData):
     """A dataclass storing data used in the model card.
@@ -290,18 +303,7 @@ class SentenceTransformerModelCardData(CardData):
     # Computed once, always unchanged
     pipeline_tag: str = field(default="sentence-similarity", init=False)
     library_name: str = field(default="sentence-transformers", init=False)
-    version: Dict[str, str] = field(
-        default_factory=lambda: {
-            "python": python_version(),
-            "sentence_transformers": sentence_transformers_version,
-            "transformers": transformers.__version__,
-            "torch": torch.__version__,
-            "accelerate": accelerate.__version__,
-            "datasets": datasets.__version__,
-            "tokenizers": tokenizers.__version__,
-        },
-        init=False,
-    )
+    version: Dict[str, str] = field(default_factory=get_versions, init=False)
 
     # Passed via `register_model` only
     model: Optional["SentenceTransformer"] = field(default=None, init=False, repr=False)
@@ -899,6 +901,12 @@ class SentenceTransformerModelCardData(CardData):
         super_dict["model_max_length"] = self.model.get_max_seq_length()
         super_dict["output_dimensionality"] = self.model.get_sentence_embedding_dimension()
         super_dict["model_string"] = str(self.model)
+        super_dict["similarity_fn_name"] = {
+            "cosine": "Cosine Similarity",
+            "dot": "Dot Product",
+            "euclidean": "Euclidean Distance",
+            "manhattan": "Manhattan Distance",
+        }.get(self.model.similarity_fn_name, self.model.similarity_fn_name.replace("_", " ").title())
 
         self.first_save = False
 

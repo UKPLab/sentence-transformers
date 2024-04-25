@@ -71,11 +71,75 @@ def test_paraphrase_mining() -> None:
             assert (a, b) in [(0, 1), (2, 3), (2, 4), (3, 4), (5, 6), (5, 7), (6, 7)]
 
 
-def test_pairwise_scores() -> None:
+def test_pairwise_cos_sim() -> None:
     a = np.random.randn(50, 100)
     b = np.random.randn(50, 100)
 
     # Pairwise cos
     sklearn_pairwise = 1 - sklearn.metrics.pairwise.paired_cosine_distances(a, b)
     pytorch_cos_scores = util.pairwise_cos_sim(a, b).numpy()
+
     assert np.allclose(sklearn_pairwise, pytorch_cos_scores)
+
+
+def test_pairwise_euclidean_sim() -> None:
+    a = np.array([[1, 0], [1, 1]], dtype=np.float32)
+    b = np.array([[0, 0], [0, 0]], dtype=np.float32)
+
+    euclidean_expected = np.array([-1.0, -np.sqrt(2.0)])
+    euclidean_calculated = util.pairwise_euclidean_sim(a, b).numpy()
+
+    assert np.allclose(euclidean_expected, euclidean_calculated)
+
+
+def test_pairwise_manhattan_sim() -> None:
+    a = np.array([[1, 0], [1, 1]], dtype=np.float32)
+    b = np.array([[0, 0], [0, 0]], dtype=np.float32)
+
+    manhattan_expected = np.array([-1.0, -2.0])
+    manhattan_calculated = util.pairwise_manhattan_sim(a, b).numpy()
+
+    assert np.allclose(manhattan_expected, manhattan_calculated)
+
+
+def test_pairwise_dot_score_cos_sim() -> None:
+    a = np.array([[1, 0], [1, 0], [1, 0]], dtype=np.float32)
+    b = np.array([[1, 0], [0, 1], [-1, 0]], dtype=np.float32)
+
+    dot_and_cosine_expected = np.array([1.0, 0.0, -1.0])
+    cosine_calculated = util.pairwise_cos_sim(a, b)
+    dot_calculated = util.pairwise_dot_score(a, b)
+
+    assert np.allclose(cosine_calculated, dot_and_cosine_expected)
+    assert np.allclose(dot_calculated, dot_and_cosine_expected)
+
+
+def test_euclidean_sim() -> None:
+    a = np.array([[1, 0], [0, 1]], dtype=np.float32)
+    b = np.array([[0, 0], [0, 1]], dtype=np.float32)
+
+    euclidean_expected = np.array([[-1.0, -np.sqrt(2.0)], [-1.0, 0.0]])
+    euclidean_calculated = util.euclidean_sim(a, b).detach().numpy()
+
+    assert np.allclose(euclidean_expected, euclidean_calculated)
+
+
+def test_manhattan_sim() -> None:
+    a = np.array([[1, 0], [0, 1]], dtype=np.float32)
+    b = np.array([[0, 0], [0, 1]], dtype=np.float32)
+
+    manhattan_expected = np.array([[-1.0, -2.0], [-1.0, 0]])
+    manhattan_calculated = util.manhattan_sim(a, b).detach().numpy()
+    assert np.allclose(manhattan_expected, manhattan_calculated)
+
+
+def test_dot_score_cos_sim() -> None:
+    a = np.array([[1, 0]], dtype=np.float32)
+    b = np.array([[1, 0], [0, 1], [-1, 0]], dtype=np.float32)
+
+    dot_and_cosine_expected = np.array([[1.0, 0.0, -1.0]])
+    cosine_calculated = util.cos_sim(a, b)
+    dot_calculated = util.dot_score(a, b)
+
+    assert np.allclose(cosine_calculated, dot_and_cosine_expected)
+    assert np.allclose(dot_calculated, dot_and_cosine_expected)

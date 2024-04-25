@@ -1,5 +1,7 @@
 from sentence_transformers import SentenceTransformer
 from contextlib import nullcontext
+
+from sentence_transformers.similarity_functions import SimilarityFunction
 from . import SentenceEvaluator
 import torch
 from torch import Tensor
@@ -8,7 +10,7 @@ from tqdm import trange
 from ..util import cos_sim, dot_score
 import os
 import numpy as np
-from typing import List, Dict, Optional, Set, Callable
+from typing import List, Dict, Optional, Set, Callable, Union
 import heapq
 
 
@@ -40,10 +42,10 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         write_csv: bool = True,
         truncate_dim: Optional[int] = None,
         score_functions: Dict[str, Callable[[Tensor, Tensor], Tensor]] = {
-            "cosine": cos_sim,
-            "dot": dot_score,
+            SimilarityFunction.COSINE.value: cos_sim,
+            SimilarityFunction.DOT_PRODUCT.value: dot_score,
         },  # Score function, higher=more similar
-        main_score_function: str = None,
+        main_score_function: Optional[Union[str, SimilarityFunction]] = None,
     ):
         super().__init__()
         self.queries_ids = []
@@ -70,7 +72,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.score_functions = score_functions
         self.score_function_names = sorted(list(self.score_functions.keys()))
-        self.main_score_function = main_score_function
+        self.main_score_function = SimilarityFunction(main_score_function) if main_score_function else None
         self.truncate_dim = truncate_dim
 
         if name:
@@ -153,7 +155,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             )[0]
             self.primary_metric = f"{score_function}_map@{max(self.map_at_k)}"
         else:
-            self.primary_metric = f"{self.main_score_function}_map@{max(self.map_at_k)}"
+            self.primary_metric = f"{self.main_score_function.value}_map@{max(self.map_at_k)}"
 
         metrics = {
             f"{score_function}_{metric_name.replace('@k', '@' + str(k))}": value

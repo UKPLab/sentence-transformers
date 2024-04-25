@@ -1,5 +1,7 @@
 from sentence_transformers import SentenceTransformer
 from contextlib import nullcontext
+
+from sentence_transformers.similarity_functions import SimilarityFunction
 from . import SentenceEvaluator
 import logging
 import os
@@ -18,7 +20,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on the similarity of the embeddings by calculating the accuracy of identifying similar and
     dissimilar sentences.
-    The metrics are the cosine similarity as well as euclidean and Manhattan distance
+    The metrics are the cosine similarity, dot score, Euclidean and Manhattan distance
     The returned score is the accuracy with a specified metric.
 
     The results are written in a CSV. If a CSV already exists, then values are appended.
@@ -69,39 +71,19 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         self.show_progress_bar = show_progress_bar
 
         self.csv_file = "binary_classification_evaluation" + ("_" + name if name else "") + "_results.csv"
-        self.csv_headers = [
-            "epoch",
-            "steps",
-            "cosine_accuracy",
-            "cosine_accuracy_threshold",
-            "cosine_f1",
-            "cosine_precision",
-            "cosine_recall",
-            "cosine_f1_threshold",
-            "cosine_ap",
-            "manhattan_accuracy",
-            "manhattan_accuracy_threshold",
-            "manhattan_f1",
-            "manhattan_precision",
-            "manhattan_recall",
-            "manhattan_f1_threshold",
-            "manhattan_ap",
-            "euclidean_accuracy",
-            "euclidean_accuracy_threshold",
-            "euclidean_f1",
-            "euclidean_precision",
-            "euclidean_recall",
-            "euclidean_f1_threshold",
-            "euclidean_ap",
-            "dot_accuracy",
-            "dot_accuracy_threshold",
-            "dot_f1",
-            "dot_precision",
-            "dot_recall",
-            "dot_f1_threshold",
-            "dot_ap",
+        self.csv_headers = ["epoch", "steps"]
+        metrics = [
+            "accuracy",
+            "accuracy_threshold",
+            "f1",
+            "precision",
+            "recall",
+            "f1_threshold",
+            "ap",
         ]
-        self.primary_metric = "cosine_accuracy"
+        for v in SimilarityFunction.possible_values():
+            for m in metrics:
+                self.csv_headers.append(f"{v}_{m}")
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -196,15 +178,15 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
 
         embeddings1_np = np.asarray(embeddings1)
         embeddings2_np = np.asarray(embeddings2)
-        dot_scores = [np.dot(embeddings1_np[i], embeddings2_np[i]) for i in range(len(embeddings1_np))]
+        dot_scores = np.sum(embeddings1_np * embeddings2_np, axis=-1)
 
         labels = np.asarray(self.labels)
         output_scores = {}
         for short_name, name, scores, reverse in [
-            ["cosine", "Cosine-Similarity", cosine_scores, True],
-            ["manhattan", "Manhattan-Distance", manhattan_distances, False],
-            ["euclidean", "Euclidean-Distance", euclidean_distances, False],
-            ["dot", "Dot-Product", dot_scores, True],
+            [SimilarityFunction.COSINE.value, "Cosine-Similarity", cosine_scores, True],
+            [SimilarityFunction.DOT_PRODUCT.value, "Dot-Product", dot_scores, True],
+            [SimilarityFunction.MANHATTAN.value, "Manhattan-Distance", manhattan_distances, False],
+            [SimilarityFunction.EUCLIDEAN.value, "Euclidean-Distance", euclidean_distances, False],
         ]:
             acc, acc_threshold = self.find_best_acc_and_threshold(scores, labels, reverse)
             f1, precision, recall, f1_threshold = self.find_best_f1_and_threshold(scores, labels, reverse)

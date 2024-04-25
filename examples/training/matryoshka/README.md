@@ -58,7 +58,6 @@ After a model has been trained using a Matryoshka loss, you can then run inferen
 
 ```python
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.util import cos_sim
 import torch.nn.functional as F
 
 matryoshka_dim = 64
@@ -77,7 +76,7 @@ embeddings = model.encode(
 )
 assert embeddings.shape[-1] == matryoshka_dim
 
-similarities = cos_sim(embeddings[0], embeddings[1:])
+similarities = model.similarity(embeddings[0], embeddings[1:])
 # => tensor([[0.7839, 0.4933]])
 ```
 As you can see, the similarity between the search query and the correct document is much higher than that of an unrelated document, despite the very small matryoshka dimension applied. Feel free to copy this script locally, modify the `matryoshka_dim`, and observe the difference in similarities.

@@ -5,7 +5,7 @@ import os
 from collections import OrderedDict
 from pathlib import Path
 import warnings
-from typing import List, Dict, Literal, Tuple, Iterable, Union, Optional
+from typing import Callable, List, Dict, Literal, Tuple, Iterable, Union, Optional, overload
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -20,7 +20,7 @@ import queue
 import tempfile
 
 from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
-
+from sentence_transformers.similarity_functions import SimilarityFunction
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
@@ -59,6 +59,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         titles in "}`.
     :param default_prompt_name: The name of the prompt that should be used by default. If not set,
         no prompt will be applied.
+    :param similarity_fn_name: The name of the similarity function to use. Valid options are "cosine", "dot",
+        "euclidean", and "manhattan". If not set, it is automatically to "cosine" if `similarity` or
+        `similarity_pairwise` are called while `model.similarity_fn_name` is still `None`.
     :param cache_folder: Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
     :param trust_remote_code: Whether or not to allow for custom models defined on the Hub in their own modeling files.
         This option should only be set to True for repositories you trust and in which you have read the code, as it
@@ -78,6 +81,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         device: Optional[str] = None,
         prompts: Optional[Dict[str, str]] = None,
         default_prompt_name: Optional[str] = None,
+        similarity_fn_name: Optional[Union[str, SimilarityFunction]] = None,
         cache_folder: Optional[str] = None,
         trust_remote_code: bool = False,
         revision: Optional[str] = None,
@@ -90,6 +94,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
+        self.similarity_fn_name = similarity_fn_name
         self.truncate_dim = truncate_dim
         self.model_card_data = model_card_data or SentenceTransformerModelCardData()
         self._model_card_vars = {}
@@ -436,6 +441,105 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         return all_embeddings
 
+    @property
+    def similarity_fn_name(self) -> Optional[str]:
+        return self._similarity_fn_name
+
+    @similarity_fn_name.setter
+    def similarity_fn_name(self, value: Union[str, SimilarityFunction]) -> None:
+        if isinstance(value, SimilarityFunction):
+            value = value.value
+        self._similarity_fn_name = value
+
+        if value is not None:
+            self._similarity = SimilarityFunction.to_similarity_fn(value)
+            self._similarity_pairwise = SimilarityFunction.to_similarity_pairwise_fn(value)
+
+    @overload
+    def similarity(self, embeddings1: Tensor, embeddings2: Tensor) -> Tensor: ...
+
+    @overload
+    def similarity(self, embeddings1: ndarray, embeddings2: ndarray) -> Tensor: ...
+
+    @property
+    def similarity(self) -> Callable[[Union[Tensor, ndarray], Union[Tensor, ndarray]], Tensor]:
+        """
+        Compute the similarity between two collections of embeddings. The output will be a matrix with the similarity
+        scores between all embeddings from the first parameter and all embeddings from the second parameter. This
+        differs from `similarity_pairwise` which computes the similarity between each pair of embeddings.
+
+        Example
+            ::
+
+                >>> model = SentenceTransformer("all-mpnet-base-v2")
+                >>> sentences = [
+                ...     "The weather is so nice!",
+                ...     "It's so sunny outside.",
+                ...     "He's driving to the movie theater.",
+                ...     "She's going to the cinema.",
+                ... ]
+                >>> embeddings = model.encode(sentences, normalize_embeddings=True)
+                >>> model.similarity(embeddings, embeddings)
+                tensor([[1.0000, 0.7235, 0.0290, 0.1309],
+                        [0.7235, 1.0000, 0.0613, 0.1129],
+                        [0.0290, 0.0613, 1.0000, 0.5027],
+                        [0.1309, 0.1129, 0.5027, 1.0000]])
+                >>> model.similarity_fn_name
+                "cosine"
+                >>> model.similarity_fn_name = "euclidean"
+                >>> model.similarity(embeddings, embeddings)
+                tensor([[-0.0000, -0.7437, -1.3935, -1.3184],
+                        [-0.7437, -0.0000, -1.3702, -1.3320],
+                        [-1.3935, -1.3702, -0.0000, -0.9973],
+                        [-1.3184, -1.3320, -0.9973, -0.0000]])
+
+        :param embeddings1: [num_embeddings_1, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+        :param embeddings2: [num_embeddings_2, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+        :return: A [num_embeddings_1, num_embeddings_2]-shaped torch tensor with similarity scores.
+        """
+        if self.similarity_fn_name is None:
+            self.similarity_fn_name = SimilarityFunction.COSINE
+        return self._similarity
+
+    @overload
+    def similarity_pairwise(self, embeddings1: Tensor, embeddings2: Tensor) -> Tensor: ...
+
+    @overload
+    def similarity_pairwise(self, embeddings1: ndarray, embeddings2: ndarray) -> Tensor: ...
+
+    @property
+    def similarity_pairwise(self) -> Callable[[Union[Tensor, ndarray], Union[Tensor, ndarray]], Tensor]:
+        """
+        Compute the similarity between two collections of embeddings. The output will be a vector with the similarity
+        scores between each pair of embeddings.
+
+        Example
+            ::
+
+                >>> model = SentenceTransformer("all-mpnet-base-v2")
+                >>> sentences = [
+                ...     "The weather is so nice!",
+                ...     "It's so sunny outside.",
+                ...     "He's driving to the movie theater.",
+                ...     "She's going to the cinema.",
+                ... ]
+                >>> embeddings = model.encode(sentences, normalize_embeddings=True)
+                >>> model.similarity_pairwise(embeddings[::2], embeddings[1::2])
+                tensor([0.7235, 0.5027])
+                >>> model.similarity_fn_name
+                "cosine"
+                >>> model.similarity_fn_name = "euclidean"
+                >>> model.similarity_pairwise(embeddings[::2], embeddings[1::2])
+                tensor([-0.7437, -0.9973])
+
+        :param embeddings1: [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+        :param embeddings2: [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+        :return: A [num_embeddings]-shaped torch tensor with pairwise similarity scores.
+        """
+        if self.similarity_fn_name is None:
+            self.similarity_fn_name = SimilarityFunction.COSINE
+        return self._similarity_pairwise
+
     def start_multi_process_pool(self, target_devices: List[str] = None):
         """
         Starts multi process to process the encoding with several, independent processes.
@@ -672,7 +776,8 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         safe_serialization: bool = True,
     ):
         """
-        Saves all elements for this seq. sentence embedder into different sub-folders
+        Saves a model and its configuration files to a directory, so that it can be loaded
+        with `SentenceTransformer(path)` again.
 
         :param path: Path on disc
         :param model_name: Optional model name
@@ -700,6 +805,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             config = self._model_config.copy()
             config["prompts"] = self.prompts
             config["default_prompt_name"] = self.default_prompt_name
+            config["similarity_fn_name"] = self.similarity_fn_name
             json.dump(config, fOut, indent=2)
 
         # Save modules
@@ -726,6 +832,32 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # Create model card
         if create_model_card:
             self._create_model_card(path, model_name, train_datasets)
+
+    def save_pretrained(
+        self,
+        path: str,
+        model_name: Optional[str] = None,
+        create_model_card: bool = True,
+        train_datasets: Optional[List[str]] = None,
+        safe_serialization: bool = True,
+    ):
+        """
+        Saves a model and its configuration files to a directory, so that it can be loaded
+        with `SentenceTransformer(path)` again. Alias of `SentenceTransformer.save`.
+
+        :param path: Path on disc
+        :param model_name: Optional model name
+        :param create_model_card: If True, create a README.md with basic information about this model
+        :param train_datasets: Optional list with the names of the datasets used to to train the model
+        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
+        """
+        self.save(
+            path,
+            model_name=model_name,
+            create_model_card=create_model_card,
+            train_datasets=train_datasets,
+            safe_serialization=safe_serialization,
+        )
 
     def _create_model_card(
         self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = "deprecated"
@@ -982,7 +1114,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     )
                 )
 
-            # Set prompts if not already overridden by the __init__ calls
+            # Set score functions & prompts if not already overridden by the __init__ calls
+            if self.similarity_fn_name is None:
+                self.similarity_fn_name = self._model_config.get("similarity_fn_name", None)
             if not self.prompts:
                 self.prompts = self._model_config.get("prompts", {})
             if not self.default_prompt_name:
