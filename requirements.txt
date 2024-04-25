@@ -6,3 +6,5 @@ scikit-learn
 scipy
 huggingface-hub>=0.15.1
 Pillow
+datasets
+accelerate>=0.20.3

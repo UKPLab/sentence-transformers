@@ -9,7 +9,7 @@ from ..util import cos_sim
 import torch
 from sklearn.metrics import average_precision_score, ndcg_score
 import tqdm
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +50,7 @@ class RerankingEvaluator(SentenceEvaluator):
         truncate_dim: Optional[int] = None,
         mrr_at_k: Optional[int] = None,
     ):
+        super().__init__()
         self.samples = samples
         self.name = name
 
@@ -82,8 +83,11 @@ class RerankingEvaluator(SentenceEvaluator):
             "NDCG@{}".format(self.at_k),
         ]
         self.write_csv = write_csv
+        self.primary_metric = "map"
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -131,7 +135,14 @@ class RerankingEvaluator(SentenceEvaluator):
 
                 writer.writerow([epoch, steps, mean_ap, mean_mrr, mean_ndcg])
 
-        return mean_ap
+        metrics = {
+            "map": mean_ap,
+            f"mrr@{self.at_k}": mean_mrr,
+            f"ndcg@{self.at_k}": mean_ndcg,
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
 
     def compute_metrices(self, model):
         return (

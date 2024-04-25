@@ -103,6 +103,8 @@ logging.info("Start training")
 
 model.fit(
     train_objectives=[(train_dataloader, train_loss)],
+    evaluator=dev_evaluator,
+    evaluation_steps=100,
     epochs=1,
     warmup_steps=100,
     use_amp=True,  # Set to True, if your GPU has optimized FP16 cores

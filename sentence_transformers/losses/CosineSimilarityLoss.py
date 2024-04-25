@@ -1,6 +1,8 @@
 import torch
 from torch import nn, Tensor
-from typing import Iterable, Dict
+from typing import Any, Iterable, Dict
+
+from sentence_transformers.util import fullname
 from ..SentenceTransformer import SentenceTransformer
 
 
@@ -62,4 +64,7 @@ class CosineSimilarityLoss(nn.Module):
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         output = self.cos_score_transformation(torch.cosine_similarity(embeddings[0], embeddings[1]))
-        return self.loss_fct(output, labels.view(-1))
+        return self.loss_fct(output, labels.float().view(-1))
+
+    def get_config_dict(self) -> Dict[str, Any]:
+        return {"loss_fct": fullname(self.loss_fct)}

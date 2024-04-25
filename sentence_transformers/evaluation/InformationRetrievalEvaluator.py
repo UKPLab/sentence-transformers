@@ -40,11 +40,12 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         write_csv: bool = True,
         truncate_dim: Optional[int] = None,
         score_functions: Dict[str, Callable[[Tensor, Tensor], Tensor]] = {
-            "cos_sim": cos_sim,
-            "dot_score": dot_score,
+            "cosine": cos_sim,
+            "dot": dot_score,
         },  # Score function, higher=more similar
         main_score_function: str = None,
     ):
+        super().__init__()
         self.queries_ids = []
         for qid in queries:
             if qid in relevant_docs and len(relevant_docs[qid]) > 0:
@@ -97,7 +98,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
     def __call__(
         self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
-    ) -> float:
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -146,9 +147,23 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             fOut.close()
 
         if self.main_score_function is None:
-            return max([scores[name]["map@k"][max(self.map_at_k)] for name in self.score_function_names])
+            score_function = max(
+                [(name, scores[name]["map@k"][max(self.map_at_k)]) for name in self.score_function_names],
+                key=lambda x: x[1],
+            )[0]
+            self.primary_metric = f"{score_function}_map@{max(self.map_at_k)}"
         else:
-            return scores[self.main_score_function]["map@k"][max(self.map_at_k)]
+            self.primary_metric = f"{self.main_score_function}_map@{max(self.map_at_k)}"
+
+        metrics = {
+            f"{score_function}_{metric_name.replace('@k', '@' + str(k))}": value
+            for score_function, values_dict in scores.items()
+            for metric_name, values in values_dict.items()
+            for k, value in values.items()
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
 
     def compute_metrices(
         self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor = None

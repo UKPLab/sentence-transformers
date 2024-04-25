@@ -19,7 +19,9 @@ nr_*/
 /docs/make.bat
 /examples/training/quora_duplicate_questions/quora-IR-dataset/
 build
-
 htmlcov
 .coverage
+wandb
+checkpoints
+tmp
 .venv

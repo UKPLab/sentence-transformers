@@ -72,15 +72,6 @@ class TripletLoss(nn.Module):
         self.distance_metric = distance_metric
         self.triplet_margin = triplet_margin
 
-    def get_config_dict(self):
-        distance_metric_name = self.distance_metric.__name__
-        for name, value in vars(TripletDistanceMetric).items():
-            if value == self.distance_metric:
-                distance_metric_name = "TripletDistanceMetric.{}".format(name)
-                break
-
-        return {"distance_metric": distance_metric_name, "triplet_margin": self.triplet_margin}
-
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
@@ -90,3 +81,25 @@ class TripletLoss(nn.Module):
 
         losses = F.relu(distance_pos - distance_neg + self.triplet_margin)
         return losses.mean()
+
+    def get_config_dict(self):
+        distance_metric_name = self.distance_metric.__name__
+        for name, value in vars(TripletDistanceMetric).items():
+            if value == self.distance_metric:
+                distance_metric_name = "TripletDistanceMetric.{}".format(name)
+                break
+
+        return {"distance_metric": distance_metric_name, "triplet_margin": self.triplet_margin}
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{hermans2017defense,
+    title={In Defense of the Triplet Loss for Person Re-Identification}, 
+    author={Alexander Hermans and Lucas Beyer and Bastian Leibe},
+    year={2017},
+    eprint={1703.07737},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
+}
+"""

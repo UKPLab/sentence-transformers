@@ -42,6 +42,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         write_csv: bool = True,
         truncate_dim: Optional[int] = None,
     ):
+        super().__init__()
         self.combinations = combinations
         self.name = name
         self.batch_size = batch_size
@@ -51,6 +52,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
 
         self.csv_file = "mse_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps"]
+        self.primary_metric = "negative_mse"
         self.write_csv = write_csv
         self.truncate_dim = truncate_dim
         self.data = {}
@@ -77,7 +79,9 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             all_src_embeddings = teacher_model.encode(all_source_sentences, batch_size=self.batch_size)
         self.teacher_embeddings = {sent: emb for sent, emb in zip(all_source_sentences, all_src_embeddings)}
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1):
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         model.eval()
 
         mse_scores = []
@@ -105,4 +109,12 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
 
                 writer.writerow([epoch, steps] + mse_scores)
 
-        return -np.mean(mse_scores)  # Return negative score as SentenceTransformers maximizes the performance
+        # Return negative score as SentenceTransformers maximizes the performance
+        metrics = {"negative_mse": -np.mean(mse_scores).item()}
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
+
+    @property
+    def description(self) -> str:
+        return "Knowledge Distillation"

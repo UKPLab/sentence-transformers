@@ -74,6 +74,10 @@ class CLIPModel(nn.Module):
         encoding["image_text_info"] = image_text_info
         return encoding
 
+    @property
+    def tokenizer(self):
+        return self.processor
+
     def save(self, output_path: str):
         self.model.save_pretrained(output_path)
         self.processor.save_pretrained(output_path)

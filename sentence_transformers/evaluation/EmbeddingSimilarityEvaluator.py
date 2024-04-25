@@ -8,7 +8,7 @@ import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 from scipy.stats import pearsonr, spearmanr
 import numpy as np
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 from ..readers import InputExample
 
 
@@ -52,6 +52,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current
             truncation dimension. Defaults to None.
         """
+        super().__init__()
         self.sentences1 = sentences1
         self.sentences2 = sentences2
         self.scores = scores
@@ -103,7 +104,9 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             scores.append(example.label)
         return cls(sentences1, sentences2, scores, **kwargs)
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -200,15 +203,30 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                     ]
                 )
 
-        if self.main_similarity == SimilarityFunction.COSINE:
-            return eval_spearman_cosine
-        elif self.main_similarity == SimilarityFunction.EUCLIDEAN:
-            return eval_spearman_euclidean
-        elif self.main_similarity == SimilarityFunction.MANHATTAN:
-            return eval_spearman_manhattan
-        elif self.main_similarity == SimilarityFunction.DOT_PRODUCT:
-            return eval_spearman_dot
-        elif self.main_similarity is None:
-            return max(eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot)
-        else:
-            raise ValueError("Unknown main_similarity value")
+        self.primary_metric = {
+            SimilarityFunction.COSINE: "spearman_cosine",
+            SimilarityFunction.EUCLIDEAN: "spearman_euclidean",
+            SimilarityFunction.MANHATTAN: "spearman_manhattan",
+            SimilarityFunction.DOT_PRODUCT: "spearman_dot",
+        }.get(self.main_similarity, "spearman_max")
+        metrics = {
+            "pearson_cosine": eval_pearson_cosine,
+            "spearman_cosine": eval_spearman_cosine,
+            "pearson_manhattan": eval_pearson_manhattan,
+            "spearman_manhattan": eval_spearman_manhattan,
+            "pearson_euclidean": eval_pearson_euclidean,
+            "spearman_euclidean": eval_spearman_euclidean,
+            "pearson_dot": eval_pearson_dot,
+            "spearman_dot": eval_spearman_dot,
+            "pearson_max": max(eval_pearson_cosine, eval_pearson_manhattan, eval_pearson_euclidean, eval_pearson_dot),
+            "spearman_max": max(
+                eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot
+            ),
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
+
+    @property
+    def description(self) -> str:
+        return "Semantic Similarity"

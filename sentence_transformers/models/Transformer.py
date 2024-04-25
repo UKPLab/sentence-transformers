@@ -35,6 +35,8 @@ class Transformer(nn.Module):
         config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
         self._load_model(model_name_or_path, config, cache_dir, **model_args)
 
+        if max_seq_length is not None and "model_max_length" not in tokenizer_args:
+            tokenizer_args["model_max_length"] = max_seq_length
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name_or_path if tokenizer_name_or_path is not None else model_name_or_path,
             cache_dir=cache_dir,

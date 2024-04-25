@@ -158,3 +158,19 @@ class DenoisingAutoEncoderLoss(nn.Module):
         ce_loss_fct = nn.CrossEntropyLoss(ignore_index=self.tokenizer_decoder.pad_token_id)
         loss = ce_loss_fct(lm_logits.view(-1, lm_logits.shape[-1]), label_ids.reshape(-1))
         return loss
+
+    @property
+    def citation(self) -> str:
+        return """
+@inproceedings{wang-2021-TSDAE,
+    title = "TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning",
+    author = "Wang, Kexin and Reimers, Nils and Gurevych, Iryna", 
+    booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2021",
+    month = nov,
+    year = "2021",
+    address = "Punta Cana, Dominican Republic",
+    publisher = "Association for Computational Linguistics",
+    pages = "671--688",
+    url = "https://arxiv.org/abs/2104.06979",
+}
+"""

@@ -230,3 +230,16 @@ class AdaptiveLayerLoss(nn.Module):
             "kl_div_weight": self.kl_div_weight,
             "kl_temperature": self.kl_temperature,
         }
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{li20242d,
+    title={2D Matryoshka Sentence Embeddings}, 
+    author={Xianming Li and Zongxi Li and Jing Li and Haoran Xie and Qing Li},
+    year={2024},
+    eprint={2402.14776},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
+}
+"""

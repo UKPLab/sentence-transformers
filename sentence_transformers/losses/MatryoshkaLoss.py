@@ -142,3 +142,16 @@ class MatryoshkaLoss(nn.Module):
             "matryoshka_weights": self.matryoshka_weights,
             "n_dims_per_step": self.n_dims_per_step,
         }
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{kusupati2024matryoshka,
+    title={Matryoshka Representation Learning}, 
+    author={Aditya Kusupati and Gantavya Bhatt and Aniket Rege and Matthew Wallingford and Aditya Sinha and Vivek Ramanujan and William Howard-Snyder and Kaifeng Chen and Sham Kakade and Prateek Jain and Ali Farhadi},
+    year={2024},
+    eprint={2205.13147},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG}
+}
+"""

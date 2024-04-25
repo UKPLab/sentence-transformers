@@ -4,7 +4,7 @@ from sentence_transformers.evaluation import SentenceEvaluator
 import logging
 import os
 import csv
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -41,6 +41,7 @@ class MSEEvaluator(SentenceEvaluator):
         write_csv: bool = True,
         truncate_dim: Optional[int] = None,
     ):
+        super().__init__()
         self.truncate_dim = truncate_dim
         with nullcontext() if self.truncate_dim is None else teacher_model.truncate_sentence_embeddings(
             self.truncate_dim
@@ -57,8 +58,9 @@ class MSEEvaluator(SentenceEvaluator):
         self.csv_file = "mse_evaluation_" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps", "MSE"]
         self.write_csv = write_csv
+        self.primary_metric = "negative_mse"
 
-    def __call__(self, model: SentenceTransformer, output_path, epoch=-1, steps=-1):
+    def __call__(self, model: SentenceTransformer, output_path, epoch=-1, steps=-1) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -93,4 +95,12 @@ class MSEEvaluator(SentenceEvaluator):
 
                 writer.writerow([epoch, steps, mse])
 
-        return -mse  # Return negative score as SentenceTransformers maximizes the performance
+        # Return negative score as SentenceTransformers maximizes the performance
+        metrics = {"negative_mse": -mse}
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
+
+    @property
+    def description(self) -> str:
+        return "Knowledge Distillation"

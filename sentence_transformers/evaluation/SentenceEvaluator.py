@@ -1,3 +1,6 @@
+import re
+from typing import Any, Dict, Union
+
 from sentence_transformers import SentenceTransformer
 
 
@@ -8,7 +11,13 @@ class SentenceEvaluator:
     Extend this class and implement __call__ for custom evaluators.
     """
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __init__(self):
+        self.greater_is_better = True
+        # TODO: Add better `primary_metrics` support
+
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Union[float, Dict[str, float]]:
         """
         This is called during training to evaluate the model.
         It returns a score for the evaluation with a higher score indicating a better result.
@@ -25,6 +34,36 @@ class SentenceEvaluator:
             the steps in the current epoch at time of the evaluation.
             This is used for the file prefixes.
             If this is -1, then we assume evaluation at the end of the epoch.
-        :return: a score for the evaluation with a higher score indicating a better result
+        :return: Either a score for the evaluation with a higher score indicating a better result,
+            or a dictionary with scores. If the latter is chosen, then `evaluator.primary_metric`
+            must be defined
         """
         pass
+
+    def prefix_name_to_metrics(self, metrics: Dict[str, float], name: str):
+        if not name:
+            return metrics
+        metrics = {name + "_" + key: value for key, value in metrics.items()}
+        if hasattr(self, "primary_metric") and not self.primary_metric.startswith(name + "_"):
+            self.primary_metric = name + "_" + self.primary_metric
+        return metrics
+
+    def store_metrics_in_model_card_data(self, model: "SentenceTransformer", metrics: Dict[str, Any]) -> None:
+        model.model_card_data.set_evaluation_metrics(self, metrics)
+
+    @property
+    def description(self) -> str:
+        """
+        Returns a human-readable description of the evaluator: BinaryClassificationEvaluator -> Binary Classification
+
+        1. Remove "Evaluator" from the class name
+        2. Add a space before every capital letter
+        """
+        class_name = self.__class__.__name__
+        try:
+            index = class_name.index("Evaluator")
+            class_name = class_name[:index]
+        except IndexError:
+            pass
+
+        return re.sub(r"([a-z])([A-Z])", "\g<1> \g<2>", class_name)

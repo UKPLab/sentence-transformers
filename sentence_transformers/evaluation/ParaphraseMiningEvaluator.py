@@ -54,6 +54,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
             dimension. Defaults to None.
 
         """
+        super().__init__()
         self.sentences = []
         self.ids = []
 
@@ -99,8 +100,11 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.csv_file: str = "paraphrase_mining_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps", "precision", "recall", "f1", "threshold", "average_precision"]
         self.write_csv = write_csv
+        self.primary_metric = "average_precision"
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -174,7 +178,16 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
                     writer = csv.writer(f)
                     writer.writerow([epoch, steps, best_precision, best_recall, best_f1, threshold, average_precision])
 
-        return average_precision
+        metrics = {
+            "average_precision": average_precision,
+            "f1": best_f1,
+            "precision": best_precision,
+            "recall": best_recall,
+            "threshold": threshold,
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
 
     @staticmethod
     def add_transitive_closure(graph):

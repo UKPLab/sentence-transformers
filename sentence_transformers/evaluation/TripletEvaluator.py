@@ -5,7 +5,7 @@ import logging
 import os
 import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
-from typing import List, Optional
+from typing import Dict, List, Optional
 from ..readers import InputExample
 
 
@@ -42,6 +42,7 @@ class TripletEvaluator(SentenceEvaluator):
         :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current
             truncation dimension. Defaults to None.
         """
+        super().__init__()
         self.anchors = anchors
         self.positives = positives
         self.negatives = negatives
@@ -76,7 +77,9 @@ class TripletEvaluator(SentenceEvaluator):
             negatives.append(example.texts[2])
         return cls(anchors, positives, negatives, **kwargs)
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -157,11 +160,17 @@ class TripletEvaluator(SentenceEvaluator):
                     writer = csv.writer(f)
                     writer.writerow([epoch, steps, accuracy_cos, accuracy_manhattan, accuracy_euclidean])
 
-        if self.main_distance_function == SimilarityFunction.COSINE:
-            return accuracy_cos
-        if self.main_distance_function == SimilarityFunction.MANHATTAN:
-            return accuracy_manhattan
-        if self.main_distance_function == SimilarityFunction.EUCLIDEAN:
-            return accuracy_euclidean
-
-        return max(accuracy_cos, accuracy_manhattan, accuracy_euclidean)
+        self.primary_metric = {
+            SimilarityFunction.COSINE: "accuracy_cosine",
+            SimilarityFunction.EUCLIDEAN: "accuracy_euclidean",
+            SimilarityFunction.MANHATTAN: "accuracy_manhattan",
+        }.get(self.main_distance_function, "accuracy_max")
+        metrics = {
+            "accuracy_cosine": accuracy_cos,
+            "accuracy_manhattan": accuracy_manhattan,
+            "accuracy_euclidean": accuracy_euclidean,
+            "accuracy_max": max(accuracy_cos, accuracy_manhattan, accuracy_euclidean),
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics

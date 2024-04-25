@@ -6,7 +6,7 @@ from ..util import pytorch_cos_sim
 import os
 import csv
 import numpy as np
-from typing import List, Optional
+from typing import Dict, List, Optional
 import torch
 
 
@@ -54,6 +54,7 @@ class TranslationEvaluator(SentenceEvaluator):
             The dimension to truncate sentence embeddings to. `None` uses the model's current truncation dimension.
             Defaults to None.
         """
+        super().__init__()
         self.source_sentences = source_sentences
         self.target_sentences = target_sentences
         self.name = name
@@ -70,8 +71,11 @@ class TranslationEvaluator(SentenceEvaluator):
         self.csv_file = "translation_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps", "src2trg", "trg2src"]
         self.write_csv = write_csv
+        self.primary_metric = "mean_accuracy"
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -145,4 +149,11 @@ class TranslationEvaluator(SentenceEvaluator):
 
                 writer.writerow([epoch, steps, acc_src2trg, acc_trg2src])
 
-        return (acc_src2trg + acc_trg2src) / 2
+        metrics = {
+            "src2trg_accuracy": acc_src2trg,
+            "trg2src_accuracy": acc_trg2src,
+            "mean_accuracy": (acc_src2trg + acc_trg2src) / 2,
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics

@@ -232,8 +232,9 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             reps.append(reps_mbs)
             self.random_states.append(random_state_mbs)
 
-        # Step (2): Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings
-        loss = self.calculate_loss_and_cache_gradients(reps)
+        with torch.set_grad_enabled(True):
+            # Step (2): Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings
+            loss = self.calculate_loss_and_cache_gradients(reps)
 
         # Step (3): A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain
         loss.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self))
@@ -241,3 +242,16 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
     def get_config_dict(self):
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{gao2021scaling,
+    title={Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup}, 
+    author={Luyu Gao and Yunyi Zhang and Jiawei Han and Jamie Callan},
+    year={2021},
+    eprint={2101.06983},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG}
+}
+"""

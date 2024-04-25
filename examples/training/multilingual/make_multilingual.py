@@ -189,7 +189,7 @@ for dev_file in dev_files:
     dev_mse = evaluation.MSEEvaluator(
         src_sentences,
         trg_sentences,
-        name=os.path.basename(dev_file),
+        name=os.path.basename(dev_file).split(".")[0],
         teacher_model=teacher_model,
         batch_size=inference_batch_size,
     )
@@ -197,7 +197,7 @@ for dev_file in dev_files:
 
     # TranslationEvaluator computes the embeddings for all parallel sentences. It then check if the embedding of source[i] is the closest to target[i] out of all available target sentences
     dev_trans_acc = evaluation.TranslationEvaluator(
-        src_sentences, trg_sentences, name=os.path.basename(dev_file), batch_size=inference_batch_size
+        src_sentences, trg_sentences, name=os.path.basename(dev_file).split(".")[0], batch_size=inference_batch_size
     )
     evaluators.append(dev_trans_acc)
 
@@ -238,7 +238,7 @@ for filename, data in sts_data.items():
         data["sentences2"],
         data["scores"],
         batch_size=inference_batch_size,
-        name=filename,
+        name=filename.split(".")[0],
         show_progress_bar=False,
     )
     evaluators.append(test_evaluator)

@@ -2,10 +2,10 @@ from contextlib import contextmanager
 import json
 import logging
 import os
-import shutil
 from collections import OrderedDict
+from pathlib import Path
 import warnings
-from typing import List, Dict, Literal, Tuple, Iterable, Type, Union, Callable, Optional, TYPE_CHECKING
+from typing import List, Dict, Literal, Tuple, Iterable, Union, Optional
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -13,20 +13,20 @@ from transformers import is_torch_npu_available
 from huggingface_hub import HfApi
 import torch
 from torch import nn, Tensor, device
-from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
 from tqdm.autonotebook import trange
 import math
 import queue
 import tempfile
 
+from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
+
+
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
 from .util import (
     import_from_string,
     batch_to_device,
-    fullname,
     is_sentence_transformer_model,
     load_dir_path,
     load_file_path,
@@ -36,17 +36,13 @@ from .util import (
 )
 from .quantization import quantize_embeddings
 from .models import Transformer, Pooling, Normalize
-from .model_card_templates import ModelCardTemplate
+from .fit_mixin import FitMixin
 from . import __version__
 
 logger = logging.getLogger(__name__)
 
 
-if TYPE_CHECKING:
-    from sentence_transformers.readers import InputExample
-
-
-class SentenceTransformer(nn.Sequential):
+class SentenceTransformer(nn.Sequential, FitMixin):
     """
     Loads or creates a SentenceTransformer model that can be used to map sentences / text to embeddings.
 
@@ -89,11 +85,13 @@ class SentenceTransformer(nn.Sequential):
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
         truncate_dim: Optional[int] = None,
+        model_card_data: Optional[SentenceTransformerModelCardData] = None,
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
         self.truncate_dim = truncate_dim
+        self.model_card_data = model_card_data or SentenceTransformerModelCardData()
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -263,6 +261,9 @@ class SentenceTransformer(nn.Sequential):
                     "Either update the model configuration or call `model.set_pooling_include_prompt(False)` after loading the model."
                 )
 
+        # Pass the model to the model card data for later use in generating a model card upon saving this model
+        self.model_card_data.register_model(self)
+
     def encode(
         self,
         sentences: Union[str, List[str]],
@@ -423,7 +424,10 @@ class SentenceTransformer(nn.Sequential):
                 all_embeddings = torch.Tensor()
         elif convert_to_numpy:
             if not isinstance(all_embeddings, np.ndarray):
-                all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
+                if all_embeddings[0].dtype == torch.bfloat16:
+                    all_embeddings = np.asarray([emb.float().numpy() for emb in all_embeddings])
+                else:
+                    all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
         elif isinstance(all_embeddings, np.ndarray):
             all_embeddings = [torch.from_numpy(embedding) for embedding in all_embeddings]
 
@@ -724,63 +728,34 @@ class SentenceTransformer(nn.Sequential):
             self._create_model_card(path, model_name, train_datasets)
 
     def _create_model_card(
-        self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = None
+        self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = "deprecated"
     ):
         """
-        Create an automatic model and stores it in path
+        Create an automatic model and stores it in path. If no training was done, and the loaded model was
+        a Sentence Transformer model already, then its model card is reused.
         """
-        if self._model_card_text is not None and len(self._model_card_text) > 0:
+        if model_name:
+            model_path = Path(model_name)
+            if not model_path.exists() and not self.model_card_data.model_id:
+                self.model_card_data.model_id = model_name
+
+        # If we loaded a Sentence Transformer model from the Hub, and no training was done, then
+        # we don't generate a new model card, but reuse the old one instead.
+        if self._model_card_text and self.model_card_data.trainer is None:
             model_card = self._model_card_text
         else:
-            tags = ModelCardTemplate.__TAGS__.copy()
-            model_card = ModelCardTemplate.__MODEL_CARD__
-
-            if (
-                len(self._modules) == 2
-                and isinstance(self._first_module(), Transformer)
-                and isinstance(self._last_module(), Pooling)
-                and self._last_module().get_pooling_mode_str() in ["cls", "max", "mean"]
-            ):
-                pooling_module = self._last_module()
-                pooling_mode = pooling_module.get_pooling_mode_str()
-                model_card = model_card.replace(
-                    "{USAGE_TRANSFORMERS_SECTION}", ModelCardTemplate.__USAGE_TRANSFORMERS__
+            try:
+                model_card = generate_model_card(self)
+            except Exception as exc:
+                logger.error(
+                    f"Error while generating model card: {exc}\n"
+                    "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with these logs.\n"
+                    "Skipping model card creation."
                 )
-                pooling_fct_name, pooling_fct = ModelCardTemplate.model_card_get_pooling_function(pooling_mode)
-                model_card = (
-                    model_card.replace("{POOLING_FUNCTION}", pooling_fct)
-                    .replace("{POOLING_FUNCTION_NAME}", pooling_fct_name)
-                    .replace("{POOLING_MODE}", pooling_mode)
-                )
-                tags.append("transformers")
-
-            # Print full model
-            model_card = model_card.replace("{FULL_MODEL_STR}", str(self))
-
-            # Add tags
-            model_card = model_card.replace("{TAGS}", "\n".join(["- " + t for t in tags]))
-
-            datasets_str = ""
-            if train_datasets is not None:
-                datasets_str = "datasets:\n" + "\n".join(["- " + d for d in train_datasets])
-            model_card = model_card.replace("{DATASETS}", datasets_str)
-
-            # Add dim info
-            self._model_card_vars["{NUM_DIMENSIONS}"] = self.get_sentence_embedding_dimension()
-
-            # Replace vars we created while using the model
-            for name, value in self._model_card_vars.items():
-                model_card = model_card.replace(name, str(value))
-
-            # Replace remaining vars with default values
-            for name, value in ModelCardTemplate.__DEFAULT_VARS__.items():
-                model_card = model_card.replace(name, str(value))
-
-        if model_name is not None:
-            model_card = model_card.replace("{MODEL_NAME}", model_name.strip())
+                return
 
         with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
-            fOut.write(model_card.strip())
+            fOut.write(model_card)
 
     @save_to_hub_args_decorator
     def save_to_hub(
@@ -881,6 +856,7 @@ class SentenceTransformer(nn.Sequential):
             exist_ok=exist_ok,
         )
         repo_id = repo_url.repo_id  # Update the repo_id in case the old repo_id didn't contain a user or organization
+        self.model_card_data.set_model_id(repo_id)
         if local_model_path:
             folder_url = api.upload_folder(
                 repo_id=repo_id, folder_path=local_model_path, commit_message=commit_message
@@ -904,21 +880,6 @@ class SentenceTransformer(nn.Sequential):
         # This isn't expected to ever be reached.
         return folder_url
 
-    def smart_batching_collate(self, batch: List["InputExample"]) -> Tuple[List[Dict[str, Tensor]], Tensor]:
-        """
-        Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
-        Here, batch is a list of InputExample instances: [InputExample(...), ...]
-
-        :param batch:
-            a batch from a SmartBatchingDataset
-        :return:
-            a batch of tensors for the model
-        """
-        texts = [example.texts for example in batch]
-        sentence_features = [self.tokenize(sentence) for sentence in zip(*texts)]
-        labels = torch.tensor([example.label for example in batch])
-        return sentence_features, labels
-
     def _text_length(self, text: Union[List[int], List[List[int]]]):
         """
         Help function to get the length for the input text. Text can be either
@@ -935,214 +896,6 @@ class SentenceTransformer(nn.Sequential):
         else:
             return sum([len(t) for t in text])  # Sum of length of individual strings
 
-    def fit(
-        self,
-        train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
-        evaluator: SentenceEvaluator = None,
-        epochs: int = 1,
-        steps_per_epoch=None,
-        scheduler: str = "WarmupLinear",
-        warmup_steps: int = 10000,
-        optimizer_class: Type[Optimizer] = torch.optim.AdamW,
-        optimizer_params: Dict[str, object] = {"lr": 2e-5},
-        weight_decay: float = 0.01,
-        evaluation_steps: int = 0,
-        output_path: str = None,
-        save_best_model: bool = True,
-        max_grad_norm: float = 1,
-        use_amp: bool = False,
-        callback: Callable[[float, int, int], None] = None,
-        show_progress_bar: bool = True,
-        checkpoint_path: str = None,
-        checkpoint_save_steps: int = 500,
-        checkpoint_save_total_limit: int = 0,
-    ):
-        """
-        Train the model with the given training objective
-        Each training objective is sampled in turn for one batch.
-        We sample only as many batches from each objective as there are in the smallest one
-        to make sure of equal training with each dataset.
-
-        :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
-        :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
-        :param epochs: Number of epochs for training
-        :param steps_per_epoch: Number of training steps per epoch. If set to None (default), one epoch is equal the DataLoader size from train_objectives.
-        :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
-        :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
-        :param optimizer_class: Optimizer
-        :param optimizer_params: Optimizer parameters
-        :param weight_decay: Weight decay for model parameters
-        :param evaluation_steps: If > 0, evaluate the model using evaluator after each number of training steps
-        :param output_path: Storage path for the model and evaluation files
-        :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
-        :param max_grad_norm: Used for gradient normalization.
-        :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
-        :param callback: Callback function that is invoked after each evaluation.
-                It must accept the following three parameters in this order:
-                `score`, `epoch`, `steps`
-        :param show_progress_bar: If True, output a tqdm progress bar
-        :param checkpoint_path: Folder to save checkpoints during training
-        :param checkpoint_save_steps: Will save a checkpoint after so many steps
-        :param checkpoint_save_total_limit: Total number of checkpoints to store
-        """
-
-        ##Add info to model card
-        # info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
-        info_loss_functions = []
-        for dataloader, loss in train_objectives:
-            info_loss_functions.extend(ModelCardTemplate.get_train_objective_info(dataloader, loss))
-        info_loss_functions = "\n\n".join([text for text in info_loss_functions])
-
-        info_fit_parameters = json.dumps(
-            {
-                "evaluator": fullname(evaluator),
-                "epochs": epochs,
-                "steps_per_epoch": steps_per_epoch,
-                "scheduler": scheduler,
-                "warmup_steps": warmup_steps,
-                "optimizer_class": str(optimizer_class),
-                "optimizer_params": optimizer_params,
-                "weight_decay": weight_decay,
-                "evaluation_steps": evaluation_steps,
-                "max_grad_norm": max_grad_norm,
-            },
-            indent=4,
-            sort_keys=True,
-        )
-        self._model_card_text = None
-        self._model_card_vars["{TRAINING_SECTION}"] = ModelCardTemplate.__TRAINING_SECTION__.replace(
-            "{LOSS_FUNCTIONS}", info_loss_functions
-        ).replace("{FIT_PARAMETERS}", info_fit_parameters)
-
-        if use_amp:
-            if is_torch_npu_available():
-                scaler = torch.npu.amp.GradScaler()
-            else:
-                scaler = torch.cuda.amp.GradScaler()
-        self.to(self.device)
-
-        dataloaders = [dataloader for dataloader, _ in train_objectives]
-
-        # Use smart batching
-        for dataloader in dataloaders:
-            dataloader.collate_fn = self.smart_batching_collate
-
-        loss_models = [loss for _, loss in train_objectives]
-        for loss_model in loss_models:
-            loss_model.to(self.device)
-
-        self.best_score = -9999999
-
-        if steps_per_epoch is None or steps_per_epoch == 0:
-            steps_per_epoch = min([len(dataloader) for dataloader in dataloaders])
-
-        num_train_steps = int(steps_per_epoch * epochs)
-
-        # Prepare optimizers
-        optimizers = []
-        schedulers = []
-        for loss_model in loss_models:
-            param_optimizer = list(loss_model.named_parameters())
-
-            no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
-            optimizer_grouped_parameters = [
-                {
-                    "params": [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)],
-                    "weight_decay": weight_decay,
-                },
-                {"params": [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], "weight_decay": 0.0},
-            ]
-
-            optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
-            scheduler_obj = self._get_scheduler(
-                optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps
-            )
-
-            optimizers.append(optimizer)
-            schedulers.append(scheduler_obj)
-
-        global_step = 0
-        data_iterators = [iter(dataloader) for dataloader in dataloaders]
-
-        num_train_objectives = len(train_objectives)
-
-        skip_scheduler = False
-        for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
-            training_steps = 0
-
-            for loss_model in loss_models:
-                loss_model.zero_grad()
-                loss_model.train()
-
-            for _ in trange(steps_per_epoch, desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
-                for train_idx in range(num_train_objectives):
-                    loss_model = loss_models[train_idx]
-                    optimizer = optimizers[train_idx]
-                    scheduler = schedulers[train_idx]
-                    data_iterator = data_iterators[train_idx]
-
-                    try:
-                        data = next(data_iterator)
-                    except StopIteration:
-                        data_iterator = iter(dataloaders[train_idx])
-                        data_iterators[train_idx] = data_iterator
-                        data = next(data_iterator)
-
-                    features, labels = data
-                    labels = labels.to(self.device)
-                    features = list(map(lambda batch: batch_to_device(batch, self.device), features))
-
-                    if use_amp:
-                        with torch.autocast(device_type=self.device.type):
-                            loss_value = loss_model(features, labels)
-
-                        scale_before_step = scaler.get_scale()
-                        scaler.scale(loss_value).backward()
-                        scaler.unscale_(optimizer)
-                        torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
-                        scaler.step(optimizer)
-                        scaler.update()
-
-                        skip_scheduler = scaler.get_scale() != scale_before_step
-                    else:
-                        loss_value = loss_model(features, labels)
-                        loss_value.backward()
-                        torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
-                        optimizer.step()
-
-                    optimizer.zero_grad()
-
-                    if not skip_scheduler:
-                        scheduler.step()
-
-                training_steps += 1
-                global_step += 1
-
-                if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(
-                        evaluator, output_path, save_best_model, epoch, training_steps, callback
-                    )
-
-                    for loss_model in loss_models:
-                        loss_model.zero_grad()
-                        loss_model.train()
-
-                if (
-                    checkpoint_path is not None
-                    and checkpoint_save_steps is not None
-                    and checkpoint_save_steps > 0
-                    and global_step % checkpoint_save_steps == 0
-                ):
-                    self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
-
-            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
-
-        if evaluator is None and output_path is not None:  # No evaluator, but output path: save final model version
-            self.save(output_path)
-
-        if checkpoint_path is not None:
-            self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
-
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
         """
         Evaluate the model
@@ -1155,38 +908,6 @@ class SentenceTransformer(nn.Sequential):
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
         return evaluator(self, output_path)
-
-    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
-        """Runs evaluation during the training"""
-        eval_path = output_path
-        if output_path is not None:
-            os.makedirs(output_path, exist_ok=True)
-            eval_path = os.path.join(output_path, "eval")
-            os.makedirs(eval_path, exist_ok=True)
-
-        if evaluator is not None:
-            score = evaluator(self, output_path=eval_path, epoch=epoch, steps=steps)
-            if callback is not None:
-                callback(score, epoch, steps)
-            if score > self.best_score:
-                self.best_score = score
-                if save_best_model:
-                    self.save(output_path)
-
-    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step):
-        # Store new checkpoint
-        self.save(os.path.join(checkpoint_path, str(step)))
-
-        # Delete old checkpoints
-        if checkpoint_save_total_limit is not None and checkpoint_save_total_limit > 0:
-            old_checkpoints = []
-            for subdir in os.listdir(checkpoint_path):
-                if subdir.isdigit():
-                    old_checkpoints.append({"step": int(subdir), "path": os.path.join(checkpoint_path, subdir)})
-
-            if len(old_checkpoints) > checkpoint_save_total_limit:
-                old_checkpoints = sorted(old_checkpoints, key=lambda x: x["step"])
-                shutil.rmtree(old_checkpoints[0]["path"])
 
     def _load_auto_model(
         self,
@@ -1222,6 +943,7 @@ class SentenceTransformer(nn.Sequential):
             },
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
+        self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return [transformer_model, pooling_model]
 
     def _load_sbert_model(
@@ -1353,36 +1075,18 @@ class SentenceTransformer(nn.Sequential):
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
 
+        if revision is None:
+            path_parts = Path(modules_json_path)
+            if len(path_parts.parts) >= 2:
+                revision_path_part = Path(modules_json_path).parts[-2]
+                if len(revision_path_part) == 40:
+                    revision = revision_path_part
+        self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return modules
 
     @staticmethod
     def load(input_path):
         return SentenceTransformer(input_path)
-
-    @staticmethod
-    def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
-        """
-        Returns the correct learning rate scheduler. Available scheduler: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
-        """
-        scheduler = scheduler.lower()
-        if scheduler == "constantlr":
-            return transformers.get_constant_schedule(optimizer)
-        elif scheduler == "warmupconstant":
-            return transformers.get_constant_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps)
-        elif scheduler == "warmuplinear":
-            return transformers.get_linear_schedule_with_warmup(
-                optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total
-            )
-        elif scheduler == "warmupcosine":
-            return transformers.get_cosine_schedule_with_warmup(
-                optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total
-            )
-        elif scheduler == "warmupcosinewithhardrestarts":
-            return transformers.get_cosine_with_hard_restarts_schedule_with_warmup(
-                optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total
-            )
-        else:
-            raise ValueError("Unknown scheduler {}".format(scheduler))
 
     @property
     def device(self) -> device:
@@ -1440,3 +1144,17 @@ class SentenceTransformer(nn.Sequential):
     @_target_device.setter
     def _target_device(self, device: Optional[Union[int, str, torch.device]] = None) -> None:
         self.to(device)
+
+    @property
+    def _no_split_modules(self) -> List[str]:
+        try:
+            return self._first_module()._no_split_modules
+        except AttributeError:
+            return []
+
+    @property
+    def _keys_to_ignore_on_save(self) -> List[str]:
+        try:
+            return self._first_module()._keys_to_ignore_on_save
+        except AttributeError:
+            return []

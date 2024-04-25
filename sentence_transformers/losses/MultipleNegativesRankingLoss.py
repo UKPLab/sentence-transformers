@@ -94,3 +94,16 @@ class MultipleNegativesRankingLoss(nn.Module):
 
     def get_config_dict(self):
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{henderson2017efficient,
+    title={Efficient Natural Language Response Suggestion for Smart Reply}, 
+    author={Matthew Henderson and Rami Al-Rfou and Brian Strope and Yun-hsuan Sung and Laszlo Lukacs and Ruiqi Guo and Sanjiv Kumar and Balint Miklos and Ray Kurzweil},
+    year={2017},
+    eprint={1705.00652},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
+}
+"""

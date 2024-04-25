@@ -7,7 +7,7 @@ import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 from sklearn.metrics import average_precision_score
 import numpy as np
-from typing import List, Optional
+from typing import Dict, List, Optional
 from ..readers import InputExample
 
 
@@ -52,6 +52,8 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         self.labels = labels
         self.truncate_dim = truncate_dim
 
+        self.primary_metric = "max_ap"
+
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.labels)
         for label in labels:
@@ -70,13 +72,13 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         self.csv_headers = [
             "epoch",
             "steps",
-            "cossim_accuracy",
-            "cossim_accuracy_threshold",
-            "cossim_f1",
-            "cossim_precision",
-            "cossim_recall",
-            "cossim_f1_threshold",
-            "cossim_ap",
+            "cosine_accuracy",
+            "cosine_accuracy_threshold",
+            "cosine_f1",
+            "cosine_precision",
+            "cosine_recall",
+            "cosine_f1_threshold",
+            "cosine_ap",
             "manhattan_accuracy",
             "manhattan_accuracy_threshold",
             "manhattan_f1",
@@ -99,6 +101,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             "dot_f1_threshold",
             "dot_ap",
         ]
+        self.primary_metric = "cosine_accuracy"
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -112,7 +115,9 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             scores.append(example.label)
         return cls(sentences1, sentences2, scores, **kwargs)
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -126,9 +131,6 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         logger.info(f"Binary Accuracy Evaluation of the model on the {self.name} dataset{out_txt}:")
 
         scores = self.compute_metrices(model)
-
-        # Main score is the max of Average Precision (AP)
-        main_score = max(scores[short_name]["ap"] for short_name in scores)
 
         file_output_data = [epoch, steps]
 
@@ -149,7 +151,17 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                     writer = csv.writer(f)
                     writer.writerow(file_output_data)
 
-        return main_score
+        metrics = {
+            f"{short_name}_{metric}": value
+            for short_name, values in scores.items()
+            for metric, value in values.items()
+        }
+        metrics.update(
+            {f"max_{metric}": max(scores[short_name][metric] for short_name in scores) for metric in scores["cosine"]}
+        )
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
 
     def compute_metrices(self, model):
         with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
@@ -189,7 +201,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         labels = np.asarray(self.labels)
         output_scores = {}
         for short_name, name, scores, reverse in [
-            ["cossim", "Cosine-Similarity", cosine_scores, True],
+            ["cosine", "Cosine-Similarity", cosine_scores, True],
             ["manhattan", "Manhattan-Distance", manhattan_distances, False],
             ["euclidean", "Euclidean-Distance", euclidean_distances, False],
             ["dot", "Dot-Product", dot_scores, True],

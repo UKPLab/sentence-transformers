@@ -1,3 +1,4 @@
+from typing import Dict
 from sentence_transformers import SentenceTransformer
 from . import SentenceEvaluator
 import torch
@@ -27,6 +28,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         :param dataloader:
             the data for the evaluation
         """
+        super().__init__()
         self.dataloader = dataloader
         self.name = name
         self.softmax_model = softmax_model
@@ -37,8 +39,11 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.csv_file = "accuracy_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps", "accuracy"]
+        self.primary_metric = "accuracy"
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         model.eval()
         total = 0
         correct = 0
@@ -79,4 +84,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
                     writer = csv.writer(f)
                     writer.writerow([epoch, steps, accuracy])
 
-        return accuracy
+        metrics = {"accuracy": accuracy}
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
