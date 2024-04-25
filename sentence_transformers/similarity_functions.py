@@ -18,6 +18,7 @@ from .util import (
 class SimilarityFunction(Enum):
     COSINE = "cosine"
     DOT_PRODUCT = "dot"
+    DOT = "dot"  # Alias for DOT_PRODUCT
     EUCLIDEAN = "euclidean"
     MANHATTAN = "manhattan"
 
