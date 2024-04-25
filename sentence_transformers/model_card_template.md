@@ -23,6 +23,7 @@ This is a [sentence-transformers](https://www.SBERT.net) model{% if base_model %
 {%- endif %}
 - **Maximum Sequence Length:** {{ model_max_length }} tokens
 - **Output Dimensionality:** {{ output_dimensionality }} tokens
+- **Similarity Function:** {{ similarity_fn_name }}
 {% if train_datasets | selectattr("name") | list -%}
     - **Training Dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}:**
     {%- for dataset in (train_datasets | selectattr("name")) %}
@@ -88,6 +89,11 @@ sentences = [
 embeddings = model.encode(sentences)
 print(embeddings.shape)
 # [{{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{ output_dimensionality | default(1024, true) }}]
+
+# Get the similarity scores for the embeddings
+similarities = model.similarity(embeddings)
+print(similarities.shape)
+# [{{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}]
 ```
 
 <!--

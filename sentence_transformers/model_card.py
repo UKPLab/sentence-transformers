@@ -901,6 +901,12 @@ class SentenceTransformerModelCardData(CardData):
         super_dict["model_max_length"] = self.model.get_max_seq_length()
         super_dict["output_dimensionality"] = self.model.get_sentence_embedding_dimension()
         super_dict["model_string"] = str(self.model)
+        super_dict["similarity_fn_name"] = {
+            "cosine": "Cosine Similarity",
+            "dot": "Dot Product",
+            "euclidean": "Euclidean Distance",
+            "manhattan": "Manhattan Distance",
+        }.get(self.model.similarity_fn_name, self.model.similarity_fn_name.replace("_", " ").title())
 
         self.first_save = False
 
