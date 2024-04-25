@@ -340,7 +340,7 @@ def test_save_load_prompts() -> None:
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
-def test_load_with_model_args() -> None:
+def test_load_with_torch_dtype() -> None:
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
 
     assert model.encode(["Hello there!"], convert_to_tensor=True).dtype == torch.float32
@@ -351,7 +351,7 @@ def test_load_with_model_args() -> None:
         model.save(str(fp16_model_dir))
         del model
 
-        fp16_model = SentenceTransformer(str(fp16_model_dir), model_args={"torch_dtype": "auto"})
+        fp16_model = SentenceTransformer(str(fp16_model_dir), torch_dtype="auto")
         assert fp16_model.encode(["Hello there!"], convert_to_tensor=True).dtype == torch.float16
 
 

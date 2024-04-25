@@ -73,7 +73,9 @@ class SentenceTransformer(nn.Sequential):
     :param token: Hugging Face authentication token to download private models.
     :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
         only applicable during inference when `.encode` is called.
-    :param model_args: Arguments (key, value pairs) passed to the Huggingface Transformers model.
+    :param torch_dtype: The torch.dtype to use to load the Huggingface Transformers model. If not specified, the
+        model is loaded using torch.float (fp32).
+    :param attn_implementation: The attention implementation to load the Huggingface Transformers model (if relevant).
     """
 
     def __init__(
@@ -90,7 +92,8 @@ class SentenceTransformer(nn.Sequential):
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
         truncate_dim: Optional[int] = None,
-        model_args: Optional[Dict[str, Any]] = None
+        torch_dtype: Optional[Union[str, torch.dtype]] = None,
+        attn_implementation: Optional[str] = None,
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
@@ -210,8 +213,9 @@ class SentenceTransformer(nn.Sequential):
                     cache_folder=cache_folder,
                     revision=revision,
                     trust_remote_code=trust_remote_code,
-                    model_args=model_args,
                     local_files_only=local_files_only,
+                    torch_dtype=torch_dtype,
+                    attn_implementation=attn_implementation
                 )
             else:
                 modules = self._load_auto_model(
@@ -220,8 +224,9 @@ class SentenceTransformer(nn.Sequential):
                     cache_folder=cache_folder,
                     revision=revision,
                     trust_remote_code=trust_remote_code,
-                    model_args=model_args,
                     local_files_only=local_files_only,
+                    torch_dtype=torch_dtype,
+                    attn_implementation=attn_implementation
                 )
 
         if modules is not None and not isinstance(modules, OrderedDict):
@@ -1199,8 +1204,9 @@ class SentenceTransformer(nn.Sequential):
         cache_folder: Optional[str],
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
-        model_args: Optional[Dict[str, Any]] = None,
         local_files_only: bool = False,
+        torch_dtype: Optional[Union[str, torch.dtype]] = None,
+        attn_implementation: Optional[str] = None,
     ):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
@@ -1218,7 +1224,9 @@ class SentenceTransformer(nn.Sequential):
                 "trust_remote_code": trust_remote_code,
                 "revision": revision,
                 "local_files_only": local_files_only,
-            } | (model_args or {}),
+                "torch_dtype": torch_dtype,
+                "attn_implementation": attn_implementation
+            },
             tokenizer_args={
                 "token": token,
                 "trust_remote_code": trust_remote_code,
@@ -1236,8 +1244,9 @@ class SentenceTransformer(nn.Sequential):
         cache_folder: Optional[str],
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
-        model_args: Optional[Dict[str, Any]] = None,
         local_files_only: bool = False,
+        torch_dtype: Optional[Union[str, torch.dtype]] = None,
+        attn_implementation: Optional[str] = None,
     ):
         """
         Loads a full sentence-transformers model
@@ -1338,8 +1347,10 @@ class SentenceTransformer(nn.Sequential):
                     kwargs["model_args"].update(hub_kwargs)
                 else:
                     kwargs["model_args"] = hub_kwargs
-                if model_args is not None:
-                    kwargs["model_args"].update(model_args)
+                kwargs["model_args"].update({
+                    "torch_dtype": torch_dtype,
+                    "attn_implementation": attn_implementation
+                })
 
                 if "tokenizer_args" in kwargs:
                     kwargs["tokenizer_args"].update(hub_kwargs)
