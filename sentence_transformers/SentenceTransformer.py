@@ -776,7 +776,8 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         safe_serialization: bool = True,
     ):
         """
-        Saves all elements for this seq. sentence embedder into different sub-folders
+        Saves a model and its configuration files to a directory, so that it can be loaded
+        with `SentenceTransformer(path)` again.
 
         :param path: Path on disc
         :param model_name: Optional model name
@@ -831,6 +832,32 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # Create model card
         if create_model_card:
             self._create_model_card(path, model_name, train_datasets)
+
+    def save_pretrained(
+        self,
+        path: str,
+        model_name: Optional[str] = None,
+        create_model_card: bool = True,
+        train_datasets: Optional[List[str]] = None,
+        safe_serialization: bool = True,
+    ):
+        """
+        Saves a model and its configuration files to a directory, so that it can be loaded
+        with `SentenceTransformer(path)` again. Alias of `SentenceTransformer.save`.
+
+        :param path: Path on disc
+        :param model_name: Optional model name
+        :param create_model_card: If True, create a README.md with basic information about this model
+        :param train_datasets: Optional list with the names of the datasets used to to train the model
+        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
+        """
+        self.save(
+            path,
+            model_name=model_name,
+            create_model_card=create_model_card,
+            train_datasets=train_datasets,
+            safe_serialization=safe_serialization,
+        )
 
     def _create_model_card(
         self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = "deprecated"
