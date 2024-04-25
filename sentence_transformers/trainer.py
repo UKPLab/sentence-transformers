@@ -153,6 +153,8 @@ class SentenceTransformerTrainer(Trainer):
             loss_fn.model = model
         loss = loss_fn(features, labels)
         if return_outputs:
+            # Get fresh features, as the loss function has likely modified them
+            features, _ = self.collect_features(inputs)
             output = torch.cat([model(row)["sentence_embedding"][:, None] for row in features], dim=1)
             return loss, output
         return loss
