@@ -69,7 +69,8 @@ passage_filepath = os.path.join(data_folder, "msmarco-passagetest2019-top1000.ts
 if not os.path.exists(passage_filepath):
     logging.info("Download " + os.path.basename(passage_filepath))
     util.http_get(
-        "https://msmarco.z22.web.core.windows.net/msmarcoranking/msmarco-passagetest2019-top1000.tsv.gz", passage_filepath
+        "https://msmarco.z22.web.core.windows.net/msmarcoranking/msmarco-passagetest2019-top1000.tsv.gz",
+        passage_filepath,
     )
 
 
