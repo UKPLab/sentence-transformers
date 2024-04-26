@@ -71,7 +71,7 @@ To train a SentenceTransformer model, you need to inform it somehow that two sen
 
 Unfortunately, there is no single way to prepare your data to train a Sentence Transformers model. It largely depends on your goals and the structure of your data. If you don't have an explicit label, which is the most likely scenario, you can derive it from the design of the documents where you obtained the sentences. For example, two sentences in the same report should be more comparable than two sentences in different reports. Neighboring sentences might be more comparable than non-neighboring sentences. 
 
-For more information on available datasets for training SentenceTransformers models see [» Datasets Reference](../examples/training/datasets/README.md).
+For more information on available datasets for training SentenceTransformers models see [» Datasets Reference](../../examples/training/datasets/README.md).
  
 To represent our training data, we use the `InputExample` class to store training examples. As parameters, it accepts texts, which is a list of strings representing our pairs (or triplets). Further, we can also pass a label (either float or int). The following shows a simple example, where we pass text pairs to `InputExample` together with a label indicating the semantic similarity.
  
@@ -142,7 +142,7 @@ The `fit` method accepts the following parameter:
 
 ## Evaluators
 
-During training, we usually want to measure the performance to see if the performance improves. For this, the *[sentence_transformers.evaluation](../package_reference/evaluation)* package exists. It contains various evaluators which we can pass to the `fit`-method. These evaluators are run periodically during training. Further, they return a score and only the model with the highest score will be stored on disc.
+During training, we usually want to measure the performance to see if the performance improves. For this, the *[sentence_transformers.evaluation](../package_reference/evaluation.md)* package exists. It contains various evaluators which we can pass to the `fit`-method. These evaluators are run periodically during training. Further, they return a score and only the model with the highest score will be stored on disc.
 
 The usage is simple:
 ```python

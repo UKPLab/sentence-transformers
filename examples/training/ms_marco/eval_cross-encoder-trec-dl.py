@@ -32,7 +32,7 @@ queries_filepath = os.path.join(data_folder, "msmarco-test2019-queries.tsv.gz")
 if not os.path.exists(queries_filepath):
     logging.info("Download " + os.path.basename(queries_filepath))
     util.http_get(
-        "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz", queries_filepath
+        "https://msmarco.z22.web.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz", queries_filepath
     )
 
 with gzip.open(queries_filepath, "rt", encoding="utf8") as fIn:
@@ -69,7 +69,8 @@ passage_filepath = os.path.join(data_folder, "msmarco-passagetest2019-top1000.ts
 if not os.path.exists(passage_filepath):
     logging.info("Download " + os.path.basename(passage_filepath))
     util.http_get(
-        "https://msmarco.blob.core.windows.net/msmarcoranking/msmarco-passagetest2019-top1000.tsv.gz", passage_filepath
+        "https://msmarco.z22.web.core.windows.net/msmarcoranking/msmarco-passagetest2019-top1000.tsv.gz",
+        passage_filepath,
     )
 
 
