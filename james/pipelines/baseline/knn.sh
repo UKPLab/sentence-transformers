@@ -1,0 +1,12 @@
+source ~/miniconda3/etc/profile.d/conda.sh && 
+conda activate mlsys &&
+cd $SENTENCE_TRANSFORMERS && 
+PYTHONPATH=. python james/retrieve/do_knn.py \
+  --residing_folder data/results/baseline \
+  --collection_file collection_embeddings.npy \
+  --query_file query_embeddings_6980.npy \
+  --output_file knn.npy \
+  --nlist 10000 \
+  --nprobe 200 \
+  --d 384
+
