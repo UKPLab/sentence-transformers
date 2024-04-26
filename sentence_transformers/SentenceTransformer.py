@@ -73,9 +73,24 @@ class SentenceTransformer(nn.Sequential):
     :param token: Hugging Face authentication token to download private models.
     :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
         only applicable during inference when `.encode` is called.
-    :param torch_dtype: The torch.dtype to use to load the Huggingface Transformers model. If not specified, the
-        model is loaded using torch.float (fp32).
-    :param attn_implementation: The attention implementation to load the Huggingface Transformers model (if relevant).
+    :param torch_dtype: Override the default `torch.dtype` and load the model under a specific `dtype`.
+        The different options are:
+            1. `torch.float16` or `torch.bfloat16` or `torch.float`: load in a specified
+              `dtype`, ignoring the model's `config.torch_dtype` if one exists. If not specified - the model will
+               get loaded in `torch.float` (fp32).
+
+            2. `"auto"` - A `torch_dtype` entry in the `config.json` file of the model will be
+              attempted to be used. If this entry isn't found then next check the `dtype` of the first weight in
+              the checkpoint that's of a floating point type and use that as `dtype`. This will load the model
+              using the `dtype` it was saved in at the end of the training. It can't be used as an indicator of how
+              the model was trained. Since it could be trained in one of half precision dtypes, but saved in fp32.
+    :param attn_implementation: The attention implementation to use in the model (if relevant). Can be any of
+        `"eager"` (manual implementation of the attention), `"sdpa"` (using [`F.scaled_dot_product_attention`]
+        (https://pytorch.org/docs/master/generated/torch.nn.functional.scaled_dot_product_attention.html)),
+        or `"flash_attention_2"` (using [Dao-AILab/flash-attention](https://github.com/Dao-AILab/flash-attention)).
+        By default, if available, SDPA will be used for torch>=2.1.1. The default is otherwise the manual `"eager"`
+        implementation.
+    :param model_kwargs: Additional model configuration parameters, to be passed to the Huggingface Transformers model.
     """
 
     def __init__(
@@ -94,6 +109,7 @@ class SentenceTransformer(nn.Sequential):
         truncate_dim: Optional[int] = None,
         torch_dtype: Optional[Union[str, torch.dtype]] = None,
         attn_implementation: Optional[str] = None,
+        **model_kwargs,
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
@@ -214,8 +230,11 @@ class SentenceTransformer(nn.Sequential):
                     revision=revision,
                     trust_remote_code=trust_remote_code,
                     local_files_only=local_files_only,
-                    torch_dtype=torch_dtype,
-                    attn_implementation=attn_implementation
+                    model_args={
+                        "torch_dtype": torch_dtype,
+                        "attn_implementation": attn_implementation,
+                        **model_kwargs,
+                    }
                 )
             else:
                 modules = self._load_auto_model(
@@ -225,8 +244,11 @@ class SentenceTransformer(nn.Sequential):
                     revision=revision,
                     trust_remote_code=trust_remote_code,
                     local_files_only=local_files_only,
-                    torch_dtype=torch_dtype,
-                    attn_implementation=attn_implementation
+                    model_args={
+                        "torch_dtype": torch_dtype,
+                        "attn_implementation": attn_implementation,
+                        **model_kwargs,
+                    }
                 )
 
         if modules is not None and not isinstance(modules, OrderedDict):
@@ -1205,8 +1227,7 @@ class SentenceTransformer(nn.Sequential):
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
         local_files_only: bool = False,
-        torch_dtype: Optional[Union[str, torch.dtype]] = None,
-        attn_implementation: Optional[str] = None,
+        model_args: Optional[Dict[str, Any]] = None,
     ):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
@@ -1224,9 +1245,7 @@ class SentenceTransformer(nn.Sequential):
                 "trust_remote_code": trust_remote_code,
                 "revision": revision,
                 "local_files_only": local_files_only,
-                "torch_dtype": torch_dtype,
-                "attn_implementation": attn_implementation
-            },
+            } | (model_args or {}),
             tokenizer_args={
                 "token": token,
                 "trust_remote_code": trust_remote_code,
@@ -1245,8 +1264,7 @@ class SentenceTransformer(nn.Sequential):
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
         local_files_only: bool = False,
-        torch_dtype: Optional[Union[str, torch.dtype]] = None,
-        attn_implementation: Optional[str] = None,
+        model_args: Optional[Dict[str, Any]] = None,
     ):
         """
         Loads a full sentence-transformers model
@@ -1347,10 +1365,7 @@ class SentenceTransformer(nn.Sequential):
                     kwargs["model_args"].update(hub_kwargs)
                 else:
                     kwargs["model_args"] = hub_kwargs
-                kwargs["model_args"].update({
-                    "torch_dtype": torch_dtype,
-                    "attn_implementation": attn_implementation
-                })
+                kwargs["model_args"].update(model_args or {})
 
                 if "tokenizer_args" in kwargs:
                     kwargs["tokenizer_args"].update(hub_kwargs)
