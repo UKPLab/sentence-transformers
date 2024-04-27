@@ -114,7 +114,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
                 )
             decoder_base_model_prefix = self.decoder.base_model_prefix
             PreTrainedModel._tie_encoder_decoder_weights(
-                model[0].auto_model, self.decoder._modules[decoder_base_model_prefix], self.decoder.base_model_prefix
+                model[0].auto_model, self.decoder._modules[decoder_base_model_prefix], self.decoder.base_model_prefix, encoder_name_or_path
             )
 
     def retokenize(self, sentence_features):
