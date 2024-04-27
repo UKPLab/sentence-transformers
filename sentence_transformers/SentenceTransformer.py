@@ -845,8 +845,21 @@ class SentenceTransformer(nn.Sequential):
         sentence_features = [self.tokenize(sentence) for sentence in zip(*texts)]
         # Handle Inefficiency warning thrown: "Creating a tensor from a list of numpy.ndarrays is extremely slow..."
         # labels = torch.tensor([example.label for example in batch])
-        labels = torch.tensor(np.array([example.label for example in batch]))
-        return sentence_features, labels
+        # labels = torch.tensor(np.array([example.label for example in batch]))
+
+        # Extract labels
+        labels = [example.label for example in batch]
+    
+        # Check if the labels are instances of numpy arrays and handle accordingly
+        if isinstance(labels[0], np.ndarray):
+            # Use torch.from_numpy to convert the numpy array directly to a tensor
+            labels_tensor = torch.from_numpy(np.stack(labels))  # np.stack to combine array elements
+        else:
+            # Use torch.tensor to convert the list to a tensor
+            labels_tensor = torch.tensor(labels)
+    
+        return sentence_features, labels_tensor
+        # return sentence_features, labels
 
     def _text_length(self, text: Union[List[int], List[List[int]]]):
         """
