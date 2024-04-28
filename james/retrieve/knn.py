@@ -44,6 +44,7 @@ if truncation_d != -1:
 print(f"{corpus_embeddings.shape=}", flush=True)
 print(f"{query_embeddings.shape=}", flush=True)
 
+# modify this if you do dimensionality reduction
 faiss_d = d if truncation_d == -1 else truncation_d
 quantizer = faiss.IndexFlatIP(faiss_d)
 cpu_index = faiss.IndexIVFFlat(quantizer, faiss_d, nlist)
