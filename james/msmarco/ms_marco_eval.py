@@ -6,6 +6,9 @@ python msmarco_eval_ranking.py <path_to_candidate_file>
 Creation Date : 06/12/2018
 Last Modified : 4/09/2019
 Authors : Daniel Campos <dacamp@microsoft.com>, Rutger van Haasteren <ruvanh@microsoft.com>
+
+https://github.com/microsoft/MSMARCO-Passage-Ranking/blob/master/ms_marco_eval.py
+
 """
 import sys
 import statistics
@@ -29,7 +32,7 @@ def load_reference_from_stream(f):
         pass
       else:
         qids_to_relevant_passageids[qid] = []
-      qids_to_relevant_passageids[qid].append(int(l[1]))
+      qids_to_relevant_passageids[qid].append(int(l[2]))
     except:
       raise IOError('\"%s\" is not valid format' % l)
   return qids_to_relevant_passageids
