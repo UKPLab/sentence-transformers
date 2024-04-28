@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - master
+      - v*-release
   workflow_dispatch:
 
 jobs:

@@ -530,8 +530,18 @@ def is_sentence_transformer_model(
     token: Optional[Union[bool, str]] = None,
     cache_folder: Optional[str] = None,
     revision: Optional[str] = None,
+    local_files_only: bool = False,
 ) -> bool:
-    return bool(load_file_path(model_name_or_path, "modules.json", token, cache_folder, revision=revision))
+    return bool(
+        load_file_path(
+            model_name_or_path,
+            "modules.json",
+            token,
+            cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
+    )
 
 
 def load_file_path(
@@ -540,6 +550,7 @@ def load_file_path(
     token: Optional[Union[bool, str]],
     cache_folder: Optional[str],
     revision: Optional[str] = None,
+    local_files_only: bool = False,
 ) -> Optional[str]:
     # If file is local
     file_path = os.path.join(model_name_or_path, filename)
@@ -555,6 +566,7 @@ def load_file_path(
             library_name="sentence-transformers",
             token=token,
             cache_dir=cache_folder,
+            local_files_only=local_files_only,
         )
     except Exception:
         return
@@ -566,6 +578,7 @@ def load_dir_path(
     token: Optional[Union[bool, str]],
     cache_folder: Optional[str],
     revision: Optional[str] = None,
+    local_files_only: bool = False,
 ) -> Optional[str]:
     # If file is local
     dir_path = os.path.join(model_name_or_path, directory)
@@ -579,6 +592,7 @@ def load_dir_path(
         "library_name": "sentence-transformers",
         "token": token,
         "cache_dir": cache_folder,
+        "local_files_only": local_files_only,
         "tqdm_class": disabled_tqdm,
     }
     # Try to download from the remote

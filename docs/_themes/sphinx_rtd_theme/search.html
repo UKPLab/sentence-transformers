@@ -5,22 +5,23 @@
     Template for the search page.
 
     :copyright: Copyright 2007-2013 by the Sphinx team, see AUTHORS.
-    :license: BSD, see LICENSE for details.
+    :license: BSD, see https://github.com/sphinx-doc/sphinx/blob/master/LICENSE for details.
 #}
 {%- extends "layout.html" %}
 {% set title = _('Search') %}
 {% set display_vcs_links = False %}
 {%- block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="{{ pathto('_static/searchtools.js', 1) }}"></script>
+    <script src="{{ pathto('_static/searchtools.js', 1) }}"></script>
+    <script src="{{ pathto('_static/language_data.js', 1) }}"></script>
 {%- endblock %}
 {% block footer %}
-  <script type="text/javascript">
+  <script>
     jQuery(function() { Search.loadIndex("{{ pathto('searchindex.js', 1) }}"); });
   </script>
   {# this is used when loading the search index using $.ajax fails,
      such as on Chrome for documents on localhost #}
-  <script type="text/javascript" id="searchindexloader"></script>
+  <script id="searchindexloader"></script>
   {{ super() }}
 {% endblock %}
 {% block body %}
