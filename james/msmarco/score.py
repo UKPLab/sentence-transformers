@@ -45,5 +45,5 @@ scores, ranking = compute_metrics_james_zhao(
 print(scores, flush=True)
 with open(os.path.join(residing_folder, "scores.json"), "w") as f:
   json.dump(scores, f)
-with open(os.path.join(residing_folder), "ranking.json", "w") as f:
+with open(os.path.join(residing_folder, "ranking.json"), "w") as f:
   json.dump(ranking, f)
