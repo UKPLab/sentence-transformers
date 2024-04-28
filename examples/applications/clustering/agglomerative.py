@@ -28,7 +28,7 @@ corpus_embeddings = embedder.encode(corpus)
 # Some models don't automatically normalize the embeddings, in which case you should normalize the embeddings:
 # corpus_embeddings = corpus_embeddings / np.linalg.norm(corpus_embeddings, axis=1, keepdims=True)
 
-# Perform kmean clustering
+# Perform agglomerative clustering
 clustering_model = AgglomerativeClustering(
     n_clusters=None, distance_threshold=1.5
 )  # , affinity='cosine', linkage='average', distance_threshold=0.4)
