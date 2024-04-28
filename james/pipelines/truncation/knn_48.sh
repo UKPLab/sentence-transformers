@@ -5,8 +5,9 @@ PYTHONPATH=. python james/retrieve/knn.py \
   --residing_folder data/results/baseline \
   --collection_file collection_embeddings.npy \
   --query_file trels_embeddings.npy \
-  --output_file data/results/baseline/knn.npy \
-  --output_file_scores data/results/baseline/knn_D.npy \
+  --output_file data/results/truncation/knn_48.npy \
+  --output_file_scores data/results/baseline/knn_48_D.npy \
   --nlist 10000 \
   --nprobe 200 \
-  --d 384
+  --d 384 \
+  --truncation_d 48
