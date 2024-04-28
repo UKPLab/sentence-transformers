@@ -44,8 +44,9 @@ if truncation_d != -1:
 print(f"{corpus_embeddings.shape=}", flush=True)
 print(f"{query_embeddings.shape=}", flush=True)
 
-quantizer = faiss.IndexFlatIP(d)
-cpu_index = faiss.IndexIVFFlat(quantizer, d, nlist)
+faiss_d = d if truncation_d == -1 else truncation_d
+quantizer = faiss.IndexFlatIP(faiss_d)
+cpu_index = faiss.IndexIVFFlat(quantizer, faiss_d, nlist)
 a = time.time()
 cpu_index.train(corpus_embeddings)
 cpu_index.add(corpus_embeddings)
