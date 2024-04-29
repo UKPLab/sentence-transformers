@@ -553,3 +553,8 @@ class SentenceTransformerTrainer(Trainer):
 
         # Good practice: save your training arguments together with the trained model
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
+
+    def _load_from_checkpoint(self, checkpoint_path: str) -> None:
+        from sentence_transformers import SentenceTransformer
+
+        self.model = SentenceTransformer(checkpoint_path)
