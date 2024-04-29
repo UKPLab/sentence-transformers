@@ -91,7 +91,11 @@ class CrossEncoder(PushToHubMixin):
             **automodel_args,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name, revision=revision, local_files_only=local_files_only, **tokenizer_args
+            model_name,
+            revision=revision,
+            local_files_only=local_files_only,
+            trust_remote_code=trust_remote_code,
+            **tokenizer_args,
         )
         self.max_length = max_length
 
