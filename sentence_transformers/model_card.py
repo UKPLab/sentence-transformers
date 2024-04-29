@@ -487,7 +487,9 @@ class SentenceTransformerModelCardData(CardData):
             for label, example_set in examples.items()
         ]
 
-    def infer_datasets(self, dataset: Union[Dataset, DatasetDict], dataset_name: Optional[str] = None) -> None:
+    def infer_datasets(
+        self, dataset: Union[Dataset, DatasetDict], dataset_name: Optional[str] = None
+    ) -> List[Dict[str, str]]:
         if isinstance(dataset, DatasetDict):
             return [
                 dataset
@@ -514,7 +516,7 @@ class SentenceTransformerModelCardData(CardData):
             subtuple = ("huggingface", "datasets")
             index = subtuple_finder(cache_path_parts, subtuple)
             if index == -1:
-                return
+                return [dataset_output]
 
             # Get the folder after "huggingface/datasets"
             cache_dataset_name = cache_path_parts[index + len(subtuple)]
