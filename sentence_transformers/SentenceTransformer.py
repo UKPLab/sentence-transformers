@@ -1388,6 +1388,7 @@ class SentenceTransformer(nn.Sequential):
     def device(self) -> device:
         """
         Get torch.device from module, assuming that the whole module has one device.
+        In case there are no PyTorch parameters, fall back to CPU.
         """
         try:
             return next(self.parameters()).device
@@ -1399,8 +1400,11 @@ class SentenceTransformer(nn.Sequential):
                 return tuples
 
             gen = self._named_members(get_members_fn=find_tensor_attributes)
-            first_tuple = next(gen)
-            return first_tuple[1].device
+            try:
+                first_tuple = next(gen)
+                return first_tuple[1].device
+            except StopIteration:
+                return torch.device("cpu")
 
     @property
     def tokenizer(self):
