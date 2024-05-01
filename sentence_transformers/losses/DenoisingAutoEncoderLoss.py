@@ -116,14 +116,19 @@ class DenoisingAutoEncoderLoss(nn.Module):
             try:
                 # Compatibility with transformers <4.40.0
                 PreTrainedModel._tie_encoder_decoder_weights(
-                    model[0].auto_model, self.decoder._modules[decoder_base_model_prefix], self.decoder.base_model_prefix
+                    model[0].auto_model,
+                    self.decoder._modules[decoder_base_model_prefix],
+                    self.decoder.base_model_prefix,
                 )
             except TypeError:
                 # Compatibility with transformers >=4.40.0
                 PreTrainedModel._tie_encoder_decoder_weights(
-                    model[0].auto_model, self.decoder._modules[decoder_base_model_prefix], self.decoder.base_model_prefix, encoder_name_or_path
+                    model[0].auto_model,
+                    self.decoder._modules[decoder_base_model_prefix],
+                    self.decoder.base_model_prefix,
+                    encoder_name_or_path,
                 )
-            
+
     def retokenize(self, sentence_features):
         input_ids = sentence_features["input_ids"]
         device = input_ids.device
