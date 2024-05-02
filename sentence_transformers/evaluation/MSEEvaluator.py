@@ -28,6 +28,38 @@ class MSEEvaluator(SentenceEvaluator):
     :param write_csv: Write results to CSV file
     :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
         dimension. Defaults to None.
+
+    Example
+        ::
+
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers.evaluation import MSEEvaluator
+            from datasets import load_dataset
+
+            # Load a model
+            student_model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
+            teacher_model = SentenceTransformer('all-mpnet-base-v2')
+
+            # Load any dataset with some texts
+            dataset = load_dataset("sentence-transformers/stsb", split="validation")
+            sentences = dataset["sentence1"] + dataset["sentence2"]
+
+            # Given queries, a corpus and a mapping with relevant documents, the InformationRetrievalEvaluator computes different IR metrics.
+            mse_evaluator = MSEEvaluator(
+                source_sentences=sentences,
+                target_sentences=sentences,
+                teacher_model=teacher_model,
+                name="stsb-dev",
+            )
+            results = mse_evaluator(student_model)
+            '''
+            MSE evaluation (lower = better) on the stsb-dev dataset:
+            MSE (*100):  0.805045
+            '''
+            print(mse_evaluator.primary_metric)
+            # => "stsb-dev_negative_mse"
+            print(results[mse_evaluator.primary_metric])
+            # => -0.8050452917814255
     """
 
     def __init__(
@@ -60,7 +92,7 @@ class MSEEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.primary_metric = "negative_mse"
 
-    def __call__(self, model: SentenceTransformer, output_path, epoch=-1, steps=-1) -> Dict[str, float]:
+    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch=-1, steps=-1) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
