@@ -17,20 +17,22 @@ Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation
 https://arxiv.org/abs/2004.09813
 """
 
-from sentence_transformers import SentenceTransformer, LoggingHandler, models, evaluation, losses
-from torch.utils.data import DataLoader
-from sentence_transformers.datasets import ParallelSentencesDataset
+import traceback
+from sentence_transformers import SentenceTransformer, LoggingHandler
 from datetime import datetime
+from datasets import load_dataset, DatasetDict
 
-import os
 import logging
-import sentence_transformers.util
-import csv
-import gzip
-from tqdm.autonotebook import tqdm
+from sentence_transformers.evaluation import (
+    EmbeddingSimilarityEvaluator,
+    MSEEvaluator,
+    SequentialEvaluator,
+    TranslationEvaluator,
+)
+from sentence_transformers.losses import MSELoss
+from sentence_transformers.trainer import SentenceTransformerTrainer
+from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 import numpy as np
-import zipfile
-import io
 
 logging.basicConfig(
     format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
@@ -38,220 +40,204 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-teacher_model_name = (
-    "paraphrase-distilroberta-base-v2"  # Our monolingual teacher model, we want to convert to multiple languages
-)
-student_model_name = "xlm-roberta-base"  # Multilingual base model we use to imitate the teacher model
+# The teacher model is monolingual, we use it for English embeddings
+teacher_model_name = "paraphrase-distilroberta-base-v2"
+# The student model is multilingual, we train it such that embeddings of non-English texts mimic the teacher model's English embeddings
+student_model_name = "xlm-roberta-base"
 
-max_seq_length = 128  # Student model max. lengths for inputs (number of word pieces)
+student_max_seq_length = 128  # Student model max. lengths for inputs (number of word pieces)
 train_batch_size = 64  # Batch size for training
 inference_batch_size = 64  # Batch size at inference
 max_sentences_per_language = 500000  # Maximum number of  parallel sentences for training
-train_max_sentence_length = 250  # Maximum length (characters) for parallel training sentences
 
-num_epochs = 5  # Train for x epochs
-num_warmup_steps = 10000  # Warumup steps
-
-num_evaluation_steps = 1000  # Evaluate performance after every xxxx steps
-dev_sentences = 1000  # Number of parallel sentences to be used for development
+num_train_epochs = 5  # Train for x epochs
+num_evaluation_steps = 5000  # Evaluate performance after every xxxx steps
 
 
 # Define the language codes you would like to extend the model to
 source_languages = set(["en"])  # Our teacher model accepts English (en) sentences
-target_languages = set(
-    ["de", "es", "it", "fr", "ar", "tr"]
-)  # We want to extend the model to these new languages. For language codes, see the header of the train file
+# We want to extend the model to these new languages. For language codes, see the header of the train file
+target_languages = set(["de", "es", "it", "fr", "ar", "tr"])
 
 
-output_path = (
+output_dir = (
     "output/make-multilingual-"
     + "-".join(sorted(list(source_languages)) + sorted(list(target_languages)))
     + "-"
     + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 
+# 1a. Here we define our SentenceTransformer teacher model.
+teacher_model = SentenceTransformer(teacher_model_name)
+# If we want, we can limit the maximum sequence length for the model
+# teacher_model.max_seq_length = 128
+logging.info(f"Teacher model: {teacher_model}")
 
-# This function downloads a corpus if it does not exist
-def download_corpora(filepaths):
-    if not isinstance(filepaths, list):
-        filepaths = [filepaths]
+# 1b. Here we define our SentenceTransformer student model. If not already a Sentence Transformer model,
+# it will automatically create one with "mean" pooling.
+student_model = SentenceTransformer(student_model_name)
+# If we want, we can limit the maximum sequence length for the model
+student_model.max_seq_length = student_max_seq_length
+logging.info(f"Student model: {student_model}")
 
-    for filepath in filepaths:
-        if not os.path.exists(filepath):
-            print(filepath, "does not exists. Try to download from server")
-            filename = os.path.basename(filepath)
-            url = "https://sbert.net/datasets/" + filename
-            sentence_transformers.util.http_get(url, filepath)
-
-
-# Here we define train train and dev corpora
-train_corpus = "datasets/parallel-sentences.tsv.gz"
-sts_corpus = "datasets/stsbenchmark.zip"
-parallel_sentences_folder = "parallel-sentences/"
-
-# Check if the file exists. If not, they are downloaded
-download_corpora([train_corpus, sts_corpus])
-
-
-# Create parallel files for the selected language combinations
-os.makedirs(parallel_sentences_folder, exist_ok=True)
-train_files = []
-dev_files = []
-files_to_create = []
+# 2. Load the parallel sentences training dataset: https://huggingface.co/datasets?other=sentence-transformers&sort=trending&search=parallel-sentences
+# NOTE: We can also use multiple datasets if we want
+dataset_to_use = "sentence-transformers/parallel-sentences-talks"
+# dataset_to_use = "sentence-transformers/parallel-sentences-europarl"
+# dataset_to_use = "sentence-transformers/parallel-sentences-global-voices"
+# dataset_to_use = "sentence-transformers/parallel-sentences-muse"
+# dataset_to_use = "sentence-transformers/parallel-sentences-jw300"
+# dataset_to_use = "sentence-transformers/parallel-sentences-news-commentary"
+# dataset_to_use = "sentence-transformers/parallel-sentences-opensubtitles"
+# dataset_to_use = "sentence-transformers/parallel-sentences-tatoeba"
+# dataset_to_use = "sentence-transformers/parallel-sentences-wikimatrix"
+# dataset_to_use = "sentence-transformers/parallel-sentences-wikititles"
+train_dataset_dict = DatasetDict()
+eval_dataset_dict = DatasetDict()
 for source_lang in source_languages:
     for target_lang in target_languages:
-        output_filename_train = os.path.join(
-            parallel_sentences_folder, "talks-{}-{}-train.tsv.gz".format(source_lang, target_lang)
-        )
-        output_filename_dev = os.path.join(
-            parallel_sentences_folder, "talks-{}-{}-dev.tsv.gz".format(source_lang, target_lang)
-        )
-        train_files.append(output_filename_train)
-        dev_files.append(output_filename_dev)
-        if not os.path.exists(output_filename_train) or not os.path.exists(output_filename_dev):
-            files_to_create.append(
-                {
-                    "src_lang": source_lang,
-                    "trg_lang": target_lang,
-                    "fTrain": gzip.open(output_filename_train, "wt", encoding="utf8"),
-                    "fDev": gzip.open(output_filename_dev, "wt", encoding="utf8"),
-                    "devCount": 0,
-                }
+        subset = f"{source_lang}-{target_lang}"
+        try:
+            train_dataset = load_dataset(dataset_to_use, subset, split="train")
+            if len(train_dataset) > max_sentences_per_language:
+                train_dataset = train_dataset.select(range(max_sentences_per_language))
+        except Exception as exc:
+            logging.error(f"Could not load dataset {dataset_to_use}/{source_lang}-{target_lang}: {exc}")
+            continue
+
+        try:
+            eval_dataset = load_dataset(dataset_to_use, subset, split="dev")
+            if len(eval_dataset) > 1000:
+                eval_dataset = eval_dataset.select(range(1000))
+        except Exception:
+            logging.info(
+                f"Could not load dataset {dataset_to_use}/{source_lang}-{target_lang} dev split, splitting 1k samples from train"
             )
+            dataset = train_dataset.train_test_split(test_size=1000, shuffle=True)
+            train_dataset = dataset["train"]
+            eval_dataset = dataset["test"]
 
-if len(files_to_create) > 0:
-    print(
-        "Parallel sentences files {} do not exist. Create these files now".format(
-            ", ".join(map(lambda x: x["src_lang"] + "-" + x["trg_lang"], files_to_create))
-        )
-    )
-    with gzip.open(train_corpus, "rt", encoding="utf8") as fIn:
-        reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-        for line in tqdm(reader, desc="Sentences"):
-            for outfile in files_to_create:
-                src_text = line[outfile["src_lang"]].strip()
-                trg_text = line[outfile["trg_lang"]].strip()
-
-                if src_text != "" and trg_text != "":
-                    if outfile["devCount"] < dev_sentences:
-                        outfile["devCount"] += 1
-                        fOut = outfile["fDev"]
-                    else:
-                        fOut = outfile["fTrain"]
-
-                    fOut.write("{}\t{}\n".format(src_text, trg_text))
-
-    for outfile in files_to_create:
-        outfile["fTrain"].close()
-        outfile["fDev"].close()
+        train_dataset_dict[subset] = train_dataset
+        eval_dataset_dict[subset] = eval_dataset
+logging.info(train_dataset_dict)
 
 
-######## Start the extension of the teacher model to multiple languages ########
-logger.info("Load teacher model")
-teacher_model = SentenceTransformer(teacher_model_name)
+# We want the teacher embeddings of the *source* sentences to be very similar to the student embeddings
+# of the *target* sentences.
+def prepare_dataset(batch):
+    return {
+        "non_english": batch["non_english"],
+        "label": teacher_model.encode(batch["english"], batch_size=inference_batch_size, show_progress_bar=False),
+    }
 
 
-logger.info("Create student model from scratch")
-word_embedding_model = models.Transformer(student_model_name, max_seq_length=max_seq_length)
-# Apply mean pooling to get one fixed sized sentence vector
-pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
-student_model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
-
-
-###### Read Parallel Sentences Dataset ######
-train_data = ParallelSentencesDataset(
-    student_model=student_model, teacher_model=teacher_model, batch_size=inference_batch_size, use_embedding_cache=True
+column_names = list(train_dataset_dict.values())[0].column_names
+train_dataset_dict = train_dataset_dict.map(
+    prepare_dataset, batched=True, batch_size=30000, remove_columns=column_names
 )
-for train_file in train_files:
-    train_data.load_data(
-        train_file, max_sentences=max_sentences_per_language, max_sentence_length=train_max_sentence_length
-    )
+logging.info("Prepared datasets for training:", train_dataset_dict)
 
-train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
-train_loss = losses.MSELoss(model=student_model)
+# 3. Define our training loss
+# MSELoss (https://sbert.net/docs/package_reference/losses.html#mseloss) needs one text columns and one
+# column with embeddings from the teacher model
+train_loss = MSELoss(model=student_model)
 
+# 4. Define evaluators for use during training. This is useful to keep track of alongside the evaluation loss.
+evaluators = []
 
-#### Evaluate cross-lingual performance on different tasks #####
-evaluators = []  # evaluators has a list of different evaluator classes we call periodically
-
-for dev_file in dev_files:
-    logger.info("Create evaluator for " + dev_file)
-    src_sentences = []
-    trg_sentences = []
-    with gzip.open(dev_file, "rt", encoding="utf8") as fIn:
-        for line in fIn:
-            splits = line.strip().split("\t")
-            if splits[0] != "" and splits[1] != "":
-                src_sentences.append(splits[0])
-                trg_sentences.append(splits[1])
+for subset, eval_dataset in eval_dataset_dict.items():
+    logger.info(f"Creating evaluators for {subset}")
 
     # Mean Squared Error (MSE) measures the (euclidean) distance between teacher and student embeddings
-    dev_mse = evaluation.MSEEvaluator(
-        src_sentences,
-        trg_sentences,
-        name=os.path.basename(dev_file).split(".")[0],
+    dev_mse = MSEEvaluator(
+        eval_dataset["english"],
+        eval_dataset["non_english"],
+        name=subset,
         teacher_model=teacher_model,
         batch_size=inference_batch_size,
     )
     evaluators.append(dev_mse)
 
-    # TranslationEvaluator computes the embeddings for all parallel sentences. It then check if the embedding of source[i] is the closest to target[i] out of all available target sentences
-    dev_trans_acc = evaluation.TranslationEvaluator(
-        src_sentences, trg_sentences, name=os.path.basename(dev_file).split(".")[0], batch_size=inference_batch_size
+    # TranslationEvaluator computes the embeddings for all parallel sentences. It then check if the embedding of
+    # source[i] is the closest to target[i] out of all available target sentences
+    dev_trans_acc = TranslationEvaluator(
+        eval_dataset["english"],
+        eval_dataset["non_english"],
+        name=subset,
+        batch_size=inference_batch_size,
     )
     evaluators.append(dev_trans_acc)
 
+    # Try to load this subset from STS17
+    test_dataset = None
+    try:
+        test_dataset = load_dataset("mteb/sts17-crosslingual-sts", subset, split="test")
+    except Exception:
+        try:
+            test_dataset = load_dataset("mteb/sts17-crosslingual-sts", f"{subset[3:]}-{subset[:2]}", split="test")
+            subset = f"{subset[3:]}-{subset[:2]}"
+        except Exception:
+            pass
+    if test_dataset:
+        test_evaluator = EmbeddingSimilarityEvaluator(
+            sentences1=test_dataset["sentence1"],
+            sentences2=test_dataset["sentence2"],
+            scores=[score / 5.0 for score in test_dataset["score"]],  # Convert 0-5 scores to 0-1 scores
+            batch_size=inference_batch_size,
+            name=f"sts17-{subset}-test",
+            show_progress_bar=False,
+        )
+        evaluators.append(test_evaluator)
 
-##### Read cross-lingual Semantic Textual Similarity (STS) data ####
-all_languages = list(set(list(source_languages) + list(target_languages)))
-sts_data = {}
+evaluator = SequentialEvaluator(evaluators, main_score_function=lambda scores: np.mean(scores))
+# Now also prepare the evaluation datasets for training
+eval_dataset_dict = eval_dataset_dict.map(prepare_dataset, batched=True, batch_size=30000, remove_columns=column_names)
 
-# Open the ZIP File of STS2017-extended.zip and check for which language combinations we have STS data
-with zipfile.ZipFile(sts_corpus) as zip:
-    filelist = zip.namelist()
-    sts_files = []
-
-    for i in range(len(all_languages)):
-        for j in range(i, len(all_languages)):
-            lang1 = all_languages[i]
-            lang2 = all_languages[j]
-            filepath = "STS2017-extended/STS.{}-{}.txt".format(lang1, lang2)
-            if filepath not in filelist:
-                lang1, lang2 = lang2, lang1
-                filepath = "STS2017-extended/STS.{}-{}.txt".format(lang1, lang2)
-
-            if filepath in filelist:
-                filename = os.path.basename(filepath)
-                sts_data[filename] = {"sentences1": [], "sentences2": [], "scores": []}
-
-                fIn = zip.open(filepath)
-                for line in io.TextIOWrapper(fIn, "utf8"):
-                    sent1, sent2, score = line.strip().split("\t")
-                    score = float(score)
-                    sts_data[filename]["sentences1"].append(sent1)
-                    sts_data[filename]["sentences2"].append(sent2)
-                    sts_data[filename]["scores"].append(score)
-
-for filename, data in sts_data.items():
-    test_evaluator = evaluation.EmbeddingSimilarityEvaluator(
-        data["sentences1"],
-        data["sentences2"],
-        data["scores"],
-        batch_size=inference_batch_size,
-        name=filename.split(".")[0],
-        show_progress_bar=False,
-    )
-    evaluators.append(test_evaluator)
-
-
-# Train the model
-student_model.fit(
-    train_objectives=[(train_dataloader, train_loss)],
-    evaluator=evaluation.SequentialEvaluator(evaluators, main_score_function=lambda scores: np.mean(scores)),
-    epochs=num_epochs,
-    warmup_steps=num_warmup_steps,
-    evaluation_steps=num_evaluation_steps,
-    output_path=output_path,
-    save_best_model=True,
-    optimizer_params={"lr": 2e-5, "eps": 1e-6},
+# 5. Define the training arguments
+args = SentenceTransformerTrainingArguments(
+    # Required parameter:
+    output_dir=output_dir,
+    # Optional training parameters:
+    num_train_epochs=num_train_epochs,
+    per_device_train_batch_size=train_batch_size,
+    per_device_eval_batch_size=train_batch_size,
+    warmup_ratio=0.1,
+    fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
+    bf16=False,  # Set to True if you have a GPU that supports BF16
+    learning_rate=2e-5,
+    # Optional tracking/debugging parameters:
+    eval_strategy="steps",
+    eval_steps=num_evaluation_steps,
+    save_strategy="steps",
+    save_steps=num_evaluation_steps,
+    save_total_limit=2,
+    logging_steps=100,
+    run_name=f"multilingual-{'-'.join(source_languages)}-{'-'.join(target_languages)}",  # Will be used in W&B if `wandb` is installed
 )
+
+# 6. Create the trainer & start training
+trainer = SentenceTransformerTrainer(
+    model=student_model,
+    args=args,
+    train_dataset=train_dataset_dict,
+    eval_dataset=eval_dataset_dict,
+    loss=train_loss,
+    evaluator=evaluator,
+)
+trainer.train()
+
+# 7. Save the trained & evaluated model locally
+final_output_dir = f"{output_dir}/final"
+student_model.save(final_output_dir)
+
+# 8. (Optional) save the model to the Hugging Face Hub!
+# It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+model_name = student_model_name if "/" not in student_model_name else student_model_name.split("/")[-1]
+try:
+    student_model.push_to_hub(f"{model_name}-multilingual-{'-'.join(source_languages)}-{'-'.join(target_languages)}")
+except Exception:
+    logging.error(
+        f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
+        f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({final_output_dir!r})` "
+        f"and saving it using `model.push_to_hub('{model_name}-multilingual-{'-'.join(source_languages)}-{'-'.join(target_languages)}')`."
+    )
