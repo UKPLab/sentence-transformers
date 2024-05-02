@@ -1237,6 +1237,10 @@ class SentenceTransformer(nn.Sequential):
                 model_name_or_path
             )
         )
+
+        if model_args is None:
+            model_args = {}
+
         transformer_model = Transformer(
             model_name_or_path,
             cache_dir=cache_folder,
@@ -1245,7 +1249,8 @@ class SentenceTransformer(nn.Sequential):
                 "trust_remote_code": trust_remote_code,
                 "revision": revision,
                 "local_files_only": local_files_only,
-            } | (model_args or {}),
+                **model_args,
+            },
             tokenizer_args={
                 "token": token,
                 "trust_remote_code": trust_remote_code,
@@ -1365,7 +1370,8 @@ class SentenceTransformer(nn.Sequential):
                     kwargs["model_args"].update(hub_kwargs)
                 else:
                     kwargs["model_args"] = hub_kwargs
-                kwargs["model_args"].update(model_args or {})
+                if model_args:
+                    kwargs["model_args"].update(model_args)
 
                 if "tokenizer_args" in kwargs:
                     kwargs["tokenizer_args"].update(hub_kwargs)
