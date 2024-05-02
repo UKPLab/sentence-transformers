@@ -50,7 +50,6 @@ inner_train_loss = losses.CoSENTLoss(model=model)
 train_loss = losses.MatryoshkaLoss(model, loss=inner_train_loss, matryoshka_dims=matryoshka_dims)
 
 # 4. Define an evaluator for use during training. This is useful to keep track of alongside the evaluation loss.
-eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
 evaluators = []
 for dim in matryoshka_dims:
     evaluators.append(

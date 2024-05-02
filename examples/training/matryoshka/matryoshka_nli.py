@@ -53,14 +53,14 @@ inner_train_loss = losses.MultipleNegativesRankingLoss(model)
 train_loss = losses.MatryoshkaLoss(model, inner_train_loss, matryoshka_dims=matryoshka_dims)
 
 # 4. Define an evaluator for use during training. This is useful to keep track of alongside the evaluation loss.
-eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
+stsb_eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
 evaluators = []
 for dim in matryoshka_dims:
     evaluators.append(
         EmbeddingSimilarityEvaluator(
-            sentences1=eval_dataset["sentence1"],
-            sentences2=eval_dataset["sentence2"],
-            scores=eval_dataset["score"],
+            sentences1=stsb_eval_dataset["sentence1"],
+            sentences2=stsb_eval_dataset["sentence2"],
+            scores=stsb_eval_dataset["score"],
             main_similarity=SimilarityFunction.COSINE,
             name=f"sts-dev-{dim}",
             truncate_dim=dim,
