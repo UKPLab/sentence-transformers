@@ -234,7 +234,7 @@ class SentenceTransformer(nn.Sequential):
                         "torch_dtype": torch_dtype,
                         "attn_implementation": attn_implementation,
                         **model_kwargs,
-                    }
+                    },
                 )
             else:
                 modules = self._load_auto_model(
@@ -248,7 +248,7 @@ class SentenceTransformer(nn.Sequential):
                         "torch_dtype": torch_dtype,
                         "attn_implementation": attn_implementation,
                         **model_kwargs,
-                    }
+                    },
                 )
 
         if modules is not None and not isinstance(modules, OrderedDict):

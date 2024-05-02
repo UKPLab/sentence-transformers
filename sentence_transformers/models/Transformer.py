@@ -69,18 +69,14 @@ class Transformer(nn.Module):
         from transformers import T5EncoderModel
 
         T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
-        self.auto_model = T5EncoderModel.from_pretrained(
-            model_name_or_path, cache_dir=cache_dir, **model_args
-        )
+        self.auto_model = T5EncoderModel.from_pretrained(model_name_or_path, cache_dir=cache_dir, **model_args)
 
     def _load_mt5_model(self, model_name_or_path, cache_dir, **model_args):
         """Loads the encoder model from T5"""
         from transformers import MT5EncoderModel
 
         MT5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
-        self.auto_model = MT5EncoderModel.from_pretrained(
-            model_name_or_path, cache_dir=cache_dir, **model_args
-        )
+        self.auto_model = MT5EncoderModel.from_pretrained(model_name_or_path, cache_dir=cache_dir, **model_args)
 
     def __repr__(self):
         return "Transformer({}) with Transformer model: {} ".format(
