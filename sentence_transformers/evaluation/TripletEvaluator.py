@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class TripletEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on a triplet: (sentence, positive_example, negative_example).
-        Checks if distance(sentence, positive_example) < distance(sentence, negative_example).
+    Checks if distance(sentence, positive_example) < distance(sentence, negative_example).
 
     Example
         ::
