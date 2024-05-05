@@ -2,7 +2,8 @@ import logging
 import numpy as np
 import os
 import csv
-from typing import Optional
+from typing import Optional, Union
+from ..Metrics import Metric
 from sklearn.metrics import ndcg_score
 
 logger = logging.getLogger(__name__)
@@ -20,8 +21,25 @@ class CERerankingEvaluator:
     """
 
     def __init__(
-        self, samples, at_k: int = 10, name: str = "", write_csv: bool = True, mrr_at_k: Optional[int] = None
+        self,
+        samples,
+        at_k: int = 10,
+        name: str = "",
+        write_csv: bool = True,
+        mrr_at_k: Optional[int] = None,
+        return_metric: Union[str, Metric] = Metric.MRR.value,
     ):
+        supported_metrics = [Metric.MRR, Metric.NDCG]
+        if isinstance(return_metric, Metric):
+            return_metric = return_metric.value
+
+        if return_metric not in [x.value for x in supported_metrics]:
+            raise ValueError(
+                f"The given metric is not supported. The supported metrics are: {', '.join(x.value for x in supported_metrics)}"
+            )
+
+        self.return_metric = return_metric
+
         self.samples = samples
         self.name = name
         if mrr_at_k is not None:
@@ -112,4 +130,7 @@ class CERerankingEvaluator:
 
                 writer.writerow([epoch, steps, mean_mrr, mean_ndcg])
 
-        return mean_mrr
+        if self.return_metric == Metric.MRR.value:
+            return mean_mrr
+        elif self.return_metric == Metric.NDCG.value:
+            return mean_ndcg
