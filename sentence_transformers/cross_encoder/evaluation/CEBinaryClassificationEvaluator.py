@@ -1,6 +1,7 @@
 import logging
 from sklearn.metrics import average_precision_score
-from typing import List
+from typing import List, Union
+from ..Metrics import Metric
 import numpy as np
 import os
 import csv
@@ -25,10 +26,28 @@ class CEBinaryClassificationEvaluator:
         name: str = "",
         show_progress_bar: bool = False,
         write_csv: bool = True,
+        return_metric: Union[str, Metric] = Metric.AVERAGE_PRECISION.value,
     ):
         assert len(sentence_pairs) == len(labels)
         for label in labels:
             assert label == 0 or label == 1
+
+        supported_metrics = [
+            Metric.ACCURACY,
+            Metric.AVERAGE_PRECISION,
+            Metric.F1_SCORE,
+            Metric.RECALL,
+            Metric.PRECISION,
+        ]
+        if isinstance(return_metric, Metric):
+            return_metric = return_metric.value
+
+        if return_metric not in [x.value for x in supported_metrics]:
+            raise ValueError(
+                f"The given metric is not supported. The supported metrics are: {', '.join(x.value for x in supported_metrics)}"
+            )
+
+        self.return_metric = return_metric
 
         self.sentence_pairs = sentence_pairs
         self.labels = np.asarray(labels)
@@ -100,4 +119,13 @@ class CEBinaryClassificationEvaluator:
 
                 writer.writerow([epoch, steps, acc, acc_threshold, f1, f1_threshold, precision, recall, ap])
 
-        return ap
+        if self.return_metric == Metric.AVERAGE_PRECISION.value:
+            return ap
+        elif self.return_metric == Metric.F1_SCORE.value:
+            return f1
+        elif self.return_metric == Metric.ACCURACY.value:
+            return acc
+        elif self.return_metric == Metric.RECALL.value:
+            return recall
+        elif self.return_metric == Metric.PRECISION.value:
+            return precision
