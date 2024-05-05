@@ -1,6 +1,7 @@
 import logging
 from scipy.stats import pearsonr, spearmanr
-from typing import List
+from typing import List, Union
+from ..Metrics import Metric
 import os
 import csv
 from ... import InputExample
@@ -16,7 +17,25 @@ class CECorrelationEvaluator:
     and the gold score.
     """
 
-    def __init__(self, sentence_pairs: List[List[str]], scores: List[float], name: str = "", write_csv: bool = True):
+    def __init__(
+        self,
+        sentence_pairs: List[List[str]],
+        scores: List[float],
+        name: str = "",
+        write_csv: bool = True,
+        return_metric: Union[str, Metric] = Metric.SPEARMAN.value,
+    ):
+        supported_metrics = [Metric.SPEARMAN, Metric.PEARSON]
+        if isinstance(return_metric, Metric):
+            return_metric = return_metric.value
+
+        if return_metric not in [x.value for x in supported_metrics]:
+            raise ValueError(
+                f"The given metric is not supported. The supported metrics are: {', '.join(x.value for x in supported_metrics)}"
+            )
+
+        self.return_metric = return_metric
+
         self.sentence_pairs = sentence_pairs
         self.scores = scores
         self.name = name
@@ -62,4 +81,7 @@ class CECorrelationEvaluator:
 
                 writer.writerow([epoch, steps, eval_pearson, eval_spearman])
 
-        return eval_spearman
+        if self.return_metric == Metric.SPEARMAN.value:
+            return eval_spearman
+        elif self.return_metric == Metric.PEARSON.value:
+            return eval_pearson
