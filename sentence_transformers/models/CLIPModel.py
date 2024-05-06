@@ -5,6 +5,7 @@ import torch
 from PIL import Image
 from sentence_transformers.util import get_device_name
 
+
 class CLIPModel(nn.Module):
     def __init__(self, model_name: str = "openai/clip-vit-base-patch32", processor_name=None):
         super(CLIPModel, self).__init__()

@@ -319,6 +319,7 @@ class SentenceTransformer(nn.Sequential):
             self.is_hpu_graph_enabled = True
 
             from optimum.habana.transformers.modeling_utils import adapt_transformers_to_gaudi
+
             adapt_transformers_to_gaudi()
 
         self.eval()
@@ -381,13 +382,31 @@ class SentenceTransformer(nn.Sequential):
             sentences_batch = sentences_sorted[start_index : start_index + batch_size]
             features = self.tokenize(sentences_batch)
             if self.device.type == "hpu":
-                if 'input_ids' in features:
-                    curr_tokenize_len = features['input_ids'].shape
+                if "input_ids" in features:
+                    curr_tokenize_len = features["input_ids"].shape
                     additional_pad_len = 2 ** math.ceil(math.log2(curr_tokenize_len[1])) - curr_tokenize_len[1]
-                    features['input_ids'] = torch.cat((features['input_ids'], torch.ones((curr_tokenize_len[0],additional_pad_len), dtype=torch.int8)), -1)
-                    features['attention_mask'] = torch.cat((features['attention_mask'],  torch.zeros((curr_tokenize_len[0],additional_pad_len), dtype=torch.int8)), -1)
-                    if 'token_type_ids' in features:
-                        features['token_type_ids'] = torch.cat((features['token_type_ids'],  torch.zeros((curr_tokenize_len[0],additional_pad_len), dtype=torch.int8)), -1)
+                    features["input_ids"] = torch.cat(
+                        (
+                            features["input_ids"],
+                            torch.ones((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
+                        ),
+                        -1,
+                    )
+                    features["attention_mask"] = torch.cat(
+                        (
+                            features["attention_mask"],
+                            torch.zeros((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
+                        ),
+                        -1,
+                    )
+                    if "token_type_ids" in features:
+                        features["token_type_ids"] = torch.cat(
+                            (
+                                features["token_type_ids"],
+                                torch.zeros((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
+                            ),
+                            -1,
+                        )
 
             features = batch_to_device(features, device)
             features.update(extra_features)
