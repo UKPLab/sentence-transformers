@@ -12,6 +12,7 @@ from .WeightedLayerPooling import WeightedLayerPooling
 from .WordEmbeddings import WordEmbeddings
 from .WordWeights import WordWeights
 from .CLIPModel import CLIPModel
+from .SigLIPModel import SigLIPModel
 
 __all__ = [
     "Transformer",
@@ -28,4 +29,5 @@ __all__ = [
     "WordEmbeddings",
     "WordWeights",
     "CLIPModel",
+    "SigLIPModel"
 ]
