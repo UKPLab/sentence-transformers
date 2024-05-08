@@ -90,7 +90,9 @@ class SentenceTransformer(nn.Sequential):
         or `"flash_attention_2"` (using [Dao-AILab/flash-attention](https://github.com/Dao-AILab/flash-attention)).
         By default, if available, SDPA will be used for torch>=2.1.1. The default is otherwise the manual `"eager"`
         implementation.
-    :param model_kwargs: Additional model configuration parameters, to be passed to the Huggingface Transformers model.
+    :param model_kwargs: Additional model configuration parameters to be passed to the Huggingface Transformers model.
+        See the [PreTrainedModel.from_pretrained](https://huggingface.co/docs/transformers/en/main_classes/model#transformers.PreTrainedModel.from_pretrained)
+        documentation for more details.
     """
 
     def __init__(
@@ -108,7 +110,7 @@ class SentenceTransformer(nn.Sequential):
         use_auth_token: Optional[Union[bool, str]] = None,
         truncate_dim: Optional[int] = None,
         torch_dtype: Optional[Union[str, torch.dtype]] = None,
-        attn_implementation: Optional[str] = None,
+        attn_implementation: Optional[Literal["eager", "sdpa", "flash_attention_2"]] = None,
         **model_kwargs,
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
@@ -454,7 +456,7 @@ class SentenceTransformer(nn.Sequential):
                 all_embeddings = torch.Tensor()
         elif convert_to_numpy:
             if not isinstance(all_embeddings, np.ndarray):
-                all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
+                all_embeddings = np.asarray([emb.float().numpy() for emb in all_embeddings])
         elif isinstance(all_embeddings, np.ndarray):
             all_embeddings = [torch.from_numpy(embedding) for embedding in all_embeddings]
 
