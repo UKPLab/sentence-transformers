@@ -469,6 +469,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     @property
     def similarity_fn_name(self) -> Optional[str]:
+        """Return the name of the similarity function used by :meth:`SentenceTransformer.similarity` and :meth:`SentenceTransformer.similarity_pairwise`."""
         return self._similarity_fn_name
 
     @similarity_fn_name.setter
