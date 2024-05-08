@@ -3,7 +3,6 @@ from torch import nn
 import transformers
 import torch
 from PIL import Image
-from sentence_transformers.util import get_device_name
 
 
 class CLIPModel(nn.Module):
