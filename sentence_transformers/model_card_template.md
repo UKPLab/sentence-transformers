@@ -91,7 +91,7 @@ print(embeddings.shape)
 # [{{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{ output_dimensionality | default(1024, true) }}]
 
 # Get the similarity scores for the embeddings
-similarities = model.similarity(embeddings)
+similarities = model.similarity(embeddings, embeddings)
 print(similarities.shape)
 # [{{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}]
 ```
