@@ -23,11 +23,10 @@ of the teacher performance, while being 2.3 times faster.
 import traceback
 from datasets import load_dataset, concatenate_datasets, Dataset
 import pandas as pd
-from sentence_transformers import models, losses, evaluation
-from sentence_transformers import LoggingHandler, SentenceTransformer
+from sentence_transformers import losses, evaluation
+from sentence_transformers import SentenceTransformer
 import logging
 from datetime import datetime
-from sklearn.decomposition import PCA
 import torch
 
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
@@ -36,36 +35,46 @@ from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 
 
-#### Just some code to print debug information to stdout
-logging.basicConfig(
-    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
-)
-#### /print debug information to stdout
+# Set the log level to INFO to get more information
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 
 # Teacher Model: Model we want to distill to a smaller model
-teacher_model_name = "stsb-roberta-base-v2"
+teacher_model_name = "mixedbread-ai/mxbai-embed-large-v1"
 teacher_model = SentenceTransformer(teacher_model_name)
 
 output_dir = "output/model-distillation-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-# We will train a small model like TinyBERT to imitate the teacher.
-# You can find some small BERT models here: https://huggingface.co/nreimers
-student_model_name = "nreimers/TinyBERT_L-4_H-312_v2"
-student_model = SentenceTransformer(student_model_name)
+# Create a smaller student model by using only some of the teacher layers
+student_model = SentenceTransformer(teacher_model_name)
 
-inference_batch_size = 64
+# Get the transformer model
+auto_model = student_model._first_module().auto_model
+
+# Which layers to keep from the teacher model. We equally spread the layers to keep over the original teacher
+# layers_to_keep = [5]
+# layers_to_keep = [3, 7]
+# layers_to_keep = [3, 7, 11]
+# layers_to_keep = [0, 2, 4, 6, 8, 10]
+# layers_to_keep = [0, 1, 3, 4, 6, 7, 9, 10]
+# Keep every third layer:
+layers_to_keep = [0, 3, 6, 9, 12, 15, 18, 21]
+
+logging.info("Remove layers from student. Only keep these layers: {}".format(layers_to_keep))
+new_layers = torch.nn.ModuleList(
+    [layer_module for i, layer_module in enumerate(auto_model.encoder.layer) if i in layers_to_keep]
+)
+auto_model.encoder.layer = new_layers
+auto_model.config.num_hidden_layers = len(layers_to_keep)
+print(
+    f"Number of parameters in the Teacher model: {sum(p.numel() for p in teacher_model.parameters() if p.requires_grad)}"
+)
+print(
+    f"Number of parameters in the Student model: {sum(p.numel() for p in student_model.parameters() if p.requires_grad)}"
+)
+
+inference_batch_size = 128
 train_batch_size = 64
-
-# We use AllNLI as a source of sentences for the distillation
-nli_dataset_path = "datasets/AllNLI.tsv.gz"
-
-# Further, we use sentences extracted from the English Wikipedia to train the distillation
-wikipedia_dataset_path = "datasets/wikipedia-en-sentences.txt.gz"
-
-# We use the STS benchmark dataset to see how much performance we loose
-sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
-
 
 logging.info("Load the AllNLI dataset")
 # Load the AllNLI dataset: https://huggingface.co/datasets/sentence-transformers/all-nli
@@ -94,13 +103,11 @@ nli_train_dataset = deduplicate(nli_train_dataset)
 nli_eval_dataset = deduplicate(nli_eval_dataset)
 logging.info(nli_train_dataset)
 
-
 logging.info("Load the STSB dataset")
-# Load the STSB eval/test datasets: https://huggingface.co/datasets/sentence-transformers/stsb
+# Load the STSB dataset: https://huggingface.co/datasets/sentence-transformers/stsb
 stsb_eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
 stsb_test_dataset = load_dataset("sentence-transformers/stsb", split="test")
 logging.info(stsb_eval_dataset)
-
 
 logging.info("Load the Wikipedia dataset")
 # Load the Wikipedia dataset: https://huggingface.co/datasets/sentence-transformers/wikipedia-en-sentences
@@ -111,45 +118,12 @@ wikipedia_train_dataset = wikipedia_train_dataset_dict["train"]
 wikipedia_eval_dataset = wikipedia_train_dataset_dict["test"]
 logging.info(wikipedia_train_dataset)
 
-
 # Concatenate the NLI and Wikipedia datasets for training
 train_dataset: Dataset = concatenate_datasets([nli_train_dataset, wikipedia_train_dataset])
 # Create a relatively small dataset for evaluation
 eval_dataset: Dataset = concatenate_datasets(
     [nli_eval_dataset.select(range(5000)), wikipedia_eval_dataset.select(range(5000))]
 )
-
-# Create an STSB evaluator
-dev_evaluator_stsb = EmbeddingSimilarityEvaluator(
-    sentences1=stsb_eval_dataset["sentence1"],
-    sentences2=stsb_eval_dataset["sentence2"],
-    scores=stsb_eval_dataset["score"],
-    main_similarity=SimilarityFunction.COSINE,
-    name="sts-dev",
-)
-logging.info("Teacher Performance")
-dev_evaluator_stsb(teacher_model)
-
-# Student model has fewer dimensions. Compute PCA for the teacher to reduce the dimensions
-if student_model.get_sentence_embedding_dimension() < teacher_model.get_sentence_embedding_dimension():
-    logging.info("Student model has fewer dimensions than the teacher. Compute PCA for down projection")
-    pca_sentences = nli_train_dataset[:20000]["sentence"] + wikipedia_train_dataset[:20000]["sentence"]
-    pca_embeddings = teacher_model.encode(pca_sentences, convert_to_numpy=True)
-    pca = PCA(n_components=student_model.get_sentence_embedding_dimension())
-    pca.fit(pca_embeddings)
-
-    # Add Dense layer to teacher that projects the embeddings down to the student embedding size
-    dense = models.Dense(
-        in_features=teacher_model.get_sentence_embedding_dimension(),
-        out_features=student_model.get_sentence_embedding_dimension(),
-        bias=False,
-        activation_function=torch.nn.Identity(),
-    )
-    dense.linear.weight = torch.nn.Parameter(torch.tensor(pca.components_))
-    teacher_model.add_module("dense", dense)
-
-    logging.info("Teacher Performance with {} dimensions:".format(teacher_model.get_sentence_embedding_dimension()))
-    dev_evaluator_stsb(teacher_model)
 
 
 # Use the teacher model to get the gold embeddings
@@ -161,7 +135,6 @@ def map_embeddings(batch):
     }
 
 
-train_dataset = train_dataset.select(range(200000))
 train_dataset = train_dataset.map(map_embeddings, batched=True, batch_size=50000)
 # Optionally, save the dataset to disk to speed up future runs
 train_dataset.save_to_disk("datasets/distillation_train_dataset")
@@ -172,12 +145,27 @@ train_dataset.save_to_disk("datasets/distillation_train_dataset")
 #     train_dataset = train_dataset["train"]
 eval_dataset = eval_dataset.map(map_embeddings, batched=True, batch_size=50000)
 
+# Prepare the training loss
 train_loss = losses.MSELoss(model=student_model)
+
+# Create an STSB evaluator
+dev_evaluator_stsb = EmbeddingSimilarityEvaluator(
+    sentences1=stsb_eval_dataset["sentence1"],
+    sentences2=stsb_eval_dataset["sentence2"],
+    scores=stsb_eval_dataset["score"],
+    main_similarity=SimilarityFunction.COSINE,
+    name="sts-dev",
+)
+logging.info("Running STSB evaluation on the teacher model")
+dev_evaluator_stsb(teacher_model)
 
 # We create an evaluator, that measure the Mean Squared Error (MSE) between the teacher and the student embeddings
 eval_sentences = eval_dataset["sentence"]
 dev_evaluator_mse = evaluation.MSEEvaluator(eval_sentences, eval_sentences, teacher_model=teacher_model)
 dev_evaluator = evaluation.SequentialEvaluator([dev_evaluator_stsb, dev_evaluator_mse])
+
+# Run the evaluator before training to get a baseline performance of the student model
+dev_evaluator(student_model)
 
 # Define the training arguments
 args = SentenceTransformerTrainingArguments(
@@ -195,11 +183,11 @@ args = SentenceTransformerTrainingArguments(
     learning_rate=1e-4,
     # Optional tracking/debugging parameters:
     eval_strategy="steps",
-    eval_steps=500,
+    eval_steps=5000,
     save_strategy="steps",
-    save_steps=500,
+    save_steps=5000,
     save_total_limit=2,
-    logging_steps=100,
+    logging_steps=1000,
     run_name="distillation-layer-reduction",  # Will be used in W&B if `wandb` is installed
 )
 
@@ -230,16 +218,12 @@ student_model.save(final_output_dir)
 
 # (Optional) save the model to the Hugging Face Hub!
 # It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
-if "/" in student_model_name:
-    student_model_name = student_model_name.split("/")[-1]
-if "/" in teacher_model_name:
-    teacher_model_name = teacher_model_name.split("/")[-1]
-repo_id = f"{student_model_name}-distilled-from-{teacher_model_name}"
+model_name = teacher_model_name if "/" not in teacher_model_name else teacher_model_name.split("/")[-1]
 try:
-    student_model.push_to_hub(repo_id)
+    student_model.push_to_hub(f"{model_name}-{len(layers_to_keep)}-layers")
 except Exception:
     logging.error(
         f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
         f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({final_output_dir!r})` "
-        f"and saving it using `model.push_to_hub({repo_id!r})`."
+        f"and saving it using `model.push_to_hub('{model_name}-{len(layers_to_keep)}-layers')`."
     )

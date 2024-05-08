@@ -23,7 +23,36 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
     The metrics are the cosine similarity as well as euclidean and Manhattan distance
     The returned score is the Spearman correlation with a specified metric.
 
-    The results are written in a CSV. If a CSV already exists, then values are appended.
+    Example
+        ::
+
+            from datasets import load_dataset
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SimilarityFunction
+
+            # Load a model
+            model = SentenceTransformer('all-mpnet-base-v2')
+
+            # Load the STSB dataset (https://huggingface.co/datasets/nyu-mll/glue/viewer/stsb)
+            eval_dataset = load_dataset("nyu-mll/glue", "stsb", split="validation")
+
+            # Initialize the evaluator
+            dev_evaluator = EmbeddingSimilarityEvaluator(
+                sentences1=eval_dataset["sentence1"],
+                sentences2=eval_dataset["sentence2"],
+                scores=[score / 5 for score in eval_dataset["label"]],
+                main_similarity=SimilarityFunction.COSINE,
+                name="sts-dev",
+            )
+            dev_evaluator(model)
+            '''
+            EmbeddingSimilarityEvaluator: Evaluating the model on the sts-dev dataset:
+            Cosine-Similarity :       Pearson: 0.7874 Spearman: 0.8004
+            Manhattan-Distance:       Pearson: 0.7823 Spearman: 0.7827
+            Euclidean-Distance:       Pearson: 0.7824 Spearman: 0.7827
+            Dot-Product-Similarity:   Pearson: 0.7192 Spearman: 0.7126
+            '''
+            # => 0.8004
     """
 
     def __init__(

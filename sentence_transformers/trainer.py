@@ -79,6 +79,11 @@ class SentenceTransformerTrainer(Trainer):
 
         if data_collator is None:
             data_collator = SentenceTransformerDataCollator(tokenize_fn=model.tokenize)
+
+        if isinstance(train_dataset, dict) and not isinstance(train_dataset, DatasetDict):
+            train_dataset = DatasetDict(train_dataset)
+        if isinstance(eval_dataset, dict) and not isinstance(eval_dataset, Dataset):
+            eval_dataset = DatasetDict(eval_dataset)
         super().__init__(
             model=model,
             args=args,

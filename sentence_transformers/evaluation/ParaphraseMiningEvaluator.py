@@ -18,6 +18,45 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
     Given a large set of sentences, this evaluator performs paraphrase (duplicate) mining and
     identifies the pairs with the highest similarity. It compare the extracted paraphrase pairs
     with a set of gold labels and computes the F1 score.
+
+    Example
+        ::
+
+            from datasets import load_dataset
+            from sentence_transformers.SentenceTransformer import SentenceTransformer
+            from sentence_transformers.evaluation import ParaphraseMiningEvaluator
+
+            # Load a model
+            model = SentenceTransformer('all-mpnet-base-v2')
+
+            # Load the Quora Duplicates Mining dataset
+            questions_dataset = load_dataset("sentence-transformers/quora-duplicates-mining", "questions", split="dev")
+            duplicates_dataset = load_dataset("sentence-transformers/quora-duplicates-mining", "duplicates", split="dev")
+
+            # Create a mapping from qid to question & a list of duplicates (qid1, qid2)
+            qid_to_questions = dict(zip(questions_dataset["qid"], questions_dataset["question"]))
+            duplicates = list(zip(duplicates_dataset["qid1"], duplicates_dataset["qid2"]))
+
+            # Initialize the paraphrase mining evaluator
+            paraphrase_mining_evaluator = ParaphraseMiningEvaluator(
+                sentences_map=qid_to_questions,
+                duplicates_list=duplicates,
+                name="quora-duplicates-dev",
+            )
+            results = paraphrase_mining_evaluator(model)
+            '''
+            Paraphrase Mining Evaluation of the model on the quora-duplicates-dev dataset:
+            Number of candidate pairs: 250564
+            Average Precision: 56.51
+            Optimal threshold: 0.8325
+            Precision: 52.76
+            Recall: 59.19
+            F1: 55.79
+            '''
+            print(paraphrase_mining_evaluator.primary_metric)
+            # => "quora-duplicates-dev_average_precision"
+            print(results[paraphrase_mining_evaluator.primary_metric])
+            # => 0.5650940787776353
     """
 
     def __init__(

@@ -18,6 +18,36 @@ class TranslationEvaluator(SentenceEvaluator):
     Given two sets of sentences in different languages, e.g. (en_1, en_2, en_3...) and (fr_1, fr_2, fr_3, ...),
     and assuming that fr_i is the translation of en_i.
     Checks if vec(en_i) has the highest similarity to vec(fr_i). Computes the accuracy in both directions
+
+    Example
+        ::
+
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers.evaluation import TranslationEvaluator
+            from datasets import load_dataset
+
+            # Load a model
+            model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
+
+            # Load a parallel sentences dataset
+            dataset = load_dataset("sentence-transformers/parallel-sentences-news-commentary", "en-nl", split="train[:1000]")
+
+            # Initialize the TranslationEvaluator using the same texts from two languages
+            translation_evaluator = TranslationEvaluator(
+                source_sentences=dataset["english"],
+                target_sentences=dataset["non_english"],
+                name="news-commentary-en-nl",
+            )
+            results = translation_evaluator(model)
+            '''
+            Evaluating translation matching Accuracy of the model on the news-commentary-en-nl dataset:
+            Accuracy src2trg: 90.80
+            Accuracy trg2src: 90.40
+            '''
+            print(translation_evaluator.primary_metric)
+            # => "news-commentary-en-nl_mean_accuracy"
+            print(results[translation_evaluator.primary_metric])
+            # => 0.906
     """
 
     def __init__(

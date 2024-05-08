@@ -36,6 +36,58 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
     :param write_csv: Write results to a CSV file
     :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
         dimension. Defaults to None.
+
+    Example
+        ::
+
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers.evaluation import BinaryClassificationEvaluator
+            from datasets import load_dataset
+
+            # Load a model
+            model = SentenceTransformer('all-mpnet-base-v2')
+
+            # Load a dataset with two text columns and a class label column (https://huggingface.co/datasets/sentence-transformers/quora-duplicates)
+            eval_dataset = load_dataset("sentence-transformers/quora-duplicates", "pair-class", split="train[-1000:]")
+
+            # Initialize the evaluator
+            binary_acc_evaluator = BinaryClassificationEvaluator(
+                sentences1=eval_dataset["sentence1"],
+                sentences2=eval_dataset["sentence2"],
+                labels=eval_dataset["label"],
+                name="quora-duplicates-dev",
+            )
+            results = binary_acc_evaluator(model)
+            '''
+            Binary Accuracy Evaluation of the model on the quora-duplicates-dev dataset:
+            Accuracy with Cosine-Similarity:           81.60    (Threshold: 0.8352)
+            F1 with Cosine-Similarity:                 75.27    (Threshold: 0.7715)
+            Precision with Cosine-Similarity:          65.81
+            Recall with Cosine-Similarity:             87.89
+            Average Precision with Cosine-Similarity:  76.03
+
+            Accuracy with Dot-Product:           81.60  (Threshold: 0.8352)
+            F1 with Dot-Product:                 75.27  (Threshold: 0.7715)
+            Precision with Dot-Product:          65.81
+            Recall with Dot-Product:             87.89
+            Average Precision with Dot-Product:  76.03
+
+            Accuracy with Manhattan-Distance:           81.50   (Threshold: 12.0727)
+            F1 with Manhattan-Distance:                 74.97   (Threshold: 15.2269)
+            Precision with Manhattan-Distance:          63.89
+            Recall with Manhattan-Distance:             90.68
+            Average Precision with Manhattan-Distance:  75.66
+
+            Accuracy with Euclidean-Distance:           81.60   (Threshold: 0.5741)
+            F1 with Euclidean-Distance:                 75.27   (Threshold: 0.6760)
+            Precision with Euclidean-Distance:          65.81
+            Recall with Euclidean-Distance:             87.89
+            Average Precision with Euclidean-Distance:  76.03
+            '''
+            print(binary_acc_evaluator.primary_metric)
+            # => "quora-duplicates-dev_max_ap"
+            print(results[binary_acc_evaluator.primary_metric])
+            # => 0.760277070888393
     """
 
     def __init__(

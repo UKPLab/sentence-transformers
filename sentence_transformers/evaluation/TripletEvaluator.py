@@ -17,7 +17,40 @@ logger = logging.getLogger(__name__)
 class TripletEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on a triplet: (sentence, positive_example, negative_example).
-        Checks if distance(sentence, positive_example) < distance(sentence, negative_example).
+    Checks if distance(sentence, positive_example) < distance(sentence, negative_example).
+
+    Example
+        ::
+
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers.evaluation import TripletEvaluator
+            from datasets import load_dataset
+
+            # Load a model
+            model = SentenceTransformer('all-mpnet-base-v2')
+
+            # Load a dataset with (anchor, positive, negative) triplets
+            dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="dev")
+
+            # Initialize the TripletEvaluator using anchors, positives, and negatives
+            triplet_evaluator = TripletEvaluator(
+                anchors=dataset[:1000]["anchor"],
+                positives=dataset[:1000]["positive"],
+                negatives=dataset[:1000]["negative"],
+                name="all-nli-dev",
+            )
+            results = triplet_evaluator(model)
+            '''
+            TripletEvaluator: Evaluating the model on the all-nli-dev dataset:
+            Accuracy Cosine Distance:        95.60
+            Accuracy Dot Product:            4.40
+            Accuracy Manhattan Distance:     95.40
+            Accuracy Euclidean Distance:     95.60
+            '''
+            print(triplet_evaluator.primary_metric)
+            # => "all-nli-dev_max_accuracy"
+            print(results[triplet_evaluator.primary_metric])
+            # => 0.956
     """
 
     def __init__(

@@ -73,6 +73,31 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     :param token: Hugging Face authentication token to download private models.
     :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
         only applicable during inference when `.encode` is called.
+
+    Example
+        ::
+
+            from sentence_transformers import SentenceTransformer
+
+            # Load a pre-trained SentenceTransformer model
+            model = SentenceTransformer('all-mpnet-base-v2')
+
+            # Encode some texts
+            sentences = [
+                "The weather is lovely today.",
+                "It's so sunny outside!",
+                "He drove to the stadium.",
+            ]
+            embeddings = model.encode(sentences)
+            print(embeddings.shape)
+            # (3, 768)
+
+            # Get the similarity scores between all sentences
+            similarities = model.similarity(embeddings, embeddings)
+            print(similarities)
+            # tensor([[1.0000, 0.6817, 0.0492],
+            #         [0.6817, 1.0000, 0.0421],
+            #         [0.0492, 0.0421, 1.0000]])
     """
 
     def __init__(
@@ -444,6 +469,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     @property
     def similarity_fn_name(self) -> Optional[str]:
+        """Return the name of the similarity function used by :meth:`SentenceTransformer.similarity` and :meth:`SentenceTransformer.similarity_pairwise`."""
         return self._similarity_fn_name
 
     @similarity_fn_name.setter

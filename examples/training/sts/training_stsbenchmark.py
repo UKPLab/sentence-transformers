@@ -9,105 +9,109 @@ OR
 python training_nli.py pretrained_transformer_model_name
 """
 
-from torch.utils.data import DataLoader
-import math
-from sentence_transformers import SentenceTransformer, LoggingHandler, losses, models, util
+import traceback
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer, losses
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers.readers import InputExample
 import logging
 from datetime import datetime
 import sys
-import os
-import gzip
-import csv
 
-#### Just some code to print debug information to stdout
-logging.basicConfig(
-    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
-)
-#### /print debug information to stdout
+from sentence_transformers.similarity_functions import SimilarityFunction
+from sentence_transformers.trainer import SentenceTransformerTrainer
+from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 
+# Set the log level to INFO to get more information
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
-# Check if dataset exists. If not, download and extract  it
-sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
-
-if not os.path.exists(sts_dataset_path):
-    util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
-
-
-# You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
+# You can specify any Hugging Face pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
 model_name = sys.argv[1] if len(sys.argv) > 1 else "distilbert-base-uncased"
-
-# Read the dataset
 train_batch_size = 16
 num_epochs = 4
-model_save_path = (
+output_dir = (
     "output/training_stsbenchmark_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 
-# Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
-word_embedding_model = models.Transformer(model_name)
+# 1. Here we define our SentenceTransformer model. If not already a Sentence Transformer model, it will automatically
+# create one with "mean" pooling.
+model = SentenceTransformer(model_name)
 
-# Apply mean pooling to get one fixed sized sentence vector
-pooling_model = models.Pooling(
-    word_embedding_model.get_word_embedding_dimension(),
-    pooling_mode_mean_tokens=True,
-    pooling_mode_cls_token=False,
-    pooling_mode_max_tokens=False,
-)
+# 2. Load the STSB dataset: https://huggingface.co/datasets/sentence-transformers/stsb
+train_dataset = load_dataset("sentence-transformers/stsb", split="train")
+eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
+test_dataset = load_dataset("sentence-transformers/stsb", split="test")
+logging.info(train_dataset)
 
-model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
-
-# Convert the dataset to a DataLoader ready for training
-logging.info("Read STSbenchmark train dataset")
-
-train_samples = []
-dev_samples = []
-test_samples = []
-with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        score = float(row["score"]) / 5.0  # Normalize score to range 0 ... 1
-        inp_example = InputExample(texts=[row["sentence1"], row["sentence2"]], label=score)
-
-        if row["split"] == "dev":
-            dev_samples.append(inp_example)
-        elif row["split"] == "test":
-            test_samples.append(inp_example)
-        else:
-            train_samples.append(inp_example)
-
-
-train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
+# 3. Define our training loss
+# CosineSimilarityLoss (https://sbert.net/docs/package_reference/losses.html#cosentloss) needs two text columns and one
+# similarity score column (between 0 and 1)
 train_loss = losses.CosineSimilarityLoss(model=model)
+# train_loss = losses.CoSENTLoss(model=model)
 
-
-logging.info("Read STSbenchmark dev dataset")
-evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name="sts-dev")
-
-
-# Configure the training. We skip evaluation in this example
-warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
-
-
-# Train the model
-model.fit(
-    train_objectives=[(train_dataloader, train_loss)],
-    evaluator=evaluator,
-    epochs=num_epochs,
-    evaluation_steps=1000,
-    warmup_steps=warmup_steps,
-    output_path=model_save_path,
+# 4. Define an evaluator for use during training. This is useful to keep track of alongside the evaluation loss.
+dev_evaluator = EmbeddingSimilarityEvaluator(
+    sentences1=eval_dataset["sentence1"],
+    sentences2=eval_dataset["sentence2"],
+    scores=eval_dataset["score"],
+    main_similarity=SimilarityFunction.COSINE,
+    name="sts-dev",
 )
 
+# 5. Define the training arguments
+args = SentenceTransformerTrainingArguments(
+    # Required parameter:
+    output_dir=output_dir,
+    # Optional training parameters:
+    num_train_epochs=num_epochs,
+    per_device_train_batch_size=train_batch_size,
+    per_device_eval_batch_size=train_batch_size,
+    warmup_ratio=0.1,
+    fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
+    bf16=False,  # Set to True if you have a GPU that supports BF16
+    # Optional tracking/debugging parameters:
+    eval_strategy="steps",
+    eval_steps=100,
+    save_strategy="steps",
+    save_steps=100,
+    save_total_limit=2,
+    logging_steps=100,
+    run_name="sts",  # Will be used in W&B if `wandb` is installed
+)
 
-##############################################################################
-#
-# Load the stored model and evaluate its performance on STS benchmark dataset
-#
-##############################################################################
+# 6. Create the trainer & start training
+trainer = SentenceTransformerTrainer(
+    model=model,
+    args=args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    loss=train_loss,
+    evaluator=dev_evaluator,
+)
+trainer.train()
 
-model = SentenceTransformer(model_save_path)
-test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name="sts-test")
-test_evaluator(model, output_path=model_save_path)
+
+# 7. Evaluate the model performance on the STS Benchmark test dataset
+test_evaluator = EmbeddingSimilarityEvaluator(
+    sentences1=test_dataset["sentence1"],
+    sentences2=test_dataset["sentence2"],
+    scores=test_dataset["score"],
+    main_similarity=SimilarityFunction.COSINE,
+    name="sts-test",
+)
+test_evaluator(model)
+
+# 8. Save the trained & evaluated model locally
+final_output_dir = f"{output_dir}/final"
+model.save(final_output_dir)
+
+# 9. (Optional) save the model to the Hugging Face Hub!
+# It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+try:
+    model.push_to_hub(f"{model_name}-sts")
+except Exception:
+    logging.error(
+        f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
+        f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({final_output_dir!r})` "
+        f"and saving it using `model.push_to_hub('{model_name}-sts')`."
+    )
