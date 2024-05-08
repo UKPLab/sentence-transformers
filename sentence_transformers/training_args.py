@@ -37,3 +37,7 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
 
         self.batch_sampler = BatchSamplers(self.batch_sampler)
         self.multi_dataset_batch_sampler = MultiDatasetBatchSamplers(self.multi_dataset_batch_sampler)
+
+        # The `compute_loss` method in `SentenceTransformerTrainer` is overridden to only compute the prediction loss,
+        # so we set `prediction_loss_only` to `True` here to avoid
+        self.prediction_loss_only = True

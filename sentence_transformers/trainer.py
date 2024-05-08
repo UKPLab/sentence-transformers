@@ -158,10 +158,11 @@ class SentenceTransformerTrainer(Trainer):
             loss_fn.model = model
         loss = loss_fn(features, labels)
         if return_outputs:
-            # Get fresh features, as the loss function has likely modified them
-            features, _ = self.collect_features(inputs)
-            output = torch.cat([model(row)["sentence_embedding"][:, None] for row in features], dim=1)
-            return loss, output
+            # During prediction/evaluation, `compute_loss` will be called with `return_outputs=True`.
+            # However, Sentence Transformer losses do not return outputs, so we return an empty dictionary.
+            # This does not result in any problems, as the SentenceTransformersTrainingArguments sets
+            # `prediction_loss_only=True` which means that the output is not used.
+            return loss, {}
         return loss
 
     def collect_features(
