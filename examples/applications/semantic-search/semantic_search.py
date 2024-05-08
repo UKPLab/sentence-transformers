@@ -24,6 +24,7 @@ corpus = [
     "A monkey is playing drums.",
     "A cheetah is running behind its prey.",
 ]
+# Use "convert_to_tensor=True" to keep the tensors on GPU (if available)
 corpus_embeddings = embedder.encode(corpus, convert_to_tensor=True)
 
 # Query sentences:
@@ -33,7 +34,6 @@ queries = [
     "A cheetah chases prey on across a field.",
 ]
 
-
 # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
 top_k = min(5, len(corpus))
 for query in queries:
@@ -41,13 +41,12 @@ for query in queries:
 
     # We use cosine-similarity and torch.topk to find the highest 5 scores
     similarity_scores = embedder.similarity(query_embedding, corpus_embeddings)[0]
-    top_results = torch.topk(similarity_scores, k=top_k)
+    scores, indices = torch.topk(similarity_scores, k=top_k)
 
-    print("\n\n======================\n\n")
-    print("Query:", query)
-    print("\nTop 5 most similar sentences in corpus:")
+    print("\nQuery:", query)
+    print("Top 5 most similar sentences in corpus:")
 
-    for score, idx in zip(top_results[0], top_results[1]):
+    for score, idx in zip(scores, indices):
         print(corpus[idx], "(Score: {:.4f})".format(score))
 
     """

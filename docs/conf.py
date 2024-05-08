@@ -22,7 +22,7 @@ import datetime
 
 project = "Sentence-Transformers"
 copyright = str(datetime.datetime.now().year) + ", Nils Reimers"
-author = "Nils Reimers"
+author = "Nils Reimers, Tom Aarsen"
 
 
 # -- General configuration ---------------------------------------------------
@@ -38,7 +38,18 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "nr_examples"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "nr_examples",
+    "archived",
+    "dist",
+    "build",
+    "output",
+    "models",
+    "model_card_template.md",
+]
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -49,7 +60,12 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "nr_examples"]
 html_theme = "sphinx_rtd_theme"
 html_theme_path = ["_themes"]
 
-html_theme_options = {"logo_only": True, "canonical_url": "https://www.sbert.net"}
+html_theme_options = {
+    "logo_only": True,
+    "canonical_url": "https://www.sbert.net",
+    "collapse_navigation": False,
+    "navigation_depth": 2,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

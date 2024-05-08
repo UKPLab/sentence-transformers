@@ -1,4 +1,4 @@
-# Pretrained Cross-Encoders
+# Pretrained Models
 
 This page lists available **pretrained Cross-Encoders**. Cross-Encoders require the input of a text pair and output a score 0...1. They do not work for individual sentences and they don't compute embeddings for individual texts.
 

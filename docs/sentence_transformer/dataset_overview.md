@@ -1,4 +1,4 @@
-# Training Datasets
+# Dataset Overview
 
 Most dataset configurations will take one of four forms:
 
