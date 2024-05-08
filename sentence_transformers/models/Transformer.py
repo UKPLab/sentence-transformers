@@ -32,7 +32,18 @@ class Transformer(nn.Module):
         self.config_keys = ["max_seq_length", "do_lower_case"]
         self.do_lower_case = do_lower_case
 
-        self._load_model(model_name_or_path, cache_dir, **model_args)
+        transformer_config_keys = (
+            "force_download",
+            "resume_download",
+            "proxies",
+            "revision",
+            "trust_remote_code",
+            "token",
+            "local_files_only",
+        )
+        config_kwargs = {key: value for key, value in model_args.items() if key in transformer_config_keys}
+        config = AutoConfig.from_pretrained(model_name_or_path, **config_kwargs, cache_dir=cache_dir)
+        self._load_model(model_name_or_path, config, cache_dir, **model_args)
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name_or_path if tokenizer_name_or_path is not None else model_name_or_path,
@@ -54,29 +65,34 @@ class Transformer(nn.Module):
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
-    def _load_model(self, model_name_or_path, cache_dir, **model_args):
+    def _load_model(self, model_name_or_path, config, cache_dir, **model_args):
         """Loads the transformer model"""
-        config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_dir)
         if isinstance(config, T5Config):
-            self._load_t5_model(model_name_or_path, cache_dir, **model_args)
+            self._load_t5_model(model_name_or_path, config, cache_dir, **model_args)
         elif isinstance(config, MT5Config):
-            self._load_mt5_model(model_name_or_path, cache_dir, **model_args)
+            self._load_mt5_model(model_name_or_path, config, cache_dir, **model_args)
         else:
-            self.auto_model = AutoModel.from_pretrained(model_name_or_path, cache_dir=cache_dir, **model_args)
+            self.auto_model = AutoModel.from_pretrained(
+                model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+            )
 
-    def _load_t5_model(self, model_name_or_path, cache_dir, **model_args):
+    def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args):
         """Loads the encoder model from T5"""
         from transformers import T5EncoderModel
 
         T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
-        self.auto_model = T5EncoderModel.from_pretrained(model_name_or_path, cache_dir=cache_dir, **model_args)
+        self.auto_model = T5EncoderModel.from_pretrained(
+            model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+        )
 
-    def _load_mt5_model(self, model_name_or_path, cache_dir, **model_args):
+    def _load_mt5_model(self, model_name_or_path, config, cache_dir, **model_args):
         """Loads the encoder model from T5"""
         from transformers import MT5EncoderModel
 
         MT5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
-        self.auto_model = MT5EncoderModel.from_pretrained(model_name_or_path, cache_dir=cache_dir, **model_args)
+        self.auto_model = MT5EncoderModel.from_pretrained(
+            model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+        )
 
     def __repr__(self):
         return "Transformer({}) with Transformer model: {} ".format(
