@@ -90,13 +90,11 @@ class SentenceTransformer(nn.Sequential):
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
         truncate_dim: Optional[int] = None,
-        padding: Union[str, bool] = True,
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
         self.truncate_dim = truncate_dim
-        self.padding = padding
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -632,8 +630,6 @@ class SentenceTransformer(nn.Sequential):
         Tokenizes the texts
         """
         kwargs = {}
-        # HPU models reach optimal performance if the padding is not dynamic
-        kwargs["padding"] = self.padding
 
         try:
             return self._first_module().tokenize(texts, **kwargs)
