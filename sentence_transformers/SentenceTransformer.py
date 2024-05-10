@@ -112,6 +112,14 @@ class SentenceTransformer(nn.Sequential):
         if cache_folder is None:
             cache_folder = os.getenv("SENTENCE_TRANSFORMERS_HOME")
 
+        if device is None:
+            device = get_device_name()
+            logger.info("Use pytorch device_name: {}".format(device))
+
+        if device=="hpu": 
+            from optimum.habana.transformers.modeling_utils import adapt_transformers_to_gaudi
+            adapt_transformers_to_gaudi()
+
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
 
@@ -225,9 +233,6 @@ class SentenceTransformer(nn.Sequential):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
 
         super().__init__(modules)
-        if device is None:
-            device = get_device_name()
-            logger.info("Use pytorch device_name: {}".format(device))
 
         self.to(device)
         self.is_hpu_graph_enabled = False
@@ -316,9 +321,6 @@ class SentenceTransformer(nn.Sequential):
             ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
             self.is_hpu_graph_enabled = True
 
-            from optimum.habana.transformers.modeling_utils import adapt_transformers_to_gaudi
-
-            adapt_transformers_to_gaudi()
 
         self.eval()
         if show_progress_bar is None:
