@@ -353,7 +353,7 @@ def test_load_with_torch_dtype() -> None:
 
         fp16_model = SentenceTransformer(
             str(fp16_model_dir),
-            torch_dtype="auto",
+            model_kwargs={"torch_dtype": "auto"},
         )
         assert fp16_model.encode(["Hello there!"], convert_to_tensor=True).dtype == torch.float16
 
@@ -372,8 +372,7 @@ def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
 
     SentenceTransformer(
         "sentence-transformers-testing/stsb-bert-tiny-safetensors",
-        attn_implementation="eager",
-        low_cpu_mem_usage=False,
+        model_kwargs={"attn_implementation": "eager", "low_cpu_mem_usage": False},
     )
 
     assert "low_cpu_mem_usage" in transformer_kwargs["model_args"]
