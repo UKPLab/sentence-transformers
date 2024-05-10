@@ -21,6 +21,7 @@ import math
 import queue
 import tempfile
 import copy
+import importlib
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
@@ -116,9 +117,8 @@ class SentenceTransformer(nn.Sequential):
             device = get_device_name()
             logger.info("Use pytorch device_name: {}".format(device))
 
-        if device == "hpu":
+        if device == "hpu" and importlib.util.find_spec("optimum") is not None:
             from optimum.habana.transformers.modeling_utils import adapt_transformers_to_gaudi
-
             adapt_transformers_to_gaudi()
 
         if model_name_or_path is not None and model_name_or_path != "":
@@ -412,11 +412,10 @@ class SentenceTransformer(nn.Sequential):
             features.update(extra_features)
 
             with torch.no_grad():
+                out_features = self.forward(features)
                 if self.device.type == "hpu":
-                    hpu_graph_out = self.forward(features)
-                    out_features = copy.deepcopy(hpu_graph_out)
-                else:
-                    out_features = self.forward(features)
+                    out_features = copy.deepcopy(out_features)
+
                 out_features["sentence_embedding"] = truncate_embeddings(
                     out_features["sentence_embedding"], self.truncate_dim
                 )
