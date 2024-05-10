@@ -119,6 +119,7 @@ class SentenceTransformer(nn.Sequential):
 
         if device == "hpu" and importlib.util.find_spec("optimum") is not None:
             from optimum.habana.transformers.modeling_utils import adapt_transformers_to_gaudi
+
             adapt_transformers_to_gaudi()
 
         if model_name_or_path is not None and model_name_or_path != "":
