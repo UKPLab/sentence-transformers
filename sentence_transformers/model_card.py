@@ -527,7 +527,13 @@ class SentenceTransformerModelCardData(CardData):
             else:
                 author = None
                 dataset_name = cache_dataset_name
-                dataset_output["id"] = get_dataset_info(dataset_name).id
+                # We can still be dealing with a local dataset here, so we wrap this with try-except
+                try:
+                    dataset_output["id"] = get_dataset_info(dataset_name).id
+                except Exception:
+                    # We can have a wide range of errors here, such as the dataset not existing, no internet, etc.
+                    # So we use the generic Exception
+                    pass
 
             # If the cache path ends with a 40 character hash, it is the current revision
             if len(cache_path_parts[-2]) == 40:
