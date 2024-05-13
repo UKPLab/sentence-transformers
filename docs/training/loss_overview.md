@@ -33,7 +33,8 @@ For example, when finetuning a small model to behave more like a larger & strong
 
 | Texts                                        | Labels                                                        | Appropriate Loss Functions                                                   |
 |----------------------------------------------|---------------------------------------------------------------|------------------------------------------------------------------------------|
-| `single sentences`                           | `model sentence embeddings`                                   | <a href="../package_reference/losses.html#mseloss">`MSELoss`</a>             |
+| `sentence`                           | `model sentence embeddings`                                   | <a href="../package_reference/losses.html#mseloss">`MSELoss`</a>             |
+| `sentence_1, sentence_2, ..., sentence_N`                           | `model sentence embeddings`                                   | <a href="../package_reference/losses.html#mseloss">`MSELoss`</a>             |
 | `(query, passage_one, passage_two) triplets` | `gold_sim(query, passage_one) - gold_sim(query, passage_two)` | <a href="../package_reference/losses.html#marginmseloss">`MarginMSELoss`</a> |
 
 ## Commonly used Loss Functions

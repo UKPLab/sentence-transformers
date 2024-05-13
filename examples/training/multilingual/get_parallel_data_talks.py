@@ -6,7 +6,7 @@ The parallel sentences corpus is a crawl of transcripts from talks, which are tr
 
 The parallel sentences corpus cannot be downloaded automatically. It is available for research purposes only (CC-BY-NC).
 
-The training procedure can be found in the files make_multilingual.py and make_multilingual_sys.py.
+The training procedure can be found in the files make_multilingual.py.
 
 Further information can be found in our paper:
 Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation

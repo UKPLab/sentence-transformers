@@ -1,3 +1,4 @@
+import torch
 from torch import nn, Tensor
 from typing import Iterable, Dict
 
@@ -25,11 +26,13 @@ class MSELoss(nn.Module):
             - :class:`MarginMSELoss` is equivalent to this loss, but with a margin through a negative pair.
 
         Input:
-            +-------------------+-----------------------------+
-            | Texts             | Labels                      |
-            +===================+=============================+
-            | single sentences  | model sentence embeddings   |
-            +-------------------+-----------------------------+
+            +-----------------------------------------+-----------------------------+
+            | Texts                                   | Labels                      |
+            +=========================================+=============================+
+            | sentence                                | model sentence embeddings   |
+            +-----------------------------------------+-----------------------------+
+            | sentence_1, sentence_2, ..., sentence_N | model sentence embeddings   |
+            +-----------------------------------------+-----------------------------+
 
         Example::
 
@@ -61,8 +64,12 @@ class MSELoss(nn.Module):
         self.loss_fct = nn.MSELoss()
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-        rep = self.model(sentence_features[0])["sentence_embedding"]
-        return self.loss_fct(rep, labels)
+        # Concatenate multiple inputs on the batch dimension
+        embeddings = torch.cat([self.model(inputs)["sentence_embedding"] for inputs in sentence_features], dim=0)
+        if len(sentence_features) > 1:
+            # Repeat the labels for each input
+            labels = labels.repeat(len(sentence_features), 1)
+        return self.loss_fct(embeddings, labels)
 
     @property
     def citation(self) -> str:
