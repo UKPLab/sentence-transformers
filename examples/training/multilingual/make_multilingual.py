@@ -122,10 +122,11 @@ for source_lang in source_languages:
 logging.info(train_dataset_dict)
 
 
-# We want the teacher embeddings of the *source* sentences to be very similar to the student embeddings
-# of the *target* sentences.
+# We want the student EN embeddings to be similar to the teacher EN embeddings and
+# the student non-EN embeddings to be similar to the teacher EN embeddings
 def prepare_dataset(batch):
     return {
+        "english": batch["english"],
         "non_english": batch["non_english"],
         "label": teacher_model.encode(batch["english"], batch_size=inference_batch_size, show_progress_bar=False),
     }
