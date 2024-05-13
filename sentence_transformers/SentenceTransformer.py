@@ -122,9 +122,9 @@ class SentenceTransformer(nn.Sequential):
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
         truncate_dim: Optional[int] = None,
-        model_kwargs: Optional[Dict[str, Any]] = {},
-        tokenizer_kwargs: Optional[Dict[str, Any]] = {},
-        config_kwargs: Optional[Dict[str, Any]] = {},
+        model_kwargs: Optional[Dict[str, Any]] = None,
+        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+        config_kwargs: Optional[Dict[str, Any]] = None,
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
