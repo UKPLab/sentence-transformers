@@ -631,13 +631,7 @@ class SentenceTransformer(nn.Sequential):
         """
         Tokenizes the texts
         """
-        kwargs = {}
-
-        try:
-            return self._first_module().tokenize(texts, **kwargs)
-        except TypeError:
-            # In case some Module does not allow for kwargs in tokenize, we also try without any
-            return self._first_module().tokenize(texts)
+        return self._first_module().tokenize(texts)
 
     def get_sentence_features(self, *features):
         return self._first_module().get_sentence_features(*features)
