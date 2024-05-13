@@ -72,7 +72,7 @@ class CLIPModel(nn.Module):
             encoding["pixel_values"] = image_features.pixel_values
 
         encoding["image_text_info"] = image_text_info
-        return encoding
+        return dict(encoding)
 
     @property
     def tokenizer(self):
