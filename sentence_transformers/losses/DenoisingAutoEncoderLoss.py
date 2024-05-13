@@ -113,9 +113,21 @@ class DenoisingAutoEncoderLoss(nn.Module):
                     "Since the encoder vocabulary has been changed and --tie_encoder_decoder=True, now the new vocabulary has also been used for the decoder."
                 )
             decoder_base_model_prefix = self.decoder.base_model_prefix
-            PreTrainedModel._tie_encoder_decoder_weights(
-                model[0].auto_model, self.decoder._modules[decoder_base_model_prefix], self.decoder.base_model_prefix
-            )
+            try:
+                # Compatibility with transformers <4.40.0
+                PreTrainedModel._tie_encoder_decoder_weights(
+                    model[0].auto_model,
+                    self.decoder._modules[decoder_base_model_prefix],
+                    self.decoder.base_model_prefix,
+                )
+            except TypeError:
+                # Compatibility with transformers >=4.40.0
+                PreTrainedModel._tie_encoder_decoder_weights(
+                    model[0].auto_model,
+                    self.decoder._modules[decoder_base_model_prefix],
+                    self.decoder.base_model_prefix,
+                    encoder_name_or_path,
+                )
 
     def retokenize(self, sentence_features):
         input_ids = sentence_features["input_ids"]

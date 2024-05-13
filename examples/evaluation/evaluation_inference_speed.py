@@ -19,15 +19,13 @@ torch.set_num_threads(4)
 
 model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-nli-mean-tokens"
 
-# Load a named sentence model (based on BERT). This will download the model from our server.
-# Alternatively, you can also pass a filepath to SentenceTransformer()
+# Load a sentence transformer model
 model = SentenceTransformer(model_name)
 
-max_sentences = 100000
+max_sentences = 100_000
 all_nli_dataset = load_dataset("sentence-transformers/all-nli", "pair", split="train")
 sentences = list(set(all_nli_dataset["anchor"]))[:max_sentences]
 
-sentences = list(sentences)
 print("Model Name:", model_name)
 print("Number of sentences:", len(sentences))
 
