@@ -20,6 +20,8 @@ from tqdm.autonotebook import trange
 import math
 import queue
 import tempfile
+import copy
+import importlib
 
 from . import __MODEL_HUB_ORGANIZATION__
 from .evaluation import SentenceEvaluator
@@ -110,6 +112,15 @@ class SentenceTransformer(nn.Sequential):
 
         if cache_folder is None:
             cache_folder = os.getenv("SENTENCE_TRANSFORMERS_HOME")
+
+        if device is None:
+            device = get_device_name()
+            logger.info("Use pytorch device_name: {}".format(device))
+
+        if device == "hpu" and importlib.util.find_spec("optimum") is not None:
+            from optimum.habana.transformers.modeling_utils import adapt_transformers_to_gaudi
+
+            adapt_transformers_to_gaudi()
 
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
@@ -224,9 +235,6 @@ class SentenceTransformer(nn.Sequential):
             modules = OrderedDict([(str(idx), module) for idx, module in enumerate(modules)])
 
         super().__init__(modules)
-        if device is None:
-            device = get_device_name()
-            logger.info("Use pytorch device_name: {}".format(device))
 
         self.to(device)
         self.is_hpu_graph_enabled = False
@@ -374,11 +382,41 @@ class SentenceTransformer(nn.Sequential):
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
             sentences_batch = sentences_sorted[start_index : start_index + batch_size]
             features = self.tokenize(sentences_batch)
+            if self.device.type == "hpu":
+                if "input_ids" in features:
+                    curr_tokenize_len = features["input_ids"].shape
+                    additional_pad_len = 2 ** math.ceil(math.log2(curr_tokenize_len[1])) - curr_tokenize_len[1]
+                    features["input_ids"] = torch.cat(
+                        (
+                            features["input_ids"],
+                            torch.ones((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
+                        ),
+                        -1,
+                    )
+                    features["attention_mask"] = torch.cat(
+                        (
+                            features["attention_mask"],
+                            torch.zeros((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
+                        ),
+                        -1,
+                    )
+                    if "token_type_ids" in features:
+                        features["token_type_ids"] = torch.cat(
+                            (
+                                features["token_type_ids"],
+                                torch.zeros((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
+                            ),
+                            -1,
+                        )
+
             features = batch_to_device(features, device)
             features.update(extra_features)
 
             with torch.no_grad():
                 out_features = self.forward(features)
+                if self.device.type == "hpu":
+                    out_features = copy.deepcopy(out_features)
+
                 out_features["sentence_embedding"] = truncate_embeddings(
                     out_features["sentence_embedding"], self.truncate_dim
                 )
@@ -593,16 +631,7 @@ class SentenceTransformer(nn.Sequential):
         """
         Tokenizes the texts
         """
-        kwargs = {}
-        # HPU models reach optimal performance if the padding is not dynamic
-        if self.device.type == "hpu":
-            kwargs["padding"] = "max_length"
-
-        try:
-            return self._first_module().tokenize(texts, **kwargs)
-        except TypeError:
-            # In case some Module does not allow for kwargs in tokenize, we also try without any
-            return self._first_module().tokenize(texts)
+        return self._first_module().tokenize(texts)
 
     def get_sentence_features(self, *features):
         return self._first_module().get_sentence_features(*features)
