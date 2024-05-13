@@ -1,61 +1,57 @@
 """
-Given a tab separated file (.tsv) with parallel sentences, where the second column is the translation of the sentence in the first column, for example, in the format:
-src1    trg1
-src2    trg2
-...
-
-where trg_i is the translation of src_i.
-
-Given src_i, the TranslationEvaluator checks which trg_j has the highest similarity using cosine similarity. If i == j, we assume
-a match, i.e., the correct translation has been found for src_i out of all possible target sentences.
+Given a dataset with parallel sentences, one "english" column and one "non_english" column, this script evaluates a model on the translation task.
+Given a sentence in the "english" column, the model should find the correct translation in the "non_english" column, based on just the embeddings.
 
 It then computes an accuracy over all possible source sentences src_i. Equivalently, it computes also the accuracy for the other direction.
-
 A high accuracy score indicates that the model is able to find the correct translation out of a large pool with sentences.
 
+Good options for datasets are:
+* sentence-transformers/parallel-sentences-wikimatrix
+* sentence-transformers/parallel-sentences-tatoeba
+* sentence-transformers/parallel-sentences-talks
+
+As these have development sets.
+
 Usage:
-python [model_name_or_path] [parallel-file1] [parallel-file2] ...
+python examples/evaluation/evaluation_translation_matching.py [model_name_or_path] [dataset_name] [subset1] [subset2] ...
 
 For example:
-python distiluse-base-multilingual-cased  talks-en-de.tsv.gz
-
-See the training_multilingual/get_parallel_data_...py scripts for getting parallel sentence data from different sources
+python examples/evaluation/evaluation_translation_matching.py distiluse-base-multilingual-cased sentence-transformers/parallel-sentences-tatoeba en-ar en-de en-nl
 """
 
-from sentence_transformers import SentenceTransformer, evaluation, LoggingHandler
+from sentence_transformers import SentenceTransformer, evaluation
 import sys
-import gzip
-import os
 import logging
+from datasets import load_dataset
 
 
-logging.basicConfig(
-    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
-)
-
-logger = logging.getLogger(__name__)
+# Set the log level to INFO to get more information
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 model_name = sys.argv[1]
-filepaths = sys.argv[2:]
+dataset_name = sys.argv[2]
+subsets = sys.argv[3:]
 inference_batch_size = 32
 
 model = SentenceTransformer(model_name)
 
+for subset in subsets:
+    dataset = load_dataset(dataset_name, subset)
+    datasets = {}
+    if dataset.column_names == ["train"]:
+        num_samples = min(5000, len(dataset["train"]))
+        datasets[f"train[:{num_samples}]"].append(dataset["train"].select(range(num_samples)))
+    else:
+        for split, sub_dataset in dataset.items():
+            if split != "train":
+                datasets[split] = sub_dataset
 
-for filepath in filepaths:
-    src_sentences = []
-    trg_sentences = []
-    with gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else open(
-        filepath, "r", encoding="utf8"
-    ) as fIn:
-        for line in fIn:
-            splits = line.strip().split("\t")
-            if len(splits) >= 2:
-                src_sentences.append(splits[0])
-                trg_sentences.append(splits[1])
-
-    logger.info(os.path.basename(filepath) + ": " + str(len(src_sentences)) + " sentence pairs")
-    dev_trans_acc = evaluation.TranslationEvaluator(
-        src_sentences, trg_sentences, name=os.path.basename(filepath), batch_size=inference_batch_size
-    )
-    dev_trans_acc(model)
+    for split, sub_dataset in datasets.items():
+        logging.info(f"{dataset_name}, subset={subset}, split={split}, num_samples={len(sub_dataset)}")
+        translation_evaluator = evaluation.TranslationEvaluator(
+            sub_dataset["english"],
+            sub_dataset["non_english"],
+            name=f"{dataset_name}-{subset}-{split}",
+            batch_size=inference_batch_size,
+        )
+        translation_evaluator(model)
