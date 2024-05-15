@@ -33,14 +33,14 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             # Load a model
             model = SentenceTransformer('all-mpnet-base-v2')
 
-            # Load the STSB dataset (https://huggingface.co/datasets/nyu-mll/glue/viewer/stsb)
-            eval_dataset = load_dataset("nyu-mll/glue", "stsb", split="validation")
+            # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
+            eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
 
             # Initialize the evaluator
             dev_evaluator = EmbeddingSimilarityEvaluator(
                 sentences1=eval_dataset["sentence1"],
                 sentences2=eval_dataset["sentence2"],
-                scores=[score / 5 for score in eval_dataset["label"]],
+                scores=eval_dataset["score"],
                 main_similarity=SimilarityFunction.COSINE,
                 name="sts-dev",
             )
@@ -52,7 +52,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             Euclidean-Distance:       Pearson: 0.7824 Spearman: 0.7827
             Dot-Product-Similarity:   Pearson: 0.7192 Spearman: 0.7126
             '''
-            # => 0.8004
+            # => {'sts-dev_pearson_cosine': 0.880607226102985, 'sts-dev_spearman_cosine': 0.881019449484294, ...}
     """
 
     def __init__(

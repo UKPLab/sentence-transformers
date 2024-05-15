@@ -20,8 +20,9 @@ class MSEEvaluator(SentenceEvaluator):
     For multilingual knowledge distillation (https://arxiv.org/abs/2004.09813), source_sentences are in English
     and target_sentences are in a different language like German, Chinese, Spanish...
 
-    :param source_sentences: Source sentences are embedded with the teacher model
-    :param target_sentences: Target sentences are ambedding with the student model.
+    :param source_sentences: Source sentences to embed with the teacher model
+    :param target_sentences: Target sentences to embed with the student model.
+    :param teacher_model: The teacher model to compute the source sentence embeddings
     :param show_progress_bar: Show progress bar when computing embeddings
     :param batch_size: Batch size to compute sentence embeddings
     :param name: Name of the evaluator

@@ -46,9 +46,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             corpus = corpus.filter(lambda x: x["_id"] in required_corpus_ids)
 
             # Convert the datasets to dictionaries
-            corpus = dict(zip(corpus["_id"], corpus["text"]))  # Our corpus (qid => question)
+            corpus = dict(zip(corpus["_id"], corpus["text"]))  # Our corpus (cid => document)
             queries = dict(zip(queries["_id"], queries["text"]))  # Our queries (qid => question)
-            relevant_docs = {}  # Query ID to relevant documents (qid => set([relevant_question_ids])
+            relevant_docs = {}  # Query ID to relevant documents (qid => set([relevant_cids])
             for qid, corpus_ids in zip(relevant_docs_data["query-id"], relevant_docs_data["corpus-id"]):
                 qid = str(qid)
                 corpus_ids = str(corpus_ids)

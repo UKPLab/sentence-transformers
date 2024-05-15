@@ -16,6 +16,15 @@ from .util import (
 
 
 class SimilarityFunction(Enum):
+    """
+    Enum class for supported similarity functions. The following functions are supported:
+
+    - ``SimilarityFunction.COSINE`` (``"cosine"``): Cosine similarity
+    - ``SimilarityFunction.DOT_PRODUCT`` (``"dot"``, ``dot_product``): Dot product similarity
+    - ``SimilarityFunction.EUCLIDEAN`` (``"euclidean"``): Euclidean distance
+    - ``SimilarityFunction.MANHATTAN`` (``"manhattan"``): Manhattan distance
+    """
+
     COSINE = "cosine"
     DOT_PRODUCT = "dot"
     DOT = "dot"  # Alias for DOT_PRODUCT

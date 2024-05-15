@@ -172,10 +172,19 @@ class FitMixin:
         checkpoint_save_total_limit: int = 0,
     ):
         """
-        Train the model with the given training objective
-        Each training objective is sampled in turn for one batch.
-        We sample only as many batches from each objective as there are in the smallest one
-        to make sure of equal training with each dataset.
+        Deprecated training method from before Sentence Transformers v3.0, it is recommended to use
+        :class:`sentence_transformers.trainer.SentenceTransformerTrainer` instead. This method uses
+        :class:`sentence_transformers.trainer.SentenceTransformerTrainer` behind the scenes, but does
+        not provide as much flexibility as the Trainer itself.
+
+        This training approach uses a list of DataLoaders and Loss functions to train the model. Each DataLoader
+        is sampled in turn for one batch. We sample only as many batches from each DataLoader as there are in the
+        smallest one to make sure of equal training with each dataset, i.e. round robin sampling.
+
+        This method should produce equivalent results in v3.0+ as before v3.0, but if you encounter any issues
+        with your existing training scripts, then you may wish to use
+        :meth:`SentenceTransformer.old_fit <sentence_transformers.SentenceTransformer.old_fit>` instead.
+        That uses the old training method from before v3.0.
 
         :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
         :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
@@ -401,10 +410,13 @@ class FitMixin:
         checkpoint_save_total_limit: int = 0,
     ):
         """
-        Train the model with the given training objective
-        Each training objective is sampled in turn for one batch.
-        We sample only as many batches from each objective as there are in the smallest one
-        to make sure of equal training with each dataset.
+        Deprecated training method from before Sentence Transformers v3.0, it is recommended to use
+        :class:`sentence_transformers.trainer.SentenceTransformerTrainer` instead. This method should
+        only be used if you encounter issues with your existing training scripts after upgrading to v3.0+.
+
+        This training approach uses a list of DataLoaders and Loss functions to train the model. Each DataLoader
+        is sampled in turn for one batch. We sample only as many batches from each DataLoader as there are in the
+        smallest one to make sure of equal training with each dataset, i.e. round robin sampling.
 
         :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
         :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.

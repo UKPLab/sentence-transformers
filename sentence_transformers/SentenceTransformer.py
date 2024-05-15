@@ -75,6 +75,8 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     :param token: Hugging Face authentication token to download private models.
     :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
         only applicable during inference when `.encode` is called.
+    :param model_card_data: A model card data object that contains information about the model. This is used to
+        generate a model card when saving the model. If not set, a default model card data object is created.
 
     Example
         ::
