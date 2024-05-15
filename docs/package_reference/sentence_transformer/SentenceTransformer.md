@@ -1,15 +1,13 @@
 # SentenceTransformer
 
-This page documents the properties and methods when you load a SentenceTransformer model:
-```python
-from sentence_transformers import SentenceTransformer
-
-model = SentenceTransformer("model-name")
-```
-
 ```eval_rst
 .. autoclass:: sentence_transformers.SentenceTransformer
    :members:
+   :inherited-members: fit, old_fit
    :exclude-members: save_to_hub
 
+.. autoclass:: sentence_transformers.model_card.SentenceTransformerModelCardData
+
+.. autoclass:: sentence_transformers.SimilarityFunction
+   :members:
 ```

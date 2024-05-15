@@ -30,7 +30,13 @@ author = "Nils Reimers, Tom Aarsen"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.autodoc", "recommonmark", "sphinx_markdown_tables"]
+extensions = [
+    "sphinx.ext.autodoc",
+    "recommonmark",
+    "sphinx_markdown_tables",
+    "sphinx.ext.intersphinx",
+    "sphinx_tabs.tabs",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -50,6 +56,12 @@ exclude_patterns = [
     "models",
     "model_card_template.md",
 ]
+
+intersphinx_mapping = {
+    "datasets": ("https://huggingface.co/docs/datasets/main/en/", None),
+    "transformers": ("https://huggingface.co/docs/transformers/main/en/", None),
+    "torch": ("https://pytorch.org/docs/stable/", None),
+}
 
 
 # -- Options for HTML output -------------------------------------------------

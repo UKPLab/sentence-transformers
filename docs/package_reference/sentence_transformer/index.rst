@@ -6,6 +6,8 @@ Sentence Transformer
    :hidden:
 
    SentenceTransformer
+   trainer
+   training_args
    losses
    evaluation
    datasets

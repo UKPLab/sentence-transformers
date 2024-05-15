@@ -1,7 +1,7 @@
 # Losses
 `sentence_transformers.losses` defines different loss functions that can be used to fine-tune embedding models on training data. The choice of loss function plays a critical role when fine-tuning the model. It determines how well our embedding model will work for the specific downstream task.
 
-Sadly, there is no "one size fits all" loss function. Which loss function is suitable depends on the available training data and on the target task. Consider checking out the [Loss Overview](../training/loss_overview.html) to help narrow down your choice of loss function(s).
+Sadly, there is no "one size fits all" loss function. Which loss function is suitable depends on the available training data and on the target task. Consider checking out the [Loss Overview](../../sentence_transformer/loss_overview.html) to help narrow down your choice of loss function(s).
 
 ## BatchAllTripletLoss
 ```eval_rst

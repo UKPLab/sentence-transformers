@@ -1,10 +1,14 @@
 # Loss Overview
 
-Loss functions play a critical role in the performance of your fine-tuned model. Sadly, there is no "one size fits all" loss function. Ideally, this overview should help narrow down your choice of loss function(s) by matching them to your data formats.
+Loss functions play a critical role in the performance of your fine-tuned model. Sadly, there is no "one size fits all" loss function. Ideally, this table should help narrow down your choice of loss function(s) by matching them to your data formats.
 
-**Note**: you can often convert one training data format into another, allowing more loss functions to be viable for your scenario. For example, `(sentence_A, sentence_B) pairs` with `class` labels can be converted into `(anchor, positive, negative) triplets` by sampling sentences with the same or different classes.
+```eval_rst
+.. note:: 
 
-| Texts                                         | Labels                         | Appropriate Loss Functions                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+    You can often convert one training data format into another, allowing more loss functions to be viable for your scenario. For example, ``(sentence_A, sentence_B) pairs`` with ``class`` labels can be converted into ``(anchor, positive, negative) triplets`` by sampling sentences with the same or different classes.
+```
+
+| Inputs                                        | Labels                         | Appropriate Loss Functions                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 |-----------------------------------------------|--------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `single sentences`                            | `class`                        | <a href="../package_reference/losses.html#batchalltripletloss">`BatchAllTripletLoss`</a><br><a href="../package_reference/losses.html#batchhardsoftmargintripletloss">`BatchHardSoftMarginTripletLoss`</a><br><a href="../package_reference/losses.html#batchhardtripletloss">`BatchHardTripletLoss`</a><br><a href="../package_reference/losses.html#batchsemihardtripletloss">`BatchSemiHardTripletLoss`</a>                                                                                                                                                                                                                               |
 | `single sentences`                            | `none`                         | <a href="../package_reference/losses.html#contrastivetensionloss">`ContrastiveTensionLoss`</a><br><a href="../package_reference/losses.html#denoisingautoencoderloss">`DenoisingAutoEncoderLoss`</a>                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -42,3 +46,18 @@ In practice, not all loss functions get used equally often. The most common scen
 
 * `(anchor, positive) pairs` without any labels: <a href="../package_reference/losses.html#multiplenegativesrankingloss"><code>MultipleNegativesRankingLoss</code></a> is commonly used to train the top performing embedding models. This data is often relatively cheap to obtain, and the models are generally very performant. <a href="../package_reference/losses.html#cachedmultiplenegativesrankingloss"><code>CachedMultipleNegativesRankingLoss</code></a> is often used to increase the batch size, resulting in superior performance.
 * `(sentence_A, sentence_B) pairs` with a `float similarity score`: <a href="../package_reference/losses.html#cosinesimilarityloss"><code>CosineSimilarityLoss</code></a> is traditionally used a lot, though more recently <a href="../package_reference/losses.html#cosentloss"><code>CoSENTLoss</code></a> and <a href="../package_reference/losses.html#angleloss"><code>AnglELoss</code></a> are used as drop-in replacements with superior performance.
+
+## Custom Loss Functions
+
+```eval_rst
+Advanced users can create and train with their own loss functions. Custom loss functions only have a few requirements:
+
+- They must be a subclass of :class:`torch.nn.Module`.
+- They must have ``model`` as the first argument in the constructor.
+- They must implement a ``forward`` method that accepts ``sentence_features`` and ``labels``. The former is a list of tokenized batches, one element for each column. These tokenized batches can be fed directly to the ``model`` being trained to produce embeddings. The latter is an optional tensor of labels. The method must return a single loss value.
+
+To get full support with the automatic model card generation, you may also wish to implement:
+
+- a ``get_config_dict`` method that returns a dictionary of loss parameters.
+- a ``citation`` property so your work gets cited in all models that train with the loss.
+```

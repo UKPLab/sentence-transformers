@@ -5,9 +5,7 @@
 .. autoclass:: sentence_transformers.evaluation.BinaryClassificationEvaluator
 .. autoclass:: sentence_transformers.evaluation.EmbeddingSimilarityEvaluator
 .. autoclass:: sentence_transformers.evaluation.InformationRetrievalEvaluator
-.. autoclass:: sentence_transformers.evaluation.LabelAccuracyEvaluator
 .. autoclass:: sentence_transformers.evaluation.MSEEvaluator
-.. autoclass:: sentence_transformers.evaluation.MSEEvaluatorFromDataFrame
 .. autoclass:: sentence_transformers.evaluation.ParaphraseMiningEvaluator
 .. autoclass:: sentence_transformers.evaluation.RerankingEvaluator
 .. autoclass:: sentence_transformers.evaluation.SentenceEvaluator
