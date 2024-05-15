@@ -564,3 +564,22 @@ class SentenceTransformerTrainer(Trainer):
         from sentence_transformers import SentenceTransformer
 
         self.model = SentenceTransformer(checkpoint_path)
+        # Naively try and update the wrapped model as well
+        model_wrapped = self.model_wrapped
+        if isinstance(model_wrapped, SentenceTransformer):
+            self.model_wrapped = self.model
+        else:
+            while hasattr(model_wrapped, "module"):
+                if isinstance(model_wrapped.module, SentenceTransformer):
+                    model_wrapped.module = self.model
+                    break
+                model_wrapped = model_wrapped.module
+
+        # Naively try and update the model in the loss function(s)
+        if isinstance(self.loss, dict):
+            for loss_fn in self.loss.values():
+                if hasattr(loss_fn, "model"):
+                    loss_fn.model = self.model
+        else:
+            if hasattr(self.loss, "model"):
+                self.loss.model = self.model
