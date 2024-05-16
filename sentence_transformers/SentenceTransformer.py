@@ -385,7 +385,10 @@ class SentenceTransformer(nn.Sequential):
             if self.device.type == "hpu":
                 if "input_ids" in features:
                     curr_tokenize_len = features["input_ids"].shape
-                    additional_pad_len = 2 ** math.ceil(math.log2(curr_tokenize_len[1])) - curr_tokenize_len[1]
+                    if curr_tokenize_len[1] > 4096:
+                        additional_pad_len = math.ceil(curr_tokenize_len[1] / 128) * 128 - curr_tokenize_len[1]
+                    else:
+                        additional_pad_len = 2 ** math.ceil(math.log2(curr_tokenize_len[1])) - curr_tokenize_len[1]
                     features["input_ids"] = torch.cat(
                         (
                             features["input_ids"],

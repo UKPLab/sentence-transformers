@@ -3,6 +3,7 @@ from transformers import AutoModel, AutoTokenizer, AutoConfig, T5Config, MT5Conf
 import json
 from typing import List, Dict, Optional, Union, Tuple
 import os
+from sentence_transformers.util import get_device_name
 
 
 class Transformer(nn.Module):
@@ -95,7 +96,20 @@ class Transformer(nn.Module):
         if "token_type_ids" in features:
             trans_features["token_type_ids"] = features["token_type_ids"]
 
-        output_states = self.auto_model(**trans_features, return_dict=False)
+        device = get_device_name()
+        curr_tokenize_len = features["input_ids"].shape
+        if device == "hpu" and curr_tokenize_len[1] > 4096:
+            output_states = self.auto_model(
+                **trans_features,
+                return_dict=False,
+                attn_softmax_bf16=True,
+                reuse_cache=True,
+                use_flash_attention=True,
+                flash_attention_recompute=True,
+                flash_attention_causal_mask=True,
+            )
+        else:
+            output_states = self.auto_model(**trans_features, return_dict=False)
         output_tokens = output_states[0]
 
         features.update({"token_embeddings": output_tokens, "attention_mask": features["attention_mask"]})
