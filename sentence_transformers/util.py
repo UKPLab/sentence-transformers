@@ -202,7 +202,15 @@ def truncate_embeddings(
 
 
 def paraphrase_mining(
-    model, sentences: List[str], show_progress_bar: bool = False, batch_size: int = 32, *args, **kwargs
+    model,
+    sentences: List[str],
+    show_progress_bar: bool = False,
+    batch_size: int = 32,
+    query_chunk_size: int = 5000,
+    corpus_chunk_size: int = 100000,
+    max_pairs: int = 500000,
+    top_k: int = 100,
+    score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
 ) -> List[List[Union[float, int]]]:
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
@@ -225,7 +233,14 @@ def paraphrase_mining(
         sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True
     )
 
-    return paraphrase_mining_embeddings(embeddings, *args, **kwargs)
+    return paraphrase_mining_embeddings(
+        embeddings,
+        query_chunk_size=query_chunk_size,
+        corpus_chunk_size=corpus_chunk_size,
+        max_pairs=max_pairs,
+        top_k=top_k,
+        score_function=score_function,
+    )
 
 
 def paraphrase_mining_embeddings(
