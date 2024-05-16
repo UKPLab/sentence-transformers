@@ -16,7 +16,6 @@ Training Examples
    ../../../examples/training/adaptive_layer/README
    ../../../examples/training/multilingual/README
    ../../../examples/training/distillation/README
-   ../../../examples/training/cross-encoder/README
    ../../../examples/training/data_augmentation/README
 
 .. toctree::
