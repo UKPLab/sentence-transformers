@@ -44,7 +44,7 @@ pooling_model = models.Pooling(
 model = SentenceTransformer(modules=[word_embedding_model, lstm, pooling_model])
 
 # 3. Define our training loss
-# CosineSimilarityLoss (https://sbert.net/docs/package_reference/losses.html#cosentloss) needs two text columns and
+# CosineSimilarityLoss (https://sbert.net/docs/package_reference/sentence_transformer/losses.html#cosinesimilarityloss) needs two text columns and
 # one similarity score column (between 0 and 1)
 train_loss = losses.CosineSimilarityLoss(model=model)
 

@@ -49,7 +49,7 @@ dan2 = models.Dense(in_features=sent_embeddings_dimension, out_features=sent_emb
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model, dan1, dan2])
 
 # 3. Define our training loss
-# CosineSimilarityLoss (https://sbert.net/docs/package_reference/losses.html#cosentloss) needs two text columns and
+# CosineSimilarityLoss (https://sbert.net/docs/package_reference/sentence_transformer/losses.html#cosinesimilarityloss) needs two text columns and
 # one similarity score column (between 0 and 1)
 train_loss = losses.CosineSimilarityLoss(model=model)
 

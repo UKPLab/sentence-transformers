@@ -74,7 +74,7 @@ dan2 = models.Dense(in_features=768, out_features=512)
 model = SentenceTransformer(modules=[bow, dan1, dan2])
 
 # 3. Define our training loss
-# CosineSimilarityLoss (https://sbert.net/docs/package_reference/losses.html#cosentloss) needs two text columns and
+# CosineSimilarityLoss (https://sbert.net/docs/package_reference/sentence_transformer/losses.html#cosinesimilarityloss) needs two text columns and
 # one similarity score column (between 0 and 1)
 train_loss = losses.CosineSimilarityLoss(model=model)
 
