@@ -5,7 +5,7 @@
 SentenceTransformers Documentation
 ==================================
 
-Sentence Transformers is the go-to Python module for accessing, using, and training state-of-the-art text and image embedding models.
+Sentence Transformers (a.k.a. SBERT) is the go-to Python module for accessing, using, and training state-of-the-art text and image embedding models.
 It can be used to compute embeddings using Sentence Transformer models (`quickstart <docs/quickstart.html#sentence-transformer>`_) or to calculate similarity scores using Cross-Encoder models (`quickstart <docs/quickstart.html#cross-encoder>`_). This unlocks a wide range of applications, including `semantic search <examples/applications/semantic-search/README.html>`_, `semantic textual similarity <docs/usage/semantic_textual_similarity.html>`_, and `paraphrase mining <examples/applications/paraphrase-mining/README.html>`_.
 
 A wide selection of over `5,000 pre-trained Sentence Transformers models <https://huggingface.co/models?library=sentence-transformers>`_ are available for immediate use on 🤗 Hugging Face, including many of the state-of-the-art models from the `Massive Text Embeddings Benchmark (MTEB) leaderboard <https://huggingface.co/spaces/mteb/leaderboard>`_. Additionally, it is easy to `train or finetune your own models <docs/sentence_transformer/training_overview.html>`_ using Sentence Transformers, enabling you to create custom models for your specific use cases.
