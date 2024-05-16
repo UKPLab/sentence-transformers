@@ -149,17 +149,17 @@ The :class:`SentenceTransformerTrainer` trains and evaluates using :class:`datas
 ```eval_rst
 It is important that your dataset format matches your loss function (or that you choose a loss function that matches your dataset format). Verifying whether a dataset format works with a loss function involves two steps:
 
-1. If your loss function requires a *Label* according to the `Loss Overiew <loss_overview>`_ table, then your dataset must have a **column named "label" or "score"**. This column is automatically taken as the label.
-2. All columns not named "label" or "score" are considered *Inputs* according to the `Loss Overiew <loss_overview>`_ table. The number of remaining columns must match the number of valid inputs for your chosen loss. The names of these columns are **irrelevant**, only the **order matters**. 
+1. If your loss function requires a *Label* according to the `Loss Overview <loss_overview.html>`_ table, then your dataset must have a **column named "label" or "score"**. This column is automatically taken as the label.
+2. All columns not named "label" or "score" are considered *Inputs* according to the `Loss Overview <loss_overview.html>`_ table. The number of remaining columns must match the number of valid inputs for your chosen loss. The names of these columns are **irrelevant**, only the **order matters**. 
 
 For example, given a dataset with columns ``["text1", "text2", "label"]`` where the "label" column has float similarity score, we can use it with :class:`~sentence_transformers.losses.CoSENTLoss`, :class:`~sentence_transformers.losses.AnglELoss`, and :class:`~sentence_transformers.losses.CosineSimilarityLoss` because it:
 
 1. has a "label" column as is required for these loss functions.
 2. has 2 non-label columns, exactly the amount required by these loss functions.
 
-Be sure to re-order your dataset columns with :meth:`datasets.Dataset.select_columns` if your columns are not ordered correctly. For example, if your dataset has ``["good_answer", "bad_answer", "question"]`` as columns, then this dataset can technically be used with a loss that requires (anchor, positive, negative) triplets, but the ``good_answer`` column will be taken as the anchor, ``bad_answer`` as the positive, and ``question`` as the negative.
+Be sure to re-order your dataset columns with :meth:`Dataset.select_columns <datasets.Dataset.select_columns>` if your columns are not ordered correctly. For example, if your dataset has ``["good_answer", "bad_answer", "question"]`` as columns, then this dataset can technically be used with a loss that requires (anchor, positive, negative) triplets, but the ``good_answer`` column will be taken as the anchor, ``bad_answer`` as the positive, and ``question`` as the negative.
 
-Additionally, if your dataset has extraneous columns (e.g. query_id, metadata, source, type), you should remove these with :meth:`datasets.Dataset.remove_columns` as they will be used as inputs otherwise.
+Additionally, if your dataset has extraneous columns (e.g. query_id, metadata, source, type), you should remove these with :meth:`Dataset.remove_columns <datasets.Dataset.remove_columns>` as they will be used as inputs otherwise.
 ```
 
 ## Loss Function
@@ -382,6 +382,8 @@ The :class:`sentence_transformers.SentenceTransformerTrainer` is where all previ
     #. :class:`~sentence_transformers.trainer.SentenceTransformerTrainer`
     #. :class:`SentenceTransformer.save_pretrained <sentence_transformers.SentenceTransformer.save_pretrained>`
     #. :class:`SentenceTransformer.push_to_hub <sentence_transformers.SentenceTransformer.push_to_hub>`
+
+    - `Training Examples <training/examples>`_
 
 ::
 
