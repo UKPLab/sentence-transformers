@@ -17,24 +17,24 @@ Also see [**Training Examples**](training/examples) for numerous training script
 ## Training Components
 Training Sentence Transformer models involves between 3 to 5 components:
 
-<div class="training-components">
-    <a href="#dataset" class="box dataset">
+<div class="components">
+    <a href="#dataset" class="box">
         <div class="header">Dataset</div>
         Learn how to prepare the <b>data</b> for training.
     </a>
-    <a href="#loss-function" class="box loss">
+    <a href="#loss-function" class="box">
         <div class="header">Loss Function</div>
         Learn how to prepare and choose a <b>loss</b> function.
     </a>
-    <a href="#training-arguments" class="box args optional">
+    <a href="#training-arguments" class="box optional">
         <div class="header">Training Arguments</div>
         Learn which <b>training arguments</b> are useful.
     </a>
-    <a href="#evaluator" class="box evaluator optional">
+    <a href="#evaluator" class="box optional">
         <div class="header">Evaluator</div>
         Learn how to <b>evaluate</b> during and after training.
     </a>
-    <a href="#trainer" class="box trainer">
+    <a href="#trainer" class="box">
         <div class="header">Trainer</div>
         Learn how to start the <b>training</b> process.
     </a>

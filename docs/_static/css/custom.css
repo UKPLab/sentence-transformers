@@ -26,12 +26,12 @@ dl.class > dt {
     padding-top: 0px;
 }
 
-.training-components {
+.components {
     display: flex;
     flex-flow: row wrap;
 }
 
-.training-components > .box {
+.components > .box {
     flex: 1;
     margin: 0.5rem;
     padding: 1rem;
@@ -43,27 +43,27 @@ dl.class > dt {
     color: #404040; /* Override the colors imposed by <a href> */
 }
 
-.training-components > .dataset > .header {
+.components > .box:nth-child(1) > .header {
     background-image: linear-gradient(to bottom right, #60a5fa, #3b82f6);
 }
 
-.training-components > .loss > .header {
+.components > .box:nth-child(2) > .header {
     background-image: linear-gradient(to bottom right, #fb923c, #f97316);
 }
 
-.training-components > .args > .header {
+.components > .box:nth-child(3) > .header {
     background-image: linear-gradient(to bottom right, #f472b6, #ec4899);
 }
 
-.training-components > .evaluator > .header {
+.components > .box:nth-child(4) > .header {
     background-image: linear-gradient(to bottom right, #a78bfa, #8b5cf6);
 }
 
-.training-components > .trainer > .header {
+.components > .box:nth-child(5) > .header {
     background-image: linear-gradient(to bottom right, #34d399, #10b981);
 }
 
-.training-components > .optional {
+.components > .optional {
     background: repeating-linear-gradient(
         135deg,
         #f1f1f1,
@@ -73,7 +73,7 @@ dl.class > dt {
     );
 }
 
-.training-components > .box > .header {
+.components > .box > .header {
     border-style: solid;
     border-width: 1px;
     border-radius: 0.5rem;

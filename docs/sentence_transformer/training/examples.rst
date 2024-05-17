@@ -25,3 +25,11 @@ Training Examples
 
    ../../../examples/unsupervised_learning/README
    ../../../examples/domain_adaptation/README
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Advanced Usage
+   :hidden:
+
+   ../../../examples/training/hpo/README
+   distributed
