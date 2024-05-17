@@ -2,6 +2,7 @@ from contextlib import nullcontext
 import logging
 import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
+import warnings
 
 import torch
 from torch import nn
@@ -46,9 +47,16 @@ class SentenceTransformerTrainer(Trainer):
         self,
         model: Optional["SentenceTransformer"] = None,
         args: SentenceTransformerTrainingArguments = None,
-        train_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
-        eval_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
-        loss: Optional[Union[Dict[str, nn.Module], nn.Module]] = None,
+        train_dataset: Optional[Union[Dataset, DatasetDict, Dict[str, Dataset]]] = None,
+        eval_dataset: Optional[Union[Dataset, DatasetDict, Dict[str, Dataset]]] = None,
+        loss: Optional[
+            Union[
+                nn.Module,
+                Dict[str, nn.Module],
+                Callable[["SentenceTransformer"], torch.nn.Module],
+                Dict[str, Callable[["SentenceTransformer"], torch.nn.Module]],
+            ]
+        ] = None,
         evaluator: Optional[SentenceEvaluator] = None,
         data_collator: Optional[DataCollator] = None,
         tokenizer: Optional[Union[PreTrainedTokenizerBase, Callable]] = None,
@@ -64,6 +72,22 @@ class SentenceTransformerTrainer(Trainer):
             args = SentenceTransformerTrainingArguments(output_dir=output_dir)
         elif not isinstance(args, SentenceTransformerTrainingArguments):
             raise ValueError("Please use `TrainingArguments` imported from `sentence_transformers`.")
+
+        if model is None:
+            if model_init is not None:
+                self.model_init = model_init
+                model = self.call_model_init()
+            else:
+                raise RuntimeError("`Trainer` requires either a `model` or `model_init` argument")
+        else:
+            if model_init is not None:
+                warnings.warn(
+                    "`Trainer` requires either a `model` or `model_init` argument, but not both. `model_init` will"
+                    " overwrite your model when calling the `train` method. This will become a fatal error in the next"
+                    " release.",
+                    FutureWarning,
+                )
+            self.model_init = model_init
 
         # Get a dictionary of the default training arguments, so we can determine which arguments have been changed
         # for the model card
@@ -85,7 +109,7 @@ class SentenceTransformerTrainer(Trainer):
         if isinstance(eval_dataset, dict) and not isinstance(eval_dataset, Dataset):
             eval_dataset = DatasetDict(eval_dataset)
         super().__init__(
-            model=model,
+            model=None if self.model_init else model,
             args=args,
             data_collator=data_collator,
             train_dataset=train_dataset,
@@ -105,9 +129,8 @@ class SentenceTransformerTrainer(Trainer):
             logger.info("No `loss` passed, using `losses.CoSENTLoss` as a default option.")
             loss = CoSENTLoss(self.model)
 
-        self.loss = loss
         if isinstance(loss, dict):
-            self.loss = {dataset_name: loss_fn.to(self.model.device) for dataset_name, loss_fn in loss.items()}
+            self.loss = {dataset_name: self.prepare_loss(loss_fn, model) for dataset_name, loss_fn in loss.items()}
             for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
                 if dataset is None:
                     continue
@@ -121,13 +144,38 @@ class SentenceTransformerTrainer(Trainer):
                         f"Currently, {sorted(missing)} occur{'s' if len(missing) == 1 else ''} in `{dataset_name}_dataset` but not in `loss`."
                     )
         else:
-            self.loss.to(self.model.device)
+            self.loss = self.prepare_loss(loss, model)
         self.evaluator = evaluator
 
         # Add a callback responsible for automatically tracking data required for the automatic model card generation
         model_card_callback = ModelCardCallback(self, default_args_dict)
         self.add_callback(model_card_callback)
         model_card_callback.on_init_end(self.args, self.state, self.control, self.model)
+
+    def call_model_init(self, trial=None) -> "SentenceTransformer":
+        model = super().call_model_init(trial=trial)
+        # If the Trainer already has a loss, then we'll want to override the model in the loss function
+        if not hasattr(self, "loss"):
+            return model
+
+        # Multi-loss training:
+        if isinstance(self.loss, dict):
+            for key, loss_fn in self.loss.items():
+                # If a loss function is not yet initialized, we initialize it here
+                if not isinstance(loss_fn, torch.nn.Module):
+                    self.loss[key] = loss_fn(model)
+                # Otherwise, we override the original model with the updated model in the loss function
+                elif hasattr(loss_fn, "model"):
+                    self.loss = self.override_model_in_loss(self.loss, model)
+
+        # Loss is a function accepting a model as an argument
+        elif not isinstance(self.loss, torch.nn.Module):
+            self.loss = self.loss(model)
+
+        # Loss is an initialized torch.nn.Module
+        elif hasattr(self.loss, "model"):
+            self.loss = self.override_model_in_loss(self.loss, model)
+        return model
 
     def override_model_in_loss(self, loss: torch.nn.Module, model: "SentenceTransformer"):
         from sentence_transformers import SentenceTransformer
@@ -138,6 +186,15 @@ class SentenceTransformerTrainer(Trainer):
             elif isinstance(child, torch.nn.Module):
                 setattr(loss, name, self.override_model_in_loss(child, model))
         return loss
+
+    def prepare_loss(
+        self,
+        loss: Union[Callable[["SentenceTransformer"], torch.nn.Module], torch.nn.Module],
+        model: "SentenceTransformer",
+    ):
+        if isinstance(loss, torch.nn.Module):
+            return loss.to(model.device)
+        return loss(model).to(model.device)
 
     def add_dataset_name_column(self, dataset_dict: DatasetDict) -> DatasetDict:
         for key, dataset in dataset_dict.items():
@@ -217,7 +274,7 @@ class SentenceTransformerTrainer(Trainer):
         metric_key_prefix: str = "eval",
     ) -> Dict[str, float]:
         eval_dataset = eval_dataset if eval_dataset is not None else self.eval_dataset
-        if isinstance(eval_dataset, DatasetDict):
+        if isinstance(eval_dataset, DatasetDict) and isinstance(self.loss, dict):
             eval_dataset = self.add_dataset_name_column(eval_dataset)
         return super().evaluate(eval_dataset, ignore_keys, metric_key_prefix)
 
@@ -373,7 +430,8 @@ class SentenceTransformerTrainer(Trainer):
         if isinstance(train_dataset, DatasetDict):
             for dataset_name, dataset in train_dataset.items():
                 self.validate_column_names(dataset, dataset_name=dataset_name)
-            train_dataset = self.add_dataset_name_column(train_dataset)
+            if isinstance(self.loss, dict):
+                train_dataset = self.add_dataset_name_column(train_dataset)
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
@@ -445,8 +503,8 @@ class SentenceTransformerTrainer(Trainer):
 
         # TODO: Correctly validate the column names for the eval_dataset
         if isinstance(eval_dataset, DatasetDict):
-            eval_dataset = self.add_dataset_name_column(eval_dataset)
-            eval_dataset = self.add_dataset_name_column(eval_dataset)
+            if isinstance(self.loss, dict):
+                eval_dataset = self.add_dataset_name_column(eval_dataset)
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
@@ -509,7 +567,8 @@ class SentenceTransformerTrainer(Trainer):
         if isinstance(test_dataset, DatasetDict):
             for dataset_name, dataset in test_dataset.items():
                 self.validate_column_names(dataset, dataset_name=dataset_name)
-            test_dataset = self.add_dataset_name_column(test_dataset)
+            if isinstance(self.loss, dict):
+                test_dataset = self.add_dataset_name_column(test_dataset)
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
