@@ -129,6 +129,16 @@ class SentenceTransformerTrainer(Trainer):
         self.add_callback(model_card_callback)
         model_card_callback.on_init_end(self.args, self.state, self.control, self.model)
 
+    def override_model_in_loss(self, loss: torch.nn.Module, model: "SentenceTransformer"):
+        from sentence_transformers import SentenceTransformer
+
+        for name, child in loss.named_children():
+            if name == "model" and isinstance(child, SentenceTransformer):
+                loss.model = model
+            elif isinstance(child, torch.nn.Module):
+                setattr(loss, name, self.override_model_in_loss(child, model))
+        return loss
+
     def add_dataset_name_column(self, dataset_dict: DatasetDict) -> DatasetDict:
         for key, dataset in dataset_dict.items():
             if "dataset_name" not in dataset.column_names:
@@ -153,9 +163,9 @@ class SentenceTransformerTrainer(Trainer):
         if (
             self.args.parallel_mode != ParallelMode.NOT_PARALLEL
             and hasattr(model, "module")
-            and getattr(loss_fn, "model", None) == model.module
+            and hasattr(loss_fn, "model")
         ):
-            loss_fn.model = model
+            loss_fn = self.override_model_in_loss(loss_fn, model)
         loss = loss_fn(features, labels)
         if return_outputs:
             # During prediction/evaluation, `compute_loss` will be called with `return_outputs=True`.
