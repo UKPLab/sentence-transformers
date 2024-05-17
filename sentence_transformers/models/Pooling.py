@@ -209,7 +209,7 @@ class Pooling(nn.Module):
             output_vectors.append(embedding)
 
         output_vector = torch.cat(output_vectors, 1)
-        features.update({"sentence_embedding": output_vector})
+        features["sentence_embedding"] = output_vector
         return features
 
     def get_sentence_embedding_dimension(self):
