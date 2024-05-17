@@ -274,7 +274,7 @@ class SentenceTransformerTrainer(Trainer):
         metric_key_prefix: str = "eval",
     ) -> Dict[str, float]:
         eval_dataset = eval_dataset if eval_dataset is not None else self.eval_dataset
-        if isinstance(eval_dataset, DatasetDict):
+        if isinstance(eval_dataset, DatasetDict) and isinstance(self.loss, dict):
             eval_dataset = self.add_dataset_name_column(eval_dataset)
         return super().evaluate(eval_dataset, ignore_keys, metric_key_prefix)
 
@@ -430,7 +430,8 @@ class SentenceTransformerTrainer(Trainer):
         if isinstance(train_dataset, DatasetDict):
             for dataset_name, dataset in train_dataset.items():
                 self.validate_column_names(dataset, dataset_name=dataset_name)
-            train_dataset = self.add_dataset_name_column(train_dataset)
+            if isinstance(self.loss, dict):
+                train_dataset = self.add_dataset_name_column(train_dataset)
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
@@ -502,8 +503,8 @@ class SentenceTransformerTrainer(Trainer):
 
         # TODO: Correctly validate the column names for the eval_dataset
         if isinstance(eval_dataset, DatasetDict):
-            eval_dataset = self.add_dataset_name_column(eval_dataset)
-            eval_dataset = self.add_dataset_name_column(eval_dataset)
+            if isinstance(self.loss, dict):
+                eval_dataset = self.add_dataset_name_column(eval_dataset)
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
@@ -566,7 +567,8 @@ class SentenceTransformerTrainer(Trainer):
         if isinstance(test_dataset, DatasetDict):
             for dataset_name, dataset in test_dataset.items():
                 self.validate_column_names(dataset, dataset_name=dataset_name)
-            test_dataset = self.add_dataset_name_column(test_dataset)
+            if isinstance(self.loss, dict):
+                test_dataset = self.add_dataset_name_column(test_dataset)
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
