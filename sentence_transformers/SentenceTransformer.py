@@ -572,7 +572,9 @@ class SentenceTransformer(nn.Sequential):
         for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, precision, normalize_embeddings])
+                input_queue.put(
+                    [last_chunk_id, batch_size, chunk, prompt_name, prompt, precision, normalize_embeddings]
+                )
                 last_chunk_id += 1
                 chunk = []
 
@@ -592,7 +594,9 @@ class SentenceTransformer(nn.Sequential):
         """
         while True:
             try:
-                chunk_id, batch_size, sentences, prompt_name, prompt, precision, normalize_embeddings = input_queue.get()
+                chunk_id, batch_size, sentences, prompt_name, prompt, precision, normalize_embeddings = (
+                    input_queue.get()
+                )
                 embeddings = model.encode(
                     sentences,
                     prompt_name=prompt_name,
