@@ -76,7 +76,6 @@ html_theme_options = {
     "logo_only": True,
     "canonical_url": "https://www.sbert.net",
     "collapse_navigation": False,
-    "navigation_depth": 2,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

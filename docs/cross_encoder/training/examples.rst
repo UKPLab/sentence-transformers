@@ -8,3 +8,4 @@ Training Examples
    :hidden:
 
    ../../../examples/training/cross-encoder/README
+   ../../../examples/training/ms_marco/cross_encoder_README

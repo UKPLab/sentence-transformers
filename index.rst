@@ -121,7 +121,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
 
 
 .. toctree::
-   :maxdepth: 0
+   :maxdepth: 1
    :caption: Getting Started
    :hidden:
 
@@ -129,7 +129,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    docs/quickstart
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Sentence Transformer
    :hidden:
 
@@ -141,7 +141,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    docs/sentence_transformer/training/examples
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Cross Encoder
    :hidden:
 
@@ -152,7 +152,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    docs/cross_encoder/training/examples
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
    :caption: Package Reference
    :glob:
    :hidden:

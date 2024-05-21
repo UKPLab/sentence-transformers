@@ -164,6 +164,7 @@ The following demo showcases the retrieval efficiency using `exact` search throu
 	width="100%"
 	height="1000"
 ></iframe>
+<p></p> <!-- Force a newline -->
 
 ## Try it yourself
 

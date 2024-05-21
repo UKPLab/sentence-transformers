@@ -3,9 +3,8 @@ Training Examples
 =================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Supervised Learning
-   :hidden:
 
    ../../../examples/training/sts/README
    ../../../examples/training/nli/README
@@ -19,17 +18,15 @@ Training Examples
    ../../../examples/training/data_augmentation/README
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Unsupervised Learning
-   :hidden:
 
    ../../../examples/unsupervised_learning/README
    ../../../examples/domain_adaptation/README
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Advanced Usage
-   :hidden:
 
    ../../../examples/training/hpo/README
    distributed
