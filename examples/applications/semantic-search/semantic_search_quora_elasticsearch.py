@@ -10,9 +10,11 @@ embeddings.
 The script shows results from BM25 as well as from semantic search with
 cosine similarity.
 
-You need Elasticsearch up and running, for example using Docker
-(https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html).
-Further, you need the Python Elasticsearch Client installed: https://elasticsearch-py.readthedocs.io/
+You need Elasticsearch up and running locally:
+https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html
+
+Further, you need the Python Elasticsearch Client installed:
+https://elasticsearch-py.readthedocs.io/
 
 As embeddings model, we use the SBERT model 'quora-distilbert-multilingual',
 that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
@@ -29,9 +31,8 @@ import tqdm.autonotebook
 
 
 es = Elasticsearch(
-    hosts=["https://localhost:9200"],
-    basic_auth=("elastic", os.environ["ELASTIC_PASSWORD"]),  # displayed at ES server startup
-    ssl_context=create_default_context(cafile="http_ca.crt"),  # copied from inside ES container
+    "http://localhost:9200",
+    basic_auth=("elastic", os.environ["ELASTIC_PASSWORD"]),
 )
 
 model = SentenceTransformer("quora-distilbert-multilingual")
