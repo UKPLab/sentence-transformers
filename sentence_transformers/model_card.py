@@ -692,7 +692,31 @@ class SentenceTransformerModelCardData(CardData):
             else:
                 dataset_metadata = [self.compute_dataset_metrics(dataset, dataset_metadata[0], self.trainer.loss)]
 
+        # Try to get the number of training samples
+        if dataset_type == "train":
+            num_training_samples = sum([metadata.get("size", 0) for metadata in dataset_metadata])
+            if num_training_samples:
+                self.tags += [self.num_training_samples_to_tag(num_training_samples)]
+
         return self.validate_datasets(dataset_metadata)
+
+    def num_training_samples_to_tag(self, num_samples: int) -> str:
+        sizes_mapping = {
+            1_000: "n<1K",
+            10_000: "1K<n<10K",
+            100_000: "10K<n<100K",
+            1_000_000: "100K<n<1M",
+            10_000_000: "1M<n<10M",
+            100_000_000: "10M<n<100M",
+            1_000_000_000: "100M<n<1B",
+            10_000_000_000: "1B<n<10B",
+            100_000_000_000: "10B<n<100B",
+            1_000_000_000_000: "100B<n<1T",
+        }
+        for size, tag in sizes_mapping.items():
+            if num_samples < size:
+                return tag
+        return "n>1T"
 
     def register_model(self, model: "SentenceTransformer") -> None:
         self.model = model
@@ -761,7 +785,6 @@ class SentenceTransformerModelCardData(CardData):
                     pass
                 return value
 
-            # Try to convert to pure Python
             metrics = {key: try_to_pure_python(value) for key, value in metrics.items()}
 
             table_lines = [
