@@ -535,6 +535,7 @@ class SentenceTransformer(nn.Sequential):
         prompt: Optional[str] = None,
         batch_size: int = 32,
         chunk_size: int = None,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         normalize_embeddings: bool = False,
     ):
         """
@@ -571,12 +572,14 @@ class SentenceTransformer(nn.Sequential):
         for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings])
+                input_queue.put(
+                    [last_chunk_id, batch_size, chunk, prompt_name, prompt, precision, normalize_embeddings]
+                )
                 last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings])
+            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, precision, normalize_embeddings])
             last_chunk_id += 1
 
         output_queue = pool["output"]
@@ -591,13 +594,16 @@ class SentenceTransformer(nn.Sequential):
         """
         while True:
             try:
-                chunk_id, batch_size, sentences, prompt_name, prompt, normalize_embeddings = input_queue.get()
+                chunk_id, batch_size, sentences, prompt_name, prompt, precision, normalize_embeddings = (
+                    input_queue.get()
+                )
                 embeddings = model.encode(
                     sentences,
                     prompt_name=prompt_name,
                     prompt=prompt,
                     device=target_device,
                     show_progress_bar=False,
+                    precision=precision,
                     convert_to_numpy=True,
                     batch_size=batch_size,
                     normalize_embeddings=normalize_embeddings,
