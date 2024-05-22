@@ -5,7 +5,7 @@ import os
 import shutil
 from collections import OrderedDict
 import warnings
-from typing import List, Dict, Literal, Tuple, Iterable, Type, Union, Callable, Optional, TYPE_CHECKING
+from typing import List, Dict, Literal, Tuple, Iterable, Type, Union, Callable, Optional, TYPE_CHECKING, Any
 import numpy as np
 from numpy import ndarray
 import transformers
@@ -74,7 +74,40 @@ class SentenceTransformer(nn.Sequential):
     :param local_files_only: If `True`, avoid downloading the model.
     :param token: Hugging Face authentication token to download private models.
     :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
-        only applicable during inference when `.encode` is called.
+        only applicable during inference when :meth:`SentenceTransformer.encode` is called.
+    :param model_kwargs: Additional model configuration parameters to be passed to the Huggingface Transformers model.
+        Particularly useful options are:
+
+        - ``torch_dtype``: Override the default `torch.dtype` and load the model under a specific `dtype`.
+          The different options are:
+
+                1. ``torch.float16``, ``torch.bfloat16`` or ``torch.float``: load in a specified
+                ``dtype``, ignoring the model's ``config.torch_dtype`` if one exists. If not specified - the model will
+                get loaded in ``torch.float`` (fp32).
+
+                2. ``"auto"`` - A ``torch_dtype`` entry in the ``config.json`` file of the model will be
+                attempted to be used. If this entry isn't found then next check the ``dtype`` of the first weight in
+                the checkpoint that's of a floating point type and use that as ``dtype``. This will load the model
+                using the ``dtype`` it was saved in at the end of the training. It can't be used as an indicator of how
+                the model was trained. Since it could be trained in one of half precision dtypes, but saved in fp32.
+        - ``attn_implementation``: The attention implementation to use in the model (if relevant). Can be any of
+          `"eager"` (manual implementation of the attention), `"sdpa"` (using `F.scaled_dot_product_attention
+          <https://pytorch.org/docs/master/generated/torch.nn.functional.scaled_dot_product_attention.html>`_),
+          or `"flash_attention_2"` (using `Dao-AILab/flash-attention <https://github.com/Dao-AILab/flash-attention>`_).
+          By default, if available, SDPA will be used for torch>=2.1.1. The default is otherwise the manual `"eager"`
+          implementation.
+
+        See the `PreTrainedModel.from_pretrained
+        <https://huggingface.co/docs/transformers/en/main_classes/model#transformers.PreTrainedModel.from_pretrained>`_
+        documentation for more details.
+    :param tokenizer_kwargs: Additional tokenizer configuration parameters to be passed to the Huggingface Transformers tokenizer.
+        See the `AutoTokenizer.from_pretrained
+        <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoTokenizer.from_pretrained>`_
+        documentation for more details.
+    :param config_kwargs: Additional model configuration parameters to be passed to the Huggingface Transformers config.
+        See the `AutoConfig.from_pretrained
+        <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoConfig.from_pretrained>`_
+        documentation for more details.
     """
 
     def __init__(
@@ -91,6 +124,9 @@ class SentenceTransformer(nn.Sequential):
         token: Optional[Union[bool, str]] = None,
         use_auth_token: Optional[Union[bool, str]] = None,
         truncate_dim: Optional[int] = None,
+        model_kwargs: Optional[Dict[str, Any]] = None,
+        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+        config_kwargs: Optional[Dict[str, Any]] = None,
     ):
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
@@ -220,6 +256,9 @@ class SentenceTransformer(nn.Sequential):
                     revision=revision,
                     trust_remote_code=trust_remote_code,
                     local_files_only=local_files_only,
+                    model_kwargs=model_kwargs,
+                    tokenizer_kwargs=tokenizer_kwargs,
+                    config_kwargs=config_kwargs,
                 )
             else:
                 modules = self._load_auto_model(
@@ -229,6 +268,9 @@ class SentenceTransformer(nn.Sequential):
                     revision=revision,
                     trust_remote_code=trust_remote_code,
                     local_files_only=local_files_only,
+                    model_kwargs=model_kwargs,
+                    tokenizer_kwargs=tokenizer_kwargs,
+                    config_kwargs=config_kwargs,
                 )
 
         if modules is not None and not isinstance(modules, OrderedDict):
@@ -464,7 +506,10 @@ class SentenceTransformer(nn.Sequential):
                 all_embeddings = torch.Tensor()
         elif convert_to_numpy:
             if not isinstance(all_embeddings, np.ndarray):
-                all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
+                if all_embeddings[0].dtype == torch.bfloat16:
+                    all_embeddings = np.asarray([emb.float().numpy() for emb in all_embeddings])
+                else:
+                    all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
         elif isinstance(all_embeddings, np.ndarray):
             all_embeddings = [torch.from_numpy(embedding) for embedding in all_embeddings]
 
@@ -538,6 +583,7 @@ class SentenceTransformer(nn.Sequential):
         prompt: Optional[str] = None,
         batch_size: int = 32,
         chunk_size: int = None,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         normalize_embeddings: bool = False,
     ):
         """
@@ -557,6 +603,10 @@ class SentenceTransformer(nn.Sequential):
             If `prompt` is set, `prompt_name` is ignored.
         :param batch_size: Encode sentences with batch size
         :param chunk_size: Sentences are chunked and sent to the individual processes. If none, it determine a sensible size.
+        :param precision: The precision to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or
+            "ubinary". All non-float32 precisions are quantized embeddings. Quantized embeddings are smaller in
+            size and faster to compute, but may have a lower accuracy. They are useful for reducing the size
+            of the embeddings of a corpus for semantic search, among other tasks. Defaults to "float32".
         :param normalize_embeddings: Whether to normalize returned vectors to have length 1. In that case,
             the faster dot-product (util.dot_score) instead of cosine similarity can be used.
         :return: 2d numpy array with shape [num_inputs, output_dimension]
@@ -574,12 +624,14 @@ class SentenceTransformer(nn.Sequential):
         for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings])
+                input_queue.put(
+                    [last_chunk_id, batch_size, chunk, prompt_name, prompt, precision, normalize_embeddings]
+                )
                 last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, normalize_embeddings])
+            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, precision, normalize_embeddings])
             last_chunk_id += 1
 
         output_queue = pool["output"]
@@ -594,13 +646,16 @@ class SentenceTransformer(nn.Sequential):
         """
         while True:
             try:
-                chunk_id, batch_size, sentences, prompt_name, prompt, normalize_embeddings = input_queue.get()
+                chunk_id, batch_size, sentences, prompt_name, prompt, precision, normalize_embeddings = (
+                    input_queue.get()
+                )
                 embeddings = model.encode(
                     sentences,
                     prompt_name=prompt_name,
                     prompt=prompt,
                     device=target_device,
                     show_progress_bar=False,
+                    precision=precision,
                     convert_to_numpy=True,
                     batch_size=batch_size,
                     normalize_embeddings=normalize_embeddings,
@@ -948,8 +1003,16 @@ class SentenceTransformer(nn.Sequential):
         """
         texts = [example.texts for example in batch]
         sentence_features = [self.tokenize(sentence) for sentence in zip(*texts)]
-        labels = torch.tensor([example.label for example in batch])
-        return sentence_features, labels
+        labels = [example.label for example in batch]
+
+        # Use torch.from_numpy to convert the numpy array directly to a tensor,
+        # which is the recommended approach for converting numpy arrays to tensors
+        if labels and isinstance(labels[0], np.ndarray):
+            labels_tensor = torch.from_numpy(np.stack(labels))
+        else:
+            labels_tensor = torch.tensor(labels)
+
+        return sentence_features, labels_tensor
 
     def _text_length(self, text: Union[List[int], List[List[int]]]):
         """
@@ -1228,30 +1291,35 @@ class SentenceTransformer(nn.Sequential):
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
         local_files_only: bool = False,
+        model_kwargs: Optional[Dict[str, Any]] = None,
+        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+        config_kwargs: Optional[Dict[str, Any]] = None,
     ):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
         """
         logger.warning(
-            "No sentence-transformers model found with name {}. Creating a new one with MEAN pooling.".format(
+            "No sentence-transformers model found with name {}. Creating a new one with mean pooling.".format(
                 model_name_or_path
             )
         )
+
+        shared_kwargs = {
+            "token": token,
+            "trust_remote_code": trust_remote_code,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        model_kwargs = shared_kwargs if model_kwargs is None else {**shared_kwargs, **model_kwargs}
+        tokenizer_kwargs = shared_kwargs if tokenizer_kwargs is None else {**shared_kwargs, **tokenizer_kwargs}
+        config_kwargs = shared_kwargs if config_kwargs is None else {**shared_kwargs, **config_kwargs}
+
         transformer_model = Transformer(
             model_name_or_path,
             cache_dir=cache_folder,
-            model_args={
-                "token": token,
-                "trust_remote_code": trust_remote_code,
-                "revision": revision,
-                "local_files_only": local_files_only,
-            },
-            tokenizer_args={
-                "token": token,
-                "trust_remote_code": trust_remote_code,
-                "revision": revision,
-                "local_files_only": local_files_only,
-            },
+            model_args=model_kwargs,
+            tokenizer_args=tokenizer_kwargs,
+            config_args=config_kwargs,
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
         return [transformer_model, pooling_model]
@@ -1264,6 +1332,9 @@ class SentenceTransformer(nn.Sequential):
         revision: Optional[str] = None,
         trust_remote_code: bool = False,
         local_files_only: bool = False,
+        model_kwargs: Optional[Dict[str, Any]] = None,
+        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+        config_kwargs: Optional[Dict[str, Any]] = None,
     ):
         """
         Loads a full sentence-transformers model
@@ -1353,21 +1424,42 @@ class SentenceTransformer(nn.Sequential):
                     if config_path is not None:
                         with open(config_path) as fIn:
                             kwargs = json.load(fIn)
+                            # Don't allow configs to set trust_remote_code
+                            if "model_args" in kwargs and "trust_remote_code" in kwargs["model_args"]:
+                                kwargs["model_args"].pop("trust_remote_code")
+                            if "tokenizer_args" in kwargs and "trust_remote_code" in kwargs["tokenizer_args"]:
+                                kwargs["tokenizer_args"].pop("trust_remote_code")
+                            if "config_args" in kwargs and "trust_remote_code" in kwargs["config_args"]:
+                                kwargs["config_args"].pop("trust_remote_code")
                         break
+
                 hub_kwargs = {
                     "token": token,
                     "trust_remote_code": trust_remote_code,
                     "revision": revision,
                     "local_files_only": local_files_only,
                 }
-                if "model_args" in kwargs:
-                    kwargs["model_args"].update(hub_kwargs)
-                else:
-                    kwargs["model_args"] = hub_kwargs
-                if "tokenizer_args" in kwargs:
-                    kwargs["tokenizer_args"].update(hub_kwargs)
-                else:
-                    kwargs["tokenizer_args"] = hub_kwargs
+                # 3rd priority: config file
+                if "model_args" not in kwargs:
+                    kwargs["model_args"] = {}
+                if "tokenizer_args" not in kwargs:
+                    kwargs["tokenizer_args"] = {}
+                if "config_args" not in kwargs:
+                    kwargs["config_args"] = {}
+
+                # 2nd priority: hub_kwargs
+                kwargs["model_args"].update(hub_kwargs)
+                kwargs["tokenizer_args"].update(hub_kwargs)
+                kwargs["config_args"].update(hub_kwargs)
+
+                # 1st priority: kwargs passed to SentenceTransformer
+                if model_kwargs:
+                    kwargs["model_args"].update(model_kwargs)
+                if tokenizer_kwargs:
+                    kwargs["tokenizer_args"].update(tokenizer_kwargs)
+                if config_kwargs:
+                    kwargs["config_args"].update(config_kwargs)
+
                 module = Transformer(model_name_or_path, cache_dir=cache_folder, **kwargs)
             else:
                 # Normalize does not require any files to be loaded

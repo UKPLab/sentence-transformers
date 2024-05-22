@@ -340,6 +340,48 @@ def test_save_load_prompts() -> None:
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
+def test_load_with_torch_dtype() -> None:
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+
+    assert model.encode(["Hello there!"], convert_to_tensor=True).dtype == torch.float32
+
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        fp16_model_dir = Path(tmp_folder) / "fp16_model"
+        model.half()
+        model.save(str(fp16_model_dir))
+        del model
+
+        fp16_model = SentenceTransformer(
+            str(fp16_model_dir),
+            model_kwargs={"torch_dtype": "auto"},
+        )
+        assert fp16_model.encode(["Hello there!"], convert_to_tensor=True).dtype == torch.float16
+
+
+def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
+    transformer_kwargs = {}
+    original_transformer_init = Transformer.__init__
+
+    def transformers_init(*args, **kwargs):
+        nonlocal transformer_kwargs
+        nonlocal original_transformer_init
+        transformer_kwargs = kwargs
+        return original_transformer_init(*args, **kwargs)
+
+    monkeypatch.setattr(Transformer, "__init__", transformers_init)
+
+    SentenceTransformer(
+        "sentence-transformers-testing/stsb-bert-tiny-safetensors",
+        model_kwargs={"attn_implementation": "eager", "low_cpu_mem_usage": False},
+    )
+
+    assert "low_cpu_mem_usage" in transformer_kwargs["model_args"]
+    assert transformer_kwargs["model_args"]["low_cpu_mem_usage"] is False
+    assert "attn_implementation" in transformer_kwargs["model_args"]
+    assert transformer_kwargs["model_args"]["attn_implementation"] == "eager"
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
 def test_encode_fp16() -> None:
     tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
     tiny_model.half()
