@@ -239,7 +239,7 @@ def semantic_search_usearch(
             corpus_index = Index(
                 ndim=corpus_embeddings.shape[1],
                 metric="hamming",
-                dtype="i8",
+                dtype="b1",
             )
         corpus_index.add(np.arange(len(corpus_embeddings)), corpus_embeddings)
 

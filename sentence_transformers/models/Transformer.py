@@ -1,7 +1,7 @@
 from torch import nn
 from transformers import AutoModel, AutoTokenizer, AutoConfig, T5Config, MT5Config
 import json
-from typing import List, Dict, Optional, Union, Tuple
+from typing import Any, List, Dict, Optional, Union, Tuple
 import os
 
 
@@ -11,9 +11,10 @@ class Transformer(nn.Module):
 
     :param model_name_or_path: Huggingface models name (https://huggingface.co/models)
     :param max_seq_length: Truncate any inputs longer than max_seq_length
-    :param model_args: Arguments (key, value pairs) passed to the Huggingface Transformers model
+    :param model_args: Keyword arguments passed to the Huggingface Transformers model
+    :param tokenizer_args: Keyword arguments passed to the Huggingface Transformers tokenizer
+    :param config_args: Keyword arguments passed to the Huggingface Transformers config
     :param cache_dir: Cache dir for Huggingface Transformers to store/load models
-    :param tokenizer_args: Arguments (key, value pairs) passed to the Huggingface Tokenizer model
     :param do_lower_case: If true, lowercases the input (independent if the model is cased or not)
     :param tokenizer_name_or_path: Name or path of the tokenizer. When None, then model_name_or_path is used
     """
@@ -22,17 +23,24 @@ class Transformer(nn.Module):
         self,
         model_name_or_path: str,
         max_seq_length: Optional[int] = None,
-        model_args: Dict = {},
+        model_args: Optional[Dict[str, Any]] = None,
+        tokenizer_args: Optional[Dict[str, Any]] = None,
+        config_args: Optional[Dict[str, Any]] = None,
         cache_dir: Optional[str] = None,
-        tokenizer_args: Dict = {},
         do_lower_case: bool = False,
         tokenizer_name_or_path: str = None,
     ):
         super(Transformer, self).__init__()
         self.config_keys = ["max_seq_length", "do_lower_case"]
         self.do_lower_case = do_lower_case
+        if model_args is None:
+            model_args = {}
+        if tokenizer_args is None:
+            tokenizer_args = {}
+        if config_args is None:
+            config_args = {}
 
-        config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
+        config = AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
         self._load_model(model_name_or_path, config, cache_dir, **model_args)
 
         if max_seq_length is not None and "model_max_length" not in tokenizer_args:
@@ -184,6 +192,10 @@ class Transformer(nn.Module):
         with open(sbert_config_path) as fIn:
             config = json.load(fIn)
         # Don't allow configs to set trust_remote_code
-        if "model_args" in config:
+        if "model_args" in config and "trust_remote_code" in config["model_args"]:
             config["model_args"].pop("trust_remote_code")
+        if "tokenizer_args" in config and "trust_remote_code" in config["tokenizer_args"]:
+            config["tokenizer_args"].pop("trust_remote_code")
+        if "config_args" in config and "trust_remote_code" in config["config_args"]:
+            config["config_args"].pop("trust_remote_code")
         return Transformer(model_name_or_path=input_path, **config)
