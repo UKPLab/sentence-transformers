@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import shutil
 from typing import Any, List, Dict, Tuple, Iterable, Type, Callable, Optional, TYPE_CHECKING
+import numpy as np
 import transformers
 import torch
 from torch import nn, Tensor
@@ -371,8 +372,16 @@ class FitMixin:
         """
         texts = [example.texts for example in batch]
         sentence_features = [self.tokenize(sentence) for sentence in zip(*texts)]
-        labels = torch.tensor([example.label for example in batch])
-        return sentence_features, labels
+        labels = [example.label for example in batch]
+
+        # Use torch.from_numpy to convert the numpy array directly to a tensor,
+        # which is the recommended approach for converting numpy arrays to tensors
+        if labels and isinstance(labels[0], np.ndarray):
+            labels_tensor = torch.from_numpy(np.stack(labels))
+        else:
+            labels_tensor = torch.tensor(labels)
+
+        return sentence_features, labels_tensor
 
     """
     Temporary methods that will be removed when this refactor is complete:
