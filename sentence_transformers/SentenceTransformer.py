@@ -555,6 +555,10 @@ class SentenceTransformer(nn.Sequential):
             If `prompt` is set, `prompt_name` is ignored.
         :param batch_size: Encode sentences with batch size
         :param chunk_size: Sentences are chunked and sent to the individual processes. If none, it determine a sensible size.
+        :param precision: The precision to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or
+            "ubinary". All non-float32 precisions are quantized embeddings. Quantized embeddings are smaller in
+            size and faster to compute, but may have a lower accuracy. They are useful for reducing the size
+            of the embeddings of a corpus for semantic search, among other tasks. Defaults to "float32".
         :param normalize_embeddings: Whether to normalize returned vectors to have length 1. In that case,
             the faster dot-product (util.dot_score) instead of cosine similarity can be used.
         :return: 2d numpy array with shape [num_inputs, output_dimension]
