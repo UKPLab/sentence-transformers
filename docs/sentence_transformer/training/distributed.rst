@@ -28,6 +28,23 @@ In short, **DDP is generally recommended**. You can use DDP by running your norm
         
          accelerate launch --num_processes 4 train_script.py
 
+.. note::
+  
+   When performing distributed training, you have to wrap your code in a ``main`` function and call it with ``if __name__ == "__main__":``. This is because each process will run the entire script, so you don't want to run the same code multiple times. Here is an example of how to do this::
+
+      from sentence_transformers import SentenceTransformer, SentenceTransformerTrainingArguments, SentenceTransformerTrainer
+      # Other imports here
+
+      def main():
+          # Your training code here
+
+      if __name__ == "__main__":
+          main()
+
+.. note::
+
+   When using DDP, using ``dataloader_drop_last=True`` in :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` is recommended, as the training may halt at the last (incomplete) training batch otherwise.
+
 Comparison
 ----------
 
