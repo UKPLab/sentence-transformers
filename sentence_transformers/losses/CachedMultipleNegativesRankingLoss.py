@@ -215,6 +215,31 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
         return loss
 
+    def calculate_loss(self, reps: List[List[Tensor]]) -> Tensor:
+        """Calculate the cross-entropy loss. No need to cache the gradients."""
+        embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
+        embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
+
+        batch_size = len(embeddings_a)
+        labels = torch.tensor(
+            range(batch_size), dtype=torch.long, device=embeddings_a.device
+        )  # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
+        losses: List[torch.Tensor] = []
+        for b in tqdm.trange(
+            0,
+            batch_size,
+            self.mini_batch_size,
+            desc="Preparing caches",
+            disable=not self.show_progress_bar,
+        ):
+            e = b + self.mini_batch_size
+            scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
+            loss_mbatch: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e]) * len(scores) / batch_size
+            losses.append(loss_mbatch)
+
+        loss = sum(losses)
+        return loss
+
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Step (1): A quick embedding step without gradients/computation graphs to get all the embeddings
         reps = []
@@ -232,12 +257,16 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             reps.append(reps_mbs)
             self.random_states.append(random_state_mbs)
 
-        with torch.set_grad_enabled(True):
+        if torch.is_grad_enabled():
             # Step (2): Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings
             loss = self.calculate_loss_and_cache_gradients(reps)
 
-        # Step (3): A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain
-        loss.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self))
+            # Step (3): A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain
+            loss.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self))
+        else:
+            # If grad is not enabled (e.g. in evaluation), then we don't have to worry about the gradients or backward hook
+            loss = self.calculate_loss(reps)
+
         return loss
 
     def get_config_dict(self):

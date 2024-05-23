@@ -277,6 +277,76 @@ class CachedGISTEmbedLoss(nn.Module):
 
         return loss
 
+    def calculate_loss(self, reps: List[List[Tensor]], reps_guided: List[List[Tensor]]) -> Tensor:
+        """Calculate the cross-entropy loss. No need to cache the gradients."""
+        if len(reps) == 2:
+            anchor, positive = reps
+            anchor_guide, positive_guide = reps_guided
+            negative = None
+            negative_guide = None
+        elif len(reps) == 3:
+            anchor, positive, negative = reps
+            anchor_guide, positive_guide, negative_guide = reps_guided
+        else:
+            raise ValueError("Expected 2 or 3 embeddings, got {}".format(len(reps)))
+
+        anchor = torch.cat(anchor, dim=0)
+        positive = torch.cat(positive, dim=0)
+        anchor_guide = torch.cat(anchor_guide, dim=0)
+        positive_guide = torch.cat(positive_guide, dim=0)
+        # Handle the case where we have a negative sample
+        if negative:
+            negative = torch.cat(negative, dim=0)
+            negative_guide = torch.cat(negative_guide, dim=0)
+
+        labels = torch.arange(anchor.size(0)).long().to(anchor.device)
+        batch_size = anchor.shape[0]
+
+        losses: List[torch.Tensor] = []
+        for b in tqdm.trange(
+            0,
+            batch_size,
+            self.mini_batch_size,
+            desc="Preparing caches",
+            disable=not self.show_progress_bar,
+        ):
+            e = b + self.mini_batch_size
+            # Let's compute the similarity matrices for the combinations of anchor and positive samples.
+            guided_ap_sim = self.sim_matrix(anchor_guide[b:e], positive_guide)
+            guided_aa_sim = self.sim_matrix(anchor_guide[b:e], anchor_guide)
+            guided_pp_sim = self.sim_matrix(positive_guide[b:e], positive_guide)
+            # Define the anchor threshold
+            guided_sim = guided_ap_sim.diagonal(offset=b).view(-1, 1)
+
+            # Compute similarity scores for current mini-batch.
+            # anchor (mbsz,hdim), positive (bsz,hdim)
+            ap_sim = self.sim_matrix(anchor[b:e], positive)  # (mbsz,bsz)
+            aa_sim = self.sim_matrix(anchor[b:e], anchor)
+            pp_sim = self.sim_matrix(positive[b:e], positive)
+
+            # Find which samples cannot be used as negatives because they are
+            # more similar to the query than the assigned positive as deemed by the guide model.
+            # For these samples, we mask them with -inf to basically ignore their contribution to
+            # the loss.
+            ap_sim[guided_ap_sim > guided_sim] = -torch.inf
+            aa_sim[guided_aa_sim > guided_sim] = -torch.inf
+            pp_sim[guided_pp_sim > guided_sim] = -torch.inf
+
+            scores = torch.cat([ap_sim, aa_sim, pp_sim], dim=1)
+
+            # Handle the case where we have a negative sample
+            if negative is not None:
+                guided_an_sim = self.sim_matrix(anchor_guide[b:e], negative_guide)
+                an_sim = self.sim_matrix(anchor[b:e], negative)
+                an_sim[guided_an_sim > guided_sim] = -torch.inf
+                scores = torch.cat([scores, an_sim], dim=1)
+            scores = scores / self.temperature
+            loss_mbatch: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e]) * len(scores) / batch_size
+            losses.append(loss_mbatch)
+
+        loss = sum(losses)
+        return loss
+
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Step (1): A quick embedding step without gradients/computation graphs to get all the embeddings
         reps = []
@@ -298,10 +368,15 @@ class CachedGISTEmbedLoss(nn.Module):
             reps_guided.append(reps_guided_mbs)
             self.random_states.append(random_state_mbs)
 
-        # Step (2): Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings
-        loss = self.calculate_loss_and_cache_gradients(reps, reps_guided)
-        # Step (3): A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain
-        loss.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self))
+        if torch.is_grad_enabled():
+            # Step (2): Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings
+            loss = self.calculate_loss_and_cache_gradients(reps, reps_guided)
+
+            # Step (3): A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain
+            loss.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self))
+        else:
+            # If grad is not enabled (e.g. in evaluation), then we don't have to worry about the gradients or backward hook
+            loss = self.calculate_loss(reps, reps_guided)
         return loss
 
     def get_config_dict(self):
