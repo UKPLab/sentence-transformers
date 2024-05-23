@@ -21,7 +21,7 @@ import datetime
 # -- Project information -----------------------------------------------------
 
 project = "Sentence-Transformers"
-copyright = str(datetime.datetime.now().year) + ", Nils Reimers"
+copyright = str(datetime.datetime.now().year)
 author = "Nils Reimers, Tom Aarsen"
 
 
