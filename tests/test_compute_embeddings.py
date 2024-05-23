@@ -10,7 +10,6 @@ from sentence_transformers import SentenceTransformer
 def test_encode_token_embeddings(paraphrase_distilroberta_base_v1_model: SentenceTransformer) -> None:
     """
     Test that encode(output_value='token_embeddings') works
-    :return:
     """
     model = paraphrase_distilroberta_base_v1_model
     sent = [

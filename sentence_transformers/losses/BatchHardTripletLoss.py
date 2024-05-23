@@ -6,15 +6,11 @@ from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class BatchHardTripletLossDistanceFunction:
-    """
-    This class defines distance functions, that can be used with Batch[All/Hard/SemiHard]TripletLoss
-    """
+    """This class defines distance functions, that can be used with Batch[All/Hard/SemiHard]TripletLoss"""
 
     @staticmethod
     def cosine_distance(embeddings):
-        """
-        Compute the 2D matrix of cosine distances (1-cosine_similarity) between all embeddings.
-        """
+        """Compute the 2D matrix of cosine distances (1-cosine_similarity) between all embeddings."""
         return 1 - util.pytorch_cos_sim(embeddings, embeddings)
 
     @staticmethod
@@ -69,9 +65,13 @@ class BatchHardTripletLoss(nn.Module):
         The labels must be integers, with same label indicating sentences from the same class. Your train dataset
         must contain at least 2 examples per label class.
 
-        :param model: SentenceTransformer model
-        :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrics that can be used
-        :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
+        Args:
+            model: SentenceTransformer model
+            distance_metric: Function that returns a distance between
+                two embeddings. The class SiameseDistanceMetric contains
+                pre-defined metrics that can be used
+            margin: Negative samples should be at least margin further
+                apart from the anchor than the positive.
 
         Definitions:
             :Easy triplets: Triplets which have a loss of 0 because

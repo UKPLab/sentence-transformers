@@ -12,7 +12,8 @@ class MSELoss(nn.Module):
 
         For an example, see `the distillation documentation <../../examples/training/distillation/README.html>`_ on extending language models to new languages.
 
-        :param model: SentenceTransformerModel
+        Args:
+            model: SentenceTransformerModel
 
         References:
             - Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation: https://arxiv.org/abs/2004.09813

@@ -20,8 +20,10 @@ class AnglELoss(losses.CoSENTLoss):
         pairs of input pairs in the batch that match this condition. This is the same as CoSENTLoss, with a different
         similarity function.
 
-        :param model: SentenceTransformerModel
-        :param scale: Output of similarity function is multiplied by scale value. Represents the inverse temperature.
+        Args:
+            model: SentenceTransformerModel
+            scale: Output of similarity function is multiplied by scale
+                value. Represents the inverse temperature.
 
         References:
             - For further details, see: https://arxiv.org/abs/2309.12871v1

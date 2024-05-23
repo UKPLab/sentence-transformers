@@ -83,9 +83,13 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in mini-batches and
         requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
 
-        :param model: SentenceTransformer model
-        :param scale: Output of similarity function is multiplied by scale value
-        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+        Args:
+            model: SentenceTransformer model
+            scale: Output of similarity function is multiplied by scale
+                value
+            similarity_fct: similarity function between sentence
+                embeddings. By default, cos_sim. Can also be set to dot
+                product (and then set scale to 1)
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf

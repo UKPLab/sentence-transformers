@@ -26,13 +26,14 @@ class SoftmaxLoss(nn.Module):
         :class:`MultipleNegativesRankingLoss` is an alternative loss function that often yields better results,
         as per https://arxiv.org/abs/2004.09813.
 
-        :param model: SentenceTransformer model
-        :param sentence_embedding_dimension: Dimension of your sentence embeddings
-        :param num_labels: Number of different labels
-        :param concatenation_sent_rep: Concatenate vectors u,v for the softmax classifier?
-        :param concatenation_sent_difference: Add abs(u-v) for the softmax classifier?
-        :param concatenation_sent_multiplication: Add u*v for the softmax classifier?
-        :param loss_fct: Optional: Custom pytorch loss function. If not set, uses nn.CrossEntropyLoss()
+        Args:
+            model (SentenceTransformer): The SentenceTransformer model.
+            sentence_embedding_dimension (int): The dimension of the sentence embeddings.
+            num_labels (int): The number of different labels.
+            concatenation_sent_rep (bool): Whether to concatenate vectors u,v for the softmax classifier. Defaults to True.
+            concatenation_sent_difference (bool): Whether to add abs(u-v) for the softmax classifier. Defaults to True.
+            concatenation_sent_multiplication (bool): Whether to add u*v for the softmax classifier. Defaults to False.
+            loss_fct (Callable): Custom pytorch loss function. If not set, uses nn.CrossEntropyLoss(). Defaults to nn.CrossEntropyLoss().
 
         References:
             - Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks: https://arxiv.org/abs/1908.10084

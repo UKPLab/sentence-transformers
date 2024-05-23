@@ -14,9 +14,13 @@ class OnlineContrastiveLoss(nn.Module):
         are far apart) and hard negative pairs (negatives that are close) and computes the loss only for these pairs.
         This loss often yields better performances than ContrastiveLoss.
 
-        :param model: SentenceTransformer model
-        :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrics that can be used
-        :param margin: Negative samples (label == 0) should have a distance of at least the margin value.
+        Args:
+            model: SentenceTransformer model
+            distance_metric: Function that returns a distance between
+                two embeddings. The class SiameseDistanceMetric contains
+                pre-defined metrics that can be used
+            margin: Negative samples (label == 0) should have a distance
+                of at least the margin value.
 
         References:
             - `Training Examples > Quora Duplicate Questions <../../examples/training/quora_duplicate_questions/README.html>`_

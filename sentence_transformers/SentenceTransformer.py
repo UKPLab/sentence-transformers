@@ -49,69 +49,72 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     """
     Loads or creates a SentenceTransformer model that can be used to map sentences / text to embeddings.
 
-    :param model_name_or_path: If it is a filepath on disc, it loads the model from that path. If it is not a path,
-        it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model
-        from the Hugging Face Hub with that name.
-    :param modules: A list of torch Modules that should be called sequentially, can be used to create custom
-        SentenceTransformer models from scratch.
-    :param device: Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
-        can be used.
-    :param prompts: A dictionary with prompts for the model. The key is the prompt name, the value is the prompt text.
-        The prompt text will be prepended before any text to encode. For example:
-        `{"query": "query: ", "passage": "passage: "}` or `{"clustering": "Identify the main category based on the
-        titles in "}`.
-    :param default_prompt_name: The name of the prompt that should be used by default. If not set,
-        no prompt will be applied.
-    :param similarity_fn_name: The name of the similarity function to use. Valid options are "cosine", "dot",
-        "euclidean", and "manhattan". If not set, it is automatically to "cosine" if `similarity` or
-        `similarity_pairwise` are called while `model.similarity_fn_name` is still `None`.
-    :param cache_folder: Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
-    :param trust_remote_code: Whether or not to allow for custom models defined on the Hub in their own modeling files.
-        This option should only be set to True for repositories you trust and in which you have read the code, as it
-        will execute code present on the Hub on your local machine.
-    :param revision: The specific model version to use. It can be a branch name, a tag name, or a commit id,
-        for a stored model on Hugging Face.
-    :param local_files_only: If `True`, avoid downloading the model.
-    :param token: Hugging Face authentication token to download private models.
-    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
-        only applicable during inference when :meth:`SentenceTransformer.encode` is called.
-    :param model_kwargs: Additional model configuration parameters to be passed to the Huggingface Transformers model.
-        Particularly useful options are:
+    Args:
+        model_name_or_path (str, optional): If it is a filepath on disc, it loads the model from that path. If it is not a path,
+            it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model
+            from the Hugging Face Hub with that name.
+        modules (Iterable[nn.Module], optional): A list of torch Modules that should be called sequentially, can be used to create custom
+            SentenceTransformer models from scratch.
+        device (str, optional): Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
+            can be used.
+        prompts (Dict[str, str], optional): A dictionary with prompts for the model. The key is the prompt name, the value is the prompt text.
+            The prompt text will be prepended before any text to encode. For example:
+            `{"query": "query: ", "passage": "passage: "}` or `{"clustering": "Identify the main category based on the
+            titles in "}`.
+        default_prompt_name (str, optional): The name of the prompt that should be used by default. If not set,
+            no prompt will be applied.
+        similarity_fn_name (str or SimilarityFunction, optional): The name of the similarity function to use. Valid options are "cosine", "dot",
+            "euclidean", and "manhattan". If not set, it is automatically set to "cosine" if `similarity` or
+            `similarity_pairwise` are called while `model.similarity_fn_name` is still `None`.
+        cache_folder (str, optional): Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
+        trust_remote_code (bool, optional): Whether or not to allow for custom models defined on the Hub in their own modeling files.
+            This option should only be set to True for repositories you trust and in which you have read the code, as it
+            will execute code present on the Hub on your local machine.
+        revision (str, optional): The specific model version to use. It can be a branch name, a tag name, or a commit id,
+            for a stored model on Hugging Face.
+        local_files_only (bool, optional): If `True`, avoid downloading the model.
+        token (bool or str, optional): Hugging Face authentication token to download private models.
+        use_auth_token (bool or str, optional): Deprecated argument. Please use `token` instead.
+        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
+            only applicable during inference when :meth:`SentenceTransformer.encode` is called.
+        model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Huggingface Transformers model.
+            Particularly useful options are:
 
-        - ``torch_dtype``: Override the default `torch.dtype` and load the model under a specific `dtype`.
-          The different options are:
+            - ``torch_dtype``: Override the default `torch.dtype` and load the model under a specific `dtype`.
+              The different options are:
 
-                1. ``torch.float16``, ``torch.bfloat16`` or ``torch.float``: load in a specified
-                ``dtype``, ignoring the model's ``config.torch_dtype`` if one exists. If not specified - the model will
-                get loaded in ``torch.float`` (fp32).
+                    1. ``torch.float16``, ``torch.bfloat16`` or ``torch.float``: load in a specified
+                    ``dtype``, ignoring the model's ``config.torch_dtype`` if one exists. If not specified - the model will
+                    get loaded in ``torch.float`` (fp32).
 
-                2. ``"auto"`` - A ``torch_dtype`` entry in the ``config.json`` file of the model will be
-                attempted to be used. If this entry isn't found then next check the ``dtype`` of the first weight in
-                the checkpoint that's of a floating point type and use that as ``dtype``. This will load the model
-                using the ``dtype`` it was saved in at the end of the training. It can't be used as an indicator of how
-                the model was trained. Since it could be trained in one of half precision dtypes, but saved in fp32.
-        - ``attn_implementation``: The attention implementation to use in the model (if relevant). Can be any of
-          `"eager"` (manual implementation of the attention), `"sdpa"` (using `F.scaled_dot_product_attention
-          <https://pytorch.org/docs/master/generated/torch.nn.functional.scaled_dot_product_attention.html>`_),
-          or `"flash_attention_2"` (using `Dao-AILab/flash-attention <https://github.com/Dao-AILab/flash-attention>`_).
-          By default, if available, SDPA will be used for torch>=2.1.1. The default is otherwise the manual `"eager"`
-          implementation.
+                    2. ``"auto"`` - A ``torch_dtype`` entry in the ``config.json`` file of the model will be
+                    attempted to be used. If this entry isn't found then next check the ``dtype`` of the first weight in
+                    the checkpoint that's of a floating point type and use that as ``dtype``. This will load the model
+                    using the ``dtype`` it was saved in at the end of the training. It can't be used as an indicator of how
+                    the model was trained. Since it could be trained in one of half precision dtypes, but saved in fp32.
+            - ``attn_implementation``: The attention implementation to use in the model (if relevant). Can be any of
+              `"eager"` (manual implementation of the attention), `"sdpa"` (using `F.scaled_dot_product_attention
+              <https://pytorch.org/docs/master/generated/torch.nn.functional.scaled_dot_product_attention.html>`_),
+              or `"flash_attention_2"` (using `Dao-AILab/flash-attention <https://github.com/Dao-AILab/flash-attention>`_).
+              By default, if available, SDPA will be used for torch>=2.1.1. The default is otherwise the manual `"eager"`
+              implementation.
 
-        See the `PreTrainedModel.from_pretrained
-        <https://huggingface.co/docs/transformers/en/main_classes/model#transformers.PreTrainedModel.from_pretrained>`_
-        documentation for more details.
-    :param tokenizer_kwargs: Additional tokenizer configuration parameters to be passed to the Huggingface Transformers tokenizer.
-        See the `AutoTokenizer.from_pretrained
-        <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoTokenizer.from_pretrained>`_
-        documentation for more details.
-    :param config_kwargs: Additional model configuration parameters to be passed to the Huggingface Transformers config.
-        See the `AutoConfig.from_pretrained
-        <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoConfig.from_pretrained>`_
-        documentation for more details.
-    :param model_card_data: A model card data object that contains information about the model. This is used to generate
-        a model card when saving the model. If not set, a default model card data object is created.
+            See the `PreTrainedModel.from_pretrained
+            <https://huggingface.co/docs/transformers/en/main_classes/model#transformers.PreTrainedModel.from_pretrained>`_
+            documentation for more details.
+        tokenizer_kwargs (Dict[str, Any], optional): Additional tokenizer configuration parameters to be passed to the Huggingface Transformers tokenizer.
+            See the `AutoTokenizer.from_pretrained
+            <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoTokenizer.from_pretrained>`_
+            documentation for more details.
+        config_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Huggingface Transformers config.
+            See the `AutoConfig.from_pretrained
+            <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoConfig.from_pretrained>`_
+            documentation for more details.
+        model_card_data (:class:`~sentence_transformers.model_card.SentenceTransformerModelCardData`, optional): A model
+            card data object that contains information about the model. This is used to generate a model card when saving
+            the model. If not set, a default model card data object is created.
 
-    Example
+    Example:
         ::
 
             from sentence_transformers import SentenceTransformer
@@ -364,34 +367,55 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         """
         Computes sentence embeddings.
 
-        :param sentences: the sentences to embed.
-        :param prompt_name: The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
-            which is either set in the constructor or loaded from the model configuration. For example if
-            `prompt_name` is ``"query"`` and the `prompts` is ``{"query": "query: ", ...}``, then the sentence "What
-            is the capital of France?" will be encoded as "query: What is the capital of France?" because the sentence
-            is appended to the prompt. If `prompt` is also set, this argument is ignored.
-        :param prompt: The prompt to use for encoding. For example, if the prompt is ``"query: "``, then the
-            sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?"
-            because the sentence is appended to the prompt. If `prompt` is set, `prompt_name` is ignored.
-        :param batch_size: the batch size used for the computation.
-        :param show_progress_bar: Whether to output a progress bar when encode sentences.
-        :param output_value: The type of embeddings to return: "sentence_embedding" to get sentence embeddings,
-            "token_embeddings" to get wordpiece token embeddings, and `None`, to get all output values. Defaults
-            to "sentence_embedding".
-        :param precision: The precision to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or
-            "ubinary". All non-float32 precisions are quantized embeddings. Quantized embeddings are smaller in
-            size and faster to compute, but may have a lower accuracy. They are useful for reducing the size
-            of the embeddings of a corpus for semantic search, among other tasks. Defaults to "float32".
-        :param convert_to_numpy: Whether the output should be a list of numpy vectors. If False, it is a list of PyTorch tensors.
-        :param convert_to_tensor: Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
-        :param device: Which `torch.device` to use for the computation.
-        :param normalize_embeddings: Whether to normalize returned vectors to have length 1. In that case,
-            the faster dot-product (util.dot_score) instead of cosine similarity can be used.
+        Args:
+            sentences (Union[str, List[str]]): The sentences to embed.
+            prompt_name (Optional[str], optional): The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
+                which is either set in the constructor or loaded from the model configuration. For example if
+                ``prompt_name`` is "query" and the ``prompts`` is {"query": "query: ", ...}, then the sentence "What
+                is the capital of France?" will be encoded as "query: What is the capital of France?" because the sentence
+                is appended to the prompt. If ``prompt`` is also set, this argument is ignored. Defaults to None.
+            prompt (Optional[str], optional): The prompt to use for encoding. For example, if the prompt is "query: ", then the
+                sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?"
+                because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
+            batch_size (int, optional): The batch size used for the computation. Defaults to 32.
+            show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
+            output_value (Optional[Literal["sentence_embedding", "token_embeddings"]], optional): The type of embeddings to return:
+                "sentence_embedding" to get sentence embeddings, "token_embeddings" to get wordpiece token embeddings, and `None`,
+                to get all output values. Defaults to "sentence_embedding".
+            precision (Literal["float32", "int8", "uint8", "binary", "ubinary"], optional): The precision to use for the embeddings.
+                Can be "float32", "int8", "uint8", "binary", or "ubinary". All non-float32 precisions are quantized embeddings.
+                Quantized embeddings are smaller in size and faster to compute, but may have a lower accuracy. They are useful for
+                reducing the size of the embeddings of a corpus for semantic search, among other tasks. Defaults to "float32".
+            convert_to_numpy (bool, optional): Whether the output should be a list of numpy vectors. If False, it is a list of PyTorch tensors.
+                Defaults to True.
+            convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
+                Defaults to False.
+            device (str, optional): Which :class:`torch.device` to use for the computation. Defaults to None.
+            normalize_embeddings (bool, optional): Whether to normalize returned vectors to have length 1. In that case,
+                the faster dot-product (util.dot_score) instead of cosine similarity can be used. Defaults to False.
 
-        :return: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned. If only one string
-            input is provided, then the output is a 1d array with shape [output_dimension]. If `convert_to_tensor`, a
-            torch Tensor is returned instead. If `self.truncate_dim <= output_dimension` then output_dimension is
-            `self.truncate_dim`.
+        Returns:
+            Union[List[Tensor], ndarray, Tensor]: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned.
+            If only one string input is provided, then the output is a 1d array with shape [output_dimension]. If ``convert_to_tensor``,
+            a torch Tensor is returned instead. If ``self.truncate_dim <= output_dimension`` then output_dimension is ``self.truncate_dim``.
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer
+
+                # Load a pre-trained SentenceTransformer model
+                model = SentenceTransformer('all-mpnet-base-v2')
+
+                # Encode some texts
+                sentences = [
+                    "The weather is lovely today.",
+                    "It's so sunny outside!",
+                    "He drove to the stadium.",
+                ]
+                embeddings = model.encode(sentences)
+                print(embeddings.shape)
+                # (3, 768)
         """
         if self.device.type == "hpu" and not self.is_hpu_graph_enabled:
             import habana_frameworks.torch as ht
@@ -551,7 +575,17 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     @property
     def similarity_fn_name(self) -> Optional[str]:
-        """Return the name of the similarity function used by :meth:`SentenceTransformer.similarity` and :meth:`SentenceTransformer.similarity_pairwise`."""
+        """Return the name of the similarity function used by :meth:`SentenceTransformer.similarity` and :meth:`SentenceTransformer.similarity_pairwise`.
+
+        Returns:
+            Optional[str]: The name of the similarity function. Can be None if not set, in which case any uses of
+            :meth:`SentenceTransformer.similarity` and :meth:`SentenceTransformer.similarity_pairwise` default to "cosine".
+
+        Example:
+            >>> model = SentenceTransformer("multi-qa-mpnet-base-dot-v1")
+            >>> model.similarity_fn_name
+            'dot'
+        """
         return self._similarity_fn_name
 
     @similarity_fn_name.setter
@@ -577,7 +611,14 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         scores between all embeddings from the first parameter and all embeddings from the second parameter. This
         differs from `similarity_pairwise` which computes the similarity between each pair of embeddings.
 
-        Example
+        Args:
+            embeddings1 (Union[Tensor, ndarray]): [num_embeddings_1, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+            embeddings2 (Union[Tensor, ndarray]): [num_embeddings_2, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+
+        Returns:
+            Tensor: A [num_embeddings_1, num_embeddings_2]-shaped torch tensor with similarity scores.
+
+        Example:
             ::
 
                 >>> model = SentenceTransformer("all-mpnet-base-v2")
@@ -601,10 +642,6 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                         [-0.7437, -0.0000, -1.3702, -1.3320],
                         [-1.3935, -1.3702, -0.0000, -0.9973],
                         [-1.3184, -1.3320, -0.9973, -0.0000]])
-
-        :param embeddings1: [num_embeddings_1, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
-        :param embeddings2: [num_embeddings_2, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
-        :return: A [num_embeddings_1, num_embeddings_2]-shaped torch tensor with similarity scores.
         """
         if self.similarity_fn_name is None:
             self.similarity_fn_name = SimilarityFunction.COSINE
@@ -622,7 +659,14 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         Compute the similarity between two collections of embeddings. The output will be a vector with the similarity
         scores between each pair of embeddings.
 
-        Example
+        Args:
+            embeddings1 (Union[Tensor, ndarray]): [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+            embeddings2 (Union[Tensor, ndarray]): [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+
+        Returns:
+            Tensor: A [num_embeddings]-shaped torch tensor with pairwise similarity scores.
+
+        Example:
             ::
 
                 >>> model = SentenceTransformer("all-mpnet-base-v2")
@@ -640,27 +684,28 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 >>> model.similarity_fn_name = "euclidean"
                 >>> model.similarity_pairwise(embeddings[::2], embeddings[1::2])
                 tensor([-0.7437, -0.9973])
-
-        :param embeddings1: [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
-        :param embeddings2: [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
-        :return: A [num_embeddings]-shaped torch tensor with pairwise similarity scores.
         """
         if self.similarity_fn_name is None:
             self.similarity_fn_name = SimilarityFunction.COSINE
         return self._similarity_pairwise
 
-    def start_multi_process_pool(self, target_devices: List[str] = None):
+    def start_multi_process_pool(self, target_devices: List[str] = None) -> Dict[str, Any]:
         """
-        Starts multi process to process the encoding with several, independent processes.
+        Starts a multi-process pool to process the encoding with several independent processes
+        via :meth:`SentenceTransformer.encode_multi_process <sentence_transformers.SentenceTransformer.encode_multi_process>`.
+
         This method is recommended if you want to encode on multiple GPUs or CPUs. It is advised
         to start only one process per GPU. This method works together with encode_multi_process
         and stop_multi_process_pool.
 
-        :param target_devices: PyTorch target devices, e.g. ["cuda:0", "cuda:1", ...], ["npu:0", "npu:1", ...] or
-            ["cpu", "cpu", "cpu", "cpu"]. If target_devices is None and CUDA/NPU is available, then all available
-            CUDA/NPU devices will be used. If target_devices is None and CUDA/NPU is not available, then 4 CPU
-            devices will be used.
-        :return: Returns a dict with the target processes, an input queue and and output queue.
+        Args:
+            target_devices (List[str], optional): PyTorch target devices, e.g. ["cuda:0", "cuda:1", ...],
+                ["npu:0", "npu:1", ...], or ["cpu", "cpu", "cpu", "cpu"]. If target_devices is None and CUDA/NPU
+                is available, then all available CUDA/NPU devices will be used. If target_devices is None and
+                CUDA/NPU is not available, then 4 CPU devices will be used.
+
+        Returns:
+            Dict[str, Any]: A dictionary with the target processes, an input queue, and an output queue.
         """
         if target_devices is None:
             if torch.cuda.is_available():
@@ -694,7 +739,13 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @staticmethod
     def stop_multi_process_pool(pool):
         """
-        Stops all processes started with start_multi_process_pool
+        Stops all processes started with start_multi_process_pool.
+
+        Args:
+            pool (Dict[str, object]): A dictionary containing the input queue, output queue, and process list.
+
+        Returns:
+            None
         """
         for p in pool["processes"]:
             p.terminate()
@@ -716,31 +767,56 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         chunk_size: int = None,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         normalize_embeddings: bool = False,
-    ):
+    ) -> np.ndarray:
         """
-        This method allows to run encode() on multiple GPUs. The sentences are chunked into smaller packages
-        and sent to individual processes, which encode these on the different GPUs. This method is only suitable
-        for encoding large sets of sentences
+        Encodes a list of sentences using multiple processes and GPUs via
+        :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>`.
+        The sentences are chunked into smaller packages and sent to individual processes, which encode them on different
+        GPUs or CPUs. This method is only suitable for encoding large sets of sentences.
 
-        :param sentences: List of sentences
-        :param pool: A pool of workers started with SentenceTransformer.start_multi_process_pool
-        :param prompt_name: The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
-            which is either set in the constructor or loaded from the model configuration. For example if
-            `prompt_name` is ``"query"`` and the `prompts` is ``{"query": "query: {}", ...}``, then the sentence "What
-            is the capital of France?" will be encoded as "query: What is the capital of France?". If `prompt` is
-            also set, this argument is ignored.
-        :param prompt: The prompt to use for encoding. For example, if the prompt is ``"query: {}"``, then the
-            sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?".
-            If `prompt` is set, `prompt_name` is ignored.
-        :param batch_size: Encode sentences with batch size
-        :param chunk_size: Sentences are chunked and sent to the individual processes. If none, it determine a sensible size.
-        :param precision: The precision to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or
-            "ubinary". All non-float32 precisions are quantized embeddings. Quantized embeddings are smaller in
-            size and faster to compute, but may have a lower accuracy. They are useful for reducing the size
-            of the embeddings of a corpus for semantic search, among other tasks. Defaults to "float32".
-        :param normalize_embeddings: Whether to normalize returned vectors to have length 1. In that case,
-            the faster dot-product (util.dot_score) instead of cosine similarity can be used.
-        :return: 2d numpy array with shape [num_inputs, output_dimension]
+        Args:
+            sentences (List[str]): List of sentences to encode.
+            pool (Dict[str, object]): A pool of workers started with SentenceTransformer.start_multi_process_pool.
+            prompt_name (Optional[str], optional): The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
+                which is either set in the constructor or loaded from the model configuration. For example if
+                ``prompt_name`` is "query" and the ``prompts`` is {"query": "query: ", ...}, then the sentence "What
+                is the capital of France?" will be encoded as "query: What is the capital of France?" because the sentence
+                is appended to the prompt. If ``prompt`` is also set, this argument is ignored. Defaults to None.
+            prompt (Optional[str], optional): The prompt to use for encoding. For example, if the prompt is "query: ", then the
+                sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?"
+                because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
+            batch_size (int): Encode sentences with batch size. (default: 32)
+            chunk_size (int): Sentences are chunked and sent to the individual processes. If None, it determines a
+                sensible size. Defaults to None.
+            precision (Literal["float32", "int8", "uint8", "binary", "ubinary"]): The precision to use for the
+                embeddings. Can be "float32", "int8", "uint8", "binary", or "ubinary". All non-float32 precisions
+                are quantized embeddings. Quantized embeddings are smaller in size and faster to compute, but may
+                have lower accuracy. They are useful for reducing the size of the embeddings of a corpus for
+                semantic search, among other tasks. Defaults to "float32".
+            normalize_embeddings (bool): Whether to normalize returned vectors to have length 1. In that case,
+                the faster dot-product (util.dot_score) instead of cosine similarity can be used. Defaults to False.
+
+        Returns:
+            np.ndarray: A 2D numpy array with shape [num_inputs, output_dimension].
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer
+
+                def main():
+                    model = SentenceTransformer("all-mpnet-base-v2")
+                    sentences = ["The weather is so nice!", "It's so sunny outside.", "He's driving to the movie theater.", "She's going to the cinema."] * 1000
+
+                    pool = model.start_multi_process_pool()
+                    embeddings = model.encode_multi_process(sentences, pool)
+                    model.stop_multi_process_pool(pool)
+
+                    print(embeddings.shape)
+                    # => (4000, 768)
+
+                if __name__ == "__main__":
+                    main()
         """
 
         if chunk_size is None:
@@ -800,25 +876,42 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         """
         Sets the `include_prompt` attribute in the pooling layer in the model, if there is one.
 
-        :param include_prompt: Whether to include the prompt in the pooling layer.
+        This is useful for INSTRUCTOR models, as the prompt should be excluded from the pooling strategy
+        for these models.
+
+        Args:
+            include_prompt (bool): Whether to include the prompt in the pooling layer.
+
+        Returns:
+            None
         """
         for module in self:
             if isinstance(module, Pooling):
                 module.include_prompt = include_prompt
                 break
 
-    def get_max_seq_length(self):
+    def get_max_seq_length(self) -> Optional[int]:
         """
-        Returns the maximal sequence length for input the model accepts. Longer inputs will be truncated
+        Returns the maximal sequence length that the model accepts. Longer inputs will be truncated.
+
+        Returns:
+            Optional[int]: The maximal sequence length that the model accepts, or None if it is not defined.
         """
         if hasattr(self._first_module(), "max_seq_length"):
             return self._first_module().max_seq_length
 
         return None
 
-    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]]):
+    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]]) -> Dict[str, Tensor]:
         """
-        Tokenizes the texts
+        Tokenizes the texts.
+
+        Args:
+            texts (Union[List[str], List[Dict], List[Tuple[str, str]]]): A list of texts to be tokenized.
+
+        Returns:
+            Dict[str, Tensor]: A dictionary of tensors with the tokenized texts. Common keys are "input_ids",
+                "attention_mask", and "token_type_ids".
         """
         return self._first_module().tokenize(texts)
 
@@ -827,7 +920,10 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     def get_sentence_embedding_dimension(self) -> Optional[int]:
         """
-        :return: The number of dimensions in the output of `encode`. If it's not known, it's `None`.
+        Returns the number of dimensions in the output of :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>`.
+
+        Returns:
+            Optional[int]: The number of dimensions in the output of `encode`. If it's not known, it's `None`.
         """
         output_dim = None
         for mod in reversed(self._modules.values()):
@@ -844,23 +940,25 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @contextmanager
     def truncate_sentence_embeddings(self, truncate_dim: Optional[int]):
         """
-        In this context, `model.encode` outputs sentence embeddings truncated at dimension `truncate_dim`.
+        In this context, :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>` outputs
+        sentence embeddings truncated at dimension ``truncate_dim``.
 
         This may be useful when you are using the same model for different applications where different dimensions
         are needed.
 
-        :param truncate_dim: The dimension to truncate sentence embeddings to. `None` does no truncation.
+        Args:
+            truncate_dim (int, optional): The dimension to truncate sentence embeddings to. ``None`` does no truncation.
 
-        Example::
+        Example:
+            ::
 
-            from sentence_transformers import SentenceTransformer
+                from sentence_transformers import SentenceTransformer
 
-            model = SentenceTransformer("model-name")
+                model = SentenceTransformer("all-mpnet-base-v2")
 
-            with model.truncate_sentence_embeddings(truncate_dim=16):
-                embeddings_truncated = model.encode(["hello there", "hiya"])
-            assert embeddings_truncated.shape[-1] == 16
-
+                with model.truncate_sentence_embeddings(truncate_dim=16):
+                    embeddings_truncated = model.encode(["hello there", "hiya"])
+                assert embeddings_truncated.shape[-1] == 16
         """
         original_output_dim = self.truncate_dim
         try:
@@ -887,13 +985,15 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     ):
         """
         Saves a model and its configuration files to a directory, so that it can be loaded
-        with `SentenceTransformer(path)` again.
+        with ``SentenceTransformer(path)`` again.
 
-        :param path: Path on disc
-        :param model_name: Optional model name
-        :param create_model_card: If True, create a README.md with basic information about this model
-        :param train_datasets: Optional list with the names of the datasets used to to train the model
-        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
+        Args:
+            path (str): Path on disc where the model will be saved.
+            model_name (str, optional): Optional model name.
+            create_model_card (bool, optional): If True, create a README.md with basic information about this model.
+            train_datasets (List[str], optional): Optional list with the names of the datasets used to train the model.
+            safe_serialization (bool, optional): If True, save the model using safetensors. If False, save the model
+                the traditional (but unsafe) PyTorch way.
         """
         if path is None:
             return
@@ -953,13 +1053,15 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     ):
         """
         Saves a model and its configuration files to a directory, so that it can be loaded
-        with `SentenceTransformer(path)` again. Alias of `SentenceTransformer.save`.
+        with ``SentenceTransformer(path)`` again.
 
-        :param path: Path on disc
-        :param model_name: Optional model name
-        :param create_model_card: If True, create a README.md with basic information about this model
-        :param train_datasets: Optional list with the names of the datasets used to to train the model
-        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
+        Args:
+            path (str): Path on disc where the model will be saved.
+            model_name (str, optional): Optional model name.
+            create_model_card (bool, optional): If True, create a README.md with basic information about this model.
+            train_datasets (List[str], optional): Optional list with the names of the datasets used to train the model.
+            safe_serialization (bool, optional): If True, save the model using safetensors. If False, save the model
+                the traditional (but unsafe) PyTorch way.
         """
         self.save(
             path,
@@ -973,8 +1075,16 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = "deprecated"
     ):
         """
-        Create an automatic model and stores it in path. If no training was done, and the loaded model was
-        a Sentence Transformer model already, then its model card is reused.
+        Create an automatic model and stores it in the specified path. If no training was done and the loaded model
+        was a Sentence Transformer model already, then its model card is reused.
+
+        Args:
+            path (str): The path where the model card will be stored.
+            model_name (Optional[str], optional): The name of the model. Defaults to None.
+            train_datasets (Optional[List[str]], optional): Deprecated argument. Defaults to "deprecated".
+
+        Returns:
+            None
         """
         if model_name:
             model_path = Path(model_name)
@@ -1018,18 +1128,19 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
-        :param repo_id: Repository name for your model in the Hub, including the user or organization.
-        :param token: An authentication token (See https://huggingface.co/settings/token)
-        :param private: Set to true, for hosting a private model
-        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
-        :param commit_message: Message to commit while pushing.
-        :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
-        :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
-        :param replace_model_card: If true, replace an existing model card in the hub with the automatically created model card
-        :param train_datasets: Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
-        :param organization: Deprecated. Organization in which you want to push your model or tokenizer (you must be a member of this organization).
+        Args:
+            repo_id (str): Repository name for your model in the Hub, including the user or organization.
+            token (str, optional): An authentication token (See https://huggingface.co/settings/token)
+            private (bool, optional): Set to true, for hosting a private model
+            safe_serialization (bool, optional): If true, save the model using safetensors. If false, save the model the traditional PyTorch way
+            commit_message (str, optional): Message to commit while pushing.
+            local_model_path (str, optional): Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
+            exist_ok (bool, optional): If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
+            replace_model_card (bool, optional): If true, replace an existing model card in the hub with the automatically created model card
+            train_datasets (List[str], optional): Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
 
-        :return: The url of the commit of your model in the repository on the Hugging Face Hub.
+        Returns:
+            str: The url of the commit of your model in the repository on the Hugging Face Hub.
         """
         logger.warning(
             "The `save_to_hub` method is deprecated and will be removed in a future version of SentenceTransformers."
@@ -1078,17 +1189,19 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         """
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
 
-        :param repo_id: Repository name for your model in the Hub, including the user or organization.
-        :param token: An authentication token (See https://huggingface.co/settings/token)
-        :param private: Set to true, for hosting a private model
-        :param safe_serialization: If true, save the model using safetensors. If false, save the model the traditional PyTorch way
-        :param commit_message: Message to commit while pushing.
-        :param local_model_path: Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
-        :param exist_ok: If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
-        :param replace_model_card: If true, replace an existing model card in the hub with the automatically created model card
-        :param train_datasets: Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
+        Args:
+            repo_id (str): Repository name for your model in the Hub, including the user or organization.
+            token (str, optional): An authentication token (See https://huggingface.co/settings/token)
+            private (bool, optional): Set to true, for hosting a private model
+            safe_serialization (bool, optional): If true, save the model using safetensors. If false, save the model the traditional PyTorch way
+            commit_message (str, optional): Message to commit while pushing.
+            local_model_path (str, optional): Path of the model locally. If set, this file path will be uploaded. Otherwise, the current model will be uploaded
+            exist_ok (bool, optional): If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
+            replace_model_card (bool, optional): If true, replace an existing model card in the hub with the automatically created model card
+            train_datasets (List[str], optional): Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
 
-        :return: The url of the commit of your model in the repository on the Hugging Face Hub.
+        Returns:
+            str: The url of the commit of your model in the repository on the Hugging Face Hub.
         """
         api = HfApi(token=token)
         repo_url = api.create_repo(
@@ -1140,12 +1253,14 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
         """
-        Evaluate the model
+        Evaluate the model based on an evaluator
 
-        :param evaluator:
-            the evaluator
-        :param output_path:
-            the evaluator can write the results to this path
+        Args:
+            evaluator (SentenceEvaluator): The evaluator used to evaluate the model.
+            output_path (str, optional): The path where the evaluator can write the results. Defaults to None.
+
+        Returns:
+            The evaluation results.
         """
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
@@ -1162,14 +1277,26 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         model_kwargs: Optional[Dict[str, Any]] = None,
         tokenizer_kwargs: Optional[Dict[str, Any]] = None,
         config_kwargs: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> List[nn.Module]:
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
+
+        Args:
+            model_name_or_path (str): The name or path of the pre-trained model.
+            token (Optional[Union[bool, str]]): The token to use for the model.
+            cache_folder (Optional[str]): The folder to cache the model.
+            revision (Optional[str], optional): The revision of the model. Defaults to None.
+            trust_remote_code (bool, optional): Whether to trust remote code. Defaults to False.
+            local_files_only (bool, optional): Whether to use only local files. Defaults to False.
+            model_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the model. Defaults to None.
+            tokenizer_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the tokenizer. Defaults to None.
+            config_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the config. Defaults to None.
+
+        Returns:
+            List[nn.Module]: A list containing the transformer model and the pooling model.
         """
         logger.warning(
-            "No sentence-transformers model found with name {}. Creating a new one with mean pooling.".format(
-                model_name_or_path
-            )
+            f"No sentence-transformers model found with name {model_name_or_path}. Creating a new one with mean pooling."
         )
 
         shared_kwargs = {
@@ -1204,9 +1331,23 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         model_kwargs: Optional[Dict[str, Any]] = None,
         tokenizer_kwargs: Optional[Dict[str, Any]] = None,
         config_kwargs: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> Dict[str, nn.Module]:
         """
-        Loads a full sentence-transformers model
+        Loads a full SentenceTransformer model using the modules.json file.
+
+        Args:
+            model_name_or_path (str): The name or path of the pre-trained model.
+            token (Optional[Union[bool, str]]): The token to use for the model.
+            cache_folder (Optional[str]): The folder to cache the model.
+            revision (Optional[str], optional): The revision of the model. Defaults to None.
+            trust_remote_code (bool, optional): Whether to trust remote code. Defaults to False.
+            local_files_only (bool, optional): Whether to use only local files. Defaults to False.
+            model_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the model. Defaults to None.
+            tokenizer_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the tokenizer. Defaults to None.
+            config_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the config. Defaults to None.
+
+        Returns:
+            OrderedDict[str, nn.Module]: An ordered dictionary containing the modules of the model.
         """
         # Check if the config_sentence_transformers.json file exists (exists since v2 of the framework)
         config_sentence_transformers_json_path = load_file_path(
@@ -1398,9 +1539,21 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self._first_module().tokenizer = value
 
     @property
-    def max_seq_length(self):
+    def max_seq_length(self) -> int:
         """
-        Property to get the maximal input sequence length for the model. Longer inputs will be truncated.
+        Returns the maximal input sequence length for the model. Longer inputs will be truncated.
+
+        Returns:
+            int: The maximal input sequence length.
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer
+
+                model = SentenceTransformer("all-mpnet-base-v2")
+                print(model.max_seq_length)
+                # => 384
         """
         return self._first_module().max_seq_length
 
@@ -1414,7 +1567,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @property
     def _target_device(self) -> torch.device:
         logger.warning(
-            "`SentenceTransformer._target_device` has been removed, please use `SentenceTransformer.device` instead.",
+            "`SentenceTransformer._target_device` has been deprecated, please use `SentenceTransformer.device` instead.",
         )
         return self.device
 

@@ -19,7 +19,7 @@ class TripletEvaluator(SentenceEvaluator):
     Evaluate a model based on a triplet: (sentence, positive_example, negative_example).
     Checks if distance(sentence, positive_example) < distance(sentence, negative_example).
 
-    Example
+    Example:
         ::
 
             from sentence_transformers import SentenceTransformer
@@ -66,17 +66,21 @@ class TripletEvaluator(SentenceEvaluator):
         truncate_dim: Optional[int] = None,
     ):
         """
-        :param anchors: Sentences to check similarity to. (e.g. a query)
-        :param positives: List of positive sentences
-        :param negatives: List of negative sentences
-        :param main_distance_function: The distance function to use. If not specified, use cosine similarity,
-            dot product, Euclidean, and Manhattan.
-        :param name: Name for the output
-        :param batch_size: Batch size used to compute embeddings
-        :param show_progress_bar: If true, prints a progress bar
-        :param write_csv: Write results to a CSV file
-        :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current
-            truncation dimension. Defaults to None.
+        Initializes a TripletEvaluator object.
+
+        Args:
+            anchors (List[str]): Sentences to check similarity to. (e.g. a query)
+            positives (List[str]): List of positive sentences
+            negatives (List[str]): List of negative sentences
+            main_distance_function (Union[str, SimilarityFunction], optional):
+                The distance function to use. If not specified, use cosine similarity,
+                dot product, Euclidean, and Manhattan. Defaults to None.
+            name (str): Name for the output. Defaults to "".
+            batch_size (int): Batch size used to compute embeddings. Defaults to 16.
+            show_progress_bar (bool): If true, prints a progress bar. Defaults to False.
+            write_csv (bool): Write results to a CSV file. Defaults to True.
+            truncate_dim (int, optional): The dimension to truncate sentence embeddings to.
+                `None` uses the model's current truncation dimension. Defaults to None.
         """
         super().__init__()
         self.anchors = anchors

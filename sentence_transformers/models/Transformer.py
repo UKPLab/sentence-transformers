@@ -9,14 +9,22 @@ class Transformer(nn.Module):
     """Huggingface AutoModel to generate token embeddings.
     Loads the correct class, e.g. BERT / RoBERTa etc.
 
-    :param model_name_or_path: Huggingface models name (https://huggingface.co/models)
-    :param max_seq_length: Truncate any inputs longer than max_seq_length
-    :param model_args: Keyword arguments passed to the Huggingface Transformers model
-    :param tokenizer_args: Keyword arguments passed to the Huggingface Transformers tokenizer
-    :param config_args: Keyword arguments passed to the Huggingface Transformers config
-    :param cache_dir: Cache dir for Huggingface Transformers to store/load models
-    :param do_lower_case: If true, lowercases the input (independent if the model is cased or not)
-    :param tokenizer_name_or_path: Name or path of the tokenizer. When None, then model_name_or_path is used
+    Args:
+        model_name_or_path: Huggingface models name
+            (https://huggingface.co/models)
+        max_seq_length: Truncate any inputs longer than max_seq_length
+        model_args: Keyword arguments passed to the Huggingface
+            Transformers model
+        tokenizer_args: Keyword arguments passed to the Huggingface
+            Transformers tokenizer
+        config_args: Keyword arguments passed to the Huggingface
+            Transformers config
+        cache_dir: Cache dir for Huggingface Transformers to store/load
+            models
+        do_lower_case: If true, lowercases the input (independent if the
+            model is cased or not)
+        tokenizer_name_or_path: Name or path of the tokenizer. When
+            None, then model_name_or_path is used
     """
 
     def __init__(
@@ -124,9 +132,7 @@ class Transformer(nn.Module):
         return self.auto_model.config.hidden_size
 
     def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]], padding: Union[str, bool] = True):
-        """
-        Tokenizes a text and maps tokens to token-ids
-        """
+        """Tokenizes a text and maps tokens to token-ids"""
         output = {}
         if isinstance(texts[0], str):
             to_tokenize = [texts]

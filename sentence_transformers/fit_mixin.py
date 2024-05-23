@@ -174,8 +174,8 @@ class FitMixin:
     ):
         """
         Deprecated training method from before Sentence Transformers v3.0, it is recommended to use
-        :class:`sentence_transformers.trainer.SentenceTransformerTrainer` instead. This method uses
-        :class:`sentence_transformers.trainer.SentenceTransformerTrainer` behind the scenes, but does
+        :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` instead. This method uses
+        :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` behind the scenes, but does
         not provide as much flexibility as the Trainer itself.
 
         This training approach uses a list of DataLoaders and Loss functions to train the model. Each DataLoader
@@ -187,27 +187,45 @@ class FitMixin:
         :meth:`SentenceTransformer.old_fit <sentence_transformers.SentenceTransformer.old_fit>` instead.
         That uses the old training method from before v3.0.
 
-        :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
-        :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
-        :param epochs: Number of epochs for training
-        :param steps_per_epoch: Number of training steps per epoch. If set to None (default), one epoch is equal the DataLoader size from train_objectives.
-        :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
-        :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
-        :param optimizer_class: Optimizer
-        :param optimizer_params: Optimizer parameters
-        :param weight_decay: Weight decay for model parameters
-        :param evaluation_steps: If > 0, evaluate the model using evaluator after each number of training steps
-        :param output_path: Storage path for the model and evaluation files
-        :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
-        :param max_grad_norm: Used for gradient normalization.
-        :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
-        :param callback: Callback function that is invoked after each evaluation.
-                It must accept the following three parameters in this order:
-                `score`, `epoch`, `steps`
-        :param show_progress_bar: If True, output a tqdm progress bar
-        :param checkpoint_path: Folder to save checkpoints during training
-        :param checkpoint_save_steps: Will save a checkpoint after so many steps
-        :param checkpoint_save_total_limit: Total number of checkpoints to store
+        Args:
+            train_objectives: Tuples of (DataLoader, LossFunction). Pass
+                more than one for multi-task learning
+            evaluator: An evaluator (sentence_transformers.evaluation)
+                evaluates the model performance during training on held-
+                out dev data. It is used to determine the best model
+                that is saved to disc.
+            epochs: Number of epochs for training
+            steps_per_epoch: Number of training steps per epoch. If set
+                to None (default), one epoch is equal the DataLoader
+                size from train_objectives.
+            scheduler: Learning rate scheduler. Available schedulers:
+                constantlr, warmupconstant, warmuplinear, warmupcosine,
+                warmupcosinewithhardrestarts
+            warmup_steps: Behavior depends on the scheduler. For
+                WarmupLinear (default), the learning rate is increased
+                from o up to the maximal learning rate. After these many
+                training steps, the learning rate is decreased linearly
+                back to zero.
+            optimizer_class: Optimizer
+            optimizer_params: Optimizer parameters
+            weight_decay: Weight decay for model parameters
+            evaluation_steps: If > 0, evaluate the model using evaluator
+                after each number of training steps
+            output_path: Storage path for the model and evaluation files
+            save_best_model: If true, the best model (according to
+                evaluator) is stored at output_path
+            max_grad_norm: Used for gradient normalization.
+            use_amp: Use Automatic Mixed Precision (AMP). Only for
+                Pytorch >= 1.6.0
+            callback: Callback function that is invoked after each
+                evaluation. It must accept the following three
+                parameters in this order: `score`, `epoch`, `steps`
+            show_progress_bar: If True, output a tqdm progress bar
+            checkpoint_path: Folder to save checkpoints during training
+            checkpoint_save_steps: Will save a checkpoint after so many
+                steps
+            checkpoint_save_total_limit: Total number of checkpoints to
+                store
         """
         # Delayed import to counter the SentenceTransformers -> FitMixin -> SentenceTransformerTrainer -> SentenceTransformers circular import
         from sentence_transformers.trainer import SentenceTransformerTrainer
@@ -347,7 +365,13 @@ class FitMixin:
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
         """
-        Returns the correct learning rate scheduler. Available scheduler: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
+        Returns the correct learning rate scheduler. Available scheduler:
+
+        - constantlr,
+        - warmupconstant,
+        - warmuplinear,
+        - warmupcosine,
+        - warmupcosinewithhardrestarts
         """
         scheduler = scheduler.lower()
         if scheduler == "constantlr":
@@ -374,9 +398,10 @@ class FitMixin:
         Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
         Here, batch is a list of InputExample instances: [InputExample(...), ...]
 
-        :param batch:
-            a batch from a SmartBatchingDataset
-        :return:
+        Args:
+            batch: a batch from a SmartBatchingDataset
+
+        Returns:
             a batch of tensors for the model
         """
         texts = [example.texts for example in batch]
@@ -427,27 +452,45 @@ class FitMixin:
         is sampled in turn for one batch. We sample only as many batches from each DataLoader as there are in the
         smallest one to make sure of equal training with each dataset, i.e. round robin sampling.
 
-        :param train_objectives: Tuples of (DataLoader, LossFunction). Pass more than one for multi-task learning
-        :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
-        :param epochs: Number of epochs for training
-        :param steps_per_epoch: Number of training steps per epoch. If set to None (default), one epoch is equal the DataLoader size from train_objectives.
-        :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
-        :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
-        :param optimizer_class: Optimizer
-        :param optimizer_params: Optimizer parameters
-        :param weight_decay: Weight decay for model parameters
-        :param evaluation_steps: If > 0, evaluate the model using evaluator after each number of training steps
-        :param output_path: Storage path for the model and evaluation files
-        :param save_best_model: If true, the best model (according to evaluator) is stored at output_path
-        :param max_grad_norm: Used for gradient normalization.
-        :param use_amp: Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0
-        :param callback: Callback function that is invoked after each evaluation.
-                It must accept the following three parameters in this order:
-                `score`, `epoch`, `steps`
-        :param show_progress_bar: If True, output a tqdm progress bar
-        :param checkpoint_path: Folder to save checkpoints during training
-        :param checkpoint_save_steps: Will save a checkpoint after so many steps
-        :param checkpoint_save_total_limit: Total number of checkpoints to store
+        Args:
+            train_objectives: Tuples of (DataLoader, LossFunction). Pass
+                more than one for multi-task learning
+            evaluator: An evaluator (sentence_transformers.evaluation)
+                evaluates the model performance during training on held-
+                out dev data. It is used to determine the best model
+                that is saved to disc.
+            epochs: Number of epochs for training
+            steps_per_epoch: Number of training steps per epoch. If set
+                to None (default), one epoch is equal the DataLoader
+                size from train_objectives.
+            scheduler: Learning rate scheduler. Available schedulers:
+                constantlr, warmupconstant, warmuplinear, warmupcosine,
+                warmupcosinewithhardrestarts
+            warmup_steps: Behavior depends on the scheduler. For
+                WarmupLinear (default), the learning rate is increased
+                from o up to the maximal learning rate. After these many
+                training steps, the learning rate is decreased linearly
+                back to zero.
+            optimizer_class: Optimizer
+            optimizer_params: Optimizer parameters
+            weight_decay: Weight decay for model parameters
+            evaluation_steps: If > 0, evaluate the model using evaluator
+                after each number of training steps
+            output_path: Storage path for the model and evaluation files
+            save_best_model: If true, the best model (according to
+                evaluator) is stored at output_path
+            max_grad_norm: Used for gradient normalization.
+            use_amp: Use Automatic Mixed Precision (AMP). Only for
+                Pytorch >= 1.6.0
+            callback: Callback function that is invoked after each
+                evaluation. It must accept the following three
+                parameters in this order: `score`, `epoch`, `steps`
+            show_progress_bar: If True, output a tqdm progress bar
+            checkpoint_path: Folder to save checkpoints during training
+            checkpoint_save_steps: Will save a checkpoint after so many
+                steps
+            checkpoint_save_total_limit: Total number of checkpoints to
+                store
         """
 
         ##Add info to model card

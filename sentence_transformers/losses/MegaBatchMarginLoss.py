@@ -21,12 +21,18 @@ class MegaBatchMarginLoss(nn.Module):
 
         Then train as with the triplet loss.
 
-        :param model: SentenceTransformerModel
-        :param positive_margin: Positive margin, cos(anchor, positive) should be > positive_margin
-        :param negative_margin: Negative margin, cos(anchor, negative) should be < negative_margin
-        :param use_mini_batched_version: As large batch sizes require a lot of memory, we can use a mini-batched version.
-            We break down the large batch into smaller batches with fewer examples.
-        :param mini_batch_size: Size for the mini-batches. Should be a devisor for the batch size in your data loader.
+        Args:
+            model: SentenceTransformerModel
+            positive_margin: Positive margin, cos(anchor, positive)
+                should be > positive_margin
+            negative_margin: Negative margin, cos(anchor, negative)
+                should be < negative_margin
+            use_mini_batched_version: As large batch sizes require a lot
+                of memory, we can use a mini-batched version. We break
+                down the large batch into smaller batches with fewer
+                examples.
+            mini_batch_size: Size for the mini-batches. Should be a
+                devisor for the batch size in your data loader.
 
         References:
             - This loss function was inspired by the ParaNMT paper: https://www.aclweb.org/anthology/P18-1042/

@@ -15,8 +15,9 @@ class MarginMSELoss(nn.Module):
         with a batch size of 64, we compare one query against 128 passages. With MarginMSELoss, we compare a query only
         against two passages.
 
-        :param model: SentenceTransformerModel
-        :param similarity_fct: Which similarity function to use.
+        Args:
+            model: SentenceTransformerModel
+            similarity_fct: Which similarity function to use.
 
         References:
             - For more details, please refer to https://arxiv.org/abs/2010.02666.

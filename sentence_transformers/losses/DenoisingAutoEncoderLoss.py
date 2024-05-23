@@ -1,5 +1,5 @@
 from torch import nn, Tensor
-from typing import Iterable, Dict
+from typing import Iterable, Dict, Optional
 from sentence_transformers import SentenceTransformer
 from transformers import AutoConfig, AutoTokenizer, AutoModelForCausalLM, PreTrainedModel
 import logging
@@ -8,7 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 class DenoisingAutoEncoderLoss(nn.Module):
-    def __init__(self, model: SentenceTransformer, decoder_name_or_path: str = None, tie_encoder_decoder: bool = True):
+    def __init__(
+        self, model: SentenceTransformer, decoder_name_or_path: Optional[str] = None, tie_encoder_decoder: bool = True
+    ) -> None:
         """
         This loss expects as input a pairs of damaged sentences and the corresponding original ones.
         During training, the decoder reconstructs the original sentences from the encoded sentence embeddings.
@@ -21,9 +23,10 @@ class DenoisingAutoEncoderLoss(nn.Module):
         The data generation process (i.e. the 'damaging' process) has already been implemented in ``DenoisingAutoEncoderDataset``,
         allowing you to only provide regular sentences.
 
-        :param model: SentenceTransformer model
-        :param decoder_name_or_path: Model name or path for initializing a decoder (compatible with Huggingface's Transformers)
-        :param tie_encoder_decoder: whether to tie the trainable parameters of encoder and decoder
+        Args:
+            model (SentenceTransformer): The SentenceTransformer model.
+            decoder_name_or_path (str, optional): Model name or path for initializing a decoder (compatible with Huggingface's Transformers). Defaults to None.
+            tie_encoder_decoder (bool): Whether to tie the trainable parameters of encoder and decoder. Defaults to True.
 
         References:
             * TSDAE paper: https://arxiv.org/pdf/2104.06979.pdf

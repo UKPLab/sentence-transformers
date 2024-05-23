@@ -13,11 +13,15 @@ class CosineSimilarityLoss(nn.Module):
         vectors ``u = model(sentence_A)`` and ``v = model(sentence_B)`` and measures the cosine-similarity between the two.
         By default, it minimizes the following loss: ``||input_label - cos_score_transformation(cosine_sim(u,v))||_2``.
 
-        :param model: SentenceTransformer model
-        :param loss_fct: Which pytorch loss function should be used to compare the ``cosine_similarity(u, v)`` with the input_label?
-            By default, MSE is used: ``||input_label - cosine_sim(u, v)||_2``
-        :param cos_score_transformation: The cos_score_transformation function is applied on top of cosine_similarity.
-            By default, the identify function is used (i.e. no change).
+        Args:
+            model: SentenceTransformer model
+            loss_fct: Which pytorch loss function should be used to
+                compare the ``cosine_similarity(u, v)`` with the
+                input_label? By default, MSE is used: ``||input_label -
+                cosine_sim(u, v)||_2``
+            cos_score_transformation: The cos_score_transformation
+                function is applied on top of cosine_similarity. By
+                default, the identify function is used (i.e. no change).
 
         References:
             - `Training Examples > Semantic Textual Similarity <../../examples/training/sts/README.html>`_

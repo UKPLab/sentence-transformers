@@ -6,9 +6,7 @@ import json
 
 
 class LSTM(nn.Module):
-    """
-    Bidirectional LSTM running over word embeddings.
-    """
+    """Bidirectional LSTM running over word embeddings."""
 
     def __init__(
         self,

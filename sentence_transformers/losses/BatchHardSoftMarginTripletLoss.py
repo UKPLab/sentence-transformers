@@ -15,8 +15,11 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
         must be integers, with same label indicating sentences from the same class. Your train dataset
         must contain at least 2 examples per label class. This soft-margin variant does not require setting a margin.
 
-        :param model: SentenceTransformer model
-        :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrics that can be used.
+        Args:
+            model: SentenceTransformer model
+            distance_metric: Function that returns a distance between
+                two embeddings. The class SiameseDistanceMetric contains
+                pre-defined metrics that can be used.
 
         Definitions:
             :Easy triplets: Triplets which have a loss of 0 because

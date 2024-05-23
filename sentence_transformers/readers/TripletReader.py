@@ -4,8 +4,7 @@ import os
 
 
 class TripletReader(object):
-    """
-    Reads in the a Triplet Dataset: Each line contains (at least) 3 columns, one anchor column (s1),
+    """Reads in the a Triplet Dataset: Each line contains (at least) 3 columns, one anchor column (s1),
     one positive example (s2) and one negative example (s3)
     """
 
@@ -28,7 +27,6 @@ class TripletReader(object):
         self.quoting = quoting
 
     def get_examples(self, filename, max_examples=0):
-        """ """
         data = csv.reader(
             open(os.path.join(self.dataset_folder, filename), encoding="utf-8"),
             delimiter=self.delimiter,

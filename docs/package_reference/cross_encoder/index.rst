@@ -6,3 +6,4 @@ Cross Encoder
    :hidden:
 
    cross_encoder
+   evaluation

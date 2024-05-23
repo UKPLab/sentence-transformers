@@ -17,9 +17,13 @@ class BatchAllTripletLoss(nn.Module):
         must be integers, with same label indicating sentences from the same class. Your train dataset
         must contain at least 2 examples per label class.
 
-        :param model: SentenceTransformer model
-        :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrics that can be used.
-        :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
+        Args:
+            model: SentenceTransformer model
+            distance_metric: Function that returns a distance between
+                two embeddings. The class SiameseDistanceMetric contains
+                pre-defined metrics that can be used.
+            margin: Negative samples should be at least margin further
+                apart from the anchor than the positive.
 
         References:
             * Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py

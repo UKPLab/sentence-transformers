@@ -18,9 +18,13 @@ class GISTEmbedLoss(nn.Module):
         in-batch negative sample selection. The cosine similarity is used to compute the loss
         and the temperature parameter is used to scale the cosine similarities.
 
-        :param model: SentenceTransformer model based on a `transformers` model.
-        :param guide: SentenceTransformer model to guide the in-batch negative sample selection.
-        :param temperature: Temperature parameter to scale the cosine similarities.
+        Args:
+            model: SentenceTransformer model based on a `transformers`
+                model.
+            guide: SentenceTransformer model to guide the in-batch
+                negative sample selection.
+            temperature: Temperature parameter to scale the cosine
+                similarities.
 
         References:
             - For further details, see: https://arxiv.org/abs/2402.16829

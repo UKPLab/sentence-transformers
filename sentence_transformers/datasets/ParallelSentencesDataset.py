@@ -37,8 +37,11 @@ class ParallelSentencesDataset(Dataset):
         """
         Parallel sentences dataset reader to train student model given a teacher model
 
-        :param student_model: Student sentence embedding model that should be trained
-        :param teacher_model: Teacher model, that provides the sentence embeddings for the first column in the dataset file
+        Args:
+            student_model (SentenceTransformer): The student sentence embedding model that should be trained.
+            teacher_model (SentenceTransformer): The teacher model that provides the sentence embeddings for the first column in the dataset file.
+            batch_size (int, optional): The batch size for training. Defaults to 8.
+            use_embedding_cache (bool, optional): Whether to use an embedding cache. Defaults to True.
         """
         self.student_model = student_model
         self.teacher_model = teacher_model
@@ -53,16 +56,20 @@ class ParallelSentencesDataset(Dataset):
         self.embedding_cache = {}
         self.num_sentences = 0
 
-    def load_data(self, filepath: str, weight: int = 100, max_sentences: int = None, max_sentence_length: int = 128):
+    def load_data(
+        self, filepath: str, weight: int = 100, max_sentences: int = None, max_sentence_length: int = 128
+    ) -> None:
         """
         Reads in a tab-seperated .txt/.csv/.tsv or .gz file. The different columns contain the different translations of the sentence in the first column
 
-        :param filepath: Filepath to the file
-        :param weight: If more than one dataset is loaded with load_data: With which frequency should data be sampled from this dataset?
-        :param max_sentences: Max number of lines to be read from filepath
-        :param max_sentence_length: Skip the example if one of the sentences is has more characters than max_sentence_length
-        :param batch_size: Size for encoding parallel sentences
-        :return:
+        Args:
+            filepath (str): Filepath to the file.
+            weight (int, optional): If more than one dataset is loaded with load_data, specifies the frequency at which data should be sampled from this dataset. Defaults to 100.
+            max_sentences (int, optional): Maximum number of lines to be read from the filepath. Defaults to None.
+            max_sentence_length (int, optional): Skip the example if one of the sentences has more characters than max_sentence_length. Defaults to 128.
+
+        Returns:
+            None
         """
 
         logger.info("Load " + filepath)

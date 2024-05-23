@@ -6,9 +6,7 @@ from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class SiameseDistanceMetric(Enum):
-    """
-    The metric for the contrastive loss
-    """
+    """The metric for the contrastive loss"""
 
     EUCLIDEAN = lambda x, y: F.pairwise_distance(x, y, p=2)
     MANHATTAN = lambda x, y: F.pairwise_distance(x, y, p=1)
@@ -27,10 +25,14 @@ class ContrastiveLoss(nn.Module):
         Contrastive loss. Expects as input two texts and a label of either 0 or 1. If the label == 1, then the distance between the
         two embeddings is reduced. If the label == 0, then the distance between the embeddings is increased.
 
-        :param model: SentenceTransformer model
-        :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
-        :param margin: Negative samples (label == 0) should have a distance of at least the margin value.
-        :param size_average: Average by the size of the mini-batch.
+        Args:
+            model: SentenceTransformer model
+            distance_metric: Function that returns a distance between
+                two embeddings. The class SiameseDistanceMetric contains
+                pre-defined metrices that can be used
+            margin: Negative samples (label == 0) should have a distance
+                of at least the margin value.
+            size_average: Average by the size of the mini-batch.
 
         References:
             * Further information: http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf

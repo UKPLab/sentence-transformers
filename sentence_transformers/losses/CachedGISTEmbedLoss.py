@@ -77,9 +77,12 @@ class CachedGISTEmbedLoss(nn.Module):
         :class:`CachedMultipleNegativesRankingLoss`, it is possible to reduce memory usage while maintaining performance
         levels comparable to those of :class:`GISTEmbedLoss`.
 
-        :param model: SentenceTransformer model
-        :param guide: SentenceTransformer model to guide the in-batch negative sample selection.
-        :param temperature: Temperature parameter to scale the cosine similarities.
+        Args:
+            model: SentenceTransformer model
+            guide: SentenceTransformer model to guide the in-batch
+                negative sample selection.
+            temperature: Temperature parameter to scale the cosine
+                similarities.
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf

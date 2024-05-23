@@ -20,9 +20,13 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
 
         Note: If you pass triplets, the negative entry will be ignored. A anchor is just searched for the positive.
 
-        :param model: SentenceTransformer model
-        :param scale: Output of similarity function is multiplied by scale value
-        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+        Args:
+            model: SentenceTransformer model
+            scale: Output of similarity function is multiplied by scale
+                value
+            similarity_fct: similarity function between sentence
+                embeddings. By default, cos_sim. Can also be set to dot
+                product (and then set scale to 1)
 
         Requirements:
             1. (anchor, positive) pairs

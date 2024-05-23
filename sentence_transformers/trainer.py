@@ -71,8 +71,8 @@ class SentenceTransformerTrainer(Trainer):
         eval_dataset (Union[:class:`datasets.Dataset`, :class:`datasets.DatasetDict`, Dict[str, :class:`datasets.Dataset`]], *optional*):
             The dataset to use for evaluation. Must have a format accepted by your loss function, see
             `Training Overview > Dataset Format <../../../docs/sentence_transformer/training_overview.html#dataset-format>`_.
-        loss (Optional[Union[:class:`torch.nn.Module`, Dict[str, :class:`torch.nn.Module`],
-            Callable[[:class:`~sentence_transformers.SentenceTransformer`], :class:`torch.nn.Module`],
+        loss (Optional[Union[:class:`torch.nn.Module`, Dict[str, :class:`torch.nn.Module`],\
+            Callable[[:class:`~sentence_transformers.SentenceTransformer`], :class:`torch.nn.Module`],\
             Dict[str, Callable[[:class:`~sentence_transformers.SentenceTransformer`]]]], *optional*):
             The loss function to use for training. Can either be a loss class instance, a dictionary mapping dataset names to
             loss class instances, a function that returns a loss class instance given a model, or a dictionary mapping
@@ -273,7 +273,24 @@ class SentenceTransformerTrainer(Trainer):
         model: "SentenceTransformer",
         inputs: Dict[str, Union[torch.Tensor, Any]],
         return_outputs: bool = False,
-    ) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, Any]]]:
+        """
+        Computes the loss for the SentenceTransformer model.
+
+        It uses ``self.loss`` to compute the loss, which can be a single loss function or a dictionary of loss functions
+        for different datasets. If the loss is a dictionary, the dataset name is expected to be passed in the inputs
+        under the key "dataset_name". This is done automatically in the ``add_dataset_name_column`` method.
+        Note that even if ``return_outputs = True``, the outputs will be empty, as the SentenceTransformers losses do not
+        return outputs.
+
+        Args:
+            model (SentenceTransformer): The SentenceTransformer model.
+            inputs (Dict[str, Union[torch.Tensor, Any]]): The input data for the model.
+            return_outputs (bool, optional): Whether to return the outputs along with the loss. Defaults to False.
+
+        Returns:
+            Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, Any]]]: The computed loss. If `return_outputs` is True, returns a tuple of loss and outputs. Otherwise, returns only the loss.
+        """
         dataset_name = inputs.pop("dataset_name", None)
         features, labels = self.collect_features(inputs)
         loss_fn = self.loss
@@ -700,3 +717,9 @@ class SentenceTransformerTrainer(Trainer):
 
         loaded_model = SentenceTransformer(checkpoint_path)
         self.model.load_state_dict(loaded_model.state_dict())
+
+    def create_model_card(self, *args, **kwargs):
+        raise NotImplementedError(
+            "SentenceTransformers does not implement the `create_model_card` method in its Trainer. "
+            "Instead, consider calling SentenceTransformer._create_model_card(path)."
+        )

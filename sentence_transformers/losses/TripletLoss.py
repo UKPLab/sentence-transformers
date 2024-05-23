@@ -6,9 +6,7 @@ from ..SentenceTransformer import SentenceTransformer
 
 
 class TripletDistanceMetric(Enum):
-    """
-    The metric for the triplet loss
-    """
+    """The metric for the triplet loss"""
 
     COSINE = lambda x, y: 1 - F.cosine_similarity(x, y)
     EUCLIDEAN = lambda x, y: F.pairwise_distance(x, y, p=2)
@@ -28,10 +26,13 @@ class TripletLoss(nn.Module):
 
         Margin is an important hyperparameter and needs to be tuned respectively.
 
-        :param model: SentenceTransformerModel
-        :param distance_metric: Function to compute distance between two embeddings. The class TripletDistanceMetric
-            contains common distance metrices that can be used.
-        :param triplet_margin: The negative should be at least this much further away from the anchor than the positive.
+        Args:
+            model: SentenceTransformerModel
+            distance_metric: Function to compute distance between two
+                embeddings. The class TripletDistanceMetric contains
+                common distance metrices that can be used.
+            triplet_margin: The negative should be at least this much
+                further away from the anchor than the positive.
 
         References:
             - For further details, see: https://en.wikipedia.org/wiki/Triplet_loss
