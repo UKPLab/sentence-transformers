@@ -4,8 +4,9 @@ import os
 from typing import List
 
 import numpy as np
+
+from sentence_transformers.readers.InputExample import InputExample
 from .. import CrossEncoder
-from ... import InputExample
 from sklearn.metrics import f1_score
 
 logger = logging.getLogger(__name__)
@@ -19,18 +20,13 @@ class CEF1Evaluator:
     binary tasks the returned metric is binary F1 score. For the multiclass tasks
     the returned metric is macro F1 score.
 
-    :param sentence_pairs: A list of sentence pairs, where each pair is a list of two strings.
-    :type sentence_pairs: list[list[str]]
-    :param labels: A list of integer labels corresponding to each sentence pair.
-    :type labels: list[int]
-    :param batch_size: Batch size for prediction. Defaults to 32.
-    :type batch_size: int
-    :param show_progress_bar: Show tqdm progress bar.
-    :type show_progress_bar: bool
-    :param name: An optional name for the CSV file with stored results. Defaults to an empty string.
-    :type name: str, optional
-    :param write_csv: Flag to determine if the data should be saved to a CSV file. Defaults to True.
-    :type write_csv: bool, optional
+    Args:
+        sentence_pairs (List[List[str]]): A list of sentence pairs, where each pair is a list of two strings.
+        labels (List[int]): A list of integer labels corresponding to each sentence pair.
+        batch_size (int, optional): Batch size for prediction. Defaults to 32.
+        show_progress_bar (bool, optional): Show tqdm progress bar.
+        name (str, optional): An optional name for the CSV file with stored results. Defaults to an empty string.
+        write_csv (bool, optional): Flag to determine if the data should be saved to a CSV file. Defaults to True.
     """
 
     def __init__(
@@ -42,7 +38,7 @@ class CEF1Evaluator:
         show_progress_bar: bool = False,
         name: str = "",
         write_csv: bool = True,
-    ):
+    ) -> None:
         self.sentence_pairs = sentence_pairs
         self.labels = labels
         self.batch_size = batch_size
@@ -72,6 +68,16 @@ class CEF1Evaluator:
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
+        """
+        Create an instance of CEF1Evaluator from a list of InputExample objects.
+
+        Args:
+            examples (List[InputExample]): A list of InputExample objects.
+            **kwargs: Additional keyword arguments to pass to the CEF1Evaluator constructor.
+
+        Returns:
+            CEF1Evaluator: An instance of CEF1Evaluator.
+        """
         sentence_pairs = []
         labels = []
 
@@ -81,13 +87,19 @@ class CEF1Evaluator:
 
         return cls(sentence_pairs, labels, **kwargs)
 
-    def __call__(
-        self,
-        model: CrossEncoder,
-        output_path: str = None,
-        epoch: int = -1,
-        steps: int = -1,
-    ) -> float:
+    def __call__(self, model: CrossEncoder, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+        """
+        Evaluate the model using the CEF1Evaluator.
+
+        Args:
+            model (CrossEncoder): The cross-encoder model to evaluate.
+            output_path (str, optional): The path to save the evaluation results. Defaults to None.
+            epoch (int, optional): The epoch number. Defaults to -1.
+            steps (int, optional): The number of steps. Defaults to -1.
+
+        Returns:
+            float: The F1 score.
+        """
         if epoch != -1:
             if steps == -1:
                 out_txt = f"after epoch {epoch}:"

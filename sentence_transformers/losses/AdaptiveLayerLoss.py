@@ -111,20 +111,33 @@ class AdaptiveLayerLoss(nn.Module):
         layers of the Sentence Transformer model. This is useful for when you want to train a model where users have
         the option to lower the number of layers used to improve their inference speed and memory usage.
 
-        :param model: SentenceTransformer model
-        :param loss: The loss function to be used, e.g. :class:`MultipleNegativesRankingLoss`, :class:`CoSENTLoss`, etc.
-        :param n_layers_per_step: The number of layers to use per step. If -1, then all layers are used. If > 0, then
-            a random sample of `n_layers_per_step` layers are used per step, separate from the final layer, which is
-            always used. The 2DMSE paper uses `n_layers_per_step=1`. The default value is 1.
-        :param last_layer_weight: The weight to use for the loss of the final layer. Increase this to focus more on the
-            performance when using all layers. The default value is 1.0.
-        :param prior_layers_weight: The weight to use for the loss of the prior layers. Increase this to focus more on
-            the performance when using fewer layers. The default value is 1.0.
-        :param kl_div_weight: The weight to use for the KL-divergence loss that is used to make the prior layers match
-            that of the last layer. Increase this to focus more on the performance when using fewer layers. The default
-            value is 1.0.
-        :param kl_temperature: The temperature to use for the KL-divergence loss. If 0, then the KL-divergence loss is
-            not used. The default value is 1.0.
+        Args:
+            model: SentenceTransformer model
+            loss: The loss function to be used, e.g.
+                :class:`MultipleNegativesRankingLoss`,
+                :class:`CoSENTLoss`, etc.
+            n_layers_per_step: The number of layers to use per step. If
+                -1, then all layers are used. If > 0, then a random
+                sample of `n_layers_per_step` layers are used per step,
+                separate from the final layer, which is always used. The
+                2DMSE paper uses `n_layers_per_step=1`. The default
+                value is 1.
+            last_layer_weight: The weight to use for the loss of the
+                final layer. Increase this to focus more on the
+                performance when using all layers. The default value is
+                1.0.
+            prior_layers_weight: The weight to use for the loss of the
+                prior layers. Increase this to focus more on the
+                performance when using fewer layers. The default value
+                is 1.0.
+            kl_div_weight: The weight to use for the KL-divergence loss
+                that is used to make the prior layers match that of the
+                last layer. Increase this to focus more on the
+                performance when using fewer layers. The default value
+                is 1.0.
+            kl_temperature: The temperature to use for the KL-divergence
+                loss. If 0, then the KL-divergence loss is not used. The
+                default value is 1.0.
 
         References:
             - The concept was inspired by the 2DMSE paper: https://arxiv.org/abs/2402.14776
@@ -147,21 +160,23 @@ class AdaptiveLayerLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('microsoft/mpnet-base')
-                train_examples = [
-                    InputExample(texts=['Anchor 1', 'Positive 1']),
-                    InputExample(texts=['Anchor 2', 'Positive 2']),
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
-                train_loss = losses.MultipleNegativesRankingLoss(model=model)
-                train_loss = losses.AdaptiveLayerLoss(model, train_loss)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                })
+                loss = losses.MultipleNegativesRankingLoss(model=model)
+                loss = losses.AdaptiveLayerLoss(model, loss)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super().__init__()
         self.model = model

@@ -20,16 +20,18 @@ class MSEEvaluator(SentenceEvaluator):
     For multilingual knowledge distillation (https://arxiv.org/abs/2004.09813), source_sentences are in English
     and target_sentences are in a different language like German, Chinese, Spanish...
 
-    :param source_sentences: Source sentences are embedded with the teacher model
-    :param target_sentences: Target sentences are ambedding with the student model.
-    :param show_progress_bar: Show progress bar when computing embeddings
-    :param batch_size: Batch size to compute sentence embeddings
-    :param name: Name of the evaluator
-    :param write_csv: Write results to CSV file
-    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
-        dimension. Defaults to None.
+    Args:
+        source_sentences (List[str]): Source sentences to embed with the teacher model.
+        target_sentences (List[str]): Target sentences to embed with the student model.
+        teacher_model (SentenceTransformer, optional): The teacher model to compute the source sentence embeddings.
+        show_progress_bar (bool, optional): Show progress bar when computing embeddings. Defaults to False.
+        batch_size (int, optional): Batch size to compute sentence embeddings. Defaults to 32.
+        name (str, optional): Name of the evaluator. Defaults to "".
+        write_csv (bool, optional): Write results to CSV file. Defaults to True.
+        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
+            dimension. Defaults to None.
 
-    Example
+    Example:
         ::
 
             from sentence_transformers import SentenceTransformer

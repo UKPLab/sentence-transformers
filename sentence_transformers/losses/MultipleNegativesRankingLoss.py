@@ -24,9 +24,13 @@ class MultipleNegativesRankingLoss(nn.Module):
         ``(a_1, p_1, n_1), (a_2, p_2, n_2)``. Then, ``n_1`` is a hard negative for ``(a_1, p_1)``. The loss will use for
         the pair ``(a_i, p_i)`` all ``p_j`` for ``j != i`` and all ``n_j`` as negatives.
 
-        :param model: SentenceTransformer model
-        :param scale: Output of similarity function is multiplied by scale value
-        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+        Args:
+            model: SentenceTransformer model
+            scale: Output of similarity function is multiplied by scale
+                value
+            similarity_fct: similarity function between sentence
+                embeddings. By default, cos_sim. Can also be set to dot
+                product (and then set scale to 1)
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
@@ -60,20 +64,22 @@ class MultipleNegativesRankingLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-uncased')
-                train_examples = [
-                    InputExample(texts=['Anchor 1', 'Positive 1']),
-                    InputExample(texts=['Anchor 2', 'Positive 2']),
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
-                train_loss = losses.MultipleNegativesRankingLoss(model=model)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                })
+                loss = losses.MultipleNegativesRankingLoss(model)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(MultipleNegativesRankingLoss, self).__init__()
         self.model = model

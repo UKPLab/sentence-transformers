@@ -22,21 +22,23 @@ class SentenceEvaluator:
         This is called during training to evaluate the model.
         It returns a score for the evaluation with a higher score indicating a better result.
 
-        :param model:
-            the model to evaluate
-        :param output_path:
-            path where predictions and metrics are written to
-        :param epoch
-            the epoch where the evaluation takes place.
-            This is used for the file prefixes.
-            If this is -1, then we assume evaluation on test data.
-        :param steps
-            the steps in the current epoch at time of the evaluation.
-            This is used for the file prefixes.
-            If this is -1, then we assume evaluation at the end of the epoch.
-        :return: Either a score for the evaluation with a higher score indicating a better result,
-            or a dictionary with scores. If the latter is chosen, then `evaluator.primary_metric`
-            must be defined
+        Args:
+            model: the model to evaluate
+            output_path: path where predictions and metrics are written
+                to
+            epoch: the epoch where the evaluation takes place. This is
+                used for the file prefixes. If this is -1, then we
+                assume evaluation on test data.
+            steps: the steps in the current epoch at time of the
+                evaluation. This is used for the file prefixes. If this
+                is -1, then we assume evaluation at the end of the
+                epoch.
+
+        Returns:
+            Either a score for the evaluation with a higher score
+            indicating a better result, or a dictionary with scores. If
+            the latter is chosen, then `evaluator.primary_metric` must
+            be defined
         """
         pass
 

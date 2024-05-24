@@ -15,8 +15,10 @@ class CERerankingEvaluator:
     Given a query and a list of documents, it computes the score [query, doc_i] for all possible
     documents and sorts them in decreasing order. Then, MRR@10 and NDCG@10 are computed to measure the quality of the ranking.
 
-    :param samples: Must be a list and each element is of the form: {'query': '', 'positive': [], 'negative': []}. Query is the search query,
-     positive is a list of positive (relevant) documents, negative is a list of negative (irrelevant) documents.
+    Args:
+        samples (List[Dict, str, Union[str, List[str]]): Must be a list and each element is of the form:
+            {'query': '', 'positive': [], 'negative': []}. Query is the search query, positive is a list
+            of positive (relevant) documents, negative is a list of negative (irrelevant) documents.
     """
 
     def __init__(

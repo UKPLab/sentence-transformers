@@ -7,16 +7,32 @@ from transformers.utils import ExplicitEnum
 class BatchSamplers(ExplicitEnum):
     """
     Stores the acceptable string identifiers for batch samplers.
+
+    The batch sampler is responsible for determining how samples are grouped into batches during training.
+    Valid options are:
+
+    - ``BatchSamplers.BATCH_SAMPLER``: The default PyTorch batch sampler.
+    - ``BatchSamplers.NO_DUPLICATES``: Ensures no duplicate samples in a batch.
+    - ``BatchSamplers.GROUP_BY_LABEL``: Ensures each batch has 2+ samples from the same label.
     """
 
-    BATCH_SAMPLER = "batch_sampler"  # Just the default PyTorch batch sampler [default]
-    NO_DUPLICATES = "no_duplicates"  # Ensures no duplicate samples in a batch
-    GROUP_BY_LABEL = "group_by_label"  # Ensure each batch has 2+ samples from the same label
+    BATCH_SAMPLER = "batch_sampler"
+    NO_DUPLICATES = "no_duplicates"
+    GROUP_BY_LABEL = "group_by_label"
 
 
 class MultiDatasetBatchSamplers(ExplicitEnum):
     """
     Stores the acceptable string identifiers for multi-dataset batch samplers.
+
+    The multi-dataset batch sampler is responsible for determining in what order batches are sampled from multiple
+    datasets during training. Valid options are:
+
+    - ``MultiDatasetBatchSamplers.ROUND_ROBIN``: Round-robin sampling from each dataset until one is exhausted.
+      With this strategy, it's likely that not all samples from each dataset are used, but each dataset is sampled
+      from equally.
+    - ``MultiDatasetBatchSamplers.PROPORTIONAL``: Sample from each dataset in proportion to its size [default].
+      With this strategy, all samples from each dataset are used and larger datasets are sampled from more frequently.
     """
 
     ROUND_ROBIN = "round_robin"  # Round-robin sampling from each dataset
@@ -25,6 +41,22 @@ class MultiDatasetBatchSamplers(ExplicitEnum):
 
 @dataclass
 class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
+    """
+    SentenceTransformerTrainingArguments extends :class:`~transformers.TrainingArguments` with additional arguments
+    specific to Sentence Transformers. See :class:`~transformers.TrainingArguments` for the complete list of
+    available arguments.
+
+    Args:
+        output_dir (`str`):
+            The output directory where the model checkpoints will be written.
+        batch_sampler (Union[:class:`~sentence_transformers.training_args.BatchSamplers`, `str`], *optional*):
+            The batch sampler to use. See :class:`~sentence_transformers.training_args.BatchSamplers` for valid options.
+            Defaults to ``BatchSamplers.BATCH_SAMPLER``.
+        multi_dataset_batch_sampler (Union[:class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers`, `str`], *optional*):
+            The multi-dataset batch sampler to use. See :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers`
+            for valid options. Defaults to ``MultiDatasetBatchSamplers.PROPORTIONAL``.
+    """
+
     batch_sampler: Union[BatchSamplers, str] = field(
         default=BatchSamplers.BATCH_SAMPLER, metadata={"help": "The batch sampler to use."}
     )

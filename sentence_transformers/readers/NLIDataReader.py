@@ -4,9 +4,7 @@ import os
 
 
 class NLIDataReader(object):
-    """
-    Reads in the Stanford NLI dataset and the MultiGenre NLI dataset
-    """
+    """Reads in the Stanford NLI dataset and the MultiGenre NLI dataset"""
 
     def __init__(self, dataset_folder):
         self.dataset_folder = dataset_folder

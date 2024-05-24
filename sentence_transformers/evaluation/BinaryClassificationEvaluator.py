@@ -27,17 +27,17 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
 
     The labels need to be 0 for dissimilar pairs and 1 for similar pairs.
 
-    :param sentences1: The first column of sentences
-    :param sentences2: The second column of sentences
-    :param labels: labels[i] is the label for the pair (sentences1[i], sentences2[i]). Must be 0 or 1
-    :param name: Name for the output
-    :param batch_size: Batch size used to compute embeddings
-    :param show_progress_bar: If true, prints a progress bar
-    :param write_csv: Write results to a CSV file
-    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
-        dimension. Defaults to None.
+    Args:
+        sentences1 (List[str]): The first column of sentences.
+        sentences2 (List[str]): The second column of sentences.
+        labels (List[int]): labels[i] is the label for the pair (sentences1[i], sentences2[i]). Must be 0 or 1.
+        name (str, optional): Name for the output. Defaults to "".
+        batch_size (int, optional): Batch size used to compute embeddings. Defaults to 32.
+        show_progress_bar (bool, optional): If true, prints a progress bar. Defaults to False.
+        write_csv (bool, optional): Write results to a CSV file. Defaults to True.
+        truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the model's current truncation dimension. Defaults to None.
 
-    Example
+    Example:
         ::
 
             from sentence_transformers import SentenceTransformer
@@ -152,6 +152,18 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
     def __call__(
         self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> Dict[str, float]:
+        """
+        Compute the evaluation metrics for the given model.
+
+        Args:
+            model (SentenceTransformer): The model to evaluate.
+            output_path (str, optional): Path to save the evaluation results CSV file. Defaults to None.
+            epoch (int, optional): The epoch number. Defaults to -1.
+            steps (int, optional): The number of steps. Defaults to -1.
+
+        Returns:
+            Dict[str, float]: A dictionary containing the evaluation metrics.
+        """
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"

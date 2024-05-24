@@ -15,13 +15,14 @@ class WordWeights(nn.Module):
 
     def __init__(self, vocab: List[str], word_weights: Dict[str, float], unknown_word_weight: float = 1):
         """
+        Initializes the WordWeights class.
 
-        :param vocab:
-            Vocabulary of the tokenizer
-        :param word_weights:
-            Mapping of tokens to a float weight value. Words embeddings are multiplied by  this float value. Tokens in word_weights must not be equal to the vocab (can contain more or less values)
-        :param unknown_word_weight:
-            Weight for words in vocab, that do not appear in the word_weights lookup. These can be for example rare words in the vocab, where no weight exists.
+        Args:
+            vocab (List[str]): Vocabulary of the tokenizer.
+            word_weights (Dict[str, float]): Mapping of tokens to a float weight value. Word embeddings are multiplied
+                by this float value. Tokens in word_weights must not be equal to the vocab (can contain more or less values).
+            unknown_word_weight (float, optional): Weight for words in vocab that do not appear in the word_weights lookup.
+                These can be, for example, rare words in the vocab where no weight exists. Defaults to 1.
         """
         super(WordWeights, self).__init__()
         self.config_keys = ["vocab", "word_weights", "unknown_word_weight"]

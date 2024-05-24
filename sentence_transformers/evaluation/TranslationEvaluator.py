@@ -19,7 +19,7 @@ class TranslationEvaluator(SentenceEvaluator):
     and assuming that fr_i is the translation of en_i.
     Checks if vec(en_i) has the highest similarity to vec(fr_i). Computes the accuracy in both directions
 
-    Example
+    Example:
         ::
 
             from sentence_transformers import SentenceTransformer
@@ -66,23 +66,16 @@ class TranslationEvaluator(SentenceEvaluator):
 
         The labels need to indicate the similarity between the sentences.
 
-        :param source_sentences:
-            List of sentences in source language
-        :param target_sentences:
-            List of sentences in target language
-        :param show_progress_bar:
-            Show progress bar when computing embeddings
-        :param batch_size:
-            Batch size to compute sentence embeddings
-        :param name:
-            Name of the evaluator
-        :param print_wrong_matches:
-            Prints incorrect matches
-        :param write_csv:
-            Write results to CSV file
-        :param truncate_dim:
-            The dimension to truncate sentence embeddings to. `None` uses the model's current truncation dimension.
-            Defaults to None.
+        Args:
+            source_sentences (List[str]): List of sentences in the source language.
+            target_sentences (List[str]): List of sentences in the target language.
+            show_progress_bar (bool): Whether to show a progress bar when computing embeddings. Defaults to False.
+            batch_size (int): The batch size to compute sentence embeddings. Defaults to 16.
+            name (str): The name of the evaluator. Defaults to an empty string.
+            print_wrong_matches (bool): Whether to print incorrect matches. Defaults to False.
+            write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
+            truncate_dim (int, optional): The dimension to truncate sentence embeddings to. If None, the model's
+                current truncation dimension will be used. Defaults to None.
         """
         super().__init__()
         self.source_sentences = source_sentences

@@ -83,9 +83,13 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in mini-batches and
         requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
 
-        :param model: SentenceTransformer model
-        :param scale: Output of similarity function is multiplied by scale value
-        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+        Args:
+            model: SentenceTransformer model
+            scale: Output of similarity function is multiplied by scale
+                value
+            similarity_fct: similarity function between sentence
+                embeddings. By default, cos_sim. Can also be set to dot
+                product (and then set scale to 1)
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
@@ -112,20 +116,22 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-uncased')
-                train_examples = [
-                    InputExample(texts=['Anchor 1', 'Positive 1']),
-                    InputExample(texts=['Anchor 2', 'Positive 2']),
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=1024)  # Here we can try much larger batch sizes!
-                train_loss = losses.CachedMultipleNegativesRankingLoss(model=model, mini_batch_size = 32)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                })
+                loss = losses.CachedGISTEmbedLoss(model, mini_batch_size=64)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(CachedMultipleNegativesRankingLoss, self).__init__()
         self.model = model

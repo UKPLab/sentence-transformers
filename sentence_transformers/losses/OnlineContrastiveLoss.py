@@ -14,9 +14,13 @@ class OnlineContrastiveLoss(nn.Module):
         are far apart) and hard negative pairs (negatives that are close) and computes the loss only for these pairs.
         This loss often yields better performances than ContrastiveLoss.
 
-        :param model: SentenceTransformer model
-        :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrics that can be used
-        :param margin: Negative samples (label == 0) should have a distance of at least the margin value.
+        Args:
+            model: SentenceTransformer model
+            distance_metric: Function that returns a distance between
+                two embeddings. The class SiameseDistanceMetric contains
+                pre-defined metrics that can be used
+            margin: Negative samples (label == 0) should have a distance
+                of at least the margin value.
 
         References:
             - `Training Examples > Quora Duplicate Questions <../../examples/training/quora_duplicate_questions/README.html>`_
@@ -39,21 +43,23 @@ class OnlineContrastiveLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('all-MiniLM-L6-v2')
-                train_examples = [
-                    InputExample(texts=['This is a positive pair', 'Where the distance will be minimized'], label=1),
-                    InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0),
-                ]
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "sentence1": ["It's nice weather outside today.", "He drove to work."],
+                    "sentence2": ["It's so sunny.", "She walked to the store."],
+                    "label": [1, 0],
+                })
+                loss = losses.OnlineContrastiveLoss(model)
 
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=2)
-                train_loss = losses.OnlineContrastiveLoss(model=model)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(OnlineContrastiveLoss, self).__init__()
         self.model = model

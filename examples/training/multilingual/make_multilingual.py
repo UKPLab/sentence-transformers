@@ -151,8 +151,8 @@ for subset, eval_dataset in eval_dataset_dict.items():
 
     # Mean Squared Error (MSE) measures the (euclidean) distance between teacher and student embeddings
     dev_mse = MSEEvaluator(
-        eval_dataset["english"],
-        eval_dataset["non_english"],
+        source_sentences=eval_dataset["english"],
+        target_sentences=eval_dataset["non_english"],
         name=subset,
         teacher_model=teacher_model,
         batch_size=inference_batch_size,
@@ -162,8 +162,8 @@ for subset, eval_dataset in eval_dataset_dict.items():
     # TranslationEvaluator computes the embeddings for all parallel sentences. It then check if the embedding of
     # source[i] is the closest to target[i] out of all available target sentences
     dev_trans_acc = TranslationEvaluator(
-        eval_dataset["english"],
-        eval_dataset["non_english"],
+        source_sentences=eval_dataset["english"],
+        target_sentences=eval_dataset["non_english"],
         name=subset,
         batch_size=inference_batch_size,
     )

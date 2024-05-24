@@ -3,15 +3,12 @@ import gzip
 
 
 class PairedFilesReader(object):
-    """
-    Reads in the a Pair Dataset, split in two files
-    """
+    """Reads in the a Pair Dataset, split in two files"""
 
     def __init__(self, filepaths):
         self.filepaths = filepaths
 
     def get_examples(self, max_examples=0):
-        """ """
         fIns = []
         for filepath in self.filepaths:
             fIn = (

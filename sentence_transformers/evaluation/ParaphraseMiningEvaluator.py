@@ -19,7 +19,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
     identifies the pairs with the highest similarity. It compare the extracted paraphrase pairs
     with a set of gold labels and computes the F1 score.
 
-    Example
+    Example:
         ::
 
             from datasets import load_dataset
@@ -76,22 +76,35 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         truncate_dim: Optional[int] = None,
     ):
         """
+        Initializes the ParaphraseMiningEvaluator.
 
-        :param sentences_map: A dictionary that maps sentence-ids to sentences, i.e. sentences_map[id] => sentence.
-        :param duplicates_list: Duplicates_list is a list with id pairs [(id1, id2), (id1, id5)] that identifies the duplicates / paraphrases in the sentences_map
-        :param duplicates_dict: A default dictionary mapping [id1][id2] to true if id1 and id2 are duplicates. Must be symmetric, i.e., if [id1][id2] => True, then [id2][id1] => True.
-        :param add_transitive_closure: If true, it adds a transitive closure, i.e. if dup[a][b] and dup[b][c], then dup[a][c]
-        :param query_chunk_size: To identify the paraphrases, the cosine-similarity between all sentence-pairs will be computed. As this might require a lot of memory, we perform a batched computation.  #query_batch_size sentences will be compared against up to #corpus_batch_size sentences. In the default setting, 5000 sentences will be grouped together and compared up-to against 100k other sentences.
-        :param corpus_chunk_size: The corpus will be batched, to reduce the memory requirement
-        :param max_pairs: We will only extract up to #max_pairs potential paraphrase candidates.
-        :param top_k: For each query, we extract the top_k most similar pairs and add it to a sorted list. I.e., for one sentence we cannot find more than top_k paraphrases
-        :param show_progress_bar: Output a progress bar
-        :param batch_size: Batch size for computing sentence embeddings
-        :param name: Name of the experiment
-        :param write_csv: Write results to CSV file
-        :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
-            dimension. Defaults to None.
-
+        Args:
+            sentences_map (Dict[str, str]): A dictionary that maps sentence-ids to sentences.
+                For example, sentences_map[id] => sentence.
+            duplicates_list (List[Tuple[str, str]], optional): A list with id pairs [(id1, id2), (id1, id5)]
+                that identifies the duplicates / paraphrases in the sentences_map. Defaults to None.
+            duplicates_dict (Dict[str, Dict[str, bool]], optional): A default dictionary mapping [id1][id2]
+                to true if id1 and id2 are duplicates. Must be symmetric, i.e., if [id1][id2] => True,
+                then [id2][id1] => True. Defaults to None.
+            add_transitive_closure (bool, optional): If true, it adds a transitive closure,
+                i.e. if dup[a][b] and dup[b][c], then dup[a][c]. Defaults to False.
+            query_chunk_size (int, optional): To identify the paraphrases, the cosine-similarity between
+                all sentence-pairs will be computed. As this might require a lot of memory, we perform
+                a batched computation. query_chunk_size sentences will be compared against up to
+                corpus_chunk_size sentences. In the default setting, 5000 sentences will be grouped
+                together and compared up-to against 100k other sentences. Defaults to 5000.
+            corpus_chunk_size (int, optional): The corpus will be batched, to reduce the memory requirement.
+                Defaults to 100000.
+            max_pairs (int, optional): We will only extract up to max_pairs potential paraphrase candidates.
+                Defaults to 500000.
+            top_k (int, optional): For each query, we extract the top_k most similar pairs and add it to a sorted list.
+                I.e., for one sentence we cannot find more than top_k paraphrases. Defaults to 100.
+            show_progress_bar (bool, optional): Output a progress bar. Defaults to False.
+            batch_size (int, optional): Batch size for computing sentence embeddings. Defaults to 16.
+            name (str, optional): Name of the experiment. Defaults to "".
+            write_csv (bool, optional): Write results to CSV file. Defaults to True.
+            truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to.
+                `None` uses the model's current truncation dimension. Defaults to None.
         """
         super().__init__()
         self.sentences = []

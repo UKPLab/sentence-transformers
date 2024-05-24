@@ -65,7 +65,6 @@ If they received a low score by the cross-encoder, we saved them as hard negativ
 We then trained the v2 models with these new hard negatives.
 
 ## Version Histroy 
-As we work on the topic, we will publish updated (and improved) models.
 
 - [Version 3](msmarco-v3.md)
 - [Version 2](msmarco-v2.md)

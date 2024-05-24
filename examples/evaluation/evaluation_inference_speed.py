@@ -22,9 +22,9 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-nli-mean-tokens"
 # Load a sentence transformer model
 model = SentenceTransformer(model_name)
 
-max_sentences = 10_000
-dataset = load_dataset("sentence-transformers/all-nli", "pair", split="train")
-sentences = list(set(dataset["anchor"] + dataset["positive"]))[:max_sentences]
+max_sentences = 100_000
+all_nli_dataset = load_dataset("sentence-transformers/all-nli", "pair", split="train")
+sentences = list(set(all_nli_dataset["anchor"]))[:max_sentences]
 
 print("Model Name:", model_name)
 print("Number of sentences:", len(sentences))

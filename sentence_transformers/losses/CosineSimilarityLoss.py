@@ -13,11 +13,15 @@ class CosineSimilarityLoss(nn.Module):
         vectors ``u = model(sentence_A)`` and ``v = model(sentence_B)`` and measures the cosine-similarity between the two.
         By default, it minimizes the following loss: ``||input_label - cos_score_transformation(cosine_sim(u,v))||_2``.
 
-        :param model: SentenceTransformer model
-        :param loss_fct: Which pytorch loss function should be used to compare the ``cosine_similarity(u, v)`` with the input_label?
-            By default, MSE is used: ``||input_label - cosine_sim(u, v)||_2``
-        :param cos_score_transformation: The cos_score_transformation function is applied on top of cosine_similarity.
-            By default, the identify function is used (i.e. no change).
+        Args:
+            model: SentenceTransformer model
+            loss_fct: Which pytorch loss function should be used to
+                compare the ``cosine_similarity(u, v)`` with the
+                input_label? By default, MSE is used: ``||input_label -
+                cosine_sim(u, v)||_2``
+            cos_score_transformation: The cos_score_transformation
+                function is applied on top of cosine_similarity. By
+                default, the identify function is used (i.e. no change).
 
         References:
             - `Training Examples > Semantic Textual Similarity <../../examples/training/sts/README.html>`_
@@ -39,22 +43,23 @@ class CosineSimilarityLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, InputExample, losses
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-                train_examples = [
-                    InputExample(texts=['My first sentence', 'My second sentence'], label=0.8),
-                    InputExample(texts=['Another pair', 'Unrelated sentence'], label=0.3)
-                ]
-                train_batch_size = 1
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
-                train_loss = losses.CosineSimilarityLoss(model=model)
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "sentence1": ["It's nice weather outside today.", "He drove to work."],
+                    "sentence2": ["It's so sunny.", "She walked to the store."],
+                    "score": [1.0, 0.3],
+                })
+                loss = losses.CosineSimilarityLoss(model)
 
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(CosineSimilarityLoss, self).__init__()
         self.model = model

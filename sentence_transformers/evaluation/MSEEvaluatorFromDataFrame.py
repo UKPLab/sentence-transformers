@@ -15,21 +15,22 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
     """
     Computes the mean squared error (x100) between the computed sentence embedding and some target sentence embedding.
 
-    :param dataframe: It must have the following format. Rows contains different, parallel sentences.
-        Columns are the respective language codes::
+    Args:
+        dataframe (List[Dict[str, str]]): It must have the following format. Rows contains different, parallel sentences.
+            Columns are the respective language codes::
 
             [{'en': 'My sentence in English', 'es': 'Oración en español', 'fr': 'Phrase en français'...},
              {'en': 'My second sentence', ...}]
-
-    :param combinations: Must be of the format ``[('en', 'es'), ('en', 'fr'), ...]``.
-        First entry in a tuple is the source language. The sentence in the respective language will be fetched from
-        the dataframe and passed to the teacher model. Second entry in a tuple the the target language. Sentence
-        will be fetched from the dataframe and passed to the student model
-    :param batch_size: Batch size to compute sentence embeddings
-    :param name: Name of the evaluator
-    :param write_csv: Write results to CSV file
-    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
-        dimension. Defaults to None.
+        teacher_model (SentenceTransformer): The teacher model used to compute the sentence embeddings.
+        combinations (List[Tuple[str, str]]): Must be of the format ``[('en', 'es'), ('en', 'fr'), ...]``.
+            First entry in a tuple is the source language. The sentence in the respective language will be fetched from
+            the dataframe and passed to the teacher model. Second entry in a tuple the the target language. Sentence
+            will be fetched from the dataframe and passed to the student model
+        batch_size (int, optional): The batch size to compute sentence embeddings. Defaults to 8.
+        name (str, optional): The name of the evaluator. Defaults to "".
+        write_csv (bool, optional): Whether to write the results to a CSV file. Defaults to True.
+        truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. If None, uses the model's
+            current truncation dimension. Defaults to None.
     """
 
     def __init__(

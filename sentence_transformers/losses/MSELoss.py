@@ -12,7 +12,8 @@ class MSELoss(nn.Module):
 
         For an example, see `the distillation documentation <../../examples/training/distillation/README.html>`_ on extending language models to new languages.
 
-        :param model: SentenceTransformerModel
+        Args:
+            model: SentenceTransformerModel
 
         References:
             - Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation: https://arxiv.org/abs/2004.09813
@@ -34,30 +35,33 @@ class MSELoss(nn.Module):
             | sentence_1, sentence_2, ..., sentence_N | model sentence embeddings   |
             +-----------------------------------------+-----------------------------+
 
-        Example::
+        Example:
+            ::
 
-            from sentence_transformers import SentenceTransformer, InputExample, losses
-            from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-            model_en = SentenceTransformer('bert-base-cased')
-            model_fr = SentenceTransformer('flaubert/flaubert_base_cased')
+                student_model = SentenceTransformer("microsoft/mpnet-base")
+                teacher_model = SentenceTransformer("all-mpnet-base-v2")
+                train_dataset = Dataset.from_dict({
+                    "english": ["The first sentence",  "The second sentence", "The third sentence",  "The fourth sentence"],
+                    "french": ["La première phrase",  "La deuxième phrase", "La troisième phrase",  "La quatrième phrase"],
+                })
 
-            examples_en = ['The first sentence',  'The second sentence', 'The third sentence',  'The fourth sentence']
-            examples_fr = ['La première phrase',  'La deuxième phrase', 'La troisième phrase',  'La quatrième phrase']
-            train_batch_size = 2
+                def compute_labels(batch):
+                    return {
+                        "label": teacher_model.encode(batch["english"])
+                    }
 
-            labels_en_en = model_en.encode(examples_en)
-            examples_en_fr = [InputExample(texts=[x], label=labels_en_en[i]) for i, x in enumerate(examples_en)]
-            loader_en_fr = DataLoader(examples_en_fr, batch_size=train_batch_size)
+                train_dataset = train_dataset.map(compute_labels, batched=True)
+                loss = losses.MSELoss(student_model)
 
-            examples_fr_fr = [InputExample(texts=[x], label=labels_en_en[i]) for i, x in enumerate(examples_fr)]
-            loader_fr_fr = DataLoader(examples_fr_fr, batch_size=train_batch_size)
-
-            train_loss = losses.MSELoss(model=model_fr)
-            model_fr.fit(
-                [(loader_en_fr, train_loss), (loader_fr_fr, train_loss)],
-                epochs=10,
-            )
+                trainer = SentenceTransformerTrainer(
+                    model=student_model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
         """
         super(MSELoss, self).__init__()
         self.model = model

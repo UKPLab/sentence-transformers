@@ -5,8 +5,7 @@ import os
 
 
 class STSDataReader:
-    """
-    Reads in the STS dataset. Each line contains two sentences (s1_col_idx, s2_col_idx) and one label (score_col_idx)
+    """Reads in the STS dataset. Each line contains two sentences (s1_col_idx, s2_col_idx) and one label (score_col_idx)
 
     Default values expects a tab separated file with the first & second column the sentence pair and third column the score (0...1). Default config normalizes scores from 0...5 to 0...1
     """
@@ -34,9 +33,7 @@ class STSDataReader:
         self.max_score = max_score
 
     def get_examples(self, filename, max_examples=0):
-        """
-        filename specified which data split to use (train.csv, dev.csv, test.csv).
-        """
+        """filename specified which data split to use (train.csv, dev.csv, test.csv)."""
         filepath = os.path.join(self.dataset_folder, filename)
         with gzip.open(filepath, "rt", encoding="utf8") if filename.endswith(".gz") else open(
             filepath, encoding="utf-8"
@@ -59,8 +56,7 @@ class STSDataReader:
 
 
 class STSBenchmarkDataReader(STSDataReader):
-    """
-    Reader especially for the STS benchmark dataset. There, the sentences are in column 5 and 6, the score is in column 4.
+    """Reader especially for the STS benchmark dataset. There, the sentences are in column 5 and 6, the score is in column 4.
     Scores are normalized from 0...5 to 0...1
     """
 

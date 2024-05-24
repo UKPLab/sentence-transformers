@@ -29,9 +29,13 @@ class Asym(nn.Sequential):
             #You can train it with InputExample like this. Note, that the order must always be the same:
             train_example = InputExample(texts=[{'query': 'Train query'}, {'doc': 'Document'}], label=1)
 
-
-        :param sub_modules: Dict in the format str -> List[models]. The models in the specified list will be applied for input marked with the respective key.
-        :param allow_empty_key: If true, inputs without a key can be processed. If false, an exception will be thrown if no key is specified.
+        Args:
+            sub_modules: Dict in the format str -> List[models]. The
+                models in the specified list will be applied for input
+                marked with the respective key.
+            allow_empty_key: If true, inputs without a key can be
+                processed. If false, an exception will be thrown if no
+                key is specified.
         """
         self.sub_modules = sub_modules
         self.allow_empty_key = allow_empty_key
@@ -91,9 +95,7 @@ class Asym(nn.Sequential):
             )
 
     def tokenize(self, texts: Union[List[str], List[Tuple[str, str]]], **kwargs):
-        """
-        Tokenizes a text and maps tokens to token-ids
-        """
+        """Tokenizes a text and maps tokens to token-ids"""
         if not isinstance(texts[0], dict):
             raise AttributeError("Asym. model requires that texts are passed as dicts: {'key': 'text'}")
 

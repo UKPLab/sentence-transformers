@@ -1,77 +1,74 @@
+.. note::
+
+   Sentence Transformers v3.0 just released, introducing a new training API for Sentence Transformer models. Read `SentenceTransformer > Training Overview <docs/sentence_transformer/training_overview.html>`_ to learn more about the training API, and check out `v3.0 Release Notes <docs/changelog/v3.0.html>`_ for details on the other changes.
+
 SentenceTransformers Documentation
-=================================================
+==================================
 
-SentenceTransformers is a Python framework for state-of-the-art sentence, text and image embeddings. The initial work is described in our paper `Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks <https://arxiv.org/abs/1908.10084>`_.
+Sentence Transformers (a.k.a. SBERT) is the go-to Python module for accessing, using, and training state-of-the-art text and image embedding models.
+It can be used to compute embeddings using Sentence Transformer models (`quickstart <docs/quickstart.html#sentence-transformer>`_) or to calculate similarity scores using Cross-Encoder models (`quickstart <docs/quickstart.html#cross-encoder>`_). This unlocks a wide range of applications, including `semantic search <examples/applications/semantic-search/README.html>`_, `semantic textual similarity <docs/usage/semantic_textual_similarity.html>`_, and `paraphrase mining <examples/applications/paraphrase-mining/README.html>`_.
 
-You can use this framework to compute sentence / text embeddings for more than 100 languages. These embeddings can then be compared e.g. with cosine-similarity to find sentences with a similar meaning. This can be useful for `semantic textual similarity <docs/usage/semantic_textual_similarity.html>`_, `semantic search <examples/applications/semantic-search/README.html>`_, or `paraphrase mining <examples/applications/paraphrase-mining/README.html>`_.
+A wide selection of over `5,000 pre-trained Sentence Transformers models <https://huggingface.co/models?library=sentence-transformers>`_ are available for immediate use on 🤗 Hugging Face, including many of the state-of-the-art models from the `Massive Text Embeddings Benchmark (MTEB) leaderboard <https://huggingface.co/spaces/mteb/leaderboard>`_. Additionally, it is easy to `train or finetune your own models <docs/sentence_transformer/training_overview.html>`_ using Sentence Transformers, enabling you to create custom models for your specific use cases.
 
-The framework is based on `PyTorch <https://pytorch.org/>`_ and `Transformers <https://huggingface.co/transformers/>`_ and offers a large collection of `pre-trained models <docs/pretrained_models.html>`_ tuned for various tasks. Further, it is easy to `fine-tune your own models <docs/training/overview.html>`_.
-
-
-Installation
-=================================================
-
-You can install it using pip:
-
-.. code-block:: python
-
-   pip install -U sentence-transformers
-
-
-We recommend **Python 3.8** or higher, and at least **PyTorch 1.11.0**. See `installation <docs/installation.html>`_ for further installation options, especially if you want to use a GPU.
-
-
+Sentence Transformers was created by `UKPLab <http://www.ukp.tu-darmstadt.de/>`_ and is being maintained by `🤗 Hugging Face <https://huggingface.co>`_. Don't hesitate to open an issue on the `Sentence Transformers repository <https://github.com/UKPLab/sentence-transformers>`_ if something is broken or if you have further questions.
 
 Usage
-=================================================
-The usage is as simple as:
+=====
+.. seealso::
+  
+   See the `Quickstart <docs/quickstart.html>`_ for more quick information on how to use Sentence Transformers.
+
+Using Sentence Transformer models is elementary:
+
+.. sidebar:: Installation
+
+   You can install *sentence-transformers* using pip:
+   
+   .. code-block:: python
+   
+      pip install -U sentence-transformers
+   
+   We recommend **Python 3.8+** and **PyTorch 1.11.0+**. See `installation <docs/installation.html>`_ for further installation options.
 
 .. code-block:: python
 
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+   from sentence_transformers import SentenceTransformer
 
-    # Our sentences to encode
-    sentences = [
-        "This framework generates embeddings for each input sentence",
-        "Sentences are passed as a list of string.",
-        "The quick brown fox jumps over the lazy dog."
-    ]
+   # 1. Load a pretrained Sentence Transformer model
+   model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    # Sentences are encoded by calling model.encode()
-    embeddings = model.encode(sentences)
+   # The sentences to encode
+   sentences = [
+       "The weather is lovely today.",
+       "It's so sunny outside!",
+       "He drove to the stadium.",
+   ]
 
-    # Print the embeddings
-    for sentence, embedding in zip(sentences, embeddings):
-        print("Sentence:", sentence)
-        print("Embedding:", embedding)
-        print("")
+   # 2. Calculate embeddings by calling model.encode()
+   embeddings = model.encode(sentences)
+   print(embeddings.shape)
+   # [3, 384]
 
+   # 3. Calculate the embedding similarities
+   similarities = model.similarity(embeddings, embeddings)
+   print(similarities)
+   # tensor([[1.0000, 0.6660, 0.1046],
+   #         [0.6660, 1.0000, 0.1411],
+   #         [0.1046, 0.1411, 1.0000]])
 
+What Next?
+==========
 
+Consider reading one of the following sections to answer the related questions:
 
-Performance
-=========================
+* How to **use** Sentence Transformer models? `Sentence Transformers > Usage <docs/sentence_transformer/usage/usage.html>`_
+* What Sentence Transformer **models** can I use? `Sentence Transformers > Pretrained Models <docs/sentence_transformer/pretrained_models.html>`_
+* How do I **train/finetune** a Sentence Transformer model? `Sentence Transformers > Training Overview <docs/sentence_transformer/training_overview.html>`_
+* How to **use** Cross Encoder models? `Cross Encoder > Usage <docs/cross_encoder/usage/usage.html>`_
+* What Cross Encoder **models** can I use? `Cross Encoder > Pretrained Models <docs/cross_encoder/pretrained_models.html>`_
 
-Our models are evaluated extensively and achieve state-of-the-art performance on various tasks. Further, the code is tuned to provide the highest possible speed. Have a look at `Pre-Trained Models <docs/pretrained_models.html>`_ for an overview of available models and the respective performance on different tasks.
-
-
-
-
-
-
-Contact
-=========================
-
-Contact person: Tom Aarsen, tom.aarsen@huggingface.co
-
-Don't hesitate to open an issue on the `repository <https://github.com/UKPLab/sentence-transformers>`_ if something is broken (and it shouldn't be) or if you have further questions.
-
-*This repository contains experimental software and is published for the sole purpose of giving additional background details on the respective publication.*
-
-
-Citing & Authors
-=========================
+Citing
+======
 
 If you find this repository helpful, feel free to cite our publication `Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks <https://arxiv.org/abs/1908.10084>`_:
 
@@ -124,71 +121,41 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
 
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Overview
+   :maxdepth: 1
+   :caption: Getting Started
+   :hidden:
 
    docs/installation
    docs/quickstart
-   docs/pretrained_models
-   docs/pretrained_cross-encoders
-   docs/publications
-   docs/hugging_face
 
 .. toctree::
    :maxdepth: 2
-   :caption: Usage
+   :caption: Sentence Transformer
+   :hidden:
 
-   examples/applications/computing-embeddings/README
-   docs/usage/semantic_textual_similarity
-   examples/applications/embedding-quantization/README
-   examples/applications/semantic-search/README
-   examples/applications/retrieve_rerank/README
-   examples/applications/clustering/README
-   examples/applications/paraphrase-mining/README
-   examples/applications/parallel-sentence-mining/README
-   examples/applications/cross-encoder/README
-   examples/applications/image-search/README
+   docs/sentence_transformer/usage/usage
+   docs/sentence_transformer/pretrained_models
+   docs/sentence_transformer/training_overview
+   docs/sentence_transformer/dataset_overview
+   docs/sentence_transformer/loss_overview
+   docs/sentence_transformer/training/examples
 
 .. toctree::
    :maxdepth: 2
-   :caption: Training
+   :caption: Cross Encoder
+   :hidden:
 
-   docs/training/overview
-   docs/training/loss_overview
-   examples/training/matryoshka/README
-   examples/training/adaptive_layer/README
-   examples/training/multilingual/README
-   examples/training/distillation/README
-   examples/training/cross-encoder/README
-   examples/training/data_augmentation/README
-   examples/training/datasets/README
+   docs/cross_encoder/usage/usage
+   docs/cross_encoder/pretrained_models
+   docs/cross_encoder/training_overview
+   docs/cross_encoder/training/examples
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Training Examples
-
-   examples/training/sts/README
-   examples/training/nli/README
-   examples/training/paraphrases/README
-   examples/training/quora_duplicate_questions/README
-   examples/training/ms_marco/README
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Unsupervised Learning
-
-   examples/unsupervised_learning/README
-   examples/domain_adaptation/README
-
-.. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
    :caption: Package Reference
+   :glob:
+   :hidden:
 
-   docs/package_reference/SentenceTransformer
+   docs/package_reference/sentence_transformer/index
+   docs/package_reference/cross_encoder/index
    docs/package_reference/util
-   docs/package_reference/quantization
-   docs/package_reference/models
-   docs/package_reference/losses
-   docs/package_reference/evaluation
-   docs/package_reference/datasets
-   docs/package_reference/cross_encoder

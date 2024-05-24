@@ -25,8 +25,8 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         """
         Constructs an evaluator for the given dataset
 
-        :param dataloader:
-            the data for the evaluation
+        Args:
+            dataloader (DataLoader): the data for the evaluation
         """
         super().__init__()
         self.dataloader = dataloader

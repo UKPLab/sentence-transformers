@@ -23,7 +23,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
     The metrics are the cosine similarity as well as euclidean and Manhattan distance
     The returned score is the Spearman correlation with a specified metric.
 
-    Example
+    Example:
         ::
 
             from datasets import load_dataset
@@ -33,14 +33,14 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             # Load a model
             model = SentenceTransformer('all-mpnet-base-v2')
 
-            # Load the STSB dataset (https://huggingface.co/datasets/nyu-mll/glue/viewer/stsb)
-            eval_dataset = load_dataset("nyu-mll/glue", "stsb", split="validation")
+            # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
+            eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
 
             # Initialize the evaluator
             dev_evaluator = EmbeddingSimilarityEvaluator(
                 sentences1=eval_dataset["sentence1"],
                 sentences2=eval_dataset["sentence2"],
-                scores=[score / 5 for score in eval_dataset["label"]],
+                scores=eval_dataset["score"],
                 main_similarity=SimilarityFunction.COSINE,
                 name="sts-dev",
             )
@@ -52,7 +52,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             Euclidean-Distance:       Pearson: 0.7824 Spearman: 0.7827
             Dot-Product-Similarity:   Pearson: 0.7192 Spearman: 0.7126
             '''
-            # => 0.8004
+            # => {'sts-dev_pearson_cosine': 0.880607226102985, 'sts-dev_spearman_cosine': 0.881019449484294, ...}
     """
 
     def __init__(
@@ -69,18 +69,22 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         truncate_dim: Optional[int] = None,
     ):
         """
-        Constructs an evaluator based for the dataset
+        Constructs an evaluator based for the dataset.
 
-        The labels need to indicate the similarity between the sentences.
-
-        :param sentences1:  List with the first sentence in a pair
-        :param sentences2: List with the second sentence in a pair
-        :param scores: Similarity score between sentences1[i] and sentences2[i]
-        :param write_csv: Write results to a CSV file
-        :param precision: The precision to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or
-            "ubinary". Defaults to None.
-        :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current
-            truncation dimension. Defaults to None.
+        Args:
+            sentences1 (List[str]): List with the first sentence in a pair.
+            sentences2 (List[str]): List with the second sentence in a pair.
+            scores (List[float]): Similarity score between sentences1[i] and sentences2[i].
+            batch_size (int, optional): The batch size for processing the sentences. Defaults to 16.
+            main_similarity (Optional[Union[str, SimilarityFunction]], optional): The main similarity function to use.
+                Can be a string (e.g. "cosine", "dot") or a SimilarityFunction object. Defaults to None.
+            name (str, optional): The name of the evaluator. Defaults to "".
+            show_progress_bar (bool, optional): Whether to show a progress bar during evaluation. Defaults to False.
+            write_csv (bool, optional): Whether to write the evaluation results to a CSV file. Defaults to True.
+            precision (Optional[Literal["float32", "int8", "uint8", "binary", "ubinary"]], optional): The precision
+                to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or "ubinary". Defaults to None.
+            truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the
+                model's current truncation dimension. Defaults to None.
         """
         super().__init__()
         self.sentences1 = sentences1

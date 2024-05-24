@@ -60,13 +60,20 @@ class MatryoshkaLoss(nn.Module):
         different embedding dimensions. This is useful for when you want to train a model where users have the option
         to lower the embedding dimension to improve their embedding comparison speed and costs.
 
-        :param model: SentenceTransformer model
-        :param loss: The loss function to be used, e.g. :class:`MultipleNegativesRankingLoss`, :class:`CoSENTLoss`, etc.
-        :param matryoshka_dims: A list of embedding dimensions to be used for the loss function, e.g. [768, 512, 256, 128, 64].
-        :param matryoshka_weights: A list of weights to be used for the loss function, e.g. [1, 1, 1, 1, 1]. If None, then the
-            weights will be set to 1 for all dimensions.
-        :param n_dims_per_step: The number of dimensions to use per step. If -1, then all dimensions are used. If > 0, then
-            a random sample of n_dims_per_step dimensions are used per step. The default value is -1.
+        Args:
+            model: SentenceTransformer model
+            loss: The loss function to be used, e.g.
+                :class:`MultipleNegativesRankingLoss`,
+                :class:`CoSENTLoss`, etc.
+            matryoshka_dims: A list of embedding dimensions to be used
+                for the loss function, e.g. [768, 512, 256, 128, 64].
+            matryoshka_weights: A list of weights to be used for the
+                loss function, e.g. [1, 1, 1, 1, 1]. If None, then the
+                weights will be set to 1 for all dimensions.
+            n_dims_per_step: The number of dimensions to use per step.
+                If -1, then all dimensions are used. If > 0, then a
+                random sample of n_dims_per_step dimensions are used per
+                step. The default value is -1.
 
         References:
             - The concept was introduced in this paper: https://arxiv.org/abs/2205.13147
@@ -92,7 +99,7 @@ class MatryoshkaLoss(nn.Module):
                 from sentence_transformers import SentenceTransformer, losses, InputExample
                 from torch.utils.data import DataLoader
 
-                model = SentenceTransformer('microsoft/mpnet-base')
+                model = SentenceTransformer("microsoft/mpnet-base")
                 train_examples = [
                     InputExample(texts=['Anchor 1', 'Positive 1']),
                     InputExample(texts=['Anchor 2', 'Positive 2']),

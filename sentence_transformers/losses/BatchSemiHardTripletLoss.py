@@ -19,9 +19,13 @@ class BatchSemiHardTripletLoss(nn.Module):
         The labels must be integers, with same label indicating sentences from the same class. Your train dataset
         must contain at least 2 examples per label class.
 
-        :param model: SentenceTransformer model
-        :param distance_metric: Function that returns a distance between two embeddings. The class SiameseDistanceMetric contains pre-defined metrics that can be used
-        :param margin: Negative samples should be at least margin further apart from the anchor than the positive.
+        Args:
+            model: SentenceTransformer model
+            distance_metric: Function that returns a distance between
+                two embeddings. The class SiameseDistanceMetric contains
+                pre-defined metrics that can be used
+            margin: Negative samples should be at least margin further
+                apart from the anchor than the positive.
 
         Definitions:
             :Easy triplets: Triplets which have a loss of 0 because
@@ -57,24 +61,29 @@ class BatchSemiHardTripletLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses
-                from sentence_transformers.readers import InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-                train_examples = [
-                    InputExample(texts=['Sentence from class 0'], label=0),
-                    InputExample(texts=['Another sentence from class 0'], label=0),
-                    InputExample(texts=['Sentence from class 1'], label=1),
-                    InputExample(texts=['Sentence from class 2'], label=2)
-                ]
-                train_batch_size = 2
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
-                train_loss = losses.BatchSemiHardTripletLoss(model=model)
-                model.fit(
-                    train_objectives=[(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                # E.g. 0: sports, 1: economy, 2: politics
+                train_dataset = Dataset.from_dict({
+                    "sentence": [
+                        "He played a great game.",
+                        "The stock is up 20%",
+                        "They won 2-1.",
+                        "The last goal was amazing.",
+                        "They all voted against the bill.",
+                    ],
+                    "label": [0, 1, 0, 0, 2],
+                })
+                loss = losses.BatchSemiHardTripletLoss(model)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(BatchSemiHardTripletLoss, self).__init__()
         self.sentence_embedder = model

@@ -241,12 +241,10 @@ class SentenceTransformerModelCardData(CardData):
             e.g. ["sentence-transformers", "sentence-similarity", "feature-extraction"].
         generate_widget_examples (`bool`): Whether to generate widget examples on every model save.
 
-    <Tip>
+    .. tip::
 
-    Install [``codecarbon``](https://github.com/mlco2/codecarbon) to automatically track carbon emission usage and
-    include it in your model cards.
-
-    </Tip>
+        Install `codecarbon <https://github.com/mlco2/codecarbon>`_ to automatically track carbon emission usage and
+        include it in your model cards.
 
     Example::
 

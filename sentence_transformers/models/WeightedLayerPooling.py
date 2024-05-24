@@ -7,9 +7,7 @@ import json
 
 
 class WeightedLayerPooling(nn.Module):
-    """
-    Token embeddings are weighted mean of their different hidden layer representations
-    """
+    """Token embeddings are weighted mean of their different hidden layer representations"""
 
     def __init__(
         self, word_embedding_dimension, num_hidden_layers: int = 12, layer_start: int = 4, layer_weights=None

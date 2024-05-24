@@ -77,9 +77,12 @@ class CachedGISTEmbedLoss(nn.Module):
         :class:`CachedMultipleNegativesRankingLoss`, it is possible to reduce memory usage while maintaining performance
         levels comparable to those of :class:`GISTEmbedLoss`.
 
-        :param model: SentenceTransformer model
-        :param guide: SentenceTransformer model to guide the in-batch negative sample selection.
-        :param temperature: Temperature parameter to scale the cosine similarities.
+        Args:
+            model: SentenceTransformer model
+            guide: SentenceTransformer model to guide the in-batch
+                negative sample selection.
+            temperature: Temperature parameter to scale the cosine
+                similarities.
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
@@ -105,22 +108,23 @@ class CachedGISTEmbedLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-uncased')
-                guide = SentenceTransformer('avsolatorio/GIST-small-Embedding-v0')
+                model = SentenceTransformer("microsoft/mpnet-base")
+                guide = SentenceTransformer("all-MiniLM-L6-v2")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                })
+                loss = losses.CachedGISTEmbedLoss(model, guide, mini_batch_size=64)
 
-                train_examples = [
-                    InputExample(texts=['Anchor 1', 'Positive 1']),
-                    InputExample(texts=['Anchor 2', 'Positive 2']),
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=1024)  # Here we can try much larger batch sizes!
-                train_loss = losses.CachedGISTEmbedLoss(model=model, mini_batch_size=32, guide=guide)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(CachedGISTEmbedLoss, self).__init__()
         self.model = model

@@ -43,6 +43,72 @@ if TYPE_CHECKING:
 
 
 class SentenceTransformerTrainer(Trainer):
+    """
+    SentenceTransformerTrainer is a simple but feature-complete training and eval loop for PyTorch
+    based on the 🤗 Transformers :class:`~transformers.Trainer`.
+
+    This trainer integrates support for various :class:`transformers.TrainerCallback` subclasses, such as:
+
+    - :class:`~transformers.integrations.WandbCallback` to automatically log training metrics to W&B if `wandb` is installed
+    - :class:`~transformers.integrations.TensorBoardCallback` to log training metrics to TensorBoard if `tensorboard` is accessible.
+    - :class:`~transformers.integrations.CodeCarbonCallback` to track the carbon emissions of your model during training if `codecarbon` is installed.
+
+        - Note: These carbon emissions will be included in your automatically generated model card.
+
+    See the Transformers `Callbacks <https://huggingface.co/docs/transformers/main/en/main_classes/callback>`_
+    documentation for more information on the integrated callbacks and how to write your own callbacks.
+
+    Args:
+        model (:class:`~sentence_transformers.SentenceTransformer`, *optional*):
+            The model to train, evaluate or use for predictions. If not provided, a `model_init` must be passed.
+        args (:class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`, *optional*):
+            The arguments to tweak for training. Will default to a basic instance of
+            :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` with the
+            `output_dir` set to a directory named *tmp_trainer* in the current directory if not provided.
+        train_dataset (Union[:class:`datasets.Dataset`, :class:`datasets.DatasetDict`, Dict[str, :class:`datasets.Dataset`]], *optional*):
+            The dataset to use for training. Must have a format accepted by your loss function, see
+            `Training Overview > Dataset Format <../../../docs/sentence_transformer/training_overview.html#dataset-format>`_.
+        eval_dataset (Union[:class:`datasets.Dataset`, :class:`datasets.DatasetDict`, Dict[str, :class:`datasets.Dataset`]], *optional*):
+            The dataset to use for evaluation. Must have a format accepted by your loss function, see
+            `Training Overview > Dataset Format <../../../docs/sentence_transformer/training_overview.html#dataset-format>`_.
+        loss (Optional[Union[:class:`torch.nn.Module`, Dict[str, :class:`torch.nn.Module`],\
+            Callable[[:class:`~sentence_transformers.SentenceTransformer`], :class:`torch.nn.Module`],\
+            Dict[str, Callable[[:class:`~sentence_transformers.SentenceTransformer`]]]], *optional*):
+            The loss function to use for training. Can either be a loss class instance, a dictionary mapping dataset names to
+            loss class instances, a function that returns a loss class instance given a model, or a dictionary mapping
+            dataset names to functions that return a loss class instance given a model. In practice, the latter two
+            are primarily used for hyper-parameter optimization. Will default to
+            :class:`~sentence_transformers.losses.CoSENTLoss` if no ``loss`` is provided.
+        evaluator (:class:`~sentence_transformers.evaluation.SentenceEvaluator`, *optional*):
+            The evaluator class to use for evaluation alongside the evaluation dataset. An evaluator will display more
+            useful metrics than the loss function.
+        callbacks (List of [:class:`transformers.TrainerCallback`], *optional*):
+            A list of callbacks to customize the training loop. Will add those to the list of default callbacks
+            detailed in [here](callback).
+
+            If you want to remove one of the default callbacks used, use the [`Trainer.remove_callback`] method.
+        optimizers (`Tuple[:class:`torch.optim.Optimizer`, :class:`torch.optim.lr_scheduler.LambdaLR`]`, *optional*, defaults to `(None, None)`):
+            A tuple containing the optimizer and the scheduler to use. Will default to an instance of :class:`torch.optim.AdamW`
+            on your model and a scheduler given by :func:`transformers.get_linear_schedule_with_warmup` controlled by `args`.
+
+    Important attributes:
+
+        - **model** -- Always points to the core model. If using a transformers model, it will be a [`PreTrainedModel`]
+          subclass.
+        - **model_wrapped** -- Always points to the most external model in case one or more other modules wrap the
+          original model. This is the model that should be used for the forward pass. For example, under `DeepSpeed`,
+          the inner model is wrapped in `DeepSpeed` and then again in `torch.nn.DistributedDataParallel`. If the inner
+          model hasn't been wrapped, then `self.model_wrapped` is the same as `self.model`.
+        - **is_model_parallel** -- Whether or not a model has been switched to a model parallel mode (different from
+          data parallelism, this means some of the model layers are split on different GPUs).
+        - **place_model_on_device** -- Whether or not to automatically place the model on the device - it will be set
+          to `False` if model parallel or deepspeed is used, or if the default
+          `TrainingArguments.place_model_on_device` is overridden to return `False` .
+        - **is_in_train** -- Whether or not a model is currently running `train` (e.g. when `evaluate` is called while
+          in `train`)
+
+    """
+
     def __init__(
         self,
         model: Optional["SentenceTransformer"] = None,
@@ -207,7 +273,24 @@ class SentenceTransformerTrainer(Trainer):
         model: "SentenceTransformer",
         inputs: Dict[str, Union[torch.Tensor, Any]],
         return_outputs: bool = False,
-    ) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, Any]]]:
+        """
+        Computes the loss for the SentenceTransformer model.
+
+        It uses ``self.loss`` to compute the loss, which can be a single loss function or a dictionary of loss functions
+        for different datasets. If the loss is a dictionary, the dataset name is expected to be passed in the inputs
+        under the key "dataset_name". This is done automatically in the ``add_dataset_name_column`` method.
+        Note that even if ``return_outputs = True``, the outputs will be empty, as the SentenceTransformers losses do not
+        return outputs.
+
+        Args:
+            model (SentenceTransformer): The SentenceTransformer model.
+            inputs (Dict[str, Union[torch.Tensor, Any]]): The input data for the model.
+            return_outputs (bool, optional): Whether to return the outputs along with the loss. Defaults to False.
+
+        Returns:
+            Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, Any]]]: The computed loss. If `return_outputs` is True, returns a tuple of loss and outputs. Otherwise, returns only the loss.
+        """
         dataset_name = inputs.pop("dataset_name", None)
         features, labels = self.collect_features(inputs)
         loss_fn = self.loss
@@ -634,3 +717,9 @@ class SentenceTransformerTrainer(Trainer):
 
         loaded_model = SentenceTransformer(checkpoint_path)
         self.model.load_state_dict(loaded_model.state_dict())
+
+    def create_model_card(self, *args, **kwargs):
+        raise NotImplementedError(
+            "SentenceTransformers does not implement the `create_model_card` method in its Trainer. "
+            "Instead, consider calling SentenceTransformer._create_model_card(path)."
+        )
