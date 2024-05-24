@@ -48,6 +48,12 @@ The `Datasets library <https://huggingface.co/docs/datasets/index>`_ (``pip inst
 
 For more information on how to manipulate your dataset see the [Datasets Documentation](https://huggingface.co/docs/datasets/access).
 
+```eval_rst
+.. tip::
+   
+   It's common for Hugging Face Datasets to contain extraneous columns, e.g. sample_id, metadata, source, type, etc. You can use :meth:`Dataset.remove_columns <datasets.Dataset.remove_columns>` to remove these columns, as they will be used as inputs otherwise. You can also use :meth:`Dataset.select_columns <datasets.Dataset.select_columns>` to keep only the desired columns.
+```
+
 ## Pre-existing Datasets
 
 The [Hugging Face Hub](https://huggingface.co/datasets) hosts 150k+ datasets, many of which can be converted for training embedding models. 
