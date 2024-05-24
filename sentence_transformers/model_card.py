@@ -441,8 +441,7 @@ class SentenceTransformerModelCardData(CardData):
         self.eval_results_dict[evaluator] = copy(metrics)
 
         # If the evaluator has a primary metric and we have a trainer, then add the primary metric to the training logs
-        if hasattr(evaluator, "primary_metric"):
-            primary_metrics = evaluator.primary_metric
+        if hasattr(evaluator, "primary_metric") and (primary_metrics := evaluator.primary_metric):
             if isinstance(evaluator, SequentialEvaluator):
                 primary_metrics = [sub_evaluator.primary_metric for sub_evaluator in evaluator.evaluators]
             elif isinstance(primary_metrics, str):

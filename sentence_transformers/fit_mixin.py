@@ -53,7 +53,6 @@ class SaveModelCallback(TrainerCallback):
         super().__init__()
         self.output_dir = output_dir
         self.evaluator = evaluator
-        # TODO: ^ has to implement `greater_is_better` and `primary_metric`
         self.save_best_model = save_best_model
         self.best_metric = None
 
