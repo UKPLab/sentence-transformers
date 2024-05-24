@@ -1,10 +1,9 @@
-import time
-from torch import Tensor
-from typing import List, Literal, Tuple, TYPE_CHECKING
-import numpy as np
 import logging
-from typing import Dict, Optional, Union
+import time
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union
 
+import numpy as np
+from torch import Tensor
 
 logger = logging.getLogger(__name__)
 
@@ -255,8 +254,8 @@ def semantic_search_usearch(
     The list of search results is in the format: [[{"corpus_id": int, "score": float}, ...], ...]
     The time taken for the search is a float value.
     """
-    from usearch.index import Index
     from usearch.compiled import ScalarKind
+    from usearch.index import Index
 
     if corpus_embeddings is not None and corpus_index is not None:
         raise ValueError("Only corpus_embeddings or corpus_index should be used, not both.")

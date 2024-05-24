@@ -1,8 +1,12 @@
-from sentence_transformers import losses
-from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, SentenceTransformerTrainingArguments
+from datasets import load_dataset
+from sentence_transformers import (
+    SentenceTransformer,
+    SentenceTransformerTrainer,
+    SentenceTransformerTrainingArguments,
+    losses,
+)
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SimilarityFunction
 from sentence_transformers.training_args import BatchSamplers
-from datasets import load_dataset
 
 # 1. Load the AllNLI dataset: https://huggingface.co/datasets/sentence-transformers/all-nli, 10k samples
 train_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="train[:10000]")

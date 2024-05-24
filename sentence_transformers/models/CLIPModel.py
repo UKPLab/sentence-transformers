@@ -1,8 +1,9 @@
 from typing import Union
-from torch import nn
-import transformers
+
 import torch
+import transformers
 from PIL import Image
+from torch import nn
 
 
 class CLIPModel(nn.Module):

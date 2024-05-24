@@ -1,30 +1,25 @@
-from contextlib import nullcontext
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 import warnings
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, ConcatDataset, Dataset, BatchSampler, SubsetRandomSampler
-from transformers import PreTrainedTokenizerBase, Trainer, EvalPrediction, TrainerCallback
+from torch.utils.data import BatchSampler, ConcatDataset, DataLoader, Dataset, SubsetRandomSampler
+from transformers import EvalPrediction, PreTrainedTokenizerBase, Trainer, TrainerCallback
+from transformers.data.data_collator import DataCollator
 from transformers.integrations import WandbCallback
 from transformers.trainer import TRAINING_ARGS_NAME
+from transformers.trainer_utils import EvalLoopOutput
 from transformers.training_args import ParallelMode
 
 from datasets import DatasetDict
-from transformers.trainer_utils import EvalLoopOutput
-from transformers.data.data_collator import DataCollator
-from sentence_transformers.losses import CoSENTLoss
-
-from sentence_transformers.models.Transformer import Transformer
-from sentence_transformers.training_args import (
-    SentenceTransformerTrainingArguments,
-    BatchSamplers,
-    MultiDatasetBatchSamplers,
-)
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
-from sentence_transformers.evaluation import SentenceEvaluator
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
+from sentence_transformers.model_card import ModelCardCallback
+from sentence_transformers.models.Transformer import Transformer
 from sentence_transformers.sampler import (
     DefaultBatchSampler,
     GroupByLabelBatchSampler,
@@ -32,9 +27,12 @@ from sentence_transformers.sampler import (
     ProportionalBatchSampler,
     RoundRobinBatchSampler,
 )
+from sentence_transformers.training_args import (
+    BatchSamplers,
+    MultiDatasetBatchSamplers,
+    SentenceTransformerTrainingArguments,
+)
 from sentence_transformers.util import disable_logging
-
-from sentence_transformers.model_card import ModelCardCallback
 
 logger = logging.getLogger(__name__)
 

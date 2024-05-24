@@ -1,10 +1,11 @@
-import torch
-from torch import Tensor
-from torch import nn
-from typing import Dict
-import os
 import json
-from ..util import fullname, import_from_string
+import os
+from typing import Dict
+
+import torch
+from torch import Tensor, nn
+
+from sentence_transformers.util import fullname, import_from_string
 
 
 class Dense(nn.Module):

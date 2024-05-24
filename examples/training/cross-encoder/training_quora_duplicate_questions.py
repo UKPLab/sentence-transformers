@@ -9,17 +9,19 @@ python training_quora_duplicate_questions.py
 
 """
 
-from torch.utils.data import DataLoader
+import csv
+import logging
 import math
+import os
+from datetime import datetime
+from zipfile import ZipFile
+
+from torch.utils.data import DataLoader
+
 from sentence_transformers import LoggingHandler, util
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CEBinaryClassificationEvaluator
 from sentence_transformers.readers import InputExample
-import logging
-from datetime import datetime
-import os
-import csv
-from zipfile import ZipFile
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(

@@ -19,10 +19,10 @@ Note: Requires NLTK: `pip install nltk`
 """
 
 import nltk
-from sentence_transformers import SentenceTransformer
 import numpy as np
 from LexRank import degree_centrality_scores
 
+from sentence_transformers import SentenceTransformer
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 

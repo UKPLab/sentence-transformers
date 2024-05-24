@@ -6,11 +6,12 @@ Code in this file has been adapted from the LASER repository:
 https://github.com/facebookresearch/LASER
 """
 
-import faiss
-import numpy as np
-import time
 import gzip
 import lzma
+import time
+
+import faiss
+import numpy as np
 
 
 ########  Functions to find and score candidates

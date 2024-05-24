@@ -5,8 +5,9 @@ Tests that the pretrained models produce the correct scores on the STSbenchmark 
 import csv
 import gzip
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
+from typing import Generator, List, Tuple
 
 import pytest
 import torch
@@ -15,7 +16,6 @@ from torch.utils.data import DataLoader
 from sentence_transformers import CrossEncoder, util
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
 from sentence_transformers.readers import InputExample
-from typing import Generator, List, Tuple
 
 
 @pytest.fixture()

@@ -1,12 +1,13 @@
-from typing import List, Iterable
 import collections
-import string
-import os
 import json
 import logging
-from .WordTokenizer import WordTokenizer, ENGLISH_STOP_WORDS
-from transformers.utils.import_utils import is_nltk_available, NLTK_IMPORT_ERROR
+import os
+import string
+from typing import Iterable, List
 
+from transformers.utils.import_utils import NLTK_IMPORT_ERROR, is_nltk_available
+
+from .WordTokenizer import ENGLISH_STOP_WORDS, WordTokenizer
 
 logger = logging.getLogger(__name__)
 

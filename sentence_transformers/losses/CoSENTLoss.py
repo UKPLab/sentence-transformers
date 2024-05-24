@@ -1,8 +1,10 @@
+from typing import Dict, Iterable
+
 import torch
-from torch import nn, Tensor
-from typing import Iterable, Dict
-from ..SentenceTransformer import SentenceTransformer
-from .. import util
+from torch import Tensor, nn
+
+from sentence_transformers import util
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class CoSENTLoss(nn.Module):

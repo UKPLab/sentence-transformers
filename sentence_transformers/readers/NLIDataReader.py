@@ -1,6 +1,7 @@
-from . import InputExample
 import gzip
 import os
+
+from . import InputExample
 
 
 class NLIDataReader(object):

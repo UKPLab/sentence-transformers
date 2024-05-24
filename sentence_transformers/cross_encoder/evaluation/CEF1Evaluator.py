@@ -4,10 +4,10 @@ import os
 from typing import List
 
 import numpy as np
-
-from sentence_transformers.readers.InputExample import InputExample
-from .. import CrossEncoder
 from sklearn.metrics import f1_score
+
+from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.readers.InputExample import InputExample
 
 logger = logging.getLogger(__name__)
 

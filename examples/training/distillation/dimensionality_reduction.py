@@ -15,14 +15,15 @@ the new SentenceTransformer model will produce directly embeddings with 128 dime
 without further changes needed.
 """
 
-from datasets import load_dataset
-from sklearn.decomposition import PCA
-from sentence_transformers import SentenceTransformer, models
 import logging
 import random
+
 import numpy as np
 import torch
+from sklearn.decomposition import PCA
 
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer, models
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 
 # Set the log level to INFO to get more information

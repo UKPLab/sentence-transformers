@@ -23,19 +23,21 @@ python train_sts_seed_optimization.py pretrained_transformer_model_name seed_cou
 python train_sts_seed_optimization.py bert-base-uncased 10 0.3
 """
 
-from torch.utils.data import DataLoader
+import csv
+import gzip
+import logging
 import math
-import torch
+import os
 import random
+import sys
+
 import numpy as np
-from sentence_transformers import SentenceTransformer, LoggingHandler, losses, models, util
+import torch
+from torch.utils.data import DataLoader
+
+from sentence_transformers import LoggingHandler, SentenceTransformer, losses, models, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import InputExample
-import logging
-import sys
-import os
-import gzip
-import csv
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(

@@ -14,17 +14,18 @@ Running this script:
 python train_cross-encoder.py
 """
 
-from torch.utils.data import DataLoader
-from sentence_transformers import LoggingHandler, util
-from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation import CERerankingEvaluator
-from sentence_transformers import InputExample
-import logging
-from datetime import datetime
 import gzip
+import logging
 import os
 import tarfile
+from datetime import datetime
+
 import tqdm
+from torch.utils.data import DataLoader
+
+from sentence_transformers import InputExample, LoggingHandler, util
+from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.cross_encoder.evaluation import CERerankingEvaluator
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(

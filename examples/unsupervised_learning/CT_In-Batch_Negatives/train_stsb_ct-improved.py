@@ -1,12 +1,13 @@
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers import SentenceTransformer, LoggingHandler, models, util, InputExample
-from sentence_transformers import losses
-import os
-import gzip
 import csv
-from datetime import datetime
+import gzip
 import logging
+import os
+from datetime import datetime
+
 from torch.utils.data import DataLoader
+
+from sentence_transformers import InputExample, LoggingHandler, SentenceTransformer, losses, models, util
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(

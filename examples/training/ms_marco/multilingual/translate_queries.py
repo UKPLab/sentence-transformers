@@ -8,12 +8,14 @@ Usage:
 python translate_queries [target_language]
 """
 
-import os
-from sentence_transformers import LoggingHandler, util
 import logging
-import tarfile
-from easynmt import EasyNMT
+import os
 import sys
+import tarfile
+
+from easynmt import EasyNMT
+
+from sentence_transformers import LoggingHandler, util
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(

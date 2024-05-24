@@ -6,14 +6,14 @@ Note: In this example, you must specify a SentenceTransformer model.
 If you want to fine-tune a huggingface/transformers model like bert-base-uncased, see training_nli.py and training_stsbenchmark.py
 """
 
+import logging
+import sys
 import traceback
+from datetime import datetime
+
 from datasets import load_dataset
 from sentence_transformers import SentenceTransformer, losses
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-import logging
-from datetime import datetime
-import sys
-
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments

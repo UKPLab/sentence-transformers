@@ -1,7 +1,9 @@
 from typing import Any, Dict, List, Optional, Union
+
 from torch.nn import Module
-from sentence_transformers.SentenceTransformer import SentenceTransformer
+
 from sentence_transformers.losses import AdaptiveLayerLoss, MatryoshkaLoss
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class Matryoshka2dLoss(AdaptiveLayerLoss):

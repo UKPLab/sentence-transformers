@@ -7,14 +7,13 @@ See https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/
 for available word embeddings files
 """
 
-import traceback
-from datasets import load_dataset
-from sentence_transformers import models, losses
-from sentence_transformers import SentenceTransformer
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 import logging
+import traceback
 from datetime import datetime
 
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer, losses, models
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments

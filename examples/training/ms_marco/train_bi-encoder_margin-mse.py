@@ -1,18 +1,19 @@
-import sys
-import json
-from torch.utils.data import DataLoader
-from sentence_transformers import SentenceTransformer, LoggingHandler, util, models, losses, InputExample
-import logging
-from datetime import datetime
-import gzip
-import os
-import tarfile
-import tqdm
-from torch.utils.data import Dataset
-import random
-from shutil import copyfile
-import pickle
 import argparse
+import gzip
+import json
+import logging
+import os
+import pickle
+import random
+import sys
+import tarfile
+from datetime import datetime
+from shutil import copyfile
+
+import tqdm
+from torch.utils.data import DataLoader, Dataset
+
+from sentence_transformers import InputExample, LoggingHandler, SentenceTransformer, losses, models, util
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(

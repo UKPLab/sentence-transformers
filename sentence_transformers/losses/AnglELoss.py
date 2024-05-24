@@ -1,4 +1,4 @@
-from sentence_transformers import losses, SentenceTransformer, util
+from sentence_transformers import SentenceTransformer, losses, util
 
 
 class AnglELoss(losses.CoSENTLoss):

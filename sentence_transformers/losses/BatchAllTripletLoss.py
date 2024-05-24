@@ -1,7 +1,10 @@
-from torch import nn, Tensor
-from typing import Iterable, Dict
-from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
+from typing import Dict, Iterable
+
+from torch import Tensor, nn
+
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+
+from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
 
 
 class BatchAllTripletLoss(nn.Module):

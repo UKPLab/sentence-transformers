@@ -1,8 +1,10 @@
 import random
-from typing import Any, Dict, Iterable, List, Optional, Union
 import warnings
-from torch import Tensor, nn
+from typing import Any, Dict, Iterable, List, Optional, Union
+
 import torch.nn.functional as F
+from torch import Tensor, nn
+
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.losses.CachedGISTEmbedLoss import CachedGISTEmbedLoss
 from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss

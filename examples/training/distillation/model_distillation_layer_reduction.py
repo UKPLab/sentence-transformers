@@ -20,20 +20,19 @@ There is a performance - speed trade-off. However, we found that a student with 
 of the teacher performance, while being 2.3 times faster.
 """
 
-import traceback
-from datasets import load_dataset, concatenate_datasets, Dataset
-import pandas as pd
-from sentence_transformers import losses, evaluation
-from sentence_transformers import SentenceTransformer
 import logging
+import traceback
 from datetime import datetime
+
+import pandas as pd
 import torch
 
+from datasets import Dataset, concatenate_datasets, load_dataset
+from sentence_transformers import SentenceTransformer, evaluation, losses
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
-
 
 # Set the log level to INFO to get more information
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)

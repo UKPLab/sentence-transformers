@@ -1,12 +1,15 @@
-from contextlib import nullcontext
-from sentence_transformers.evaluation import SentenceEvaluator
-from sentence_transformers import SentenceTransformer
-from typing import List, Optional, Tuple, Dict
-import numpy as np
+import csv
 import logging
 import os
-import csv
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+import numpy as np
+
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +39,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
     def __init__(
         self,
         dataframe: List[Dict[str, str]],
-        teacher_model: SentenceTransformer,
+        teacher_model: "SentenceTransformer",
         combinations: List[Tuple[str, str]],
         batch_size: int = 8,
         name: str = "",
@@ -81,7 +84,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         self.teacher_embeddings = {sent: emb for sent, emb in zip(all_source_sentences, all_src_embeddings)}
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> Dict[str, float]:
         model.eval()
 

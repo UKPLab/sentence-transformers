@@ -1,9 +1,10 @@
-import torch
-from torch import nn, Tensor
-from typing import Iterable, Dict, Callable
-from ..SentenceTransformer import SentenceTransformer
 import logging
+from typing import Callable, Dict, Iterable
 
+import torch
+from torch import Tensor, nn
+
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 

@@ -14,14 +14,16 @@ python eval_cross-encoder-trec-dl.py cross-encoder-model-name
 """
 
 import gzip
-from collections import defaultdict
 import logging
-import tqdm
-import numpy as np
-import sys
-import pytrec_eval
-from sentence_transformers import util, CrossEncoder
 import os
+import sys
+from collections import defaultdict
+
+import numpy as np
+import pytrec_eval
+import tqdm
+
+from sentence_transformers import CrossEncoder, util
 
 data_folder = "trec2019-data"
 os.makedirs(data_folder, exist_ok=True)

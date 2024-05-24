@@ -1,8 +1,9 @@
+import json
+import os
+from typing import List
+
 import torch
 from torch import nn
-from typing import List
-import os
-import json
 
 
 class LSTM(nn.Module):

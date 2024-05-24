@@ -1,8 +1,10 @@
-from typing import Any, Iterable, Dict
+from typing import Any, Dict, Iterable
+
 import torch
-from torch import nn, Tensor
-from sentence_transformers.SentenceTransformer import SentenceTransformer
+from torch import Tensor, nn
+
 from sentence_transformers.models import Transformer
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class GISTEmbedLoss(nn.Module):

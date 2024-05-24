@@ -1,14 +1,17 @@
-from sentence_transformers import SentenceTransformer
-from contextlib import nullcontext
-from . import SentenceEvaluator
-import logging
-from ..util import pytorch_cos_sim
-import os
 import csv
+import logging
+import os
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Dict, List, Optional
+
 import numpy as np
-from typing import Dict, List, Optional
 import torch
 
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.util import pytorch_cos_sim
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +100,7 @@ class TranslationEvaluator(SentenceEvaluator):
         self.primary_metric = "mean_accuracy"
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:

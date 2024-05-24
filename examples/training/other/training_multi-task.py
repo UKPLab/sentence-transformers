@@ -4,16 +4,17 @@ This is an example how to train SentenceTransformers in a multi-task setup.
 The system trains BERT on the AllNLI and on the STSbenchmark dataset.
 """
 
+import logging
 import traceback
+from datetime import datetime
+
+from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.losses import CosineSimilarityLoss, SoftmaxLoss
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import MultiDatasetBatchSamplers, SentenceTransformerTrainingArguments
-import logging
-from datetime import datetime
-from datasets import load_dataset
 
 # Set the log level to INFO to get more information
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)

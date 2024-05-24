@@ -1,39 +1,39 @@
-from copy import copy
 import json
+import logging
 import random
+import re
 from collections import Counter, defaultdict
+from copy import copy
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from platform import python_version
-import re
 from textwrap import indent
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union
-import logging
 
 import torch
-from torch import nn
 import transformers
-from datasets import Dataset, DatasetDict
-from huggingface_hub import CardData, ModelCard, dataset_info as get_dataset_info, model_info as get_model_info
-from huggingface_hub.repocard_data import eval_results_to_model_index, EvalResult
+from huggingface_hub import CardData, ModelCard
+from huggingface_hub import dataset_info as get_dataset_info
+from huggingface_hub import model_info as get_model_info
+from huggingface_hub.repocard_data import EvalResult, eval_results_to_model_index
 from huggingface_hub.utils import yaml_dump
+from torch import nn
+from tqdm.autonotebook import tqdm
 from transformers import TrainerCallback
 from transformers.integrations import CodeCarbonCallback
 from transformers.modelcard import make_markdown_table
 from transformers.trainer_callback import TrainerControl, TrainerState
-from tqdm.autonotebook import tqdm
 
+from datasets import Dataset, DatasetDict
 from sentence_transformers import __version__ as sentence_transformers_version
-from sentence_transformers.evaluation import SequentialEvaluator
 from sentence_transformers.models import Transformer
-from sentence_transformers.util import cos_sim, fullname
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
-
+from sentence_transformers.util import cos_sim, fullname
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentence_transformers.evaluation import SentenceEvaluator
+    from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
     from sentence_transformers.SentenceTransformer import SentenceTransformer
     from sentence_transformers.trainer import SentenceTransformerTrainer
 
@@ -205,8 +205,9 @@ IGNORED_FIELDS = ["model", "trainer", "eval_results_dict"]
 
 def get_versions() -> Dict[str, Any]:
     from accelerate import __version__ as accelerate_version
-    from datasets import __version__ as datasets_version
     from tokenizers import __version__ as tokenizers_version
+
+    from datasets import __version__ as datasets_version
 
     return {
         "python": python_version(),
@@ -435,6 +436,8 @@ class SentenceTransformerModelCardData(CardData):
             self.predict_example = [source_sentence, similar_sentence, median_sentence]
 
     def set_evaluation_metrics(self, evaluator: "SentenceEvaluator", metrics: Dict[str, Any]):
+        from sentence_transformers.evaluation import SequentialEvaluator
+
         self.eval_results_dict[evaluator] = copy(metrics)
 
         # If the evaluator has a primary metric and we have a trainer, then add the primary metric to the training logs

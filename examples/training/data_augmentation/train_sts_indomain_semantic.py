@@ -19,22 +19,23 @@ python train_sts_indomain_semantic.py pretrained_transformer_model_name top_k
 python train_sts_indomain_semantic.py bert-base-uncased 3
 """
 
+import csv
+import gzip
+import logging
+import math
+import os
+import sys
+from datetime import datetime
+
+import torch
+import tqdm
 from torch.utils.data import DataLoader
-from sentence_transformers import models, losses, util
-from sentence_transformers import LoggingHandler, SentenceTransformer
+
+from sentence_transformers import LoggingHandler, SentenceTransformer, losses, models, util
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import InputExample
-from datetime import datetime
-import logging
-import csv
-import torch
-import tqdm
-import sys
-import math
-import gzip
-import os
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(

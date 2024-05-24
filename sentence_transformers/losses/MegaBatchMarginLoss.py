@@ -1,8 +1,10 @@
-from .. import util
+from typing import Dict, Iterable
+
 import torch
-from torch import nn, Tensor
-from typing import Iterable, Dict
 import torch.nn.functional as F
+from torch import Tensor, nn
+
+from sentence_transformers import util
 
 
 class MegaBatchMarginLoss(nn.Module):

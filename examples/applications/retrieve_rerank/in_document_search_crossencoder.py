@@ -17,10 +17,11 @@ Usage: python in_document_search_crossencoder.py
 Note: Requires NLTK: `pip install nltk`
 """
 
-from sentence_transformers import CrossEncoder
-from nltk import sent_tokenize
 import time
 
+from nltk import sent_tokenize
+
+from sentence_transformers import CrossEncoder
 
 # As document, we take the first two section from the Wikipedia article about Europe
 document = """Europe is a continent located entirely in the Northern Hemisphere and mostly in the Eastern Hemisphere. It comprises the westernmost part of Eurasia and is bordered by the Arctic Ocean to the north, the Atlantic Ocean to the west, the Mediterranean Sea to the south, and Asia to the east. Europe is commonly considered to be separated from Asia by the watershed of the Ural Mountains, the Ural River, the Caspian Sea, the Greater Caucasus, the Black Sea, and the waterways of the Turkish Straits. Although some of this border is over land, Europe is generally accorded the status of a full continent because of its great physical size and the weight of history and tradition.

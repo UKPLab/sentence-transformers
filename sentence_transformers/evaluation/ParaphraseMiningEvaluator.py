@@ -1,14 +1,15 @@
-from sentence_transformers import SentenceTransformer
-from contextlib import nullcontext
-from . import SentenceEvaluator
-import logging
-from sentence_transformers.util import paraphrase_mining
-import os
 import csv
-
-from typing import List, Optional, Tuple, Dict
+import logging
+import os
 from collections import defaultdict
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.util import paraphrase_mining
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +156,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.primary_metric = "average_precision"
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:

@@ -1,15 +1,19 @@
-from sentence_transformers import SentenceTransformer
-from contextlib import nullcontext
-from . import SentenceEvaluator
-import logging
-import numpy as np
-import os
 import csv
-from ..util import cos_sim
+import logging
+import os
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Callable, Dict, Optional
+
+import numpy as np
 import torch
-from sklearn.metrics import average_precision_score, ndcg_score
 import tqdm
-from typing import Callable, Dict, Optional
+from sklearn.metrics import average_precision_score, ndcg_score
+
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.util import cos_sim
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +90,7 @@ class RerankingEvaluator(SentenceEvaluator):
         self.primary_metric = "map"
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> Dict[str, float]:
         """
         Evaluates the model on the dataset and returns the evaluation metrics.

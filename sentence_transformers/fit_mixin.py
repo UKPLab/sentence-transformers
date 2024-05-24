@@ -1,38 +1,40 @@
 import json
 import logging
 import os
-from pathlib import Path
 import shutil
-from typing import Any, List, Dict, Tuple, Iterable, Type, Callable, Optional, TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+
 import numpy as np
-import transformers
 import torch
-from torch import nn, Tensor
+import transformers
+from torch import Tensor, nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import trange
+from transformers import TrainerCallback, TrainerControl, TrainerState
+
 from datasets import Dataset, DatasetDict
-from transformers import TrainerCallback, TrainerState, TrainerControl
-from sentence_transformers.datasets.SentenceLabelDataset import SentenceLabelDataset
 from sentence_transformers.datasets.NoDuplicatesDataLoader import NoDuplicatesDataLoader
+from sentence_transformers.datasets.SentenceLabelDataset import SentenceLabelDataset
 from sentence_transformers.training_args import (
-    SentenceTransformerTrainingArguments,
-    MultiDatasetBatchSamplers,
     BatchSamplers,
+    MultiDatasetBatchSamplers,
+    SentenceTransformerTrainingArguments,
 )
 
 from .evaluation import SentenceEvaluator
+from .model_card_templates import ModelCardTemplate
 from .util import (
     batch_to_device,
     fullname,
 )
-from .model_card_templates import ModelCardTemplate
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentence_transformers.SentenceTransformer import SentenceTransformer
     from sentence_transformers.readers.InputExample import InputExample
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class SaveModelCallback(TrainerCallback):

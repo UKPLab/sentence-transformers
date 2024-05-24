@@ -1,9 +1,10 @@
-import torch
-from torch import nn, Tensor
-from typing import Any, Iterable, Dict
+from typing import Any, Dict, Iterable
 
+import torch
+from torch import Tensor, nn
+
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.util import fullname
-from ..SentenceTransformer import SentenceTransformer
 
 
 class CosineSimilarityLoss(nn.Module):

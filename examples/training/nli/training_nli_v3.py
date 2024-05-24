@@ -10,15 +10,14 @@ OR
 python training_nli_v3.py pretrained_transformer_model_name
 """
 
-import traceback
-from datasets import load_dataset
-from sentence_transformers import losses
-from sentence_transformers import SentenceTransformer
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 import logging
-from datetime import datetime
 import sys
+import traceback
+from datetime import datetime
 
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer, losses
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import BatchSamplers, SentenceTransformerTrainingArguments

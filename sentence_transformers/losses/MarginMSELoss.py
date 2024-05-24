@@ -1,6 +1,8 @@
-from .. import util
-from torch import nn, Tensor
-from typing import Iterable, Dict
+from typing import Dict, Iterable
+
+from torch import Tensor, nn
+
+from sentence_transformers import util
 
 
 class MarginMSELoss(nn.Module):

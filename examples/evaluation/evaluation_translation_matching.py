@@ -19,11 +19,11 @@ For example:
 python examples/evaluation/evaluation_translation_matching.py distiluse-base-multilingual-cased sentence-transformers/parallel-sentences-tatoeba en-ar en-de en-nl
 """
 
-from sentence_transformers import SentenceTransformer, evaluation
-import sys
 import logging
-from datasets import load_dataset
+import sys
 
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer, evaluation
 
 # Set the log level to INFO to get more information
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)

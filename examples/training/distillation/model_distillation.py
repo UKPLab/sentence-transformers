@@ -20,21 +20,20 @@ There is a performance - speed trade-off. However, we found that a student with 
 of the teacher performance, while being 2.3 times faster.
 """
 
-import traceback
-from datasets import load_dataset, concatenate_datasets, Dataset
-import pandas as pd
-from sentence_transformers import models, losses, evaluation
-from sentence_transformers import LoggingHandler, SentenceTransformer
 import logging
+import traceback
 from datetime import datetime
-from sklearn.decomposition import PCA
-import torch
 
+import pandas as pd
+import torch
+from sklearn.decomposition import PCA
+
+from datasets import Dataset, concatenate_datasets, load_dataset
+from sentence_transformers import LoggingHandler, SentenceTransformer, evaluation, losses, models
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
-
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(

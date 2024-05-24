@@ -7,14 +7,15 @@ OR
 python evaluation_stsbenchmark.py model_name
 """
 
+import logging
+import os
+import sys
+
+import torch
+
+from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from datasets import load_dataset
-import logging
-import sys
-import torch
-import os
-
 from sentence_transformers.similarity_functions import SimilarityFunction
 
 script_folder_path = os.path.dirname(os.path.realpath(__file__))

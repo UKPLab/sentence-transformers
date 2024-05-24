@@ -1,8 +1,10 @@
-from torch import nn, Tensor
-from typing import Iterable, Dict, Optional
-from sentence_transformers import SentenceTransformer
-from transformers import AutoConfig, AutoTokenizer, AutoModelForCausalLM, PreTrainedModel
 import logging
+from typing import Dict, Iterable, Optional
+
+from torch import Tensor, nn
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
+
+from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
