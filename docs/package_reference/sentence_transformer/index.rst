@@ -3,7 +3,6 @@ Sentence Transformer
 ====================
 
 .. toctree::
-   :hidden:
 
    SentenceTransformer
    trainer
