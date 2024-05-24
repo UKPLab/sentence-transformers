@@ -4,8 +4,6 @@ line-length = 119
 # Skip `E731` (do not assign a lambda expression, use a def)
 lint.ignore = ["E731"]
 
-lint.ignore-init-module-imports = true
-
 # Also perform import sorting
 lint.extend-select = ["I"]
 
