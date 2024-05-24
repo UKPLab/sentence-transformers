@@ -53,7 +53,6 @@ class SaveModelCallback(TrainerCallback):
         super().__init__()
         self.output_dir = output_dir
         self.evaluator = evaluator
-        # TODO: ^ has to implement `greater_is_better` and `primary_metric`
         self.save_best_model = save_best_model
         self.best_metric = None
 
@@ -245,7 +244,7 @@ class FitMixin:
         batch_size = 8
         batch_sampler = BatchSamplers.BATCH_SAMPLER
         # Convert dataloaders into a DatasetDict
-        # TODO: This should be done in a more efficient way
+        # TODO: This is rather inefficient, as we load all data into memory. We might benefit from a more efficient solution
         train_dataset_dict = {}
         for loader_idx, data_loader in enumerate(data_loaders, start=1):
             if isinstance(data_loader, NoDuplicatesDataLoader):
@@ -284,7 +283,6 @@ class FitMixin:
 
         # Convert loss_fns into a dict with `dataset_{idx}` keys
         loss_fn_dict = {f"_dataset_{idx}": loss_fn for idx, loss_fn in enumerate(loss_fns, start=1)}
-        # TODO: Test model checkpointing & loading
 
         # Use steps_per_epoch to perhaps set max_steps
         max_steps = -1
