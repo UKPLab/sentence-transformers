@@ -4,6 +4,7 @@ import warnings
 from torch import Tensor, nn
 import torch.nn.functional as F
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.losses.CachedGISTEmbedLoss import CachedGISTEmbedLoss
 from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
 
 
@@ -79,7 +80,7 @@ class MatryoshkaLoss(nn.Module):
             - `Matryoshka Embeddings <../../examples/training/matryoshka/README.html>`_
 
         Requirements:
-            1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`.
+            1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss` or :class:`CachedGISTEmbedLoss`.
 
         Relations:
             - :class:`Matryoshka2dLoss` uses this loss in combination with :class:`AdaptiveLayerLoss` which allows for
@@ -116,6 +117,8 @@ class MatryoshkaLoss(nn.Module):
         self.loss = loss
         if isinstance(loss, CachedMultipleNegativesRankingLoss):
             warnings.warn("MatryoshkaLoss is not compatible with CachedMultipleNegativesRankingLoss.", stacklevel=2)
+        if isinstance(loss, CachedGISTEmbedLoss):
+            warnings.warn("MatryoshkaLoss is not compatible with CachedGISTEmbedLoss.", stacklevel=2)
         self.matryoshka_dims = matryoshka_dims
         if matryoshka_weights is None:
             matryoshka_weights = [1] * len(matryoshka_dims)
