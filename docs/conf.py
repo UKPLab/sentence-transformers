@@ -111,6 +111,7 @@ html_favicon = "img/favicon.ico"
 
 autoclass_content = "both"
 
+
 # https://github.com/readthedocs/sphinx-autoapi/issues/202#issuecomment-907582382
 def linkcode_resolve(domain, info):
     # Non-linkable objects from the starter kit in the tutorial.
