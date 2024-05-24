@@ -55,7 +55,7 @@ class AnglELoss(losses.CoSENTLoss):
                     "score": [1.0, 0.3],
                 })
                 loss = losses.AnglELoss(model)
-                                
+
                 trainer = SentenceTransformerTrainer(
                     model=model,
                     train_dataset=train_dataset,

@@ -170,7 +170,7 @@ class AdaptiveLayerLoss(nn.Module):
                 })
                 loss = losses.MultipleNegativesRankingLoss(model=model)
                 loss = losses.AdaptiveLayerLoss(model, loss)
-                
+
                 trainer = SentenceTransformerTrainer(
                     model=model,
                     train_dataset=train_dataset,

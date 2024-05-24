@@ -53,7 +53,7 @@ class CosineSimilarityLoss(nn.Module):
                     "score": [1.0, 0.3],
                 })
                 loss = losses.CosineSimilarityLoss(model)
-                                
+
                 trainer = SentenceTransformerTrainer(
                     model=model,
                     train_dataset=train_dataset,

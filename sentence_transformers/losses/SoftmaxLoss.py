@@ -66,7 +66,7 @@ class SoftmaxLoss(nn.Module):
                     "sentence2": [
                         "A person is training his horse for a competition.",
                         "A person is at a diner, ordering an omelette.",
-                        "A person is outdoors, on a horse.",    
+                        "A person is outdoors, on a horse.",
                         "There are children present.",
                     ],
                     "label": [1, 2, 0, 0],

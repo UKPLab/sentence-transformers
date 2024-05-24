@@ -60,7 +60,7 @@ class CoSENTLoss(nn.Module):
                     "score": [1.0, 0.3],
                 })
                 loss = losses.CoSENTLoss(model)
-                                
+
                 trainer = SentenceTransformerTrainer(
                     model=model,
                     train_dataset=train_dataset,
