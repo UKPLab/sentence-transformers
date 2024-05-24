@@ -45,102 +45,100 @@ Training Sentence Transformer models involves between 3 to 5 components:
 ```eval_rst
 The :class:`SentenceTransformerTrainer` trains and evaluates using :class:`datasets.Dataset` (one dataset) or :class:`datasets.DatasetDict` instances (multiple datasets, see also `Multi-dataset training <#multi-dataset-training>`_). 
 
-.. tabs::
+.. tab:: Data on 🤗 Hugging Face Hub
 
-    .. tab:: Data on 🤗 Hugging Face Hub
+    If you want to load data from the `Hugging Face Datasets <https://huggingface.co/datasets>`_, then you should use :func:`datasets.load_dataset`:
 
-        If you want to load data from the `Hugging Face Datasets <https://huggingface.co/datasets>`_, then you should use :func:`datasets.load_dataset`:
+    .. raw:: html
 
-        .. raw:: html
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/loading#hugging-face-hub">Datasets, Loading from the Hugging Face Hub</a></li>
+                <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/package_reference/loading_methods#datasets.load_dataset" title="(in datasets vmain)"><code class="xref py py-func docutils literal notranslate"><span class="pre">datasets.load_dataset()</span></code></a></li>
+                <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/all-nli">sentence-transformers/all-nli</a></li>
+            </ul>
+        </div>
 
-            <div class="sidebar">
-                <p class="sidebar-title">Documentation</p>
-                <ul class="simple">
-                    <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/loading#hugging-face-hub">Datasets, Loading from the Hugging Face Hub</a></li>
-                    <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/package_reference/loading_methods#datasets.load_dataset" title="(in datasets vmain)"><code class="xref py py-func docutils literal notranslate"><span class="pre">datasets.load_dataset()</span></code></a></li>
-                    <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/all-nli">sentence-transformers/all-nli</a></li>
-                </ul>
-            </div>
+    ::
 
-        ::
+        from datasets import load_dataset
 
-            from datasets import load_dataset
+        train_dataset = load_dataset("sentence-transformers/all-nli", "pair-class", split="train")
+        eval_dataset = load_dataset("sentence-transformers/all-nli", "pair-class", split="dev")
 
-            train_dataset = load_dataset("sentence-transformers/all-nli", "pair-class", split="train")
-            eval_dataset = load_dataset("sentence-transformers/all-nli", "pair-class", split="dev")
+        print(train_dataset)
+        """
+        Dataset({
+            features: ['premise', 'hypothesis', 'label'],
+            num_rows: 942069
+        })
+        """
 
-            print(train_dataset)
-            """
-            Dataset({
-                features: ['premise', 'hypothesis', 'label'],
-                num_rows: 942069
-            })
-            """
+    Some datasets (including `sentence-transformers/all-nli <https://huggingface.co/datasets/sentence-transformers/all-nli>`_) require you to provide a "subset" alongside the dataset name. ``sentence-transformers/all-nli`` has 4 subsets, each with different data formats: `pair <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/pair>`_, `pair-class <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/pair-class>`_, `pair-score <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/pair-score>`_, `triplet <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/triplet>`_.
 
-        Some datasets (including `sentence-transformers/all-nli <https://huggingface.co/datasets/sentence-transformers/all-nli>`_) require you to provide a "subset" alongside the dataset name. ``sentence-transformers/all-nli`` has 4 subsets, each with different data formats: `pair <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/pair>`_, `pair-class <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/pair-class>`_, `pair-score <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/pair-score>`_, `triplet <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/triplet>`_.
+    .. note::
 
-        .. note::
+        Many Hugging Face datasets that work out of the box with Sentence Transformers have been tagged with `sentence-transformers`, allowing you to easily find them by browsing to `https://huggingface.co/datasets?other=sentence-transformers <https://huggingface.co/datasets?other=sentence-transformers>`_. We strongly recommend that you browse these datasets to find training datasets that might be useful for your tasks.
 
-            Many Hugging Face datasets that work out of the box with Sentence Transformers have been tagged with `sentence-transformers`, allowing you to easily find them by browsing to `https://huggingface.co/datasets?other=sentence-transformers <https://huggingface.co/datasets?other=sentence-transformers>`_. We strongly recommend that you browse these datasets to find training datasets that might be useful for your tasks.
+.. tab:: Local Data (CSV, JSON, Parquet, Arrow, SQL)
 
-    .. tab:: Local Data (CSV, JSON, Parquet, Arrow, SQL)
+    If you have local data in common file-formats, then you can load this data easily using :func:`datasets.load_dataset`:
 
-        If you have local data in common file-formats, then you can load this data easily using :func:`datasets.load_dataset`:
+    .. raw:: html
 
-        .. raw:: html
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/loading#local-and-remote-files">Datasets, Loading local files</a></li>
+                <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/package_reference/loading_methods#datasets.load_dataset" title="(in datasets vmain)"><code class="xref py py-func docutils literal notranslate"><span class="pre">datasets.load_dataset()</span></code></a></li>
+            </ul>
+        </div>
 
-            <div class="sidebar">
-                <p class="sidebar-title">Documentation</p>
-                <ul class="simple">
-                    <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/loading#local-and-remote-files">Datasets, Loading local files</a></li>
-                    <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/package_reference/loading_methods#datasets.load_dataset" title="(in datasets vmain)"><code class="xref py py-func docutils literal notranslate"><span class="pre">datasets.load_dataset()</span></code></a></li>
-                </ul>
-            </div>
+    ::
 
-        ::
+        from datasets import load_dataset
 
-            from datasets import load_dataset
+        dataset = load_dataset("csv", data_files="my_file.csv")
+    
+    or::
 
-            dataset = load_dataset("csv", data_files="my_file.csv")
-        
-        or::
+        from datasets import load_dataset
 
-            from datasets import load_dataset
+        dataset = load_dataset("json", data_files="my_file.json")
 
-            dataset = load_dataset("json", data_files="my_file.json")
+.. tab:: Local Data that requires pre-processing
 
-    .. tab:: Local Data that requires pre-processing
+    .. sidebar:: Documentation
 
-        .. sidebar:: Documentation
+        - :meth:`datasets.Dataset.from_dict`
 
-            - :meth:`datasets.Dataset.from_dict`
+    If you have local data that requires some extra pre-processing, my recommendation is to initialize your dataset using :meth:`datasets.Dataset.from_dict` and a dictionary of lists, like so:
 
-        If you have local data that requires some extra pre-processing, my recommendation is to initialize your dataset using :meth:`datasets.Dataset.from_dict` and a dictionary of lists, like so:
+    .. raw:: html
 
-        .. raw:: html
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/package_reference/main_classes#datasets.Dataset.from_dict" title="(in datasets vmain)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">datasets.Dataset.from_dict()</span></code></a></li>
+            </ul>
+        </div>
 
-            <div class="sidebar">
-                <p class="sidebar-title">Documentation</p>
-                <ul class="simple">
-                    <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/package_reference/main_classes#datasets.Dataset.from_dict" title="(in datasets vmain)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">datasets.Dataset.from_dict()</span></code></a></li>
-                </ul>
-            </div>
+    ::
 
-        ::
+        from datasets import Dataset
 
-            from datasets import Dataset
+        sentence1_list = []
+        sentence2_list = []
+        # Open a file, do preprocessing, filtering, cleaning, etc.
+        # and append to the lists
 
-            sentence1_list = []
-            sentence2_list = []
-            # Open a file, do preprocessing, filtering, cleaning, etc.
-            # and append to the lists
+        dataset = Dataset.from_dict({
+            "sentence1": sentence1_list,
+            "sentence2": sentence2_list,
+        })
 
-            dataset = Dataset.from_dict({
-                "sentence1": sentence1_list,
-                "sentence2": sentence2_list,
-            })
-
-        Each key from the dictionary will become a column in the resulting dataset.
+    Each key from the dictionary will become a column in the resulting dataset.
 
 ```
 
@@ -298,72 +296,70 @@ Additionally, :class:`~sentence_transformers.evaluation.SequentialEvaluator` sho
 
 Sometimes you don't have the required evaluation data to prepare one of these evaluators on your own, but you still want to track how well the model performs on some common benchmarks. In that case, you can use these evaluators with data from Hugging Face.
 
-.. tabs::
+.. tab:: EmbeddingSimilarityEvaluator with STSb
 
-    .. tab:: EmbeddingSimilarityEvaluator with STSb
+    .. raw:: html
 
-        .. raw:: html
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/stsb">sentence-transformers/stsb</a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.EmbeddingSimilarityEvaluator" title="sentence_transformers.evaluation.EmbeddingSimilarityEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.evaluation.EmbeddingSimilarityEvaluator</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SimilarityFunction" title="sentence_transformers.SimilarityFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.SimilarityFunction</span></code></a></li>
+            </ul>
+        </div>
 
-            <div class="sidebar">
-                <p class="sidebar-title">Documentation</p>
-                <ul class="simple">
-                    <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/stsb">sentence-transformers/stsb</a></li>
-                    <li><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.EmbeddingSimilarityEvaluator" title="sentence_transformers.evaluation.EmbeddingSimilarityEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.evaluation.EmbeddingSimilarityEvaluator</span></code></a></li>
-                    <li><a class="reference internal" href="../package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SimilarityFunction" title="sentence_transformers.SimilarityFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.SimilarityFunction</span></code></a></li>
-                </ul>
-            </div>
+    ::
 
-        ::
+        from datasets import load_dataset
+        from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SimilarityFunction
 
-            from datasets import load_dataset
-            from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SimilarityFunction
+        # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
+        eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
 
-            # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
-            eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
+        # Initialize the evaluator
+        dev_evaluator = EmbeddingSimilarityEvaluator(
+            sentences1=eval_dataset["sentence1"],
+            sentences2=eval_dataset["sentence2"],
+            scores=eval_dataset["score"],
+            main_similarity=SimilarityFunction.COSINE,
+            name="sts-dev",
+        )
+        # You can run evaluation like so:
+        # dev_evaluator(model)
 
-            # Initialize the evaluator
-            dev_evaluator = EmbeddingSimilarityEvaluator(
-                sentences1=eval_dataset["sentence1"],
-                sentences2=eval_dataset["sentence2"],
-                scores=eval_dataset["score"],
-                main_similarity=SimilarityFunction.COSINE,
-                name="sts-dev",
-            )
-            # You can run evaluation like so:
-            # dev_evaluator(model)
-    
-    .. tab:: TripletEvaluator with AllNLI
+.. tab:: TripletEvaluator with AllNLI
 
-        .. raw:: html
+    .. raw:: html
 
-            <div class="sidebar">
-                <p class="sidebar-title">Documentation</p>
-                <ul class="simple">
-                    <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/all-nli">sentence-transformers/all-nli</a></li>
-                    <li><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.TripletEvaluator" title="sentence_transformers.evaluation.TripletEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.evaluation.TripletEvaluator</span></code></a></li>
-                    <li><a class="reference internal" href="../package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SimilarityFunction" title="sentence_transformers.SimilarityFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.SimilarityFunction</span></code></a></li>
-                </ul>
-            </div>
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/all-nli">sentence-transformers/all-nli</a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.TripletEvaluator" title="sentence_transformers.evaluation.TripletEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.evaluation.TripletEvaluator</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SimilarityFunction" title="sentence_transformers.SimilarityFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.SimilarityFunction</span></code></a></li>
+            </ul>
+        </div>
 
-        ::
+    ::
 
-            from datasets import load_dataset
-            from sentence_transformers.evaluation import TripletEvaluator, SimilarityFunction
+        from datasets import load_dataset
+        from sentence_transformers.evaluation import TripletEvaluator, SimilarityFunction
 
-            # Load triplets from the AllNLI dataset (https://huggingface.co/datasets/sentence-transformers/all-nli)
-            max_samples = 1000
-            eval_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split=f"dev[:{max_samples}]")
+        # Load triplets from the AllNLI dataset (https://huggingface.co/datasets/sentence-transformers/all-nli)
+        max_samples = 1000
+        eval_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split=f"dev[:{max_samples}]")
 
-            # Initialize the evaluator
-            dev_evaluator = TripletEvaluator(
-                anchors=eval_dataset["anchor"],
-                positives=eval_dataset["positive"],
-                negatives=eval_dataset["negative"],
-                main_distance_function=SimilarityFunction.COSINE,
-                name="all-nli-dev",
-            )
-            # You can run evaluation like so:
-            # dev_evaluator(model)
+        # Initialize the evaluator
+        dev_evaluator = TripletEvaluator(
+            anchors=eval_dataset["anchor"],
+            positives=eval_dataset["positive"],
+            negatives=eval_dataset["negative"],
+            main_distance_function=SimilarityFunction.COSINE,
+            name="all-nli-dev",
+        )
+        # You can run evaluation like so:
+        # dev_evaluator(model)
 ```
 
 ## Trainer

@@ -1,8 +1,9 @@
 # Must use Python 3.8!
 
-sphinx<4
-Jinja2<3.1
-sphinx_markdown_tables
+sphinx==3.5.4
+Jinja2==3.0.3
+sphinx_markdown_tables==0.0.17
 recommonmark==0.7.1
-sphinx-tabs==3.4.5
+sphinx-copybutton==0.5.2
+sphinx_inline_tabs==2023.4.21
 -e ..

@@ -15,6 +15,8 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 import datetime
+import importlib
+import inspect
 import os
 
 from recommonmark.transform import AutoStructify
@@ -22,7 +24,7 @@ from sphinx.domains import Domain
 
 # -- Project information -----------------------------------------------------
 
-project = "Sentence-Transformers"
+project = "Sentence Transformers"
 copyright = str(datetime.datetime.now().year)
 author = "Nils Reimers, Tom Aarsen"
 
@@ -37,8 +39,10 @@ extensions = [
     "sphinx.ext.autodoc",
     "recommonmark",
     "sphinx_markdown_tables",
+    "sphinx_copybutton",
     "sphinx.ext.intersphinx",
-    "sphinx_tabs.tabs",
+    "sphinx.ext.linkcode",
+    "sphinx_inline_tabs",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -106,6 +110,43 @@ html_logo = "img/logo.png"
 html_favicon = "img/favicon.ico"
 
 autoclass_content = "both"
+
+
+# https://github.com/readthedocs/sphinx-autoapi/issues/202#issuecomment-907582382
+def linkcode_resolve(domain, info):
+    # Non-linkable objects from the starter kit in the tutorial.
+    if domain == "js" or info["module"] == "connect4":
+        return
+
+    assert domain == "py", "expected only Python objects"
+
+    mod = importlib.import_module(info["module"])
+    if "." in info["fullname"]:
+        objname, attrname = info["fullname"].split(".")
+        obj = getattr(mod, objname)
+        try:
+            # object is a method of a class
+            obj = getattr(obj, attrname)
+        except AttributeError:
+            # object is an attribute of a class
+            return None
+    else:
+        obj = getattr(mod, info["fullname"])
+    obj = inspect.unwrap(obj)
+
+    try:
+        file = inspect.getsourcefile(obj)
+        lines = inspect.getsourcelines(obj)
+    except TypeError:
+        # e.g. object is a typing.Union
+        return None
+    file = os.path.relpath(file, os.path.abspath(".."))
+    if not file.startswith("sentence_transformers"):
+        # e.g. object is a typing.NewType
+        return None
+    start, end = lines[1], lines[1] + len(lines[0]) - 1
+
+    return f"https://github.com/UKPLab/sentence-transformers/blob/master/{file}#L{start}-L{end}"
 
 
 class GithubURLDomain(Domain):
