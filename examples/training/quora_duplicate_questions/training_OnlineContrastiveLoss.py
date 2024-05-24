@@ -9,7 +9,11 @@ As loss function, we use OnlineConstrativeLoss. It reduces the distance between 
 An issue with constrative loss is, that it might push sentences away that are already well positioned in vector space.
 """
 
+import logging
+import random
 import traceback
+from datetime import datetime
+
 from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import (
@@ -22,9 +26,6 @@ from sentence_transformers.losses import OnlineContrastiveLoss
 from sentence_transformers.losses.ContrastiveLoss import SiameseDistanceMetric
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import BatchSamplers, SentenceTransformerTrainingArguments
-import logging
-from datetime import datetime
-import random
 
 # Set the log level to INFO to get more information
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)

@@ -1,11 +1,12 @@
 import os
 import platform
 import tempfile
+
 import pytest
 
-from sentence_transformers import SentenceTransformer, CrossEncoder
-from sentence_transformers.models import Transformer, Pooling
-from datasets import load_dataset, DatasetDict
+from datasets import DatasetDict, load_dataset
+from sentence_transformers import CrossEncoder, SentenceTransformer
+from sentence_transformers.models import Pooling, Transformer
 
 
 @pytest.fixture()

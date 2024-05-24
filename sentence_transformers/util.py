@@ -1,21 +1,20 @@
-from contextlib import contextmanager
 import functools
-import requests
-from torch import Tensor, device
-from typing import List, Callable, Literal, overload
-from tqdm.autonotebook import tqdm
-import sys
-import importlib
-import os
-import torch
-import numpy as np
-import queue
-import logging
-from typing import Dict, Optional, Union
-
-from transformers import is_torch_npu_available
-from huggingface_hub import snapshot_download, hf_hub_download
 import heapq
+import importlib
+import logging
+import os
+import queue
+import sys
+from contextlib import contextmanager
+from typing import Callable, Dict, List, Literal, Optional, Union, overload
+
+import numpy as np
+import requests
+import torch
+from huggingface_hub import hf_hub_download, snapshot_download
+from torch import Tensor, device
+from tqdm.autonotebook import tqdm
+from transformers import is_torch_npu_available
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,9 @@
-import logging
-import numpy as np
-import os
 import csv
+import logging
+import os
 from typing import Optional
+
+import numpy as np
 from sklearn.metrics import ndcg_score
 
 logger = logging.getLogger(__name__)

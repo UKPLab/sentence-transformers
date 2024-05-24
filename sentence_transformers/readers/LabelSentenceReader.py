@@ -1,5 +1,6 @@
-from . import InputExample
 import os
+
+from . import InputExample
 
 
 class LabelSentenceReader:

@@ -1,10 +1,11 @@
+import csv
 import logging
 import os
-import csv
 from typing import List
-from ... import InputExample
+
 import numpy as np
 
+from sentence_transformers import InputExample
 
 logger = logging.getLogger(__name__)
 

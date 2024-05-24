@@ -1,9 +1,9 @@
 from .CEBinaryAccuracyEvaluator import CEBinaryAccuracyEvaluator
 from .CEBinaryClassificationEvaluator import CEBinaryClassificationEvaluator
-from .CEF1Evaluator import CEF1Evaluator
 from .CECorrelationEvaluator import CECorrelationEvaluator
-from .CESoftmaxAccuracyEvaluator import CESoftmaxAccuracyEvaluator
+from .CEF1Evaluator import CEF1Evaluator
 from .CERerankingEvaluator import CERerankingEvaluator
+from .CESoftmaxAccuracyEvaluator import CESoftmaxAccuracyEvaluator
 
 __all__ = [
     "CEBinaryAccuracyEvaluator",

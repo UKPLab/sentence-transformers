@@ -2,23 +2,22 @@
 Tests general behaviour of the SentenceTransformer class
 """
 
-from functools import partial
 import json
 import logging
 import os
-from pathlib import Path
 import re
 import tempfile
+from functools import partial
+from pathlib import Path
 from typing import Dict, List, Literal, Optional, Union, cast
 
 import numpy as np
 import pytest
-
-from huggingface_hub import HfApi, RepoUrl, GitRefs, GitRefInfo
 import torch
-from sentence_transformers import SentenceTransformer
-from sentence_transformers.models import Normalize, Transformer, Pooling
-from sentence_transformers import util
+from huggingface_hub import GitRefInfo, GitRefs, HfApi, RepoUrl
+
+from sentence_transformers import SentenceTransformer, util
+from sentence_transformers.models import Normalize, Pooling, Transformer
 from sentence_transformers.similarity_functions import SimilarityFunction
 
 

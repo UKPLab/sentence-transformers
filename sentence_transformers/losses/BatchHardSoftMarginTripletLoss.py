@@ -1,8 +1,11 @@
+from typing import Dict, Iterable
+
 import torch
 from torch import Tensor
-from typing import Iterable, Dict
-from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
+
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+
+from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
 
 
 class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):

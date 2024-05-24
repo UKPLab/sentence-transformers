@@ -3,10 +3,11 @@ LexRank implementation
 Source: https://github.com/crabcamp/lexrank/tree/dev
 """
 
+import logging
+
 import numpy as np
 from scipy.sparse.csgraph import connected_components
 from scipy.special import softmax
-import logging
 
 logger = logging.getLogger(__name__)
 

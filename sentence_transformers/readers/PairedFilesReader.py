@@ -1,5 +1,6 @@
-from . import InputExample
 import gzip
+
+from . import InputExample
 
 
 class PairedFilesReader(object):

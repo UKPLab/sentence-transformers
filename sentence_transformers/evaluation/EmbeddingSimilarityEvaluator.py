@@ -1,17 +1,19 @@
-from contextlib import nullcontext
-
-from sentence_transformers import SentenceTransformer
-from . import SentenceEvaluator
-from sentence_transformers.similarity_functions import SimilarityFunction
+import csv
 import logging
 import os
-import csv
-from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
-from scipy.stats import pearsonr, spearmanr
-import numpy as np
-from typing import Dict, List, Literal, Optional, Union
-from ..readers import InputExample
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
 
+import numpy as np
+from scipy.stats import pearsonr, spearmanr
+from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
+
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.readers import InputExample
+from sentence_transformers.similarity_functions import SimilarityFunction
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +141,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         return cls(sentences1, sentences2, scores, **kwargs)
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:

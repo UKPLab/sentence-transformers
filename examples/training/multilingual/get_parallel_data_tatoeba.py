@@ -5,10 +5,11 @@ It is available for more than 300 languages.
 This script downloads the Tatoeba corpus and extracts the sentences & translations in the languages you like
 """
 
-import os
-import sentence_transformers
-import tarfile
 import gzip
+import os
+import tarfile
+
+import sentence_transformers
 
 # Note: Tatoeba uses 3 letter languages codes (ISO-639-2),
 # while other datasets like OPUS use 2 letter language codes (ISO-639-1)

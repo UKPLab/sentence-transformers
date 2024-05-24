@@ -4,8 +4,9 @@ This is a simple application for sentence embeddings: clustering
 Sentences are mapped to sentence embeddings and then k-mean clustering is applied.
 """
 
-from sentence_transformers import SentenceTransformer
 from sklearn.cluster import KMeans
+
+from sentence_transformers import SentenceTransformer
 
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 

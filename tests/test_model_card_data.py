@@ -1,6 +1,6 @@
-from sentence_transformers import SentenceTransformer
-
 import pytest
+
+from sentence_transformers import SentenceTransformer
 
 
 @pytest.mark.parametrize(

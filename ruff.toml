@@ -1,4 +1,3 @@
-lint.ignore-init-module-imports = true
 
 line-length = 119
 

@@ -26,22 +26,22 @@ python train_sts_indomain_bm25.py bert-base-uncased 3
 
 """
 
+import logging
+import math
+import sys
 import traceback
-from datasets import load_dataset, Dataset, concatenate_datasets
+from datetime import datetime
+
+import tqdm
+from elasticsearch import Elasticsearch
 from torch.utils.data import DataLoader
-from sentence_transformers import losses
+
+from datasets import Dataset, concatenate_datasets, load_dataset
+from sentence_transformers import SentenceTransformer, losses
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
-from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import InputExample
-from elasticsearch import Elasticsearch
-from datetime import datetime
-import logging
-import sys
-import tqdm
-import math
-
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments

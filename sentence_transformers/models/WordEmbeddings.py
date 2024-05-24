@@ -1,15 +1,17 @@
+import gzip
+import json
+import logging
+import os
+from typing import List
+
+import numpy as np
 import torch
 from torch import nn
-from typing import List
-import logging
-import gzip
 from tqdm import tqdm
-import numpy as np
-import os
-import json
-from ..util import import_from_string, fullname, http_get
-from .tokenizer import WordTokenizer, WhitespaceTokenizer
 
+from sentence_transformers.util import fullname, http_get, import_from_string
+
+from .tokenizer import WhitespaceTokenizer, WordTokenizer
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,11 @@
-from typing import Iterable, Dict
+from typing import Dict, Iterable
+
 import torch.nn.functional as F
-from torch import nn, Tensor
-from .ContrastiveLoss import SiameseDistanceMetric
+from torch import Tensor, nn
+
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+
+from .ContrastiveLoss import SiameseDistanceMetric
 
 
 class OnlineContrastiveLoss(nn.Module):

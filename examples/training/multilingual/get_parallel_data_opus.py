@@ -29,9 +29,9 @@ This python code automates the download and creation of the parallel sentences f
 
 """
 
-from opustools import OpusRead
 import os
 
+from opustools import OpusRead
 
 corpora = ["JW300"]  # Corpora you want to use
 source_languages = ["en"]  # Source language, our teacher model is able to understand

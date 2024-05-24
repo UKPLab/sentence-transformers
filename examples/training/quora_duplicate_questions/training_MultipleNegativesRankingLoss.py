@@ -11,7 +11,11 @@ MultipleNegativesRankingLoss takes a random subset of these, for example (a_1, b
 The model we get works well for duplicate questions mining and for duplicate questions information retrieval. For question pair classification, other losses (like OnlineConstrativeLoss) work better.
 """
 
+import logging
+import random
 import traceback
+from datetime import datetime
+
 from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import (
@@ -23,9 +27,6 @@ from sentence_transformers.evaluation import (
 from sentence_transformers.losses import MultipleNegativesRankingLoss
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import BatchSamplers, SentenceTransformerTrainingArguments
-import logging
-from datetime import datetime
-import random
 
 # Set the log level to INFO to get more information
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)

@@ -8,14 +8,15 @@ python train_tsdae_from_file.py path/to/sentences.txt
 
 """
 
-from sentence_transformers import SentenceTransformer, LoggingHandler
-from sentence_transformers import models, datasets, losses
-import logging
 import gzip
-from torch.utils.data import DataLoader
-from datetime import datetime
+import logging
 import sys
+from datetime import datetime
+
 import tqdm
+from torch.utils.data import DataLoader
+
+from sentence_transformers import LoggingHandler, SentenceTransformer, datasets, losses, models
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(

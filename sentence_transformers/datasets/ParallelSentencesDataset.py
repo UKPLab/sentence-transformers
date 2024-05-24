@@ -1,11 +1,12 @@
-from torch.utils.data import Dataset
-import logging
 import gzip
-from .. import SentenceTransformer
-from ..readers import InputExample
-from typing import List
+import logging
 import random
+from typing import List
 
+from torch.utils.data import Dataset
+
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.readers import InputExample
 
 logger = logging.getLogger(__name__)
 

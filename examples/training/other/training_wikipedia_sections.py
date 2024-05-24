@@ -4,15 +4,16 @@ This script trains sentence transformers with a triplet loss function.
 As corpus, we use the wikipedia sections dataset that was describd by Dor et al., 2018, Learning Thematic Similarity Metric Using Triplet Networks.
 """
 
+import logging
 import traceback
+from datetime import datetime
+
+from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import TripletEvaluator
 from sentence_transformers.losses import TripletLoss
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
-from datetime import datetime
-from datasets import load_dataset
-import logging
 
 # Set the log level to INFO to get more information
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)

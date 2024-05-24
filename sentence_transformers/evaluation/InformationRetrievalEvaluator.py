@@ -1,18 +1,20 @@
-from sentence_transformers import SentenceTransformer
+import heapq
+import logging
+import os
 from contextlib import nullcontext
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Union
 
-from sentence_transformers.similarity_functions import SimilarityFunction
-from . import SentenceEvaluator
+import numpy as np
 import torch
 from torch import Tensor
-import logging
 from tqdm import trange
-from ..util import cos_sim, dot_score
-import os
-import numpy as np
-from typing import List, Dict, Optional, Set, Callable, Union
-import heapq
 
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.similarity_functions import SimilarityFunction
+from sentence_transformers.util import cos_sim, dot_score
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -203,7 +205,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 self.csv_headers.append("{}-MAP@{}".format(score_name, k))
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
@@ -272,7 +274,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         return metrics
 
     def compute_metrices(
-        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor = None
+        self, model: "SentenceTransformer", corpus_model=None, corpus_embeddings: Tensor = None
     ) -> Dict[str, float]:
         if corpus_model is None:
             corpus_model = model

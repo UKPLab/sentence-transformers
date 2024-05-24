@@ -3,15 +3,16 @@ from typing import Callable, Union
 
 from numpy import ndarray
 from torch import Tensor
+
 from .util import (
     cos_sim,
-    manhattan_sim,
-    euclidean_sim,
     dot_score,
+    euclidean_sim,
+    manhattan_sim,
     pairwise_cos_sim,
-    pairwise_manhattan_sim,
-    pairwise_euclidean_sim,
     pairwise_dot_score,
+    pairwise_euclidean_sim,
+    pairwise_manhattan_sim,
 )
 
 

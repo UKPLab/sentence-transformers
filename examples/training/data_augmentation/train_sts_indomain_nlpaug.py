@@ -29,17 +29,18 @@ Usage:
 python train_sts_indomain_nlpaug.py
 """
 
-import traceback
-from datasets import load_dataset, Dataset, concatenate_datasets
-import torch
-from sentence_transformers import SentenceTransformer, losses
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-import nlpaug.augmenter.word as naw
 import logging
-from datetime import datetime
 import sys
+import traceback
+from datetime import datetime
+
+import nlpaug.augmenter.word as naw
+import torch
 import tqdm
 
+from datasets import Dataset, concatenate_datasets, load_dataset
+from sentence_transformers import SentenceTransformer, losses
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments

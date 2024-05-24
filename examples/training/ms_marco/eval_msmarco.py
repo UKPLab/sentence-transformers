@@ -6,11 +6,12 @@ Usage:
 python eval_msmarco.py model_name [max_corpus_size_in_thousands]
 """
 
-from sentence_transformers import LoggingHandler, SentenceTransformer, evaluation, util
 import logging
-import sys
 import os
+import sys
 import tarfile
+
+from sentence_transformers import LoggingHandler, SentenceTransformer, evaluation, util
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(

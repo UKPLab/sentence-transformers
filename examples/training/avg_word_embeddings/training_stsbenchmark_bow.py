@@ -5,17 +5,16 @@ to a sparse vector with e.g. 25,000 dimensions. Optionally, you can also use tf-
 To make the model trainable, we add multiple dense layers to create a Deep Averaging Network (DAN).
 """
 
-import traceback
-from datasets import load_dataset
+import logging
 import math
-from sentence_transformers import models, losses, util
-from sentence_transformers import SentenceTransformer
+import os
+import traceback
+from datetime import datetime
+
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer, losses, models, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.models.tokenizer.WordTokenizer import ENGLISH_STOP_WORDS
-import logging
-from datetime import datetime
-import os
-
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
