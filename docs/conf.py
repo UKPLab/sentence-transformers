@@ -41,8 +41,8 @@ extensions = [
     "sphinx_markdown_tables",
     "sphinx_copybutton",
     "sphinx.ext.intersphinx",
-    "sphinx_tabs.tabs",
     "sphinx.ext.linkcode",
+    "sphinx_inline_tabs",
 ]
 
 # Add any paths that contain templates here, relative to this directory.

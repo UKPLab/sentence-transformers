@@ -10,23 +10,29 @@ Sentence Transformers implements two forms of distributed training: Data Paralle
 
 In short, **DDP is generally recommended**. You can use DDP by running your normal training scripts with ``torchrun`` or ``accelerate``. For example, if you have a script called ``train_script.py``, you can run it with DDP using the following command:
 
-.. tabs::
+.. |br| raw:: html
 
-   .. tab:: Via ``torchrun``
+   <div style="line-height: 0; padding: 0; margin: 0"></div>
 
-      - `torchrun documentation <https://pytorch.org/docs/stable/elastic/run.html>`_
+.. tab:: Via ``torchrun``
 
-      ::
+   |br|
 
-         torchrun --nproc_per_node=4 train_script.py
-    
-   .. tab:: Via ``accelerate``
+   - `torchrun documentation <https://pytorch.org/docs/stable/elastic/run.html>`_
 
-      - `accelerate documentation <https://huggingface.co/docs/accelerate/en/index>`_
+   ::
 
-      ::
-        
-         accelerate launch --num_processes 4 train_script.py
+      torchrun --nproc_per_node=4 train_script.py
+   
+.. tab:: Via ``accelerate``
+
+   |br|
+
+   - `accelerate documentation <https://huggingface.co/docs/accelerate/en/index>`_
+
+   ::
+      
+      accelerate launch --num_processes 4 train_script.py
 
 .. note::
   
