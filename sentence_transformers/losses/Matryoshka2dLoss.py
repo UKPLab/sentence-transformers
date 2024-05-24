@@ -92,7 +92,7 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
                 from sentence_transformers import SentenceTransformer, losses, InputExample
                 from torch.utils.data import DataLoader
 
-                model = SentenceTransformer('microsoft/mpnet-base')
+                model = SentenceTransformer("microsoft/mpnet-base")
                 train_examples = [
                     InputExample(texts=['Anchor 1', 'Positive 1']),
                     InputExample(texts=['Anchor 2', 'Positive 2']),

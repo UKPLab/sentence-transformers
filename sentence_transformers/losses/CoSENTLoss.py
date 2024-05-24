@@ -50,15 +50,23 @@ class CoSENTLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses
-                from sentence_transformers.readers import InputExample
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('bert-base-uncased')
-                train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=1.0),
-                        InputExample(texts=['My third sentence', 'Unrelated sentence'], label=0.3)]
-
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
-                train_loss = losses.CoSENTLoss(model=model)
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "sentence1": ["It's nice weather outside today.", "He drove to work."],
+                    "sentence2": ["It's so sunny.", "She walked to the store."],
+                    "score": [1.0, 0.3],
+                })
+                loss = losses.CoSENTLoss(model)
+                                
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
         """
         super(CoSENTLoss, self).__init__()
         self.model = model

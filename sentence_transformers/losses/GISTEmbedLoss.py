@@ -50,21 +50,23 @@ class GISTEmbedLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('all-MiniLM-L6-v2')
-                guide = SentenceTransformer('avsolatorio/GIST-small-Embedding-v0')
-                train_examples = [
-                    InputExample(texts=['The first query',  'The first positive passage',  'The first negative passage']),
-                    InputExample(texts=['The second query', 'The second positive passage', 'The second negative passage']),
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=2)
-                train_loss = losses.GISTEmbedLoss(model=model, guide=guide)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                guide = SentenceTransformer("all-MiniLM-L6-v2")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                })
+                loss = losses.GISTEmbedLoss(model, guide)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(GISTEmbedLoss, self).__init__()
         self.model = model

@@ -64,20 +64,22 @@ class MultipleNegativesRankingLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-uncased')
-                train_examples = [
-                    InputExample(texts=['Anchor 1', 'Positive 1']),
-                    InputExample(texts=['Anchor 2', 'Positive 2']),
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
-                train_loss = losses.MultipleNegativesRankingLoss(model=model)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                })
+                loss = losses.MultipleNegativesRankingLoss(model)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(MultipleNegativesRankingLoss, self).__init__()
         self.model = model

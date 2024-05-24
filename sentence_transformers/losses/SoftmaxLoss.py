@@ -52,29 +52,33 @@ class SoftmaxLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, SentencesDataset, losses
-                from sentence_transformers.readers import InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-                train_examples = [
-                    InputExample(texts=['First pair, sent A',  'First pair, sent B'], label=0),
-                    InputExample(texts=['Second pair, sent A', 'Second pair, sent B'], label=1),
-                    InputExample(texts=['Third pair, sent A',  'Third pair, sent B'], label=0),
-                    InputExample(texts=['Fourth pair, sent A', 'Fourth pair, sent B'], label=2),
-                ]
-                train_batch_size = 2
-                train_dataset = SentencesDataset(train_examples, model)
-                train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
-                train_loss = losses.SoftmaxLoss(
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "sentence1": [
+                        "A person on a horse jumps over a broken down airplane.",
+                        "A person on a horse jumps over a broken down airplane.",
+                        "A person on a horse jumps over a broken down airplane.",
+                        "Children smiling and waving at camera",
+                    ],
+                    "sentence2": [
+                        "A person is training his horse for a competition.",
+                        "A person is at a diner, ordering an omelette.",
+                        "A person is outdoors, on a horse.",    
+                        "There are children present.",
+                    ],
+                    "label": [1, 2, 0, 0],
+                })
+                loss = losses.SoftmaxLoss(model, model.get_sentence_embedding_dimension(), num_labels=3)
+
+                trainer = SentenceTransformerTrainer(
                     model=model,
-                    sentence_embedding_dimension=model.get_sentence_embedding_dimension(),
-                    num_labels=len(set(x.label for x in train_examples))
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
-                )
+                trainer.train()
         """
         super(SoftmaxLoss, self).__init__()
         self.model = model

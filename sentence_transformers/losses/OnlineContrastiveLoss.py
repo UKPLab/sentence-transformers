@@ -43,21 +43,23 @@ class OnlineContrastiveLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('all-MiniLM-L6-v2')
-                train_examples = [
-                    InputExample(texts=['This is a positive pair', 'Where the distance will be minimized'], label=1),
-                    InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0),
-                ]
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "sentence1": ["It's nice weather outside today.", "He drove to work."],
+                    "sentence2": ["It's so sunny.", "She walked to the store."],
+                    "label": [1, 0],
+                })
+                loss = losses.OnlineContrastiveLoss(model)
 
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=2)
-                train_loss = losses.OnlineContrastiveLoss(model=model)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(OnlineContrastiveLoss, self).__init__()
         self.model = model

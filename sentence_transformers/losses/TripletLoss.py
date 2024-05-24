@@ -50,23 +50,23 @@ class TripletLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer,  SentencesDataset, losses
-                from sentence_transformers.readers import InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-                train_examples = [
-                    InputExample(texts=['Anchor 1', 'Positive 1', 'Negative 1']),
-                    InputExample(texts=['Anchor 2', 'Positive 2', 'Negative 2']),
-                ]
-                train_batch_size = 1
-                train_dataset = SentencesDataset(train_examples, model)
-                train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
-                train_loss = losses.TripletLoss(model=model)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                    "negative": ["It's quite rainy, sadly.", "She walked to the store."],
+                })
+                loss = losses.TripletLoss(model=model)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(TripletLoss, self).__init__()
         self.model = model

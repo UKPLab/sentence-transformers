@@ -43,22 +43,23 @@ class CosineSimilarityLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, InputExample, losses
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-                train_examples = [
-                    InputExample(texts=['My first sentence', 'My second sentence'], label=0.8),
-                    InputExample(texts=['Another pair', 'Unrelated sentence'], label=0.3)
-                ]
-                train_batch_size = 1
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
-                train_loss = losses.CosineSimilarityLoss(model=model)
-
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "sentence1": ["It's nice weather outside today.", "He drove to work."],
+                    "sentence2": ["It's so sunny.", "She walked to the store."],
+                    "score": [1.0, 0.3],
+                })
+                loss = losses.CosineSimilarityLoss(model)
+                                
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(CosineSimilarityLoss, self).__init__()
         self.model = model
