@@ -461,7 +461,6 @@ def test_encode_truncate(
                 embeddings = outputs["sentence_embedding"]
             else:
                 outputs = cast(List[Dict[str, torch.Tensor]], outputs)
-                # TODO: can overload model.encode if ppl want type checker compatibility
                 embeddings = [out_features["sentence_embedding"] for out_features in outputs]
         else:
             embeddings = outputs

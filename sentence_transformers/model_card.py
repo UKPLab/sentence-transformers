@@ -340,7 +340,6 @@ class SentenceTransformerModelCardData(CardData):
                     )
                     del dataset["id"]
                 else:
-                    # TODO: Perhaps we can try to infer the dataset name from the dataset card
                     if info.cardData and infer_languages and "language" in info.cardData:
                         dataset_language = info.cardData.get("language")
                         if dataset_language is None:
