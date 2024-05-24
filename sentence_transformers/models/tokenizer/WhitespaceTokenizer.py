@@ -1,9 +1,10 @@
-from typing import List, Iterable
 import collections
-import string
-import os
 import json
-from .WordTokenizer import WordTokenizer, ENGLISH_STOP_WORDS
+import os
+import string
+from typing import Iterable, List
+
+from .WordTokenizer import ENGLISH_STOP_WORDS, WordTokenizer
 
 
 class WhitespaceTokenizer(WordTokenizer):

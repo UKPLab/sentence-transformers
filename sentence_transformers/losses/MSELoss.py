@@ -1,6 +1,7 @@
+from typing import Dict, Iterable
+
 import torch
-from torch import nn, Tensor
-from typing import Iterable, Dict
+from torch import Tensor, nn
 
 
 class MSELoss(nn.Module):

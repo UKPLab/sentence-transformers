@@ -11,15 +11,19 @@ OR
 python matryoshka_nli.py pretrained_transformer_model_name
 """
 
-import traceback
-from datasets import load_dataset
-from sentence_transformers import losses
-from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, SentenceTransformerTrainingArguments
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SequentialEvaluator, SimilarityFunction
 import logging
-from datetime import datetime
 import sys
+import traceback
+from datetime import datetime
 
+from datasets import load_dataset
+from sentence_transformers import (
+    SentenceTransformer,
+    SentenceTransformerTrainer,
+    SentenceTransformerTrainingArguments,
+    losses,
+)
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SequentialEvaluator, SimilarityFunction
 from sentence_transformers.training_args import BatchSamplers
 
 # Set the log level to INFO to get more information

@@ -1,8 +1,10 @@
-from torch.utils.data import IterableDataset
-import numpy as np
-from typing import List
-from ..readers import InputExample
 import logging
+from typing import List
+
+import numpy as np
+from torch.utils.data import IterableDataset
+
+from sentence_transformers.readers import InputExample
 
 logger = logging.getLogger(__name__)
 

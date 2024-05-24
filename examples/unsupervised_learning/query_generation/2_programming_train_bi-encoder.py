@@ -11,9 +11,9 @@ In:
 3_programming_semantic_search.py - Shows how the trained model can be used for semantic search
 """
 
-from sentence_transformers import SentenceTransformer, InputExample, losses, models, datasets
 import os
 
+from sentence_transformers import InputExample, SentenceTransformer, datasets, losses, models
 
 train_examples = []
 with open("generated_queries.tsv") as fIn:

@@ -3,7 +3,11 @@ Note: This script was modified with the v3 release of Sentence Transformers.
 As a result, it does not produce exactly the same behaviour as the original script.
 """
 
+import logging
 import traceback
+from datetime import datetime
+
+from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.losses import MultipleNegativesRankingLoss
@@ -14,10 +18,6 @@ from sentence_transformers.training_args import (
     MultiDatasetBatchSamplers,
     SentenceTransformerTrainingArguments,
 )
-import logging
-from datetime import datetime
-from datasets import load_dataset
-
 
 # Set the log level to INFO to get more information
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)

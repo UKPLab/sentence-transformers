@@ -1,10 +1,11 @@
-from torch import Tensor
-from torch import nn
-import os
 import json
-from ..util import import_from_string
+import os
 from collections import OrderedDict
-from typing import List, Dict, Union, Tuple
+from typing import Dict, List, Tuple, Union
+
+from torch import Tensor, nn
+
+from sentence_transformers.util import import_from_string
 
 
 class Asym(nn.Sequential):

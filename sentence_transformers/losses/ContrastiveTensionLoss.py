@@ -1,13 +1,14 @@
-import torch
-from torch import nn, Tensor
-from typing import Iterable, Dict
-from ..SentenceTransformer import SentenceTransformer
-from .. import util
 import copy
-import random
 import math
-from .. import InputExample
+import random
+from typing import Dict, Iterable
+
 import numpy as np
+import torch
+from torch import Tensor, nn
+
+from sentence_transformers import InputExample, util
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class ContrastiveTensionLoss(nn.Module):

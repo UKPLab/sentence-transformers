@@ -1,46 +1,46 @@
-from contextlib import contextmanager
-import json
-import logging
-import os
-from collections import OrderedDict
-from pathlib import Path
-import traceback
-import warnings
-from typing import Callable, List, Dict, Literal, Tuple, Iterable, Union, Optional, overload, Any
-import numpy as np
-from numpy import ndarray
-import transformers
-from transformers import is_torch_npu_available
-from huggingface_hub import HfApi
-import torch
-from torch import nn, Tensor, device
-import torch.multiprocessing as mp
-from tqdm.autonotebook import trange
-import math
-import queue
-import tempfile
 import copy
 import importlib
+import json
+import logging
+import math
+import os
+import queue
+import tempfile
+import traceback
+import warnings
+from collections import OrderedDict
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union, overload
+
+import numpy as np
+import torch
+import torch.multiprocessing as mp
+import transformers
+from huggingface_hub import HfApi
+from numpy import ndarray
+from torch import Tensor, device, nn
+from tqdm.autonotebook import trange
+from transformers import is_torch_npu_available
 
 from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
 from sentence_transformers.similarity_functions import SimilarityFunction
 
-from . import __MODEL_HUB_ORGANIZATION__
+from . import __MODEL_HUB_ORGANIZATION__, __version__
 from .evaluation import SentenceEvaluator
+from .fit_mixin import FitMixin
+from .models import Normalize, Pooling, Transformer
+from .quantization import quantize_embeddings
 from .util import (
-    import_from_string,
     batch_to_device,
+    get_device_name,
+    import_from_string,
     is_sentence_transformer_model,
     load_dir_path,
     load_file_path,
     save_to_hub_args_decorator,
-    get_device_name,
     truncate_embeddings,
 )
-from .quantization import quantize_embeddings
-from .models import Transformer, Pooling, Normalize
-from .fit_mixin import FitMixin
-from . import __version__
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,11 @@
-from pathlib import Path
 import re
 import tempfile
+from pathlib import Path
+
 import pytest
-from sentence_transformers import SentenceTransformerTrainer, SentenceTransformer, losses
+
 from datasets import DatasetDict
+from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
 
 
 def test_trainer_multi_dataset_errors(

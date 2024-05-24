@@ -1,7 +1,8 @@
 import re
-from typing import Any, Dict, Union
+from typing import TYPE_CHECKING, Any, Dict, Union
 
-from sentence_transformers import SentenceTransformer
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class SentenceEvaluator:
@@ -16,7 +17,7 @@ class SentenceEvaluator:
         # TODO: Add better `primary_metrics` support
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> Union[float, Dict[str, float]]:
         """
         This is called during training to evaluate the model.

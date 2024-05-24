@@ -1,22 +1,20 @@
-from functools import wraps
-
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoConfig
-import numpy as np
 import logging
 import os
-from typing import Dict, Type, Callable, List, Optional, Union
+from functools import wraps
+from typing import Callable, Dict, List, Optional, Type, Union
+
+import numpy as np
 import torch
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
-from transformers import is_torch_npu_available
+from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, is_torch_npu_available
 from transformers.utils import PushToHubMixin
 
-from .. import SentenceTransformer, util
-from ..evaluation import SentenceEvaluator
-from ..util import get_device_name
-
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers.util import fullname, get_device_name, import_from_string
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +112,7 @@ class CrossEncoder(PushToHubMixin):
         if default_activation_function is not None:
             self.default_activation_function = default_activation_function
             try:
-                self.config.sbert_ce_default_activation_function = util.fullname(self.default_activation_function)
+                self.config.sbert_ce_default_activation_function = fullname(self.default_activation_function)
             except Exception as e:
                 logger.warning(
                     "Was not able to update config about the default_activation_function: {}".format(str(e))
@@ -123,9 +121,7 @@ class CrossEncoder(PushToHubMixin):
             hasattr(self.config, "sbert_ce_default_activation_function")
             and self.config.sbert_ce_default_activation_function is not None
         ):
-            self.default_activation_function = util.import_from_string(
-                self.config.sbert_ce_default_activation_function
-            )()
+            self.default_activation_function = import_from_string(self.config.sbert_ce_default_activation_function)()
         else:
             self.default_activation_function = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
 

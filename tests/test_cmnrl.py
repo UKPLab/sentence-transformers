@@ -1,11 +1,13 @@
 from contextlib import nullcontext
 from typing import List
+
 import pytest
-from sentence_transformers import SentenceTransformer, InputExample, losses
-import tqdm
-from transformers import set_seed
 import torch
+import tqdm
 from torch.optim import Adam
+from transformers import set_seed
+
+from sentence_transformers import InputExample, SentenceTransformer, losses
 
 
 @pytest.mark.parametrize(

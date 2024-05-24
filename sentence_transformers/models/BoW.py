@@ -1,12 +1,12 @@
-import torch
-from torch import Tensor
-from torch import nn
-from typing import List, Dict
-import os
 import json
 import logging
-from .tokenizer import WhitespaceTokenizer
+import os
+from typing import Dict, List
 
+import torch
+from torch import Tensor, nn
+
+from .tokenizer import WhitespaceTokenizer
 
 logger = logging.getLogger(__name__)
 

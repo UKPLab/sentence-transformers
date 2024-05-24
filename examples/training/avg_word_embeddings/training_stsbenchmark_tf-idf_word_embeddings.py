@@ -9,16 +9,15 @@ You can get term-document frequencies from here:
 https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/wikipedia_doc_frequencies.txt
 """
 
-import traceback
-from datasets import load_dataset
-import math
-from sentence_transformers import models, losses, util
-from sentence_transformers import SentenceTransformer
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 import logging
-from datetime import datetime
+import math
 import os
+import traceback
+from datetime import datetime
 
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer, losses, models, util
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments

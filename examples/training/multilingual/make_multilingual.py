@@ -17,12 +17,14 @@ Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation
 https://arxiv.org/abs/2004.09813
 """
 
-import traceback
-from sentence_transformers import SentenceTransformer, LoggingHandler
-from datetime import datetime
-from datasets import load_dataset, DatasetDict
-
 import logging
+import traceback
+from datetime import datetime
+
+import numpy as np
+
+from datasets import DatasetDict, load_dataset
+from sentence_transformers import LoggingHandler, SentenceTransformer
 from sentence_transformers.evaluation import (
     EmbeddingSimilarityEvaluator,
     MSEEvaluator,
@@ -32,7 +34,6 @@ from sentence_transformers.evaluation import (
 from sentence_transformers.losses import MSELoss
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
-import numpy as np
 
 logging.basicConfig(
     format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]

@@ -1,7 +1,8 @@
-from . import InputExample
 import csv
 import gzip
 import os
+
+from . import InputExample
 
 
 class STSDataReader:

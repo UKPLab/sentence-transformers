@@ -1,7 +1,7 @@
-from torch import Tensor
-from torch import nn
 from typing import Dict
+
 import torch.nn.functional as F
+from torch import Tensor, nn
 
 
 class Normalize(nn.Module):

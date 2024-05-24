@@ -1,13 +1,16 @@
-from typing import Dict
-from sentence_transformers import SentenceTransformer
-from . import SentenceEvaluator
+import csv
+import logging
+import os
+from typing import TYPE_CHECKING, Dict
+
 import torch
 from torch.utils.data import DataLoader
-import logging
-from ..util import batch_to_device
-import os
-import csv
 
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.util import batch_to_device
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +45,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         self.primary_metric = "accuracy"
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> Dict[str, float]:
         model.eval()
         total = 0

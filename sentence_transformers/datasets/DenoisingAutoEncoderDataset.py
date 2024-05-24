@@ -1,8 +1,10 @@
-from torch.utils.data import Dataset
 from typing import List
-from ..readers.InputExample import InputExample
+
 import numpy as np
-from transformers.utils.import_utils import is_nltk_available, NLTK_IMPORT_ERROR
+from torch.utils.data import Dataset
+from transformers.utils.import_utils import NLTK_IMPORT_ERROR, is_nltk_available
+
+from sentence_transformers.readers.InputExample import InputExample
 
 
 class DenoisingAutoEncoderDataset(Dataset):
@@ -34,7 +36,7 @@ class DenoisingAutoEncoderDataset(Dataset):
     # Deletion noise.
     @staticmethod
     def delete(text, del_ratio=0.6):
-        from nltk import word_tokenize, TreebankWordDetokenizer
+        from nltk import TreebankWordDetokenizer, word_tokenize
 
         words = word_tokenize(text)
         n = len(words)

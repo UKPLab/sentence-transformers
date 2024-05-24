@@ -1,9 +1,9 @@
-import torch
-from torch import Tensor
-from torch import nn
-from typing import Dict
-import os
 import json
+import os
+from typing import Dict
+
+import torch
+from torch import Tensor, nn
 
 
 class WeightedLayerPooling(nn.Module):

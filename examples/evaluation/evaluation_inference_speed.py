@@ -7,11 +7,13 @@ OR
 python evaluation_inference_speed.py model_name
 """
 
-from sentence_transformers import SentenceTransformer
 import sys
 import time
+
 import torch
+
 from datasets import load_dataset
+from sentence_transformers import SentenceTransformer
 
 # Limit torch to 4 threads
 torch.set_num_threads(4)

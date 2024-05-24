@@ -5,12 +5,12 @@ Usage:
 python eval_askubuntu.py [sbert_model_name_or_path]
 """
 
-from sentence_transformers import SentenceTransformer, LoggingHandler
-from sentence_transformers import util, evaluation
+import gzip
 import logging
 import os
-import gzip
 import sys
+
+from sentence_transformers import LoggingHandler, SentenceTransformer, evaluation, util
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(

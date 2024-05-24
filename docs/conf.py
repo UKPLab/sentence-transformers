@@ -14,10 +14,12 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-from recommonmark.transform import AutoStructify
-import os
-from sphinx.domains import Domain
 import datetime
+import os
+
+from recommonmark.transform import AutoStructify
+from sphinx.domains import Domain
+
 # -- Project information -----------------------------------------------------
 
 project = "Sentence-Transformers"

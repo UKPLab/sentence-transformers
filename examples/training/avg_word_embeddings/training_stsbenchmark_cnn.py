@@ -5,19 +5,17 @@ for example with mean-pooling.
 
 """
 
+import logging
 import sys
 import traceback
-from datasets import load_dataset
-from sentence_transformers import models, losses
-from sentence_transformers import SentenceTransformer
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-import logging
 from datetime import datetime
 
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer, losses, models
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
-
 
 # Set the log level to INFO to get more information
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)

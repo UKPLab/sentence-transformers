@@ -12,11 +12,11 @@ The method for finding the communities is extremely fast, for clustering 50k sen
 In this example, we download a large set of questions from Quora and then find similar questions in this set.
 """
 
-from sentence_transformers import SentenceTransformer, util
-import os
 import csv
+import os
 import time
 
+from sentence_transformers import SentenceTransformer, util
 
 # Model for computing sentence embeddings. We use one trained for similar questions detection
 model = SentenceTransformer("all-MiniLM-L6-v2")

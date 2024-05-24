@@ -1,12 +1,15 @@
 from __future__ import annotations
+
 from contextlib import nullcontext
 from functools import partial
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple
+
 import torch
-from torch import nn, Tensor
-from torch.utils.checkpoint import get_device_states, set_device_states
-from typing import Iterable, Dict, Iterator, List, Optional, Tuple
-from sentence_transformers import SentenceTransformer
 import tqdm
+from torch import Tensor, nn
+from torch.utils.checkpoint import get_device_states, set_device_states
+
+from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Transformer
 
 

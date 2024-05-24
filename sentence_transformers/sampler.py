@@ -1,11 +1,12 @@
+import logging
 from collections import defaultdict
 from itertools import accumulate, cycle
 from typing import List
-import logging
+
+import torch
+from torch.utils.data import BatchSampler, ConcatDataset, SubsetRandomSampler
 
 from datasets import Dataset
-from torch.utils.data import BatchSampler, SubsetRandomSampler, ConcatDataset
-import torch
 
 logger = logging.getLogger(__name__)
 

@@ -7,15 +7,16 @@ import argparse
 import os
 from typing import Dict, List, Optional, Tuple, cast
 
-from datasets import load_dataset
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from tqdm.auto import tqdm
+
+from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import (
     EmbeddingSimilarityEvaluator,
     SimilarityFunction,
 )
-from tqdm.auto import tqdm
 
 
 # Dimension plot

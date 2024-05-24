@@ -2,9 +2,10 @@
 Computes embeddings
 """
 
+from typing import Optional
+
 import numpy as np
 import pytest
-from typing import Optional
 
 from sentence_transformers import SentenceTransformer
 

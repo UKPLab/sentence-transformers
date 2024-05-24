@@ -11,10 +11,11 @@ In:
 3_programming_semantic_search.py - Shows how the trained model can be used for semantic search
 """
 
-from sentence_transformers import SentenceTransformer, util
 import gzip
 import json
 import os
+
+from sentence_transformers import SentenceTransformer, util
 
 # Load the model we trained in 2_programming_train_bi-encoder.py
 model = SentenceTransformer("output/programming-model")

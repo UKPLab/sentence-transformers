@@ -1,6 +1,7 @@
-from . import InputExample
 import csv
 import os
+
+from . import InputExample
 
 
 class TripletReader(object):
