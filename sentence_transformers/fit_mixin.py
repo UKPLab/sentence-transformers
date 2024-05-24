@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional,
 import numpy as np
 import torch
 import transformers
+from packaging import version
 from torch import Tensor, nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -22,7 +23,6 @@ from sentence_transformers.training_args import (
     MultiDatasetBatchSamplers,
     SentenceTransformerTrainingArguments,
 )
-from packaging import version
 
 from .evaluation import SentenceEvaluator
 from .model_card_templates import ModelCardTemplate
@@ -299,7 +299,11 @@ class FitMixin:
                 steps_per_epoch = None
 
         # Transformers renamed `evaluation_strategy` to `eval_strategy` in v4.41.0
-        eval_strategy_key = "eval_strategy" if version.parse(transformers.__version__) >= version.parse("4.41.0") else "evaluation_strategy"
+        eval_strategy_key = (
+            "eval_strategy"
+            if version.parse(transformers.__version__) >= version.parse("4.41.0")
+            else "evaluation_strategy"
+        )
         args = SentenceTransformerTrainingArguments(
             output_dir=checkpoint_path or _default_checkpoint_dir(),
             batch_sampler=batch_sampler,
