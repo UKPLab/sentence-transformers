@@ -74,3 +74,7 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
         # The `compute_loss` method in `SentenceTransformerTrainer` is overridden to only compute the prediction loss,
         # so we set `prediction_loss_only` to `True` here to avoid
         self.prediction_loss_only = True
+
+        # Disable broadcasting of buffers to avoid `RuntimeError: one of the variables needed for gradient computation
+        # has been modified by an inplace operation.` when training with DDP & a BertModel-based model.
+        self.ddp_broadcast_buffers = False
