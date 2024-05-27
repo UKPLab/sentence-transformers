@@ -13,7 +13,6 @@ from transformers.integrations import WandbCallback
 from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.trainer_utils import EvalLoopOutput
 from transformers.training_args import ParallelMode
-from transformers.utils import is_accelerate_available, is_datasets_available
 
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
@@ -32,7 +31,7 @@ from sentence_transformers.training_args import (
     MultiDatasetBatchSamplers,
     SentenceTransformerTrainingArguments,
 )
-from sentence_transformers.util import disable_logging
+from sentence_transformers.util import disable_logging, is_datasets_available, is_training_available
 
 if is_datasets_available():
     from datasets import Dataset, DatasetDict
@@ -133,11 +132,11 @@ class SentenceTransformerTrainer(Trainer):
         optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
         preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
     ) -> None:
-        if not is_accelerate_available() or not is_datasets_available():
+        if not is_training_available():
             raise RuntimeError(
                 "To train a SentenceTransformer model, you need to install the `accelerate` and `datasets` modules. "
                 "You can do so with the `train` extra:\n"
-                'pip install "sentence-transformers[train]"'
+                'pip install -U "sentence-transformers[train]"'
             )
 
         if args is None:

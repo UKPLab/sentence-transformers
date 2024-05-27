@@ -23,12 +23,11 @@ from transformers import TrainerCallback
 from transformers.integrations import CodeCarbonCallback
 from transformers.modelcard import make_markdown_table
 from transformers.trainer_callback import TrainerControl, TrainerState
-from transformers.utils import is_accelerate_available, is_datasets_available
 
 from sentence_transformers import __version__ as sentence_transformers_version
 from sentence_transformers.models import Transformer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
-from sentence_transformers.util import cos_sim, fullname
+from sentence_transformers.util import cos_sim, fullname, is_accelerate_available, is_datasets_available
 
 if is_datasets_available():
     from datasets import Dataset, DatasetDict

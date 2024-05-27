@@ -3,10 +3,10 @@ import platform
 import tempfile
 
 import pytest
-from transformers.utils import is_datasets_available
 
 from sentence_transformers import CrossEncoder, SentenceTransformer
 from sentence_transformers.models import Pooling, Transformer
+from sentence_transformers.util import is_datasets_available
 
 if is_datasets_available():
     from datasets import DatasetDict, load_dataset

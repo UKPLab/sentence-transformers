@@ -936,3 +936,24 @@ def get_device_name() -> Literal["mps", "cuda", "npu", "hpu", "cpu"]:
         if hthpu.is_available():
             return "hpu"
     return "cpu"
+
+
+def is_accelerate_available() -> bool:
+    """
+    Returns True if the accelerate library is available.
+    """
+    return importlib.util.find_spec("accelerate") is not None
+
+
+def is_datasets_available() -> bool:
+    """
+    Returns True if the datasets library is available.
+    """
+    return importlib.util.find_spec("datasets") is not None
+
+
+def is_training_available() -> bool:
+    """
+    Returns True if we have the required dependencies for training Sentence Transformer models
+    """
+    return is_accelerate_available() and is_datasets_available()

@@ -5,7 +5,8 @@ from typing import List
 
 import torch
 from torch.utils.data import BatchSampler, ConcatDataset, SubsetRandomSampler
-from transformers.utils import is_datasets_available
+
+from sentence_transformers.util import is_datasets_available
 
 if is_datasets_available():
     from datasets import Dataset

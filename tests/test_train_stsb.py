@@ -10,7 +10,6 @@ from typing import Generator, List, Tuple
 import pytest
 import torch
 from torch.utils.data import DataLoader
-from transformers.utils import is_accelerate_available, is_datasets_available
 
 from sentence_transformers import (
     SentencesDataset,
@@ -20,6 +19,7 @@ from sentence_transformers import (
 )
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import InputExample
+from sentence_transformers.util import is_training_available
 
 
 @pytest.fixture()
@@ -73,7 +73,7 @@ def evaluate_stsb_test(model, expected_score, test_samples) -> None:
 
 @pytest.mark.slow
 @pytest.mark.skipif(
-    not is_accelerate_available() or not is_datasets_available(),
+    not is_training_available(),
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_train_stsb_slow(
@@ -98,7 +98,7 @@ def test_train_stsb_slow(
 
 @pytest.mark.skipif("CI" in os.environ, reason="This test is too slow for the CI (~8 minutes)")
 @pytest.mark.skipif(
-    not is_accelerate_available() or not is_datasets_available(),
+    not is_training_available(),
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_train_stsb(
@@ -123,7 +123,7 @@ def test_train_stsb(
 
 @pytest.mark.slow
 @pytest.mark.skipif(
-    not is_accelerate_available() or not is_datasets_available(),
+    not is_training_available(),
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_train_nli_slow(
@@ -153,7 +153,7 @@ def test_train_nli_slow(
 
 @pytest.mark.skipif("CI" in os.environ, reason="This test is too slow for the CI (~25 minutes)")
 @pytest.mark.skipif(
-    not is_accelerate_available() or not is_datasets_available(),
+    not is_training_available(),
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_train_nli(

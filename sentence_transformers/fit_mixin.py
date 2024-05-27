@@ -14,7 +14,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import trange
 from transformers import TrainerCallback, TrainerControl, TrainerState
-from transformers.utils import is_datasets_available
 
 from sentence_transformers.datasets.NoDuplicatesDataLoader import NoDuplicatesDataLoader
 from sentence_transformers.datasets.SentenceLabelDataset import SentenceLabelDataset
@@ -23,13 +22,10 @@ from sentence_transformers.training_args import (
     MultiDatasetBatchSamplers,
     SentenceTransformerTrainingArguments,
 )
+from sentence_transformers.util import batch_to_device, fullname, is_datasets_available
 
 from .evaluation import SentenceEvaluator
 from .model_card_templates import ModelCardTemplate
-from .util import (
-    batch_to_device,
-    fullname,
-)
 
 if is_datasets_available():
     from datasets import Dataset, DatasetDict

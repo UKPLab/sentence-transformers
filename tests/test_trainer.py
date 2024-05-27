@@ -3,16 +3,16 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from transformers.utils import is_accelerate_available, is_datasets_available
 
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+from sentence_transformers.util import is_datasets_available, is_training_available
 
 if is_datasets_available():
     from datasets import DatasetDict
 
 
 @pytest.mark.skipif(
-    not is_accelerate_available() or not is_datasets_available(),
+    not is_training_available(),
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_trainer_multi_dataset_errors(
@@ -81,7 +81,7 @@ def test_trainer_multi_dataset_errors(
 
 
 @pytest.mark.skipif(
-    not is_accelerate_available() or not is_datasets_available(),
+    not is_training_available(),
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_trainer_invalid_column_names(
@@ -118,7 +118,7 @@ def test_trainer_invalid_column_names(
 
 
 @pytest.mark.skipif(
-    not is_accelerate_available() or not is_datasets_available(),
+    not is_training_available(),
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_model_card_reuse(stsb_bert_tiny_model: SentenceTransformer):
