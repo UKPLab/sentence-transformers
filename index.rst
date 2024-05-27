@@ -1,6 +1,6 @@
 .. note::
 
-   Sentence Transformers v3.0 just released, introducing a new training API for Sentence Transformer models. Read `SentenceTransformer > Training Overview <docs/sentence_transformer/training_overview.html>`_ to learn more about the training API, and check out `v3.0 Release Notes <docs/changelog/v3.0.html>`_ for details on the other changes.
+   Sentence Transformers v3.0 just released, introducing a new training API for Sentence Transformer models. Read `SentenceTransformer > Training Overview <docs/sentence_transformer/training_overview.html>`_ to learn more about the training API, and check out `v3.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v3.0.0>`_ for details on the other changes.
 
 SentenceTransformers Documentation
 ==================================
