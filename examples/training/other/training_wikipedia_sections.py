@@ -43,7 +43,7 @@ test_dataset = load_dataset("sentence-transformers/wikipedia-sections", "triplet
 logging.info(train_dataset)
 
 # 3. Define our training loss
-# TripletLoss (https://sbert.net/docs/package_reference/losses.html#tripletloss) needs three text columns
+# TripletLoss (https://sbert.net/docs/package_reference/sentence_transformer/losses.html#tripletloss) needs three text columns
 train_loss = TripletLoss(model)
 
 # 4. Define an evaluator for use during training. This is useful to keep track of alongside the evaluation loss.

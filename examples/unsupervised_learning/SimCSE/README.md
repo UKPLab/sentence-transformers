@@ -6,7 +6,7 @@ The idea is to encode the same sentence twice. Due to the used dropout in transf
 ![SimCSE working](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/SimCSE.png)
 
 ## Usage with SentenceTransformers
-SentenceTransformers implements the [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/losses.html#multiplenegativesrankingloss), which makes training with SimCSE trivial:
+SentenceTransformers implements the [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/sentence_transformer/losses.html#multiplenegativesrankingloss), which makes training with SimCSE trivial:
 
 ```python
 from sentence_transformers import SentenceTransformer, InputExample

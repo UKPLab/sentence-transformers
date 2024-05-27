@@ -47,7 +47,7 @@ train_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="
 eval_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="dev").select(range(1000))
 logging.info(train_dataset)
 
-# 3. Define our training loss: https://sbert.net/docs/package_reference/losses.html#gistembedloss
+# 3. Define our training loss: https://sbert.net/docs/package_reference/sentence_transformer/losses.html#gistembedloss
 # The guiding model
 guide_model = SentenceTransformer("all-MiniLM-L6-v2")
 train_loss = losses.GISTEmbedLoss(model, guide_model)
