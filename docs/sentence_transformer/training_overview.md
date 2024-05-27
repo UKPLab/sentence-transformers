@@ -360,12 +360,16 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         )
         # You can run evaluation like so:
         # dev_evaluator(model)
+
+.. warning::
+
+    When using `Distributed Training <training/distributed.html>`_, the evaluator only runs on the first device, unlike the training and evaluation datasets, which are shared across all devices. 
 ```
 
 ## Trainer
 
 ```eval_rst
-The :class:`sentence_transformers.SentenceTransformerTrainer` is where all previous components come together. We only have to specify the trainer with the model, training arguments (optional), training dataset, evaluation dataset (optional), loss function, evaluator (optional) and we can start training. Let's have a look at a script where all of these components come together:
+The :class:`~sentence_transformers.SentenceTransformerTrainer` is where all previous components come together. We only have to specify the trainer with the model, training arguments (optional), training dataset, evaluation dataset (optional), loss function, evaluator (optional) and we can start training. Let's have a look at a script where all of these components come together:
 
 .. sidebar:: Documentation
 
