@@ -92,7 +92,7 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
                     "See https://sbert.net/docs/sentence_transformer/training/distributed.html for more information."
                 )
 
-        elif self.parallel_mode == ParallelMode.DISTRIBUTED and self.dataloader_drop_last != True:
+        elif self.parallel_mode == ParallelMode.DISTRIBUTED and not self.dataloader_drop_last:
             # If output_dir is "unused", then this instance is created to compare training arguments vs the defaults,
             # so we don't have to warn.
             if self.output_dir != "unused":
