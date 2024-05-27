@@ -43,7 +43,7 @@ train_dataset = load_dataset("sentence-transformers/all-nli", "pair-class", spli
 eval_dataset = load_dataset("sentence-transformers/all-nli", "pair-class", split="dev").select(range(1000))
 logging.info(train_dataset)
 
-# 3. Define our training loss: https://sbert.net/docs/package_reference/losses.html#softmaxloss
+# 3. Define our training loss: https://sbert.net/docs/package_reference/sentence_transformer/losses.html#softmaxloss
 train_loss = losses.SoftmaxLoss(
     model=model,
     sentence_embedding_dimension=model.get_sentence_embedding_dimension(),

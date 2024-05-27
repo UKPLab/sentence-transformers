@@ -47,7 +47,7 @@ train_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="
 eval_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="dev").select(range(1000))
 logging.info(train_dataset)
 
-# 3. Define our training loss: https://sbert.net/docs/package_reference/losses.html#multiplenegativesrankingloss
+# 3. Define our training loss: https://sbert.net/docs/package_reference/sentence_transformer/losses.html#multiplenegativesrankingloss
 train_loss = losses.MultipleNegativesRankingLoss(model)
 
 

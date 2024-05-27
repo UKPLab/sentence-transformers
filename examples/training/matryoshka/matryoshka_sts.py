@@ -49,7 +49,7 @@ test_dataset = load_dataset("sentence-transformers/stsb", split="test")
 logging.info(train_dataset)
 
 # 3. Define our training loss
-# CoSENTLoss (https://sbert.net/docs/package_reference/losses.html#cosentloss) needs two text columns and one
+# CoSENTLoss (https://sbert.net/docs/package_reference/sentence_transformer/losses.html#cosentloss) needs two text columns and one
 # similarity score column (between 0 and 1)
 inner_train_loss = losses.CoSENTLoss(model=model)
 train_loss = losses.MatryoshkaLoss(model, loss=inner_train_loss, matryoshka_dims=matryoshka_dims)

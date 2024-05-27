@@ -140,7 +140,7 @@ train_dataset_dict = train_dataset_dict.map(
 logging.info("Prepared datasets for training:", train_dataset_dict)
 
 # 3. Define our training loss
-# MSELoss (https://sbert.net/docs/package_reference/losses.html#mseloss) needs one text columns and one
+# MSELoss (https://sbert.net/docs/package_reference/sentence_transformer/losses.html#mseloss) needs one text columns and one
 # column with embeddings from the teacher model
 train_loss = MSELoss(model=student_model)
 
