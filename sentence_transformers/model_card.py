@@ -24,11 +24,13 @@ from transformers.integrations import CodeCarbonCallback
 from transformers.modelcard import make_markdown_table
 from transformers.trainer_callback import TrainerControl, TrainerState
 
-from datasets import Dataset, DatasetDict
 from sentence_transformers import __version__ as sentence_transformers_version
 from sentence_transformers.models import Transformer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
-from sentence_transformers.util import cos_sim, fullname
+from sentence_transformers.util import cos_sim, fullname, is_accelerate_available, is_datasets_available
+
+if is_datasets_available():
+    from datasets import Dataset, DatasetDict
 
 logger = logging.getLogger(__name__)
 
@@ -204,20 +206,25 @@ IGNORED_FIELDS = ["model", "trainer", "eval_results_dict"]
 
 
 def get_versions() -> Dict[str, Any]:
-    from accelerate import __version__ as accelerate_version
-    from tokenizers import __version__ as tokenizers_version
-
-    from datasets import __version__ as datasets_version
-
-    return {
+    versions = {
         "python": python_version(),
         "sentence_transformers": sentence_transformers_version,
         "transformers": transformers.__version__,
         "torch": torch.__version__,
-        "accelerate": accelerate_version,
-        "datasets": datasets_version,
-        "tokenizers": tokenizers_version,
     }
+    if is_accelerate_available():
+        from accelerate import __version__ as accelerate_version
+
+        versions["accelerate"] = accelerate_version
+    if is_datasets_available():
+        from datasets import __version__ as datasets_version
+
+        versions["datasets"] = datasets_version
+    from tokenizers import __version__ as tokenizers_version
+
+    versions["tokenizers"] = tokenizers_version
+
+    return versions
 
 
 @dataclass
@@ -387,7 +394,7 @@ class SentenceTransformerModelCardData(CardData):
     def set_best_model_step(self, step: int) -> None:
         self.best_model_step = step
 
-    def set_widget_examples(self, dataset: Union[Dataset, DatasetDict]) -> None:
+    def set_widget_examples(self, dataset: Union["Dataset", "DatasetDict"]) -> None:
         if isinstance(dataset, Dataset):
             dataset = DatasetDict(dataset=dataset)
 
@@ -465,7 +472,7 @@ class SentenceTransformerModelCardData(CardData):
                     }
                 )
 
-    def set_label_examples(self, dataset: Dataset) -> None:
+    def set_label_examples(self, dataset: "Dataset") -> None:
         num_examples_per_label = 3
         examples = defaultdict(list)
         finished_labels = set()
@@ -487,7 +494,7 @@ class SentenceTransformerModelCardData(CardData):
         ]
 
     def infer_datasets(
-        self, dataset: Union[Dataset, DatasetDict], dataset_name: Optional[str] = None
+        self, dataset: Union["Dataset", "DatasetDict"], dataset_name: Optional[str] = None
     ) -> List[Dict[str, str]]:
         if isinstance(dataset, DatasetDict):
             return [
@@ -661,7 +668,7 @@ class SentenceTransformerModelCardData(CardData):
         return dataset_info
 
     def extract_dataset_metadata(
-        self, dataset: Union[Dataset, DatasetDict], dataset_metadata, dataset_type: Literal["train", "eval"]
+        self, dataset: Union["Dataset", "DatasetDict"], dataset_metadata, dataset_type: Literal["train", "eval"]
     ) -> Dict[str, Any]:
         if dataset:
             if dataset_metadata and (

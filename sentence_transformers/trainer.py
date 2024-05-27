@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Un
 
 import torch
 from torch import nn
-from torch.utils.data import BatchSampler, ConcatDataset, DataLoader, Dataset, SubsetRandomSampler
+from torch.utils.data import BatchSampler, ConcatDataset, DataLoader, SubsetRandomSampler
 from transformers import EvalPrediction, PreTrainedTokenizerBase, Trainer, TrainerCallback
 from transformers.data.data_collator import DataCollator
 from transformers.integrations import WandbCallback
@@ -14,7 +14,6 @@ from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.trainer_utils import EvalLoopOutput
 from transformers.training_args import ParallelMode
 
-from datasets import DatasetDict
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
@@ -32,7 +31,10 @@ from sentence_transformers.training_args import (
     MultiDatasetBatchSamplers,
     SentenceTransformerTrainingArguments,
 )
-from sentence_transformers.util import disable_logging
+from sentence_transformers.util import disable_logging, is_datasets_available, is_training_available
+
+if is_datasets_available():
+    from datasets import Dataset, DatasetDict
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +113,8 @@ class SentenceTransformerTrainer(Trainer):
         self,
         model: Optional["SentenceTransformer"] = None,
         args: SentenceTransformerTrainingArguments = None,
-        train_dataset: Optional[Union[Dataset, DatasetDict, Dict[str, Dataset]]] = None,
-        eval_dataset: Optional[Union[Dataset, DatasetDict, Dict[str, Dataset]]] = None,
+        train_dataset: Optional[Union["Dataset", "DatasetDict", Dict[str, "Dataset"]]] = None,
+        eval_dataset: Optional[Union["Dataset", "DatasetDict", Dict[str, "Dataset"]]] = None,
         loss: Optional[
             Union[
                 nn.Module,
@@ -130,6 +132,13 @@ class SentenceTransformerTrainer(Trainer):
         optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
         preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
     ) -> None:
+        if not is_training_available():
+            raise RuntimeError(
+                "To train a SentenceTransformer model, you need to install the `accelerate` and `datasets` modules. "
+                "You can do so with the `train` extra:\n"
+                'pip install -U "sentence-transformers[train]"'
+            )
+
         if args is None:
             output_dir = "tmp_trainer"
             logger.info(f"No `TrainingArguments` passed, using `output_dir={output_dir}`.")
@@ -260,7 +269,7 @@ class SentenceTransformerTrainer(Trainer):
             return loss.to(model.device)
         return loss(model).to(model.device)
 
-    def add_dataset_name_column(self, dataset_dict: DatasetDict) -> DatasetDict:
+    def add_dataset_name_column(self, dataset_dict: "DatasetDict") -> "DatasetDict":
         for key, dataset in dataset_dict.items():
             if "dataset_name" not in dataset.column_names:
                 dataset_dict[key] = dataset.add_column("dataset_name", [key] * len(dataset))
@@ -350,7 +359,7 @@ class SentenceTransformerTrainer(Trainer):
 
     def evaluate(
         self,
-        eval_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
+        eval_dataset: Optional[Union["Dataset", Dict[str, "Dataset"]]] = None,
         ignore_keys: Optional[List[str]] = None,
         metric_key_prefix: str = "eval",
     ) -> Dict[str, float]:
@@ -427,7 +436,7 @@ class SentenceTransformerTrainer(Trainer):
             self.model = full_model
             self.model[0].auto_model = loaded_auto_model
 
-    def validate_column_names(self, dataset: Dataset, dataset_name: Optional[str] = None) -> bool:
+    def validate_column_names(self, dataset: "Dataset", dataset_name: Optional[str] = None) -> bool:
         if overlap := set(dataset.column_names) & {"return_loss", "dataset_name"}:
             raise ValueError(
                 f"The following column names are invalid in your {dataset_name + ' ' if dataset_name else ''}dataset: {list(overlap)}."
@@ -436,7 +445,7 @@ class SentenceTransformerTrainer(Trainer):
 
     def get_batch_sampler(
         self,
-        dataset: Dataset,
+        dataset: "Dataset",
         batch_size: int,
         drop_last: bool,
         valid_label_columns: Optional[List[str]] = None,
@@ -559,7 +568,7 @@ class SentenceTransformerTrainer(Trainer):
         self._train_dataloader = self.accelerator.prepare(DataLoader(train_dataset, **dataloader_params))
         return self._train_dataloader
 
-    def get_eval_dataloader(self, eval_dataset: Union[Dataset, None] = None) -> DataLoader:
+    def get_eval_dataloader(self, eval_dataset: Union["Dataset", None] = None) -> DataLoader:
         """
         Returns the evaluation [`~torch.utils.data.DataLoader`].
 
@@ -628,7 +637,7 @@ class SentenceTransformerTrainer(Trainer):
         self.accelerator.even_batches = True
         return self.accelerator.prepare(DataLoader(eval_dataset, **dataloader_params))
 
-    def get_test_dataloader(self, test_dataset: Dataset) -> DataLoader:
+    def get_test_dataloader(self, test_dataset: "Dataset") -> DataLoader:
         """
         Returns the training [`~torch.utils.data.DataLoader`].
 

@@ -6,7 +6,10 @@ from typing import List
 import torch
 from torch.utils.data import BatchSampler, ConcatDataset, SubsetRandomSampler
 
-from datasets import Dataset
+from sentence_transformers.util import is_datasets_available
+
+if is_datasets_available():
+    from datasets import Dataset
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +36,7 @@ class DefaultBatchSampler(SetEpochMixin, BatchSampler):
 class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
     def __init__(
         self,
-        dataset: Dataset,
+        dataset: "Dataset",
         batch_size: int,
         drop_last: bool,
         valid_label_columns: List[str] = None,
@@ -89,7 +92,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
 class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
     def __init__(
         self,
-        dataset: Dataset,
+        dataset: "Dataset",
         batch_size: int,
         drop_last: bool,
         valid_label_columns: List[str] = [],

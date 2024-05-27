@@ -4,7 +4,7 @@
 ## Helper Functions
 ```eval_rst
 .. automodule:: sentence_transformers.util
-   :members: paraphrase_mining, semantic_search, community_detection, http_get, truncate_embeddings, normalize_embeddings
+   :members: paraphrase_mining, semantic_search, community_detection, http_get, truncate_embeddings, normalize_embeddings, is_training_available
 ```
 
 ## Similarity Metrics

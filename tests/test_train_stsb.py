@@ -19,6 +19,7 @@ from sentence_transformers import (
 )
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import InputExample
+from sentence_transformers.util import is_training_available
 
 
 @pytest.fixture()
@@ -71,6 +72,10 @@ def evaluate_stsb_test(model, expected_score, test_samples) -> None:
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(
+    not is_training_available(),
+    reason='Sentence Transformers was not installed with the `["train"]` extra.',
+)
 def test_train_stsb_slow(
     distilbert_base_uncased_model: SentenceTransformer, sts_resource: Tuple[List[InputExample], List[InputExample]]
 ) -> None:
@@ -92,6 +97,10 @@ def test_train_stsb_slow(
 
 
 @pytest.mark.skipif("CI" in os.environ, reason="This test is too slow for the CI (~8 minutes)")
+@pytest.mark.skipif(
+    not is_training_available(),
+    reason='Sentence Transformers was not installed with the `["train"]` extra.',
+)
 def test_train_stsb(
     distilbert_base_uncased_model: SentenceTransformer, sts_resource: Tuple[List[InputExample], List[InputExample]]
 ) -> None:
@@ -113,6 +122,10 @@ def test_train_stsb(
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(
+    not is_training_available(),
+    reason='Sentence Transformers was not installed with the `["train"]` extra.',
+)
 def test_train_nli_slow(
     distilbert_base_uncased_model: SentenceTransformer,
     nli_resource: List[InputExample],
@@ -139,6 +152,10 @@ def test_train_nli_slow(
 
 
 @pytest.mark.skipif("CI" in os.environ, reason="This test is too slow for the CI (~25 minutes)")
+@pytest.mark.skipif(
+    not is_training_available(),
+    reason='Sentence Transformers was not installed with the `["train"]` extra.',
+)
 def test_train_nli(
     distilbert_base_uncased_model: SentenceTransformer,
     nli_resource: List[InputExample],

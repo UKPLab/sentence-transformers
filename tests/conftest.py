@@ -4,9 +4,12 @@ import tempfile
 
 import pytest
 
-from datasets import DatasetDict, load_dataset
 from sentence_transformers import CrossEncoder, SentenceTransformer
 from sentence_transformers.models import Pooling, Transformer
+from sentence_transformers.util import is_datasets_available
+
+if is_datasets_available():
+    from datasets import DatasetDict, load_dataset
 
 
 @pytest.fixture()
@@ -43,7 +46,7 @@ def distilbert_base_uncased_model() -> SentenceTransformer:
 
 
 @pytest.fixture(scope="session")
-def stsb_dataset_dict() -> DatasetDict:
+def stsb_dataset_dict() -> "DatasetDict":
     return load_dataset("mteb/stsbenchmark-sts")
 
 
