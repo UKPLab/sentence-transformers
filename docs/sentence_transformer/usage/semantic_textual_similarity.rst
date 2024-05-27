@@ -89,7 +89,7 @@ This value can be changed in a handful of ways:
 Sentence Transformers implements two methods to calculate the similarity between embeddings:
 
 - :meth:`SentenceTransformer.similarity <sentence_transformers.SentenceTransformer.similarity>`: Calculates the similarity between all pairs of embeddings.
-- :meth:`SentenceTransformer.pairwise_cosine_similarity <sentence_transformers.SentenceTransformer.pairwise_cosine_similarity>`: Calculates the similarity between embeddings in a pairwise fashion.
+- :meth:`SentenceTransformer.pairwise_similarity <sentence_transformers.SentenceTransformer.pairwise_similarity>`: Calculates the similarity between embeddings in a pairwise fashion.
 
 ::
 
