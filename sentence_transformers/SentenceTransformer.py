@@ -72,7 +72,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             will execute code present on the Hub on your local machine.
         revision (str, optional): The specific model version to use. It can be a branch name, a tag name, or a commit id,
             for a stored model on Hugging Face.
-        local_files_only (bool, optional): If `True`, avoid downloading the model.
+        local_files_only (bool, optional): Whether or not to only look at local files (i.e., do not try to download the model).
         token (bool or str, optional): Hugging Face authentication token to download private models.
         use_auth_token (bool or str, optional): Deprecated argument. Please use `token` instead.
         truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
