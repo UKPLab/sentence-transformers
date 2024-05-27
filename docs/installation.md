@@ -33,7 +33,7 @@ We recommend **Python 3.8+**, **[PyTorch 1.11.0+](https://pytorch.org/get-starte
 
     ::
 
-        pip install -U "sentence-transformers[train,dev]"
+        pip install -U "sentence-transformers[dev]"
 
 ```
 
@@ -99,7 +99,7 @@ You can install ``sentence-transformers`` directly from source to take advantage
 
     ::
 
-        pip install -U "sentence-transformers[train, dev] @ git+https://github.com/UKPLab/sentence-transformers.git"
+        pip install -U "sentence-transformers[dev] @ git+https://github.com/UKPLab/sentence-transformers.git"
 
 ```
 
