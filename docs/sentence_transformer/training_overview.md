@@ -481,9 +481,9 @@ The :class:`~sentence_transformers.SentenceTransformerTrainer` is where all prev
 ```eval_rst
 This Sentence Transformers trainer integrates support for various :class:`transformers.TrainerCallback` subclasses, such as:
 
-- :class:`~transformers.integrations.WandbCallback` to automatically log training metrics to W&B if `wandb` is installed
-- :class:`~transformers.integrations.TensorBoardCallback` to log training metrics to TensorBoard if `tensorboard` is accessible.
-- :class:`~transformers.integrations.CodeCarbonCallback` to track the carbon emissions of your model during training if `codecarbon` is installed.
+- :class:`~transformers.integrations.WandbCallback` to automatically log training metrics to W&B if ``wandb`` is installed
+- :class:`~transformers.integrations.TensorBoardCallback` to log training metrics to TensorBoard if ``tensorboard`` is accessible.
+- :class:`~transformers.integrations.CodeCarbonCallback` to track the carbon emissions of your model during training if ``codecarbon`` is installed.
 
     - Note: These carbon emissions will be included in your automatically generated model card.
 
