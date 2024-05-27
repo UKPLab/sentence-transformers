@@ -47,6 +47,10 @@ In short, **DDP is generally recommended**. You can use DDP by running your norm
       if __name__ == "__main__":
           main()
 
+.. note::
+
+   When using an `Evaluator <../training_overview.html#evaluator>`_, the evaluator only runs on the first device unlike the training and evaluation datasets, which are shared across all devices. 
+
 Comparison
 ----------
 
