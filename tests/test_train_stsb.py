@@ -10,6 +10,7 @@ from typing import Generator, List, Tuple
 import pytest
 import torch
 from torch.utils.data import DataLoader
+from transformers.utils import is_accelerate_available, is_datasets_available
 
 from sentence_transformers import (
     SentencesDataset,
@@ -71,6 +72,10 @@ def evaluate_stsb_test(model, expected_score, test_samples) -> None:
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(
+    not is_accelerate_available() or not is_datasets_available(),
+    reason='Sentence Transformers was not installed with the `["train"]` extra.',
+)
 def test_train_stsb_slow(
     distilbert_base_uncased_model: SentenceTransformer, sts_resource: Tuple[List[InputExample], List[InputExample]]
 ) -> None:
@@ -92,6 +97,10 @@ def test_train_stsb_slow(
 
 
 @pytest.mark.skipif("CI" in os.environ, reason="This test is too slow for the CI (~8 minutes)")
+@pytest.mark.skipif(
+    not is_accelerate_available() or not is_datasets_available(),
+    reason='Sentence Transformers was not installed with the `["train"]` extra.',
+)
 def test_train_stsb(
     distilbert_base_uncased_model: SentenceTransformer, sts_resource: Tuple[List[InputExample], List[InputExample]]
 ) -> None:
@@ -113,6 +122,10 @@ def test_train_stsb(
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(
+    not is_accelerate_available() or not is_datasets_available(),
+    reason='Sentence Transformers was not installed with the `["train"]` extra.',
+)
 def test_train_nli_slow(
     distilbert_base_uncased_model: SentenceTransformer,
     nli_resource: List[InputExample],
@@ -139,6 +152,10 @@ def test_train_nli_slow(
 
 
 @pytest.mark.skipif("CI" in os.environ, reason="This test is too slow for the CI (~25 minutes)")
+@pytest.mark.skipif(
+    not is_accelerate_available() or not is_datasets_available(),
+    reason='Sentence Transformers was not installed with the `["train"]` extra.',
+)
 def test_train_nli(
     distilbert_base_uncased_model: SentenceTransformer,
     nli_resource: List[InputExample],

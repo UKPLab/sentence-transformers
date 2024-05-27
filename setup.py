@@ -27,10 +27,12 @@ setup(
         "scipy",
         "huggingface-hub>=0.15.1",
         "Pillow",
-        "datasets",
-        "accelerate>=0.20.3",
     ],
     extras_require={
+        "train": [
+            "datasets",
+            "accelerate>=0.20.3",
+        ],
         "dev": [
             "pre-commit",
             "pytest",

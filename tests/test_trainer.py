@@ -3,13 +3,20 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from transformers.utils import is_accelerate_available, is_datasets_available
 
-from datasets import DatasetDict
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
 
+if is_datasets_available():
+    from datasets import DatasetDict
 
+
+@pytest.mark.skipif(
+    not is_accelerate_available() or not is_datasets_available(),
+    reason='Sentence Transformers was not installed with the `["train"]` extra.',
+)
 def test_trainer_multi_dataset_errors(
-    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: DatasetDict
+    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: "DatasetDict"
 ) -> None:
     train_dataset = stsb_dataset_dict["train"]
     loss = {
@@ -73,8 +80,12 @@ def test_trainer_multi_dataset_errors(
         )
 
 
+@pytest.mark.skipif(
+    not is_accelerate_available() or not is_datasets_available(),
+    reason='Sentence Transformers was not installed with the `["train"]` extra.',
+)
 def test_trainer_invalid_column_names(
-    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: DatasetDict
+    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: "DatasetDict"
 ) -> None:
     train_dataset = stsb_dataset_dict["train"]
     for column_name in ("return_loss", "dataset_name"):
@@ -106,6 +117,10 @@ def test_trainer_invalid_column_names(
             trainer.train()
 
 
+@pytest.mark.skipif(
+    not is_accelerate_available() or not is_datasets_available(),
+    reason='Sentence Transformers was not installed with the `["train"]` extra.',
+)
 def test_model_card_reuse(stsb_bert_tiny_model: SentenceTransformer):
     assert stsb_bert_tiny_model._model_card_text
     # Reuse the model card if no training was done
