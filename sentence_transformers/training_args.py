@@ -1,8 +1,12 @@
+import logging
 from dataclasses import dataclass, field
 from typing import Union
 
 from transformers import TrainingArguments as TransformersTrainingArguments
+from transformers.training_args import ParallelMode
 from transformers.utils import ExplicitEnum
+
+logger = logging.getLogger(__name__)
 
 
 class BatchSamplers(ExplicitEnum):
@@ -78,3 +82,22 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
         # Disable broadcasting of buffers to avoid `RuntimeError: one of the variables needed for gradient computation
         # has been modified by an inplace operation.` when training with DDP & a BertModel-based model.
         self.ddp_broadcast_buffers = False
+
+        if self.parallel_mode == ParallelMode.NOT_DISTRIBUTED:
+            # If output_dir is "unused", then this instance is created to compare training arguments vs the defaults,
+            # so we don't have to warn.
+            if self.output_dir != "unused":
+                logger.warning(
+                    "Currently using DataParallel (DP) for multi-gpu training, while DistributedDataParallel (DDP) is recommended for faster training. "
+                    "See https://sbert.net/docs/sentence_transformer/training/distributed.html for more information."
+                )
+
+        elif self.parallel_mode == ParallelMode.DISTRIBUTED and not self.dataloader_drop_last:
+            # If output_dir is "unused", then this instance is created to compare training arguments vs the defaults,
+            # so we don't have to warn.
+            if self.output_dir != "unused":
+                logger.warning(
+                    "When using DistributedDataParallel (DDP), it is recommended to set `dataloader_drop_last=True` to avoid hanging issues with an uneven last batch. "
+                    "Setting `dataloader_drop_last=True`."
+                )
+            self.dataloader_drop_last = True

@@ -47,10 +47,6 @@ In short, **DDP is generally recommended**. You can use DDP by running your norm
       if __name__ == "__main__":
           main()
 
-.. note::
-
-   When using DDP, using ``dataloader_drop_last=True`` in :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` is recommended, as the training may halt at the last (incomplete) training batch otherwise.
-
 Comparison
 ----------
 
