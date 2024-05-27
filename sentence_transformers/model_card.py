@@ -702,7 +702,7 @@ class SentenceTransformerModelCardData(CardData):
         if dataset_type == "train":
             num_training_samples = sum([metadata.get("size", 0) for metadata in dataset_metadata])
             if num_training_samples:
-                self.tags += [self.num_training_samples_to_tag(num_training_samples)]
+                self.tags += ["dataset_size:" + self.num_training_samples_to_tag(num_training_samples)]
 
         return self.validate_datasets(dataset_metadata)
 
