@@ -95,7 +95,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
                 the slower the training will be. It's recommended to set it as high as your GPU memory allows. The default
                 value is 32.
             show_progress_bar: If True, a progress bar for the mini-batches is shown during training. The default is False.
-                
+
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
             - Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup: https://arxiv.org/pdf/2101.06983.pdf

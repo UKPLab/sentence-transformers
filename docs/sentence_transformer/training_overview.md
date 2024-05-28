@@ -128,14 +128,14 @@ The :class:`SentenceTransformerTrainer` trains and evaluates using :class:`datas
 
         from datasets import Dataset
 
-        sentence1_list = []
-        sentence2_list = []
+        anchors = []
+        positives = []
         # Open a file, do preprocessing, filtering, cleaning, etc.
         # and append to the lists
 
         dataset = Dataset.from_dict({
-            "sentence1": sentence1_list,
-            "sentence2": sentence2_list,
+            "anchor": anchors,
+            "positive": positives,
         })
 
     Each key from the dictionary will become a column in the resulting dataset.
@@ -276,9 +276,10 @@ args = SentenceTransformerTrainingArguments(
 
 ## Evaluator
 
-```eval_rst
-Several evaluators exist that can help with evaluation before, during, and after training:
+You can provide the [`SentenceTransformerTrainer`](https://sbert.net/docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer) with an `eval_dataset` to get the evaluation loss during training, but it may be useful to get more concrete metrics during training, too. For this, you can use evaluators to assess the model's performance with useful metrics before, during, or after training. You can both an `eval_dataset` and an evaluator, one or the other, or neither. They evaluate based on the `eval_strategy` and `eval_steps` [Training Arguments](#training-arguments).
 
+Here are the implemented Evaluators that come with Sentence Tranformers:
+```eval_rst
 ========================================================================  ===========================================================================================================================
 Evaluator                                                                 Required Data
 ========================================================================  ===========================================================================================================================
@@ -292,7 +293,7 @@ Evaluator                                                                 Requir
 :class:`~sentence_transformers.evaluation.TripletEvaluator`               (anchor, positive, negative) pairs.
 ========================================================================  ===========================================================================================================================
 
-Additionally, :class:`~sentence_transformers.evaluation.SequentialEvaluator` should be used to combine multiple evaluators into one Evaluator that can be passed to the :class:`~sentence_transformers.trainer.SentenceTransformerTrainer`. When the evaluator is run depends on the ``eval_strategy`` and ``eval_steps`` `Training Arguments <#training-arguments>`_.
+Additionally, :class:`~sentence_transformers.evaluation.SequentialEvaluator` should be used to combine multiple evaluators into one Evaluator that can be passed to the :class:`~sentence_transformers.trainer.SentenceTransformerTrainer`.
 
 Sometimes you don't have the required evaluation data to prepare one of these evaluators on your own, but you still want to track how well the model performs on some common benchmarks. In that case, you can use these evaluators with data from Hugging Face.
 
