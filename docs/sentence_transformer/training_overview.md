@@ -545,7 +545,7 @@ Training on multiple datasets looks like this:
     # (sentence1, sentence2) + score
     stsb_pair_score_train = load_dataset("sentence-transformers/stsb", split="train[:10000]")
     # (anchor, positive)
-    quora_pair_train = load_dataset("sentence-transformers/quora-duplicates", split="train[:10000]")
+    quora_pair_train = load_dataset("sentence-transformers/quora-duplicates", "pair", split="train[:10000]")
     # (query, answer)
     natural_questions_train = load_dataset("sentence-transformers/natural-questions", split="train[:10000]")
 
@@ -566,7 +566,7 @@ Training on multiple datasets looks like this:
     # (sentence1, sentence2, score)
     stsb_pair_score_dev = load_dataset("sentence-transformers/stsb", split="validation")
     # (anchor, positive)
-    quora_pair_dev = load_dataset("sentence-transformers/quora-duplicates", split="train[10000:11000]")
+    quora_pair_dev = load_dataset("sentence-transformers/quora-duplicates", "pair", split="train[10000:11000]")
     # (query, answer)
     natural_questions_dev = load_dataset("sentence-transformers/natural-questions", split="train[10000:11000]")
 
