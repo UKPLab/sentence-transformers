@@ -1293,8 +1293,17 @@ class SentenceTransformer(nn.Sequential):
         config_kwargs: Optional[Dict[str, Any]] = None,
     ):
         """
-        Creates a simple Transformer + Mean Pooling model and returns the modules
+        Creates a simple Transformer + Mean Pooling model or a SigLIP model and returns the modules
         """
+        if "siglip" in model_name_or_path:
+            from sentence_transformers.models import SigLIPModel
+            logger.warning(
+                "No sentence-transformers model found with name {}. Creating a SigLIPModel.".format(
+                    model_name_or_path
+                )
+            )
+            return [SigLIPModel(model_name_or_path)]
+        
         logger.warning(
             "No sentence-transformers model found with name {}. Creating a new one with mean pooling.".format(
                 model_name_or_path
