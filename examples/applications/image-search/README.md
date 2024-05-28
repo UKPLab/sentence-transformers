@@ -12,7 +12,7 @@ Ensure that you have [transformers](https://pypi.org/project/transformers/) inst
 SentenceTransformers provides a wrapper for the [OpenAI CLIP Model](https://github.com/openai/CLIP), which was trained on a variety of (image, text)-pairs.
 
 ```python
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer
 from PIL import Image
 
 # Load CLIP model
@@ -26,9 +26,9 @@ text_emb = model.encode(
     ["Two dogs in the snow", "A cat on a table", "A picture of London at night"]
 )
 
-# Compute cosine similarities
-cos_scores = util.cos_sim(img_emb, text_emb)
-print(cos_scores)
+# Compute similarities
+similarity_scores = model.similarity(img_emb, text_emb)
+print(similarity_scores)
 ```
 
 You can use the CLIP model for:

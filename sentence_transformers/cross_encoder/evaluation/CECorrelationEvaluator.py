@@ -1,10 +1,11 @@
-import logging
-from scipy.stats import pearsonr, spearmanr
-from typing import List
-import os
 import csv
-from ... import InputExample
+import logging
+import os
+from typing import List
 
+from scipy.stats import pearsonr, spearmanr
+
+from sentence_transformers import InputExample
 
 logger = logging.getLogger(__name__)
 

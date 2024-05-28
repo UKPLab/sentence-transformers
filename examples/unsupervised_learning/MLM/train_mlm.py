@@ -8,12 +8,18 @@ Usage:
 python train_mlm.py model_name data/train_sentences.txt [data/dev_sentences.txt]
 """
 
-from transformers import AutoModelForMaskedLM, AutoTokenizer
-from transformers import DataCollatorForLanguageModeling, DataCollatorForWholeWordMask
-from transformers import Trainer, TrainingArguments
-import sys
 import gzip
+import sys
 from datetime import datetime
+
+from transformers import (
+    AutoModelForMaskedLM,
+    AutoTokenizer,
+    DataCollatorForLanguageModeling,
+    DataCollatorForWholeWordMask,
+    Trainer,
+    TrainingArguments,
+)
 
 if len(sys.argv) < 3:
     print("Usage: python train_mlm.py model_name data/train_sentences.txt [data/dev_sentences.txt]")

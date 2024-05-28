@@ -1,14 +1,14 @@
-from torch import nn, Tensor
-from typing import Iterable, Dict
-import torch.nn.functional as F
 from enum import Enum
-from ..SentenceTransformer import SentenceTransformer
+from typing import Dict, Iterable
+
+import torch.nn.functional as F
+from torch import Tensor, nn
+
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class TripletDistanceMetric(Enum):
-    """
-    The metric for the triplet loss
-    """
+    """The metric for the triplet loss"""
 
     COSINE = lambda x, y: 1 - F.cosine_similarity(x, y)
     EUCLIDEAN = lambda x, y: F.pairwise_distance(x, y, p=2)
@@ -28,10 +28,13 @@ class TripletLoss(nn.Module):
 
         Margin is an important hyperparameter and needs to be tuned respectively.
 
-        :param model: SentenceTransformerModel
-        :param distance_metric: Function to compute distance between two embeddings. The class TripletDistanceMetric
-            contains common distance metrices that can be used.
-        :param triplet_margin: The negative should be at least this much further away from the anchor than the positive.
+        Args:
+            model: SentenceTransformerModel
+            distance_metric: Function to compute distance between two
+                embeddings. The class TripletDistanceMetric contains
+                common distance metrices that can be used.
+            triplet_margin: The negative should be at least this much
+                further away from the anchor than the positive.
 
         References:
             - For further details, see: https://en.wikipedia.org/wiki/Triplet_loss
@@ -49,37 +52,28 @@ class TripletLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer,  SentencesDataset, losses
-                from sentence_transformers.readers import InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-                train_examples = [
-                    InputExample(texts=['Anchor 1', 'Positive 1', 'Negative 1']),
-                    InputExample(texts=['Anchor 2', 'Positive 2', 'Negative 2']),
-                ]
-                train_batch_size = 1
-                train_dataset = SentencesDataset(train_examples, model)
-                train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
-                train_loss = losses.TripletLoss(model=model)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                    "negative": ["It's quite rainy, sadly.", "She walked to the store."],
+                })
+                loss = losses.TripletLoss(model=model)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(TripletLoss, self).__init__()
         self.model = model
         self.distance_metric = distance_metric
         self.triplet_margin = triplet_margin
-
-    def get_config_dict(self):
-        distance_metric_name = self.distance_metric.__name__
-        for name, value in vars(TripletDistanceMetric).items():
-            if value == self.distance_metric:
-                distance_metric_name = "TripletDistanceMetric.{}".format(name)
-                break
-
-        return {"distance_metric": distance_metric_name, "triplet_margin": self.triplet_margin}
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
@@ -90,3 +84,25 @@ class TripletLoss(nn.Module):
 
         losses = F.relu(distance_pos - distance_neg + self.triplet_margin)
         return losses.mean()
+
+    def get_config_dict(self):
+        distance_metric_name = self.distance_metric.__name__
+        for name, value in vars(TripletDistanceMetric).items():
+            if value == self.distance_metric:
+                distance_metric_name = "TripletDistanceMetric.{}".format(name)
+                break
+
+        return {"distance_metric": distance_metric_name, "triplet_margin": self.triplet_margin}
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{hermans2017defense,
+    title={In Defense of the Triplet Loss for Person Re-Identification}, 
+    author={Alexander Hermans and Lucas Beyer and Bastian Leibe},
+    year={2017},
+    eprint={1703.07737},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
+}
+"""

@@ -1,13 +1,13 @@
-import logging
-from sklearn.metrics import average_precision_score
-from typing import List
-import numpy as np
-import os
 import csv
+import logging
+import os
+from typing import List
 
-from ... import InputExample
-from ...evaluation import BinaryClassificationEvaluator
+import numpy as np
+from sklearn.metrics import average_precision_score
 
+from sentence_transformers import InputExample
+from sentence_transformers.evaluation import BinaryClassificationEvaluator
 
 logger = logging.getLogger(__name__)
 

@@ -1,26 +1,39 @@
-import torch
-from torch import Tensor
-from torch import nn
-from typing import Dict
-import os
 import json
+import os
+from typing import Dict
+
+import torch
+from torch import Tensor, nn
 
 
 class Pooling(nn.Module):
-    """Performs pooling (max or mean) on the token embeddings.
+    """
+    Performs pooling (max or mean) on the token embeddings.
 
     Using pooling, it generates from a variable sized sentence a fixed sized sentence embedding. This layer also allows
     to use the CLS token if it is returned by the underlying word embedding model. You can concatenate multiple poolings
     together.
 
-    :param word_embedding_dimension: Dimensions for the word embeddings
-    :param pooling_mode: Either "cls", "lasttoken", "max", "mean", "mean_sqrt_len_tokens", or "weightedmean". If set, overwrites the other pooling_mode_* settings
-    :param pooling_mode_cls_token: Use the first token (CLS token) as text representations
-    :param pooling_mode_max_tokens: Use max in each dimension over all tokens.
-    :param pooling_mode_mean_tokens: Perform mean-pooling
-    :param pooling_mode_mean_sqrt_len_tokens: Perform mean-pooling, but divide by sqrt(input_length).
-    :param pooling_mode_weightedmean_tokens: Perform (position) weighted mean pooling. See `SGPT: GPT Sentence Embeddings for Semantic Search <https://arxiv.org/abs/2202.08904>`_.
-    :param pooling_mode_lasttoken: Perform last token pooling. See `SGPT: GPT Sentence Embeddings for Semantic Search <https://arxiv.org/abs/2202.08904>`_ and `Text and Code Embeddings by Contrastive Pre-Training <https://arxiv.org/abs/2201.10005>`_.
+    Args:
+        word_embedding_dimension: Dimensions for the word embeddings
+        pooling_mode: Either "cls", "lasttoken", "max", "mean",
+            "mean_sqrt_len_tokens", or "weightedmean". If set,
+            overwrites the other pooling_mode_* settings
+        pooling_mode_cls_token: Use the first token (CLS token) as text
+            representations
+        pooling_mode_max_tokens: Use max in each dimension over all
+            tokens.
+        pooling_mode_mean_tokens: Perform mean-pooling
+        pooling_mode_mean_sqrt_len_tokens: Perform mean-pooling, but
+            divide by sqrt(input_length).
+        pooling_mode_weightedmean_tokens: Perform (position) weighted
+            mean pooling. See `SGPT: GPT Sentence Embeddings for
+            Semantic Search <https://arxiv.org/abs/2202.08904>`_.
+        pooling_mode_lasttoken: Perform last token pooling. See `SGPT:
+            GPT Sentence Embeddings for Semantic Search
+            <https://arxiv.org/abs/2202.08904>`_ and `Text and Code
+            Embeddings by Contrastive Pre-Training
+            <https://arxiv.org/abs/2201.10005>`_.
     """
 
     POOLING_MODES = (
@@ -98,9 +111,7 @@ class Pooling(nn.Module):
         return "Pooling({})".format(self.get_config_dict())
 
     def get_pooling_mode_str(self) -> str:
-        """
-        Returns the pooling mode as string
-        """
+        """Returns the pooling mode as string"""
         modes = []
         if self.pooling_mode_cls_token:
             modes.append("cls")
@@ -209,7 +220,7 @@ class Pooling(nn.Module):
             output_vectors.append(embedding)
 
         output_vector = torch.cat(output_vectors, 1)
-        features.update({"sentence_embedding": output_vector})
+        features["sentence_embedding"] = output_vector
         return features
 
     def get_sentence_embedding_dimension(self):

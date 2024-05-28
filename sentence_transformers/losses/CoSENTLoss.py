@@ -1,8 +1,10 @@
+from typing import Dict, Iterable
+
 import torch
-from torch import nn, Tensor
-from typing import Iterable, Dict
-from ..SentenceTransformer import SentenceTransformer
-from .. import util
+from torch import Tensor, nn
+
+from sentence_transformers import util
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class CoSENTLoss(nn.Module):
@@ -22,9 +24,13 @@ class CoSENTLoss(nn.Module):
         resulting in faster convergence and a final model with superior performance. Consequently, CoSENTLoss may be used
         as a drop-in replacement for :class:`CosineSimilarityLoss` in any training script.
 
-        :param model: SentenceTransformerModel
-        :param similarity_fct: Function to compute the PAIRWISE similarity between embeddings. Default is ``util.pairwise_cos_sim``.
-        :param scale: Output of similarity function is multiplied by scale value. Represents the inverse temperature.
+        Args:
+            model: SentenceTransformerModel
+            similarity_fct: Function to compute the PAIRWISE similarity
+                between embeddings. Default is
+                ``util.pairwise_cos_sim``.
+            scale: Output of similarity function is multiplied by scale
+                value. Represents the inverse temperature.
 
         References:
             - For further details, see: https://kexue.fm/archives/8847
@@ -46,15 +52,23 @@ class CoSENTLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses
-                from sentence_transformers.readers import InputExample
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('bert-base-uncased')
-                train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=1.0),
-                        InputExample(texts=['My third sentence', 'Unrelated sentence'], label=0.3)]
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "sentence1": ["It's nice weather outside today.", "He drove to work."],
+                    "sentence2": ["It's so sunny.", "She walked to the store."],
+                    "score": [1.0, 0.3],
+                })
+                loss = losses.CoSENTLoss(model)
 
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
-                train_loss = losses.CoSENTLoss(model=model)
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
         """
         super(CoSENTLoss, self).__init__()
         self.model = model
@@ -83,3 +97,15 @@ class CoSENTLoss(nn.Module):
 
     def get_config_dict(self):
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
+
+    @property
+    def citation(self) -> str:
+        return """
+@online{kexuefm-8847,
+    title={CoSENT: A more efficient sentence vector scheme than Sentence-BERT},
+    author={Su Jianlin},
+    year={2022},
+    month={Jan},
+    url={https://kexue.fm/archives/8847},
+}
+"""

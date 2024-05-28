@@ -8,13 +8,14 @@ import json
 import os
 import time
 
+import faiss
 import numpy as np
+from usearch.index import Index
+
+from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.quantization import quantize_embeddings
-from datasets import load_dataset
 
-import faiss
-from usearch.index import Index
 # We use usearch as it can efficiently load int8 vectors from disk.
 
 # Load the model

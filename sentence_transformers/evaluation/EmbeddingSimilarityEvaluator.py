@@ -1,16 +1,19 @@
-from contextlib import nullcontext
-
-from sentence_transformers import SentenceTransformer
-from . import SentenceEvaluator, SimilarityFunction
+import csv
 import logging
 import os
-import csv
-from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
-from scipy.stats import pearsonr, spearmanr
-import numpy as np
-from typing import List, Literal, Optional
-from ..readers import InputExample
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
 
+import numpy as np
+from scipy.stats import pearsonr, spearmanr
+from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
+
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.readers import InputExample
+from sentence_transformers.similarity_functions import SimilarityFunction
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +25,36 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
     The metrics are the cosine similarity as well as euclidean and Manhattan distance
     The returned score is the Spearman correlation with a specified metric.
 
-    The results are written in a CSV. If a CSV already exists, then values are appended.
+    Example:
+        ::
+
+            from datasets import load_dataset
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SimilarityFunction
+
+            # Load a model
+            model = SentenceTransformer('all-mpnet-base-v2')
+
+            # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
+            eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
+
+            # Initialize the evaluator
+            dev_evaluator = EmbeddingSimilarityEvaluator(
+                sentences1=eval_dataset["sentence1"],
+                sentences2=eval_dataset["sentence2"],
+                scores=eval_dataset["score"],
+                main_similarity=SimilarityFunction.COSINE,
+                name="sts-dev",
+            )
+            dev_evaluator(model)
+            '''
+            EmbeddingSimilarityEvaluator: Evaluating the model on the sts-dev dataset:
+            Cosine-Similarity :       Pearson: 0.7874 Spearman: 0.8004
+            Manhattan-Distance:       Pearson: 0.7823 Spearman: 0.7827
+            Euclidean-Distance:       Pearson: 0.7824 Spearman: 0.7827
+            Dot-Product-Similarity:   Pearson: 0.7192 Spearman: 0.7126
+            '''
+            # => {'sts-dev_pearson_cosine': 0.880607226102985, 'sts-dev_spearman_cosine': 0.881019449484294, ...}
     """
 
     def __init__(
@@ -31,7 +63,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         sentences2: List[str],
         scores: List[float],
         batch_size: int = 16,
-        main_similarity: SimilarityFunction = None,
+        main_similarity: Optional[Union[str, SimilarityFunction]] = None,
         name: str = "",
         show_progress_bar: bool = False,
         write_csv: bool = True,
@@ -39,19 +71,24 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         truncate_dim: Optional[int] = None,
     ):
         """
-        Constructs an evaluator based for the dataset
+        Constructs an evaluator based for the dataset.
 
-        The labels need to indicate the similarity between the sentences.
-
-        :param sentences1:  List with the first sentence in a pair
-        :param sentences2: List with the second sentence in a pair
-        :param scores: Similarity score between sentences1[i] and sentences2[i]
-        :param write_csv: Write results to a CSV file
-        :param precision: The precision to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or
-            "ubinary". Defaults to None.
-        :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current
-            truncation dimension. Defaults to None.
+        Args:
+            sentences1 (List[str]): List with the first sentence in a pair.
+            sentences2 (List[str]): List with the second sentence in a pair.
+            scores (List[float]): Similarity score between sentences1[i] and sentences2[i].
+            batch_size (int, optional): The batch size for processing the sentences. Defaults to 16.
+            main_similarity (Optional[Union[str, SimilarityFunction]], optional): The main similarity function to use.
+                Can be a string (e.g. "cosine", "dot") or a SimilarityFunction object. Defaults to None.
+            name (str, optional): The name of the evaluator. Defaults to "".
+            show_progress_bar (bool, optional): Whether to show a progress bar during evaluation. Defaults to False.
+            write_csv (bool, optional): Whether to write the evaluation results to a CSV file. Defaults to True.
+            precision (Optional[Literal["float32", "int8", "uint8", "binary", "ubinary"]], optional): The precision
+                to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or "ubinary". Defaults to None.
+            truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the
+                model's current truncation dimension. Defaults to None.
         """
+        super().__init__()
         self.sentences1 = sentences1
         self.sentences2 = sentences2
         self.scores = scores
@@ -62,7 +99,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.scores)
 
-        self.main_similarity = main_similarity
+        self.main_similarity = SimilarityFunction(main_similarity) if main_similarity else None
         self.name = name
 
         self.batch_size = batch_size
@@ -103,7 +140,9 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             scores.append(example.label)
         return cls(sentences1, sentences2, scores, **kwargs)
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -200,15 +239,30 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                     ]
                 )
 
-        if self.main_similarity == SimilarityFunction.COSINE:
-            return eval_spearman_cosine
-        elif self.main_similarity == SimilarityFunction.EUCLIDEAN:
-            return eval_spearman_euclidean
-        elif self.main_similarity == SimilarityFunction.MANHATTAN:
-            return eval_spearman_manhattan
-        elif self.main_similarity == SimilarityFunction.DOT_PRODUCT:
-            return eval_spearman_dot
-        elif self.main_similarity is None:
-            return max(eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot)
-        else:
-            raise ValueError("Unknown main_similarity value")
+        self.primary_metric = {
+            SimilarityFunction.COSINE: "spearman_cosine",
+            SimilarityFunction.EUCLIDEAN: "spearman_euclidean",
+            SimilarityFunction.MANHATTAN: "spearman_manhattan",
+            SimilarityFunction.DOT_PRODUCT: "spearman_dot",
+        }.get(self.main_similarity, "spearman_max")
+        metrics = {
+            "pearson_cosine": eval_pearson_cosine,
+            "spearman_cosine": eval_spearman_cosine,
+            "pearson_manhattan": eval_pearson_manhattan,
+            "spearman_manhattan": eval_spearman_manhattan,
+            "pearson_euclidean": eval_pearson_euclidean,
+            "spearman_euclidean": eval_spearman_euclidean,
+            "pearson_dot": eval_pearson_dot,
+            "spearman_dot": eval_spearman_dot,
+            "pearson_max": max(eval_pearson_cosine, eval_pearson_manhattan, eval_pearson_euclidean, eval_pearson_dot),
+            "spearman_max": max(
+                eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot
+            ),
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
+
+    @property
+    def description(self) -> str:
+        return "Semantic Similarity"

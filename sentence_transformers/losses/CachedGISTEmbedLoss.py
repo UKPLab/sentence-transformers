@@ -1,12 +1,15 @@
 from __future__ import annotations
+
 from contextlib import nullcontext
 from functools import partial
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple
+
 import torch
-from torch import nn, Tensor
-from torch.utils.checkpoint import get_device_states, set_device_states
-from typing import Iterable, Dict, Iterator, List, Optional, Tuple
-from sentence_transformers import SentenceTransformer
 import tqdm
+from torch import Tensor, nn
+from torch.utils.checkpoint import get_device_states, set_device_states
+
+from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Transformer
 
 
@@ -77,9 +80,15 @@ class CachedGISTEmbedLoss(nn.Module):
         :class:`CachedMultipleNegativesRankingLoss`, it is possible to reduce memory usage while maintaining performance
         levels comparable to those of :class:`GISTEmbedLoss`.
 
-        :param model: SentenceTransformer model
-        :param guide: SentenceTransformer model to guide the in-batch negative sample selection.
-        :param temperature: Temperature parameter to scale the cosine similarities.
+        Args:
+            model: SentenceTransformer model
+            guide: SentenceTransformer model to guide the in-batch negative sample selection.
+            temperature: Temperature parameter to scale the cosine similarities.
+            mini_batch_size: Mini-batch size for the forward pass, this denotes how much memory is actually used during
+                training and evaluation. The larger the mini-batch size, the more memory efficient the training is, but
+                the slower the training will be. It's recommended to set it as high as your GPU memory allows. The default
+                value is 32.
+            show_progress_bar: If True, a progress bar for the mini-batches is shown during training. The default is False.
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
@@ -105,22 +114,23 @@ class CachedGISTEmbedLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-uncased')
-                guide = SentenceTransformer('avsolatorio/GIST-small-Embedding-v0')
+                model = SentenceTransformer("microsoft/mpnet-base")
+                guide = SentenceTransformer("all-MiniLM-L6-v2")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                })
+                loss = losses.CachedGISTEmbedLoss(model, guide, mini_batch_size=64)
 
-                train_examples = [
-                    InputExample(texts=['Anchor 1', 'Positive 1']),
-                    InputExample(texts=['Anchor 2', 'Positive 2']),
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=1024)  # Here we can try much larger batch sizes!
-                train_loss = losses.CachedGISTEmbedLoss(model=model, mini_batch_size=32, guide=guide)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(CachedGISTEmbedLoss, self).__init__()
         self.model = model
@@ -277,6 +287,76 @@ class CachedGISTEmbedLoss(nn.Module):
 
         return loss
 
+    def calculate_loss(self, reps: List[List[Tensor]], reps_guided: List[List[Tensor]]) -> Tensor:
+        """Calculate the cross-entropy loss. No need to cache the gradients."""
+        if len(reps) == 2:
+            anchor, positive = reps
+            anchor_guide, positive_guide = reps_guided
+            negative = None
+            negative_guide = None
+        elif len(reps) == 3:
+            anchor, positive, negative = reps
+            anchor_guide, positive_guide, negative_guide = reps_guided
+        else:
+            raise ValueError("Expected 2 or 3 embeddings, got {}".format(len(reps)))
+
+        anchor = torch.cat(anchor, dim=0)
+        positive = torch.cat(positive, dim=0)
+        anchor_guide = torch.cat(anchor_guide, dim=0)
+        positive_guide = torch.cat(positive_guide, dim=0)
+        # Handle the case where we have a negative sample
+        if negative:
+            negative = torch.cat(negative, dim=0)
+            negative_guide = torch.cat(negative_guide, dim=0)
+
+        labels = torch.arange(anchor.size(0)).long().to(anchor.device)
+        batch_size = anchor.shape[0]
+
+        losses: List[torch.Tensor] = []
+        for b in tqdm.trange(
+            0,
+            batch_size,
+            self.mini_batch_size,
+            desc="Preparing caches",
+            disable=not self.show_progress_bar,
+        ):
+            e = b + self.mini_batch_size
+            # Let's compute the similarity matrices for the combinations of anchor and positive samples.
+            guided_ap_sim = self.sim_matrix(anchor_guide[b:e], positive_guide)
+            guided_aa_sim = self.sim_matrix(anchor_guide[b:e], anchor_guide)
+            guided_pp_sim = self.sim_matrix(positive_guide[b:e], positive_guide)
+            # Define the anchor threshold
+            guided_sim = guided_ap_sim.diagonal(offset=b).view(-1, 1)
+
+            # Compute similarity scores for current mini-batch.
+            # anchor (mbsz,hdim), positive (bsz,hdim)
+            ap_sim = self.sim_matrix(anchor[b:e], positive)  # (mbsz,bsz)
+            aa_sim = self.sim_matrix(anchor[b:e], anchor)
+            pp_sim = self.sim_matrix(positive[b:e], positive)
+
+            # Find which samples cannot be used as negatives because they are
+            # more similar to the query than the assigned positive as deemed by the guide model.
+            # For these samples, we mask them with -inf to basically ignore their contribution to
+            # the loss.
+            ap_sim[guided_ap_sim > guided_sim] = -torch.inf
+            aa_sim[guided_aa_sim > guided_sim] = -torch.inf
+            pp_sim[guided_pp_sim > guided_sim] = -torch.inf
+
+            scores = torch.cat([ap_sim, aa_sim, pp_sim], dim=1)
+
+            # Handle the case where we have a negative sample
+            if negative is not None:
+                guided_an_sim = self.sim_matrix(anchor_guide[b:e], negative_guide)
+                an_sim = self.sim_matrix(anchor[b:e], negative)
+                an_sim[guided_an_sim > guided_sim] = -torch.inf
+                scores = torch.cat([scores, an_sim], dim=1)
+            scores = scores / self.temperature
+            loss_mbatch: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e]) * len(scores) / batch_size
+            losses.append(loss_mbatch)
+
+        loss = sum(losses)
+        return loss
+
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Step (1): A quick embedding step without gradients/computation graphs to get all the embeddings
         reps = []
@@ -298,10 +378,15 @@ class CachedGISTEmbedLoss(nn.Module):
             reps_guided.append(reps_guided_mbs)
             self.random_states.append(random_state_mbs)
 
-        # Step (2): Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings
-        loss = self.calculate_loss_and_cache_gradients(reps, reps_guided)
-        # Step (3): A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain
-        loss.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self))
+        if torch.is_grad_enabled():
+            # Step (2): Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings
+            loss = self.calculate_loss_and_cache_gradients(reps, reps_guided)
+
+            # Step (3): A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain
+            loss.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self))
+        else:
+            # If grad is not enabled (e.g. in evaluation), then we don't have to worry about the gradients or backward hook
+            loss = self.calculate_loss(reps, reps_guided)
         return loss
 
     def get_config_dict(self):

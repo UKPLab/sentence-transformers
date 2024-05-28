@@ -1,6 +1,8 @@
-from .. import util
-from torch import nn, Tensor
-from typing import Iterable, Dict
+from typing import Dict, Iterable
+
+from torch import Tensor, nn
+
+from sentence_transformers import util
 
 
 class MarginMSELoss(nn.Module):
@@ -15,8 +17,9 @@ class MarginMSELoss(nn.Module):
         with a batch size of 64, we compare one query against 128 passages. With MarginMSELoss, we compare a query only
         against two passages.
 
-        :param model: SentenceTransformerModel
-        :param similarity_fct: Which similarity function to use.
+        Args:
+            model: SentenceTransformerModel
+            similarity_fct: Which similarity function to use.
 
         References:
             - For more details, please refer to https://arxiv.org/abs/2010.02666.
@@ -38,33 +41,72 @@ class MarginMSELoss(nn.Module):
             +-----------------------------------------------+-----------------------------------------------+
 
         Example:
+
+            With gold labels, e.g. if you have hard scores for sentences. Imagine you want a model to embed sentences
+            with similar "quality" close to each other. If the "text1" has quality 5 out of 5, "text2" has quality
+            1 out of 5, and "text3" has quality 3 out of 5, then the similarity of a pair can be defined as the
+            difference of the quality scores. So, the similarity between "text1" and "text2" is 4, and the
+            similarity between "text1" and "text3" is 2. If we use this as our "Teacher Model", the label becomes
+            similraity("text1", "text2") - similarity("text1", "text3") = 4 - 2 = 2.
+
+            Positive values denote that the first passage is more similar to the query than the second passage,
+            while negative values denote the opposite.
+
             ::
 
-                from sentence_transformers import SentenceTransformer, InputExample, losses
-                from sentence_transformers.util import pairwise_dot_score
-                from torch.utils.data import DataLoader
-                import torch
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                student_model = SentenceTransformer('sentence-transformers/distilbert-base-nli-mean-tokens')
-                teacher_model = SentenceTransformer('sentence-transformers/bert-base-nli-stsb-mean-tokens')
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "text1": ["It's nice weather outside today.", "He drove to work."],
+                    "text2": ["It's so sunny.", "He took the car to work."],
+                    "text3": ["It's very sunny.", "She walked to the store."],
+                    "label": [0.1, 0.8],
+                })
+                loss = losses.MarginMSELoss(model)
 
-                train_examples = [
-                    ['The first query',  'The first positive passage',  'The first negative passage'],
-                    ['The second query', 'The second positive passage', 'The second negative passage'],
-                    ['The third query',  'The third positive passage',  'The third negative passage'],
-                ]
-                train_batch_size = 1
-                encoded = torch.tensor([teacher_model.encode(x).tolist() for x in train_examples])
-                labels = pairwise_dot_score(encoded[:, 0], encoded[:, 1]) - pairwise_dot_score(encoded[:, 0], encoded[:, 2])
-
-                train_input_examples = [InputExample(texts=x, label=labels[i]) for i, x in enumerate(train_examples)]
-                train_dataloader = DataLoader(train_input_examples, shuffle=True, batch_size=train_batch_size)
-                train_loss = losses.MarginMSELoss(model=student_model)
-
-                student_model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
+
+            We can also use a teacher model to compute the similarity scores. In this case, we can use the teacher model
+            to compute the similarity scores and use them as the silver labels. This is often used in knowledge distillation.
+
+            ::
+
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
+
+                student_model = SentenceTransformer("microsoft/mpnet-base")
+                teacher_model = SentenceTransformer("all-mpnet-base-v2")
+                train_dataset = Dataset.from_dict({
+                    "query": ["It's nice weather outside today.", "He drove to work."],
+                    "passage1": ["It's so sunny.", "He took the car to work."],
+                    "passage2": ["It's very sunny.", "She walked to the store."],
+                })
+
+                def compute_labels(batch):
+                    emb_queries = teacher_model.encode(batch["query"])
+                    emb_passages1 = teacher_model.encode(batch["passage1"])
+                    emb_passages2 = teacher_model.encode(batch["passage2"])
+                    return {
+                        "label": teacher_model.similarity_pairwise(emb_queries, emb_passages1) - teacher_model.similarity_pairwise(emb_queries, emb_passages2)
+                    }
+
+                train_dataset = train_dataset.map(compute_labels, batched=True)
+                # In this example, the labels become -0.036 and 0.68, respectively
+                loss = losses.MarginMSELoss(student_model)
+
+                trainer = SentenceTransformerTrainer(
+                    model=student_model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
         """
         super(MarginMSELoss, self).__init__()
         self.model = model
@@ -83,3 +125,16 @@ class MarginMSELoss(nn.Module):
         margin_pred = scores_pos - scores_neg
 
         return self.loss_fct(margin_pred, labels)
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{hofstätter2021improving,
+    title={Improving Efficient Neural Ranking Models with Cross-Architecture Knowledge Distillation}, 
+    author={Sebastian Hofstätter and Sophia Althammer and Michael Schröder and Mete Sertkan and Allan Hanbury},
+    year={2021},
+    eprint={2010.02666},
+    archivePrefix={arXiv},
+    primaryClass={cs.IR}
+}
+"""

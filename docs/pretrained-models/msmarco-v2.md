@@ -34,6 +34,5 @@ As baseline we show the results for lexical search with BM25 using Elasticsearch
 
 
 ## Version Histroy 
-As we work on the topic, we will publish updated (and improved) models.
 
 - [Version 1](msmarco-v1.md)

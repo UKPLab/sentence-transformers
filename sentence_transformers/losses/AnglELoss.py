@@ -1,4 +1,4 @@
-from sentence_transformers import losses, SentenceTransformer, util
+from sentence_transformers import SentenceTransformer, losses, util
 
 
 class AnglELoss(losses.CoSENTLoss):
@@ -20,8 +20,10 @@ class AnglELoss(losses.CoSENTLoss):
         pairs of input pairs in the batch that match this condition. This is the same as CoSENTLoss, with a different
         similarity function.
 
-        :param model: SentenceTransformerModel
-        :param scale: Output of similarity function is multiplied by scale value. Represents the inverse temperature.
+        Args:
+            model: SentenceTransformerModel
+            scale: Output of similarity function is multiplied by scale
+                value. Represents the inverse temperature.
 
         References:
             - For further details, see: https://arxiv.org/abs/2309.12871v1
@@ -43,14 +45,35 @@ class AnglELoss(losses.CoSENTLoss):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses
-                from sentence_transformers.readers import InputExample
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('bert-base-uncased')
-                train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=1.0),
-                        InputExample(texts=['My third sentence', 'Unrelated sentence'], label=0.3)]
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "sentence1": ["It's nice weather outside today.", "He drove to work."],
+                    "sentence2": ["It's so sunny.", "She walked to the store."],
+                    "score": [1.0, 0.3],
+                })
+                loss = losses.AnglELoss(model)
 
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
-                train_loss = losses.AnglELoss(model=model)
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
         """
         super().__init__(model, scale, similarity_fct=util.pairwise_angle_sim)
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{li2023angleoptimized,
+    title={AnglE-optimized Text Embeddings}, 
+    author={Xianming Li and Jing Li},
+    year={2023},
+    eprint={2309.12871},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
+}
+"""

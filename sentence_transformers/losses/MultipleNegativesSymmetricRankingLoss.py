@@ -1,8 +1,10 @@
+from typing import Dict, Iterable
+
 import torch
-from torch import nn, Tensor
-from typing import Iterable, Dict
-from ..SentenceTransformer import SentenceTransformer
-from .. import util
+from torch import Tensor, nn
+
+from sentence_transformers import util
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class MultipleNegativesSymmetricRankingLoss(nn.Module):
@@ -20,9 +22,13 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
 
         Note: If you pass triplets, the negative entry will be ignored. A anchor is just searched for the positive.
 
-        :param model: SentenceTransformer model
-        :param scale: Output of similarity function is multiplied by scale value
-        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+        Args:
+            model: SentenceTransformer model
+            scale: Output of similarity function is multiplied by scale
+                value
+            similarity_fct: similarity function between sentence
+                embeddings. By default, cos_sim. Can also be set to dot
+                product (and then set scale to 1)
 
         Requirements:
             1. (anchor, positive) pairs
@@ -40,20 +46,22 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('distilbert-base-uncased')
-                train_examples = [
-                    InputExample(texts=['Anchor 1', 'Positive 1']),
-                    InputExample(texts=['Anchor 2', 'Positive 2']),
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
-                train_loss = losses.MultipleNegativesSymmetricRankingLoss(model=model)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                })
+                loss = losses.MultipleNegativesSymmetricRankingLoss(model)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(MultipleNegativesSymmetricRankingLoss, self).__init__()
         self.model = model

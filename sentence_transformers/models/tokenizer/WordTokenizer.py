@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Iterable
+from typing import Iterable, List
 
 ENGLISH_STOP_WORDS = [
     "!",

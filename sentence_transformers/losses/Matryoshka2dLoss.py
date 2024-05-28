@@ -1,7 +1,9 @@
 from typing import Any, Dict, List, Optional, Union
+
 from torch.nn import Module
-from sentence_transformers.SentenceTransformer import SentenceTransformer
+
 from sentence_transformers.losses import AdaptiveLayerLoss, MatryoshkaLoss
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class Matryoshka2dLoss(AdaptiveLayerLoss):
@@ -31,25 +33,41 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
         Note, this uses `n_layers_per_step=1` and `n_dims_per_step=1` as default, following the original 2DMSE
         implementation.
 
-        :param model: SentenceTransformer model
-        :param loss: The loss function to be used, e.g. :class:`MultipleNegativesRankingLoss`, :class:`CoSENTLoss`, etc.
-        :param matryoshka_dims: A list of embedding dimensions to be used for the loss function, e.g. [768, 512, 256, 128, 64].
-        :param matryoshka_weights: A list of weights to be used for the loss function, e.g. [1, 1, 1, 1, 1]. If None, then the
-            weights will be set to 1 for all dimensions.
-        :param n_layers_per_step: The number of layers to use per step. If -1, then all layers are used. If > 0, then
-            a random sample of n_layers_per_step layers are used per step. The 2DMSE paper uses `n_layers_per_step=1`.
-            The default value is -1.
-        :param n_dims_per_step: The number of dimensions to use per step. If -1, then all dimensions are used. If > 0, then
-            a random sample of n_dims_per_step dimensions are used per step. The default value is -1.
-        :param last_layer_weight: The weight to use for the loss of the final layer. Increase this to focus more on the
-            performance when using all layers. The default value is 1.0.
-        :param prior_layers_weight: The weight to use for the loss of the prior layers. Increase this to focus more on
-            the performance when using fewer layers. The default value is 1.0.
-        :param kl_div_weight: The weight to use for the KL-divergence loss that is used to make the prior layers match
-            that of the last layer. Increase this to focus more on the performance when using fewer layers. The default
-            value is 1.0.
-        :param kl_temperature: The temperature to use for the KL-divergence loss. If 0, then the KL-divergence loss is
-            not used. The default value is 1.0.
+        Args:
+            model: SentenceTransformer model
+            loss: The loss function to be used, e.g.
+                :class:`MultipleNegativesRankingLoss`,
+                :class:`CoSENTLoss`, etc.
+            matryoshka_dims: A list of embedding dimensions to be used
+                for the loss function, e.g. [768, 512, 256, 128, 64].
+            matryoshka_weights: A list of weights to be used for the
+                loss function, e.g. [1, 1, 1, 1, 1]. If None, then the
+                weights will be set to 1 for all dimensions.
+            n_layers_per_step: The number of layers to use per step. If
+                -1, then all layers are used. If > 0, then a random
+                sample of n_layers_per_step layers are used per step.
+                The 2DMSE paper uses `n_layers_per_step=1`. The default
+                value is -1.
+            n_dims_per_step: The number of dimensions to use per step.
+                If -1, then all dimensions are used. If > 0, then a
+                random sample of n_dims_per_step dimensions are used per
+                step. The default value is -1.
+            last_layer_weight: The weight to use for the loss of the
+                final layer. Increase this to focus more on the
+                performance when using all layers. The default value is
+                1.0.
+            prior_layers_weight: The weight to use for the loss of the
+                prior layers. Increase this to focus more on the
+                performance when using fewer layers. The default value
+                is 1.0.
+            kl_div_weight: The weight to use for the KL-divergence loss
+                that is used to make the prior layers match that of the
+                last layer. Increase this to focus more on the
+                performance when using fewer layers. The default value
+                is 1.0.
+            kl_temperature: The temperature to use for the KL-divergence
+                loss. If 0, then the KL-divergence loss is not used. The
+                default value is 1.0.
 
         References:
             - See the 2D Matryoshka Sentence Embeddings (2DMSE) paper: https://arxiv.org/abs/2402.14776
@@ -76,7 +94,7 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
                 from sentence_transformers import SentenceTransformer, losses, InputExample
                 from torch.utils.data import DataLoader
 
-                model = SentenceTransformer('microsoft/mpnet-base')
+                model = SentenceTransformer("microsoft/mpnet-base")
                 train_examples = [
                     InputExample(texts=['Anchor 1', 'Positive 1']),
                     InputExample(texts=['Anchor 2', 'Positive 2']),
@@ -111,3 +129,16 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
             **super().get_config_dict(),
             **self.loss.get_config_dict(),
         }
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{li20242d,
+    title={2D Matryoshka Sentence Embeddings}, 
+    author={Xianming Li and Zongxi Li and Jing Li and Haoran Xie and Qing Li},
+    year={2024},
+    eprint={2402.14776},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
+}
+"""

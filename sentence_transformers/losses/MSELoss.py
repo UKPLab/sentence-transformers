@@ -1,5 +1,7 @@
-from torch import nn, Tensor
-from typing import Iterable, Dict
+from typing import Dict, Iterable
+
+import torch
+from torch import Tensor, nn
 
 
 class MSELoss(nn.Module):
@@ -11,7 +13,8 @@ class MSELoss(nn.Module):
 
         For an example, see `the distillation documentation <../../examples/training/distillation/README.html>`_ on extending language models to new languages.
 
-        :param model: SentenceTransformerModel
+        Args:
+            model: SentenceTransformerModel
 
         References:
             - Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation: https://arxiv.org/abs/2004.09813
@@ -25,41 +28,66 @@ class MSELoss(nn.Module):
             - :class:`MarginMSELoss` is equivalent to this loss, but with a margin through a negative pair.
 
         Input:
-            +-------------------+-----------------------------+
-            | Texts             | Labels                      |
-            +===================+=============================+
-            | single sentences  | model sentence embeddings   |
-            +-------------------+-----------------------------+
+            +-----------------------------------------+-----------------------------+
+            | Texts                                   | Labels                      |
+            +=========================================+=============================+
+            | sentence                                | model sentence embeddings   |
+            +-----------------------------------------+-----------------------------+
+            | sentence_1, sentence_2, ..., sentence_N | model sentence embeddings   |
+            +-----------------------------------------+-----------------------------+
 
-        Example::
+        Example:
+            ::
 
-            from sentence_transformers import SentenceTransformer, InputExample, losses
-            from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-            model_en = SentenceTransformer('bert-base-cased')
-            model_fr = SentenceTransformer('flaubert/flaubert_base_cased')
+                student_model = SentenceTransformer("microsoft/mpnet-base")
+                teacher_model = SentenceTransformer("all-mpnet-base-v2")
+                train_dataset = Dataset.from_dict({
+                    "english": ["The first sentence",  "The second sentence", "The third sentence",  "The fourth sentence"],
+                    "french": ["La première phrase",  "La deuxième phrase", "La troisième phrase",  "La quatrième phrase"],
+                })
 
-            examples_en = ['The first sentence',  'The second sentence', 'The third sentence',  'The fourth sentence']
-            examples_fr = ['La première phrase',  'La deuxième phrase', 'La troisième phrase',  'La quatrième phrase']
-            train_batch_size = 2
+                def compute_labels(batch):
+                    return {
+                        "label": teacher_model.encode(batch["english"])
+                    }
 
-            labels_en_en = model_en.encode(examples_en)
-            examples_en_fr = [InputExample(texts=[x], label=labels_en_en[i]) for i, x in enumerate(examples_en)]
-            loader_en_fr = DataLoader(examples_en_fr, batch_size=train_batch_size)
+                train_dataset = train_dataset.map(compute_labels, batched=True)
+                loss = losses.MSELoss(student_model)
 
-            examples_fr_fr = [InputExample(texts=[x], label=labels_en_en[i]) for i, x in enumerate(examples_fr)]
-            loader_fr_fr = DataLoader(examples_fr_fr, batch_size=train_batch_size)
-
-            train_loss = losses.MSELoss(model=model_fr)
-            model_fr.fit(
-                [(loader_en_fr, train_loss), (loader_fr_fr, train_loss)],
-                epochs=10,
-            )
+                trainer = SentenceTransformerTrainer(
+                    model=student_model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
         """
         super(MSELoss, self).__init__()
         self.model = model
         self.loss_fct = nn.MSELoss()
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-        rep = self.model(sentence_features[0])["sentence_embedding"]
-        return self.loss_fct(rep, labels)
+        # Concatenate multiple inputs on the batch dimension
+        if len(sentence_features) > 1:
+            embeddings = torch.cat([self.model(inputs)["sentence_embedding"] for inputs in sentence_features], dim=0)
+            # Repeat the labels for each input
+            return self.loss_fct(embeddings, labels.repeat(len(sentence_features), 1))
+
+        embeddings = self.model(sentence_features[0])["sentence_embedding"]
+        return self.loss_fct(embeddings, labels)
+
+    @property
+    def citation(self) -> str:
+        return """
+@inproceedings{reimers-2020-multilingual-sentence-bert,
+    title = "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation",
+    author = "Reimers, Nils and Gurevych, Iryna",
+    booktitle = "Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing",
+    month = "11",
+    year = "2020",
+    publisher = "Association for Computational Linguistics",
+    url = "https://arxiv.org/abs/2004.09813",
+}
+"""

@@ -1,14 +1,17 @@
-from sentence_transformers import SentenceTransformer
-from contextlib import nullcontext
-from . import SentenceEvaluator
-import logging
-from ..util import pytorch_cos_sim
-import os
 import csv
+import logging
+import os
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Dict, List, Optional
+
 import numpy as np
-from typing import List, Optional
 import torch
 
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.util import pytorch_cos_sim
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +21,36 @@ class TranslationEvaluator(SentenceEvaluator):
     Given two sets of sentences in different languages, e.g. (en_1, en_2, en_3...) and (fr_1, fr_2, fr_3, ...),
     and assuming that fr_i is the translation of en_i.
     Checks if vec(en_i) has the highest similarity to vec(fr_i). Computes the accuracy in both directions
+
+    Example:
+        ::
+
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers.evaluation import TranslationEvaluator
+            from datasets import load_dataset
+
+            # Load a model
+            model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
+
+            # Load a parallel sentences dataset
+            dataset = load_dataset("sentence-transformers/parallel-sentences-news-commentary", "en-nl", split="train[:1000]")
+
+            # Initialize the TranslationEvaluator using the same texts from two languages
+            translation_evaluator = TranslationEvaluator(
+                source_sentences=dataset["english"],
+                target_sentences=dataset["non_english"],
+                name="news-commentary-en-nl",
+            )
+            results = translation_evaluator(model)
+            '''
+            Evaluating translation matching Accuracy of the model on the news-commentary-en-nl dataset:
+            Accuracy src2trg: 90.80
+            Accuracy trg2src: 90.40
+            '''
+            print(translation_evaluator.primary_metric)
+            # => "news-commentary-en-nl_mean_accuracy"
+            print(results[translation_evaluator.primary_metric])
+            # => 0.906
     """
 
     def __init__(
@@ -36,24 +69,18 @@ class TranslationEvaluator(SentenceEvaluator):
 
         The labels need to indicate the similarity between the sentences.
 
-        :param source_sentences:
-            List of sentences in source language
-        :param target_sentences:
-            List of sentences in target language
-        :param show_progress_bar:
-            Show progress bar when computing embeddings
-        :param batch_size:
-            Batch size to compute sentence embeddings
-        :param name:
-            Name of the evaluator
-        :param print_wrong_matches:
-            Prints incorrect matches
-        :param write_csv:
-            Write results to CSV file
-        :param truncate_dim:
-            The dimension to truncate sentence embeddings to. `None` uses the model's current truncation dimension.
-            Defaults to None.
+        Args:
+            source_sentences (List[str]): List of sentences in the source language.
+            target_sentences (List[str]): List of sentences in the target language.
+            show_progress_bar (bool): Whether to show a progress bar when computing embeddings. Defaults to False.
+            batch_size (int): The batch size to compute sentence embeddings. Defaults to 16.
+            name (str): The name of the evaluator. Defaults to an empty string.
+            print_wrong_matches (bool): Whether to print incorrect matches. Defaults to False.
+            write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
+            truncate_dim (int, optional): The dimension to truncate sentence embeddings to. If None, the model's
+                current truncation dimension will be used. Defaults to None.
         """
+        super().__init__()
         self.source_sentences = source_sentences
         self.target_sentences = target_sentences
         self.name = name
@@ -70,8 +97,11 @@ class TranslationEvaluator(SentenceEvaluator):
         self.csv_file = "translation_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps", "src2trg", "trg2src"]
         self.write_csv = write_csv
+        self.primary_metric = "mean_accuracy"
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -145,4 +175,11 @@ class TranslationEvaluator(SentenceEvaluator):
 
                 writer.writerow([epoch, steps, acc_src2trg, acc_trg2src])
 
-        return (acc_src2trg + acc_trg2src) / 2
+        metrics = {
+            "src2trg_accuracy": acc_src2trg,
+            "trg2src_accuracy": acc_trg2src,
+            "mean_accuracy": (acc_src2trg + acc_trg2src) / 2,
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics

@@ -1,7 +1,8 @@
-import torch
-import numpy as np
 import random
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+
+import numpy as np
+import torch
+from transformers import T5ForConditionalGeneration, T5Tokenizer
 
 # Set all seeds to make output deterministic
 torch.manual_seed(0)

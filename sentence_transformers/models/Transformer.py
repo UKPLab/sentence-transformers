@@ -1,22 +1,31 @@
-from torch import nn
-from transformers import AutoModel, AutoTokenizer, AutoConfig, T5Config, MT5Config
 import json
-from typing import Any, List, Dict, Optional, Union, Tuple
 import os
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+from torch import nn
+from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Config
 
 
 class Transformer(nn.Module):
     """Huggingface AutoModel to generate token embeddings.
     Loads the correct class, e.g. BERT / RoBERTa etc.
 
-    :param model_name_or_path: Huggingface models name (https://huggingface.co/models)
-    :param max_seq_length: Truncate any inputs longer than max_seq_length
-    :param model_args: Keyword arguments passed to the Huggingface Transformers model
-    :param tokenizer_args: Keyword arguments passed to the Huggingface Transformers tokenizer
-    :param config_args: Keyword arguments passed to the Huggingface Transformers config
-    :param cache_dir: Cache dir for Huggingface Transformers to store/load models
-    :param do_lower_case: If true, lowercases the input (independent if the model is cased or not)
-    :param tokenizer_name_or_path: Name or path of the tokenizer. When None, then model_name_or_path is used
+    Args:
+        model_name_or_path: Huggingface models name
+            (https://huggingface.co/models)
+        max_seq_length: Truncate any inputs longer than max_seq_length
+        model_args: Keyword arguments passed to the Huggingface
+            Transformers model
+        tokenizer_args: Keyword arguments passed to the Huggingface
+            Transformers tokenizer
+        config_args: Keyword arguments passed to the Huggingface
+            Transformers config
+        cache_dir: Cache dir for Huggingface Transformers to store/load
+            models
+        do_lower_case: If true, lowercases the input (independent if the
+            model is cased or not)
+        tokenizer_name_or_path: Name or path of the tokenizer. When
+            None, then model_name_or_path is used
     """
 
     def __init__(
@@ -43,6 +52,8 @@ class Transformer(nn.Module):
         config = AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
         self._load_model(model_name_or_path, config, cache_dir, **model_args)
 
+        if max_seq_length is not None and "model_max_length" not in tokenizer_args:
+            tokenizer_args["model_max_length"] = max_seq_length
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name_or_path if tokenizer_name_or_path is not None else model_name_or_path,
             cache_dir=cache_dir,
@@ -122,9 +133,7 @@ class Transformer(nn.Module):
         return self.auto_model.config.hidden_size
 
     def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]], padding: Union[str, bool] = True):
-        """
-        Tokenizes a text and maps tokens to token-ids
-        """
+        """Tokenizes a text and maps tokens to token-ids"""
         output = {}
         if isinstance(texts[0], str):
             to_tokenize = [texts]

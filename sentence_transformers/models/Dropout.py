@@ -1,14 +1,15 @@
-from torch import Tensor
-from torch import nn
-from typing import Dict
-import os
 import json
+import os
+from typing import Dict
+
+from torch import Tensor, nn
 
 
 class Dropout(nn.Module):
     """Dropout layer.
 
-    :param dropout: Sets a dropout value for dense layer.
+    Args:
+        dropout: Sets a dropout value for dense layer.
     """
 
     def __init__(self, dropout: float = 0.2):

@@ -15,71 +15,45 @@ the new SentenceTransformer model will produce directly embeddings with 128 dime
 without further changes needed.
 """
 
-from sklearn.decomposition import PCA
-from sentence_transformers import SentenceTransformer, LoggingHandler, util, evaluation, models, InputExample
 import logging
-import os
-import gzip
-import csv
 import random
+
 import numpy as np
 import torch
+from sklearn.decomposition import PCA
 
-#### Just some code to print debug information to stdout
-logging.basicConfig(
-    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
-)
-logger = logging.getLogger(__name__)
-#### /print debug information to stdout
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer, models
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+
+# Set the log level to INFO to get more information
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 # Model for which we apply dimensionality reduction
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model_name = "all-MiniLM-L6-v2"
+model = SentenceTransformer(model_name)
 
 # New size for the embeddings
 new_dimension = 128
 
-
-# We use AllNLI as a source of sentences to compute PCA
-nli_dataset_path = "datasets/AllNLI.tsv.gz"
-
-# We use the STS benchmark dataset to see how much performance we loose by using the dimensionality reduction
-sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
-
-if not os.path.exists(nli_dataset_path):
-    util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
-
-if not os.path.exists(sts_dataset_path):
-    util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
-
-
 # We measure the performance of the original model
 # and later we will measure the performance with the reduces dimension size
-logger.info("Read STSbenchmark test dataset")
-eval_examples = []
-with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        if row["split"] == "test":
-            score = float(row["score"]) / 5.0  # Normalize score to range 0 ... 1
-            eval_examples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
+test_dataset = load_dataset("sentence-transformers/stsb", split="test")
+stsb_evaluator = EmbeddingSimilarityEvaluator(
+    sentences1=test_dataset["sentence1"],
+    sentences2=test_dataset["sentence2"],
+    scores=test_dataset["score"],
+    name="sts-test",
+)
 
-# Evaluate the original model on the STS benchmark dataset
-stsb_evaluator = evaluation.EmbeddingSimilarityEvaluator.from_input_examples(eval_examples, name="sts-benchmark-test")
-
-logger.info("Original model performance:")
+logging.info("Original model performance:")
 stsb_evaluator(model)
 
 ######## Reduce the embedding dimensions ########
 
-# Read sentences from NLI dataset
-nli_sentences = set()
-with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        nli_sentences.add(row["sentence1"])
-        nli_sentences.add(row["sentence2"])
+train_dataset = load_dataset("sentence-transformers/all-nli", "pair-score", split="train")
 
-nli_sentences = list(nli_sentences)
+nli_sentences = train_dataset["sentence1"] + train_dataset["sentence2"]
 random.shuffle(nli_sentences)
 
 # To determine the PCA matrix, we need some example sentence embeddings.
@@ -103,12 +77,16 @@ dense.linear.weight = torch.nn.Parameter(torch.tensor(pca_comp))
 model.add_module("dense", dense)
 
 # Evaluate the model with the reduce embedding size
-logger.info("Model with {} dimensions:".format(new_dimension))
+logging.info("Model with {} dimensions:".format(new_dimension))
 stsb_evaluator(model)
 
 
 # If you like, you can store the model on disc by uncommenting the following line
-# model.save('models/my-128dim-model')
+model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+model.save(f"{model_name}-128dim")
 
 # You can then load the adapted model that produces 128 dimensional embeddings like this:
 # model = SentenceTransformer('models/my-128dim-model')
+
+# Or you can push the model to the Hugging Face Hub
+# model.push_to_hub(f'{model_name}-128dim')

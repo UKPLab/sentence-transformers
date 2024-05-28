@@ -45,7 +45,7 @@ jobs:
         if: steps.restore-cache.outputs.cache-hit != 'true'
 
       - name: Install the checked-out sentence-transformers
-        run: python -m pip install .
+        run: python -m pip install .[train]
 
       - name: Run unit tests
         shell: bash

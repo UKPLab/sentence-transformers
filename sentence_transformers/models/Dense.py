@@ -1,23 +1,27 @@
-import torch
-from torch import Tensor
-from torch import nn
-from typing import Dict
-import os
 import json
-from ..util import fullname, import_from_string
+import os
+from typing import Dict
+
+import torch
+from torch import Tensor, nn
+
+from sentence_transformers.util import fullname, import_from_string
 
 
 class Dense(nn.Module):
-    """Feed-forward function with  activiation function.
+    """
+    Feed-forward function with  activiation function.
 
     This layer takes a fixed-sized sentence embedding and passes it through a feed-forward layer. Can be used to generate deep averaging networks (DAN).
 
-    :param in_features: Size of the input dimension
-    :param out_features: Output size
-    :param bias: Add a bias vector
-    :param activation_function: Pytorch activation function applied on output
-    :param init_weight: Initial value for the matrix of the linear layer
-    :param init_bias: Initial value for the bias of the linear layer
+    Args:
+        in_features: Size of the input dimension
+        out_features: Output size
+        bias: Add a bias vector
+        activation_function: Pytorch activation function applied on
+            output
+        init_weight: Initial value for the matrix of the linear layer
+        init_bias: Initial value for the bias of the linear layer
     """
 
     def __init__(

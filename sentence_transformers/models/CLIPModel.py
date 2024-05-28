@@ -1,8 +1,9 @@
 from typing import Union
-from torch import nn
-import transformers
+
 import torch
+import transformers
 from PIL import Image
+from torch import nn
 
 
 class CLIPModel(nn.Module):
@@ -73,6 +74,10 @@ class CLIPModel(nn.Module):
 
         encoding["image_text_info"] = image_text_info
         return dict(encoding)
+
+    @property
+    def tokenizer(self):
+        return self.processor
 
     def save(self, output_path: str):
         self.model.save_pretrained(output_path)

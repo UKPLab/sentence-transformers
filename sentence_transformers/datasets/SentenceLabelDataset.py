@@ -1,10 +1,10 @@
-""" """
-
-from torch.utils.data import IterableDataset
-import numpy as np
-from typing import List
-from ..readers import InputExample
 import logging
+from typing import List
+
+import numpy as np
+from torch.utils.data import IterableDataset
+
+from sentence_transformers.readers import InputExample
 
 logger = logging.getLogger(__name__)
 
@@ -27,14 +27,13 @@ class SentenceLabelDataset(IterableDataset):
         """
         Creates a LabelSampler for a SentenceLabelDataset.
 
-        :param examples:
-            a list with InputExamples
-        :param samples_per_label:
-            the number of consecutive, random and unique samples drawn per label. Batch size should be a multiple of samples_per_label
-        :param with_replacement:
-            if this is True, then each sample is drawn at most once (depending on the total number of samples per label).
-            if this is False, then one sample can be drawn in multiple draws, but still not multiple times in the same
-            drawing.
+        Args:
+            examples (List[InputExample]): A list of InputExamples.
+            samples_per_label (int, optional): The number of consecutive, random, and unique samples drawn per label.
+                The batch size should be a multiple of samples_per_label. Defaults to 2.
+            with_replacement (bool, optional): If True, each sample is drawn at most once (depending on the total number
+                of samples per label). If False, one sample can be drawn in multiple draws, but not multiple times in
+                the same drawing. Defaults to False.
         """
         super().__init__()
 

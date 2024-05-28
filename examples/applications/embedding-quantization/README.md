@@ -20,6 +20,16 @@ Quantizing an embedding with a dimensionality of 1024 to binary would result in 
 
 As a result, in practice quantizing a `float32` embedding with a dimensionality of 1024 yields an `int8` or `uint8` embedding with a dimensionality of 128. See two approaches of how you can produce quantized embeddings using Sentence Transformers below:
 
+```eval_rst
+.. sidebar:: References
+
+   #. `mixedbread-ai/mxbai-embed-large-v1 <https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1>`_
+   #. :class:`~sentence_transformers.SentenceTransformer`
+   #. :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>`
+   #. :func:`~sentence_transformers.quantization.quantize_embeddings`
+
+```
+
 ```python
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.quantization import quantize_embeddings
@@ -37,11 +47,6 @@ binary_embeddings = model.encode(
 embeddings = model.encode(["I am driving to the lake.", "It is a beautiful day."])
 binary_embeddings = quantize_embeddings(embeddings, precision="binary")
 ```
-
-**References:**
-* <a href="https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1"><code>mixedbread-ai/mxbai-embed-large-v1</code></a>
-* <a href="../../../docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode"><code>SentenceTransformer.encode</code></a>
-* <a href="../../../docs/package_reference/quantization.html#sentence_transformers.quantization.quantize_embeddings"><code>quantize_embeddings</code></a>
 
 Here you can see the differences between default `float32` embeddings and binary embeddings in terms of shape, size, and `numpy` dtype:
 
@@ -84,6 +89,16 @@ Computing int8 quantization buckets based on 2 embeddings. int8 quantization is 
 
 See how you can produce scalar quantized embeddings using Sentence Transformers below:
 
+```eval_rst
+.. sidebar:: References
+
+   #. `mixedbread-ai/mxbai-embed-large-v1 <https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1>`_
+   #. :class:`~sentence_transformers.SentenceTransformer`
+   #. :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>`
+   #. :func:`~sentence_transformers.quantization.quantize_embeddings`
+
+```
+
 ```python
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.quantization import quantize_embeddings
@@ -104,11 +119,6 @@ int8_embeddings = quantize_embeddings(
     calibration_embeddings=calibration_embeddings,
 )
 ```
-
-**References:**
-* <a href="https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1"><code>mixedbread-ai/mxbai-embed-large-v1</code></a>
-* <a href="../../../docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode"><code>SentenceTransformer.encode</code></a>
-* <a href="../../../docs/package_reference/quantization.html#sentence_transformers.quantization.quantize_embeddings"><code>quantize_embeddings</code></a>
 
 Here you can see the differences between default `float32` embeddings and `int8` scalar embeddings in terms of shape, size, and `numpy` dtype:
 
@@ -154,6 +164,7 @@ The following demo showcases the retrieval efficiency using `exact` search throu
 	width="100%"
 	height="1000"
 ></iframe>
+<p></p> <!-- Force a newline -->
 
 ## Try it yourself
 

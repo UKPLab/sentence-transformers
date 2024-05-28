@@ -11,85 +11,59 @@ Multi task learning is achieved quite easily by calling the model.fit method lik
 model.fit(train_objectives=[(train_dataloader_MultipleNegativesRankingLoss, train_loss_MultipleNegativesRankingLoss), (train_dataloader_constrative_loss, train_loss_constrative_loss)] ...)
 """
 
-from torch.utils.data import DataLoader
-from sentence_transformers import losses, util
-from sentence_transformers import LoggingHandler, SentenceTransformer, evaluation
-from sentence_transformers.readers import InputExample
 import logging
-from datetime import datetime
-import csv
-import os
-from zipfile import ZipFile
 import random
+import traceback
+from datetime import datetime
 
-#### Just some code to print debug information to stdout
-logging.basicConfig(
-    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.evaluation import (
+    BinaryClassificationEvaluator,
+    InformationRetrievalEvaluator,
+    ParaphraseMiningEvaluator,
+    SequentialEvaluator,
 )
-logger = logging.getLogger(__name__)
-#### /print debug information to stdout
+from sentence_transformers.losses import ContrastiveLoss, MultipleNegativesRankingLoss
+from sentence_transformers.trainer import SentenceTransformerTrainer
+from sentence_transformers.training_args import (
+    BatchSamplers,
+    MultiDatasetBatchSamplers,
+    SentenceTransformerTrainingArguments,
+)
 
+# Set the log level to INFO to get more information
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 # As base model, we use DistilBERT-base that was pre-trained on NLI and STSb data
-model = SentenceTransformer("stsb-distilbert-base")
-
+model_name = "stsb-distilbert-base"
+model = SentenceTransformer(model_name)
 # Training for multiple epochs can be beneficial, as in each epoch a mini-batch is sampled differently
 # hence, we get different negatives for each positive
-num_epochs = 10
-
+num_train_epochs = 1
 # Increasing the batch size improves the performance for MultipleNegativesRankingLoss. Choose it as large as possible
-# I achieved the good results with a batch size of 300-350 (requires about 30 GB of GPU memory)
-train_batch_size = 64
+# I achieved the good results with a batch size of 300-350
+batch_size = 64
 
-# As distance metric, we use cosine distance (cosine_distance = 1-cosine_similarity)
-distance_metric = losses.SiameseDistanceMetric.COSINE_DISTANCE
+output_dir = "output/training_mnrl-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-# Negative pairs should have a distance of at least 0.5
-margin = 0.5
+################### Load Quora Duplicate Questions dataset ##################
 
-dataset_path = "quora-IR-dataset"
-model_save_path = "output/training_multi-task-learning" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+# https://huggingface.co/datasets/sentence-transformers/quora-duplicates
+mnrl_dataset = load_dataset(
+    "sentence-transformers/quora-duplicates", "triplet", split="train"
+)  # The "pair" subset also works
+mnrl_train_dataset = mnrl_dataset.select(range(100000))
+mnrl_eval_dataset = mnrl_dataset.select(range(100000, 101000))
 
-os.makedirs(model_save_path, exist_ok=True)
+mnrl_train_loss = MultipleNegativesRankingLoss(model=model)
 
-# Check if the dataset exists. If not, download and extract
-if not os.path.exists(dataset_path):
-    logger.info("Dataset not found. Download")
-    zip_save_path = "quora-IR-dataset.zip"
-    util.http_get(url="https://sbert.net/datasets/quora-IR-dataset.zip", path=zip_save_path)
-    with ZipFile(zip_save_path, "r") as zip:
-        zip.extractall(dataset_path)
+# https://huggingface.co/datasets/sentence-transformers/quora-duplicates
+cl_dataset = load_dataset("sentence-transformers/quora-duplicates", "pair-class", split="train")
+cl_train_dataset = cl_dataset.select(range(100000))
+cl_eval_dataset = cl_dataset.select(range(100000, 101000))
 
-
-######### Read train data  ##########
-train_samples_MultipleNegativesRankingLoss = []
-train_samples_ConstrativeLoss = []
-
-with open(os.path.join(dataset_path, "classification/train_pairs.tsv"), encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        train_samples_ConstrativeLoss.append(
-            InputExample(texts=[row["question1"], row["question2"]], label=int(row["is_duplicate"]))
-        )
-        if row["is_duplicate"] == "1":
-            train_samples_MultipleNegativesRankingLoss.append(
-                InputExample(texts=[row["question1"], row["question2"]], label=1)
-            )
-            train_samples_MultipleNegativesRankingLoss.append(
-                InputExample(texts=[row["question2"], row["question1"]], label=1)
-            )  # if A is a duplicate of B, then B is a duplicate of A
-
-# Create data loader and loss for MultipleNegativesRankingLoss
-train_dataloader_MultipleNegativesRankingLoss = DataLoader(
-    train_samples_MultipleNegativesRankingLoss, shuffle=True, batch_size=train_batch_size
-)
-train_loss_MultipleNegativesRankingLoss = losses.MultipleNegativesRankingLoss(model)
-
-
-# Create data loader and loss for OnlineContrastiveLoss
-train_dataloader_ConstrativeLoss = DataLoader(train_samples_ConstrativeLoss, shuffle=True, batch_size=train_batch_size)
-train_loss_ConstrativeLoss = losses.OnlineContrastiveLoss(model=model, distance_metric=distance_metric, margin=margin)
-
+cl_train_loss = ContrastiveLoss(model=model, margin=0.5)
 
 ################### Development  Evaluators ##################
 # We add 3 evaluators, that evaluate the model on Duplicate Questions pair classification,
@@ -97,50 +71,37 @@ train_loss_ConstrativeLoss = losses.OnlineContrastiveLoss(model=model, distance_
 evaluators = []
 
 ###### Classification ######
-# Given (quesiton1, question2), is this a duplicate or not?
+# Given (question1, question2), is this a duplicate or not?
 # The evaluator will compute the embeddings for both questions and then compute
 # a cosine similarity. If the similarity is above a threshold, we have a duplicate.
-dev_sentences1 = []
-dev_sentences2 = []
-dev_labels = []
-with open(os.path.join(dataset_path, "classification/dev_pairs.tsv"), encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        dev_sentences1.append(row["question1"])
-        dev_sentences2.append(row["question2"])
-        dev_labels.append(int(row["is_duplicate"]))
 
-
-binary_acc_evaluator = evaluation.BinaryClassificationEvaluator(dev_sentences1, dev_sentences2, dev_labels)
+duplicate_classes_dataset = load_dataset("sentence-transformers/quora-duplicates", "pair-class", split="train[-1000:]")
+binary_acc_evaluator = BinaryClassificationEvaluator(
+    sentences1=duplicate_classes_dataset["sentence1"],
+    sentences2=duplicate_classes_dataset["sentence2"],
+    labels=duplicate_classes_dataset["label"],
+    name="quora-duplicates",
+)
 evaluators.append(binary_acc_evaluator)
 
 
 ###### Duplicate Questions Mining ######
 # Given a large corpus of questions, identify all duplicates in that corpus.
 
-# For faster processing, we limit the development corpus to only 10,000 sentences.
-max_dev_samples = 10000
-dev_sentences = {}
-dev_duplicates = []
-with open(os.path.join(dataset_path, "duplicate-mining/dev_corpus.tsv"), encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        dev_sentences[row["qid"]] = row["question"]
+# Load the Quora Duplicates Mining dataset
+# https://huggingface.co/datasets/sentence-transformers/quora-duplicates-mining
+questions_dataset = load_dataset("sentence-transformers/quora-duplicates-mining", "questions", split="dev")
+duplicates_dataset = load_dataset("sentence-transformers/quora-duplicates-mining", "duplicates", split="dev")
 
-        if len(dev_sentences) >= max_dev_samples:
-            break
-
-with open(os.path.join(dataset_path, "duplicate-mining/dev_duplicates.tsv"), encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        if row["qid1"] in dev_sentences and row["qid2"] in dev_sentences:
-            dev_duplicates.append([row["qid1"], row["qid2"]])
-
+# Create a mapping from qid to question & a list of duplicates (qid1, qid2)
+qid_to_questions = dict(zip(questions_dataset["qid"], questions_dataset["question"]))
+duplicates = list(zip(duplicates_dataset["qid1"], duplicates_dataset["qid2"]))
 
 # The ParaphraseMiningEvaluator computes the cosine similarity between all sentences and
 # extracts a list with the pairs that have the highest similarity. Given the duplicate
 # information in dev_duplicates, it then computes and F1 score how well our duplicate mining worked
-paraphrase_mining_evaluator = evaluation.ParaphraseMiningEvaluator(dev_sentences, dev_duplicates, name="dev")
+paraphrase_mining_evaluator = ParaphraseMiningEvaluator(qid_to_questions, duplicates, name="quora-duplicates-dev")
+
 evaluators.append(paraphrase_mining_evaluator)
 
 
@@ -148,67 +109,95 @@ evaluators.append(paraphrase_mining_evaluator)
 # Given a question and a large corpus of thousands questions, find the most relevant (i.e. duplicate) question
 # in that corpus.
 
-# For faster processing, we limit the development corpus to only 10,000 sentences.
-max_corpus_size = 100000
+# https://huggingface.co/datasets/BeIR/quora
+# https://huggingface.co/datasets/BeIR/quora-qrels
+new_ir_corpus = load_dataset("BeIR/quora", "corpus", split="corpus")
+new_ir_queries = load_dataset("BeIR/quora", "queries", split="queries")
+new_ir_relevant_docs_data = load_dataset("BeIR/quora-qrels", split="validation")
 
-ir_queries = {}  # Our queries (qid => question)
-ir_needed_qids = set()  # QIDs we need in the corpus
-ir_corpus = {}  # Our corpus (qid => question)
-ir_relevant_docs = {}  # Mapping of relevant documents for a given query (qid => set([relevant_question_ids])
+# Shrink the corpus size heavily to only the relevant documents + 10,000 random documents
+required_corpus_ids = list(map(str, new_ir_relevant_docs_data["corpus-id"]))
+required_corpus_ids += random.sample(new_ir_corpus["_id"], k=10_000)
+new_ir_corpus = new_ir_corpus.filter(lambda x: x["_id"] in required_corpus_ids)
 
-with open(os.path.join(dataset_path, "information-retrieval/dev-queries.tsv"), encoding="utf8") as fIn:
-    next(fIn)  # Skip header
-    for line in fIn:
-        qid, query, duplicate_ids = line.strip().split("\t")
-        duplicate_ids = duplicate_ids.split(",")
-        ir_queries[qid] = query
-        ir_relevant_docs[qid] = set(duplicate_ids)
-
-        for qid in duplicate_ids:
-            ir_needed_qids.add(qid)
-
-# First get all needed relevant documents (i.e., we must ensure, that the relevant questions are actually in the corpus
-distraction_questions = {}
-with open(os.path.join(dataset_path, "information-retrieval/corpus.tsv"), encoding="utf8") as fIn:
-    next(fIn)  # Skip header
-    for line in fIn:
-        qid, question = line.strip().split("\t")
-
-        if qid in ir_needed_qids:
-            ir_corpus[qid] = question
-        else:
-            distraction_questions[qid] = question
-
-# Now, also add some irrelevant questions to fill our corpus
-other_qid_list = list(distraction_questions.keys())
-random.shuffle(other_qid_list)
-
-for qid in other_qid_list[0 : max(0, max_corpus_size - len(ir_corpus))]:
-    ir_corpus[qid] = distraction_questions[qid]
+# Convert the datasets to dictionaries
+new_ir_corpus = dict(zip(new_ir_corpus["_id"], new_ir_corpus["text"]))  # Our corpus (qid => question)
+new_ir_queries = dict(zip(new_ir_queries["_id"], new_ir_queries["text"]))  # Our queries (qid => question)
+new_ir_relevant_docs = {}  # Query ID to relevant documents (qid => set([relevant_question_ids])
+for qid, corpus_ids in zip(new_ir_relevant_docs_data["query-id"], new_ir_relevant_docs_data["corpus-id"]):
+    qid = str(qid)
+    corpus_ids = str(corpus_ids)
+    if qid not in new_ir_relevant_docs:
+        new_ir_relevant_docs[qid] = set()
+    new_ir_relevant_docs[qid].add(corpus_ids)
 
 # Given queries, a corpus and a mapping with relevant documents, the InformationRetrievalEvaluator computes different IR
 # metrices. For our use case MRR@k and Accuracy@k are relevant.
-ir_evaluator = evaluation.InformationRetrievalEvaluator(ir_queries, ir_corpus, ir_relevant_docs)
-
+ir_evaluator = InformationRetrievalEvaluator(new_ir_queries, new_ir_corpus, new_ir_relevant_docs)
 evaluators.append(ir_evaluator)
 
 # Create a SequentialEvaluator. This SequentialEvaluator runs all three evaluators in a sequential order.
 # We optimize the model with respect to the score from the last evaluator (scores[-1])
-seq_evaluator = evaluation.SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[-1])
+seq_evaluator = SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[-1])
 
+logging.info("Evaluate model without training")
+seq_evaluator(model, epoch=0, steps=0)
 
-logger.info("Evaluate model without training")
-seq_evaluator(model, epoch=0, steps=0, output_path=model_save_path)
-
-
-# Train the model
-model.fit(
-    train_objectives=[
-        (train_dataloader_MultipleNegativesRankingLoss, train_loss_MultipleNegativesRankingLoss),
-        (train_dataloader_ConstrativeLoss, train_loss_ConstrativeLoss),
-    ],
-    evaluator=seq_evaluator,
-    epochs=num_epochs,
-    warmup_steps=1000,
-    output_path=model_save_path,
+# Define the training arguments
+args = SentenceTransformerTrainingArguments(
+    # Required parameter:
+    output_dir=output_dir,
+    # Optional training parameters:
+    num_train_epochs=num_train_epochs,
+    per_device_train_batch_size=batch_size,
+    per_device_eval_batch_size=batch_size,
+    warmup_ratio=0.1,
+    fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
+    bf16=False,  # Set to True if you have a GPU that supports BF16
+    batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
+    multi_dataset_batch_sampler=MultiDatasetBatchSamplers.PROPORTIONAL,  # PROPORTIONAL or ROUND_ROBIN
+    # Optional tracking/debugging parameters:
+    eval_strategy="steps",
+    eval_steps=250,
+    save_strategy="steps",
+    save_steps=250,
+    save_total_limit=2,
+    logging_steps=100,
+    run_name="mnrl-cl-multi",  # Will be used in W&B if `wandb` is installed
 )
+
+# Create the trainer & start training
+trainer = SentenceTransformerTrainer(
+    model=model,
+    args=args,
+    train_dataset={
+        "mnrl": mnrl_train_dataset,
+        "cl": cl_train_dataset,
+    },
+    eval_dataset={
+        "mnrl": mnrl_eval_dataset,
+        "cl": cl_eval_dataset,
+    },
+    loss={
+        "mnrl": mnrl_train_loss,
+        "cl": cl_train_loss,
+    },
+    evaluator=seq_evaluator,
+)
+trainer.train()
+
+# Save the trained & evaluated model locally
+final_output_dir = f"{output_dir}/final"
+model.save(final_output_dir)
+
+# (Optional) save the model to the Hugging Face Hub!
+# It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+try:
+    model.push_to_hub(f"{model_name}-mnrl-cl-multi")
+except Exception:
+    logging.error(
+        f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
+        f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({final_output_dir!r})` "
+        f"and saving it using `model.push_to_hub('{model_name}-mnrl-cl-multi')`."
+    )

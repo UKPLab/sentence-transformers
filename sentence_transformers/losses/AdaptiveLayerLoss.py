@@ -1,10 +1,13 @@
 import random
-from typing import Any, Dict, Iterable, List, Tuple
 import warnings
+from typing import Any, Dict, Iterable, List, Tuple
+
+import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
-import torch
+
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.losses.CachedGISTEmbedLoss import CachedGISTEmbedLoss
 from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
 from sentence_transformers.models import Transformer
 
@@ -110,27 +113,40 @@ class AdaptiveLayerLoss(nn.Module):
         layers of the Sentence Transformer model. This is useful for when you want to train a model where users have
         the option to lower the number of layers used to improve their inference speed and memory usage.
 
-        :param model: SentenceTransformer model
-        :param loss: The loss function to be used, e.g. :class:`MultipleNegativesRankingLoss`, :class:`CoSENTLoss`, etc.
-        :param n_layers_per_step: The number of layers to use per step. If -1, then all layers are used. If > 0, then
-            a random sample of `n_layers_per_step` layers are used per step, separate from the final layer, which is
-            always used. The 2DMSE paper uses `n_layers_per_step=1`. The default value is 1.
-        :param last_layer_weight: The weight to use for the loss of the final layer. Increase this to focus more on the
-            performance when using all layers. The default value is 1.0.
-        :param prior_layers_weight: The weight to use for the loss of the prior layers. Increase this to focus more on
-            the performance when using fewer layers. The default value is 1.0.
-        :param kl_div_weight: The weight to use for the KL-divergence loss that is used to make the prior layers match
-            that of the last layer. Increase this to focus more on the performance when using fewer layers. The default
-            value is 1.0.
-        :param kl_temperature: The temperature to use for the KL-divergence loss. If 0, then the KL-divergence loss is
-            not used. The default value is 1.0.
+        Args:
+            model: SentenceTransformer model
+            loss: The loss function to be used, e.g.
+                :class:`MultipleNegativesRankingLoss`,
+                :class:`CoSENTLoss`, etc.
+            n_layers_per_step: The number of layers to use per step. If
+                -1, then all layers are used. If > 0, then a random
+                sample of `n_layers_per_step` layers are used per step,
+                separate from the final layer, which is always used. The
+                2DMSE paper uses `n_layers_per_step=1`. The default
+                value is 1.
+            last_layer_weight: The weight to use for the loss of the
+                final layer. Increase this to focus more on the
+                performance when using all layers. The default value is
+                1.0.
+            prior_layers_weight: The weight to use for the loss of the
+                prior layers. Increase this to focus more on the
+                performance when using fewer layers. The default value
+                is 1.0.
+            kl_div_weight: The weight to use for the KL-divergence loss
+                that is used to make the prior layers match that of the
+                last layer. Increase this to focus more on the
+                performance when using fewer layers. The default value
+                is 1.0.
+            kl_temperature: The temperature to use for the KL-divergence
+                loss. If 0, then the KL-divergence loss is not used. The
+                default value is 1.0.
 
         References:
             - The concept was inspired by the 2DMSE paper: https://arxiv.org/abs/2402.14776
             - `Adaptive Layers <../../examples/training/adaptive_layer/README.html>`_
 
         Requirements:
-            1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`.
+            1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss` or :class:`CachedGISTEmbedLoss`.
 
         Relations:
             - :class:`Matryoshka2dLoss` uses this loss in combination with :class:`MatryoshkaLoss` which allows for
@@ -146,21 +162,23 @@ class AdaptiveLayerLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('microsoft/mpnet-base')
-                train_examples = [
-                    InputExample(texts=['Anchor 1', 'Positive 1']),
-                    InputExample(texts=['Anchor 2', 'Positive 2']),
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
-                train_loss = losses.MultipleNegativesRankingLoss(model=model)
-                train_loss = losses.AdaptiveLayerLoss(model, train_loss)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                })
+                loss = losses.MultipleNegativesRankingLoss(model=model)
+                loss = losses.AdaptiveLayerLoss(model, loss)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super().__init__()
         self.model = model
@@ -173,6 +191,8 @@ class AdaptiveLayerLoss(nn.Module):
         assert isinstance(self.model[0], Transformer)
         if isinstance(loss, CachedMultipleNegativesRankingLoss):
             warnings.warn("MatryoshkaLoss is not compatible with CachedMultipleNegativesRankingLoss.", stacklevel=2)
+        if isinstance(loss, CachedGISTEmbedLoss):
+            warnings.warn("MatryoshkaLoss is not compatible with CachedGISTEmbedLoss.", stacklevel=2)
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Decorate the forward function of the transformer to cache the embeddings of all layers
@@ -230,3 +250,16 @@ class AdaptiveLayerLoss(nn.Module):
             "kl_div_weight": self.kl_div_weight,
             "kl_temperature": self.kl_temperature,
         }
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{li20242d,
+    title={2D Matryoshka Sentence Embeddings}, 
+    author={Xianming Li and Zongxi Li and Jing Li and Haoran Xie and Qing Li},
+    year={2024},
+    eprint={2402.14776},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
+}
+"""

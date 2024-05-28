@@ -6,7 +6,6 @@ The training data constist of over 500k examples, while the complete  corpus con
 
 
 ## Version Histroy 
-As we work on the topic, we will publish updated (and improved) models.
 
 ### v1
 Version 1 models were trained on the training set of MS Marco Passage retrieval task. The models were trained using in-batch negative sampling via the MultipleNegativesRankingLoss with a scaling factor of 20 and a batch size of 128.

@@ -2,23 +2,23 @@
 Tests general behaviour of the SentenceTransformer class
 """
 
-from functools import partial
 import json
 import logging
 import os
-from pathlib import Path
 import re
 import tempfile
+from functools import partial
+from pathlib import Path
 from typing import Dict, List, Literal, Optional, Union, cast
 
 import numpy as np
 import pytest
-
-from huggingface_hub import HfApi, RepoUrl, GitRefs, GitRefInfo
 import torch
-from sentence_transformers import SentenceTransformer
-from sentence_transformers.models import Normalize, Transformer, Pooling
-from sentence_transformers import util
+from huggingface_hub import GitRefInfo, GitRefs, HfApi, RepoUrl
+
+from sentence_transformers import SentenceTransformer, util
+from sentence_transformers.models import Normalize, Pooling, Transformer
+from sentence_transformers.similarity_functions import SimilarityFunction
 
 
 def test_load_with_safetensors() -> None:
@@ -461,7 +461,6 @@ def test_encode_truncate(
                 embeddings = outputs["sentence_embedding"]
             else:
                 outputs = cast(List[Dict[str, torch.Tensor]], outputs)
-                # TODO: can overload model.encode if ppl want type checker compatibility
                 embeddings = [out_features["sentence_embedding"] for out_features in outputs]
         else:
             embeddings = outputs
@@ -519,3 +518,49 @@ def test_encode_truncate(
     # Test w/ an ouptut_dim that's larger than the original_output_dim. No truncation ends up happening
     model.truncate_dim = 2 * original_output_dim
     test(model, expected_dim=original_output_dim)
+
+
+@pytest.mark.parametrize("similarity_fn_name", SimilarityFunction.possible_values())
+def test_similarity_score(stsb_bert_tiny_model_reused: SentenceTransformer, similarity_fn_name: str) -> None:
+    model = stsb_bert_tiny_model_reused
+    model.similarity_fn_name = similarity_fn_name
+    sentences = [
+        "The weather is so nice!",
+        "It's so sunny outside.",
+        "He's driving to the movie theater.",
+        "She's going to the cinema.",
+    ]
+    embeddings = model.encode(sentences, normalize_embeddings=True)
+    scores = model.similarity(embeddings, embeddings)
+    assert scores.shape == (len(sentences), len(sentences))
+    if similarity_fn_name in ("cosine", "dot"):
+        expected = np.ones(4, dtype=float)
+    else:
+        expected = np.zeros(4, dtype=float)
+    np.testing.assert_almost_equal(np.diag(scores), expected, decimal=4)
+    assert scores[1][0] > scores[2][0]
+    assert scores[1][0] > scores[3][0]
+    assert scores[2][3] > scores[2][0]
+    assert scores[2][3] > scores[2][1]
+
+    pairwise_scores = model.similarity_pairwise(embeddings[::2], embeddings[1::2])
+    assert pairwise_scores.shape == (len(sentences) // 2,)
+    if similarity_fn_name in ("cosine", "dot"):
+        assert (pairwise_scores > 0.5).all()
+
+
+def test_similarity_score_save(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+    embeddings = model.encode(["Sentence 1", "Sentence 2"])
+    assert model.similarity_fn_name is None
+    cosine_scores = model.similarity(embeddings, embeddings)
+    # Using 'similarity' methods sets the default similarity function to 'cosine'
+    assert model.similarity_fn_name == "cosine"
+
+    model.similarity_fn_name = "euclidean"
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model.save(tmp_folder)
+        loaded_model = SentenceTransformer(tmp_folder)
+    assert loaded_model.similarity_fn_name == "euclidean"
+    dot_scores = model.similarity(embeddings, embeddings)
+    assert np.not_equal(cosine_scores, dot_scores).all()

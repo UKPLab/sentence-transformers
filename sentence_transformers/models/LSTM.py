@@ -1,14 +1,13 @@
+import json
+import os
+from typing import List
+
 import torch
 from torch import nn
-from typing import List
-import os
-import json
 
 
 class LSTM(nn.Module):
-    """
-    Bidirectional LSTM running over word embeddings.
-    """
+    """Bidirectional LSTM running over word embeddings."""
 
     def __init__(
         self,

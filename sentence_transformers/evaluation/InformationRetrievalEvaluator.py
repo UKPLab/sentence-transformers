@@ -1,16 +1,20 @@
-from sentence_transformers import SentenceTransformer
+import heapq
+import logging
+import os
 from contextlib import nullcontext
-from . import SentenceEvaluator
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Union
+
+import numpy as np
 import torch
 from torch import Tensor
-import logging
 from tqdm import trange
-from ..util import cos_sim, dot_score
-import os
-import numpy as np
-from typing import List, Dict, Optional, Set, Callable
-import heapq
 
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.similarity_functions import SimilarityFunction
+from sentence_transformers.util import cos_sim, dot_score
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +25,89 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
     Given a set of queries and a large corpus set. It will retrieve for each query the top-k most similar document. It measures
     Mean Reciprocal Rank (MRR), Recall@k, and Normalized Discounted Cumulative Gain (NDCG)
+
+    Example:
+        ::
+
+            import random
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers.evaluation import InformationRetrievalEvaluator
+            from datasets import load_dataset
+
+            # Load a model
+            model = SentenceTransformer('all-mpnet-base-v2')
+
+            # Load the Quora IR dataset (https://huggingface.co/datasets/BeIR/quora, https://huggingface.co/datasets/BeIR/quora-qrels)
+            corpus = load_dataset("BeIR/quora", "corpus", split="corpus")
+            queries = load_dataset("BeIR/quora", "queries", split="queries")
+            relevant_docs_data = load_dataset("BeIR/quora-qrels", split="validation")
+
+            # Shrink the corpus size heavily to only the relevant documents + 10,000 random documents
+            required_corpus_ids = list(map(str, relevant_docs_data["corpus-id"]))
+            required_corpus_ids += random.sample(corpus["_id"], k=10_000)
+            corpus = corpus.filter(lambda x: x["_id"] in required_corpus_ids)
+
+            # Convert the datasets to dictionaries
+            corpus = dict(zip(corpus["_id"], corpus["text"]))  # Our corpus (cid => document)
+            queries = dict(zip(queries["_id"], queries["text"]))  # Our queries (qid => question)
+            relevant_docs = {}  # Query ID to relevant documents (qid => set([relevant_cids])
+            for qid, corpus_ids in zip(relevant_docs_data["query-id"], relevant_docs_data["corpus-id"]):
+                qid = str(qid)
+                corpus_ids = str(corpus_ids)
+                if qid not in relevant_docs:
+                    relevant_docs[qid] = set()
+                relevant_docs[qid].add(corpus_ids)
+
+            # Given queries, a corpus and a mapping with relevant documents, the InformationRetrievalEvaluator computes different IR metrics.
+            ir_evaluator = InformationRetrievalEvaluator(
+                queries=queries,
+                corpus=corpus,
+                relevant_docs=relevant_docs,
+                name="BeIR-quora-dev",
+            )
+            results = ir_evaluator(model)
+            '''
+            Information Retrieval Evaluation of the model on the BeIR-quora-dev dataset:
+            Queries: 5000
+            Corpus: 17476
+
+            Score-Function: cosine
+            Accuracy@1: 96.26%
+            Accuracy@3: 99.38%
+            Accuracy@5: 99.74%
+            Accuracy@10: 99.94%
+            Precision@1: 96.26%
+            Precision@3: 43.01%
+            Precision@5: 27.66%
+            Precision@10: 14.58%
+            Recall@1: 82.93%
+            Recall@3: 96.28%
+            Recall@5: 98.38%
+            Recall@10: 99.55%
+            MRR@10: 0.9782
+            NDCG@10: 0.9807
+            MAP@100: 0.9732
+            Score-Function: dot
+            Accuracy@1: 96.26%
+            Accuracy@3: 99.38%
+            Accuracy@5: 99.74%
+            Accuracy@10: 99.94%
+            Precision@1: 96.26%
+            Precision@3: 43.01%
+            Precision@5: 27.66%
+            Precision@10: 14.58%
+            Recall@1: 82.93%
+            Recall@3: 96.28%
+            Recall@5: 98.38%
+            Recall@10: 99.55%
+            MRR@10: 0.9782
+            NDCG@10: 0.9807
+            MAP@100: 0.9732
+            '''
+            print(ir_evaluator.primary_metric)
+            # => "BeIR-quora-dev_cosine_map@100"
+            print(results[ir_evaluator.primary_metric])
+            # => 0.9732046108457585
     """
 
     def __init__(
@@ -40,11 +127,33 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         write_csv: bool = True,
         truncate_dim: Optional[int] = None,
         score_functions: Dict[str, Callable[[Tensor, Tensor], Tensor]] = {
-            "cos_sim": cos_sim,
-            "dot_score": dot_score,
+            SimilarityFunction.COSINE.value: cos_sim,
+            SimilarityFunction.DOT_PRODUCT.value: dot_score,
         },  # Score function, higher=more similar
-        main_score_function: str = None,
-    ):
+        main_score_function: Optional[Union[str, SimilarityFunction]] = None,
+    ) -> None:
+        """
+        Initializes the InformationRetrievalEvaluator.
+
+        Args:
+            queries (Dict[str, str]): A dictionary mapping query IDs to queries.
+            corpus (Dict[str, str]): A dictionary mapping document IDs to documents.
+            relevant_docs (Dict[str, Set[str]]): A dictionary mapping query IDs to a set of relevant document IDs.
+            corpus_chunk_size (int): The size of each chunk of the corpus. Defaults to 50000.
+            mrr_at_k (List[int]): A list of integers representing the values of k for MRR calculation. Defaults to [10].
+            ndcg_at_k (List[int]): A list of integers representing the values of k for NDCG calculation. Defaults to [10].
+            accuracy_at_k (List[int]): A list of integers representing the values of k for accuracy calculation. Defaults to [1, 3, 5, 10].
+            precision_recall_at_k (List[int]): A list of integers representing the values of k for precision and recall calculation. Defaults to [1, 3, 5, 10].
+            map_at_k (List[int]): A list of integers representing the values of k for MAP calculation. Defaults to [100].
+            show_progress_bar (bool): Whether to show a progress bar during evaluation. Defaults to False.
+            batch_size (int): The batch size for evaluation. Defaults to 32.
+            name (str): A name for the evaluation. Defaults to "".
+            write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
+            truncate_dim (int, optional): The dimension to truncate the embeddings to. Defaults to None.
+            score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to {SimilarityFunction.COSINE.value: cos_sim, SimilarityFunction.DOT_PRODUCT.value: dot_score}.
+            main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
+        """
+        super().__init__()
         self.queries_ids = []
         for qid in queries:
             if qid in relevant_docs and len(relevant_docs[qid]) > 0:
@@ -69,7 +178,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.score_functions = score_functions
         self.score_function_names = sorted(list(self.score_functions.keys()))
-        self.main_score_function = main_score_function
+        self.main_score_function = SimilarityFunction(main_score_function) if main_score_function else None
         self.truncate_dim = truncate_dim
 
         if name:
@@ -96,8 +205,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 self.csv_headers.append("{}-MAP@{}".format(score_name, k))
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
-    ) -> float:
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+    ) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -146,12 +255,26 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             fOut.close()
 
         if self.main_score_function is None:
-            return max([scores[name]["map@k"][max(self.map_at_k)] for name in self.score_function_names])
+            score_function = max(
+                [(name, scores[name]["map@k"][max(self.map_at_k)]) for name in self.score_function_names],
+                key=lambda x: x[1],
+            )[0]
+            self.primary_metric = f"{score_function}_map@{max(self.map_at_k)}"
         else:
-            return scores[self.main_score_function]["map@k"][max(self.map_at_k)]
+            self.primary_metric = f"{self.main_score_function.value}_map@{max(self.map_at_k)}"
+
+        metrics = {
+            f"{score_function}_{metric_name.replace('@k', '@' + str(k))}": value
+            for score_function, values_dict in scores.items()
+            for metric_name, values in values_dict.items()
+            for k, value in values.items()
+        }
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
 
     def compute_metrices(
-        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor = None
+        self, model: "SentenceTransformer", corpus_model=None, corpus_embeddings: Tensor = None
     ) -> Dict[str, float]:
         if corpus_model is None:
             corpus_model = model

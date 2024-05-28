@@ -1,24 +1,121 @@
-# Multilingual-Models
-The issue with multilingual BERT (mBERT) as well as with XLM-RoBERTa is that those produce rather bad sentence representation out-of-the-box. Further, the vectors spaces between languages are not  aligned, i.e., the sentences with the same content in different languages would be mapped to different locations in the vector space.
+# Multilingual Models
+The issue with multilingual BERT (mBERT) as well as with XLM-RoBERTa is that those produce rather bad sentence representation out-of-the-box. Further, the vectors spaces between languages are not aligned, i.e., the sentences with the same content in different languages would be mapped to different locations in the vector space.
 
-In my publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) I describe any easy approach to extend sentence embeddings to further languages.
+In my publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) I describe an easy approach to extend sentence embeddings to further languages.
 
 Chien Vu also wrote a nice blog article on this technique: [A complete guide to transfer learning from English to other Languages using Sentence Embeddings BERT Models](https://towardsdatascience.com/a-complete-guide-to-transfer-learning-from-english-to-other-languages-using-sentence-embeddings-8c427f8804a9)
 
-## Available Pre-trained Models
-For a list of available models, see [Pretrained Models](https://www.sbert.net/docs/pretrained_models.html#multi-lingual-models).
+## Extend your own models
+![Multilingual Knowledge Distillation](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/multilingual-distillation.png)
 
+The idea is based on a fixed (monolingual) **teacher model** that produces sentence embeddings with our desired properties in one language (e.g. English). The **student model** is supposed to mimic the teacher model, i.e., the same English sentence should be mapped to the same vector by the teacher and by the student model. Additionally, in order to make the student model work for other languages, we train the student model on parallel (translated) sentences. The translation of each sentence should also be mapped to the same vector as the original sentence.
+
+In the above figure, the student model should map *Hello World* and the German translation *Hallo Welt* to the vector of ``teacher_model('Hello World')``. We achieve this by training the student model using mean squared error (MSE) loss.
+
+In our experiments we initialized the student model with the multilingual [XLM-RoBERTa model](https://huggingface.co/FacebookAI/xlm-roberta-base). 
+
+## Training 
+For a **fully automatic code example**, see [make_multilingual.py](make_multilingual.py). 
+
+This scripts downloads the parallel sentences corpus, a corpus with transcripts and translations from talks. It than extends a monolingual model to several languages (en, de, es, it, fr, ar, tr). This corpus contains parallel data for more than 100 languages, hence, you can simple change the script and train a multilingual model in your favorite languages.
+
+## Datasets
+
+```eval_rst
+As training data we require parallel sentences, i.e., sentences translated in various languages. In particular, we will use :class:`~datasets.Dataset` instances with ``"english"`` and ``"non_english"`` columns. We have prepared a large collection of such datasets in our `Parallel Sentences dataset collection <https://huggingface.co/collections/sentence-transformers/parallel-sentences-datasets-6644d644123d31ba5b1c8785>`_.
+```
+
+The training script will take the `"english"` column and add a `"label"` column containing the embeddings of the english texts. Then, the student model `"english"` and `"non_english"` will be trained to be similar to this `"label"`. You can load such a training dataset like so:
+
+```python
+from datasets import load_dataset
+
+train_dataset = load_dataset("sentence-transformers/parallel-sentences-talks", "en-de", split="train")
+print(train_dataset[0])
+# {"english": "So I think practicality is one case where it's worth teaching people by hand.", "non_english": "Ich denke, dass es sich aus diesem Grund lohnt, den Leuten das Rechnen von Hand beizubringen."}
+```
+
+## Sources for Training Data
+A great website for a vast number of parallel (translated) datasets is [OPUS](http://opus.nlpl.eu/). There, you find parallel datasets for more than 400 languages. You can use these to create your own parallel sentence datasets, if you wish.
+
+## Evaluation
+
+Training can be evaluated in different ways. For an example how to use these evaluation methods, see [make_multilingual.py](make_multilingual.py). 
+
+### MSE Evaluation
+You can measure the mean squared error (MSE) between the student embeddings and teacher embeddings.
+
+```python
+from datasets import load_dataset
+
+eval_dataset = load_dataset("sentence-transformers/parallel-sentences-talks", "en-fr", split="dev")
+
+dev_mse = MSEEvaluator(
+    source_sentences=eval_dataset["english"],
+    target_sentences=eval_dataset["non_english"],
+    name="en-fr-dev",
+    teacher_model=teacher_model,
+    batch_size=32,
+)
+```
+
+This evaluator computes the teacher embeddings for the `source_sentences`, for example, for English. During training, the student model is used to compute embeddings for the `target_sentences`, for example, for French. The distance between teacher and student embeddings is measures. Lower scores indicate a better performance.
+
+### Translation Accuracy
+You can also measure the translation accuracy. As inputs, this evaluator accepts a list of `source_sentences` (e.g. English), and a list of `target_sentences` (e.g. Spanish), such that `target_sentences[i]` is a translation of `source_sentences[i]`.
+
+For each sentence pair, we check if `source_sentences[i]` we check if `target_sentences[i]` has the highest similarity out of all target sentences. If this is the case, we have a hit, otherwise an error. This evaluator reports accuracy (higher = better). 
+
+```python
+from datasets import load_dataset
+
+eval_dataset = load_dataset("sentence-transformers/parallel-sentences-talks", "en-fr", split="dev")
+
+dev_trans_acc = TranslationEvaluator(
+    source_sentences=eval_dataset["english"],
+    target_sentences=eval_dataset["non_english"],
+    name="en-fr-dev",
+    batch_size=32,
+)
+```
+
+### Multilingual Semantic Textual Similarity
+You can also measure the semantic textual similarity (STS) between sentence pairs in different languages:
+
+```python
+from datasets import load_dataset
+
+test_dataset = load_dataset("mteb/sts17-crosslingual-sts", "nl-en", split="test")
+
+test_emb_similarity = EmbeddingSimilarityEvaluator(
+    sentences1=test_dataset["sentence1"],
+    sentences2=test_dataset["sentence2"],
+    scores=[score / 5.0 for score in test_dataset["score"]],  # Convert 0-5 scores to 0-1 scores
+    batch_size=32,
+    name=f"sts17-nl-en-test",
+    show_progress_bar=False,
+)
+```
+
+Where `sentences1` and `sentences2` are lists of sentences and score is numeric value indicating the semantic similarity between `sentences1[i]` and `sentences2[i]`.
+
+## Available Pre-trained Models
+For a list of available models, see [Pretrained Models](../../../docs/sentence_transformer/pretrained_models.html#multilingual-models).
 
 ## Usage
 You can use the models in the following way:
+
 ```python
 from sentence_transformers import SentenceTransformer
 
-embedder = SentenceTransformer("model-name")
-embeddings = embedder.encode(["Hello World", "Hallo Welt", "Hola mundo"])
-print(embeddings)
+model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+embeddings = model.encode(["Hello World", "Hallo Welt", "Hola mundo", "Bye, Moon!"])
+similarities = model.similarity(embeddings, embeddings)
+# tensor([[1.0000, 0.9429, 0.8880, 0.4558],
+#         [0.9429, 1.0000, 0.9680, 0.5307],
+#         [0.8880, 0.9680, 1.0000, 0.4933],
+#         [0.4558, 0.5307, 0.4933, 1.0000]])
 ```
-
 
 ## Performance
 The performance was evaluated on the [Semantic Textual Similarity (STS) 2017 dataset](http://ixa2.si.ehu.es/stswiki/index.php/Main_Page). The task is to predict the semantic similarity (on a scale 0-5) of two given sentences. STS2017 has monolingual test data for English, Arabic, and Spanish, and cross-lingual test data for English-Arabic, -Spanish and -Turkish.
@@ -100,105 +197,6 @@ We extended the STS2017 and added cross-lingual test data for English-German, Fr
     <td align="center">80.1</td>
     </tr>
 </table>
-
-
-## Extend your own models
-![Multilingual Knowledge Distillation](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/multilingual-distillation.png)
-
-The idea is based on a fixed (monolingual) **teacher model**, that produces sentence embeddings with our desired properties in one language. The **student model** is supposed to mimic the teacher model, i.e., the same English sentence should be mapped to the same vector by the teacher and by the student model. In order that the student model works for further languages, we train the student model on parallel (translated) sentences. The translation of each sentence should also be mapped to the same vector as the original sentence.
-
-In the above figure, the student model should map *Hello World* and the German translation *Hallo Welt* to the vector of *teacher_model('Hello World')*. We achieve this by training the student model using mean squared error (MSE) loss.
-
-In our experiments we initialized the student model with the multilingual XLM-RoBERTa model. 
-
-## Training 
-For a **fully automatic code example**, see [make_multilingual.py](make_multilingual.py). 
-
-This scripts downloads the parallel sentences corpus, a corpus with transcripts and translations from talks. It than extends a monolingual model to several languages (en, de, es, it, fr, ar, tr). This corpus contains parallel data for more than 100 languages, hence, you can simple change the script and train a multilingual model in your favorite languages.
-
-
-
-## Data Format
-
-As training data we require parallel sentences, i.e., sentences translated in various languages. As data format, we use a tab-separated .tsv file. In the first column, you have your source sentence, for example, an English sentence. In the following columns, you have the translations of this source sentence. If you have multiple translations per source sentence, you can put them in the same line or in different lines.
-```
-Source_sentence Target_lang1    Target_lang2    Target_lang3
-Source_sentence Target_lang1    Target_lang2
-```
-
-An example file could look like this (EN DE ES):
-```
-Hello World Hallo Welt  Hola Mundo
-Sentences are separated with a tab character.    Die Sätze sind per Tab getrennt.    Las oraciones se separan con un carácter de tabulación.
-```
-
-The order of the translations are not important, it is only important that the first column contains a sentence in a language that is understood by the teacher model.
-
-## Loading Training Datasets
-
-You can load such a training file using the *ParallelSentencesDataset* class:
-```python
-from sentence_transformers.datasets import ParallelSentencesDataset
-
-train_data = ParallelSentencesDataset(student_model=student_model, teacher_model=teacher_model)
-train_data.load_data("path/to/tab/separated/train-en-de.tsv")
-train_data.load_data("path/to/tab/separated/train-en-es.tsv.gz")
-train_data.load_data("path/to/tab/separated/train-en-fr.tsv.gz")
-
-train_dataloader = DataLoader(train_data, shuffle=True, batch_size=train_batch_size)
-train_loss = losses.MSELoss(model=student_model)
-```
-
-You load a file with the *load_data()* method. You can load multiple files by calling load_data multiple times. You can also regular files or .gz-compressed files.
-
-Per default, all datasets are weighted equally. In the above example a (source, translation)-pair will be sampled equally from all three datasets. If you pass a `weight` parameter (integer), you can weight some datasets higher or lower.
-
-## Sources for Training Data
-A great website for a vast number of parallel (translated) datasets is [OPUS](http://opus.nlpl.eu/). There, you find parallel datasets for more than 400 languages. 
-
-The [examples/training/multilingual](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/multilingual/) folder contains some scripts that downloads parallel training data and brings it into the right format:
-- [get_parallel_data_opus.py](get_parallel_data_opus.py): This script downloads data from the [OPUS](http://opus.nlpl.eu/) website.
-- [get_parallel_data_tatoeba.py](get_parallel_data_tatoeba.py): This script downloads data from the [Tatoeba](https://tatoeba.org/) website, a website for language learners with example sentences for more than many languages.
-- [get_parallel_data_talks.py](get_parallel_data_talks.py): This script downloads data the parallel sentences corpus, which contains transcripts and translations of more than 4,000 talks in 100+ languages.
-
-## Evaluation
-
-Training can be evaluated in different ways. For an example how to use these evaluation methods, see [make_multilingual.py](make_multilingual.py). 
-
-### MSE Evaluation
-You can measure the mean squared error (MSE) between the student embeddings and teacher embeddings. This can be achieved with the ``
-
-```python
-# src_sentences and trg_sentences are lists of translated sentences, such that trg_sentences[i] is the translation of src_sentences[i]
-dev_mse = evaluation.MSEEvaluator(src_sentences, trg_sentences, teacher_model=teacher_model)
-```
-
-This evaluator computes the teacher embeddings for the `src_sentences`, for example, for English. During training, the student model is used to compute embeddings for the `trg_sentences`, for example, for Spanish. The distance between teacher and student embeddings is measures. Lower scores indicate a better performance.
-
-### Translation Accuracy
-You can also measure the translation accuracy. Given a list with source sentences, for example, 1000 English sentences. And a list with matching target (translated) sentences, for example, 1000 Spanish sentences.
-
-For each sentence pair, we check if their embeddings are the closest using cosine similarity. I.e., for each `src_sentences[i]` we check if `trg_sentences[i]` has the highest similarity out of all target sentences. If this is the case, we have a hit, otherwise an error. This evaluator reports accuracy (higher = better). 
-
-```python
-# src_sentences and trg_sentences are lists of translated sentences, such that trg_sentences[i] is the translation of src_sentences[i]
-dev_trans_acc = evaluation.TranslationEvaluator(
-    src_sentences,
-    trg_sentences,
-    name=os.path.basename(dev_file),
-    batch_size=inference_batch_size,
-)
-```
-
-### Multi-Lingual Semantic Textual Similarity
-You can also measure the semantic textual similarity (STS) between sentence pairs in different languages:
-
-```python
-sts_evaluator = evaluation.EmbeddingSimilarityEvaluatorFromList(sentences1, sentences2, scores)
-```
-
-Where `sentences1` and `sentences2` are lists of sentences and score is numeric value indicating the semantic similarity between `sentences1[i]` and `sentences2[i]`.
-
 
 ## Citation
 If you use the code for multilingual models, feel free to cite our publication [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813):
