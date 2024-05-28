@@ -82,10 +82,13 @@ class CachedGISTEmbedLoss(nn.Module):
 
         Args:
             model: SentenceTransformer model
-            guide: SentenceTransformer model to guide the in-batch
-                negative sample selection.
-            temperature: Temperature parameter to scale the cosine
-                similarities.
+            guide: SentenceTransformer model to guide the in-batch negative sample selection.
+            temperature: Temperature parameter to scale the cosine similarities.
+            mini_batch_size: Mini-batch size for the forward pass, this denotes how much memory is actually used during
+                training and evaluation. The larger the mini-batch size, the more memory efficient the training is, but
+                the slower the training will be. It's recommended to set it as high as your GPU memory allows. The default
+                value is 32.
+            show_progress_bar: If True, a progress bar for the mini-batches is shown during training. The default is False.
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
