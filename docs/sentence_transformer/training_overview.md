@@ -171,8 +171,8 @@ Most loss functions can be initialized with just the :class:`SentenceTransformer
 .. sidebar:: Documentation
 
     - :class:`sentence_transformers.losses.CoSENTLoss`
-    - `Losses API Reference <../package_reference/sentence_transformer/losses>`_
-    - `Loss Overview <loss_overview>`_
+    - `Losses API Reference <../package_reference/sentence_transformer/losses.html>`_
+    - `Loss Overview <loss_overview.html>`_
 
 ::
 
