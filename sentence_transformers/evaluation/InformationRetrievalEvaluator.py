@@ -254,14 +254,15 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             fOut.write("\n")
             fOut.close()
 
-        if self.main_score_function is None:
-            score_function = max(
-                [(name, scores[name]["map@k"][max(self.map_at_k)]) for name in self.score_function_names],
-                key=lambda x: x[1],
-            )[0]
-            self.primary_metric = f"{score_function}_map@{max(self.map_at_k)}"
-        else:
-            self.primary_metric = f"{self.main_score_function.value}_map@{max(self.map_at_k)}"
+        if not self.primary_metric:
+            if self.main_score_function is None:
+                score_function = max(
+                    [(name, scores[name]["map@k"][max(self.map_at_k)]) for name in self.score_function_names],
+                    key=lambda x: x[1],
+                )[0]
+                self.primary_metric = f"{score_function}_map@{max(self.map_at_k)}"
+            else:
+                self.primary_metric = f"{self.main_score_function.value}_map@{max(self.map_at_k)}"
 
         metrics = {
             f"{score_function}_{metric_name.replace('@k', '@' + str(k))}": value
