@@ -68,7 +68,7 @@ Note that you can also choose `"ubinary"` to quantize to binary using the unsign
 
 ## Scalar (int8) Quantization
 
-To convert the `float32` embeddings into `int8`, we use a process called scalar quantization. This involves mapping the continuous range of `float32` values to the discrete set of `int8` values, which can represent 256 distinct levels (from -128 to 127) as shown in the image below. This is done by using a large calibration dataset of embeddings. We compute the range of these embeddings, i.e. the `min` and `max` of each of the embedding dimensions. From there, we calculate the steps (buckets) in which we categorize each value.
+To convert the `float32` embeddings into `int8`, we use a process called scalar quantization. This involves mapping the continuous range of `float32` values to the discrete set of `int8` values, which can represent 256 distinct levels (from -128 to 127). This is done by using a large calibration dataset of embeddings. We compute the range of these embeddings, i.e. the `min` and `max` of each of the embedding dimensions. From there, we calculate the steps (buckets) in which we categorize each value.
 
 To further boost the retrieval performance, you can optionally apply the same rescoring step as for the binary embeddings. It is important to note here that the calibration dataset has a large influence on the performance, since it defines the buckets.
 
