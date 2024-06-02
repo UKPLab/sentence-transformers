@@ -18,6 +18,9 @@ class MSESimilarityEvaluator(SentenceEvaluator):
     The returned score is the MSE with a specified metric.
 
     The results are written in a CSV. If a CSV already exists, then values are appended.
+
+    This metric is better when lower, so don't forget to set greater_is_better = False
+    in TrainingArguments if you need it.
     """
 
     def __init__(
@@ -192,5 +195,7 @@ class MSESimilarityEvaluator(SentenceEvaluator):
             return eval_mse_dot
         elif self.main_similarity is None:
             return min(eval_mse_cosine, eval_mse_manhattan, eval_mse_euclidean, eval_mse_dot)
+            # This metric is better when lower
+            # so don't forget to set greater_is_better = False in TrainingArguments
         else:
             raise ValueError("Unknown main_similarity value")
