@@ -11,6 +11,7 @@ from .SequentialEvaluator import SequentialEvaluator
 from .SimilarityFunction import SimilarityFunction
 from .TranslationEvaluator import TranslationEvaluator
 from .TripletEvaluator import TripletEvaluator
+from .MSESimilarityEvaluator import MSESimilarityEvaluator
 
 __all__ = [
     "SentenceEvaluator",
@@ -26,4 +27,5 @@ __all__ = [
     "TranslationEvaluator",
     "TripletEvaluator",
     "RerankingEvaluator",
+    "MSESimilarityEvaluator",
 ]
