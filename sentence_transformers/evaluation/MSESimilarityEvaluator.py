@@ -5,10 +5,11 @@ import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 import numpy as np
 from typing import List, Literal, Optional
-from sentence_transformers import InputExample
+from ..readers import InputExample
 
 
 logger = logging.getLogger(__name__)
+
 
 class MSESimilarityEvaluator(SentenceEvaluator):
     """
@@ -55,7 +56,7 @@ class MSESimilarityEvaluator(SentenceEvaluator):
 
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.scores)
-        
+
         self.main_similarity = main_similarity
         self.name = name
 
@@ -153,18 +154,10 @@ class MSESimilarityEvaluator(SentenceEvaluator):
         eval_mse_euclidean = np.mean((euclidean_distances - labels) ** 2)
         eval_mse_dot = np.mean((dot_products - labels) ** 2)
 
-        logger.info(
-            "Cosine-Similarity :\tMSE: {:.6f}".format(eval_mse_cosine)
-        )
-        logger.info(
-            "Manhattan-Distance:\tMSE: {:.6f}".format(eval_mse_manhattan)
-        )
-        logger.info(
-            "Euclidean-Distance:\tMSE: {:.6f}".format(eval_mse_euclidean)
-        )
-        logger.info(
-            "Dot-Product-Similarity:\tMSE: {:.6f}".format(eval_mse_dot)
-        )
+        logger.info("Cosine-Similarity :\tMSE: {:.6f}".format(eval_mse_cosine))
+        logger.info("Manhattan-Distance:\tMSE: {:.6f}".format(eval_mse_manhattan))
+        logger.info("Euclidean-Distance:\tMSE: {:.6f}".format(eval_mse_euclidean))
+        logger.info("Dot-Product-Similarity:\tMSE: {:.6f}".format(eval_mse_dot))
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
