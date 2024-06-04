@@ -10,6 +10,7 @@ import os
 import re
 import tempfile
 from functools import partial
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Dict, List, Literal, cast
 
@@ -653,6 +654,7 @@ def test_override_config_versions(stsb_bert_tiny_model: SentenceTransformer) -> 
         SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency"),
     ],
 )
+
 def test_safetensors(modules: list[nn.Module] | SentenceTransformer) -> None:
     if isinstance(modules, SentenceTransformer):
         model = modules
@@ -679,3 +681,47 @@ def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
     model = stsb_bert_tiny_model
     embeddings = model.encode([])
     assert embeddings.shape == (0,)
+
+
+@pytest.mark.skipif(
+    find_spec("openvino") is None or find_spec("optimum.intel") is None,
+    reason="optimum-intel and openvino must be installed for OpenVINO test",
+)
+def test_openvino_backend() -> None:
+    model_id = "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+    # Test that OpenVINO output is close to PyTorch output
+    pytorch_model = SentenceTransformer(model_id)
+    openvino_model = SentenceTransformer(
+        model_id,
+        backend="openvino",
+        model_kwargs={"ov_config": {"INFERENCE_PRECISION_HINT": "f32"}},
+    )
+    pytorch_result = pytorch_model.encode(["Hello there!"])
+    openvino_result = openvino_model.encode(["Hello there!"])
+    assert np.allclose(openvino_result, pytorch_result, atol=0.000001), "OpenVINO and Pytorch outputs are not close"
+
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        # Test that loading with ov_config file works as expected
+        config_file = str(Path(tmpdirname) / "ov_config.json")
+        with open(Path(config_file), "w") as f:
+            f.write('{"NUM_STREAMS" : "2"}')
+        openvino_model_with_config = SentenceTransformer(
+            model_id,
+            backend="openvino",
+            model_kwargs={"ov_config": config_file},
+        )
+        # The transformers model is an Optimum model with an OpenVINO inference request property
+        transformers_model = next(
+            module for module in openvino_model_with_config.modules() if isinstance(module, Transformer)
+        )
+        assert transformers_model.auto_model.request.get_property("NUM_STREAMS") == 2
+
+        # Test that saving and loading local OpenVINO models works as expected
+        openvino_model_with_config.save(tmpdirname)
+        local_openvino_model = SentenceTransformer(
+            tmpdirname, backend="openvino", model_kwargs={"ov_config": {"INFERENCE_PRECISION_HINT": "f32"}}
+        )
+        local_openvino_result = local_openvino_model.encode(["Hello there!"])
+        assert np.allclose(
+            local_openvino_result, openvino_result
+        ), "OpenVINO saved model output differs from in-memory converted model"

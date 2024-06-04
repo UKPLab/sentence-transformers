@@ -116,6 +116,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         model_card_data (:class:`~sentence_transformers.model_card.SentenceTransformerModelCardData`, optional): A model
             card data object that contains information about the model. This is used to generate a model card when saving
             the model. If not set, a default model card data object is created.
+        backend (str, optional): If set to "openvino", use OpenVINO backend for Hugging Face Transformers model
 
     Example:
         ::
@@ -162,6 +163,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         tokenizer_kwargs: dict[str, Any] | None = None,
         config_kwargs: dict[str, Any] | None = None,
         model_card_data: SentenceTransformerModelCardData | None = None,
+        backend: str = None,
     ) -> None:
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
@@ -172,6 +174,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
+        self._backend = backend
         if use_auth_token is not None:
             warnings.warn(
                 "The `use_auth_token` argument is deprecated and will be removed in v3 of SentenceTransformers.",
@@ -1408,6 +1411,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             model_args=model_kwargs,
             tokenizer_args=tokenizer_kwargs,
             config_args=config_kwargs,
+            backend=self._backend,
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
         self.model_card_data.set_base_model(model_name_or_path, revision=revision)
@@ -1564,8 +1568,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     kwargs["tokenizer_args"].update(tokenizer_kwargs)
                 if config_kwargs:
                     kwargs["config_args"].update(config_kwargs)
-
-                module = Transformer(model_name_or_path, cache_dir=cache_folder, **kwargs)
+                module = Transformer(model_name_or_path, cache_dir=cache_folder, backend=self._backend, **kwargs)
             else:
                 # Normalize does not require any files to be loaded
                 if module_class == Normalize:

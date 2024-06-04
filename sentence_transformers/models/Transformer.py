@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -41,6 +42,7 @@ class Transformer(nn.Module):
         cache_dir: str | None = None,
         do_lower_case: bool = False,
         tokenizer_name_or_path: str = None,
+        backend: str = None,
     ) -> None:
         super().__init__()
         self.config_keys = ["max_seq_length", "do_lower_case"]
@@ -53,7 +55,7 @@ class Transformer(nn.Module):
             config_args = {}
 
         config = AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
-        self._load_model(model_name_or_path, config, cache_dir, **model_args)
+        self._load_model(model_name_or_path, config, cache_dir, backend, **model_args)
 
         if max_seq_length is not None and "model_max_length" not in tokenizer_args:
             tokenizer_args["model_max_length"] = max_seq_length
@@ -77,16 +79,54 @@ class Transformer(nn.Module):
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
-    def _load_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
+    def _load_model(self, model_name_or_path, config, cache_dir, backend, **model_args) -> None:
         """Loads the transformer model"""
-        if isinstance(config, T5Config):
-            self._load_t5_model(model_name_or_path, config, cache_dir, **model_args)
-        elif isinstance(config, MT5Config):
-            self._load_mt5_model(model_name_or_path, config, cache_dir, **model_args)
+        if backend is None:
+            if isinstance(config, T5Config):
+                self._load_t5_model(model_name_or_path, config, cache_dir, **model_args)
+            elif isinstance(config, MT5Config):
+                self._load_mt5_model(model_name_or_path, config, cache_dir, **model_args)
+            else:
+                self.auto_model = AutoModel.from_pretrained(
+                    model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+                )
+        elif backend == "openvino":
+            if isinstance(config, T5Config) or isinstance(config, MT5Config):
+                raise ValueError("T5 models are not yet supported by the OpenVINO backend.")
+            else:
+                self._load_openvino_model(model_name_or_path, cache_dir, **model_args)
         else:
-            self.auto_model = AutoModel.from_pretrained(
-                model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+            raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `None` or `openvino`.")
+
+    def _load_openvino_model(self, model_name_or_path, cache_dir, **model_args) -> None:
+        config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_dir)
+        if isinstance(config, T5Config) or isinstance(config, MT5Config):
+            raise ValueError("T5 models are not yet supported by the OpenVINO backend.")
+
+        try:
+            from optimum.intel import OVModelForFeatureExtraction
+        except ModuleNotFoundError:
+            raise Exception(
+                "Using the OpenVINO backend requires installing optimum-intel and OpenVINO. You can install them with pip: `pip install optimum-intel openvino`."
             )
+
+        export = not (Path(model_name_or_path) / "openvino_model.xml").is_file()
+
+        if "ov_config" in model_args:
+            ov_config = model_args["ov_config"]
+            # ov_config can be either a dictionary, or point to a json file with an OpenVINO config
+            if not isinstance(ov_config, dict):
+                if not Path(ov_config).exists():
+                    raise ValueError(
+                        "ov_config should be a dictionary or point to a .json file containing an OpenVINO config"
+                    )
+                with open(ov_config) as f:
+                    model_args["ov_config"] = json.load(f)
+        else:
+            model_args["ov_config"] = {}
+        self.auto_model = OVModelForFeatureExtraction.from_pretrained(
+            model_name_or_path, export=export, cache_dir=cache_dir, **model_args
+        )
 
     def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         """Loads the encoder model from T5"""
