@@ -4,6 +4,7 @@ Tests general behaviour of the SentenceTransformer class
 
 from __future__ import annotations
 
+import gc
 import json
 import logging
 import os
@@ -725,3 +726,5 @@ def test_openvino_backend() -> None:
         assert np.allclose(
             local_openvino_result, openvino_result
         ), "OpenVINO saved model output differs from in-memory converted model"
+        del local_openvino_model
+        gc.collect()
