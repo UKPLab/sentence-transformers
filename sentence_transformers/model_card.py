@@ -301,6 +301,7 @@ class SentenceTransformerModelCardData(CardData):
     citations: Dict[str, str] = field(default_factory=dict, init=False)
     best_model_step: Optional[int] = field(default=None, init=False)
     trainer: Optional["SentenceTransformerTrainer"] = field(default=None, init=False, repr=False)
+    datasets: List[str] = field(default_factory=list, init=False, repr=False)
 
     # Utility fields
     first_save: bool = field(default=True, init=False)
@@ -356,6 +357,10 @@ class SentenceTransformerModelCardData(CardData):
                         for language in dataset_language:
                             if language not in self.language:
                                 self.language.append(language)
+
+                    # Track dataset IDs for the metadata
+                    if info.id not in self.datasets:
+                        self.datasets.append(info.id)
 
             output_dataset_list.append(dataset)
         return output_dataset_list
