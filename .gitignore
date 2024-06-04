@@ -17,5 +17,11 @@ nr_*/
 /TODO.txt
 /docs/_build/
 /docs/make.bat
-/docs/Makefile
 /examples/training/quora_duplicate_questions/quora-IR-dataset/
+build
+htmlcov
+.coverage
+wandb
+checkpoints
+tmp
+.venv

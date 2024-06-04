@@ -2,7 +2,7 @@
 This example uses LexRank (https://www.aaai.org/Papers/JAIR/Vol22/JAIR-2214.pdf)
 to create an extractive summarization of a long document.
 
-The document is splitted into sentences using NLTK, then the sentence embeddings are computed. We
+The document is split into sentences using NLTK, then the sentence embeddings are computed. We
 then compute the cosine-similarity across all possible sentence pairs.
 
 We then use LexRank to find the most central sentences in the document, which form our summary.
@@ -14,15 +14,17 @@ New York City (NYC), often called simply New York, is the most populous city in 
 Anchored by Wall Street in the Financial District of Lower Manhattan, New York City has been called both the world's leading financial center and the most financially powerful city in the world, and is home to the world's two largest stock exchanges by total market capitalization, the New York Stock Exchange and NASDAQ.
 New York City has been described as the cultural, financial, and media capital of the world, significantly influencing commerce, entertainment, research, technology, education, politics, tourism, art, fashion, and sports.
 If the New York metropolitan area were a sovereign state, it would have the eighth-largest economy in the world.
+
+Note: Requires NLTK: `pip install nltk`
 """
+
 import nltk
-from sentence_transformers import SentenceTransformer, util
 import numpy as np
 from LexRank import degree_centrality_scores
 
+from sentence_transformers import SentenceTransformer
 
-
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # Our input document we want to summarize
 # As example, we take the first section from Wikipedia
@@ -36,24 +38,24 @@ New York City traces its origins to a trading post founded by colonists from the
 Many districts and landmarks in New York City are well known, including three of the world's ten most visited tourist attractions in 2013. A record 62.8 million tourists visited New York City in 2017. Times Square is the brightly illuminated hub of the Broadway Theater District, one of the world's busiest pedestrian intersections, and a major center of the world's entertainment industry. Many of the city's landmarks, skyscrapers, and parks are known around the world. Manhattan's real estate market is among the most expensive in the world. Providing continuous 24/7 service and contributing to the nickname The City that Never Sleeps, the New York City Subway is the largest single-operator rapid transit system worldwide, with 472 rail stations. The city has over 120 colleges and universities, including Columbia University, New York University, Rockefeller University, and the City University of New York system, which is the largest urban public university system in the United States. Anchored by Wall Street in the Financial District of Lower Manhattan, New York City has been called both the world's leading financial center and the most financially powerful city in the world, and is home to the world's two largest stock exchanges by total market capitalization, the New York Stock Exchange and NASDAQ.
 """
 
-#Split the document into sentences
+# Split the document into sentences
 sentences = nltk.sent_tokenize(document)
 print("Num sentences:", len(sentences))
 
-#Compute the sentence embeddings
-embeddings = model.encode(sentences, convert_to_tensor=True)
+# Compute the sentence embeddings
+embeddings = model.encode(sentences)
 
-#Compute the pair-wise cosine similarities
-cos_scores = util.cos_sim(embeddings, embeddings).numpy()
+# Compute the similarity scores
+similarity_scores = model.similarity(embeddings, embeddings).numpy()
 
-#Compute the centrality for each sentence
-centrality_scores = degree_centrality_scores(cos_scores, threshold=None)
+# Compute the centrality for each sentence
+centrality_scores = degree_centrality_scores(similarity_scores, threshold=None)
 
-#We argsort so that the first element is the sentence with the highest score
+# We argsort so that the first element is the sentence with the highest score
 most_central_sentence_indices = np.argsort(-centrality_scores)
 
 
-#Print the 5 sentences with the highest scores
+# Print the 5 sentences with the highest scores
 print("\n\nSummary:")
 for idx in most_central_sentence_indices[0:5]:
     print(sentences[idx].strip())

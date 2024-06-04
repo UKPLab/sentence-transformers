@@ -1,16 +1,21 @@
-from typing import Union, Tuple, List, Iterable, Dict
 import collections
-import string
-import os
 import json
-from .WordTokenizer import WordTokenizer, ENGLISH_STOP_WORDS
+import os
+import string
+from typing import Iterable, List
+
+from .WordTokenizer import ENGLISH_STOP_WORDS, WordTokenizer
+
 
 class WhitespaceTokenizer(WordTokenizer):
     """
     Simple and fast white-space tokenizer. Splits sentence based on white spaces.
     Punctuation are stripped from tokens.
     """
-    def __init__(self, vocab: Iterable[str] = [], stop_words: Iterable[str] = ENGLISH_STOP_WORDS, do_lower_case: bool = False):
+
+    def __init__(
+        self, vocab: Iterable[str] = [], stop_words: Iterable[str] = ENGLISH_STOP_WORDS, do_lower_case: bool = False
+    ):
         self.stop_words = set(stop_words)
         self.do_lower_case = do_lower_case
         self.set_vocab(vocab)
@@ -22,7 +27,7 @@ class WhitespaceTokenizer(WordTokenizer):
         self.vocab = vocab
         self.word2idx = collections.OrderedDict([(word, idx) for idx, word in enumerate(vocab)])
 
-    def tokenize(self, text: str) -> List[int]:
+    def tokenize(self, text: str, **kwargs) -> List[int]:
         if self.do_lower_case:
             text = text.lower()
 
@@ -53,12 +58,19 @@ class WhitespaceTokenizer(WordTokenizer):
         return tokens_filtered
 
     def save(self, output_path: str):
-        with open(os.path.join(output_path, 'whitespacetokenizer_config.json'), 'w') as fOut:
-            json.dump({'vocab': list(self.word2idx.keys()), 'stop_words': list(self.stop_words), 'do_lower_case': self.do_lower_case}, fOut)
+        with open(os.path.join(output_path, "whitespacetokenizer_config.json"), "w") as fOut:
+            json.dump(
+                {
+                    "vocab": list(self.word2idx.keys()),
+                    "stop_words": list(self.stop_words),
+                    "do_lower_case": self.do_lower_case,
+                },
+                fOut,
+            )
 
     @staticmethod
     def load(input_path: str):
-        with open(os.path.join(input_path, 'whitespacetokenizer_config.json'), 'r') as fIn:
+        with open(os.path.join(input_path, "whitespacetokenizer_config.json"), "r") as fIn:
             config = json.load(fIn)
 
         return WhitespaceTokenizer(**config)

@@ -6,11 +6,14 @@ The training data constist of over 500k examples, while the complete  corpus con
 ## Usage
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('msmarco-distilbert-dot-v5')
 
-query_embedding = model.encode('How big is London')
-passage_embedding = model.encode(['London has 9,787,426 inhabitants at the 2011 census',
-                                  'London is known for its finacial district'])
+model = SentenceTransformer("msmarco-distilbert-dot-v5")
+
+query_embedding = model.encode("How big is London")
+passage_embedding = model.encode([
+    "London has 9,787,426 inhabitants at the 2011 census",
+    "London is known for its finacial district",
+])
 
 print("Similarity:", util.dot_score(query_embedding, passage_embedding))
 ```
@@ -62,7 +65,6 @@ If they received a low score by the cross-encoder, we saved them as hard negativ
 We then trained the v2 models with these new hard negatives.
 
 ## Version Histroy 
-As we work on the topic, we will publish updated (and improved) models.
 
 - [Version 3](msmarco-v3.md)
 - [Version 2](msmarco-v2.md)

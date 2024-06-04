@@ -6,7 +6,6 @@ The training data constist of over 500k examples, while the complete  corpus con
 
 
 ## Version Histroy 
-As we work on the topic, we will publish updated (and improved) models.
 
 ### v1
 Version 1 models were trained on the training set of MS Marco Passage retrieval task. The models were trained using in-batch negative sampling via the MultipleNegativesRankingLoss with a scaling factor of 20 and a batch size of 128.
@@ -14,10 +13,11 @@ Version 1 models were trained on the training set of MS Marco Passage retrieval 
 They can be used like this:
 ```python
 from sentence_transformers import SentenceTransformer, util
-model = SentenceTransformer('distilroberta-base-msmarco-v1')
 
-query_embedding = model.encode('[QRY] ' + 'How big is London')
-passage_embedding = model.encode('[DOC] ' + 'London has 9,787,426 inhabitants at the 2011 census')
+model = SentenceTransformer("distilroberta-base-msmarco-v1")
+
+query_embedding = model.encode("[QRY] " + "How big is London")
+passage_embedding = model.encode("[DOC] " + "London has 9,787,426 inhabitants at the 2011 census")
 
 print("Similarity:", util.pytorch_cos_sim(query_embedding, passage_embedding))
 ```

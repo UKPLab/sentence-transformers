@@ -2,11 +2,13 @@
 
 This page contains a collection of unsupervised learning methods to learn sentence embeddings. The methods have in common that they **do not require labeled training data**. Instead, they can learn semantically meaningful sentence embeddings just from the text itself.
 
-**Note:** Unsupervised learning approaches are still an activate research area and in many cases the models perform rather poorly compared to models that are using training pairs as provided in our [training data collection](https://huggingface.co/datasets/sentence-transformers/embedding-training-data). A better approach is **[Domain Adaptation](../domain_adaptation/README.md)** where you combine unsupervised learning on your target domain with existent labeled data. This gives the best performance on your specific corpus.
-
+```eval_rst
+.. note::
+    Unsupervised learning approaches are still an activate research area and in many cases the models perform rather poorly compared to models that are using training pairs as provided in our `training data collection <https://huggingface.co/collections/sentence-transformers/embedding-model-datasets-6644d7a3673a511914aa7552>`_. A better approach is `Domain Adaptation <../domain_adaptation/README.md>`_ where you combine unsupervised learning on your target domain with existent labeled data. This should give the best performance on your specific corpus.
+```
 
 ## TSDAE
-In our work [TSDAE (Tranformer-based Denoising AutoEncoder)](https://arxiv.org/abs/2104.06979) we present an unsupervised sentence embedding learning method based on denoising auto-encoders:
+In our work [TSDAE (Transformer-based Denoising AutoEncoder)](https://arxiv.org/abs/2104.06979) we present an unsupervised sentence embedding learning method based on denoising auto-encoders:
 
 ![](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/TSDAE.png)
 

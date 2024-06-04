@@ -1,35 +1,61 @@
 # Semantic Textual Similarity
 
-Semantic Textual Similarity (STS) assigns a score on the similarity of two texts. In this example, we use the [STSbenchmark](https://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) as training data to fine-tune our network. See the following example scripts how to tune SentenceTransformer on STS data:
+Semantic Textual Similarity (STS) assigns a score on the similarity of two texts. In this example, we use the [stsb](https://huggingface.co/datasets/sentence-transformers/stsb) dataset as training data to fine-tune our model. See the following example scripts how to tune SentenceTransformer on STS data:
 
-- **[training_stsbenchmark.py](training_stsbenchmark.py)** - This example shows how to create a SentenceTransformer model from scratch by using a pre-trained transformer model together with a pooling layer.
- - **[training_stsbenchmark_continue_training.py](training_stsbenchmark_continue_training.py)** - This example shows how to continue training on STS data for a previously created & trained SentenceTransformer model. In that example, we load a model trained on [NLI data](../nli/README.md).
- 
+- **[training_stsbenchmark.py](training_stsbenchmark.py)** - This example shows how to create a SentenceTransformer model from scratch by using a pre-trained transformer model (e.g. [`distilbert-base-uncased`](https://huggingface.co/distilbert/distilbert-base-uncased)) together with a pooling layer.
+- **[training_stsbenchmark_continue_training.py](training_stsbenchmark_continue_training.py)** - This example shows how to continue training on STS data for a previously created & trained SentenceTransformer model (e.g. [`all-mpnet-base-v2`](https://huggingface.co/sentence-transformers/all-mpnet-base-v2)).
 
 ## Training data
-In STS, we have sentence pairs annotated together with a score indicating the similarity. For the [STSbenchmark](https://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark), the scores ranges from 0 (the content of the two sentences are competely different) up to 5 (the two sentences are identical in terms of their meaning). To train our network, we need to normalize these scores to a range of 0-1. This can simply be done by dividing the score by 5.
+```eval_rst
+In STS, we have sentence pairs annotated together with a score indicating the similarity. In the original STSbenchmark dataset, the scores range from 0 to 5. We have normalized these scores to range between 0 and 1 in `stsb <https://huggingface.co/datasets/sentence-transformers/stsb>`_, as that is required for :class:`~sentence_transformers.losses.CosineSimilarityLoss` as you can see in the `Loss Overiew <../../../docs/sentence_transformer/loss_overview.html>`_.
+```
 
-To store our training data, we create a list with `InputExample` objects. Each `InputExample` contains the sentence pair together with the label (score) that ranges between 0 - 1. A simplified version how the training data has to look like is the following:
+Here is a simplified version of our training data:
 
 ```python
-from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample, losses
+from datasets import Dataset
 
-model = SentenceTransformer('nli-distilroberta-base-v2')
-train_examples = [InputExample(texts=['My first sentence', 'My second sentence'], label=0.8),
-    InputExample(texts=['Another pair', 'Unrelated sentence'], label=0.3)]
-train_dataset = SentencesDataset(train_examples, model)
+sentence1_list = ["My first sentence", "Another pair"]
+sentence2_list = ["My second sentence", "Unrelated sentence"]
+labels_list = [0.8, 0.3]
+train_dataset = Dataset.from_dict({
+    "sentence1": sentence1_list,
+    "sentence2": sentence2_list,
+    "label": labels_list,
+})
+# => Dataset({
+#     features: ['sentence1', 'sentence2', 'label'],
+#     num_rows: 2
+# })
+print(train_dataset[0])
+# => {'sentence1': 'My first sentence', 'sentence2': 'My second sentence', 'label': 0.8}
+print(train_dataset[1])
+# => {'sentence1': 'Another pair', 'sentence2': 'Unrelated sentence', 'label': 0.3}
+```
+
+In the aforementioned scripts, we directly load the [stsb](https://huggingface.co/datasets/sentence-transformers/stsb) dataset:
+
+```python
+from datasets import load_dataset
+
+train_dataset = load_dataset("sentence-transformers/stsb", split="train")
+# => Dataset({
+#     features: ['sentence1', 'sentence2', 'score'],
+#     num_rows: 5749
+# })
 ```
 
 ## Loss Function
-As loss function we use [CosineSimilarityLoss](../../../docs/package_reference/losses.html#cosinesimilarityloss).
+```eval_rst
+We use :class:`~sentence_transformers.losses.CosineSimilarityLoss` as our loss function.
+```
 
+<img src="https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/SBERT_Siamese_Network.png" alt="SBERT Siamese Network Architecture" width="250"/>
 
-*CosineSimilarityLoss* trains the network with a siamese network structure (for details see: [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084))
+For each sentence pair, we pass sentence A and sentence B through the BERT-based model, which yields the embeddings *u* und *v*. The similarity of these embeddings is computed using cosine similarity and the result is compared to the gold similarity score. Note that the two sentences are fed through the same model rather than two separate models. In particular, the cosine similarity for similar texts is maximized and the cosine similarity for dissimilar texts is minimized. This allows our model to be fine-tuned and to recognize the similarity of sentences.
 
+For more details, see [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084).
 
-![SBERT Siamese Network Architecture](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/SBERT_Siamese_Network.png "SBERT Siamese Architecture")
-
-
-For each sentence pair, we pass sentence A and sentence B through our network which yields the embeddings *u* und *v*. The similarity of these embeddings is computed using cosine similarity and the result is compared to the gold similarity score. This allows our network to be fine-tuned and to recognize the similarity of sentences. 
-
-This training in a siamese network structure is done automatically when we use CosineSimilarityLoss.
+```eval_rst
+:class:`~sentence_transformers.losses.CoSENTLoss` and :class:`~sentence_transformers.losses.AnglELoss` are more modern variants of :class:`~sentence_transformers.losses.CosineSimilarityLoss` that accept the same data format of a sentence pair with a similarity score ranging from 0.0 to 1.0. Informal experiments indicate that these two produce stronger models than :class:`~sentence_transformers.losses.CosineSimilarityLoss`.
+```

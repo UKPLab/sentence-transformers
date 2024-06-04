@@ -1,101 +1,145 @@
-import math
-from sentence_transformers import models, losses, datasets
-from sentence_transformers import LoggingHandler, SentenceTransformer, util, InputExample
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+"""
+Note: This script was modified with the v3 release of Sentence Transformers.
+As a result, it does not produce exactly the same behaviour as the original script.
+"""
+
 import logging
+import traceback
 from datetime import datetime
-import sys
-import os
-import gzip
-import csv
-from MultiDatasetDataLoader import MultiDatasetDataLoader
 
-#### Just some code to print debug information to stdout
-logging.basicConfig(format='%(asctime)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO,
-                    handlers=[LoggingHandler()])
-#### /print debug information to stdout
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+from sentence_transformers.losses import MultipleNegativesRankingLoss
+from sentence_transformers.similarity_functions import SimilarityFunction
+from sentence_transformers.trainer import SentenceTransformerTrainer
+from sentence_transformers.training_args import (
+    BatchSamplers,
+    MultiDatasetBatchSamplers,
+    SentenceTransformerTrainingArguments,
+)
 
-model_name = 'distilroberta-base'
+# Set the log level to INFO to get more information
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
+
+model_name = "distilroberta-base"
 num_epochs = 1
-sts_dataset_path = 'data-eval/stsbenchmark.tsv.gz'
-batch_size_pairs = 384
-batch_size_triplets = 256
+batch_size = 128
 max_seq_length = 128
-use_amp = True                  #Set to False, if you use a CPU or your GPU does not support FP16 operations
-evaluation_steps = 500
-warmup_steps = 500
-
-#####
-
-if not os.path.exists(sts_dataset_path):
-    util.http_get('https://sbert.net/datasets/stsbenchmark.tsv.gz', sts_dataset_path)
-
 
 # Save path of the model
-model_save_path = 'output/training_paraphrases_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+output_dir = (
+    "output/training_paraphrases_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+)
 
+# 2. Load some training dataset from: https://huggingface.co/datasets?other=sentence-transformers
+# Notably, we are looking for datasets compatible with MultipleNegativesRankingLoss, which accepts
+# triplets of sentences (anchor, positive, negative) and pairs of sentences (anchor, positive).
+all_nli_train_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="train")
+sentence_compression_train_dataset = load_dataset("sentence-transformers/sentence-compression", split="train")
+simple_wiki_train_dataset = load_dataset("sentence-transformers/simple-wiki", split="train")
+altlex_train_dataset = load_dataset("sentence-transformers/altlex", split="train")
+quora_train_dataset = load_dataset("sentence-transformers/quora-duplicates", "triplet", split="train")
+coco_train_dataset = load_dataset("sentence-transformers/coco-captions", split="train")
+flickr_train_dataset = load_dataset("sentence-transformers/flickr30k-captions", split="train")
+yahoo_answers_train_dataset = load_dataset(
+    "sentence-transformers/yahoo-answers", "title-question-answer-pair", split="train"
+)
+stack_exchange_train_dataset = load_dataset(
+    "sentence-transformers/stackexchange-duplicates", "title-title-pair", split="train"
+)
 
+train_dataset_dict = {
+    "all-nli": all_nli_train_dataset,
+    "sentence-compression": sentence_compression_train_dataset,
+    "simple-wiki": simple_wiki_train_dataset,
+    "altlex": altlex_train_dataset,
+    "quora-duplicates": quora_train_dataset,
+    "coco-captions": coco_train_dataset,
+    "flickr30k-captions": flickr_train_dataset,
+    "yahoo-answers": yahoo_answers_train_dataset,
+    "stack-exchange": stack_exchange_train_dataset,
+}
+print(train_dataset_dict)
 
-## SentenceTransformer model
-word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
-pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
-model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+# 1. Here we define our SentenceTransformer model. If not already a Sentence Transformer model, it will automatically
+# create one with "mean" pooling.
+model = SentenceTransformer(model_name)
+# If we want, we can limit the maximum sequence length for the model
+model.max_seq_length = max_seq_length
+logging.info(model)
 
-datasets = []
-for filepath in sys.argv[1:]:
-    dataset = []
-    with_guid = 'with-guid' in filepath     #Some datasets have a guid in the first column
+# 3. Define our training loss
+train_loss = MultipleNegativesRankingLoss(model)
 
-    with gzip.open(filepath, 'rt', encoding='utf8') as fIn:
-        for line in fIn:
-            splits = line.strip().split("\t")
-            if with_guid:
-                guid = splits[0]
-                texts = splits[1:]
-            else:
-                guid = None
-                texts = splits
+# 4. Define an evaluator for use during training. This is useful to keep track of alongside the evaluation loss.
+stsb_eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
+dev_evaluator = EmbeddingSimilarityEvaluator(
+    sentences1=stsb_eval_dataset["sentence1"],
+    sentences2=stsb_eval_dataset["sentence2"],
+    scores=stsb_eval_dataset["score"],
+    main_similarity=SimilarityFunction.COSINE,
+    name="sts-dev",
+)
 
-            dataset.append(InputExample(texts=texts, guid=guid))
+# 5. Define the training arguments
+args = SentenceTransformerTrainingArguments(
+    # Required parameter:
+    output_dir=output_dir,
+    # Optional training parameters:
+    num_train_epochs=num_epochs,
+    per_device_train_batch_size=batch_size,
+    per_device_eval_batch_size=batch_size,
+    warmup_ratio=0.1,
+    fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
+    bf16=False,  # Set to True if you have a GPU that supports BF16
+    batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
+    # We can use ROUND_ROBIN or PROPORTIONAL - to avoid focusing too much on one dataset, we will
+    # use round robin, which samples the same amount of batches from each dataset, until one dataset is empty
+    multi_dataset_batch_sampler=MultiDatasetBatchSamplers.ROUND_ROBIN,
+    # Optional tracking/debugging parameters:
+    eval_strategy="steps",
+    eval_steps=1000,
+    save_strategy="steps",
+    save_steps=1000,
+    save_total_limit=2,
+    logging_steps=100,
+    run_name="paraphrases-multi",  # Will be used in W&B if `wandb` is installed
+)
 
-    datasets.append(dataset)
+# 6. Create the trainer & start training
+trainer = SentenceTransformerTrainer(
+    model=model,
+    args=args,
+    train_dataset=train_dataset_dict,
+    loss=train_loss,
+    evaluator=dev_evaluator,
+)
+trainer.train()
 
+# 7. Evaluate the model performance on the STS Benchmark test dataset
+test_dataset = load_dataset("sentence-transformers/stsb", split="test")
+test_evaluator = EmbeddingSimilarityEvaluator(
+    sentences1=test_dataset["sentence1"],
+    sentences2=test_dataset["sentence2"],
+    scores=test_dataset["score"],
+    main_similarity=SimilarityFunction.COSINE,
+    name="sts-test",
+)
+test_evaluator(model)
 
-train_dataloader = MultiDatasetDataLoader(datasets, batch_size_pairs=batch_size_pairs, batch_size_triplets=batch_size_triplets)
+# 8. Save the trained & evaluated model locally
+final_output_dir = f"{output_dir}/final"
+model.save(final_output_dir)
 
-
-
-# Our training loss
-train_loss = losses.MultipleNegativesRankingLoss(model)
-
-
-
-#Read STSbenchmark dataset and use it as development set
-logging.info("Read STSbenchmark dev dataset")
-dev_samples = []
-with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
-    for row in reader:
-        if row['split'] == 'dev':
-            score = float(row['score']) / 5.0 #Normalize score to range 0 ... 1
-            dev_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=score))
-
-dev_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(dev_samples, name='sts-dev')
-
-# Configure the training
-logging.info("Warmup-steps: {}".format(warmup_steps))
-
-# Train the model
-model.fit(train_objectives=[(train_dataloader, train_loss)],
-          evaluator=dev_evaluator,
-          epochs=num_epochs,
-          evaluation_steps=evaluation_steps,
-          warmup_steps=warmup_steps,
-          output_path=model_save_path,
-          use_amp=use_amp,
-          checkpoint_path=model_save_path,
-          checkpoint_save_steps=1000,
-          checkpoint_save_total_limit=3
-          )
+# 9. (Optional) save the model to the Hugging Face Hub!
+# It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+try:
+    model.push_to_hub(f"{model_name}-paraphrases-multi")
+except Exception:
+    logging.error(
+        f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
+        f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({final_output_dir!r})` "
+        f"and saving it using `model.push_to_hub('{model_name}-paraphrases-multi')`."
+    )

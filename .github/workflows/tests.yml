@@ -1,0 +1,53 @@
+name: Unit tests
+
+on:
+  push:
+    branches:
+      - master
+      - v*-release
+  pull_request:
+    branches:
+      - master
+      - v*-release
+  workflow_dispatch:
+
+jobs:
+
+  test_sampling:
+    name: Run unit tests
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+        os: [ubuntu-latest, windows-latest]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Try to load cached dependencies
+        uses: actions/cache@v3
+        id: restore-cache
+        with:
+          path: ${{ env.pythonLocation }}
+          key: python-dependencies-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('setup.py') }}-${{ hashFiles('requirements.txt') }}-${{ env.pythonLocation }}
+
+      - name: Install external dependencies on cache miss
+        run: |
+          python -m pip install --no-cache-dir --upgrade pip
+          python -m pip install --no-cache-dir -r requirements.txt
+          python -m pip install --no-cache-dir pytest
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+
+      - name: Install the checked-out sentence-transformers
+        run: python -m pip install .[train]
+
+      - name: Run unit tests
+        shell: bash
+        run: |
+          pytest --durations 20 -sv tests/

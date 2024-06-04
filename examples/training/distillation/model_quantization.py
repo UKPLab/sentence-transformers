@@ -8,45 +8,45 @@ Note: Quantized models are only available for CPUs. Use a GPU, if available, for
 For more details:
 https://pytorch.org/docs/stable/quantization.html
 """
+
+import csv
+import gzip
 import logging
 import os
-import torch
-from sentence_transformers import LoggingHandler, SentenceTransformer, util, InputExample
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from torch.nn import Embedding, Linear
-from torch.quantization import quantize_dynamic
-import gzip
-import csv
 import time
 
+import torch
+from torch.nn import Embedding, Linear
+from torch.quantization import quantize_dynamic
+
+from sentence_transformers import InputExample, LoggingHandler, SentenceTransformer, util
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+
 #### Just some code to print debug information to stdout
-logging.basicConfig(format='%(asctime)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO,
-                    handlers=[LoggingHandler()])
+logging.basicConfig(
+    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
+)
 #### /print debug information to stdout
 
 
-#Check if dataset exsist. If not, download and extract  it
-sts_dataset_path = 'datasets/stsbenchmark.tsv.gz'
+# Check if dataset exists. If not, download and extract  it
+sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
 
 if not os.path.exists(sts_dataset_path):
-    util.http_get('https://sbert.net/datasets/stsbenchmark.tsv.gz', sts_dataset_path)
+    util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
 
-#Limit torch to 4 threads
+# Limit torch to 4 threads
 torch.set_num_threads(4)
 
 #### Just some code to print debug information to stdout
-logging.basicConfig(format='%(asctime)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO)
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 ### /print debug information to stdout
 
-model_name = 'all-distilroberta-v1'
+model_name = "all-distilroberta-v1"
 
 # Load a named sentence model (based on BERT). This will download the model from our server.
 # Alternatively, you can also pass a filepath to SentenceTransformer()
-model = SentenceTransformer(model_name, device='cpu')
+model = SentenceTransformer(model_name, device="cpu")
 q_model = quantize_dynamic(model, {Linear, Embedding})
 
 
@@ -55,16 +55,16 @@ logging.info("Read STSbenchmark dataset")
 test_samples = []
 sentences = []
 
-with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
-    reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
+with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
-        score = float(row['score']) / 5.0  # Normalize score to range 0 ... 1
-        inp_example = InputExample(texts=[row['sentence1'], row['sentence2']], label=score)
+        score = float(row["score"]) / 5.0  # Normalize score to range 0 ... 1
+        inp_example = InputExample(texts=[row["sentence1"], row["sentence2"]], label=score)
 
-        sentences.append(row['sentence1'])
-        sentences.append(row['sentence2'])
+        sentences.append(row["sentence1"])
+        sentences.append(row["sentence2"])
 
-        if row['split'] == 'test':
+        if row["split"] == "test":
             test_samples.append(inp_example)
 
 sentences = sentences[0:10000]
@@ -83,7 +83,7 @@ logging.info("Done after {:.2f} sec. {:.2f} sentences / sec".format(diff_quantiz
 logging.info("Speed-up: {:.2f}".format(diff_normal / diff_quantized))
 #########
 
-evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name='sts-test')
+evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name="sts-test")
 
 logging.info("Evaluate regular model")
 model.evaluate(evaluator)
@@ -91,8 +91,3 @@ model.evaluate(evaluator)
 print("\n\n")
 logging.info("Evaluate quantized model")
 q_model.evaluate(evaluator)
-
-
-
-
-

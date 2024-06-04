@@ -1,36 +1,57 @@
-import logging
-from sklearn.metrics import average_precision_score
-from typing import List
-import numpy as np
-import os
 import csv
+import logging
+import os
+from typing import List
 
-from ... import InputExample
-from ...evaluation import BinaryClassificationEvaluator
+import numpy as np
+from sklearn.metrics import average_precision_score
 
+from sentence_transformers import InputExample
+from sentence_transformers.evaluation import BinaryClassificationEvaluator
 
 logger = logging.getLogger(__name__)
+
 
 class CEBinaryClassificationEvaluator:
     """
     This evaluator can be used with the CrossEncoder class. Given sentence pairs and binary labels (0 and 1),
     it compute the average precision and the best possible f1 score
     """
-    def __init__(self, sentence_pairs: List[List[str]], labels: List[int], name: str='', show_progress_bar: bool = False, write_csv: bool = True):
+
+    def __init__(
+        self,
+        sentence_pairs: List[List[str]],
+        labels: List[int],
+        name: str = "",
+        show_progress_bar: bool = False,
+        write_csv: bool = True,
+    ):
         assert len(sentence_pairs) == len(labels)
         for label in labels:
-            assert (label == 0 or label == 1)
+            assert label == 0 or label == 1
 
         self.sentence_pairs = sentence_pairs
         self.labels = np.asarray(labels)
         self.name = name
 
         if show_progress_bar is None:
-            show_progress_bar = (logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
+            show_progress_bar = (
+                logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG
+            )
         self.show_progress_bar = show_progress_bar
 
-        self.csv_file = "CEBinaryClassificationEvaluator" + ("_" + name if name else '') + "_results.csv"
-        self.csv_headers = ["epoch", "steps", "Accuracy", "Accuracy_Threshold", "F1", "F1_Threshold", "Precision", "Recall", "Average_Precision"]
+        self.csv_file = "CEBinaryClassificationEvaluator" + ("_" + name if name else "") + "_results.csv"
+        self.csv_headers = [
+            "epoch",
+            "steps",
+            "Accuracy",
+            "Accuracy_Threshold",
+            "F1",
+            "F1_Threshold",
+            "Precision",
+            "Recall",
+            "Average_Precision",
+        ]
         self.write_csv = write_csv
 
     @classmethod
@@ -53,10 +74,14 @@ class CEBinaryClassificationEvaluator:
             out_txt = ":"
 
         logger.info("CEBinaryClassificationEvaluator: Evaluating the model on " + self.name + " dataset" + out_txt)
-        pred_scores = model.predict(self.sentence_pairs, convert_to_numpy=True, show_progress_bar=self.show_progress_bar)
+        pred_scores = model.predict(
+            self.sentence_pairs, convert_to_numpy=True, show_progress_bar=self.show_progress_bar
+        )
 
         acc, acc_threshold = BinaryClassificationEvaluator.find_best_acc_and_threshold(pred_scores, self.labels, True)
-        f1, precision, recall, f1_threshold = BinaryClassificationEvaluator.find_best_f1_and_threshold(pred_scores, self.labels, True)
+        f1, precision, recall, f1_threshold = BinaryClassificationEvaluator.find_best_f1_and_threshold(
+            pred_scores, self.labels, True
+        )
         ap = average_precision_score(self.labels, pred_scores)
 
         logger.info("Accuracy:           {:.2f}\t(Threshold: {:.4f})".format(acc * 100, acc_threshold))
@@ -68,12 +93,11 @@ class CEBinaryClassificationEvaluator:
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
-            with open(csv_path, mode="a" if output_file_exists else 'w', encoding="utf-8") as f:
+            with open(csv_path, mode="a" if output_file_exists else "w", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 if not output_file_exists:
                     writer.writerow(self.csv_headers)
 
                 writer.writerow([epoch, steps, acc, acc_threshold, f1, f1_threshold, precision, recall, ap])
-
 
         return ap

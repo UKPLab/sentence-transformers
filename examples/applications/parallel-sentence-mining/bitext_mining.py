@@ -12,19 +12,22 @@ http://data.statmt.org/cc-100/
 This script requires that you have FAISS installed:
 https://github.com/facebookresearch/faiss
 """
-from sentence_transformers import SentenceTransformer, models
-import numpy as np
-from bitext_mining_utils import *
-import gzip
-import tqdm
-from sklearn.decomposition import PCA
-import torch
 
-#Model we want to use for bitext mining. LaBSE achieves state-of-the-art performance
-model_name = 'LaBSE'
+import gzip
+
+import numpy as np
+import torch
+import tqdm
+from bitext_mining_utils import file_open, kNN, score_candidates
+from sklearn.decomposition import PCA
+
+from sentence_transformers import SentenceTransformer, models
+
+# Model we want to use for bitext mining. LaBSE achieves state-of-the-art performance
+model_name = "LaBSE"
 model = SentenceTransformer(model_name)
 
-#Input files. We interpret every line as sentence.
+# Input files. We interpret every line as sentence.
 source_file = "data/so.txt.xz"
 target_file = "data/yi.txt.xz"
 
@@ -38,19 +41,19 @@ knn_neighbors = 4
 # Min score for text pairs. Note, score can be larger than 1
 min_threshold = 1
 
-#Do we want to use exact search of approximate nearest neighbor search (ANN)
-#Exact search: Slower, but we don't miss any parallel sentences
-#ANN: Faster, but the recall will be lower
+# Do we want to use exact search of approximate nearest neighbor search (ANN)
+# Exact search: Slower, but we don't miss any parallel sentences
+# ANN: Faster, but the recall will be lower
 use_ann_search = True
 
-#Number of clusters for ANN. Each cluster should have at least 10k entries
+# Number of clusters for ANN. Each cluster should have at least 10k entries
 ann_num_clusters = 32768
 
-#How many cluster to explorer for search. Higher number = better recall, slower
+# How many cluster to explorer for search. Higher number = better recall, slower
 ann_num_cluster_probe = 3
 
-#To save memory, we can use PCA to reduce the dimensionality from 768 to for example 128 dimensions
-#The encoded embeddings will hence require 6 times less memory. However, we observe a small drop in performance.
+# To save memory, we can use PCA to reduce the dimensionality from 768 to for example 128 dimensions
+# The encoded embeddings will hence require 6 times less memory. However, we observe a small drop in performance.
 use_pca = True
 pca_dimensions = 128
 
@@ -78,9 +81,14 @@ if use_pca:
     pca = PCA(n_components=pca_dimensions)
     pca.fit(train_matrix)
 
-    dense = models.Dense(in_features=model.get_sentence_embedding_dimension(), out_features=pca_dimensions, bias=False, activation_function=torch.nn.Identity())
+    dense = models.Dense(
+        in_features=model.get_sentence_embedding_dimension(),
+        out_features=pca_dimensions,
+        bias=False,
+        activation_function=torch.nn.Identity(),
+    )
     dense.linear.weight = torch.nn.Parameter(torch.tensor(pca.components_))
-    model.add_module('dense', dense)
+    model.add_module("dense", dense)
 
 
 print("Read source file")
@@ -139,14 +147,16 @@ bwd_scores = score_candidates(y, x, y2x_ind, y2x_mean, x2y_mean, margin)
 fwd_best = x2y_ind[np.arange(x.shape[0]), fwd_scores.argmax(axis=1)]
 bwd_best = y2x_ind[np.arange(y.shape[0]), bwd_scores.argmax(axis=1)]
 
-indices = np.stack([np.concatenate([np.arange(x.shape[0]), bwd_best]), np.concatenate([fwd_best, np.arange(y.shape[0])])], axis=1)
+indices = np.stack(
+    [np.concatenate([np.arange(x.shape[0]), bwd_best]), np.concatenate([fwd_best, np.arange(y.shape[0])])], axis=1
+)
 scores = np.concatenate([fwd_scores.max(axis=1), bwd_scores.max(axis=1)])
 seen_src, seen_trg = set(), set()
 
-#Extact list of parallel sentences
+# Extract list of parallel sentences
 print("Write sentences to disc")
 sentences_written = 0
-with gzip.open('parallel-sentences-out.tsv.gz', 'wt', encoding='utf8') as fOut:
+with gzip.open("parallel-sentences-out.tsv.gz", "wt", encoding="utf8") as fOut:
     for i in np.argsort(-scores):
         src_ind, trg_ind = indices[i]
         src_ind = int(src_ind)
@@ -158,8 +168,13 @@ with gzip.open('parallel-sentences-out.tsv.gz', 'wt', encoding='utf8') as fOut:
         if src_ind not in seen_src and trg_ind not in seen_trg:
             seen_src.add(src_ind)
             seen_trg.add(trg_ind)
-            fOut.write("{:.4f}\t{}\t{}\n".format(scores[i], source_sentences[src_ind].replace("\t", " "), target_sentences[trg_ind].replace("\t", " ")))
+            fOut.write(
+                "{:.4f}\t{}\t{}\n".format(
+                    scores[i],
+                    source_sentences[src_ind].replace("\t", " "),
+                    target_sentences[trg_ind].replace("\t", " "),
+                )
+            )
             sentences_written += 1
 
 print("Done. {} sentences written".format(sentences_written))
-

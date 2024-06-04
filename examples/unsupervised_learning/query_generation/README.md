@@ -17,7 +17,7 @@ In this tutorial, we show to train such models if  **no training data is availab
 
 ## Overview
 
-We use **synthethic query generation** to achieve our goal. We start with the passage from our document collection and create for these possible queries users might ask / might search for.
+We use **synthetic query generation** to achieve our goal. We start with the passage from our document collection and create for these possible queries users might ask / might search for.
 
 ![Query Generation](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/query-generation.png)
 
@@ -50,20 +50,21 @@ In [BeIR](https://huggingface.co/BeIR) we provide different models that can be u
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 import torch
 
-tokenizer = T5Tokenizer.from_pretrained('BeIR/query-gen-msmarco-t5-large-v1')
-model = T5ForConditionalGeneration.from_pretrained('BeIR/query-gen-msmarco-t5-large-v1')
+tokenizer = T5Tokenizer.from_pretrained("BeIR/query-gen-msmarco-t5-large-v1")
+model = T5ForConditionalGeneration.from_pretrained("BeIR/query-gen-msmarco-t5-large-v1")
 model.eval()
 
 para = "Python is an interpreted, high-level and general-purpose programming language. Python's design philosophy emphasizes code readability with its notable use of significant whitespace. Its language constructs and object-oriented approach aim to help programmers write clear, logical code for small and large-scale projects."
 
-input_ids = tokenizer.encode(para, return_tensors='pt')
+input_ids = tokenizer.encode(para, return_tensors="pt")
 with torch.no_grad():
     outputs = model.generate(
         input_ids=input_ids,
         max_length=64,
         do_sample=True,
         top_p=0.95,
-        num_return_sequences=3)
+        num_return_sequences=3,
+    )
 
 print("Paragraph:")
 print(para)
@@ -71,7 +72,7 @@ print(para)
 print("\nGenerated Queries:")
 for i in range(len(outputs)):
     query = tokenizer.decode(outputs[i], skip_special_tokens=True)
-    print(f'{i + 1}: {query}')
+    print(f"{i + 1}: {query}")
 ```
 
 In the above code, we use [Top-p (nucleus) sampling](https://huggingface.co/blog/how-to-generate) which will randomly pick a word from a collection of likely words. As a consequence, the model will generate different queries each time.
@@ -79,7 +80,7 @@ In the above code, we use [Top-p (nucleus) sampling](https://huggingface.co/blog
 
 ## Bi-Encoder Training
 
-With the generated queries, we can then train a bi-encoder using the use [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/losses.html#multiplenegativesrankingloss).
+With the generated queries, we can then train a bi-encoder using the use [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/sentence_transformer/losses.html#multiplenegativesrankingloss).
  
  ## Full Example
 We train a semantic search model to search through Wikipedia
@@ -90,5 +91,5 @@ Assembly language, C , C# , C++, Go , Java , JavaScript, Keras, Laravel, MATLAB,
 
 In:
 - [1_programming_query_generation.py](1_programming_query_generation.py) - We generate queries for all paragraphs from these articles
-- [2_programming_train_bi-encoder.py](2_programming_train_bi-encoder.py) - We train a SentenceTransformer bi-encoder with these generated queries. This results in a model we can then use for sematic search (for the given Wikipedia articles).
+- [2_programming_train_bi-encoder.py](2_programming_train_bi-encoder.py) - We train a SentenceTransformer bi-encoder with these generated queries. This results in a model we can then use for semantic search (for the given Wikipedia articles).
 - [3_programming_semantic_search.py](3_programming_semantic_search.py) - Shows how the trained model can be used for semantic search.

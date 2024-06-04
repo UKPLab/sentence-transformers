@@ -1,43 +1,64 @@
-from sentence_transformers.evaluation import SentenceEvaluator
-from sentence_transformers.util import batch_to_device
-from sentence_transformers import SentenceTransformer
-from typing import List, Tuple, Dict
-import torch
-import numpy as np
+import csv
 import logging
 import os
-import csv
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+import numpy as np
+
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
 
 class MSEEvaluatorFromDataFrame(SentenceEvaluator):
     """
-    Computes the mean squared error (x100) between the computed sentence embedding
-    and some target sentence embedding.
-    :param dataframe:
-        It must have the following format. Rows contains different, parallel sentences. Columns are the respective language codes
-        [{'en': 'My sentence', 'es': 'Sentence in Spanisch', 'fr': 'Sentence in French'...},
-         {'en': 'My second sentence', ....]
-    :param combinations:
-        Must be of the format [('en', 'es'), ('en', 'fr'), ...]
-        First entry in a tuple is the source language. The sentence in the respective language will be fetched from the dataframe and passed to the teacher model.
-        Second entry in a tuple the the target language. Sentence will be fetched from the dataframe and passed to the student model
-    """
-    def __init__(self, dataframe: List[Dict[str, str]], teacher_model: SentenceTransformer, combinations: List[Tuple[str, str]], batch_size: int = 8, name='', write_csv: bool = True):
+    Computes the mean squared error (x100) between the computed sentence embedding and some target sentence embedding.
 
+    Args:
+        dataframe (List[Dict[str, str]]): It must have the following format. Rows contains different, parallel sentences.
+            Columns are the respective language codes::
+
+            [{'en': 'My sentence in English', 'es': 'Oración en español', 'fr': 'Phrase en français'...},
+             {'en': 'My second sentence', ...}]
+        teacher_model (SentenceTransformer): The teacher model used to compute the sentence embeddings.
+        combinations (List[Tuple[str, str]]): Must be of the format ``[('en', 'es'), ('en', 'fr'), ...]``.
+            First entry in a tuple is the source language. The sentence in the respective language will be fetched from
+            the dataframe and passed to the teacher model. Second entry in a tuple the the target language. Sentence
+            will be fetched from the dataframe and passed to the student model
+        batch_size (int, optional): The batch size to compute sentence embeddings. Defaults to 8.
+        name (str, optional): The name of the evaluator. Defaults to "".
+        write_csv (bool, optional): Whether to write the results to a CSV file. Defaults to True.
+        truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. If None, uses the model's
+            current truncation dimension. Defaults to None.
+    """
+
+    def __init__(
+        self,
+        dataframe: List[Dict[str, str]],
+        teacher_model: "SentenceTransformer",
+        combinations: List[Tuple[str, str]],
+        batch_size: int = 8,
+        name: str = "",
+        write_csv: bool = True,
+        truncate_dim: Optional[int] = None,
+    ):
+        super().__init__()
         self.combinations = combinations
         self.name = name
         self.batch_size = batch_size
 
-
         if name:
-            name = "_"+name
+            name = "_" + name
 
         self.csv_file = "mse_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps"]
+        self.primary_metric = "negative_mse"
         self.write_csv = write_csv
+        self.truncate_dim = truncate_dim
         self.data = {}
 
         logger.info("Compute teacher embeddings")
@@ -56,10 +77,15 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             self.csv_headers.append("{}-{}".format(src_lang, trg_lang))
 
         all_source_sentences = list(all_source_sentences)
-        all_src_embeddings = teacher_model.encode(all_source_sentences, batch_size=self.batch_size)
+        with nullcontext() if self.truncate_dim is None else teacher_model.truncate_sentence_embeddings(
+            self.truncate_dim
+        ):
+            all_src_embeddings = teacher_model.encode(all_source_sentences, batch_size=self.batch_size)
         self.teacher_embeddings = {sent: emb for sent, emb in zip(all_source_sentences, all_src_embeddings)}
 
-    def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int  = -1):
+    def __call__(
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
         model.eval()
 
         mse_scores = []
@@ -67,7 +93,8 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             src_sentences, trg_sentences = self.data[(src_lang, trg_lang)]
 
             src_embeddings = np.asarray([self.teacher_embeddings[sent] for sent in src_sentences])
-            trg_embeddings = np.asarray(model.encode(trg_sentences, batch_size=self.batch_size))
+            with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+                trg_embeddings = np.asarray(model.encode(trg_sentences, batch_size=self.batch_size))
 
             mse = ((src_embeddings - trg_embeddings) ** 2).mean()
             mse *= 100
@@ -79,12 +106,19 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
-            with open(csv_path, newline='', mode="a" if output_file_exists else 'w', encoding="utf-8") as f:
+            with open(csv_path, newline="", mode="a" if output_file_exists else "w", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 if not output_file_exists:
                     writer.writerow(self.csv_headers)
 
-                writer.writerow([epoch, steps]+mse_scores)
+                writer.writerow([epoch, steps] + mse_scores)
 
-        return -np.mean(mse_scores) #Return negative score as SentenceTransformers maximizes the performance
+        # Return negative score as SentenceTransformers maximizes the performance
+        metrics = {"negative_mse": -np.mean(mse_scores).item()}
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
 
+    @property
+    def description(self) -> str:
+        return "Knowledge Distillation"

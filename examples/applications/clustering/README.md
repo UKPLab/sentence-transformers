@@ -15,7 +15,7 @@ In [fast_clustering.py](fast_clustering.py) we present a clustering algorithm th
 
 You can configure the threshold of cosine-similarity for which we consider two sentences as similar. Also, you can specify the minimal size for a local community. This allows you to get either large coarse-grained clusters or small fine-grained clusters. 
 
-We apply it on the [Quora Duplicate Questions](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs) dataset and the output looks something like this:
+We apply it on the [Quora Duplicate Questions](https://huggingface.co/datasets/sentence-transformers/quora-duplicates) dataset and the output looks something like this:
 
 ```
 Cluster 1, #83 Elements
@@ -44,12 +44,13 @@ Cluster 47, #25 Elements
 Topic modeling is the process of discovering topics in a collection of documents. 
 
 An example is shown in the following picture, which shows the identified topics in the 20 newsgroup dataset:
+
 ![20news](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/20news_semantic.png) 
 
 For each topic, you want to extract the words that describe this topic:
+
 ![20news](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/20news_top2vec.png) 
 
-Sentence-Transformers can be used to identify these topics in a collection of sentences, paragraphs or short documents. For an excellent tutorial, see [Topic Modeling with BERT](https://towardsdatascience.com/topic-modeling-with-bert-779f7db187e6) as well as the repositories [Top2Vec](https://github.com/ddangelov/Top2Vec) and [BERTopic](https://github.com/MaartenGr/BERTopic).
+Sentence-Transformers can be used to identify these topics in a collection of sentences, paragraphs or short documents. For an excellent tutorial, see [Topic Modeling with BERT](https://towardsdatascience.com/topic-modeling-with-bert-779f7db187e6) as well as the [BERTopic](https://github.com/MaartenGr/BERTopic) and [Top2Vec](https://github.com/ddangelov/Top2Vec) repositories.
  
- 
- Image source: [Top2Vec: Distributed Representations of Topics](https://arxiv.org/abs/2008.09470)
+Image source: [Top2Vec: Distributed Representations of Topics](https://arxiv.org/abs/2008.09470)

@@ -1,0 +1,9 @@
+
+line-length = 119
+
+# Skip `E731` (do not assign a lambda expression, use a def)
+lint.ignore = ["E731"]
+
+[lint.per-file-ignores]
+# Ignore `E402` (import violations) in all examples
+"examples/**" = ["E402"]

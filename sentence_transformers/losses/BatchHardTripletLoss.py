@@ -1,19 +1,18 @@
+from typing import Dict, Iterable
+
 import torch
-from torch import nn, Tensor
-from typing import Union, Tuple, List, Iterable, Dict
+from torch import Tensor, nn
+
 from sentence_transformers import util
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class BatchHardTripletLossDistanceFunction:
-    """
-    This class defines distance functions, that can be used with Batch[All/Hard/SemiHard]TripletLoss
-    """
+    """This class defines distance functions, that can be used with Batch[All/Hard/SemiHard]TripletLoss"""
+
     @staticmethod
     def cosine_distance(embeddings):
-        """
-        Compute the 2D matrix of cosine distances (1-cosine_similarity) between all embeddings.
-        """
+        """Compute the 2D matrix of cosine distances (1-cosine_similarity) between all embeddings."""
         return 1 - util.pytorch_cos_sim(embeddings, embeddings)
 
     @staticmethod
@@ -55,43 +54,92 @@ class BatchHardTripletLossDistanceFunction:
 
 
 class BatchHardTripletLoss(nn.Module):
-    """
-    BatchHardTripletLoss takes a batch with (label, sentence) pairs and computes the loss for all possible, valid
-    triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. It then looks
-    for the hardest positive and the hardest negatives.
-    The labels must be integers, with same label indicating sentences from the same class. You train dataset
-    must contain at least 2 examples per label class. The margin is computed automatically.
+    def __init__(
+        self,
+        model: SentenceTransformer,
+        distance_metric=BatchHardTripletLossDistanceFunction.eucledian_distance,
+        margin: float = 5,
+    ):
+        """
+        BatchHardTripletLoss takes a batch with (sentence, label) pairs and computes the loss for all possible, valid
+        triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. It then looks
+        for the hardest positive and the hardest negatives.
+        The labels must be integers, with same label indicating sentences from the same class. Your train dataset
+        must contain at least 2 examples per label class.
 
-    Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
-    Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
-    Blog post: https://omoindrot.github.io/triplet-loss
+        Args:
+            model: SentenceTransformer model
+            distance_metric: Function that returns a distance between
+                two embeddings. The class SiameseDistanceMetric contains
+                pre-defined metrics that can be used
+            margin: Negative samples should be at least margin further
+                apart from the anchor than the positive.
 
-    :param model: SentenceTransformer model
-    :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
+        Definitions:
+            :Easy triplets: Triplets which have a loss of 0 because
+                ``distance(anchor, positive) + margin < distance(anchor, negative)``.
+            :Hard triplets: Triplets where the negative is closer to the anchor than the positive, i.e.,
+                ``distance(anchor, negative) < distance(anchor, positive)``.
+            :Semi-hard triplets: Triplets where the negative is not closer to the anchor than the positive, but which
+                still have a positive loss, i.e., ``distance(anchor, positive) < distance(anchor, negative) + margin``.
 
+        References:
+            * Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
+            * Paper: In Defense of the Triplet Loss for Person Re-Identification, https://arxiv.org/abs/1703.07737
+            * Blog post: https://omoindrot.github.io/triplet-loss
 
-    Example::
+        Requirements:
+            1. Each sentence must be labeled with a class.
+            2. Your dataset must contain at least 2 examples per labels class.
+            3. Your dataset should contain hard positives and negatives.
 
-       from sentence_transformers import SentenceTransformer, SentencesDataset, losses
-       from sentence_transformers.readers import InputExample
+        Inputs:
+            +------------------+--------+
+            | Texts            | Labels |
+            +==================+========+
+            | single sentences | class  |
+            +------------------+--------+
 
-       model = SentenceTransformer('distilbert-base-nli-mean-tokens')
-       train_examples = [InputExample(texts=['Sentence from class 0'], label=0), InputExample(texts=['Another sentence from class 0'], label=0),
-           InputExample(texts=['Sentence from class 1'], label=1), InputExample(texts=['Sentence from class 2'], label=2)]
-       train_dataset = SentencesDataset(train_examples, model)
-       train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
-       train_loss = losses.BatchHardTripletLoss(model=model)
-    """
-    def __init__(self, model: SentenceTransformer, distance_metric = BatchHardTripletLossDistanceFunction.eucledian_distance, margin: float = 5):
+        Relations:
+            * :class:`BatchAllTripletLoss` uses all possible, valid triplets, rather than only the hardest positive and negative samples.
+            * :class:`BatchSemiHardTripletLoss` uses only semi-hard triplets, valid triplets, rather than only the hardest positive and negative samples.
+            * :class:`BatchHardSoftMarginTripletLoss` does not require setting a margin, while this loss does.
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
+
+                model = SentenceTransformer("microsoft/mpnet-base")
+                # E.g. 0: sports, 1: economy, 2: politics
+                train_dataset = Dataset.from_dict({
+                    "sentence": [
+                        "He played a great game.",
+                        "The stock is up 20%",
+                        "They won 2-1.",
+                        "The last goal was amazing.",
+                        "They all voted against the bill.",
+                    ],
+                    "label": [0, 1, 0, 0, 2],
+                })
+                loss = losses.BatchHardTripletLoss(model)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
+        """
         super(BatchHardTripletLoss, self).__init__()
         self.sentence_embedder = model
         self.triplet_margin = margin
         self.distance_metric = distance_metric
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
-        rep = self.sentence_embedder(sentence_features[0])['sentence_embedding']
+        rep = self.sentence_embedder(sentence_features[0])["sentence_embedding"]
         return self.batch_hard_triplet_loss(labels, rep)
-
 
     # Hard Triplet Loss
     # Source: https://github.com/NegatioN/OnlineMiningTripletLoss/blob/master/online_triplet_loss/losses.py
@@ -140,8 +188,6 @@ class BatchHardTripletLoss(nn.Module):
 
         return triplet_loss
 
-
-
     @staticmethod
     def get_triplet_mask(labels):
         """Return a 3D mask where mask[a, p, n] is True iff the triplet (a, p, n) is valid.
@@ -178,7 +224,6 @@ class BatchHardTripletLoss(nn.Module):
         """
         # Check that i and j are distinct
 
-
         indices_equal = torch.eye(labels.size(0), device=labels.device).bool()
         indices_not_equal = ~indices_equal
 
@@ -200,3 +245,16 @@ class BatchHardTripletLoss(nn.Module):
         # Uses broadcasting where the 1st argument has shape (1, batch_size) and the 2nd (batch_size, 1)
 
         return ~(labels.unsqueeze(0) == labels.unsqueeze(1))
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{hermans2017defense,
+    title={In Defense of the Triplet Loss for Person Re-Identification}, 
+    author={Alexander Hermans and Lucas Beyer and Bastian Leibe},
+    year={2017},
+    eprint={1703.07737},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
+}
+"""
