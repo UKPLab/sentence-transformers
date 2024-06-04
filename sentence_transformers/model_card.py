@@ -426,7 +426,7 @@ class SentenceTransformerModelCardData(CardData):
             for idx in target_indices:
                 # This is anywhere between 1 and n texts
                 sentences = list(str_dataset[idx].values())
-                while len(sentences) < 4:
+                while len(sentences) < 4 and backup_indices:
                     backup_idx = backup_indices.pop()
                     backup_sample = list(str_dataset[backup_idx].values())
                     if len(backup_sample) == 1:
