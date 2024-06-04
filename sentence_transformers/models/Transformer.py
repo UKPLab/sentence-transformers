@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from torch import nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Config
+from sentence_transformers.util import get_device_name
 
 
 class Transformer(nn.Module):
@@ -113,6 +114,23 @@ class Transformer(nn.Module):
         trans_features = {"input_ids": features["input_ids"], "attention_mask": features["attention_mask"]}
         if "token_type_ids" in features:
             trans_features["token_type_ids"] = features["token_type_ids"]
+
+        device = get_device_name()
+        curr_tokenize_len = features["input_ids"].shape
+        if (
+            device == "hpu"
+            and curr_tokenize_len[1] > 4096
+            and "attn_softmax_bf16" in features
+            and "reuse_cache" in features
+            and "use_flash_attention" in features
+            and "flash_attention_recompute" in features
+            and "flash_attention_causal_mask" in features
+        ):
+            trans_features["attn_softmax_bf16"] = features["attn_softmax_bf16"]
+            trans_features["reuse_cache"] = features["reuse_cache"]
+            trans_features["use_flash_attention"] = features["use_flash_attention"]
+            trans_features["flash_attention_recompute"] = features["flash_attention_recompute"]
+            trans_features["flash_attention_causal_mask"] = features["flash_attention_causal_mask"]
 
         output_states = self.auto_model(**trans_features, return_dict=False)
         output_tokens = output_states[0]
