@@ -143,15 +143,15 @@ class TranslationEvaluator(SentenceEvaluator):
             if i == max_idx:
                 correct_src2trg += 1
             elif self.print_wrong_matches:
-                print("i:", i, "j:", max_idx, "INCORRECT")
-                print("Src:", self.source_sentences[i])
-                print("Trg:", self.target_sentences[i])
-                print("Argmax score:", cos_sims[i][max_idx], "vs. correct score:", cos_sims[i][i])
+                print("\nIncorrect  : Source", i, "is most similar to target", max_idx, "instead of target", i)
+                print("Source     :", self.source_sentences[i])
+                print("Pred Target:", self.target_sentences[max_idx], f"(Score: {cos_sims[i][max_idx]:.4f})")
+                print("True Target:", self.target_sentences[i], f"(Score: {cos_sims[i][i]:.4f})")
 
                 results = enumerate(cos_sims[i])
-                results.sort(key=lambda x: x[1], reverse=True)
-                for idx, score in results[0:5]:
-                    print("\t", idx, "(Score: %.4f)" % (score), self.target_sentences[idx])
+                results = sorted(results, key=lambda x: x[1], reverse=True)
+                for idx, score in results[:5]:
+                    print("\t", idx, f"(Score: {score:.4f})", self.target_sentences[idx])
 
         cos_sims = cos_sims.T
         for i in range(len(cos_sims)):
