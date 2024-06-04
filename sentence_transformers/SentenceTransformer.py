@@ -489,7 +489,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     if curr_tokenize_len[1] > 4096:
                         additional_pad_len = math.ceil(curr_tokenize_len[1] / 128) * 128 - curr_tokenize_len[1]
 
-                        extra_features.update(kwargs["gaudi_kwargs"])
+                        extra_features.update(kwargs["hpu_kwargs"])
                     else:
                         additional_pad_len = 2 ** math.ceil(math.log2(curr_tokenize_len[1])) - curr_tokenize_len[1]
 
