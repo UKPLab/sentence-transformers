@@ -55,6 +55,8 @@ class ModelCardCallback(TrainerCallback):
             trainer.model.model_card_data.code_carbon_callback = callbacks[0]
 
         trainer.model.model_card_data.trainer = trainer
+        if "generated_from_trainer" not in trainer.model.model_card_data.tags:
+            trainer.model.model_card_data.tags.append("generated_from_trainer")
 
     def on_init_end(
         self,
@@ -283,7 +285,6 @@ class SentenceTransformerModelCardData(CardData):
             "sentence-transformers",
             "sentence-similarity",
             "feature-extraction",
-            "generated_from_trainer",
         ]
     )
     generate_widget_examples: bool = True
