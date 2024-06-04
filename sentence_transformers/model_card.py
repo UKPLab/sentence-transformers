@@ -283,6 +283,7 @@ class SentenceTransformerModelCardData(CardData):
             "sentence-transformers",
             "sentence-similarity",
             "feature-extraction",
+            "generated_from_trainer",
         ]
     )
     generate_widget_examples: bool = True
