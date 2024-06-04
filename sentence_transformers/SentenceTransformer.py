@@ -1004,12 +1004,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         modules_config = []
 
         # Save some model info
-        if "__version__" not in self._model_config:
-            self._model_config["__version__"] = {
-                "sentence_transformers": __version__,
-                "transformers": transformers.__version__,
-                "pytorch": torch.__version__,
-            }
+        self._model_config["__version__"] = {
+            "sentence_transformers": __version__,
+            "transformers": transformers.__version__,
+            "pytorch": torch.__version__,
+        }
 
         with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
             config = self._model_config.copy()

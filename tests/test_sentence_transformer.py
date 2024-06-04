@@ -586,3 +586,14 @@ def test_model_card_save_update_model_id(stsb_bert_tiny_model: SentenceTransform
         with open(Path(tmp_folder) / "README.md", "r", encoding="utf8") as f:
             model_card_text = f.read()
             assert 'model = SentenceTransformer("test_user/test_model"' in model_card_text
+
+
+def test_override_config_versions(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+
+    assert model._model_config["__version__"]["sentence_transformers"] == "2.2.2"
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model.save(tmp_folder)
+        loaded_model = SentenceTransformer(tmp_folder)
+    # Verify that the version has now been updated when saving the model again
+    assert loaded_model._model_config["__version__"]["sentence_transformers"] != "2.2.2"
