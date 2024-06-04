@@ -564,3 +564,14 @@ def test_similarity_score_save(stsb_bert_tiny_model: SentenceTransformer) -> Non
     assert loaded_model.similarity_fn_name == "euclidean"
     dot_scores = model.similarity(embeddings, embeddings)
     assert np.not_equal(cosine_scores, dot_scores).all()
+
+
+def test_override_config_versions(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+
+    assert model._model_config["__version__"]["sentence_transformers"] == "2.2.2"
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model.save(tmp_folder)
+        loaded_model = SentenceTransformer(tmp_folder)
+    # Verify that the version has now been updated when saving the model again
+    assert loaded_model._model_config["__version__"]["sentence_transformers"] != "2.2.2"
