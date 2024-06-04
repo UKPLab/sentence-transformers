@@ -565,6 +565,7 @@ def test_similarity_score_save(stsb_bert_tiny_model: SentenceTransformer) -> Non
     dot_scores = model.similarity(embeddings, embeddings)
     assert np.not_equal(cosine_scores, dot_scores).all()
 
+
 def test_model_card_save_update_model_id(stsb_bert_tiny_model: SentenceTransformer) -> None:
     model = stsb_bert_tiny_model
     # Removing the saved model card will cause a fresh one to be generated when we save
@@ -578,7 +579,7 @@ def test_model_card_save_update_model_id(stsb_bert_tiny_model: SentenceTransform
         # When we reload this saved model and then re-save it, we want to override the 'sentence_transformers_model_id'
         # if we have it set
         loaded_model = SentenceTransformer(tmp_folder)
-        
+
     with tempfile.TemporaryDirectory() as tmp_folder:
         loaded_model.save(tmp_folder, model_name="test_user/test_model")
 
