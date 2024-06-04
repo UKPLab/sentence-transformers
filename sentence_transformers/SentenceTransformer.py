@@ -1094,6 +1094,12 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # we don't generate a new model card, but reuse the old one instead.
         if self._model_card_text and self.model_card_data.trainer is None:
             model_card = self._model_card_text
+            if self.model_card_data.model_id:
+                # If the original model card was saved without a model_id, we replace the model_id with the new model_id
+                model_card = model_card.replace(
+                    'model = SentenceTransformer("sentence_transformers_model_id"',
+                    f'model = SentenceTransformer("{self.model_card_data.model_id}"',
+                )
         else:
             try:
                 model_card = generate_model_card(self)
