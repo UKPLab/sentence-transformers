@@ -27,10 +27,10 @@ from transformers.trainer_callback import TrainerControl, TrainerState
 from sentence_transformers import __version__ as sentence_transformers_version
 from sentence_transformers.models import Transformer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
-from sentence_transformers.util import cos_sim, fullname, is_accelerate_available, is_datasets_available
+from sentence_transformers.util import fullname, is_accelerate_available, is_datasets_available
 
 if is_datasets_available():
-    from datasets import Dataset, DatasetDict
+    from datasets import Dataset, DatasetDict, Value
 
 logger = logging.getLogger(__name__)
 
@@ -249,7 +249,6 @@ class SentenceTransformerModelCardData(CardData):
             e.g. "semantic textual similarity, semantic search, paraphrase mining, text classification, clustering, and more".
         tags (`Optional[List[str]]`): A list of tags for the model,
             e.g. ["sentence-transformers", "sentence-similarity", "feature-extraction"].
-        generate_widget_examples (`bool`): Whether to generate widget examples on every model save.
 
     .. tip::
 
@@ -287,7 +286,7 @@ class SentenceTransformerModelCardData(CardData):
             "feature-extraction",
         ]
     )
-    generate_widget_examples: bool = True
+    generate_widget_examples: Literal["deprecated"] = "deprecated"
 
     # Automatically filled by `ModelCardCallback` and the Trainer directly
     base_model: Optional[str] = field(default=None, init=False)
@@ -406,47 +405,51 @@ class SentenceTransformerModelCardData(CardData):
             dataset = DatasetDict(dataset=dataset)
 
         self.widget = []
-        # Sample the datasets to use for the widget
-        dataset_names = random.choices(list(dataset.keys()), k=5)
-        num_samples = 1000
-        num_samples_to_encode = 500
-        source_sentences = set()
-        for dataset_name in tqdm(dataset_names, desc="Computing widget examples", unit="example", leave=False):
-            # Sample 1000 examples from the dataset, get the 500 shortest texts and encode them
-            dataset_size = len(dataset[dataset_name])
-            samples = dataset[dataset_name].select(
-                random.sample(range(dataset_size), k=min(num_samples, dataset_size))
-            )
-            all_texts = {
-                value
-                for sample in samples
-                for key, value in sample.items()
-                if isinstance(value, str) and value not in source_sentences and key != "dataset_name"
-            }
-            if len(all_texts) < 5:
-                continue
-
-            all_texts = sorted(all_texts, key=len)[:num_samples_to_encode]
-            embeddings = self.model.encode(all_texts, show_progress_bar=False)
-
-            # Select a relatively short example from the dataset as the source,
-            # and find the most similar, median, and dissimilar examples
-            source_sentence_idx, source_sentence = sorted(list(enumerate(all_texts)), key=lambda x: len(x[1]))[
-                min(len(all_texts) - 1, 10)
+        # Pick 5 random datasets to generate widget examples from
+        dataset_names = Counter(random.choices(list(dataset.keys()), k=5))
+        num_samples_to_check = 1000
+        for dataset_name, num_samples in tqdm(
+            dataset_names.items(), desc="Computing widget examples", unit="example", leave=False
+        ):
+            # Sample 1000 examples from the dataset, sort them by length, and pick the shortest examples as the core
+            # examples for the widget
+            columns = [
+                column
+                for column, feature in dataset[dataset_name].features.items()
+                if isinstance(feature, Value) and feature.dtype == "string" and column != "dataset_name"
             ]
-            _, indices = cos_sim(embeddings[source_sentence_idx], embeddings)[0].sort()
-            similar_sentence = all_texts[indices[-2]]
-            median_sentence = all_texts[len(all_texts) // 2]
-            dissimilar_sentence = all_texts[indices[0]]
-            self.widget.append(
-                {
-                    "source_sentence": source_sentence,
-                    "sentences": [similar_sentence, median_sentence, dissimilar_sentence],
-                }
-            )
-            source_sentences.add(source_sentence)
+            str_dataset = dataset[dataset_name].select_columns(columns)
+            dataset_size = len(str_dataset)
+            lengths = {}
+            for idx, sample in enumerate(
+                str_dataset.select(random.sample(range(dataset_size), k=min(num_samples_to_check, dataset_size)))
+            ):
+                lengths[idx] = sum(len(value) for value in sample.values())
 
-            self.predict_example = [source_sentence, similar_sentence, median_sentence]
+            indices, _ = zip(*sorted(lengths.items(), key=lambda x: x[1]))
+            target_indices, backup_indices = indices[:num_samples], list(indices[num_samples:][::-1])
+
+            # We want 4 texts, so we take texts from the backup indices, short texts first
+            for idx in target_indices:
+                # This is anywhere between 1 and n texts
+                sentences = list(str_dataset[idx].values())
+                while len(sentences) < 4 and backup_indices:
+                    backup_idx = backup_indices.pop()
+                    backup_sample = list(str_dataset[backup_idx].values())
+                    if len(backup_sample) == 1:
+                        # If there is only one text in the backup sample, we take it
+                        sentences.extend(backup_sample)
+                    else:
+                        # Otherwise we prefer the 2nd text: the 1st can be another query
+                        sentences.append(backup_sample[1])
+
+                if len(sentences) < 4:
+                    continue
+
+                self.widget.append(
+                    {"source_sentence": sentences[0], "sentences": random.sample(sentences[1:], k=len(sentences) - 1)}
+                )
+                self.predict_example = sentences[:3]
 
     def set_evaluation_metrics(self, evaluator: "SentenceEvaluator", metrics: Dict[str, Any]):
         from sentence_transformers.evaluation import SequentialEvaluator
@@ -897,10 +900,12 @@ class SentenceTransformerModelCardData(CardData):
 
     def to_dict(self) -> Dict[str, Any]:
         # Extract some meaningful examples from the evaluation or training dataset to showcase the performance
-        if self.trainer and self.widget_step < self.trainer.state.global_step and self.generate_widget_examples:
-            if dataset := self.trainer.eval_dataset or self.trainer.train_dataset:
-                self.set_widget_examples(dataset)
-                self.widget_step = self.trainer.state.global_step
+        if (
+            not self.widget
+            and self.trainer is not None
+            and (dataset := self.trainer.eval_dataset or self.trainer.train_dataset)
+        ):
+            self.set_widget_examples(dataset)
 
         # Try to set the base model
         if self.first_save and not self.base_model:
