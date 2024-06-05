@@ -194,6 +194,7 @@ class SentenceTransformerTrainer(Trainer):
             optimizers=optimizers,
             preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         )
+        self.model: SentenceTransformer
         # Set the W&B project via environment variables if it's not already set
         if any([isinstance(callback, WandbCallback) for callback in self.callback_handler.callbacks]):
             os.environ.setdefault("WANDB_PROJECT", "sentence-transformers")
@@ -711,7 +712,7 @@ class SentenceTransformerTrainer(Trainer):
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
 
-        self.model.save(output_dir, safe_serialization=self.args.save_safetensors)
+        self.model.save_pretrained(output_dir, safe_serialization=self.args.save_safetensors)
 
         if self.tokenizer is not None:
             self.tokenizer.save_pretrained(output_dir)
@@ -725,8 +726,27 @@ class SentenceTransformerTrainer(Trainer):
         loaded_model = SentenceTransformer(checkpoint_path)
         self.model.load_state_dict(loaded_model.state_dict())
 
-    def create_model_card(self, *args, **kwargs):
-        raise NotImplementedError(
-            "SentenceTransformers does not implement the `create_model_card` method in its Trainer. "
-            "Instead, consider calling SentenceTransformer._create_model_card(path)."
-        )
+    def create_model_card(
+        self,
+        language: Optional[str] = None,
+        license: Optional[str] = None,
+        tags: Union[str, List[str], None] = None,
+        model_name: Optional[str] = None,
+        finetuned_from: Optional[str] = None,
+        tasks: Union[str, List[str], None] = None,
+        dataset_tags: Union[str, List[str], None] = None,
+        dataset: Union[str, List[str], None] = None,
+        dataset_args: Union[str, List[str], None] = None,
+        **kwargs,
+    ):
+        if not self.is_world_process_zero():
+            return
+
+        if language:
+            self.model.model_card_data.set_language(language)
+        if license:
+            self.model.model_card_data.set_license(license)
+        if tags:
+            self.model.model_card_data.add_tags(tags)
+
+        self.model._create_model_card(self.args.output_dir, model_name=model_name)

@@ -55,8 +55,7 @@ class ModelCardCallback(TrainerCallback):
             trainer.model.model_card_data.code_carbon_callback = callbacks[0]
 
         trainer.model.model_card_data.trainer = trainer
-        if "generated_from_trainer" not in trainer.model.model_card_data.tags:
-            trainer.model.model_card_data.tags.append("generated_from_trainer")
+        trainer.model.model_card_data.add_tags("generated_with_trainer")
 
     def on_init_end(
         self,
@@ -366,7 +365,7 @@ class SentenceTransformerModelCardData(CardData):
             output_dataset_list.append(dataset)
         return output_dataset_list
 
-    def set_losses(self, losses: nn.Module) -> None:
+    def set_losses(self, losses: List[nn.Module]) -> None:
         citations = {
             "Sentence Transformers": """
 @inproceedings{reimers-2019-sentence-bert,
@@ -395,7 +394,7 @@ class SentenceTransformerModelCardData(CardData):
             return losses[0]
 
         self.citations = {join_list(losses): citation for citation, losses in inverted_citations.items()}
-        self.tags += [f"loss:{loss}" for loss in {loss.__class__.__name__: loss for loss in losses}]
+        self.add_tags([f"loss:{loss}" for loss in {loss.__class__.__name__: loss for loss in losses}])
 
     def set_best_model_step(self, step: int) -> None:
         self.best_model_step = step
@@ -712,7 +711,7 @@ class SentenceTransformerModelCardData(CardData):
         if dataset_type == "train":
             num_training_samples = sum([metadata.get("size", 0) for metadata in dataset_metadata])
             if num_training_samples:
-                self.tags += ["dataset_size:" + self.num_training_samples_to_tag(num_training_samples)]
+                self.add_tags("dataset_size:" + self.num_training_samples_to_tag(num_training_samples))
 
         return self.validate_datasets(dataset_metadata)
 
@@ -751,6 +750,21 @@ class SentenceTransformerModelCardData(CardData):
             revision = model_info.sha
         self.base_model_revision = revision
         return True
+
+    def set_language(self, language: Union[str, List[str]]) -> None:
+        if isinstance(language, str):
+            language = [language]
+        self.language = language
+
+    def set_license(self, license: str) -> None:
+        self.license = license
+
+    def add_tags(self, tags: Union[str, List[str]]) -> None:
+        if isinstance(tags, str):
+            tags = [tags]
+        for tag in tags:
+            if tag not in self.tags:
+                self.tags.append(tag)
 
     def try_to_set_base_model(self) -> None:
         if isinstance(self.model[0], Transformer):
