@@ -1007,12 +1007,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         modules_config = []
 
         # Save some model info
-        if "__version__" not in self._model_config:
-            self._model_config["__version__"] = {
-                "sentence_transformers": __version__,
-                "transformers": transformers.__version__,
-                "pytorch": torch.__version__,
-            }
+        self._model_config["__version__"] = {
+            "sentence_transformers": __version__,
+            "transformers": transformers.__version__,
+            "pytorch": torch.__version__,
+        }
 
         with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
             config = self._model_config.copy()
@@ -1098,6 +1097,12 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # we don't generate a new model card, but reuse the old one instead.
         if self._model_card_text and self.model_card_data.trainer is None:
             model_card = self._model_card_text
+            if self.model_card_data.model_id:
+                # If the original model card was saved without a model_id, we replace the model_id with the new model_id
+                model_card = model_card.replace(
+                    'model = SentenceTransformer("sentence_transformers_model_id"',
+                    f'model = SentenceTransformer("{self.model_card_data.model_id}"',
+                )
         else:
             try:
                 model_card = generate_model_card(self)
@@ -1591,3 +1596,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             return self._first_module()._keys_to_ignore_on_save
         except AttributeError:
             return []
+
+    def gradient_checkpointing_enable(self, gradient_checkpointing_kwargs=None) -> None:
+        # Propagate the gradient checkpointing to the transformer model
+        for module in self:
+            if isinstance(module, Transformer):
+                return module.auto_model.gradient_checkpointing_enable(gradient_checkpointing_kwargs)

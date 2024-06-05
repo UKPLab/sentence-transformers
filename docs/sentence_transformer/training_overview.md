@@ -259,6 +259,7 @@ args = SentenceTransformerTrainingArguments(
     num_train_epochs=1,
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
+    learning_rate=2e-5,
     warmup_ratio=0.1,
     fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
     bf16=False,  # Set to True if you have a GPU that supports BF16
@@ -426,6 +427,7 @@ The :class:`~sentence_transformers.SentenceTransformerTrainer` is where all prev
         num_train_epochs=1,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=16,
+        learning_rate=2e-5,
         warmup_ratio=0.1,
         fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
         bf16=False,  # Set to True if you have a GPU that supports BF16
