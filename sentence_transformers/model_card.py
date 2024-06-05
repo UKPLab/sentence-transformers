@@ -55,7 +55,7 @@ class ModelCardCallback(TrainerCallback):
             trainer.model.model_card_data.code_carbon_callback = callbacks[0]
 
         trainer.model.model_card_data.trainer = trainer
-        trainer.model.model_card_data.add_tags("generated_with_trainer")
+        trainer.model.model_card_data.add_tags("generated_from_trainer")
 
     def on_init_end(
         self,
