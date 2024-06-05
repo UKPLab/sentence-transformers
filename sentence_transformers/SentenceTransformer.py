@@ -1593,3 +1593,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             return self._first_module()._keys_to_ignore_on_save
         except AttributeError:
             return []
+
+    def gradient_checkpointing_enable(self, gradient_checkpointing_kwargs=None) -> None:
+        # Propagate the gradient checkpointing to the transformer model
+        for module in self:
+            if isinstance(module, Transformer):
+                return module.auto_model.gradient_checkpointing_enable(gradient_checkpointing_kwargs)
