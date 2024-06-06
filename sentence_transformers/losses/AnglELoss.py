@@ -2,7 +2,7 @@ from sentence_transformers import SentenceTransformer, losses, util
 
 
 class AnglELoss(losses.CoSENTLoss):
-    def __init__(self, model: SentenceTransformer, scale: float = 20.0):
+    def __init__(self, model: SentenceTransformer, scale: float = 20.0) -> None:
         """
         This class implements AnglE (Angle Optimized) loss.
         This is a modification of :class:`CoSENTLoss`, designed to address the following issue:

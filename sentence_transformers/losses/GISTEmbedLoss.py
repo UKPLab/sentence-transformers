@@ -13,7 +13,7 @@ class GISTEmbedLoss(nn.Module):
         model: SentenceTransformer,
         guide: SentenceTransformer,
         temperature: float = 0.01,
-    ):
+    ) -> None:
         """
         This loss is used to train a SentenceTransformer model using the GISTEmbed algorithm.
         It takes a model and a guide model as input, and uses the guide model to guide the
@@ -83,10 +83,10 @@ class GISTEmbedLoss(nn.Module):
             model.tokenizer.vocab != guide.tokenizer.vocab or guide.max_seq_length < model.max_seq_length
         )
 
-    def sim_matrix(self, embed1, embed2):
+    def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         with torch.no_grad():
             if self.must_retokenize:

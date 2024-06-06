@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, Iterable
+from typing import Any, Dict, Iterable
 
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -18,7 +18,7 @@ class TripletDistanceMetric(Enum):
 class TripletLoss(nn.Module):
     def __init__(
         self, model: SentenceTransformer, distance_metric=TripletDistanceMetric.EUCLIDEAN, triplet_margin: float = 5
-    ):
+    ) -> None:
         """
         This class implements triplet loss. Given a triplet of (anchor, positive, negative),
         the loss minimizes the distance between anchor and positive while it maximizes the distance
@@ -75,7 +75,7 @@ class TripletLoss(nn.Module):
         self.distance_metric = distance_metric
         self.triplet_margin = triplet_margin
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
         rep_anchor, rep_pos, rep_neg = reps
@@ -85,7 +85,7 @@ class TripletLoss(nn.Module):
         losses = F.relu(distance_pos - distance_neg + self.triplet_margin)
         return losses.mean()
 
-    def get_config_dict(self):
+    def get_config_dict(self) -> Dict[str, Any]:
         distance_metric_name = self.distance_metric.__name__
         for name, value in vars(TripletDistanceMetric).items():
             if value == self.distance_metric:
