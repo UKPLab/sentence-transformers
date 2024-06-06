@@ -1,18 +1,20 @@
 import logging
 import os
 from functools import wraps
-from typing import Callable, Dict, List, Optional, Type, Union
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Type, Union
 
 import numpy as np
 import torch
-from torch import nn
+from torch import Tensor, nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
 from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, is_torch_npu_available
+from transformers.tokenization_utils_base import BatchEncoding
 from transformers.utils import PushToHubMixin
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.readers import InputExample
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.util import fullname, get_device_name, import_from_string
 
@@ -64,7 +66,7 @@ class CrossEncoder(PushToHubMixin):
         local_files_only: bool = False,
         default_activation_function=None,
         classifier_dropout: float = None,
-    ):
+    ) -> None:
         if tokenizer_args is None:
             tokenizer_args = {}
         if automodel_args is None:
@@ -125,7 +127,7 @@ class CrossEncoder(PushToHubMixin):
         else:
             self.default_activation_function = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
 
-    def smart_batching_collate(self, batch):
+    def smart_batching_collate(self, batch: List[InputExample]) -> Tuple[BatchEncoding, Tensor]:
         texts = [[] for _ in range(len(batch[0].texts))]
         labels = []
 
@@ -147,7 +149,7 @@ class CrossEncoder(PushToHubMixin):
 
         return tokenized, labels
 
-    def smart_batching_collate_text_only(self, batch):
+    def smart_batching_collate_text_only(self, batch: List[InputExample]) -> BatchEncoding:
         texts = [[] for _ in range(len(batch[0]))]
 
         for example in batch:
@@ -182,7 +184,7 @@ class CrossEncoder(PushToHubMixin):
         use_amp: bool = False,
         callback: Callable[[float, int, int], None] = None,
         show_progress_bar: bool = True,
-    ):
+    ) -> None:
         """
         Train the model with the given training objective
         Each training objective is sampled in turn for one batch.
@@ -406,7 +408,7 @@ class CrossEncoder(PushToHubMixin):
         apply_softmax=False,
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-    ) -> List[Dict]:
+    ) -> List[Dict[Literal["corpus_id", "score", "text"], Union[int, float, str]]]:
         """
         Performs ranking with the CrossEncoder on the given query and documents. Returns a sorted list with the document indices and scores.
 
@@ -424,7 +426,7 @@ class CrossEncoder(PushToHubMixin):
             convert_to_tensor (bool, optional): Convert the output to a tensor. Defaults to False.
 
         Returns:
-            List[Dict]: A sorted list with the document indices and scores, and optionally also documents.
+            List[Dict[Literal["corpus_id", "score", "text"], Union[int, float, str]]]: A sorted list with the "corpus_id", "score", and optionally "text" of the documents.
 
         Example:
             ::
@@ -484,7 +486,7 @@ class CrossEncoder(PushToHubMixin):
         results = sorted(results, key=lambda x: x["score"], reverse=True)
         return results[:top_k]
 
-    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
+    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback) -> None:
         """Runs evaluation during the training"""
         if evaluator is not None:
             score = evaluator(self, output_path=output_path, epoch=epoch, steps=steps)

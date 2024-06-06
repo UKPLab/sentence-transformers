@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from functools import partial
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
 import torch
 import tqdm
@@ -20,17 +20,17 @@ class RandContext:
     the class will set up the random state with the backed-up one.
     """
 
-    def __init__(self, *tensors):
+    def __init__(self, *tensors) -> None:
         self.fwd_cpu_state = torch.get_rng_state()
         self.fwd_gpu_devices, self.fwd_gpu_states = get_device_states(*tensors)
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self._fork = torch.random.fork_rng(devices=self.fwd_gpu_devices, enabled=True)
         self._fork.__enter__()
         torch.set_rng_state(self.fwd_cpu_state)
         set_device_states(self.fwd_gpu_devices, self.fwd_gpu_states)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self._fork.__exit__(exc_type, exc_val, exc_tb)
         self._fork = None
 
@@ -39,7 +39,7 @@ def _backward_hook(
     grad_output: Tensor,
     sentence_features: Iterable[Dict[str, Tensor]],
     loss_obj: CachedMultipleNegativesRankingLoss,
-):
+) -> None:
     """A backward hook to backpropagate the cached gradients mini-batch by mini-batch."""
     assert loss_obj.cache is not None
     assert loss_obj.random_states is not None
@@ -66,7 +66,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         similarity_fct: callable[[Tensor, Tensor], Tensor] = util.cos_sim,
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
-    ):
+    ) -> None:
         """
         Boosted version of MultipleNegativesRankingLoss (https://arxiv.org/pdf/1705.00652.pdf) by GradCache (https://arxiv.org/pdf/2101.06983.pdf).
 
@@ -280,7 +280,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
         return loss
 
-    def get_config_dict(self):
+    def get_config_dict(self) -> Dict[str, Any]:
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
 
     @property

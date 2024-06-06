@@ -4,18 +4,18 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from sentence_transformers import util
+from sentence_transformers import SentenceTransformer, util
 
 
 class MegaBatchMarginLoss(nn.Module):
     def __init__(
         self,
-        model,
+        model: SentenceTransformer,
         positive_margin: float = 0.8,
         negative_margin: float = 0.3,
         use_mini_batched_version: bool = True,
         mini_batch_size: int = 50,
-    ):
+    ) -> None:
         """
         Given a large batch (like 500 or more examples) of (anchor_i, positive_i) pairs, find for each pair in the batch
         the hardest negative, i.e. find j != i such that cos_sim(anchor_i, positive_j) is maximal. Then create from this a
@@ -80,7 +80,7 @@ class MegaBatchMarginLoss(nn.Module):
         self.mini_batch_size = mini_batch_size
         self.forward = self.forward_mini_batched if use_mini_batched_version else self.forward_non_mini_batched
 
-    def forward_mini_batched(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward_mini_batched(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         anchor, positive = sentence_features
         feature_names = list(anchor.keys())
 
@@ -137,7 +137,7 @@ class MegaBatchMarginLoss(nn.Module):
         return losses
 
     ##### Non mini-batched version ###
-    def forward_non_mini_batched(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward_non_mini_batched(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         embeddings_a, embeddings_b = reps
 

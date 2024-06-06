@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from itertools import accumulate, cycle
-from typing import List
+from typing import Iterator, List
 
 import torch
 from torch.utils.data import BatchSampler, ConcatDataset, SubsetRandomSampler
@@ -25,7 +25,7 @@ class SetEpochMixin:
 
         self.epoch = 0
 
-    def set_epoch(self, epoch: int):
+    def set_epoch(self, epoch: int) -> None:
         self.epoch = epoch
 
 
@@ -42,7 +42,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         valid_label_columns: List[str] = None,
         generator: torch.Generator = None,
         seed: int = 0,
-    ):
+    ) -> None:
         super().__init__(dataset, batch_size, drop_last)
         self.dataset = dataset
         self.batch_size = batch_size
@@ -71,7 +71,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
             if (num_samples := len(sample_indices) // 2)
         }
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[List[int]]:
         if self.generator and self.seed:
             self.generator.manual_seed(self.seed + self.epoch)
 
@@ -98,7 +98,7 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
         valid_label_columns: List[str] = [],
         generator: torch.Generator = None,
         seed: int = 0,
-    ):
+    ) -> None:
         super().__init__(dataset, batch_size, drop_last)
         if label_columns := set(dataset.column_names) & (set(valid_label_columns) | {"dataset_name"}):
             dataset = dataset.remove_columns(label_columns)
@@ -108,7 +108,7 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
         self.generator = generator
         self.seed = seed
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[List[int]]:
         """
         Iterate over the remaining non-yielded indices. For each index, check if the sample values are already in the
         batch. If not, add the sample values to the batch keep going until the batch is full. If the batch is full, yield
@@ -154,14 +154,14 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
         batch_samplers: List[BatchSampler],
         generator: torch.Generator,
         seed: int,
-    ):
+    ) -> None:
         super().__init__(dataset, batch_samplers[0].batch_size, batch_samplers[0].drop_last)
         self.dataset = dataset
         self.batch_samplers = batch_samplers
         self.generator = generator
         self.seed = seed
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[List[int]]:
         self.generator.manual_seed(self.seed + self.epoch)
 
         num_samples = [len(dataset) for dataset in self.dataset.datasets]
@@ -188,14 +188,14 @@ class ProportionalBatchSampler(SetEpochMixin, BatchSampler):
         batch_samplers: List[BatchSampler],
         generator: torch.Generator,
         seed: int,
-    ):
+    ) -> None:
         super().__init__(dataset, batch_samplers[0].batch_size, batch_samplers[0].drop_last)
         self.dataset = dataset
         self.batch_samplers = batch_samplers
         self.generator = generator
         self.seed = seed
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[List[int]]:
         self.generator.manual_seed(self.seed + self.epoch)
 
         num_samples = [len(dataset) for dataset in self.dataset.datasets]

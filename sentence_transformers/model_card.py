@@ -64,7 +64,7 @@ class ModelCardCallback(TrainerCallback):
         control: TrainerControl,
         model: "SentenceTransformer",
         **kwargs,
-    ):
+    ) -> None:
         from sentence_transformers.losses import AdaptiveLayerLoss, Matryoshka2dLoss, MatryoshkaLoss
 
         # Try to infer the dataset "name", "id" and "revision" from the dataset cache files
@@ -172,7 +172,7 @@ class ModelCardCallback(TrainerCallback):
         model: "SentenceTransformer",
         logs: Dict[str, float],
         **kwargs,
-    ):
+    ) -> None:
         keys = {"loss"} & set(logs)
         if keys:
             if (
@@ -315,7 +315,7 @@ class SentenceTransformerModelCardData(CardData):
     # Passed via `register_model` only
     model: Optional["SentenceTransformer"] = field(default=None, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # We don't want to save "ignore_metadata_errors" in our Model Card
         infer_languages = not self.language
         if isinstance(self.language, str):
@@ -450,7 +450,7 @@ class SentenceTransformerModelCardData(CardData):
                 )
                 self.predict_example = sentences[:3]
 
-    def set_evaluation_metrics(self, evaluator: "SentenceEvaluator", metrics: Dict[str, Any]):
+    def set_evaluation_metrics(self, evaluator: "SentenceEvaluator", metrics: Dict[str, Any]) -> None:
         from sentence_transformers.evaluation import SequentialEvaluator
 
         self.eval_results_dict[evaluator] = copy(metrics)
@@ -893,7 +893,7 @@ class SentenceTransformerModelCardData(CardData):
             "explain_bold_in_eval": "**" in eval_lines,
         }
 
-    def get_codecarbon_data(self):
+    def get_codecarbon_data(self) -> Dict[Literal["co2_eq_emissions"], Dict[str, Any]]:
         emissions_data = self.code_carbon_callback.tracker._prepare_emissions_data()
         results = {
             "co2_eq_emissions": {

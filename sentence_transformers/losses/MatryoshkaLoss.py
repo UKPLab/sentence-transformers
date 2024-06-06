@@ -11,7 +11,7 @@ from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import Cach
 
 
 class ForwardDecorator:
-    def __init__(self, fn):
+    def __init__(self, fn) -> None:
         self.fn = fn
 
         self.dim = None
@@ -19,7 +19,7 @@ class ForwardDecorator:
         self.cache_dim = None
         self.idx = 0
 
-    def set_dim(self, dim):
+    def set_dim(self, dim) -> None:
         self.dim = dim
         self.idx = 0
 
@@ -33,7 +33,7 @@ class ForwardDecorator:
         tensor = F.normalize(tensor, p=2, dim=-1)
         return tensor
 
-    def __call__(self, features):
+    def __call__(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
         # Growing cache:
         if self.cache_dim is None or self.cache_dim == self.dim:
             output = self.fn(features)
