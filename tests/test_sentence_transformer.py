@@ -630,7 +630,7 @@ def test_override_config_versions(stsb_bert_tiny_model: SentenceTransformer) -> 
         ],
         [
             Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
-            WeightedLayerPooling(128, 128, layer_start=1),
+            WeightedLayerPooling(128, num_hidden_layers=2, layer_start=1),
             Pooling(128, "mean"),
         ],
         SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency"),

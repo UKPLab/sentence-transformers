@@ -31,7 +31,7 @@ class WeightedLayerPooling(nn.Module):
         all_layer_embedding = torch.stack(ft_all_layers)
         all_layer_embedding = all_layer_embedding[self.layer_start :, :, :, :]  # Start from 4th layers output
 
-        weight_factor = self.layer_weights.reshape(1, 1, 1, all_layer_embedding.shape[-1])
+        weight_factor = self.layer_weights.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).expand(all_layer_embedding.size())
         weighted_average = (weight_factor * all_layer_embedding).sum(dim=0) / self.layer_weights.sum()
 
         features.update({"token_embeddings": weighted_average})
