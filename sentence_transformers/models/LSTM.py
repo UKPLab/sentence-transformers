@@ -3,6 +3,8 @@ import os
 from typing import List
 
 import torch
+from safetensors.torch import load_model as load_safetensors_model
+from safetensors.torch import save_model as save_safetensors_model
 from torch import nn
 
 
@@ -56,11 +58,16 @@ class LSTM(nn.Module):
     def tokenize(self, text: str, **kwargs) -> List[int]:
         raise NotImplementedError()
 
-    def save(self, output_path: str):
+    def save(self, output_path: str, safe_serialization: bool = True):
         with open(os.path.join(output_path, "lstm_config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut, indent=2)
 
-        torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
+        device = next(self.parameters()).device
+        if safe_serialization:
+            save_safetensors_model(self.cpu(), os.path.join(output_path, "model.safetensors"))
+            self.to(device)
+        else:
+            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}
@@ -70,7 +77,11 @@ class LSTM(nn.Module):
         with open(os.path.join(input_path, "lstm_config.json"), "r") as fIn:
             config = json.load(fIn)
 
-        weights = torch.load(os.path.join(input_path, "pytorch_model.bin"))
         model = LSTM(**config)
-        model.load_state_dict(weights)
+        if os.path.exists(os.path.join(input_path, "model.safetensors")):
+            load_safetensors_model(model, os.path.join(input_path, "model.safetensors"))
+        else:
+            model.load_state_dict(
+                torch.load(os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"))
+            )
         return model
