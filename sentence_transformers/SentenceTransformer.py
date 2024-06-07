@@ -1032,9 +1032,10 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 model_path = os.path.join(path, str(idx) + "_" + type(module).__name__)
 
             os.makedirs(model_path, exist_ok=True)
-            if isinstance(module, Transformer):
+            # Try to save with safetensors, but fall back to the traditional PyTorch way if the module doesn't support it
+            try:
                 module.save(model_path, safe_serialization=safe_serialization)
-            else:
+            except TypeError:
                 module.save(model_path)
 
             modules_config.append(

@@ -3,6 +3,8 @@ import os
 from typing import Dict
 
 import torch
+from safetensors.torch import load_model as load_safetensors_model
+from safetensors.torch import save_model as save_safetensors_model
 from torch import Tensor, nn
 
 from sentence_transformers.util import fullname, import_from_string
@@ -61,11 +63,14 @@ class Dense(nn.Module):
             "activation_function": fullname(self.activation_function),
         }
 
-    def save(self, output_path):
+    def save(self, output_path, safe_serialization: bool = True) -> None:
         with open(os.path.join(output_path, "config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut)
 
-        torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
+        if safe_serialization:
+            save_safetensors_model(self, os.path.join(output_path, "model.safetensors"))
+        else:
+            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
 
     def __repr__(self):
         return "Dense({})".format(self.get_config_dict())
@@ -77,7 +82,10 @@ class Dense(nn.Module):
 
         config["activation_function"] = import_from_string(config["activation_function"])()
         model = Dense(**config)
-        model.load_state_dict(
-            torch.load(os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"))
-        )
+        if os.path.exists(os.path.join(input_path, "model.safetensors")):
+            load_safetensors_model(model, os.path.join(input_path, "model.safetensors"))
+        else:
+            model.load_state_dict(
+                torch.load(os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"))
+            )
         return model
