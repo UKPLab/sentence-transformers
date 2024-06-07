@@ -223,7 +223,7 @@ class SentenceTransformerTrainer(Trainer):
         else:
             self.loss = self.prepare_loss(loss, model)
         # If evaluator is a list, we wrap it in a SequentialEvaluator
-        if not isinstance(evaluator, SentenceEvaluator):
+        if evaluator is not None and not isinstance(evaluator, SentenceEvaluator):
             evaluator = SequentialEvaluator(evaluator)
         self.evaluator = evaluator
 
