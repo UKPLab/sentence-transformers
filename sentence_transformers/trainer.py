@@ -197,7 +197,13 @@ class SentenceTransformerTrainer(Trainer):
             optimizers=optimizers,
             preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         )
+        # Every Sentence Transformer model can always return a loss, so we set this to True
+        # to avoid having to specify it in the data collator or model's forward
+        self.can_return_loss = True
+
         self.model: SentenceTransformer
+        self.args: SentenceTransformerTrainingArguments
+        self.data_collator: SentenceTransformerDataCollator
         # Set the W&B project via environment variables if it's not already set
         if any([isinstance(callback, WandbCallback) for callback in self.callback_handler.callbacks]):
             os.environ.setdefault("WANDB_PROJECT", "sentence-transformers")
