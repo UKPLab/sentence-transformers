@@ -19,7 +19,7 @@ class SentenceTransformerDataCollator:
         columns = list(features[0].keys())
 
         # We should always be able to return a loss, label or not:
-        batch = {"return_loss": True}
+        batch = {}
 
         if "dataset_name" in columns:
             columns.remove("dataset_name")
