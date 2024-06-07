@@ -330,7 +330,7 @@ class SentenceTransformerTrainer(Trainer):
         if return_outputs:
             # During prediction/evaluation, `compute_loss` will be called with `return_outputs=True`.
             # However, Sentence Transformer losses do not return outputs, so we return an empty dictionary.
-            # This does not result in any problems, as the SentenceTransformersTrainingArguments sets
+            # This does not result in any problems, as the SentenceTransformerTrainingArguments sets
             # `prediction_loss_only=True` which means that the output is not used.
             return loss, {}
         return loss

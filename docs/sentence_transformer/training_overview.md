@@ -200,7 +200,7 @@ Most loss functions can be initialized with just the :class:`SentenceTransformer
 ## Training Arguments
 
 ```eval_rst
-The :class:`~sentence_transformers.training_args.SentenceTransformersTrainingArguments` class can be used to specify parameters for influencing training performance as well as defining the tracking/debugging parameters. Although it is optional, it is heavily recommended to experiment with the various useful arguments.
+The :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` class can be used to specify parameters for influencing training performance as well as defining the tracking/debugging parameters. Although it is optional, it is heavily recommended to experiment with the various useful arguments.
 ```
 
 The following are tables with some of the most useful training arguments.
@@ -248,7 +248,7 @@ The following are tables with some of the most useful training arguments.
 <br>
 
 ```eval_rst
-Here is an example of how :class:`~sentence_transformers.training_args.SentenceTransformersTrainingArguments` can be initialized:
+Here is an example of how :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` can be initialized:
 ```
 
 ```python
@@ -501,7 +501,7 @@ The top performing models are trained using many datasets at once. Normally, thi
 - Use a dictionary of :class:`~datasets.Dataset` instances (or a :class:`~datasets.DatasetDict`) as the ``train_dataset`` and ``eval_dataset``.
 - (Optional) Use a dictionary of loss functions mapping dataset names to losses. Only required if you wish to use different loss function for different datasets.
 
-Each training/evaluation batch will only contain samples from one of the datasets. The order in which batches are samples from the multiple datasets is defined by the :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers` enum, which can be passed to the :class:`~sentence_transformers.training_args.SentenceTransformersTrainingArguments` via ``multi_dataset_batch_sampler``. Valid options are:
+Each training/evaluation batch will only contain samples from one of the datasets. The order in which batches are samples from the multiple datasets is defined by the :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers` enum, which can be passed to the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` via ``multi_dataset_batch_sampler``. Valid options are:
 
 - ``MultiDatasetBatchSamplers.ROUND_ROBIN``: Round-robin sampling from each dataset until one is exhausted. With this strategy, it’s likely that not all samples from each dataset are used, but each dataset is sampled from equally.
 - ``MultiDatasetBatchSamplers.PROPORTIONAL`` (default): Sample from each dataset in proportion to its size. With this strategy, all samples from each dataset are used and larger datasets are sampled from more frequently.
