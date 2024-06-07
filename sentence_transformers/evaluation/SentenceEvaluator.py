@@ -52,7 +52,7 @@ class SentenceEvaluator:
         """
         pass
 
-    def prefix_name_to_metrics(self, metrics: Dict[str, float], name: str):
+    def prefix_name_to_metrics(self, metrics: Dict[str, float], name: str) -> Dict[str, float]:
         if not name:
             return metrics
         metrics = {name + "_" + key: value for key, value in metrics.items()}

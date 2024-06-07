@@ -15,9 +15,19 @@ import numpy as np
 import pytest
 import torch
 from huggingface_hub import GitRefInfo, GitRefs, HfApi, RepoUrl
+from torch import nn
 
 from sentence_transformers import SentenceTransformer, util
-from sentence_transformers.models import Normalize, Pooling, Transformer
+from sentence_transformers.models import (
+    CNN,
+    LSTM,
+    Dense,
+    LayerNorm,
+    Normalize,
+    Pooling,
+    Transformer,
+    WeightedLayerPooling,
+)
 from sentence_transformers.similarity_functions import SimilarityFunction
 
 
@@ -564,3 +574,85 @@ def test_similarity_score_save(stsb_bert_tiny_model: SentenceTransformer) -> Non
     assert loaded_model.similarity_fn_name == "euclidean"
     dot_scores = model.similarity(embeddings, embeddings)
     assert np.not_equal(cosine_scores, dot_scores).all()
+
+
+def test_model_card_save_update_model_id(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+    # Removing the saved model card will cause a fresh one to be generated when we save
+    model._model_card_text = ""
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model.save(tmp_folder)
+        with open(Path(tmp_folder) / "README.md", "r", encoding="utf8") as f:
+            model_card_text = f.read()
+            assert 'model = SentenceTransformer("sentence_transformers_model_id"' in model_card_text
+
+        # When we reload this saved model and then re-save it, we want to override the 'sentence_transformers_model_id'
+        # if we have it set
+        loaded_model = SentenceTransformer(tmp_folder)
+
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        loaded_model.save(tmp_folder, model_name="test_user/test_model")
+
+        with open(Path(tmp_folder) / "README.md", "r", encoding="utf8") as f:
+            model_card_text = f.read()
+            assert 'model = SentenceTransformer("test_user/test_model"' in model_card_text
+
+
+def test_override_config_versions(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+
+    assert model._model_config["__version__"]["sentence_transformers"] == "2.2.2"
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model.save(tmp_folder)
+        loaded_model = SentenceTransformer(tmp_folder)
+    # Verify that the version has now been updated when saving the model again
+    assert loaded_model._model_config["__version__"]["sentence_transformers"] != "2.2.2"
+
+
+@pytest.mark.parametrize(
+    "modules",
+    [
+        [
+            Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
+            Pooling(128, "mean"),
+            Dense(128, 128),
+        ],
+        [Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"), CNN(128, 128), Pooling(128, "mean")],
+        [
+            Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
+            Pooling(128, "mean"),
+            LayerNorm(128),
+        ],
+        [
+            SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency")[0],
+            LSTM(300, 128),
+            Pooling(128, "mean"),
+        ],
+        [
+            Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
+            WeightedLayerPooling(128, num_hidden_layers=2, layer_start=1),
+            Pooling(128, "mean"),
+        ],
+        SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency"),
+    ],
+)
+def test_safetensors(modules: Union[List[nn.Module], SentenceTransformer]) -> None:
+    if isinstance(modules, SentenceTransformer):
+        model = modules
+    else:
+        # output_hidden_states must be True for WeightedLayerPooling
+        if isinstance(modules[1], WeightedLayerPooling):
+            modules[0].auto_model.config.output_hidden_states = True
+        model = SentenceTransformer(modules=modules)
+    original_embedding = model.encode("Hello, World!")
+
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        model.save(tmp_folder)
+        # Ensure that we only have the safetensors file and no pytorch_model.bin
+        assert list(Path(tmp_folder).rglob("**/model.safetensors"))
+        assert not list(Path(tmp_folder).rglob("**/pytorch_model.bin"))
+
+        # Ensure that we can load the model again and get the same embeddings
+        loaded_model = SentenceTransformer(tmp_folder)
+        loaded_embedding = loaded_model.encode("Hello, World!")
+        assert np.allclose(original_embedding, loaded_embedding)

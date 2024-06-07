@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict
+from typing import Any, Dict
 
 import torch
 from torch import Tensor, nn
@@ -107,7 +107,7 @@ class Pooling(nn.Module):
         )
         self.pooling_output_dimension = pooling_mode_multiplier * word_embedding_dimension
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Pooling({})".format(self.get_config_dict())
 
     def get_pooling_mode_str(self) -> str:
@@ -128,7 +128,7 @@ class Pooling(nn.Module):
 
         return "+".join(modes)
 
-    def forward(self, features: Dict[str, Tensor]):
+    def forward(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
         token_embeddings = features["token_embeddings"]
         attention_mask = features["attention_mask"]
         if not self.include_prompt and "prompt_length" in features:
@@ -223,18 +223,18 @@ class Pooling(nn.Module):
         features["sentence_embedding"] = output_vector
         return features
 
-    def get_sentence_embedding_dimension(self):
+    def get_sentence_embedding_dimension(self) -> int:
         return self.pooling_output_dimension
 
-    def get_config_dict(self):
+    def get_config_dict(self) -> Dict[str, Any]:
         return {key: self.__dict__[key] for key in self.config_keys}
 
-    def save(self, output_path):
+    def save(self, output_path) -> None:
         with open(os.path.join(output_path, "config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut, indent=2)
 
     @staticmethod
-    def load(input_path):
+    def load(input_path) -> "Pooling":
         with open(os.path.join(input_path, "config.json")) as fIn:
             config = json.load(fIn)
 

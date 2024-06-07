@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Dict, Iterable
+from typing import Callable, Dict, Iterable, Tuple, Union
 
 import torch
 from torch import Tensor, nn
@@ -19,7 +19,7 @@ class SoftmaxLoss(nn.Module):
         concatenation_sent_difference: bool = True,
         concatenation_sent_multiplication: bool = False,
         loss_fct: Callable = nn.CrossEntropyLoss(),
-    ):
+    ) -> None:
         """
         This loss was used in our SBERT publication (https://arxiv.org/abs/1908.10084) to train the SentenceTransformer
         model on NLI data. It adds a softmax classifier on top of the output of two transformer networks.
@@ -101,7 +101,9 @@ class SoftmaxLoss(nn.Module):
         )
         self.loss_fct = loss_fct
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(
+        self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor
+    ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         rep_a, rep_b = reps
 

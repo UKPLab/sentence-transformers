@@ -27,10 +27,10 @@ from transformers.trainer_callback import TrainerControl, TrainerState
 from sentence_transformers import __version__ as sentence_transformers_version
 from sentence_transformers.models import Transformer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
-from sentence_transformers.util import cos_sim, fullname, is_accelerate_available, is_datasets_available
+from sentence_transformers.util import fullname, is_accelerate_available, is_datasets_available
 
 if is_datasets_available():
-    from datasets import Dataset, DatasetDict
+    from datasets import Dataset, DatasetDict, Value
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +55,7 @@ class ModelCardCallback(TrainerCallback):
             trainer.model.model_card_data.code_carbon_callback = callbacks[0]
 
         trainer.model.model_card_data.trainer = trainer
+        trainer.model.model_card_data.add_tags("generated_from_trainer")
 
     def on_init_end(
         self,
@@ -63,7 +64,7 @@ class ModelCardCallback(TrainerCallback):
         control: TrainerControl,
         model: "SentenceTransformer",
         **kwargs,
-    ):
+    ) -> None:
         from sentence_transformers.losses import AdaptiveLayerLoss, Matryoshka2dLoss, MatryoshkaLoss
 
         # Try to infer the dataset "name", "id" and "revision" from the dataset cache files
@@ -171,7 +172,7 @@ class ModelCardCallback(TrainerCallback):
         model: "SentenceTransformer",
         logs: Dict[str, float],
         **kwargs,
-    ):
+    ) -> None:
         keys = {"loss"} & set(logs)
         if keys:
             if (
@@ -247,7 +248,6 @@ class SentenceTransformerModelCardData(CardData):
             e.g. "semantic textual similarity, semantic search, paraphrase mining, text classification, clustering, and more".
         tags (`Optional[List[str]]`): A list of tags for the model,
             e.g. ["sentence-transformers", "sentence-similarity", "feature-extraction"].
-        generate_widget_examples (`bool`): Whether to generate widget examples on every model save.
 
     .. tip::
 
@@ -285,7 +285,7 @@ class SentenceTransformerModelCardData(CardData):
             "feature-extraction",
         ]
     )
-    generate_widget_examples: bool = True
+    generate_widget_examples: Literal["deprecated"] = "deprecated"
 
     # Automatically filled by `ModelCardCallback` and the Trainer directly
     base_model: Optional[str] = field(default=None, init=False)
@@ -301,6 +301,7 @@ class SentenceTransformerModelCardData(CardData):
     citations: Dict[str, str] = field(default_factory=dict, init=False)
     best_model_step: Optional[int] = field(default=None, init=False)
     trainer: Optional["SentenceTransformerTrainer"] = field(default=None, init=False, repr=False)
+    datasets: List[str] = field(default_factory=list, init=False, repr=False)
 
     # Utility fields
     first_save: bool = field(default=True, init=False)
@@ -314,7 +315,7 @@ class SentenceTransformerModelCardData(CardData):
     # Passed via `register_model` only
     model: Optional["SentenceTransformer"] = field(default=None, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # We don't want to save "ignore_metadata_errors" in our Model Card
         infer_languages = not self.language
         if isinstance(self.language, str):
@@ -357,10 +358,14 @@ class SentenceTransformerModelCardData(CardData):
                             if language not in self.language:
                                 self.language.append(language)
 
+                    # Track dataset IDs for the metadata
+                    if info.id not in self.datasets:
+                        self.datasets.append(info.id)
+
             output_dataset_list.append(dataset)
         return output_dataset_list
 
-    def set_losses(self, losses: nn.Module) -> None:
+    def set_losses(self, losses: List[nn.Module]) -> None:
         citations = {
             "Sentence Transformers": """
 @inproceedings{reimers-2019-sentence-bert,
@@ -389,7 +394,7 @@ class SentenceTransformerModelCardData(CardData):
             return losses[0]
 
         self.citations = {join_list(losses): citation for citation, losses in inverted_citations.items()}
-        self.tags += [f"loss:{loss}" for loss in {loss.__class__.__name__: loss for loss in losses}]
+        self.add_tags([f"loss:{loss}" for loss in {loss.__class__.__name__: loss for loss in losses}])
 
     def set_best_model_step(self, step: int) -> None:
         self.best_model_step = step
@@ -399,49 +404,53 @@ class SentenceTransformerModelCardData(CardData):
             dataset = DatasetDict(dataset=dataset)
 
         self.widget = []
-        # Sample the datasets to use for the widget
-        dataset_names = random.choices(list(dataset.keys()), k=5)
-        num_samples = 1000
-        num_samples_to_encode = 500
-        source_sentences = set()
-        for dataset_name in tqdm(dataset_names, desc="Computing widget examples", unit="example", leave=False):
-            # Sample 1000 examples from the dataset, get the 500 shortest texts and encode them
-            dataset_size = len(dataset[dataset_name])
-            samples = dataset[dataset_name].select(
-                random.sample(range(dataset_size), k=min(num_samples, dataset_size))
-            )
-            all_texts = {
-                value
-                for sample in samples
-                for key, value in sample.items()
-                if isinstance(value, str) and value not in source_sentences and key != "dataset_name"
-            }
-            if len(all_texts) < 5:
-                continue
-
-            all_texts = sorted(all_texts, key=len)[:num_samples_to_encode]
-            embeddings = self.model.encode(all_texts, show_progress_bar=False)
-
-            # Select a relatively short example from the dataset as the source,
-            # and find the most similar, median, and dissimilar examples
-            source_sentence_idx, source_sentence = sorted(list(enumerate(all_texts)), key=lambda x: len(x[1]))[
-                min(len(all_texts) - 1, 10)
+        # Pick 5 random datasets to generate widget examples from
+        dataset_names = Counter(random.choices(list(dataset.keys()), k=5))
+        num_samples_to_check = 1000
+        for dataset_name, num_samples in tqdm(
+            dataset_names.items(), desc="Computing widget examples", unit="example", leave=False
+        ):
+            # Sample 1000 examples from the dataset, sort them by length, and pick the shortest examples as the core
+            # examples for the widget
+            columns = [
+                column
+                for column, feature in dataset[dataset_name].features.items()
+                if isinstance(feature, Value) and feature.dtype == "string" and column != "dataset_name"
             ]
-            _, indices = cos_sim(embeddings[source_sentence_idx], embeddings)[0].sort()
-            similar_sentence = all_texts[indices[-2]]
-            median_sentence = all_texts[len(all_texts) // 2]
-            dissimilar_sentence = all_texts[indices[0]]
-            self.widget.append(
-                {
-                    "source_sentence": source_sentence,
-                    "sentences": [similar_sentence, median_sentence, dissimilar_sentence],
-                }
-            )
-            source_sentences.add(source_sentence)
+            str_dataset = dataset[dataset_name].select_columns(columns)
+            dataset_size = len(str_dataset)
+            lengths = {}
+            for idx, sample in enumerate(
+                str_dataset.select(random.sample(range(dataset_size), k=min(num_samples_to_check, dataset_size)))
+            ):
+                lengths[idx] = sum(len(value) for value in sample.values())
 
-            self.predict_example = [source_sentence, similar_sentence, median_sentence]
+            indices, _ = zip(*sorted(lengths.items(), key=lambda x: x[1]))
+            target_indices, backup_indices = indices[:num_samples], list(indices[num_samples:][::-1])
 
-    def set_evaluation_metrics(self, evaluator: "SentenceEvaluator", metrics: Dict[str, Any]):
+            # We want 4 texts, so we take texts from the backup indices, short texts first
+            for idx in target_indices:
+                # This is anywhere between 1 and n texts
+                sentences = list(str_dataset[idx].values())
+                while len(sentences) < 4 and backup_indices:
+                    backup_idx = backup_indices.pop()
+                    backup_sample = list(str_dataset[backup_idx].values())
+                    if len(backup_sample) == 1:
+                        # If there is only one text in the backup sample, we take it
+                        sentences.extend(backup_sample)
+                    else:
+                        # Otherwise we prefer the 2nd text: the 1st can be another query
+                        sentences.append(backup_sample[1])
+
+                if len(sentences) < 4:
+                    continue
+
+                self.widget.append(
+                    {"source_sentence": sentences[0], "sentences": random.sample(sentences[1:], k=len(sentences) - 1)}
+                )
+                self.predict_example = sentences[:3]
+
+    def set_evaluation_metrics(self, evaluator: "SentenceEvaluator", metrics: Dict[str, Any]) -> None:
         from sentence_transformers.evaluation import SequentialEvaluator
 
         self.eval_results_dict[evaluator] = copy(metrics)
@@ -702,27 +711,9 @@ class SentenceTransformerModelCardData(CardData):
         if dataset_type == "train":
             num_training_samples = sum([metadata.get("size", 0) for metadata in dataset_metadata])
             if num_training_samples:
-                self.tags += ["dataset_size:" + self.num_training_samples_to_tag(num_training_samples)]
+                self.add_tags(f"dataset_size:{num_training_samples}")
 
         return self.validate_datasets(dataset_metadata)
-
-    def num_training_samples_to_tag(self, num_samples: int) -> str:
-        sizes_mapping = {
-            1_000: "n<1K",
-            10_000: "1K<n<10K",
-            100_000: "10K<n<100K",
-            1_000_000: "100K<n<1M",
-            10_000_000: "1M<n<10M",
-            100_000_000: "10M<n<100M",
-            1_000_000_000: "100M<n<1B",
-            10_000_000_000: "1B<n<10B",
-            100_000_000_000: "10B<n<100B",
-            1_000_000_000_000: "100B<n<1T",
-        }
-        for size, tag in sizes_mapping.items():
-            if num_samples < size:
-                return tag
-        return "n>1T"
 
     def register_model(self, model: "SentenceTransformer") -> None:
         self.model = model
@@ -741,6 +732,21 @@ class SentenceTransformerModelCardData(CardData):
             revision = model_info.sha
         self.base_model_revision = revision
         return True
+
+    def set_language(self, language: Union[str, List[str]]) -> None:
+        if isinstance(language, str):
+            language = [language]
+        self.language = language
+
+    def set_license(self, license: str) -> None:
+        self.license = license
+
+    def add_tags(self, tags: Union[str, List[str]]) -> None:
+        if isinstance(tags, str):
+            tags = [tags]
+        for tag in tags:
+            if tag not in self.tags:
+                self.tags.append(tag)
 
     def try_to_set_base_model(self) -> None:
         if isinstance(self.model[0], Transformer):
@@ -869,7 +875,7 @@ class SentenceTransformerModelCardData(CardData):
             "explain_bold_in_eval": "**" in eval_lines,
         }
 
-    def get_codecarbon_data(self):
+    def get_codecarbon_data(self) -> Dict[Literal["co2_eq_emissions"], Dict[str, Any]]:
         emissions_data = self.code_carbon_callback.tracker._prepare_emissions_data()
         results = {
             "co2_eq_emissions": {
@@ -890,10 +896,12 @@ class SentenceTransformerModelCardData(CardData):
 
     def to_dict(self) -> Dict[str, Any]:
         # Extract some meaningful examples from the evaluation or training dataset to showcase the performance
-        if self.trainer and self.widget_step < self.trainer.state.global_step and self.generate_widget_examples:
-            if dataset := self.trainer.eval_dataset or self.trainer.train_dataset:
-                self.set_widget_examples(dataset)
-                self.widget_step = self.trainer.state.global_step
+        if (
+            not self.widget
+            and self.trainer is not None
+            and (dataset := self.trainer.eval_dataset or self.trainer.train_dataset)
+        ):
+            self.set_widget_examples(dataset)
 
         # Try to set the base model
         if self.first_save and not self.base_model:

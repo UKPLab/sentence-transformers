@@ -6,7 +6,7 @@ with open("README.md", mode="r", encoding="utf-8") as readme_file:
 
 setup(
     name="sentence-transformers",
-    version="3.0.0",
+    version="3.0.1",
     author="Nils Reimers, Tom Aarsen",
     author_email="info@nils-reimers.de",
     description="Multilingual text embeddings",

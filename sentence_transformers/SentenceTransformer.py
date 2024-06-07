@@ -10,8 +10,9 @@ import traceback
 import warnings
 from collections import OrderedDict
 from contextlib import contextmanager
+from multiprocessing import Queue
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union, overload
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Literal, Optional, Tuple, Union, overload
 
 import numpy as np
 import torch
@@ -159,7 +160,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         tokenizer_kwargs: Optional[Dict[str, Any]] = None,
         config_kwargs: Optional[Dict[str, Any]] = None,
         model_card_data: Optional[SentenceTransformerModelCardData] = None,
-    ):
+    ) -> None:
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
@@ -689,7 +690,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             self.similarity_fn_name = SimilarityFunction.COSINE
         return self._similarity_pairwise
 
-    def start_multi_process_pool(self, target_devices: List[str] = None) -> Dict[str, Any]:
+    def start_multi_process_pool(
+        self, target_devices: List[str] = None
+    ) -> Dict[Literal["input", "output", "processes"], Any]:
         """
         Starts a multi-process pool to process the encoding with several independent processes
         via :meth:`SentenceTransformer.encode_multi_process <sentence_transformers.SentenceTransformer.encode_multi_process>`.
@@ -737,7 +740,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return {"input": input_queue, "output": output_queue, "processes": processes}
 
     @staticmethod
-    def stop_multi_process_pool(pool):
+    def stop_multi_process_pool(pool: Dict[Literal["input", "output", "processes"], Any]) -> None:
         """
         Stops all processes started with start_multi_process_pool.
 
@@ -760,7 +763,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     def encode_multi_process(
         self,
         sentences: List[str],
-        pool: Dict[str, object],
+        pool: Dict[Literal["input", "output", "processes"], Any],
         prompt_name: Optional[str] = None,
         prompt: Optional[str] = None,
         batch_size: int = 32,
@@ -776,7 +779,8 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         Args:
             sentences (List[str]): List of sentences to encode.
-            pool (Dict[str, object]): A pool of workers started with SentenceTransformer.start_multi_process_pool.
+            pool (Dict[Literal["input", "output", "processes"], Any]): A pool of workers started with
+                :meth:`SentenceTransformer.start_multi_process_pool <sentence_transformers.SentenceTransformer.start_multi_process_pool>`.
             prompt_name (Optional[str], optional): The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
                 which is either set in the constructor or loaded from the model configuration. For example if
                 ``prompt_name`` is "query" and the ``prompts`` is {"query": "query: ", ...}, then the sentence "What
@@ -847,7 +851,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return embeddings
 
     @staticmethod
-    def _encode_multi_process_worker(target_device: str, model, input_queue, results_queue):
+    def _encode_multi_process_worker(
+        target_device: str, model: "SentenceTransformer", input_queue: Queue, results_queue: Queue
+    ) -> None:
         """
         Internal working process to encode sentences in multi-process setup
         """
@@ -915,7 +921,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         """
         return self._first_module().tokenize(texts)
 
-    def get_sentence_features(self, *features):
+    def get_sentence_features(self, *features) -> Dict[Literal["sentence_embedding"], torch.Tensor]:
         return self._first_module().get_sentence_features(*features)
 
     def get_sentence_embedding_dimension(self) -> Optional[int]:
@@ -938,7 +944,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return output_dim
 
     @contextmanager
-    def truncate_sentence_embeddings(self, truncate_dim: Optional[int]):
+    def truncate_sentence_embeddings(self, truncate_dim: Optional[int]) -> Iterator[None]:
         """
         In this context, :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>` outputs
         sentence embeddings truncated at dimension ``truncate_dim``.
@@ -967,11 +973,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         finally:
             self.truncate_dim = original_output_dim
 
-    def _first_module(self):
+    def _first_module(self) -> torch.nn.Module:
         """Returns the first module of this sequential embedder"""
         return self._modules[next(iter(self._modules))]
 
-    def _last_module(self):
+    def _last_module(self) -> torch.nn.Module:
         """Returns the last module of this sequential embedder"""
         return self._modules[next(reversed(self._modules))]
 
@@ -982,7 +988,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         create_model_card: bool = True,
         train_datasets: Optional[List[str]] = None,
         safe_serialization: bool = True,
-    ):
+    ) -> None:
         """
         Saves a model and its configuration files to a directory, so that it can be loaded
         with ``SentenceTransformer(path)`` again.
@@ -1004,12 +1010,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         modules_config = []
 
         # Save some model info
-        if "__version__" not in self._model_config:
-            self._model_config["__version__"] = {
-                "sentence_transformers": __version__,
-                "transformers": transformers.__version__,
-                "pytorch": torch.__version__,
-            }
+        self._model_config["__version__"] = {
+            "sentence_transformers": __version__,
+            "transformers": transformers.__version__,
+            "pytorch": torch.__version__,
+        }
 
         with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
             config = self._model_config.copy()
@@ -1027,9 +1032,10 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 model_path = os.path.join(path, str(idx) + "_" + type(module).__name__)
 
             os.makedirs(model_path, exist_ok=True)
-            if isinstance(module, Transformer):
+            # Try to save with safetensors, but fall back to the traditional PyTorch way if the module doesn't support it
+            try:
                 module.save(model_path, safe_serialization=safe_serialization)
-            else:
+            except TypeError:
                 module.save(model_path)
 
             modules_config.append(
@@ -1050,7 +1056,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         create_model_card: bool = True,
         train_datasets: Optional[List[str]] = None,
         safe_serialization: bool = True,
-    ):
+    ) -> None:
         """
         Saves a model and its configuration files to a directory, so that it can be loaded
         with ``SentenceTransformer(path)`` again.
@@ -1073,7 +1079,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     def _create_model_card(
         self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = "deprecated"
-    ):
+    ) -> None:
         """
         Create an automatic model and stores it in the specified path. If no training was done and the loaded model
         was a Sentence Transformer model already, then its model card is reused.
@@ -1095,6 +1101,12 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # we don't generate a new model card, but reuse the old one instead.
         if self._model_card_text and self.model_card_data.trainer is None:
             model_card = self._model_card_text
+            if self.model_card_data.model_id:
+                # If the original model card was saved without a model_id, we replace the model_id with the new model_id
+                model_card = model_card.replace(
+                    'model = SentenceTransformer("sentence_transformers_model_id"',
+                    f'model = SentenceTransformer("{self.model_card_data.model_id}"',
+                )
         else:
             try:
                 model_card = generate_model_card(self)
@@ -1235,7 +1247,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # This isn't expected to ever be reached.
         return folder_url
 
-    def _text_length(self, text: Union[List[int], List[List[int]]]):
+    def _text_length(self, text: Union[List[int], List[List[int]]]) -> int:
         """
         Help function to get the length for the input text. Text can be either
         a list of ints (which means a single text as input), or a tuple of list of ints
@@ -1251,7 +1263,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         else:
             return sum([len(t) for t in text])  # Sum of length of individual strings
 
-    def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
+    def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None) -> Union[Dict[str, float], float]:
         """
         Evaluate the model based on an evaluator
 
@@ -1499,7 +1511,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return modules
 
     @staticmethod
-    def load(input_path):
+    def load(input_path) -> "SentenceTransformer":
         return SentenceTransformer(input_path)
 
     @property
@@ -1525,14 +1537,14 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 return torch.device("cpu")
 
     @property
-    def tokenizer(self):
+    def tokenizer(self) -> Any:
         """
         Property to get the tokenizer that is used by this model
         """
         return self._first_module().tokenizer
 
     @tokenizer.setter
-    def tokenizer(self, value):
+    def tokenizer(self, value) -> None:
         """
         Property to set the tokenizer that should be used by this model
         """
@@ -1558,7 +1570,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return self._first_module().max_seq_length
 
     @max_seq_length.setter
-    def max_seq_length(self, value):
+    def max_seq_length(self, value) -> None:
         """
         Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
         """
@@ -1588,3 +1600,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             return self._first_module()._keys_to_ignore_on_save
         except AttributeError:
             return []
+
+    def gradient_checkpointing_enable(self, gradient_checkpointing_kwargs=None) -> None:
+        # Propagate the gradient checkpointing to the transformer model
+        for module in self:
+            if isinstance(module, Transformer):
+                return module.auto_model.gradient_checkpointing_enable(gradient_checkpointing_kwargs)

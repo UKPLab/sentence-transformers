@@ -70,13 +70,13 @@ class ContrastiveTensionLoss(nn.Module):
             )
     """
 
-    def __init__(self, model: SentenceTransformer):
+    def __init__(self, model: SentenceTransformer) -> None:
         super(ContrastiveTensionLoss, self).__init__()
         self.model2 = model  # This will be the final model used during the inference time.
         self.model1 = copy.deepcopy(model)
         self.criterion = nn.BCEWithLogitsLoss(reduction="sum")
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         sentence_features1, sentence_features2 = tuple(sentence_features)
         reps_1 = self.model1(sentence_features1)["sentence_embedding"]  # (bsz, hdim)
         reps_2 = self.model2(sentence_features2)["sentence_embedding"]
@@ -102,7 +102,7 @@ class ContrastiveTensionLoss(nn.Module):
 
 
 class ContrastiveTensionLossInBatchNegatives(nn.Module):
-    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim):
+    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim) -> None:
         """
         This loss expects only single sentences, without any labels. Positive and negative pairs are automatically created via random sampling,
         such that a positive pair consists of two identical sentences and a negative pair consists of two different sentences. An independent
@@ -170,7 +170,7 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
         self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(scale))
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         sentence_features1, sentence_features2 = tuple(sentence_features)
         embeddings_a = self.model1(sentence_features1)["sentence_embedding"]  # (bsz, hdim)
         embeddings_b = self.model2(sentence_features2)["sentence_embedding"]

@@ -47,8 +47,8 @@ class SequentialEvaluator(SentenceEvaluator):
                 scores.append(evaluation)
                 evaluation = {f"evaluator_{evaluator_idx}": evaluation}
             else:
-                if hasattr(evaluation, "primary_metric"):
-                    scores.append(evaluation[evaluation.primary_metric])
+                if hasattr(evaluator, "primary_metric"):
+                    scores.append(evaluation[evaluator.primary_metric])
                 else:
                     scores.append(evaluation[list(evaluation.keys())[0]])
 

@@ -11,7 +11,7 @@ from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDist
 class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
     def __init__(
         self, model: SentenceTransformer, distance_metric=BatchHardTripletLossDistanceFunction.eucledian_distance
-    ):
+    ) -> None:
         """
         BatchHardSoftMarginTripletLoss takes a batch with (sentence, label) pairs and computes the loss for all possible, valid
         triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. The labels
@@ -83,7 +83,7 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
         self.sentence_embedder = model
         self.distance_metric = distance_metric
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         rep = self.sentence_embedder(sentence_features[0])["sentence_embedding"]
         return self.batch_hard_triplet_soft_margin_loss(labels, rep)
 

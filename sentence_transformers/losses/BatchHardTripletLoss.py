@@ -11,12 +11,12 @@ class BatchHardTripletLossDistanceFunction:
     """This class defines distance functions, that can be used with Batch[All/Hard/SemiHard]TripletLoss"""
 
     @staticmethod
-    def cosine_distance(embeddings):
+    def cosine_distance(embeddings: Tensor) -> Tensor:
         """Compute the 2D matrix of cosine distances (1-cosine_similarity) between all embeddings."""
         return 1 - util.pytorch_cos_sim(embeddings, embeddings)
 
     @staticmethod
-    def eucledian_distance(embeddings, squared=False):
+    def eucledian_distance(embeddings: Tensor, squared=False) -> Tensor:
         """
         Compute the 2D matrix of eucledian distances between all the embeddings.
         Args:
@@ -59,7 +59,7 @@ class BatchHardTripletLoss(nn.Module):
         model: SentenceTransformer,
         distance_metric=BatchHardTripletLossDistanceFunction.eucledian_distance,
         margin: float = 5,
-    ):
+    ) -> None:
         """
         BatchHardTripletLoss takes a batch with (sentence, label) pairs and computes the loss for all possible, valid
         triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. It then looks
@@ -189,7 +189,7 @@ class BatchHardTripletLoss(nn.Module):
         return triplet_loss
 
     @staticmethod
-    def get_triplet_mask(labels):
+    def get_triplet_mask(labels: Tensor) -> Tensor:
         """Return a 3D mask where mask[a, p, n] is True iff the triplet (a, p, n) is valid.
         A triplet (i, j, k) is valid if:
             - i, j, k are distinct
@@ -215,7 +215,7 @@ class BatchHardTripletLoss(nn.Module):
         return valid_labels & distinct_indices
 
     @staticmethod
-    def get_anchor_positive_triplet_mask(labels):
+    def get_anchor_positive_triplet_mask(labels: Tensor) -> Tensor:
         """Return a 2D mask where mask[a, p] is True iff a and p are distinct and have same label.
         Args:
             labels: tf.int32 `Tensor` with shape [batch_size]
@@ -234,7 +234,7 @@ class BatchHardTripletLoss(nn.Module):
         return labels_equal & indices_not_equal
 
     @staticmethod
-    def get_anchor_negative_triplet_mask(labels):
+    def get_anchor_negative_triplet_mask(labels: Tensor) -> Tensor:
         """Return a 2D mask where mask[a, n] is True iff a and n have distinct labels.
         Args:
             labels: tf.int32 `Tensor` with shape [batch_size]

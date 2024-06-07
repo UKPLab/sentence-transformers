@@ -15,7 +15,7 @@ from transformers.trainer_utils import EvalLoopOutput
 from transformers.training_args import ParallelMode
 
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
-from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
 from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
 from sentence_transformers.model_card import ModelCardCallback
 from sentence_transformers.models.Transformer import Transformer
@@ -79,9 +79,12 @@ class SentenceTransformerTrainer(Trainer):
             dataset names to functions that return a loss class instance given a model. In practice, the latter two
             are primarily used for hyper-parameter optimization. Will default to
             :class:`~sentence_transformers.losses.CoSENTLoss` if no ``loss`` is provided.
-        evaluator (:class:`~sentence_transformers.evaluation.SentenceEvaluator`, *optional*):
-            The evaluator class to use for evaluation alongside the evaluation dataset. An evaluator will display more
-            useful metrics than the loss function.
+        evaluator (Union[:class:`~sentence_transformers.evaluation.SentenceEvaluator`,\
+            List[:class:`~sentence_transformers.evaluation.SentenceEvaluator`]], *optional*):
+            The evaluator instance for useful evaluation metrics during training. You can use an ``evaluator`` with
+            or without an ``eval_dataset``, and vice versa. Generally, the metrics that an ``evaluator`` returns
+            are more useful than the loss value returned from the ``eval_dataset``. A list of evaluators will be
+            wrapped in a :class:`~sentence_transformers.evaluation.SequentialEvaluator` to run them sequentially.
         callbacks (List of [:class:`transformers.TrainerCallback`], *optional*):
             A list of callbacks to customize the training loop. Will add those to the list of default callbacks
             detailed in [here](callback).
@@ -123,7 +126,7 @@ class SentenceTransformerTrainer(Trainer):
                 Dict[str, Callable[["SentenceTransformer"], torch.nn.Module]],
             ]
         ] = None,
-        evaluator: Optional[SentenceEvaluator] = None,
+        evaluator: Optional[Union[SentenceEvaluator, List[SentenceEvaluator]]] = None,
         data_collator: Optional[DataCollator] = None,
         tokenizer: Optional[Union[PreTrainedTokenizerBase, Callable]] = None,
         model_init: Optional[Callable[[], "SentenceTransformer"]] = None,
@@ -194,6 +197,13 @@ class SentenceTransformerTrainer(Trainer):
             optimizers=optimizers,
             preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         )
+        # Every Sentence Transformer model can always return a loss, so we set this to True
+        # to avoid having to specify it in the data collator or model's forward
+        self.can_return_loss = True
+
+        self.model: SentenceTransformer
+        self.args: SentenceTransformerTrainingArguments
+        self.data_collator: SentenceTransformerDataCollator
         # Set the W&B project via environment variables if it's not already set
         if any([isinstance(callback, WandbCallback) for callback in self.callback_handler.callbacks]):
             os.environ.setdefault("WANDB_PROJECT", "sentence-transformers")
@@ -218,6 +228,9 @@ class SentenceTransformerTrainer(Trainer):
                     )
         else:
             self.loss = self.prepare_loss(loss, model)
+        # If evaluator is a list, we wrap it in a SequentialEvaluator
+        if evaluator is not None and not isinstance(evaluator, SentenceEvaluator):
+            evaluator = SequentialEvaluator(evaluator)
         self.evaluator = evaluator
 
         # Add a callback responsible for automatically tracking data required for the automatic model card generation
@@ -250,7 +263,7 @@ class SentenceTransformerTrainer(Trainer):
             self.loss = self.override_model_in_loss(self.loss, model)
         return model
 
-    def override_model_in_loss(self, loss: torch.nn.Module, model: "SentenceTransformer"):
+    def override_model_in_loss(self, loss: torch.nn.Module, model: "SentenceTransformer") -> torch.nn.Module:
         from sentence_transformers import SentenceTransformer
 
         for name, child in loss.named_children():
@@ -264,7 +277,7 @@ class SentenceTransformerTrainer(Trainer):
         self,
         loss: Union[Callable[["SentenceTransformer"], torch.nn.Module], torch.nn.Module],
         model: "SentenceTransformer",
-    ):
+    ) -> torch.nn.Module:
         if isinstance(loss, torch.nn.Module):
             return loss.to(model.device)
         return loss(model).to(model.device)
@@ -317,7 +330,7 @@ class SentenceTransformerTrainer(Trainer):
         if return_outputs:
             # During prediction/evaluation, `compute_loss` will be called with `return_outputs=True`.
             # However, Sentence Transformer losses do not return outputs, so we return an empty dictionary.
-            # This does not result in any problems, as the SentenceTransformersTrainingArguments sets
+            # This does not result in any problems, as the SentenceTransformerTrainingArguments sets
             # `prediction_loss_only=True` which means that the output is not used.
             return loss, {}
         return loss
@@ -705,13 +718,13 @@ class SentenceTransformerTrainer(Trainer):
         self._train_dataloader = self.accelerator.prepare(DataLoader(test_dataset, **dataloader_params))
         return self._train_dataloader
 
-    def _save(self, output_dir: Optional[str] = None, state_dict=None):
+    def _save(self, output_dir: Optional[str] = None, state_dict=None) -> None:
         # If we are executing this function, we are the process zero, so we don't check for that.
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
 
-        self.model.save(output_dir, safe_serialization=self.args.save_safetensors)
+        self.model.save_pretrained(output_dir, safe_serialization=self.args.save_safetensors)
 
         if self.tokenizer is not None:
             self.tokenizer.save_pretrained(output_dir)
@@ -725,8 +738,27 @@ class SentenceTransformerTrainer(Trainer):
         loaded_model = SentenceTransformer(checkpoint_path)
         self.model.load_state_dict(loaded_model.state_dict())
 
-    def create_model_card(self, *args, **kwargs):
-        raise NotImplementedError(
-            "SentenceTransformers does not implement the `create_model_card` method in its Trainer. "
-            "Instead, consider calling SentenceTransformer._create_model_card(path)."
-        )
+    def create_model_card(
+        self,
+        language: Optional[str] = None,
+        license: Optional[str] = None,
+        tags: Union[str, List[str], None] = None,
+        model_name: Optional[str] = None,
+        finetuned_from: Optional[str] = None,
+        tasks: Union[str, List[str], None] = None,
+        dataset_tags: Union[str, List[str], None] = None,
+        dataset: Union[str, List[str], None] = None,
+        dataset_args: Union[str, List[str], None] = None,
+        **kwargs,
+    ) -> None:
+        if not self.is_world_process_zero():
+            return
+
+        if language:
+            self.model.model_card_data.set_language(language)
+        if license:
+            self.model.model_card_data.set_license(license)
+        if tags:
+            self.model.model_card_data.add_tags(tags)
+
+        self.model._create_model_card(self.args.output_dir, model_name=model_name)

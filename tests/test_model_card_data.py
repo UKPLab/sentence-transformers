@@ -1,6 +1,6 @@
 import pytest
 
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
 
 
 @pytest.mark.parametrize(
@@ -22,3 +22,11 @@ def test_model_card_data(revision, expected_base_revision) -> None:
         assert len(model.model_card_data.base_model_revision) == 40
     else:
         assert model.model_card_data.base_model_revision == expected_base_revision
+
+
+def test_generated_from_trainer_tag(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+
+    assert "generated_from_trainer" not in model.model_card_data.tags
+    SentenceTransformerTrainer(model)
+    assert "generated_from_trainer" in model.model_card_data.tags
