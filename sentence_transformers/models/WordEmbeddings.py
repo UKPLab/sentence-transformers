@@ -7,7 +7,7 @@ from typing import List
 import numpy as np
 import torch
 from safetensors.torch import load_file as load_safetensors_file
-from safetensors.torch import save_model as save_safetensors_model
+from safetensors.torch import save_file as save_safetensors_file
 from torch import nn
 from tqdm import tqdm
 
@@ -82,7 +82,7 @@ class WordEmbeddings(nn.Module):
             json.dump(self.get_config_dict(), fOut, indent=2)
 
         if safe_serialization:
-            save_safetensors_model(self, os.path.join(output_path, "model.safetensors"))
+            save_safetensors_file(self.state_dict(), os.path.join(output_path, "model.safetensors"))
         else:
             torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
         self.tokenizer.save(output_path)
