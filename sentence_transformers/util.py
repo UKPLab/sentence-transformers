@@ -6,7 +6,7 @@ import os
 import queue
 import sys
 from contextlib import contextmanager
-from typing import Callable, Dict, List, Literal, Optional, Union, overload
+from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union, overload
 
 import numpy as np
 import requests
@@ -508,7 +508,7 @@ def semantic_search(
     return queries_result_list
 
 
-def http_get(url, path) -> None:
+def http_get(url: str, path: str) -> None:
     """
     Downloads a URL to a given path on disk.
 
@@ -545,7 +545,7 @@ def http_get(url, path) -> None:
     progress.close()
 
 
-def batch_to_device(batch, target_device: device):
+def batch_to_device(batch: Dict[str, Any], target_device: device) -> Dict[str, Any]:
     """
     Send a PyTorch batch (i.e., a dictionary of string keys to Tensors) to a device (e.g. "cpu", "cuda", "mps").
 
@@ -590,7 +590,7 @@ def fullname(o) -> str:
         return module + "." + o.__class__.__name__
 
 
-def import_from_string(dotted_path):
+def import_from_string(dotted_path: str) -> Type:
     """
     Import a dotted module path and return the attribute/class designated by the
     last name in the path. Raise ImportError if the import failed.
@@ -844,7 +844,7 @@ def load_file_path(
             local_files_only=local_files_only,
         )
     except Exception:
-        return
+        return None
 
 
 def load_dir_path(

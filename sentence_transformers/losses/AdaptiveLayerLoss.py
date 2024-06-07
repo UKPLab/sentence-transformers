@@ -20,7 +20,7 @@ class TransformerDecorator:
     This is meant to override the forward function of the Transformer.
     """
 
-    def __init__(self, transformer: Transformer, original_forward):
+    def __init__(self, transformer: Transformer, original_forward) -> None:
         self.transformer = transformer
         self.original_forward = original_forward
         self.embeddings: List[Tuple[Tensor]] = []
@@ -29,14 +29,14 @@ class TransformerDecorator:
         self.layer_idx = None
         self.call_idx = 0
 
-    def set_layer_idx(self, layer_idx):
+    def set_layer_idx(self, layer_idx) -> None:
         self.layer_idx = layer_idx
         self.call_idx = 0
 
-    def get_layer_embeddings(self):
+    def get_layer_embeddings(self) -> Tensor:
         return torch.concat([embedding[self.layer_idx] for embedding in self.embeddings], dim=1)
 
-    def __call__(self, features):
+    def __call__(self, features) -> Dict[str, Tensor]:
         if self.layer_idx is None:
             output = self.call_grow_cache(features)
         else:
@@ -44,7 +44,7 @@ class TransformerDecorator:
             self.call_idx += 1
         return output
 
-    def call_grow_cache(self, features):
+    def call_grow_cache(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
         """
         Temporarily sets the output_hidden_states to True, runs the model, and then restores the original setting.
         Use the all_layer_embeddings to get the embeddings of all layers.
@@ -70,7 +70,7 @@ class TransformerDecorator:
 
         return output
 
-    def call_use_cache(self, features):
+    def call_use_cache(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
         return {**self.features[self.call_idx], "token_embeddings": self.embeddings[self.call_idx][self.layer_idx]}
 
 
@@ -82,16 +82,16 @@ class ForwardDecorator:
     This is meant to override the forward function of the SentenceTransformer.
     """
 
-    def __init__(self, fn):
+    def __init__(self, fn) -> None:
         self.fn = fn
         self.embeddings = []
 
-    def __call__(self, features):
+    def __call__(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
         output = self.fn(features)
         self.embeddings.append(output["sentence_embedding"])
         return output
 
-    def get_embeddings(self):
+    def get_embeddings(self) -> Tensor:
         embeddings = torch.concat(self.embeddings, dim=0)
         self.embeddings = []
         return embeddings

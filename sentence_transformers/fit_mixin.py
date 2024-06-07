@@ -11,6 +11,7 @@ import transformers
 from packaging import version
 from torch import Tensor, nn
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import trange
 from transformers import TrainerCallback, TrainerControl, TrainerState
@@ -68,7 +69,7 @@ class SaveModelCallback(TrainerCallback):
         metrics: Dict[str, Any],
         model: "SentenceTransformer",
         **kwargs,
-    ):
+    ) -> None:
         if self.evaluator is not None and self.save_best_model:
             metric_key = getattr(self.evaluator, "primary_metric", "evaluator")
             for key, value in metrics.items():
@@ -84,7 +85,7 @@ class SaveModelCallback(TrainerCallback):
         control: TrainerControl,
         model: "SentenceTransformer",
         **kwargs,
-    ):
+    ) -> None:
         if self.evaluator is None:
             model.save(self.output_dir)
 
@@ -109,7 +110,7 @@ class EvaluatorCallback(TrainerCallback):
         control: TrainerControl,
         model: "SentenceTransformer",
         **kwargs,
-    ):
+    ) -> None:
         evaluator_metrics = self.evaluator(model, epoch=state.epoch)
         if not isinstance(evaluator_metrics, dict):
             evaluator_metrics = {"evaluator": evaluator_metrics}
@@ -141,7 +142,7 @@ class OriginalCallback(TrainerCallback):
         control: TrainerControl,
         metrics: Dict[str, Any],
         **kwargs,
-    ):
+    ) -> None:
         metric_key = getattr(self.evaluator, "primary_metric", "evaluator")
         for key, value in metrics.items():
             if key.endswith(metric_key):
@@ -172,7 +173,7 @@ class FitMixin:
         checkpoint_path: str = None,
         checkpoint_save_steps: int = 500,
         checkpoint_save_total_limit: int = 0,
-    ):
+    ) -> None:
         """
         Deprecated training method from before Sentence Transformers v3.0, it is recommended to use
         :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` instead. This method uses
@@ -371,7 +372,7 @@ class FitMixin:
         trainer.train()
 
     @staticmethod
-    def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
+    def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int) -> LambdaLR:
         """
         Returns the correct learning rate scheduler. Available scheduler:
 
@@ -450,7 +451,7 @@ class FitMixin:
         checkpoint_path: str = None,
         checkpoint_save_steps: int = 500,
         checkpoint_save_total_limit: int = 0,
-    ):
+    ) -> None:
         """
         Deprecated training method from before Sentence Transformers v3.0, it is recommended to use
         :class:`sentence_transformers.trainer.SentenceTransformerTrainer` instead. This method should
@@ -658,7 +659,7 @@ class FitMixin:
         if checkpoint_path is not None:
             self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
-    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
+    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback) -> None:
         """Runs evaluation during the training"""
         eval_path = output_path
         if output_path is not None:
@@ -675,7 +676,7 @@ class FitMixin:
                 if save_best_model:
                     self.save(output_path)
 
-    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step):
+    def _save_checkpoint(self, checkpoint_path, checkpoint_save_total_limit, step) -> None:
         # Store new checkpoint
         self.save(os.path.join(checkpoint_path, str(step)))
 

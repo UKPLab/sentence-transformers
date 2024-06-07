@@ -55,8 +55,7 @@ class ModelCardCallback(TrainerCallback):
             trainer.model.model_card_data.code_carbon_callback = callbacks[0]
 
         trainer.model.model_card_data.trainer = trainer
-        if "generated_from_trainer" not in trainer.model.model_card_data.tags:
-            trainer.model.model_card_data.tags.append("generated_from_trainer")
+        trainer.model.model_card_data.add_tags("generated_from_trainer")
 
     def on_init_end(
         self,
@@ -65,7 +64,7 @@ class ModelCardCallback(TrainerCallback):
         control: TrainerControl,
         model: "SentenceTransformer",
         **kwargs,
-    ):
+    ) -> None:
         from sentence_transformers.losses import AdaptiveLayerLoss, Matryoshka2dLoss, MatryoshkaLoss
 
         # Try to infer the dataset "name", "id" and "revision" from the dataset cache files
@@ -173,7 +172,7 @@ class ModelCardCallback(TrainerCallback):
         model: "SentenceTransformer",
         logs: Dict[str, float],
         **kwargs,
-    ):
+    ) -> None:
         keys = {"loss"} & set(logs)
         if keys:
             if (
@@ -316,7 +315,7 @@ class SentenceTransformerModelCardData(CardData):
     # Passed via `register_model` only
     model: Optional["SentenceTransformer"] = field(default=None, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # We don't want to save "ignore_metadata_errors" in our Model Card
         infer_languages = not self.language
         if isinstance(self.language, str):
@@ -366,7 +365,7 @@ class SentenceTransformerModelCardData(CardData):
             output_dataset_list.append(dataset)
         return output_dataset_list
 
-    def set_losses(self, losses: nn.Module) -> None:
+    def set_losses(self, losses: List[nn.Module]) -> None:
         citations = {
             "Sentence Transformers": """
 @inproceedings{reimers-2019-sentence-bert,
@@ -395,7 +394,7 @@ class SentenceTransformerModelCardData(CardData):
             return losses[0]
 
         self.citations = {join_list(losses): citation for citation, losses in inverted_citations.items()}
-        self.tags += [f"loss:{loss}" for loss in {loss.__class__.__name__: loss for loss in losses}]
+        self.add_tags([f"loss:{loss}" for loss in {loss.__class__.__name__: loss for loss in losses}])
 
     def set_best_model_step(self, step: int) -> None:
         self.best_model_step = step
@@ -451,7 +450,7 @@ class SentenceTransformerModelCardData(CardData):
                 )
                 self.predict_example = sentences[:3]
 
-    def set_evaluation_metrics(self, evaluator: "SentenceEvaluator", metrics: Dict[str, Any]):
+    def set_evaluation_metrics(self, evaluator: "SentenceEvaluator", metrics: Dict[str, Any]) -> None:
         from sentence_transformers.evaluation import SequentialEvaluator
 
         self.eval_results_dict[evaluator] = copy(metrics)
@@ -712,27 +711,9 @@ class SentenceTransformerModelCardData(CardData):
         if dataset_type == "train":
             num_training_samples = sum([metadata.get("size", 0) for metadata in dataset_metadata])
             if num_training_samples:
-                self.tags += ["dataset_size:" + self.num_training_samples_to_tag(num_training_samples)]
+                self.add_tags(f"dataset_size:{num_training_samples}")
 
         return self.validate_datasets(dataset_metadata)
-
-    def num_training_samples_to_tag(self, num_samples: int) -> str:
-        sizes_mapping = {
-            1_000: "n<1K",
-            10_000: "1K<n<10K",
-            100_000: "10K<n<100K",
-            1_000_000: "100K<n<1M",
-            10_000_000: "1M<n<10M",
-            100_000_000: "10M<n<100M",
-            1_000_000_000: "100M<n<1B",
-            10_000_000_000: "1B<n<10B",
-            100_000_000_000: "10B<n<100B",
-            1_000_000_000_000: "100B<n<1T",
-        }
-        for size, tag in sizes_mapping.items():
-            if num_samples < size:
-                return tag
-        return "n>1T"
 
     def register_model(self, model: "SentenceTransformer") -> None:
         self.model = model
@@ -751,6 +732,21 @@ class SentenceTransformerModelCardData(CardData):
             revision = model_info.sha
         self.base_model_revision = revision
         return True
+
+    def set_language(self, language: Union[str, List[str]]) -> None:
+        if isinstance(language, str):
+            language = [language]
+        self.language = language
+
+    def set_license(self, license: str) -> None:
+        self.license = license
+
+    def add_tags(self, tags: Union[str, List[str]]) -> None:
+        if isinstance(tags, str):
+            tags = [tags]
+        for tag in tags:
+            if tag not in self.tags:
+                self.tags.append(tag)
 
     def try_to_set_base_model(self) -> None:
         if isinstance(self.model[0], Transformer):
@@ -879,7 +875,7 @@ class SentenceTransformerModelCardData(CardData):
             "explain_bold_in_eval": "**" in eval_lines,
         }
 
-    def get_codecarbon_data(self):
+    def get_codecarbon_data(self) -> Dict[Literal["co2_eq_emissions"], Dict[str, Any]]:
         emissions_data = self.code_carbon_callback.tracker._prepare_emissions_data()
         results = {
             "co2_eq_emissions": {

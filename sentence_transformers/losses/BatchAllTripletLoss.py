@@ -13,7 +13,7 @@ class BatchAllTripletLoss(nn.Module):
         model: SentenceTransformer,
         distance_metric=BatchHardTripletLossDistanceFunction.eucledian_distance,
         margin: float = 5,
-    ):
+    ) -> None:
         """
         BatchAllTripletLoss takes a batch with (sentence, label) pairs and computes the loss for all possible, valid
         triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. The labels
@@ -83,11 +83,11 @@ class BatchAllTripletLoss(nn.Module):
         self.triplet_margin = margin
         self.distance_metric = distance_metric
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         rep = self.sentence_embedder(sentence_features[0])["sentence_embedding"]
         return self.batch_all_triplet_loss(labels, rep)
 
-    def batch_all_triplet_loss(self, labels, embeddings):
+    def batch_all_triplet_loss(self, labels: Tensor, embeddings: Tensor) -> Tensor:
         """Build the triplet loss over a batch of embeddings.
         We generate all the valid triplets and average the loss over the positive ones.
         Args:

@@ -197,6 +197,13 @@ class SentenceTransformerTrainer(Trainer):
             optimizers=optimizers,
             preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         )
+        # Every Sentence Transformer model can always return a loss, so we set this to True
+        # to avoid having to specify it in the data collator or model's forward
+        self.can_return_loss = True
+
+        self.model: SentenceTransformer
+        self.args: SentenceTransformerTrainingArguments
+        self.data_collator: SentenceTransformerDataCollator
         # Set the W&B project via environment variables if it's not already set
         if any([isinstance(callback, WandbCallback) for callback in self.callback_handler.callbacks]):
             os.environ.setdefault("WANDB_PROJECT", "sentence-transformers")
@@ -222,7 +229,7 @@ class SentenceTransformerTrainer(Trainer):
         else:
             self.loss = self.prepare_loss(loss, model)
         # If evaluator is a list, we wrap it in a SequentialEvaluator
-        if not isinstance(evaluator, SentenceEvaluator):
+        if evaluator is not None and not isinstance(evaluator, SentenceEvaluator):
             evaluator = SequentialEvaluator(evaluator)
         self.evaluator = evaluator
 
@@ -256,7 +263,7 @@ class SentenceTransformerTrainer(Trainer):
             self.loss = self.override_model_in_loss(self.loss, model)
         return model
 
-    def override_model_in_loss(self, loss: torch.nn.Module, model: "SentenceTransformer"):
+    def override_model_in_loss(self, loss: torch.nn.Module, model: "SentenceTransformer") -> torch.nn.Module:
         from sentence_transformers import SentenceTransformer
 
         for name, child in loss.named_children():
@@ -270,7 +277,7 @@ class SentenceTransformerTrainer(Trainer):
         self,
         loss: Union[Callable[["SentenceTransformer"], torch.nn.Module], torch.nn.Module],
         model: "SentenceTransformer",
-    ):
+    ) -> torch.nn.Module:
         if isinstance(loss, torch.nn.Module):
             return loss.to(model.device)
         return loss(model).to(model.device)
@@ -323,7 +330,7 @@ class SentenceTransformerTrainer(Trainer):
         if return_outputs:
             # During prediction/evaluation, `compute_loss` will be called with `return_outputs=True`.
             # However, Sentence Transformer losses do not return outputs, so we return an empty dictionary.
-            # This does not result in any problems, as the SentenceTransformersTrainingArguments sets
+            # This does not result in any problems, as the SentenceTransformerTrainingArguments sets
             # `prediction_loss_only=True` which means that the output is not used.
             return loss, {}
         return loss
@@ -711,13 +718,13 @@ class SentenceTransformerTrainer(Trainer):
         self._train_dataloader = self.accelerator.prepare(DataLoader(test_dataset, **dataloader_params))
         return self._train_dataloader
 
-    def _save(self, output_dir: Optional[str] = None, state_dict=None):
+    def _save(self, output_dir: Optional[str] = None, state_dict=None) -> None:
         # If we are executing this function, we are the process zero, so we don't check for that.
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
 
-        self.model.save(output_dir, safe_serialization=self.args.save_safetensors)
+        self.model.save_pretrained(output_dir, safe_serialization=self.args.save_safetensors)
 
         if self.tokenizer is not None:
             self.tokenizer.save_pretrained(output_dir)
@@ -731,8 +738,27 @@ class SentenceTransformerTrainer(Trainer):
         loaded_model = SentenceTransformer(checkpoint_path)
         self.model.load_state_dict(loaded_model.state_dict())
 
-    def create_model_card(self, *args, **kwargs):
-        raise NotImplementedError(
-            "SentenceTransformers does not implement the `create_model_card` method in its Trainer. "
-            "Instead, consider calling SentenceTransformer._create_model_card(path)."
-        )
+    def create_model_card(
+        self,
+        language: Optional[str] = None,
+        license: Optional[str] = None,
+        tags: Union[str, List[str], None] = None,
+        model_name: Optional[str] = None,
+        finetuned_from: Optional[str] = None,
+        tasks: Union[str, List[str], None] = None,
+        dataset_tags: Union[str, List[str], None] = None,
+        dataset: Union[str, List[str], None] = None,
+        dataset_args: Union[str, List[str], None] = None,
+        **kwargs,
+    ) -> None:
+        if not self.is_world_process_zero():
+            return
+
+        if language:
+            self.model.model_card_data.set_language(language)
+        if license:
+            self.model.model_card_data.set_license(license)
+        if tags:
+            self.model.model_card_data.add_tags(tags)
+
+        self.model._create_model_card(self.args.output_dir, model_name=model_name)

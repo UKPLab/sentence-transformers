@@ -8,7 +8,12 @@ from sentence_transformers.util import fullname
 
 
 class CosineSimilarityLoss(nn.Module):
-    def __init__(self, model: SentenceTransformer, loss_fct=nn.MSELoss(), cos_score_transformation=nn.Identity()):
+    def __init__(
+        self,
+        model: SentenceTransformer,
+        loss_fct: nn.Module = nn.MSELoss(),
+        cos_score_transformation: nn.Module = nn.Identity(),
+    ) -> None:
         """
         CosineSimilarityLoss expects that the InputExamples consists of two texts and a float label. It computes the
         vectors ``u = model(sentence_A)`` and ``v = model(sentence_B)`` and measures the cosine-similarity between the two.
@@ -67,7 +72,7 @@ class CosineSimilarityLoss(nn.Module):
         self.loss_fct = loss_fct
         self.cos_score_transformation = cos_score_transformation
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         output = self.cos_score_transformation(torch.cosine_similarity(embeddings[0], embeddings[1]))
         return self.loss_fct(output, labels.float().view(-1))

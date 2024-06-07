@@ -2,11 +2,11 @@ from typing import Dict, Iterable
 
 from torch import Tensor, nn
 
-from sentence_transformers import util
+from sentence_transformers import SentenceTransformer, util
 
 
 class MarginMSELoss(nn.Module):
-    def __init__(self, model, similarity_fct=util.pairwise_dot_score):
+    def __init__(self, model: SentenceTransformer, similarity_fct=util.pairwise_dot_score) -> None:
         """
         Compute the MSE loss between the ``|sim(Query, Pos) - sim(Query, Neg)|`` and ``|gold_sim(Query, Pos) - gold_sim(Query, Neg)|``.
         By default, sim() is the dot-product. The gold_sim is often the similarity score from a teacher model.
@@ -113,7 +113,7 @@ class MarginMSELoss(nn.Module):
         self.similarity_fct = similarity_fct
         self.loss_fct = nn.MSELoss()
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         # sentence_features: query, positive passage, negative passage
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         embeddings_query = reps[0]

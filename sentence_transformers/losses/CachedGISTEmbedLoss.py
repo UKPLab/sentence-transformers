@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from functools import partial
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
 import torch
 import tqdm
@@ -21,17 +21,17 @@ class RandContext:
     the class will set up the random state with the backed-up one.
     """
 
-    def __init__(self, *tensors):
+    def __init__(self, *tensors) -> None:
         self.fwd_cpu_state = torch.get_rng_state()
         self.fwd_gpu_devices, self.fwd_gpu_states = get_device_states(*tensors)
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self._fork = torch.random.fork_rng(devices=self.fwd_gpu_devices, enabled=True)
         self._fork.__enter__()
         torch.set_rng_state(self.fwd_cpu_state)
         set_device_states(self.fwd_gpu_devices, self.fwd_gpu_states)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self._fork.__exit__(exc_type, exc_val, exc_tb)
         self._fork = None
 
@@ -40,7 +40,7 @@ def _backward_hook(
     grad_output: Tensor,
     sentence_features: Iterable[Dict[str, Tensor]],
     loss_obj: CachedGISTEmbedLoss,
-):
+) -> None:
     """A backward hook to backpropagate the cached gradients mini-batch by mini-batch."""
     assert loss_obj.cache is not None
     assert loss_obj.random_states is not None
@@ -67,7 +67,7 @@ class CachedGISTEmbedLoss(nn.Module):
         temperature: float = 0.01,
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
-    ):
+    ) -> None:
         """
         This loss is a combination of :class:`GISTEmbedLoss` and :class:`CachedMultipleNegativesRankingLoss`.
         Typically, :class:`MultipleNegativesRankingLoss` requires a larger batch size for better performance.
@@ -150,7 +150,7 @@ class CachedGISTEmbedLoss(nn.Module):
             model.tokenizer.vocab != guide.tokenizer.vocab or guide.max_seq_length < model.max_seq_length
         )
 
-    def sim_matrix(self, embed1, embed2):
+    def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
 
     def embed_minibatch(
@@ -389,7 +389,7 @@ class CachedGISTEmbedLoss(nn.Module):
             loss = self.calculate_loss(reps, reps_guided)
         return loss
 
-    def get_config_dict(self):
+    def get_config_dict(self) -> Dict[str, Any]:
         return {
             "guide": self.guide,
             "temperature": self.temperature,

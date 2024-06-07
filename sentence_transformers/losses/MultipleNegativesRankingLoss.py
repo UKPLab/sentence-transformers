@@ -1,4 +1,4 @@
-from typing import Dict, Iterable
+from typing import Any, Dict, Iterable
 
 import torch
 from torch import Tensor, nn
@@ -8,7 +8,7 @@ from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class MultipleNegativesRankingLoss(nn.Module):
-    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim):
+    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim) -> None:
         """
         This loss expects as input a batch consisting of sentence pairs ``(a_1, p_1), (a_2, p_2)..., (a_n, p_n)``
         where we assume that ``(a_i, p_i)`` are a positive pair and ``(a_i, p_j)`` for ``i != j`` a negative pair.
@@ -89,7 +89,7 @@ class MultipleNegativesRankingLoss(nn.Module):
         self.similarity_fct = similarity_fct
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         embeddings_a = reps[0]
         embeddings_b = torch.cat(reps[1:])
@@ -99,7 +99,7 @@ class MultipleNegativesRankingLoss(nn.Module):
         range_labels = torch.arange(0, scores.size(0), device=scores.device)
         return self.cross_entropy_loss(scores, range_labels)
 
-    def get_config_dict(self):
+    def get_config_dict(self) -> Dict[str, Any]:
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
 
     @property

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, Iterable
+from typing import Any, Dict, Iterable
 
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -22,7 +22,7 @@ class ContrastiveLoss(nn.Module):
         distance_metric=SiameseDistanceMetric.COSINE_DISTANCE,
         margin: float = 0.5,
         size_average: bool = True,
-    ):
+    ) -> None:
         """
         Contrastive loss. Expects as input two texts and a label of either 0 or 1. If the label == 1, then the distance between the
         two embeddings is reduced. If the label == 0, then the distance between the embeddings is increased.
@@ -81,7 +81,7 @@ class ContrastiveLoss(nn.Module):
         self.model = model
         self.size_average = size_average
 
-    def get_config_dict(self):
+    def get_config_dict(self) -> Dict[str, Any]:
         distance_metric_name = self.distance_metric.__name__
         for name, value in vars(SiameseDistanceMetric).items():
             if value == self.distance_metric:
@@ -90,7 +90,7 @@ class ContrastiveLoss(nn.Module):
 
         return {"distance_metric": distance_metric_name, "margin": self.margin, "size_average": self.size_average}
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         assert len(reps) == 2
         rep_anchor, rep_other = reps

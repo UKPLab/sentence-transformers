@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import Dict, List
+from typing import Dict, List, Literal
 
 import torch
 from torch import Tensor, nn
@@ -65,7 +65,9 @@ class BoW(nn.Module):
     def get_sentence_embedding_dimension(self):
         return self.sentence_embedding_dimension
 
-    def get_sentence_features(self, tokenized_texts: List[List[int]], pad_seq_length: int = 0):
+    def get_sentence_features(
+        self, tokenized_texts: List[List[int]], pad_seq_length: int = 0
+    ) -> Dict[Literal["sentence_embedding"], torch.Tensor]:
         vectors = []
 
         for tokens in tokenized_texts:

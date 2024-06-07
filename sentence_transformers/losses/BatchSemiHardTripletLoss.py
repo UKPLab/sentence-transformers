@@ -14,7 +14,7 @@ class BatchSemiHardTripletLoss(nn.Module):
         model: SentenceTransformer,
         distance_metric=BatchHardTripletLossDistanceFunction.eucledian_distance,
         margin: float = 5,
-    ):
+    ) -> None:
         """
         BatchSemiHardTripletLoss takes a batch with (label, sentence) pairs and computes the loss for all possible, valid
         triplets, i.e., anchor and positive must have the same label, anchor and negative a different label. It then looks
@@ -93,7 +93,7 @@ class BatchSemiHardTripletLoss(nn.Module):
         self.margin = margin
         self.distance_metric = distance_metric
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         rep = self.sentence_embedder(sentence_features[0])["sentence_embedding"]
         return self.batch_semi_hard_triplet_loss(labels, rep)
 
@@ -150,7 +150,7 @@ class BatchSemiHardTripletLoss(nn.Module):
         return triplet_loss
 
     @staticmethod
-    def _masked_minimum(data, mask, dim=1):
+    def _masked_minimum(data: Tensor, mask: Tensor, dim: int = 1) -> Tensor:
         axis_maximums, _ = data.max(dim, keepdims=True)
         masked_minimums = (data - axis_maximums) * mask
         masked_minimums, _ = masked_minimums.min(dim, keepdims=True)
@@ -159,7 +159,7 @@ class BatchSemiHardTripletLoss(nn.Module):
         return masked_minimums
 
     @staticmethod
-    def _masked_maximum(data, mask, dim=1):
+    def _masked_maximum(data: Tensor, mask: Tensor, dim: int = 1) -> Tensor:
         axis_minimums, _ = data.min(dim, keepdims=True)
         masked_maximums = (data - axis_minimums) * mask
         masked_maximums, _ = masked_maximums.max(dim, keepdims=True)

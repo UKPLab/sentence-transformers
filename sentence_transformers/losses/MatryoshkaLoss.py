@@ -11,7 +11,7 @@ from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import Cach
 
 
 class ForwardDecorator:
-    def __init__(self, fn):
+    def __init__(self, fn) -> None:
         self.fn = fn
 
         self.dim = None
@@ -19,7 +19,7 @@ class ForwardDecorator:
         self.cache_dim = None
         self.idx = 0
 
-    def set_dim(self, dim):
+    def set_dim(self, dim) -> None:
         self.dim = dim
         self.idx = 0
 
@@ -33,7 +33,7 @@ class ForwardDecorator:
         tensor = F.normalize(tensor, p=2, dim=-1)
         return tensor
 
-    def __call__(self, features):
+    def __call__(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
         # Growing cache:
         if self.cache_dim is None or self.cache_dim == self.dim:
             output = self.fn(features)
@@ -121,10 +121,12 @@ class MatryoshkaLoss(nn.Module):
             warnings.warn("MatryoshkaLoss is not compatible with CachedMultipleNegativesRankingLoss.", stacklevel=2)
         if isinstance(loss, CachedGISTEmbedLoss):
             warnings.warn("MatryoshkaLoss is not compatible with CachedGISTEmbedLoss.", stacklevel=2)
-        self.matryoshka_dims = matryoshka_dims
+
         if matryoshka_weights is None:
             matryoshka_weights = [1] * len(matryoshka_dims)
-        self.matryoshka_weights = matryoshka_weights
+        # Sort the dimensions and weights in descending order
+        dims_weights = zip(matryoshka_dims, matryoshka_weights)
+        self.matryoshka_dims, self.matryoshka_weights = zip(*sorted(dims_weights, key=lambda x: x[0], reverse=True))
         self.n_dims_per_step = n_dims_per_step
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:

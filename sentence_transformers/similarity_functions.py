@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Callable, Union
+from typing import Callable, List, Union
 
 from numpy import ndarray
 from torch import Tensor
@@ -116,7 +116,7 @@ class SimilarityFunction(Enum):
         )
 
     @staticmethod
-    def possible_values():
+    def possible_values() -> List[str]:
         """
         Returns a list of possible values for the SimilarityFunction enum.
 

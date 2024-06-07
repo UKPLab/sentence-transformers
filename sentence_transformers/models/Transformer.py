@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import torch
 from torch import nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Config
 
@@ -40,7 +41,7 @@ class Transformer(nn.Module):
         do_lower_case: bool = False,
         tokenizer_name_or_path: str = None,
         backend: Optional[str] = None,
-    ):
+    ) -> None:
         super(Transformer, self).__init__()
         self.config_keys = ["max_seq_length", "do_lower_case"]
         self.do_lower_case = do_lower_case
@@ -76,7 +77,7 @@ class Transformer(nn.Module):
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
-    def _load_model(self, model_name_or_path, config, cache_dir, backend, **model_args):
+    def _load_model(self, model_name_or_path, config, cache_dir, backend, **model_args) -> None:
         """Loads the transformer model"""
         if backend is None:
             if isinstance(config, T5Config):
@@ -125,7 +126,7 @@ class Transformer(nn.Module):
             model_name_or_path, export=export, cache_dir=cache_dir, **model_args
         )
 
-    def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args):
+    def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         """Loads the encoder model from T5"""
         from transformers import T5EncoderModel
 
@@ -134,7 +135,7 @@ class Transformer(nn.Module):
             model_name_or_path, config=config, cache_dir=cache_dir, **model_args
         )
 
-    def _load_mt5_model(self, model_name_or_path, config, cache_dir, **model_args):
+    def _load_mt5_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         """Loads the encoder model from T5"""
         from transformers import MT5EncoderModel
 
@@ -143,12 +144,12 @@ class Transformer(nn.Module):
             model_name_or_path, config=config, cache_dir=cache_dir, **model_args
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Transformer({}) with Transformer model: {} ".format(
             self.get_config_dict(), self.auto_model.__class__.__name__
         )
 
-    def forward(self, features):
+    def forward(self, features: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """Returns token_embeddings, cls_token"""
         trans_features = {"input_ids": features["input_ids"], "attention_mask": features["attention_mask"]}
         if "token_type_ids" in features:
@@ -172,7 +173,9 @@ class Transformer(nn.Module):
     def get_word_embedding_dimension(self) -> int:
         return self.auto_model.config.hidden_size
 
-    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]], padding: Union[str, bool] = True):
+    def tokenize(
+        self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]], padding: Union[str, bool] = True
+    ) -> Dict[str, torch.Tensor]:
         """Tokenizes a text and maps tokens to token-ids"""
         output = {}
         if isinstance(texts[0], str):
@@ -210,10 +213,10 @@ class Transformer(nn.Module):
         )
         return output
 
-    def get_config_dict(self):
+    def get_config_dict(self) -> Dict[str, Any]:
         return {key: self.__dict__[key] for key in self.config_keys}
 
-    def save(self, output_path: str, safe_serialization: bool = True):
+    def save(self, output_path: str, safe_serialization: bool = True) -> None:
         self.auto_model.save_pretrained(output_path, safe_serialization=safe_serialization)
         self.tokenizer.save_pretrained(output_path)
 
@@ -221,7 +224,7 @@ class Transformer(nn.Module):
             json.dump(self.get_config_dict(), fOut, indent=2)
 
     @staticmethod
-    def load(input_path: str):
+    def load(input_path: str) -> "Transformer":
         # Old classes used other config names than 'sentence_bert_config.json'
         for config_name in [
             "sentence_bert_config.json",

@@ -134,7 +134,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
                     encoder_name_or_path,
                 )
 
-    def retokenize(self, sentence_features):
+    def retokenize(self, sentence_features: Dict[str, Tensor]) -> Dict[str, Tensor]:
         input_ids = sentence_features["input_ids"]
         device = input_ids.device
         sentences_decoded = self.tokenizer_encoder.batch_decode(
@@ -145,7 +145,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
         ).to(device)
         return retokenized
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         source_features, target_features = tuple(sentence_features)
         if self.need_retokenization:
             # since the sentence_features here are all tokenized by encoder's tokenizer,

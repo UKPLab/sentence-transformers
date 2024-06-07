@@ -4,10 +4,10 @@ import tqdm
 
 
 class LoggingHandler(logging.Handler):
-    def __init__(self, level=logging.NOTSET):
+    def __init__(self, level=logging.NOTSET) -> None:
         super().__init__(level)
 
-    def emit(self, record):
+    def emit(self, record) -> None:
         try:
             msg = self.format(record)
             tqdm.tqdm.write(msg)
@@ -18,7 +18,7 @@ class LoggingHandler(logging.Handler):
             self.handleError(record)
 
 
-def install_logger(given_logger, level=logging.WARNING, fmt="%(levelname)s:%(name)s:%(message)s"):
+def install_logger(given_logger, level=logging.WARNING, fmt="%(levelname)s:%(name)s:%(message)s") -> None:
     """Configures the given logger; format, logging level, style, etc"""
     import coloredlogs
 

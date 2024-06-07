@@ -3,9 +3,11 @@ from typing import Dict, Iterable
 import torch
 from torch import Tensor, nn
 
+from sentence_transformers import SentenceTransformer
+
 
 class MSELoss(nn.Module):
-    def __init__(self, model):
+    def __init__(self, model: SentenceTransformer) -> None:
         """
         Computes the MSE loss between the computed sentence embedding and a target sentence embedding. This loss
         is used when extending sentence embeddings to new languages as described in our publication
@@ -68,7 +70,7 @@ class MSELoss(nn.Module):
         self.model = model
         self.loss_fct = nn.MSELoss()
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Concatenate multiple inputs on the batch dimension
         if len(sentence_features) > 1:
             embeddings = torch.cat([self.model(inputs)["sentence_embedding"] for inputs in sentence_features], dim=0)
