@@ -128,7 +128,7 @@ stopwords = set(
         "but",
         "by",
         "can",
-        "couldn", # codespell:ignore couldn
+        "couldn",  # codespell:ignore couldn
         "couldn't",
         "d",
         "did",
