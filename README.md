@@ -53,7 +53,7 @@ If you want to use a GPU / CUDA, you must install PyTorch with the matching CUDA
 
 ## Getting Started
 
-See [Quickstart](https://www.sbert.net/docs/quickstart.html) in our documenation.
+See [Quickstart](https://www.sbert.net/docs/quickstart.html) in our documentation.
 
 First download a pretrained model.
 
