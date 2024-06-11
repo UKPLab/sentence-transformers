@@ -56,7 +56,7 @@ ENGLISH_STOP_WORDS = [
     "am",
     "among",
     "amongst",
-    "amoungst", # codespell:ignore
+    "amoungst",  # codespell:ignore
     "amount",
     "an",
     "and",
@@ -97,7 +97,7 @@ ENGLISH_STOP_WORDS = [
     "call",
     "can",
     "cannot",
-    "cant", # codespell:ignore
+    "cant",  # codespell:ignore
     "co",
     "con",
     "could",
@@ -235,7 +235,7 @@ ENGLISH_STOP_WORDS = [
     "no",
     "nobody",
     "none",
-    "noone", # codespell:ignore
+    "noone",  # codespell:ignore
     "nor",
     "not",
     "nothing",
@@ -347,7 +347,7 @@ ENGLISH_STOP_WORDS = [
     "very",
     "via",
     "was",
-    "wasn", # codespell:ignore
+    "wasn",  # codespell:ignore
     "we",
     "well",
     "were",
