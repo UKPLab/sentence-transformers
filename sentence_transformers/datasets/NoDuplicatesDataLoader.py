@@ -3,7 +3,7 @@ import random
 
 
 class NoDuplicatesDataLoader:
-    def __init__(self, train_examples, batch_size):
+    def __init__(self, train_examples, batch_size, clean=True):
         """
         A special data loader to be used with MultipleNegativesRankingLoss.
         The data loader ensures that there are no duplicate sentences within the same batch
@@ -12,6 +12,7 @@ class NoDuplicatesDataLoader:
         self.data_pointer = 0
         self.collate_fn = None
         self.train_examples = train_examples
+        self.clean = clean
         random.shuffle(self.train_examples)
 
     def __iter__(self):
@@ -24,14 +25,16 @@ class NoDuplicatesDataLoader:
 
                 valid_example = True
                 for text in example.texts:
-                    if text.strip().lower() in texts_in_batch:
+                    clean_text = text.strip().lower() if self.clean else text
+                    if clean_text in texts_in_batch:
                         valid_example = False
                         break
 
                 if valid_example:
                     batch.append(example)
                     for text in example.texts:
-                        texts_in_batch.add(text.strip().lower())
+                        clean_text = text.strip().lower() if self.clean else text
+                        texts_in_batch.add(clean_text)
 
                 self.data_pointer += 1
                 if self.data_pointer >= len(self.train_examples):
