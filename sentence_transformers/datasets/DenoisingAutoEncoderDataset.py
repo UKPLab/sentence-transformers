@@ -36,7 +36,8 @@ class DenoisingAutoEncoderDataset(Dataset):
     # Deletion noise.
     @staticmethod
     def delete(text, del_ratio=0.6):
-        from nltk import TreebankWordDetokenizer, word_tokenize
+        from nltk import word_tokenize
+        from nltk.tokenize.treebank import TreebankWordDetokenizer
 
         words = word_tokenize(text)
         n = len(words)
