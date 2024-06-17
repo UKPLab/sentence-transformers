@@ -562,7 +562,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 all_embeddings = torch.Tensor()
         elif convert_to_numpy:
             if not isinstance(all_embeddings, np.ndarray):
-                if all_embeddings[0].dtype == torch.bfloat16:
+                if all_embeddings and all_embeddings[0].dtype == torch.bfloat16:
                     all_embeddings = np.asarray([emb.float().numpy() for emb in all_embeddings])
                 else:
                     all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
