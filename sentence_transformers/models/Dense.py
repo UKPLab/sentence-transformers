@@ -12,7 +12,7 @@ from sentence_transformers.util import fullname, import_from_string
 
 class Dense(nn.Module):
     """
-    Feed-forward function with  activiation function.
+    Feed-forward function with activation function.
 
     This layer takes a fixed-sized sentence embedding and passes it through a feed-forward layer. Can be used to generate deep averaging networks (DAN).
 

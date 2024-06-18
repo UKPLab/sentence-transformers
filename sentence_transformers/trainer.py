@@ -438,7 +438,7 @@ class SentenceTransformerTrainer(Trainer):
         except Exception:
             pass
 
-        # Override the model with the `tranformers`-based auto_model, and restore the original SentenceTransformers
+        # Override the model with the `transformers`-based auto_model, and restore the original SentenceTransformers
         # model with the loaded `transformers` model
         full_model = self.model
         self.model = self.model[0].auto_model

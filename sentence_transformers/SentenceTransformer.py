@@ -939,7 +939,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 break
         if self.truncate_dim is not None:
             # The user requested truncation. If they set it to a dim greater than output_dim,
-            # no truncation will actually happen. So return output_dim insead of self.truncate_dim
+            # no truncation will actually happen. So return output_dim instead of self.truncate_dim
             return min(output_dim or np.inf, self.truncate_dim)
         return output_dim
 
