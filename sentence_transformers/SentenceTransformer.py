@@ -357,7 +357,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         prompt_name: Optional[str] = None,
         prompt: Optional[str] = None,
         batch_size: int = 32,
-        show_progress_bar: bool = None,
+        show_progress_bar: Optional[bool] = None,
         output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = "sentence_embedding",
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         convert_to_numpy: bool = True,
@@ -426,9 +426,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         self.eval()
         if show_progress_bar is None:
-            show_progress_bar = (
-                logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG
-            )
+            show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
 
         if convert_to_tensor:
             convert_to_numpy = False
@@ -768,6 +766,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         prompt: Optional[str] = None,
         batch_size: int = 32,
         chunk_size: int = None,
+        show_progress_bar: Optional[bool] = None,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         normalize_embeddings: bool = False,
     ) -> np.ndarray:
@@ -792,6 +791,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             batch_size (int): Encode sentences with batch size. (default: 32)
             chunk_size (int): Sentences are chunked and sent to the individual processes. If None, it determines a
                 sensible size. Defaults to None.
+            show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
             precision (Literal["float32", "int8", "uint8", "binary", "ubinary"]): The precision to use for the
                 embeddings. Can be "float32", "int8", "uint8", "binary", or "ubinary". All non-float32 precisions
                 are quantized embeddings. Quantized embeddings are smaller in size and faster to compute, but may
@@ -826,6 +826,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         if chunk_size is None:
             chunk_size = min(math.ceil(len(sentences) / len(pool["processes"]) / 10), 5000)
 
+        if show_progress_bar is None:
+            show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
+
         logger.debug(f"Chunk data into {math.ceil(len(sentences) / chunk_size)} packages of size {chunk_size}")
 
         input_queue = pool["input"]
@@ -846,7 +849,10 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             last_chunk_id += 1
 
         output_queue = pool["output"]
-        results_list = sorted([output_queue.get() for _ in range(last_chunk_id)], key=lambda x: x[0])
+        results_list = sorted(
+            [output_queue.get() for _ in trange(last_chunk_id, desc="Chunks", disable=not show_progress_bar)],
+            key=lambda x: x[0],
+        )
         embeddings = np.concatenate([result[1] for result in results_list])
         return embeddings
 
