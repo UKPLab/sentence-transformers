@@ -22,7 +22,7 @@ setup(
         "transformers>=4.38.0,<5.0.0",
         "tqdm",
         "torch>=1.11.0",
-        "numpy",
+        "numpy<2.0.0",
         "scikit-learn",
         "scipy",
         "huggingface-hub>=0.19.3",
