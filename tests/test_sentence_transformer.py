@@ -656,3 +656,9 @@ def test_safetensors(modules: Union[List[nn.Module], SentenceTransformer]) -> No
         loaded_model = SentenceTransformer(tmp_folder)
         loaded_embedding = loaded_model.encode("Hello, World!")
         assert np.allclose(original_embedding, loaded_embedding)
+
+
+def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+    embeddings = model.encode([])
+    assert embeddings.shape == (0,)
