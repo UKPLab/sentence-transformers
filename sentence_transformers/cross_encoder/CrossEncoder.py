@@ -58,7 +58,7 @@ class CrossEncoder(PushToHubMixin):
         model_name: str,
         num_labels: int = None,
         max_length: int = None,
-        device: str = None,
+        device: Optional[str] = None,
         tokenizer_args: Dict = None,
         automodel_args: Dict = None,
         trust_remote_code: bool = False,
