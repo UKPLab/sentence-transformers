@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Literal, Optional, Tuple, Union, overload
 
 import numpy as np
+import numpy.typing as npt
 import torch
 import torch.multiprocessing as mp
 import transformers
@@ -351,6 +352,86 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # Pass the model to the model card data for later use in generating a model card upon saving this model
         self.model_card_data.register_model(self)
 
+    @overload
+    def encode(
+        self,
+        sentences: str,
+        prompt_name: Optional[str] = ...,
+        prompt: Optional[str] = ...,
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: Literal[False] = ...,
+        convert_to_tensor: bool = ...,
+        device: str = ...,
+        normalize_embeddings: bool = ...,
+    ) -> Tensor: ...
+
+    @overload
+    def encode(
+        self,
+        sentences: str,
+        prompt_name: Optional[str] = ...,
+        prompt: Optional[str] = ...,
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: Literal[True] = ...,
+        convert_to_tensor: Literal[False] = ...,
+        device: str = ...,
+        normalize_embeddings: bool = ...,
+    ) -> npt.NDArray: ...
+
+    @overload
+    def encode(
+        self,
+        sentences: List[str],
+        prompt_name: Optional[str] = ...,
+        prompt: Optional[str] = ...,
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: Literal[False] = ...,
+        convert_to_tensor: Literal[False] = ...,
+        device: str = ...,
+        normalize_embeddings: bool = ...,
+    ) -> List[Tensor]: ...
+
+    @overload
+    def encode(
+        self,
+        sentences: List[str],
+        prompt_name: Optional[str] = ...,
+        prompt: Optional[str] = ...,
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: Literal[True] = ...,
+        convert_to_tensor: Literal[False] = ...,
+        device: str = ...,
+        normalize_embeddings: bool = ...,
+    ) -> npt.NDArray: ...
+
+    @overload
+    def encode(
+        self,
+        sentences: List[str],
+        prompt_name: Optional[str] = ...,
+        prompt: Optional[str] = ...,
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: Literal[False] = ...,
+        convert_to_tensor: Literal[True] = ...,
+        device: str = ...,
+        normalize_embeddings: bool = ...,
+    ) -> Tensor: ...
+
     def encode(
         self,
         sentences: Union[str, List[str]],
@@ -364,7 +445,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: bool = False,
         device: str = None,
         normalize_embeddings: bool = False,
-    ) -> Union[List[Tensor], ndarray, Tensor]:
+    ) -> Union[List[Tensor], npt.NDArray, Tensor]:
         """
         Computes sentence embeddings.
 
