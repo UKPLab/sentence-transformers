@@ -279,7 +279,7 @@ args = SentenceTransformerTrainingArguments(
 
 You can provide the [`SentenceTransformerTrainer`](https://sbert.net/docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer) with an `eval_dataset` to get the evaluation loss during training, but it may be useful to get more concrete metrics during training, too. For this, you can use evaluators to assess the model's performance with useful metrics before, during, or after training. You can both an `eval_dataset` and an evaluator, one or the other, or neither. They evaluate based on the `eval_strategy` and `eval_steps` [Training Arguments](#training-arguments).
 
-Here are the implemented Evaluators that come with Sentence Tranformers:
+Here are the implemented Evaluators that come with Sentence Transformers:
 ```eval_rst
 ========================================================================  ===========================================================================================================================
 Evaluator                                                                 Required Data
