@@ -351,6 +351,51 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # Pass the model to the model card data for later use in generating a model card upon saving this model
         self.model_card_data.register_model(self)
 
+    @overload
+    def encode(
+        self,
+        sentences: Union[str, List[str]],
+        prompt_name: Optional[str] = None,
+        prompt: Optional[str] = None,
+        batch_size: int = 32,
+        show_progress_bar: bool = None,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = "sentence_embedding",
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
+        convert_to_numpy: bool = False,
+        convert_to_tensor: bool = True,
+        device: str = None,
+        normalize_embeddings: bool = False,
+    ) -> Tensor: ...
+    @overload
+    def encode(
+        self,
+        sentences: Union[str, List[str]],
+        prompt_name: Optional[str] = None,
+        prompt: Optional[str] = None,
+        batch_size: int = 32,
+        show_progress_bar: bool = None,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = "sentence_embedding",
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
+        convert_to_numpy: bool = False,
+        convert_to_tensor: bool = False,
+        device: str = None,
+        normalize_embeddings: bool = False,
+    ) -> List[str]: ...
+    @overload
+    def encode(
+        self,
+        sentences: Union[str, List[str]],
+        prompt_name: Optional[str] = None,
+        prompt: Optional[str] = None,
+        batch_size: int = 32,
+        show_progress_bar: bool = None,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = "sentence_embedding",
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
+        convert_to_numpy: bool = True,
+        convert_to_tensor: bool = False,
+        device: str = None,
+        normalize_embeddings: bool = False,
+    ) -> ndarray: ...
     def encode(
         self,
         sentences: Union[str, List[str]],
