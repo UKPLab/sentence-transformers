@@ -12,7 +12,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from multiprocessing import Queue
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Literal, Optional, Tuple, Union, overload
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Literal, Optional, Sequence, Tuple, Union, overload
 
 import numpy as np
 import torch
@@ -370,7 +370,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @overload
     def encode(
         self,
-        sentences: Union[str, List[str]],
+        sentences: Union[str, Sequence[str], np.ndarray],
         prompt_name: Optional[str] = ...,
         prompt: Optional[str] = ...,
         batch_size: int = ...,
@@ -386,7 +386,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @overload
     def encode(
         self,
-        sentences: Union[str, List[str]],
+        sentences: Union[str, Sequence[str], np.ndarray],
         prompt_name: Optional[str] = ...,
         prompt: Optional[str] = ...,
         batch_size: int = ...,
@@ -402,7 +402,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @overload
     def encode(
         self,
-        sentences: List[str],
+        sentences: Union[Sequence[str], np.ndarray],
         prompt_name: Optional[str] = ...,
         prompt: Optional[str] = ...,
         batch_size: int = ...,
@@ -417,7 +417,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     def encode(
         self,
-        sentences: Union[str, List[str]],
+        sentences: Union[str, Sequence[str], np.ndarray],
         prompt_name: Optional[str] = None,
         prompt: Optional[str] = None,
         batch_size: int = 32,
