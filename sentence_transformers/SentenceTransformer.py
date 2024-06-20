@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Literal, Optional, Tuple, Union, overload
 
 import numpy as np
+import numpy.typing as npt
 import torch
 import torch.multiprocessing as mp
 import transformers
