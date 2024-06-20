@@ -364,6 +364,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: bool = False,
         device: str = None,
         normalize_embeddings: bool = False,
+        kwargs: Optional[Dict[str, Any]] = None,
     ) -> Union[List[Tensor], ndarray, Tensor]:
         """
         Computes sentence embeddings.
@@ -484,11 +485,17 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             if self.device.type == "hpu":
                 if "input_ids" in features:
                     curr_tokenize_len = features["input_ids"].shape
-                    additional_pad_len = 2 ** math.ceil(math.log2(curr_tokenize_len[1])) - curr_tokenize_len[1]
+                    if curr_tokenize_len[1] > 4096:
+                        additional_pad_len = math.ceil(curr_tokenize_len[1] / 128) * 128 - curr_tokenize_len[1]
+
+                        extra_features.update(kwargs["hpu_kwargs"])
+                    else:
+                        additional_pad_len = 2 ** math.ceil(math.log2(curr_tokenize_len[1])) - curr_tokenize_len[1]
+
                     features["input_ids"] = torch.cat(
                         (
                             features["input_ids"],
-                            torch.ones((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
+                            torch.zeros((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
                         ),
                         -1,
                     )
