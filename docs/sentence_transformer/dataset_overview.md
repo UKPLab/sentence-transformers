@@ -21,6 +21,14 @@ In practice, most dataset configurations will take one of four forms:
 
 Note that it is often simple to transform a dataset from one format to another, such that it works with your loss function of choice.
 
+```eval_rst
+
+.. tip::
+
+   You can use :func:`~sentence_transformers.util.mine_hard_negatives` to convert a dataset of positive pairs into a dataset of triplets. It uses a :class:`~sentence_transformers.SentenceTransformer` model to find hard negatives: texts that are similar to the first dataset column, but are not quite as similar as the text in the second dataset column. These texts are quite useful to train powerful models.
+
+```
+
 ## Datasets on the Hugging Face Hub
 
 ```eval_rst
