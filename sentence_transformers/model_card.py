@@ -521,7 +521,7 @@ class SentenceTransformerModelCardData(CardData):
         cache_files = dataset.cache_files
         dataset_output = {}
         # Ignore the dataset name if it is a default name from the FitMixin backwards compatibility
-        if dataset_name and re.match("_dataset_\d+", dataset_name):
+        if dataset_name and re.match(r"_dataset_\d+", dataset_name):
             dataset_name = None
         if dataset_name:
             dataset_output["name"] = dataset_name
