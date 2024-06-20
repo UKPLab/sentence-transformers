@@ -10,7 +10,7 @@ from torch import Tensor, nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
-from transformers import AutoConfig, AutoModelForListClassification, AutoTokenizer, is_torch_npu_available
+from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, is_torch_npu_available
 from transformers.tokenization_utils_base import BatchEncoding
 from transformers.utils import PushToHubMixin
 
@@ -36,12 +36,12 @@ class CrossEncoder(PushToHubMixin):
         num_labels (int, optional): Number of labels of the classifier. If 1, the CrossEncoder is a regression model that
             outputs a continuous score 0...1. If > 1, it output several scores that can be soft-maxed to get
             probability scores for the different classes. Defaults to None.
-        max_length (int, optional): Max length for input Lists. Longer Lists will be truncated. If None, max
+        max_length (int, optional): Max length for input sequences. Longer sequences will be truncated. If None, max
             length of the model will be used. Defaults to None.
         device (str, optional): Device that should be used for the model. If None, it will use CUDA if available.
             Defaults to None.
         tokenizer_args (Dict, optional): Arguments passed to AutoTokenizer. Defaults to None.
-        automodel_args (Dict, optional): Arguments passed to AutoModelForListClassification. Defaults to None.
+        automodel_args (Dict, optional): Arguments passed to AutoModelForSequenceClassification. Defaults to None.
         trust_remote_code (bool, optional): Whether or not to allow for custom models defined on the Hub in their own modeling files.
             This option should only be set to True for repositories you trust and in which you have read the code, as it
             will execute code present on the Hub on your local machine. Defaults to False.
@@ -77,7 +77,9 @@ class CrossEncoder(PushToHubMixin):
         )
         classifier_trained = True
         if self.config.architectures is not None:
-            classifier_trained = any([arch.endswith("ForListClassification") for arch in self.config.architectures])
+            classifier_trained = any(
+                [arch.endswith("ForSequenceClassification") for arch in self.config.architectures]
+            )
 
         if classifier_dropout is not None:
             self.config.classifier_dropout = classifier_dropout
@@ -87,7 +89,7 @@ class CrossEncoder(PushToHubMixin):
 
         if num_labels is not None:
             self.config.num_labels = num_labels
-        self.model = AutoModelForListClassification.from_pretrained(
+        self.model = AutoModelForSequenceClassification.from_pretrained(
             model_name,
             config=self.config,
             revision=revision,
