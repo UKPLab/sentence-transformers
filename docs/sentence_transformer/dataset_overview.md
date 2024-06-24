@@ -25,7 +25,9 @@ Note that it is often simple to transform a dataset from one format to another, 
 
 .. tip::
 
-   You can use :func:`~sentence_transformers.util.mine_hard_negatives` to convert a dataset of positive pairs into a dataset of triplets. It uses a :class:`~sentence_transformers.SentenceTransformer` model to find hard negatives: texts that are similar to the first dataset column, but are not quite as similar as the text in the second dataset column. These texts are quite useful to train powerful models.
+   You can use :func:`~sentence_transformers.util.mine_hard_negatives` to convert a dataset of positive pairs into a dataset of triplets. It uses a :class:`~sentence_transformers.SentenceTransformer` model to find hard negatives: texts that are similar to the first dataset column, but are not quite as similar as the text in the second dataset column. Datasets with hard triplets often outperform datasets with just positive pairs.
+   
+   For example, we mined negatives from `sentence-transformers/gooaq <https://huggingface.co/datasets/sentence-transformers/gooaq>`_ to produce `tomaarsen/gooaq-hard-negatives <https://huggingface.co/datasets/tomaarsen/gooaq-hard-negatives>`_. The `tomaarsen/mpnet-base-gooaq-hard-negatives <https://huggingface.co/tomaarsen/mpnet-base-gooaq-hard-negatives>`_ model trained on the hard negatives dataset outperformed the `tomaarsen/mpnet-base-gooaq <https://huggingface.co/tomaarsen/mpnet-base-gooaq>`_ model trained on the original dataset.
 
 ```
 
