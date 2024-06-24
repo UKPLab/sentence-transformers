@@ -4,7 +4,6 @@ from functools import wraps
 from typing import Callable, Dict, List, Literal, Optional, Tuple, Type, Union, overload
 
 import numpy as np
-import numpy.typing as npt
 import torch
 from torch import Tensor, nn
 from torch.optim import Optimizer
@@ -319,7 +318,7 @@ class CrossEncoder(PushToHubMixin):
     @overload
     def predict(
         self,
-        sentences: Union[List[Tuple[str, str]], List[List[str]], npt.ArrayLike, Tuple[str, str], List[str]],
+        sentences: Union[List[Tuple[str, str]], List[List[str]], Tuple[str, str], List[str]],
         batch_size: int = ...,
         show_progress_bar: Optional[bool] = ...,
         num_workers: int = ...,
@@ -332,7 +331,7 @@ class CrossEncoder(PushToHubMixin):
     @overload
     def predict(
         self,
-        sentences: Union[List[Tuple[str, str]], List[List[str]], npt.ArrayLike, Tuple[str, str], List[str]],
+        sentences: Union[List[Tuple[str, str]], List[List[str]], Tuple[str, str], List[str]],
         batch_size: int = ...,
         show_progress_bar: Optional[bool] = ...,
         num_workers: int = ...,
@@ -345,7 +344,7 @@ class CrossEncoder(PushToHubMixin):
     @overload
     def predict(
         self,
-        sentences: Union[List[Tuple[str, str]], List[List[str]], npt.ArrayLike],
+        sentences: Union[List[Tuple[str, str]], List[List[str]]],
         batch_size: int = ...,
         show_progress_bar: Optional[bool] = ...,
         num_workers: int = ...,
@@ -357,7 +356,7 @@ class CrossEncoder(PushToHubMixin):
 
     def predict(
         self,
-        sentences: Union[List[Tuple[str, str]], List[List[str]], npt.ArrayLike, Tuple[str, str], List[str]],
+        sentences: Union[List[Tuple[str, str]], List[List[str]], Tuple[str, str], List[str]],
         batch_size: int = 32,
         show_progress_bar: Optional[bool] = None,
         num_workers: int = 0,

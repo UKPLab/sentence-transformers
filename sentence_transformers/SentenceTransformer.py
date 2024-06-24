@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Literal, Optional, Tuple, Union, overload
 
 import numpy as np
-import numpy.typing as npt
 import torch
 import torch.multiprocessing as mp
 import transformers
@@ -371,7 +370,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @overload
     def encode(
         self,
-        sentences: Union[str, List[str], npt.ArrayLike],
+        sentences: Union[str, List[str]],
         prompt_name: Optional[str] = ...,
         prompt: Optional[str] = ...,
         batch_size: int = ...,
@@ -387,7 +386,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @overload
     def encode(
         self,
-        sentences: Union[str, List[str], npt.ArrayLike],
+        sentences: Union[str, List[str]],
         prompt_name: Optional[str] = ...,
         prompt: Optional[str] = ...,
         batch_size: int = ...,
@@ -418,7 +417,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     def encode(
         self,
-        sentences: Union[str, List[str], npt.ArrayLike],
+        sentences: Union[str, List[str]],
         prompt_name: Optional[str] = None,
         prompt: Optional[str] = None,
         batch_size: int = 32,
