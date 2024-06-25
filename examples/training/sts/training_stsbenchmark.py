@@ -3,10 +3,10 @@ This examples trains BERT (or any other transformer model like RoBERTa, DistilBE
 that can be compared using cosine-similarity to measure the similarity.
 
 Usage:
-python training_nli.py
+python training_stsbenchmark.py
 
 OR
-python training_nli.py pretrained_transformer_model_name
+python training_stsbenchmark.py pretrained_transformer_model_name
 """
 
 import logging

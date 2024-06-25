@@ -354,20 +354,84 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # Pass the model to the model card data for later use in generating a model card upon saving this model
         self.model_card_data.register_model(self)
 
+    @overload
+    def encode(
+        self,
+        sentences: str,
+        prompt_name: Optional[str] = ...,
+        prompt: Optional[str] = ...,
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: Literal[False] = ...,
+        convert_to_tensor: Literal[False] = ...,
+        device: str = ...,
+        normalize_embeddings: bool = ...,
+    ) -> Tensor: ...
+
+    @overload
+    def encode(
+        self,
+        sentences: Union[str, List[str]],
+        prompt_name: Optional[str] = ...,
+        prompt: Optional[str] = ...,
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: Literal[True] = ...,
+        convert_to_tensor: Literal[False] = ...,
+        device: str = ...,
+        normalize_embeddings: bool = ...,
+    ) -> np.ndarray: ...
+
+    @overload
+    def encode(
+        self,
+        sentences: Union[str, List[str]],
+        prompt_name: Optional[str] = ...,
+        prompt: Optional[str] = ...,
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: bool = ...,
+        convert_to_tensor: Literal[True] = ...,
+        device: str = ...,
+        normalize_embeddings: bool = ...,
+    ) -> Tensor: ...
+
+    @overload
+    def encode(
+        self,
+        sentences: Union[List[str], np.ndarray],
+        prompt_name: Optional[str] = ...,
+        prompt: Optional[str] = ...,
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: Literal[False] = ...,
+        convert_to_tensor: Literal[False] = ...,
+        device: str = ...,
+        normalize_embeddings: bool = ...,
+    ) -> List[Tensor]: ...
+
     def encode(
         self,
         sentences: Union[str, List[str]],
         prompt_name: Optional[str] = None,
         prompt: Optional[str] = None,
         batch_size: int = 32,
-        show_progress_bar: bool = None,
+        show_progress_bar: Optional[bool] = None,
         output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = "sentence_embedding",
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
         device: str = None,
         normalize_embeddings: bool = False,
-    ) -> Union[List[Tensor], ndarray, Tensor]:
+    ) -> Union[List[Tensor], np.ndarray, Tensor]:
         """
         Computes sentence embeddings.
 
@@ -429,9 +493,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         self.eval()
         if show_progress_bar is None:
-            show_progress_bar = (
-                logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG
-            )
+            show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
 
         if convert_to_tensor:
             convert_to_numpy = False
@@ -565,7 +627,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 all_embeddings = torch.Tensor()
         elif convert_to_numpy:
             if not isinstance(all_embeddings, np.ndarray):
-                if all_embeddings[0].dtype == torch.bfloat16:
+                if all_embeddings and all_embeddings[0].dtype == torch.bfloat16:
                     all_embeddings = np.asarray([emb.float().numpy() for emb in all_embeddings])
                 else:
                     all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
@@ -771,6 +833,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         prompt: Optional[str] = None,
         batch_size: int = 32,
         chunk_size: int = None,
+        show_progress_bar: Optional[bool] = None,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         normalize_embeddings: bool = False,
     ) -> np.ndarray:
@@ -795,6 +858,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             batch_size (int): Encode sentences with batch size. (default: 32)
             chunk_size (int): Sentences are chunked and sent to the individual processes. If None, it determines a
                 sensible size. Defaults to None.
+            show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
             precision (Literal["float32", "int8", "uint8", "binary", "ubinary"]): The precision to use for the
                 embeddings. Can be "float32", "int8", "uint8", "binary", or "ubinary". All non-float32 precisions
                 are quantized embeddings. Quantized embeddings are smaller in size and faster to compute, but may
@@ -829,6 +893,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         if chunk_size is None:
             chunk_size = min(math.ceil(len(sentences) / len(pool["processes"]) / 10), 5000)
 
+        if show_progress_bar is None:
+            show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
+
         logger.debug(f"Chunk data into {math.ceil(len(sentences) / chunk_size)} packages of size {chunk_size}")
 
         input_queue = pool["input"]
@@ -849,7 +916,10 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             last_chunk_id += 1
 
         output_queue = pool["output"]
-        results_list = sorted([output_queue.get() for _ in range(last_chunk_id)], key=lambda x: x[0])
+        results_list = sorted(
+            [output_queue.get() for _ in trange(last_chunk_id, desc="Chunks", disable=not show_progress_bar)],
+            key=lambda x: x[0],
+        )
         embeddings = np.concatenate([result[1] for result in results_list])
         return embeddings
 
@@ -942,7 +1012,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 break
         if self.truncate_dim is not None:
             # The user requested truncation. If they set it to a dim greater than output_dim,
-            # no truncation will actually happen. So return output_dim insead of self.truncate_dim
+            # no truncation will actually happen. So return output_dim instead of self.truncate_dim
             return min(output_dim or np.inf, self.truncate_dim)
         return output_dim
 

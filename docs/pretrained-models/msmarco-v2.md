@@ -33,6 +33,6 @@ As baseline we show the results for lexical search with BM25 using Elasticsearch
 
 
 
-## Version Histroy 
+## Version History 
 
 - [Version 1](msmarco-v1.md)

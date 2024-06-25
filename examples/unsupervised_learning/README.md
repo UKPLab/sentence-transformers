@@ -45,7 +45,7 @@ BERT showed that Masked Language Model (MLM) is a powerful pre-training approach
 
 ## GenQ
 
-In our paper [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663)  we present a method to learn a semantic search method by generating queries for given passages. This method has been improved in [GPL: Generative Pseudo Labeling for Unsupervised Domain Adaptation of Dense Retrieval](https://arxiv.org/abs/2112.07577).
+In our paper [BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663)  we present a method to learn a semantic search method by generating queries for given passages. This method has been improved in [GPL: Generative Pseudo Labeling for Unsupervised Domain Adaptation of Dense Retrieval](https://arxiv.org/abs/2112.07577).
 
 We pass all passages in our collection through a trained T5 model, which generates potential queries from users. We then use these (query, passage) pairs to train a SentenceTransformer model.
 

@@ -1,5 +1,5 @@
 # Natural Questions Models
-[Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions) constists of about 100k real search queries from Google with the respective, relevant passage from Wikipedia. Models trained on this dataset work well for question-answer retrieval.
+[Google's Natural Questions dataset](https://ai.google.com/research/NaturalQuestions) consists of about 100k real search queries from Google with the respective, relevant passage from Wikipedia. Models trained on this dataset work well for question-answer retrieval.
 
 ## Usage
 

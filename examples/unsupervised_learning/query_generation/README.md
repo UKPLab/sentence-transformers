@@ -1,6 +1,6 @@
 # GenQ
 
-In our paper [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663) we presented a method to adapt a model for [asymmetric semantic search](../../applications/semantic-search/) without for a corpus without labeled training data.
+In our paper [BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663) we presented a method to adapt a model for [asymmetric semantic search](../../applications/semantic-search/) without for a corpus without labeled training data.
 
 ## Background
 In [asymmetric semantic search](../../applications/semantic-search/), the user provides a (short) query like some keywords or a question. We then want to retrieve a longer text passage that provides the answer.

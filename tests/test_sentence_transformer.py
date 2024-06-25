@@ -662,6 +662,12 @@ def test_safetensors(modules: Union[List[nn.Module], SentenceTransformer]) -> No
         assert np.allclose(original_embedding, loaded_embedding)
 
 
+def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+    embeddings = model.encode([])
+    assert embeddings.shape == (0,)
+    
+
 @pytest.mark.skipif(
     find_spec("openvino") is None or find_spec("optimum.intel") is None,
     reason="optimum-intel and openvino must be installed for OpenVINO test",

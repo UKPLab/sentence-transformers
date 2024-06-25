@@ -13,7 +13,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
     def __init__(
         self, model: SentenceTransformer, decoder_name_or_path: Optional[str] = None, tie_encoder_decoder: bool = True
     ) -> None:
-        """
+        r"""
         This loss expects as input a pairs of damaged sentences and the corresponding original ones.
         During training, the decoder reconstructs the original sentences from the encoded sentence embeddings.
         Here the argument 'decoder_name_or_path' indicates the pretrained model (supported by Hugging Face) to be used as the decoder.

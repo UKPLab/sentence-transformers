@@ -70,7 +70,7 @@ These models have been trained on the [Quora duplicate questions dataset](https:
 ```
 
 ## NLI
-Given two sentences, are these contradicting each other, entailing one the other or are these netural? The following models were trained on the [SNLI](https://huggingface.co/datasets/stanfordnlp/snli) and [MultiNLI](https://huggingface.co/datasets/nyu-mll/multi_nli) datasets.
+Given two sentences, are these contradicting each other, entailing one the other or are these neutral? The following models were trained on the [SNLI](https://huggingface.co/datasets/stanfordnlp/snli) and [MultiNLI](https://huggingface.co/datasets/nyu-mll/multi_nli) datasets.
 - [cross-encoder/nli-deberta-v3-base](https://huggingface.co/cross-encoder/nli-deberta-v3-base) - Accuracy on MNLI mismatched set: 90.04
 - [cross-encoder/nli-deberta-base](https://huggingface.co/cross-encoder/nli-deberta-base) - Accuracy on MNLI mismatched set: 88.08
 - [cross-encoder/nli-deberta-v3-xsmall](https://huggingface.co/cross-encoder/nli-deberta-v3-xsmall) - Accuracy on MNLI mismatched set:  87.77
