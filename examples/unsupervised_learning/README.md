@@ -2,8 +2,10 @@
 
 This page contains a collection of unsupervised learning methods to learn sentence embeddings. The methods have in common that they **do not require labeled training data**. Instead, they can learn semantically meaningful sentence embeddings just from the text itself.
 
-**Note:** Unsupervised learning approaches are still an activate research area and in many cases the models perform rather poorly compared to models that are using training pairs as provided in our [training data collection](https://huggingface.co/datasets/sentence-transformers/embedding-training-data). A better approach is **[Domain Adaptation](../domain_adaptation/README.md)** where you combine unsupervised learning on your target domain with existent labeled data. This gives the best performance on your specific corpus.
-
+```eval_rst
+.. note::
+    Unsupervised learning approaches are still an activate research area and in many cases the models perform rather poorly compared to models that are using training pairs as provided in our `training data collection <https://huggingface.co/collections/sentence-transformers/embedding-model-datasets-6644d7a3673a511914aa7552>`_. A better approach is `Domain Adaptation <../domain_adaptation/README.md>`_ where you combine unsupervised learning on your target domain with existent labeled data. This should give the best performance on your specific corpus.
+```
 
 ## TSDAE
 In our work [TSDAE (Transformer-based Denoising AutoEncoder)](https://arxiv.org/abs/2104.06979) we present an unsupervised sentence embedding learning method based on denoising auto-encoders:
@@ -43,7 +45,7 @@ BERT showed that Masked Language Model (MLM) is a powerful pre-training approach
 
 ## GenQ
 
-In our paper [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663)  we present a method to learn a semantic search method by generating queries for given passages. This method has been improved in [GPL: Generative Pseudo Labeling for Unsupervised Domain Adaptation of Dense Retrieval](https://arxiv.org/abs/2112.07577).
+In our paper [BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663)  we present a method to learn a semantic search method by generating queries for given passages. This method has been improved in [GPL: Generative Pseudo Labeling for Unsupervised Domain Adaptation of Dense Retrieval](https://arxiv.org/abs/2112.07577).
 
 We pass all passages in our collection through a trained T5 model, which generates potential queries from users. We then use these (query, passage) pairs to train a SentenceTransformer model.
 

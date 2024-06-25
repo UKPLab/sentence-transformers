@@ -1,40 +1,60 @@
-from torch import nn
-from transformers import AutoModel, AutoTokenizer, AutoConfig, T5Config, MT5Config
 import json
-from typing import List, Dict, Optional, Union, Tuple
 import os
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import torch
+from torch import nn
+from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Config
 
 
 class Transformer(nn.Module):
     """Huggingface AutoModel to generate token embeddings.
     Loads the correct class, e.g. BERT / RoBERTa etc.
 
-    :param model_name_or_path: Huggingface models name (https://huggingface.co/models)
-    :param max_seq_length: Truncate any inputs longer than max_seq_length
-    :param model_args: Arguments (key, value pairs) passed to the Huggingface Transformers model
-    :param cache_dir: Cache dir for Huggingface Transformers to store/load models
-    :param tokenizer_args: Arguments (key, value pairs) passed to the Huggingface Tokenizer model
-    :param do_lower_case: If true, lowercases the input (independent if the model is cased or not)
-    :param tokenizer_name_or_path: Name or path of the tokenizer. When None, then model_name_or_path is used
+    Args:
+        model_name_or_path: Huggingface models name
+            (https://huggingface.co/models)
+        max_seq_length: Truncate any inputs longer than max_seq_length
+        model_args: Keyword arguments passed to the Huggingface
+            Transformers model
+        tokenizer_args: Keyword arguments passed to the Huggingface
+            Transformers tokenizer
+        config_args: Keyword arguments passed to the Huggingface
+            Transformers config
+        cache_dir: Cache dir for Huggingface Transformers to store/load
+            models
+        do_lower_case: If true, lowercases the input (independent if the
+            model is cased or not)
+        tokenizer_name_or_path: Name or path of the tokenizer. When
+            None, then model_name_or_path is used
     """
 
     def __init__(
         self,
         model_name_or_path: str,
         max_seq_length: Optional[int] = None,
-        model_args: Dict = {},
+        model_args: Optional[Dict[str, Any]] = None,
+        tokenizer_args: Optional[Dict[str, Any]] = None,
+        config_args: Optional[Dict[str, Any]] = None,
         cache_dir: Optional[str] = None,
-        tokenizer_args: Dict = {},
         do_lower_case: bool = False,
         tokenizer_name_or_path: str = None,
-    ):
+    ) -> None:
         super(Transformer, self).__init__()
         self.config_keys = ["max_seq_length", "do_lower_case"]
         self.do_lower_case = do_lower_case
+        if model_args is None:
+            model_args = {}
+        if tokenizer_args is None:
+            tokenizer_args = {}
+        if config_args is None:
+            config_args = {}
 
-        config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
+        config = AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
         self._load_model(model_name_or_path, config, cache_dir, **model_args)
 
+        if max_seq_length is not None and "model_max_length" not in tokenizer_args:
+            tokenizer_args["model_max_length"] = max_seq_length
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name_or_path if tokenizer_name_or_path is not None else model_name_or_path,
             cache_dir=cache_dir,
@@ -55,7 +75,7 @@ class Transformer(nn.Module):
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
-    def _load_model(self, model_name_or_path, config, cache_dir, **model_args):
+    def _load_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         """Loads the transformer model"""
         if isinstance(config, T5Config):
             self._load_t5_model(model_name_or_path, config, cache_dir, **model_args)
@@ -66,7 +86,7 @@ class Transformer(nn.Module):
                 model_name_or_path, config=config, cache_dir=cache_dir, **model_args
             )
 
-    def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args):
+    def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         """Loads the encoder model from T5"""
         from transformers import T5EncoderModel
 
@@ -75,7 +95,7 @@ class Transformer(nn.Module):
             model_name_or_path, config=config, cache_dir=cache_dir, **model_args
         )
 
-    def _load_mt5_model(self, model_name_or_path, config, cache_dir, **model_args):
+    def _load_mt5_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         """Loads the encoder model from T5"""
         from transformers import MT5EncoderModel
 
@@ -84,12 +104,12 @@ class Transformer(nn.Module):
             model_name_or_path, config=config, cache_dir=cache_dir, **model_args
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Transformer({}) with Transformer model: {} ".format(
             self.get_config_dict(), self.auto_model.__class__.__name__
         )
 
-    def forward(self, features):
+    def forward(self, features: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """Returns token_embeddings, cls_token"""
         trans_features = {"input_ids": features["input_ids"], "attention_mask": features["attention_mask"]}
         if "token_type_ids" in features:
@@ -113,10 +133,10 @@ class Transformer(nn.Module):
     def get_word_embedding_dimension(self) -> int:
         return self.auto_model.config.hidden_size
 
-    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]], padding: Union[str, bool] = True):
-        """
-        Tokenizes a text and maps tokens to token-ids
-        """
+    def tokenize(
+        self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]], padding: Union[str, bool] = True
+    ) -> Dict[str, torch.Tensor]:
+        """Tokenizes a text and maps tokens to token-ids"""
         output = {}
         if isinstance(texts[0], str):
             to_tokenize = [texts]
@@ -153,10 +173,10 @@ class Transformer(nn.Module):
         )
         return output
 
-    def get_config_dict(self):
+    def get_config_dict(self) -> Dict[str, Any]:
         return {key: self.__dict__[key] for key in self.config_keys}
 
-    def save(self, output_path: str, safe_serialization: bool = True):
+    def save(self, output_path: str, safe_serialization: bool = True) -> None:
         self.auto_model.save_pretrained(output_path, safe_serialization=safe_serialization)
         self.tokenizer.save_pretrained(output_path)
 
@@ -164,7 +184,7 @@ class Transformer(nn.Module):
             json.dump(self.get_config_dict(), fOut, indent=2)
 
     @staticmethod
-    def load(input_path: str):
+    def load(input_path: str) -> "Transformer":
         # Old classes used other config names than 'sentence_bert_config.json'
         for config_name in [
             "sentence_bert_config.json",
@@ -182,6 +202,10 @@ class Transformer(nn.Module):
         with open(sbert_config_path) as fIn:
             config = json.load(fIn)
         # Don't allow configs to set trust_remote_code
-        if "model_args" in config:
+        if "model_args" in config and "trust_remote_code" in config["model_args"]:
             config["model_args"].pop("trust_remote_code")
+        if "tokenizer_args" in config and "trust_remote_code" in config["tokenizer_args"]:
+            config["tokenizer_args"].pop("trust_remote_code")
+        if "config_args" in config and "trust_remote_code" in config["config_args"]:
+            config["config_args"].pop("trust_remote_code")
         return Transformer(model_name_or_path=input_path, **config)

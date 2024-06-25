@@ -73,10 +73,10 @@ When you use the unsupervised learning example, please have a look at: [TSDAE: U
 }
 ```
 
-When you use the GenQ learning example, please have a look at: [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663):
+When you use the GenQ learning example, please have a look at: [BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663):
 ```bibtex  
 @inproceedings{thakur-2021-BEIR,
-    title = "BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models",
+    title = "BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models",
     author = {Thakur, Nandan and Reimers, Nils and R{\"{u}}ckl{\'{e}}, Andreas and Srivastava, Abhishek and Gurevych, Iryna}, 
     booktitle={Thirty-fifth Conference on Neural Information Processing Systems (NeurIPS 2021) - Datasets and Benchmarks Track (Round 2)},
     month = "4",

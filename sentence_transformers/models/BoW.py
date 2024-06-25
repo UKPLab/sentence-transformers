@@ -1,13 +1,12 @@
-import torch
-from torch import Tensor
-from torch import nn
-from typing import List, Dict
-import os
 import json
 import logging
-import numpy as np
-from .tokenizer import WhitespaceTokenizer
+import os
+from typing import Dict, List, Literal
 
+import torch
+from torch import Tensor, nn
+
+from .tokenizer import WhitespaceTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -66,11 +65,13 @@ class BoW(nn.Module):
     def get_sentence_embedding_dimension(self):
         return self.sentence_embedding_dimension
 
-    def get_sentence_features(self, tokenized_texts: List[List[int]], pad_seq_length: int = 0):
+    def get_sentence_features(
+        self, tokenized_texts: List[List[int]], pad_seq_length: int = 0
+    ) -> Dict[Literal["sentence_embedding"], torch.Tensor]:
         vectors = []
 
         for tokens in tokenized_texts:
-            vector = np.zeros(self.get_sentence_embedding_dimension(), dtype=np.float32)
+            vector = torch.zeros(self.get_sentence_embedding_dimension(), dtype=torch.float32)
             for token in tokens:
                 if self.cumulative_term_frequency:
                     vector[token] += self.weights[token]
@@ -78,7 +79,7 @@ class BoW(nn.Module):
                     vector[token] = self.weights[token]
             vectors.append(vector)
 
-        return {"sentence_embedding": torch.tensor(vectors, dtype=torch.float)}
+        return {"sentence_embedding": torch.stack(vectors)}
 
     def get_config_dict(self):
         return {key: self.__dict__[key] for key in self.config_keys}

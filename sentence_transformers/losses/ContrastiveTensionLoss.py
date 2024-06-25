@@ -1,13 +1,14 @@
-import torch
-from torch import nn, Tensor
-from typing import Iterable, Dict
-from ..SentenceTransformer import SentenceTransformer
-from .. import util
 import copy
-import random
 import math
-from .. import InputExample
+import random
+from typing import Dict, Iterable
+
 import numpy as np
+import torch
+from torch import Tensor, nn
+
+from sentence_transformers import InputExample, util
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class ContrastiveTensionLoss(nn.Module):
@@ -23,7 +24,8 @@ class ContrastiveTensionLoss(nn.Module):
 
     Generally, :class:`ContrastiveTensionLossInBatchNegatives` is recommended over this loss, as it gives a stronger training signal.
 
-    :param model: SentenceTransformer model
+    Args:
+        model: SentenceTransformer model
 
     References:
         * Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
@@ -68,13 +70,13 @@ class ContrastiveTensionLoss(nn.Module):
             )
     """
 
-    def __init__(self, model: SentenceTransformer):
+    def __init__(self, model: SentenceTransformer) -> None:
         super(ContrastiveTensionLoss, self).__init__()
         self.model2 = model  # This will be the final model used during the inference time.
         self.model1 = copy.deepcopy(model)
         self.criterion = nn.BCEWithLogitsLoss(reduction="sum")
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         sentence_features1, sentence_features2 = tuple(sentence_features)
         reps_1 = self.model1(sentence_features1)["sentence_embedding"]  # (bsz, hdim)
         reps_2 = self.model2(sentence_features2)["sentence_embedding"]
@@ -86,9 +88,21 @@ class ContrastiveTensionLoss(nn.Module):
         loss = self.criterion(sim_scores, labels.type_as(sim_scores))
         return loss
 
+    @property
+    def citation(self) -> str:
+        return """
+@inproceedings{carlsson2021semantic,
+    title={Semantic Re-tuning with Contrastive Tension},
+    author={Fredrik Carlsson and Amaru Cuba Gyllensten and Evangelia Gogoulou and Erik Ylip{\"a}{\"a} Hellqvist and Magnus Sahlgren},
+    booktitle={International Conference on Learning Representations},
+    year={2021},
+    url={https://openreview.net/forum?id=Ov_sMNau-PF}
+}
+"""
+
 
 class ContrastiveTensionLossInBatchNegatives(nn.Module):
-    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim):
+    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim) -> None:
         """
         This loss expects only single sentences, without any labels. Positive and negative pairs are automatically created via random sampling,
         such that a positive pair consists of two identical sentences and a negative pair consists of two different sentences. An independent
@@ -100,9 +114,13 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
         Note that you should not use the `ContrastiveTensionDataLoader` for this loss, but just a normal DataLoader with `InputExample` instances.
         The two texts of each `InputExample` instance should be identical.
 
-        :param model: SentenceTransformer model
-        :param scale: Output of similarity function is multiplied by scale value
-        :param similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot product (and then set scale to 1)
+        Args:
+            model: SentenceTransformer model
+            scale: Output of similarity function is multiplied by scale
+                value
+            similarity_fct: similarity function between sentence
+                embeddings. By default, cos_sim. Can also be set to dot
+                product (and then set scale to 1)
 
         References:
             - Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
@@ -152,7 +170,7 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
         self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(scale))
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         sentence_features1, sentence_features2 = tuple(sentence_features)
         embeddings_a = self.model1(sentence_features1)["sentence_embedding"]  # (bsz, hdim)
         embeddings_b = self.model2(sentence_features2)["sentence_embedding"]
@@ -160,6 +178,18 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
         scores = self.similarity_fct(embeddings_a, embeddings_b) * self.logit_scale.exp()  # self.scale
         labels = torch.tensor(range(len(scores)), dtype=torch.long, device=scores.device)
         return (self.cross_entropy_loss(scores, labels) + self.cross_entropy_loss(scores.t(), labels)) / 2
+
+    @property
+    def citation(self) -> str:
+        return """
+@inproceedings{carlsson2021semantic,
+    title={Semantic Re-tuning with Contrastive Tension},
+    author={Fredrik Carlsson and Amaru Cuba Gyllensten and Evangelia Gogoulou and Erik Ylip{\"a}{\"a} Hellqvist and Magnus Sahlgren},
+    booktitle={International Conference on Learning Representations},
+    year={2021},
+    url={https://openreview.net/forum?id=Ov_sMNau-PF}
+}
+"""
 
 
 ################# CT Data Loader #################

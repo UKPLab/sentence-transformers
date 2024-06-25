@@ -8,11 +8,13 @@ limit the amount of memory used. More info about dataset streaming:
 https://huggingface.co/docs/datasets/stream
 """
 
-from sentence_transformers import SentenceTransformer, LoggingHandler
 import logging
-from datasets import load_dataset
+
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
+from datasets import load_dataset
+from sentence_transformers import LoggingHandler, SentenceTransformer
 
 logging.basicConfig(
     format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]

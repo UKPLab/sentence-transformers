@@ -1,19 +1,21 @@
-from .. import util
+from typing import Dict, Iterable
+
 import torch
-from torch import nn, Tensor
-from typing import Iterable, Dict
 import torch.nn.functional as F
+from torch import Tensor, nn
+
+from sentence_transformers import SentenceTransformer, util
 
 
 class MegaBatchMarginLoss(nn.Module):
     def __init__(
         self,
-        model,
+        model: SentenceTransformer,
         positive_margin: float = 0.8,
         negative_margin: float = 0.3,
         use_mini_batched_version: bool = True,
         mini_batch_size: int = 50,
-    ):
+    ) -> None:
         """
         Given a large batch (like 500 or more examples) of (anchor_i, positive_i) pairs, find for each pair in the batch
         the hardest negative, i.e. find j != i such that cos_sim(anchor_i, positive_j) is maximal. Then create from this a
@@ -21,12 +23,18 @@ class MegaBatchMarginLoss(nn.Module):
 
         Then train as with the triplet loss.
 
-        :param model: SentenceTransformerModel
-        :param positive_margin: Positive margin, cos(anchor, positive) should be > positive_margin
-        :param negative_margin: Negative margin, cos(anchor, negative) should be < negative_margin
-        :param use_mini_batched_version: As large batch sizes require a lot of memory, we can use a mini-batched version.
-            We break down the large batch into smaller batches with fewer examples.
-        :param mini_batch_size: Size for the mini-batches. Should be a devisor for the batch size in your data loader.
+        Args:
+            model: SentenceTransformerModel
+            positive_margin: Positive margin, cos(anchor, positive)
+                should be > positive_margin
+            negative_margin: Negative margin, cos(anchor, negative)
+                should be < negative_margin
+            use_mini_batched_version: As large batch sizes require a lot
+                of memory, we can use a mini-batched version. We break
+                down the large batch into smaller batches with fewer
+                examples.
+            mini_batch_size: Size for the mini-batches. Should be a
+                devisor for the batch size in your data loader.
 
         References:
             - This loss function was inspired by the ParaNMT paper: https://www.aclweb.org/anthology/P18-1042/
@@ -72,7 +80,7 @@ class MegaBatchMarginLoss(nn.Module):
         self.mini_batch_size = mini_batch_size
         self.forward = self.forward_mini_batched if use_mini_batched_version else self.forward_non_mini_batched
 
-    def forward_mini_batched(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward_mini_batched(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         anchor, positive = sentence_features
         feature_names = list(anchor.keys())
 
@@ -129,7 +137,7 @@ class MegaBatchMarginLoss(nn.Module):
         return losses
 
     ##### Non mini-batched version ###
-    def forward_non_mini_batched(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward_non_mini_batched(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         embeddings_a, embeddings_b = reps
 
@@ -141,3 +149,21 @@ class MegaBatchMarginLoss(nn.Module):
         negatives_max, _ = torch.max(negative_scores, dim=1)
         losses = F.relu(self.positive_margin - positive_scores) + F.relu(negatives_max - self.negative_margin)
         return losses.mean()
+
+    @property
+    def citation(self) -> str:
+        return """
+@inproceedings{wieting-gimpel-2018-paranmt,
+    title = "{P}ara{NMT}-50{M}: Pushing the Limits of Paraphrastic Sentence Embeddings with Millions of Machine Translations",
+    author = "Wieting, John and Gimpel, Kevin",
+    editor = "Gurevych, Iryna and Miyao, Yusuke",
+    booktitle = "Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = jul,
+    year = "2018",
+    address = "Melbourne, Australia",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/P18-1042",
+    doi = "10.18653/v1/P18-1042",
+    pages = "451--462",
+}
+"""

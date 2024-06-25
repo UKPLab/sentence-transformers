@@ -1,15 +1,19 @@
-import torch
-from torch import nn
-from typing import List
-import logging
 import gzip
-from tqdm import tqdm
-import numpy as np
-import os
 import json
-from ..util import import_from_string, fullname, http_get
-from .tokenizer import WordTokenizer, WhitespaceTokenizer
+import logging
+import os
+from typing import List
 
+import numpy as np
+import torch
+from safetensors.torch import load_file as load_safetensors_file
+from safetensors.torch import save_file as save_safetensors_file
+from torch import nn
+from tqdm import tqdm
+
+from sentence_transformers.util import fullname, http_get, import_from_string
+
+from .tokenizer import WhitespaceTokenizer, WordTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -73,11 +77,14 @@ class WordEmbeddings(nn.Module):
     def get_word_embedding_dimension(self) -> int:
         return self.embeddings_dimension
 
-    def save(self, output_path: str):
+    def save(self, output_path: str, safe_serialization: bool = True):
         with open(os.path.join(output_path, "wordembedding_config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut, indent=2)
 
-        torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
+        if safe_serialization:
+            save_safetensors_file(self.state_dict(), os.path.join(output_path, "model.safetensors"))
+        else:
+            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
         self.tokenizer.save(output_path)
 
     def get_config_dict(self):
@@ -94,7 +101,10 @@ class WordEmbeddings(nn.Module):
 
         tokenizer_class = import_from_string(config["tokenizer_class"])
         tokenizer = tokenizer_class.load(input_path)
-        weights = torch.load(os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"))
+        if os.path.exists(os.path.join(input_path, "model.safetensors")):
+            weights = load_safetensors_file(os.path.join(input_path, "model.safetensors"))
+        else:
+            weights = torch.load(os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"))
         embedding_weights = weights["emb_layer.weight"]
         model = WordEmbeddings(
             tokenizer=tokenizer, embedding_weights=embedding_weights, update_embeddings=config["update_embeddings"]

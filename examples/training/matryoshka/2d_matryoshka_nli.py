@@ -11,147 +11,116 @@ OR
 python 2d_matryoshka_nli.py pretrained_transformer_model_name
 """
 
-import math
-from datasets import load_dataset
-from sentence_transformers import models, losses, datasets
-from sentence_transformers import LoggingHandler, SentenceTransformer, util, InputExample
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SimilarityFunction
 import logging
-from datetime import datetime
 import sys
-import os
-import gzip
-import csv
-import random
+import traceback
+from datetime import datetime
 
-#### Just some code to print debug information to stdout
-logging.basicConfig(
-    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
+from datasets import load_dataset
+from sentence_transformers import (
+    SentenceTransformer,
+    SentenceTransformerTrainer,
+    SentenceTransformerTrainingArguments,
+    losses,
 )
-#### /print debug information to stdout
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, SimilarityFunction
+from sentence_transformers.training_args import BatchSamplers
+
+# Set the log level to INFO to get more information
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 model_name = sys.argv[1] if len(sys.argv) > 1 else "distilroberta-base"
-train_batch_size = 128  # The larger you select this, the better the results (usually). But it requires more GPU memory
-max_seq_length = 75
-num_epochs = 1
+batch_size = 128  # The larger you select this, the better the results (usually). But it requires more GPU memory
+num_train_epochs = 1
 
 # Save path of the model
-model_save_path = (
-    "output/2d_matryoshka_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-)
+output_dir = f"output/2d_matryoshka_nli_{model_name.replace('/', '-')}-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
 
+# 1. Here we define our SentenceTransformer model. If not already a Sentence Transformer model, it will automatically
+# create one with "mean" pooling.
+model = SentenceTransformer(model_name)
+# If we want, we can limit the maximum sequence length for the model
+# model.max_seq_length = 75
+logging.info(model)
 
-# Here we define our SentenceTransformer model
-word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
-pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode="mean")
-model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+# 2. Load the AllNLI dataset: https://huggingface.co/datasets/sentence-transformers/all-nli
+train_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="train")
+eval_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="dev")
+logging.info(train_dataset)
 
-# Check if dataset exists. If not, download and extract  it
-nli_dataset_path = "data/AllNLI.tsv.gz"
+# If you wish, you can limit the number of training samples
+# train_dataset = train_dataset.select(range(5000))
 
-if not os.path.exists(nli_dataset_path):
-    util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
+# 3. Define our training loss
+inner_train_loss = losses.MultipleNegativesRankingLoss(model)
+train_loss = losses.Matryoshka2dLoss(model, inner_train_loss, [768, 512, 256, 128, 64])
 
-# Read the AllNLI.tsv.gz file and create the training dataset
-logging.info("Read AllNLI train dataset")
-
-
-def add_to_samples(sent1, sent2, label):
-    if sent1 not in train_data:
-        train_data[sent1] = {"contradiction": set(), "entailment": set(), "neutral": set()}
-    train_data[sent1][label].add(sent2)
-
-
-train_data = {}
-with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        if row["split"] == "train":
-            sent1 = row["sentence1"].strip()
-            sent2 = row["sentence2"].strip()
-
-            add_to_samples(sent1, sent2, row["label"])
-            add_to_samples(sent2, sent1, row["label"])  # Also add the opposite
-
-
-train_samples = []
-for sent1, others in train_data.items():
-    if len(others["entailment"]) > 0 and len(others["contradiction"]) > 0:
-        train_samples.append(
-            InputExample(
-                texts=[sent1, random.choice(list(others["entailment"])), random.choice(list(others["contradiction"]))]
-            )
-        )
-        train_samples.append(
-            InputExample(
-                texts=[random.choice(list(others["entailment"])), sent1, random.choice(list(others["contradiction"]))]
-            )
-        )
-
-logging.info("Train samples: {}".format(len(train_samples)))
-
-
-# Special data loader that avoid duplicates within a batch
-train_dataloader = datasets.NoDuplicatesDataLoader(train_samples, batch_size=train_batch_size)
-
-
-# Our training loss
-train_loss = losses.MultipleNegativesRankingLoss(model)
-train_loss = losses.Matryoshka2dLoss(model, train_loss, [768, 512, 256, 128, 64])
-
-stsb_dev = load_dataset("mteb/stsbenchmark-sts", split="validation")
+# 4. Define an evaluator for use during training. This is useful to keep track of alongside the evaluation loss.
+stsb_eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
 dev_evaluator = EmbeddingSimilarityEvaluator(
-    stsb_dev["sentence1"],
-    stsb_dev["sentence2"],
-    [score / 5 for score in stsb_dev["score"]],
+    sentences1=stsb_eval_dataset["sentence1"],
+    sentences2=stsb_eval_dataset["sentence2"],
+    scores=stsb_eval_dataset["score"],
     main_similarity=SimilarityFunction.COSINE,
     name="sts-dev",
 )
 
-# Configure the training
-warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
-
-
-# Train the model
-model.fit(
-    train_objectives=[(train_dataloader, train_loss)],
-    evaluator=dev_evaluator,
-    epochs=num_epochs,
-    evaluation_steps=int(len(train_dataloader) * 0.1),
-    warmup_steps=warmup_steps,
-    output_path=model_save_path,
-    use_amp=False,  # Set to True, if your GPU supports FP16 operations
+# 5. Define the training arguments
+args = SentenceTransformerTrainingArguments(
+    # Required parameter:
+    output_dir=output_dir,
+    # Optional training parameters:
+    num_train_epochs=num_train_epochs,
+    per_device_train_batch_size=batch_size,
+    per_device_eval_batch_size=batch_size,
+    warmup_ratio=0.1,
+    fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
+    bf16=False,  # Set to True if you have a GPU that supports BF16
+    batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
+    # Optional tracking/debugging parameters:
+    eval_strategy="steps",
+    eval_steps=100,
+    save_strategy="steps",
+    save_steps=100,
+    save_total_limit=2,
+    logging_steps=100,
+    run_name="2d-matryoshka-nli",  # Will be used in W&B if `wandb` is installed
 )
 
+# 6. Create the trainer & start training
+trainer = SentenceTransformerTrainer(
+    model=model,
+    args=args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    loss=train_loss,
+    evaluator=dev_evaluator,
+)
+trainer.train()
 
-##############################################################################
-#
-# Load the stored model and evaluate its performance on STS benchmark dataset
-#
-##############################################################################
-
-
-model = SentenceTransformer(model_save_path)
-stsb_test = load_dataset("mteb/stsbenchmark-sts", split="test")
+# 7. Evaluate the model performance on the STS Benchmark test dataset
+test_dataset = load_dataset("sentence-transformers/stsb", split="test")
 test_evaluator = EmbeddingSimilarityEvaluator(
-    stsb_test["sentence1"],
-    stsb_test["sentence2"],
-    [score / 5 for score in stsb_test["score"]],
+    sentences1=test_dataset["sentence1"],
+    sentences2=test_dataset["sentence2"],
+    scores=test_dataset["score"],
     main_similarity=SimilarityFunction.COSINE,
     name="sts-test",
 )
-test_evaluator(model, output_path=model_save_path)
+test_evaluator(model)
 
+# 8. Save the trained & evaluated model locally
+final_output_dir = f"{output_dir}/final"
+model.save(final_output_dir)
 
-# Optionally, save the model to the Hugging Face Hub!
+# 9. (Optional) save the model to the Hugging Face Hub!
 # It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
 model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
 try:
     model.push_to_hub(f"{model_name}-nli-2d-matryoshka")
 except Exception:
     logging.error(
-        "Error uploading model to the Hugging Face Hub. To upload it manually, you can run "
-        f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({model_save_path!r})` "
+        f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
+        f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({final_output_dir!r})` "
         f"and saving it using `model.push_to_hub('{model_name}-nli-2d-matryoshka')`."
     )

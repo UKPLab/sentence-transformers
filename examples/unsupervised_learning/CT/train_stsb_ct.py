@@ -1,12 +1,13 @@
-import torch
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
-from sentence_transformers import SentenceTransformer, LoggingHandler, models, util, InputExample
-from sentence_transformers import losses
-import os
-import gzip
 import csv
-from datetime import datetime
+import gzip
 import logging
+import os
+from datetime import datetime
+
+import torch
+
+from sentence_transformers import InputExample, LoggingHandler, SentenceTransformer, losses, models, util
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(
@@ -17,7 +18,7 @@ logging.basicConfig(
 ## Training parameters
 model_name = "distilbert-base-uncased"
 batch_size = 16
-pos_neg_ratio = 8  # batch_size must be devisible by pos_neg_ratio
+pos_neg_ratio = 8  # batch_size must be divisible by pos_neg_ratio
 epochs = 1
 max_seq_length = 75
 

@@ -1,18 +1,19 @@
-import sys
-import json
-from torch.utils.data import DataLoader
-from sentence_transformers import SentenceTransformer, LoggingHandler, util, models, losses, InputExample
-import logging
-from datetime import datetime
-import gzip
-import os
-import tarfile
-import tqdm
-from torch.utils.data import Dataset
-import random
-from shutil import copyfile
-import pickle
 import argparse
+import gzip
+import json
+import logging
+import os
+import pickle
+import random
+import sys
+import tarfile
+from datetime import datetime
+from shutil import copyfile
+
+import tqdm
+from torch.utils.data import DataLoader, Dataset
+
+from sentence_transformers import InputExample, LoggingHandler, SentenceTransformer, losses, models, util
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(
@@ -165,7 +166,7 @@ with gzip.open(hard_negatives_filepath, "rt") as fIn:
                 negs_to_use = args.negs_to_use.split(",")
             else:  # Use all systems
                 negs_to_use = list(data["neg"].keys())
-            logging.info("Using negatives from the following systems:", negs_to_use)
+            logging.info("Using negatives from the following systems: {}".format(", ".join(negs_to_use)))
 
         for system_name in negs_to_use:
             if system_name not in data["neg"]:

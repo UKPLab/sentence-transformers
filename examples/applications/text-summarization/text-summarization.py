@@ -19,10 +19,10 @@ Note: Requires NLTK: `pip install nltk`
 """
 
 import nltk
-from sentence_transformers import SentenceTransformer, util
 import numpy as np
 from LexRank import degree_centrality_scores
 
+from sentence_transformers import SentenceTransformer
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -43,13 +43,13 @@ sentences = nltk.sent_tokenize(document)
 print("Num sentences:", len(sentences))
 
 # Compute the sentence embeddings
-embeddings = model.encode(sentences, convert_to_tensor=True)
+embeddings = model.encode(sentences)
 
-# Compute the pair-wise cosine similarities
-cos_scores = util.cos_sim(embeddings, embeddings).numpy()
+# Compute the similarity scores
+similarity_scores = model.similarity(embeddings, embeddings).numpy()
 
 # Compute the centrality for each sentence
-centrality_scores = degree_centrality_scores(cos_scores, threshold=None)
+centrality_scores = degree_centrality_scores(similarity_scores, threshold=None)
 
 # We argsort so that the first element is the sentence with the highest score
 most_central_sentence_indices = np.argsort(-centrality_scores)

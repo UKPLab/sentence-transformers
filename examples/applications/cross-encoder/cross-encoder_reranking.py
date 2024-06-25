@@ -7,12 +7,12 @@ https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs
 Then, we re-rank the hits from the Bi-Encoder using a Cross-Encoder.
 """
 
-from sentence_transformers import SentenceTransformer, util
-from sentence_transformers import CrossEncoder
-import os
 import csv
+import os
 import pickle
 import time
+
+from sentence_transformers import CrossEncoder, SentenceTransformer, util
 
 # We use a BiEncoder (SentenceTransformer) that produces embeddings for questions.
 # We then search for similar questions using cosine similarity and identify the top 100 most similar questions

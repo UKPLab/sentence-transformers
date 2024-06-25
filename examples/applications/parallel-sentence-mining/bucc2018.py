@@ -10,14 +10,16 @@ This script requires that you have FAISS installed:
 https://github.com/facebookresearch/faiss
 """
 
-from sentence_transformers import SentenceTransformer, models
-from collections import defaultdict
 import os
 import pickle
-from sklearn.decomposition import PCA
-import torch
-from bitext_mining_utils import score_candidates, kNN
+from collections import defaultdict
+
 import numpy as np
+import torch
+from bitext_mining_utils import kNN, score_candidates
+from sklearn.decomposition import PCA
+
+from sentence_transformers import SentenceTransformer, models
 
 # Model we want to use for bitext mining. LaBSE achieves state-of-the-art performance
 model_name = "LaBSE"

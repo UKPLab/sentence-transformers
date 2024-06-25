@@ -1,33 +1,33 @@
+# CoSENTLoss must be imported before AnglELoss
+from .CoSENTLoss import CoSENTLoss  # isort: skip
+
 from .AdaptiveLayerLoss import AdaptiveLayerLoss
-from .CosineSimilarityLoss import CosineSimilarityLoss
-from .SoftmaxLoss import SoftmaxLoss
-from .MultipleNegativesRankingLoss import MultipleNegativesRankingLoss
-from .MultipleNegativesSymmetricRankingLoss import MultipleNegativesSymmetricRankingLoss
-from .TripletLoss import TripletDistanceMetric, TripletLoss
-from .MarginMSELoss import MarginMSELoss
-from .MatryoshkaLoss import MatryoshkaLoss
-from .Matryoshka2dLoss import Matryoshka2dLoss
-from .MSELoss import MSELoss
+from .AnglELoss import AnglELoss
+from .BatchAllTripletLoss import BatchAllTripletLoss
+from .BatchHardSoftMarginTripletLoss import BatchHardSoftMarginTripletLoss
+from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
+from .BatchSemiHardTripletLoss import BatchSemiHardTripletLoss
+from .CachedGISTEmbedLoss import CachedGISTEmbedLoss
 from .CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
-from .ContrastiveLoss import SiameseDistanceMetric, ContrastiveLoss
+from .ContrastiveLoss import ContrastiveLoss, SiameseDistanceMetric
 from .ContrastiveTensionLoss import (
+    ContrastiveTensionDataLoader,
     ContrastiveTensionLoss,
     ContrastiveTensionLossInBatchNegatives,
-    ContrastiveTensionDataLoader,
 )
-from .CoSENTLoss import CoSENTLoss
-from .AnglELoss import AnglELoss
-from .OnlineContrastiveLoss import OnlineContrastiveLoss
-from .MegaBatchMarginLoss import MegaBatchMarginLoss
+from .CosineSimilarityLoss import CosineSimilarityLoss
 from .DenoisingAutoEncoderLoss import DenoisingAutoEncoderLoss
 from .GISTEmbedLoss import GISTEmbedLoss
-from .CachedGISTEmbedLoss import CachedGISTEmbedLoss
-
-# Triplet losses
-from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
-from .BatchHardSoftMarginTripletLoss import BatchHardSoftMarginTripletLoss
-from .BatchSemiHardTripletLoss import BatchSemiHardTripletLoss
-from .BatchAllTripletLoss import BatchAllTripletLoss
+from .MarginMSELoss import MarginMSELoss
+from .Matryoshka2dLoss import Matryoshka2dLoss
+from .MatryoshkaLoss import MatryoshkaLoss
+from .MegaBatchMarginLoss import MegaBatchMarginLoss
+from .MSELoss import MSELoss
+from .MultipleNegativesRankingLoss import MultipleNegativesRankingLoss
+from .MultipleNegativesSymmetricRankingLoss import MultipleNegativesSymmetricRankingLoss
+from .OnlineContrastiveLoss import OnlineContrastiveLoss
+from .SoftmaxLoss import SoftmaxLoss
+from .TripletLoss import TripletDistanceMetric, TripletLoss
 
 __all__ = [
     "AdaptiveLayerLoss",

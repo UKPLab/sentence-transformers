@@ -1,12 +1,13 @@
-from typing import Union
-from torch import nn
-import transformers
+from typing import Dict, Union
+
 import torch
+import transformers
 from PIL import Image
+from torch import nn
 
 
 class CLIPModel(nn.Module):
-    def __init__(self, model_name: str = "openai/clip-vit-base-patch32", processor_name=None):
+    def __init__(self, model_name: str = "openai/clip-vit-base-patch32", processor_name=None) -> None:
         super(CLIPModel, self).__init__()
 
         if processor_name is None:
@@ -15,10 +16,10 @@ class CLIPModel(nn.Module):
         self.model = transformers.CLIPModel.from_pretrained(model_name)
         self.processor = transformers.CLIPProcessor.from_pretrained(processor_name)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "CLIPModel()"
 
-    def forward(self, features):
+    def forward(self, features: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         image_embeds = []
         text_embeds = []
 
@@ -50,7 +51,7 @@ class CLIPModel(nn.Module):
 
         return features
 
-    def tokenize(self, texts, padding: Union[str, bool] = True):
+    def tokenize(self, texts, padding: Union[str, bool] = True) -> Dict[str, torch.Tensor]:
         images = []
         texts_values = []
         image_text_info = []
@@ -74,10 +75,14 @@ class CLIPModel(nn.Module):
         encoding["image_text_info"] = image_text_info
         return dict(encoding)
 
-    def save(self, output_path: str):
+    @property
+    def tokenizer(self) -> transformers.CLIPProcessor:
+        return self.processor
+
+    def save(self, output_path: str) -> None:
         self.model.save_pretrained(output_path)
         self.processor.save_pretrained(output_path)
 
     @staticmethod
-    def load(input_path: str):
+    def load(input_path: str) -> "CLIPModel":
         return CLIPModel(model_name=input_path)

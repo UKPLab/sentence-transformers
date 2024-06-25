@@ -44,11 +44,11 @@ information-retrieval/  - Given a large corpus of questions, find the duplicates
 """
 
 import csv
-from collections import defaultdict
-import random
 import os
-from sentence_transformers import util
+import random
+from collections import defaultdict
 
+from sentence_transformers import util
 
 random.seed(42)
 
@@ -128,7 +128,7 @@ stopwords = set(
         "but",
         "by",
         "can",
-        "couldn",
+        "couldn",  # codespell:ignore couldn
         "couldn't",
         "d",
         "did",

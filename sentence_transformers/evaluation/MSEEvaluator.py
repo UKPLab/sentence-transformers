@@ -1,11 +1,13 @@
-from sentence_transformers import SentenceTransformer
-from contextlib import nullcontext
-from sentence_transformers.evaluation import SentenceEvaluator
+import csv
 import logging
 import os
-import csv
-from typing import List, Optional
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Dict, List, Optional
 
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +22,48 @@ class MSEEvaluator(SentenceEvaluator):
     For multilingual knowledge distillation (https://arxiv.org/abs/2004.09813), source_sentences are in English
     and target_sentences are in a different language like German, Chinese, Spanish...
 
-    :param source_sentences: Source sentences are embedded with the teacher model
-    :param target_sentences: Target sentences are ambedding with the student model.
-    :param show_progress_bar: Show progress bar when computing embeddings
-    :param batch_size: Batch size to compute sentence embeddings
-    :param name: Name of the evaluator
-    :param write_csv: Write results to CSV file
-    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
-        dimension. Defaults to None.
+    Args:
+        source_sentences (List[str]): Source sentences to embed with the teacher model.
+        target_sentences (List[str]): Target sentences to embed with the student model.
+        teacher_model (SentenceTransformer, optional): The teacher model to compute the source sentence embeddings.
+        show_progress_bar (bool, optional): Show progress bar when computing embeddings. Defaults to False.
+        batch_size (int, optional): Batch size to compute sentence embeddings. Defaults to 32.
+        name (str, optional): Name of the evaluator. Defaults to "".
+        write_csv (bool, optional): Write results to CSV file. Defaults to True.
+        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
+            dimension. Defaults to None.
+
+    Example:
+        ::
+
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers.evaluation import MSEEvaluator
+            from datasets import load_dataset
+
+            # Load a model
+            student_model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
+            teacher_model = SentenceTransformer('all-mpnet-base-v2')
+
+            # Load any dataset with some texts
+            dataset = load_dataset("sentence-transformers/stsb", split="validation")
+            sentences = dataset["sentence1"] + dataset["sentence2"]
+
+            # Given queries, a corpus and a mapping with relevant documents, the InformationRetrievalEvaluator computes different IR metrics.
+            mse_evaluator = MSEEvaluator(
+                source_sentences=sentences,
+                target_sentences=sentences,
+                teacher_model=teacher_model,
+                name="stsb-dev",
+            )
+            results = mse_evaluator(student_model)
+            '''
+            MSE evaluation (lower = better) on the stsb-dev dataset:
+            MSE (*100):  0.805045
+            '''
+            print(mse_evaluator.primary_metric)
+            # => "stsb-dev_negative_mse"
+            print(results[mse_evaluator.primary_metric])
+            # => -0.8050452917814255
     """
 
     def __init__(
@@ -41,6 +77,7 @@ class MSEEvaluator(SentenceEvaluator):
         write_csv: bool = True,
         truncate_dim: Optional[int] = None,
     ):
+        super().__init__()
         self.truncate_dim = truncate_dim
         with nullcontext() if self.truncate_dim is None else teacher_model.truncate_sentence_embeddings(
             self.truncate_dim
@@ -57,8 +94,9 @@ class MSEEvaluator(SentenceEvaluator):
         self.csv_file = "mse_evaluation_" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps", "MSE"]
         self.write_csv = write_csv
+        self.primary_metric = "negative_mse"
 
-    def __call__(self, model: SentenceTransformer, output_path, epoch=-1, steps=-1):
+    def __call__(self, model: "SentenceTransformer", output_path: str = None, epoch=-1, steps=-1) -> Dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -93,4 +131,12 @@ class MSEEvaluator(SentenceEvaluator):
 
                 writer.writerow([epoch, steps, mse])
 
-        return -mse  # Return negative score as SentenceTransformers maximizes the performance
+        # Return negative score as SentenceTransformers maximizes the performance
+        metrics = {"negative_mse": -mse}
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
+
+    @property
+    def description(self) -> str:
+        return "Knowledge Distillation"

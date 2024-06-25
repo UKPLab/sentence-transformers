@@ -1,15 +1,19 @@
-from sentence_transformers import SentenceTransformer
-from contextlib import nullcontext
-from . import SentenceEvaluator
+import csv
 import logging
 import os
-import csv
-from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
-from sklearn.metrics import average_precision_score
-import numpy as np
-from typing import List, Optional
-from ..readers import InputExample
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Dict, List, Optional
 
+import numpy as np
+from sklearn.metrics import average_precision_score
+from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
+
+from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.readers import InputExample
+from sentence_transformers.similarity_functions import SimilarityFunction
+
+if TYPE_CHECKING:
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -18,22 +22,74 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on the similarity of the embeddings by calculating the accuracy of identifying similar and
     dissimilar sentences.
-    The metrics are the cosine similarity as well as euclidean and Manhattan distance
+    The metrics are the cosine similarity, dot score, Euclidean and Manhattan distance
     The returned score is the accuracy with a specified metric.
 
     The results are written in a CSV. If a CSV already exists, then values are appended.
 
     The labels need to be 0 for dissimilar pairs and 1 for similar pairs.
 
-    :param sentences1: The first column of sentences
-    :param sentences2: The second column of sentences
-    :param labels: labels[i] is the label for the pair (sentences1[i], sentences2[i]). Must be 0 or 1
-    :param name: Name for the output
-    :param batch_size: Batch size used to compute embeddings
-    :param show_progress_bar: If true, prints a progress bar
-    :param write_csv: Write results to a CSV file
-    :param truncate_dim: The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
-        dimension. Defaults to None.
+    Args:
+        sentences1 (List[str]): The first column of sentences.
+        sentences2 (List[str]): The second column of sentences.
+        labels (List[int]): labels[i] is the label for the pair (sentences1[i], sentences2[i]). Must be 0 or 1.
+        name (str, optional): Name for the output. Defaults to "".
+        batch_size (int, optional): Batch size used to compute embeddings. Defaults to 32.
+        show_progress_bar (bool, optional): If true, prints a progress bar. Defaults to False.
+        write_csv (bool, optional): Write results to a CSV file. Defaults to True.
+        truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the model's current truncation dimension. Defaults to None.
+
+    Example:
+        ::
+
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers.evaluation import BinaryClassificationEvaluator
+            from datasets import load_dataset
+
+            # Load a model
+            model = SentenceTransformer('all-mpnet-base-v2')
+
+            # Load a dataset with two text columns and a class label column (https://huggingface.co/datasets/sentence-transformers/quora-duplicates)
+            eval_dataset = load_dataset("sentence-transformers/quora-duplicates", "pair-class", split="train[-1000:]")
+
+            # Initialize the evaluator
+            binary_acc_evaluator = BinaryClassificationEvaluator(
+                sentences1=eval_dataset["sentence1"],
+                sentences2=eval_dataset["sentence2"],
+                labels=eval_dataset["label"],
+                name="quora-duplicates-dev",
+            )
+            results = binary_acc_evaluator(model)
+            '''
+            Binary Accuracy Evaluation of the model on the quora-duplicates-dev dataset:
+            Accuracy with Cosine-Similarity:           81.60    (Threshold: 0.8352)
+            F1 with Cosine-Similarity:                 75.27    (Threshold: 0.7715)
+            Precision with Cosine-Similarity:          65.81
+            Recall with Cosine-Similarity:             87.89
+            Average Precision with Cosine-Similarity:  76.03
+
+            Accuracy with Dot-Product:           81.60  (Threshold: 0.8352)
+            F1 with Dot-Product:                 75.27  (Threshold: 0.7715)
+            Precision with Dot-Product:          65.81
+            Recall with Dot-Product:             87.89
+            Average Precision with Dot-Product:  76.03
+
+            Accuracy with Manhattan-Distance:           81.50   (Threshold: 12.0727)
+            F1 with Manhattan-Distance:                 74.97   (Threshold: 15.2269)
+            Precision with Manhattan-Distance:          63.89
+            Recall with Manhattan-Distance:             90.68
+            Average Precision with Manhattan-Distance:  75.66
+
+            Accuracy with Euclidean-Distance:           81.60   (Threshold: 0.5741)
+            F1 with Euclidean-Distance:                 75.27   (Threshold: 0.6760)
+            Precision with Euclidean-Distance:          65.81
+            Recall with Euclidean-Distance:             87.89
+            Average Precision with Euclidean-Distance:  76.03
+            '''
+            print(binary_acc_evaluator.primary_metric)
+            # => "quora-duplicates-dev_max_ap"
+            print(results[binary_acc_evaluator.primary_metric])
+            # => 0.760277070888393
     """
 
     def __init__(
@@ -52,6 +108,8 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         self.labels = labels
         self.truncate_dim = truncate_dim
 
+        self.primary_metric = "max_ap"
+
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.labels)
         for label in labels:
@@ -67,38 +125,19 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         self.show_progress_bar = show_progress_bar
 
         self.csv_file = "binary_classification_evaluation" + ("_" + name if name else "") + "_results.csv"
-        self.csv_headers = [
-            "epoch",
-            "steps",
-            "cossim_accuracy",
-            "cossim_accuracy_threshold",
-            "cossim_f1",
-            "cossim_precision",
-            "cossim_recall",
-            "cossim_f1_threshold",
-            "cossim_ap",
-            "manhattan_accuracy",
-            "manhattan_accuracy_threshold",
-            "manhattan_f1",
-            "manhattan_precision",
-            "manhattan_recall",
-            "manhattan_f1_threshold",
-            "manhattan_ap",
-            "euclidean_accuracy",
-            "euclidean_accuracy_threshold",
-            "euclidean_f1",
-            "euclidean_precision",
-            "euclidean_recall",
-            "euclidean_f1_threshold",
-            "euclidean_ap",
-            "dot_accuracy",
-            "dot_accuracy_threshold",
-            "dot_f1",
-            "dot_precision",
-            "dot_recall",
-            "dot_f1_threshold",
-            "dot_ap",
+        self.csv_headers = ["epoch", "steps"]
+        metrics = [
+            "accuracy",
+            "accuracy_threshold",
+            "f1",
+            "precision",
+            "recall",
+            "f1_threshold",
+            "ap",
         ]
+        for v in SimilarityFunction.possible_values():
+            for m in metrics:
+                self.csv_headers.append(f"{v}_{m}")
 
     @classmethod
     def from_input_examples(cls, examples: List[InputExample], **kwargs):
@@ -112,7 +151,21 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             scores.append(example.label)
         return cls(sentences1, sentences2, scores, **kwargs)
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> Dict[str, float]:
+        """
+        Compute the evaluation metrics for the given model.
+
+        Args:
+            model (SentenceTransformer): The model to evaluate.
+            output_path (str, optional): Path to save the evaluation results CSV file. Defaults to None.
+            epoch (int, optional): The epoch number. Defaults to -1.
+            steps (int, optional): The number of steps. Defaults to -1.
+
+        Returns:
+            Dict[str, float]: A dictionary containing the evaluation metrics.
+        """
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -126,9 +179,6 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         logger.info(f"Binary Accuracy Evaluation of the model on the {self.name} dataset{out_txt}:")
 
         scores = self.compute_metrices(model)
-
-        # Main score is the max of Average Precision (AP)
-        main_score = max(scores[short_name]["ap"] for short_name in scores)
 
         file_output_data = [epoch, steps]
 
@@ -149,7 +199,17 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                     writer = csv.writer(f)
                     writer.writerow(file_output_data)
 
-        return main_score
+        metrics = {
+            f"{short_name}_{metric}": value
+            for short_name, values in scores.items()
+            for metric, value in values.items()
+        }
+        metrics.update(
+            {f"max_{metric}": max(scores[short_name][metric] for short_name in scores) for metric in scores["cosine"]}
+        )
+        metrics = self.prefix_name_to_metrics(metrics, self.name)
+        self.store_metrics_in_model_card_data(model, metrics)
+        return metrics
 
     def compute_metrices(self, model):
         with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
@@ -184,15 +244,15 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
 
         embeddings1_np = np.asarray(embeddings1)
         embeddings2_np = np.asarray(embeddings2)
-        dot_scores = [np.dot(embeddings1_np[i], embeddings2_np[i]) for i in range(len(embeddings1_np))]
+        dot_scores = np.sum(embeddings1_np * embeddings2_np, axis=-1)
 
         labels = np.asarray(self.labels)
         output_scores = {}
         for short_name, name, scores, reverse in [
-            ["cossim", "Cosine-Similarity", cosine_scores, True],
-            ["manhattan", "Manhattan-Distance", manhattan_distances, False],
-            ["euclidean", "Euclidean-Distance", euclidean_distances, False],
-            ["dot", "Dot-Product", dot_scores, True],
+            [SimilarityFunction.COSINE.value, "Cosine-Similarity", cosine_scores, True],
+            [SimilarityFunction.DOT_PRODUCT.value, "Dot-Product", dot_scores, True],
+            [SimilarityFunction.MANHATTAN.value, "Manhattan-Distance", manhattan_distances, False],
+            [SimilarityFunction.EUCLIDEAN.value, "Euclidean-Distance", euclidean_distances, False],
         ]:
             acc, acc_threshold = self.find_best_acc_and_threshold(scores, labels, reverse)
             f1, precision, recall, f1_threshold = self.find_best_f1_and_threshold(scores, labels, reverse)

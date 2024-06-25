@@ -1,6 +1,6 @@
 # GenQ
 
-In our paper [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663) we presented a method to adapt a model for [asymmetric semantic search](../../applications/semantic-search/) without for a corpus without labeled training data.
+In our paper [BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663) we presented a method to adapt a model for [asymmetric semantic search](../../applications/semantic-search/) without for a corpus without labeled training data.
 
 ## Background
 In [asymmetric semantic search](../../applications/semantic-search/), the user provides a (short) query like some keywords or a question. We then want to retrieve a longer text passage that provides the answer.
@@ -80,7 +80,7 @@ In the above code, we use [Top-p (nucleus) sampling](https://huggingface.co/blog
 
 ## Bi-Encoder Training
 
-With the generated queries, we can then train a bi-encoder using the use [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/losses.html#multiplenegativesrankingloss).
+With the generated queries, we can then train a bi-encoder using the use [MultipleNegativesRankingLoss](https://www.sbert.net/docs/package_reference/sentence_transformer/losses.html#multiplenegativesrankingloss).
  
  ## Full Example
 We train a semantic search model to search through Wikipedia

@@ -1,8 +1,10 @@
-from typing import Any, Iterable, Dict
+from typing import Any, Dict, Iterable
+
 import torch
-from torch import nn, Tensor
-from sentence_transformers.SentenceTransformer import SentenceTransformer
+from torch import Tensor, nn
+
 from sentence_transformers.models import Transformer
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class GISTEmbedLoss(nn.Module):
@@ -11,16 +13,20 @@ class GISTEmbedLoss(nn.Module):
         model: SentenceTransformer,
         guide: SentenceTransformer,
         temperature: float = 0.01,
-    ):
+    ) -> None:
         """
         This loss is used to train a SentenceTransformer model using the GISTEmbed algorithm.
         It takes a model and a guide model as input, and uses the guide model to guide the
         in-batch negative sample selection. The cosine similarity is used to compute the loss
         and the temperature parameter is used to scale the cosine similarities.
 
-        :param model: SentenceTransformer model based on a `transformers` model.
-        :param guide: SentenceTransformer model to guide the in-batch negative sample selection.
-        :param temperature: Temperature parameter to scale the cosine similarities.
+        Args:
+            model: SentenceTransformer model based on a `transformers`
+                model.
+            guide: SentenceTransformer model to guide the in-batch
+                negative sample selection.
+            temperature: Temperature parameter to scale the cosine
+                similarities.
 
         References:
             - For further details, see: https://arxiv.org/abs/2402.16829
@@ -46,21 +52,23 @@ class GISTEmbedLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('all-MiniLM-L6-v2')
-                guide = SentenceTransformer('avsolatorio/GIST-small-Embedding-v0')
-                train_examples = [
-                    InputExample(texts=['The first query',  'The first positive passage',  'The first negative passage']),
-                    InputExample(texts=['The second query', 'The second positive passage', 'The second negative passage']),
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=2)
-                train_loss = losses.GISTEmbedLoss(model=model, guide=guide)
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                model = SentenceTransformer("microsoft/mpnet-base")
+                guide = SentenceTransformer("all-MiniLM-L6-v2")
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                })
+                loss = losses.GISTEmbedLoss(model, guide)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         super(GISTEmbedLoss, self).__init__()
         self.model = model
@@ -74,16 +82,18 @@ class GISTEmbedLoss(nn.Module):
         self.must_retokenize = (
             model.tokenizer.vocab != guide.tokenizer.vocab or guide.max_seq_length < model.max_seq_length
         )
+        if self.must_retokenize:
+            self.tokenizer = self.model.tokenizer
 
-    def sim_matrix(self, embed1, embed2):
+    def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         with torch.no_grad():
             if self.must_retokenize:
                 decoded = [
-                    self.model.tokenizer.batch_decode(sentence_feature["input_ids"], skip_special_tokens=True)
+                    self.tokenizer.batch_decode(sentence_feature["input_ids"], skip_special_tokens=True)
                     for sentence_feature in sentence_features
                 ]
                 sentence_features = [self.guide.tokenize(sentences) for sentences in decoded]
@@ -152,3 +162,16 @@ class GISTEmbedLoss(nn.Module):
             "guide": self.guide,
             "temperature": self.temperature,
         }
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{solatorio2024gistembed,
+    title={GISTEmbed: Guided In-sample Selection of Training Negatives for Text Embedding Fine-tuning}, 
+    author={Aivin V. Solatorio},
+    year={2024},
+    eprint={2402.16829},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG}
+}
+"""
