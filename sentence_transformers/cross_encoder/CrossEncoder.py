@@ -1,7 +1,7 @@
 import logging
 import os
 from functools import wraps
-from typing import Callable, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Type, Union, overload
 
 import numpy as np
 import torch
@@ -302,22 +302,75 @@ class CrossEncoder(PushToHubMixin):
             if evaluator is not None:
                 self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
+    @overload
     def predict(
         self,
-        sentences: List[List[str]],
+        sentences: Union[Tuple[str, str], List[str]],
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        num_workers: int = ...,
+        activation_fct: Optional[Callable] = ...,
+        apply_softmax: Optional[bool] = ...,
+        convert_to_numpy: Literal[False] = ...,
+        convert_to_tensor: Literal[False] = ...,
+    ) -> torch.Tensor: ...
+
+    @overload
+    def predict(
+        self,
+        sentences: Union[List[Tuple[str, str]], List[List[str]], Tuple[str, str], List[str]],
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        num_workers: int = ...,
+        activation_fct: Optional[Callable] = ...,
+        apply_softmax: Optional[bool] = ...,
+        convert_to_numpy: Literal[True] = True,
+        convert_to_tensor: Literal[False] = False,
+    ) -> np.ndarray: ...
+
+    @overload
+    def predict(
+        self,
+        sentences: Union[List[Tuple[str, str]], List[List[str]], Tuple[str, str], List[str]],
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        num_workers: int = ...,
+        activation_fct: Optional[Callable] = ...,
+        apply_softmax: Optional[bool] = ...,
+        convert_to_numpy: bool = ...,
+        convert_to_tensor: Literal[True] = ...,
+    ) -> torch.Tensor: ...
+
+    @overload
+    def predict(
+        self,
+        sentences: Union[List[Tuple[str, str]], List[List[str]]],
+        batch_size: int = ...,
+        show_progress_bar: Optional[bool] = ...,
+        num_workers: int = ...,
+        activation_fct: Optional[Callable] = ...,
+        apply_softmax: Optional[bool] = ...,
+        convert_to_numpy: Literal[False] = ...,
+        convert_to_tensor: Literal[False] = ...,
+    ) -> List[torch.Tensor]: ...
+
+    def predict(
+        self,
+        sentences: Union[List[Tuple[str, str]], List[List[str]], Tuple[str, str], List[str]],
         batch_size: int = 32,
-        show_progress_bar: bool = None,
+        show_progress_bar: Optional[bool] = None,
         num_workers: int = 0,
-        activation_fct=None,
-        apply_softmax=False,
+        activation_fct: Optional[Callable] = None,
+        apply_softmax: Optional[bool] = False,
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-    ) -> Union[List[float], np.ndarray, torch.Tensor]:
+    ) -> Union[List[torch.Tensor], np.ndarray, torch.Tensor]:
         """
         Performs predictions with the CrossEncoder on the given sentence pairs.
 
         Args:
-            sentences (List[List[str]]): A list of sentence pairs [[Sent1, Sent2], [Sent3, Sent4]]
+            sentences (Union[List[Tuple[str, str]], Tuple[str, str]]): A list of sentence pairs [(Sent1, Sent2), (Sent3, Sent4)]
+                or one sentence pair (Sent1, Sent2).
             batch_size (int, optional): Batch size for encoding. Defaults to 32.
             show_progress_bar (bool, optional): Output progress bar. Defaults to None.
             num_workers (int, optional): Number of workers for tokenization. Defaults to 0.
