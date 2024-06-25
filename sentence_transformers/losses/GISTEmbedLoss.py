@@ -83,7 +83,7 @@ class GISTEmbedLoss(nn.Module):
             model.tokenizer.vocab != guide.tokenizer.vocab or guide.max_seq_length < model.max_seq_length
         )
         if self.must_retokenize:
-            self.guide_tokenize_fn = guide.tokenize
+            self.tokenizer = self.model.tokenizer
 
     def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
@@ -93,10 +93,10 @@ class GISTEmbedLoss(nn.Module):
         with torch.no_grad():
             if self.must_retokenize:
                 decoded = [
-                    self.model.tokenizer.batch_decode(sentence_feature["input_ids"], skip_special_tokens=True)
+                    self.tokenizer.batch_decode(sentence_feature["input_ids"], skip_special_tokens=True)
                     for sentence_feature in sentence_features
                 ]
-                sentence_features = [self.guide_tokenize_fn(sentences) for sentences in decoded]
+                sentence_features = [self.guide.tokenize(sentences) for sentences in decoded]
                 sentence_features = [
                     {key: value.to(self.guide.device) for key, value in sentence_feature.items()}
                     for sentence_feature in sentence_features

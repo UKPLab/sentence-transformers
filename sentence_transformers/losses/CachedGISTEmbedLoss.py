@@ -150,7 +150,7 @@ class CachedGISTEmbedLoss(nn.Module):
             model.tokenizer.vocab != guide.tokenizer.vocab or guide.max_seq_length < model.max_seq_length
         )
         if self.must_retokenize:
-            self.guide_tokenize_fn = guide.tokenize
+            self.tokenizer = model.tokenizer
 
     def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
@@ -174,10 +174,10 @@ class CachedGISTEmbedLoss(nn.Module):
                 reps = self.model(sentence_feature_minibatch)["sentence_embedding"]  # (mbsz, hdim)
             with torch.no_grad():
                 if self.must_retokenize:
-                    decoded = self.model.tokenizer.batch_decode(
+                    decoded = self.tokenizer.batch_decode(
                         sentence_feature_minibatch["input_ids"], skip_special_tokens=True
                     )
-                    sentence_feature_minibatch = self.guide_tokenize_fn(decoded)
+                    sentence_feature_minibatch = self.guide.tokenize(decoded)
                     sentence_feature_minibatch = {
                         key: value.to(self.guide.device) for key, value in sentence_feature_minibatch.items()
                     }
