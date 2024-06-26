@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Generator, List, Tuple
 
+import numpy as np
 import pytest
 import torch
 from torch.utils.data import DataLoader
@@ -171,3 +172,12 @@ def test_safe_serialization(safe_serialization: bool) -> None:
             model.save(cache_folder, safe_serialization=safe_serialization)
             model_files = list(Path(cache_folder).glob("**/pytorch_model.bin"))
             assert 1 == len(model_files)
+
+
+def test_bfloat16() -> None:
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", automodel_args={"torch_dtype": torch.bfloat16})
+    score = model.predict([["Hello there!", "Hello, World!"]])
+    assert isinstance(score, np.ndarray)
+
+    ranking = model.rank("Hello there!", ["Hello, World!", "Heya!"])
+    assert isinstance(ranking, list)
