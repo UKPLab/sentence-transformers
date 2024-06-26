@@ -441,7 +441,7 @@ class CrossEncoder(PushToHubMixin):
         if convert_to_tensor:
             pred_scores = torch.stack(pred_scores)
         elif convert_to_numpy:
-            pred_scores = np.asarray([score.cpu().detach().numpy() for score in pred_scores])
+            pred_scores = np.asarray([score.cpu().detach().float().numpy() for score in pred_scores])
 
         if input_was_string:
             pred_scores = pred_scores[0]
