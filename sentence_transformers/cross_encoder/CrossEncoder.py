@@ -54,6 +54,7 @@ class CrossEncoder(PushToHubMixin):
             should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
             else nn.Identity(). Defaults to None.
         classifier_dropout (float, optional): The dropout ratio for the classification head. Defaults to None.
+        cache_dir (`str`, `Path`, *optional*): Path to the folder where cached files are stored.
     """
 
     def __init__(
@@ -84,10 +85,10 @@ class CrossEncoder(PushToHubMixin):
             "local_files_only": local_files_only,
             "tqdm_class": disabled_tqdm,
         }
-        model_name = snapshot_download(**download_kwargs)
+        model_path = snapshot_download(**download_kwargs)
             
         self.config = AutoConfig.from_pretrained(
-            model_name, trust_remote_code=trust_remote_code, revision=revision, local_files_only=local_files_only
+            model_path, trust_remote_code=trust_remote_code, revision=revision, local_files_only=local_files_only
         )
         classifier_trained = True
         if self.config.architectures is not None:
@@ -104,7 +105,7 @@ class CrossEncoder(PushToHubMixin):
         if num_labels is not None:
             self.config.num_labels = num_labels
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            model_name,
+            model_path,
             config=self.config,
             revision=revision,
             trust_remote_code=trust_remote_code,
@@ -112,7 +113,7 @@ class CrossEncoder(PushToHubMixin):
             **automodel_args,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name,
+            model_path,
             revision=revision,
             local_files_only=local_files_only,
             trust_remote_code=trust_remote_code,
