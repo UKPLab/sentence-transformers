@@ -42,7 +42,8 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://www.SBERT.net"
-Download = "https://github.com/UKPLab/sentence-transformers/"
+Repository = "https://github.com/UKPLab/sentence-transformers/"
+
 
 [project.optional-dependencies]
 train = ["datasets", "accelerate>=0.20.3"]
