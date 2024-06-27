@@ -136,7 +136,7 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
     def citation(self) -> str:
         return """
 @misc{hermans2017defense,
-    title={In Defense of the Triplet Loss for Person Re-Identification}, 
+    title={In Defense of the Triplet Loss for Person Re-Identification},
     author={Alexander Hermans and Lucas Beyer and Bastian Leibe},
     year={2017},
     eprint={1703.07737},

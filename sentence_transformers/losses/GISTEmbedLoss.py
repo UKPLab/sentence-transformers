@@ -167,7 +167,7 @@ class GISTEmbedLoss(nn.Module):
     def citation(self) -> str:
         return """
 @misc{solatorio2024gistembed,
-    title={GISTEmbed: Guided In-sample Selection of Training Negatives for Text Embedding Fine-tuning}, 
+    title={GISTEmbed: Guided In-sample Selection of Training Negatives for Text Embedding Fine-tuning},
     author={Aivin V. Solatorio},
     year={2024},
     eprint={2402.16829},

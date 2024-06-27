@@ -125,7 +125,7 @@ print(sentence_embeddings)
             return (
                 "max_pooling",
                 """
-# Max Pooling - Take the max value over time for every dimension. 
+# Max Pooling - Take the max value over time for every dimension.
 def max_pooling(model_output, attention_mask):
     token_embeddings = model_output[0] #First element of model_output contains all token embeddings
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()

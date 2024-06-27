@@ -40,7 +40,7 @@ def test_trainer_multi_dataset_errors(
     with pytest.raises(
         ValueError,
         match="If the provided `loss` is a dict, then all keys from the `train_dataset` dictionary must occur in `loss` also. "
-        "Currently, \['stsb-extra'\] occurs in `train_dataset` but not in `loss`.",
+        r"Currently, \['stsb-extra'\] occurs in `train_dataset` but not in `loss`.",
     ):
         SentenceTransformerTrainer(model=stsb_bert_tiny_model, train_dataset=train_dataset, loss=loss)
 
@@ -73,7 +73,7 @@ def test_trainer_multi_dataset_errors(
     with pytest.raises(
         ValueError,
         match="If the provided `loss` is a dict, then all keys from the `eval_dataset` dictionary must occur in `loss` also. "
-        "Currently, \['stsb-extra-1', 'stsb-extra-2'\] occur in `eval_dataset` but not in `loss`.",
+        r"Currently, \['stsb-extra-1', 'stsb-extra-2'\] occur in `eval_dataset` but not in `loss`.",
     ):
         SentenceTransformerTrainer(
             model=stsb_bert_tiny_model, train_dataset=train_dataset, eval_dataset=eval_dataset, loss=loss

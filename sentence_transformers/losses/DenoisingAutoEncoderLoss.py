@@ -181,7 +181,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
         return """
 @inproceedings{wang-2021-TSDAE,
     title = "TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning",
-    author = "Wang, Kexin and Reimers, Nils and Gurevych, Iryna", 
+    author = "Wang, Kexin and Reimers, Nils and Gurevych, Iryna",
     booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2021",
     month = nov,
     year = "2021",

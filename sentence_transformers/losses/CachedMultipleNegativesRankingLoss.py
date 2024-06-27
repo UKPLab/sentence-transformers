@@ -287,7 +287,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
     def citation(self) -> str:
         return """
 @misc{gao2021scaling,
-    title={Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup}, 
+    title={Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup},
     author={Luyu Gao and Yunyi Zhang and Jiawei Han and Jamie Callan},
     year={2021},
     eprint={2101.06983},

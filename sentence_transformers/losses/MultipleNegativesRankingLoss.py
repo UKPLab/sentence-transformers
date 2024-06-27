@@ -106,7 +106,7 @@ class MultipleNegativesRankingLoss(nn.Module):
     def citation(self) -> str:
         return """
 @misc{henderson2017efficient,
-    title={Efficient Natural Language Response Suggestion for Smart Reply}, 
+    title={Efficient Natural Language Response Suggestion for Smart Reply},
     author={Matthew Henderson and Rami Al-Rfou and Brian Strope and Yun-hsuan Sung and Laszlo Lukacs and Ruiqi Guo and Sanjiv Kumar and Balint Miklos and Ray Kurzweil},
     year={2017},
     eprint={1705.00652},

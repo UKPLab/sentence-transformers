@@ -105,8 +105,8 @@ class ContrastiveLoss(nn.Module):
         return """
 @inproceedings{hadsell2006dimensionality,
     author={Hadsell, R. and Chopra, S. and LeCun, Y.},
-    booktitle={2006 IEEE Computer Society Conference on Computer Vision and Pattern Recognition (CVPR'06)}, 
-    title={Dimensionality Reduction by Learning an Invariant Mapping}, 
+    booktitle={2006 IEEE Computer Society Conference on Computer Vision and Pattern Recognition (CVPR'06)},
+    title={Dimensionality Reduction by Learning an Invariant Mapping},
     year={2006},
     volume={2},
     number={},
