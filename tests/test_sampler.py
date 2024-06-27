@@ -59,4 +59,5 @@ def test_group_by_label_batch_sampler_label_b(dummy_dataset):
     for batch in batches:
         labels = [dummy_dataset[int(idx)]["label_b"] for idx in batch]
         number_of_unique_labels_per_batch.append(len(np.unique(labels)))
+    assert number_of_unique_labels_per_batch.count(1) == len(batches) - 3
     assert number_of_unique_labels_per_batch.count(2) == 3
