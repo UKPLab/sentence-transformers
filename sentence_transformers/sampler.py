@@ -77,7 +77,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         self.groups = groups
 
     @staticmethod
-    def _determine_labels_to_use(dataset: Dataset, valid_label_columns: List[str]) -> List[Any]:
+    def _determine_labels_to_use(dataset: "Dataset", valid_label_columns: List[str]) -> List[Any]:
         for column_name in valid_label_columns or []:
             if column_name in dataset.column_names:
                 return dataset[column_name]
