@@ -27,4 +27,5 @@ tmp
 .venv
 venv
 coverage.xml
+.coverage
 .DS_Store
