@@ -82,7 +82,7 @@ def test_group_by_label_batch_sampler_uneven_dataset(dummy_uneven_dataset):
         dataset=dummy_uneven_dataset, batch_size=batch_size, drop_last=False, valid_label_columns=["label"]
     )
 
-    # With a batch_size of 8 and 17 samples per label; verify that each label occurs at least twice in each batch.
+    # With a batch_size of 8 and 17 samples per label; verify that every label in a batch occurs at least twice.
     batches = list(iter(sampler))
     for batch in batches:
         labels = [dummy_uneven_dataset[int(idx)]["label"] for idx in batch]
