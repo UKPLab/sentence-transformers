@@ -16,6 +16,8 @@ https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearc
 Further, you need the Python Elasticsearch Client installed:
 https://elasticsearch-py.readthedocs.io/
 
+This script was created for `elasticsearch` v8.0+.
+
 As embeddings model, we use the SBERT model 'quora-distilbert-multilingual',
 that it aligned for 100 languages. I.e., you can type in a question in various languages and it will
 return the closest questions in the corpus (questions in the corpus are mainly in English).
