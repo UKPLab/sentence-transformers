@@ -38,6 +38,7 @@ setup(
             "accelerate>=0.20.3",
             "pre-commit",
             "pytest",
+            "pytest-cov",
             "ruff>=0.3.0",
         ],
     },
