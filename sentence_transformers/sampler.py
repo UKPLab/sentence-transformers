@@ -37,17 +37,19 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
     """
     This sampler groups samples by their labels and aims to create batches such that
     each batch contains samples where the labels are as homogeneous as possible.
+    This sampler is meant to be used alongside the `Batch...TripletLoss` classes, which
+    require that each batch contains at least 2 examples per label class.
 
     Args:
         dataset (Dataset): The dataset to sample from.
         batch_size (int): Number of samples per batch. Must be divisible by 2.
         drop_last (bool): If True, drop the last incomplete batch, if the dataset size
-                          is not divisible by the batch size.
+            is not divisible by the batch size.
         valid_label_columns (List[str]): List of column names to check for labels.
-                                         The first column name found in the dataset will
-                                         be used as the label column.
+            The first column name found in the dataset will
+            be used as the label column.
         generator (torch.Generator, optional): Optional random number generator for shuffling
-                                               the indices.
+            the indices.
         seed (int, optional): Seed for the random number generator to ensure reproducibility.
     """
 
