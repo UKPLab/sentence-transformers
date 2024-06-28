@@ -78,7 +78,9 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
             groups[label].append(sample_idx)
 
         self.groups = {
-            label: sample_indices[: len(sample_indices) // 2 * 2] for label, sample_indices in groups.items()
+            label: sample_indices[:num_samples]
+            for label, sample_indices in groups.items()
+            if (num_samples := len(sample_indices) // 2 * 2)
         }
 
     @staticmethod
