@@ -46,4 +46,4 @@ jobs:
       - name: Run unit tests
         run: |
           ls
-          pytest --durations 20 -sv tests/
+          python -m pytest --durations 20 -sv tests/
