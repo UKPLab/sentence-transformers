@@ -51,6 +51,7 @@ class CrossEncoder(PushToHubMixin):
             should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
             else nn.Identity(). Defaults to None.
         classifier_dropout (float, optional): The dropout ratio for the classification head. Defaults to None.
+        cache_dir (`str`, `Path`, *optional*): Path to the folder where cached files are stored.
         config_args (Dict, optional): Arguments passed to AutoConfig. Defaults to None.
     """
 
@@ -67,7 +68,8 @@ class CrossEncoder(PushToHubMixin):
         local_files_only: bool = False,
         default_activation_function=None,
         classifier_dropout: float = None,
-        config_args: Dict = None,
+        cache_dir: str = None,
+        config_args: Dict = None
     ) -> None:
         if tokenizer_args is None:
             tokenizer_args = {}
@@ -80,6 +82,7 @@ class CrossEncoder(PushToHubMixin):
             trust_remote_code=trust_remote_code, 
             revision=revision, 
             local_files_only=local_files_only,
+            cache_dir=cache_dir,
             **config_args
         )
         classifier_trained = True
@@ -102,6 +105,7 @@ class CrossEncoder(PushToHubMixin):
             revision=revision,
             trust_remote_code=trust_remote_code,
             local_files_only=local_files_only,
+            cache_dir=cache_dir,
             **automodel_args,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -109,6 +113,7 @@ class CrossEncoder(PushToHubMixin):
             revision=revision,
             local_files_only=local_files_only,
             trust_remote_code=trust_remote_code,
+            cache_dir=cache_dir,
             **tokenizer_args,
         )
         self.max_length = max_length
