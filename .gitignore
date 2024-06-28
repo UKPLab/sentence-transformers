@@ -25,3 +25,4 @@ wandb
 checkpoints
 tmp
 .venv
+venv
