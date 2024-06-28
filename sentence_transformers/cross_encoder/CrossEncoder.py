@@ -78,9 +78,9 @@ class CrossEncoder(PushToHubMixin):
         if config_args is None:
             config_args = {}
         self.config = AutoConfig.from_pretrained(
-            model_name, 
-            trust_remote_code=trust_remote_code, 
-            revision=revision, 
+            model_name,
+            trust_remote_code=trust_remote_code,
+            revision=revision,
             local_files_only=local_files_only,
             cache_dir=cache_dir,
             **config_args
