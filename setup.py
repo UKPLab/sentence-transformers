@@ -33,13 +33,7 @@ setup(
             "datasets",
             "accelerate>=0.20.3",
         ],
-        "dev": [
-            "datasets",
-            "accelerate>=0.20.3",
-            "pre-commit",
-            "pytest",
-            "ruff>=0.3.0",
-        ],
+        "dev": ["datasets", "accelerate>=0.20.3", "pre-commit", "pytest"],
     },
     classifiers=[
         "Development Status :: 5 - Production/Stable",

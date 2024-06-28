@@ -1,9 +1,7 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version.
-    rev: v0.3.5
+    rev: v0.5.0
     hooks:
-      # These hooks are equivalent to running `make quality`
       - id: ruff
+        args: [--exit-non-zero-on-fix]
       - id: ruff-format
-        args: [ --check ]
