@@ -130,7 +130,7 @@ class MarginMSELoss(nn.Module):
     def citation(self) -> str:
         return """
 @misc{hofstätter2021improving,
-    title={Improving Efficient Neural Ranking Models with Cross-Architecture Knowledge Distillation}, 
+    title={Improving Efficient Neural Ranking Models with Cross-Architecture Knowledge Distillation},
     author={Sebastian Hofstätter and Sophia Althammer and Michael Schröder and Mete Sertkan and Allan Hanbury},
     year={2021},
     eprint={2010.02666},

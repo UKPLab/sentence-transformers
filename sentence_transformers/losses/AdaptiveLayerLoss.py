@@ -255,7 +255,7 @@ class AdaptiveLayerLoss(nn.Module):
     def citation(self) -> str:
         return """
 @misc{li20242d,
-    title={2D Matryoshka Sentence Embeddings}, 
+    title={2D Matryoshka Sentence Embeddings},
     author={Xianming Li and Zongxi Li and Jing Li and Haoran Xie and Qing Li},
     year={2024},
     eprint={2402.14776},
