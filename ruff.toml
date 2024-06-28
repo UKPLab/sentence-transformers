@@ -1,8 +1,11 @@
 
 line-length = 119
 
+[lint]
 # Skip `E731` (do not assign a lambda expression, use a def)
-lint.ignore = ["E731"]
+ignore = ["E731"]
+
+select = ["E4", "E7", "E9", "F", "W"]
 
 [lint.per-file-ignores]
 # Ignore `E402` (import violations) in all examples
