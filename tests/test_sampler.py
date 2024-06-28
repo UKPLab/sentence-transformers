@@ -1,7 +1,7 @@
 import pytest
 from datasets import Dataset
 from sentence_transformers.sampler import GroupByLabelBatchSampler
-import numpy as np
+from collections import Counter
 
 
 @pytest.fixture
@@ -12,10 +12,23 @@ def dummy_dataset():
     {
         "data": [0, 1, 2, ..., 99],
         "label_a": [0, 1, 0, 1, ..., 0, 1],
-        "label_b": [0, 1, 2, 3, 0, 1, ..., 3]
+        "label_b": [0, 1, 2, 3, 4, 0, ..., 4]
     }
     """
-    data = {"data": list(range(100)), "label_a": [i % 2 for i in range(100)], "label_b": [i % 4 for i in range(100)]}
+    data = {"data": list(range(100)), "label_a": [i % 2 for i in range(100)], "label_b": [i % 5 for i in range(100)]}
+    return Dataset.from_dict(data)
+
+
+@pytest.fixture
+def dummy_uneven_dataset():
+    """
+    Dummy dataset for testing purposes. The dataset looks as follows:
+    {
+        "data": ["a"] * 51,
+        "label": [0] * 17 + [1] * 17 + [2] * 17,
+    }
+    """
+    data = {"data": ["a"] * 51, "label": [0] * 17 + [1] * 17 + [2] * 17}
     return Dataset.from_dict(data)
 
 
@@ -49,15 +62,29 @@ def test_group_by_label_batch_sampler_label_b(dummy_dataset):
     assert all(
         len(batch) == batch_size for batch in batches
     ), "Not all batches are the same size, while drop_last was True."
-    assert sum(len(batch) for batch in batches) == 100 - (100 % batch_size)
 
-    # Check if all labels within each batch are identical.
-    # Since we have 25 occurrences each of label_b values 0, 1, 2, and 3 and a batch_size of 8, we expect:
-    # - For each label, there will be multiple batches where all elements have the same label.
-    # - There will be three batches which contain a mix of two labels (where the sampler transitions from one label to the next)
-    number_of_unique_labels_per_batch = []
+    # Assert that we have the expected number of total samples in the batches.
+    assert sum(len(batch) for batch in batches) == 100 // batch_size * batch_size
+
+    # Since we have 20 occurrences each of label_b values 0, 1, 2, 3 and 4 and a batch_size of 8, we expect each batch
+    # to have either 4 or 8 samples with the same label. (The first two batches are 16 samples of the first label,
+    # leaving 4 for the third batch. There 4 of the next label are added, leaving 16 for the next two batches, and so on.)
     for batch in batches:
         labels = [dummy_dataset[int(idx)]["label_b"] for idx in batch]
-        number_of_unique_labels_per_batch.append(len(np.unique(labels)))
-    assert number_of_unique_labels_per_batch.count(1) == len(batches) - 3
-    assert number_of_unique_labels_per_batch.count(2) == 3
+        counts = list(Counter(labels).values())
+        assert counts == [8] or counts == [4, 4]
+
+
+def test_group_by_label_batch_sampler_uneven_dataset(dummy_uneven_dataset):
+    batch_size = 8
+
+    sampler = GroupByLabelBatchSampler(
+        dataset=dummy_uneven_dataset, batch_size=batch_size, drop_last=False, valid_label_columns=["label"]
+    )
+
+    # With a batch_size of 8 and 17 samples per label; verify that each label occurs at least twice in each batch.
+    batches = list(iter(sampler))
+    for batch in batches:
+        labels = [dummy_uneven_dataset[int(idx)]["label"] for idx in batch]
+        counts = list(Counter(labels).values())
+        assert [count > 1 for count in counts]

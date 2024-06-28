@@ -76,7 +76,10 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         groups = defaultdict(list)
         for sample_idx, label in enumerate(labels):
             groups[label].append(sample_idx)
-        self.groups = groups
+
+        self.groups = {
+            label: sample_indices[: len(sample_indices) // 2 * 2] for label, sample_indices in groups.items()
+        }
 
     @staticmethod
     def _determine_labels_to_use(dataset: "Dataset", valid_label_columns: List[str]) -> List[Any]:
