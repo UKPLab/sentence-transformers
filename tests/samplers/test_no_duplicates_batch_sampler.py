@@ -1,7 +1,6 @@
 import pytest
 from datasets import Dataset
 from sentence_transformers.sampler import NoDuplicatesBatchSampler
-from collections import Counter
 import random
 
 
@@ -23,18 +22,14 @@ def dummy_dataset():
 
 
 def test_group_by_label_batch_sampler_label_a(dummy_dataset):
-
     batch_size = 10
 
     sampler = NoDuplicatesBatchSampler(
-        dataset=dummy_dataset, 
-        batch_size=batch_size, 
-        drop_last=False, 
-        valid_label_columns=["label"]
+        dataset=dummy_dataset, batch_size=batch_size, drop_last=False, valid_label_columns=["label"]
     )
 
     batches = list(iter(sampler))
-    
+
     # Assert all batch sizes are correct
     assert all(len(batch) == batch_size or (not sampler.drop_last and len(batch) < batch_size) for batch in batches)
 
@@ -42,4 +37,3 @@ def test_group_by_label_batch_sampler_label_a(dummy_dataset):
     for batch in batches:
         batch_values = [dummy_dataset[i]["data"] for i in batch]
         assert len(batch_values) == len(set(batch_values)), f"Batch {batch} contains duplicate values: {batch_values}"
-
