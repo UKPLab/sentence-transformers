@@ -25,13 +25,13 @@ def test_group_by_label_batch_sampler_label_a(dummy_dataset):
     batch_size = 10
 
     sampler = NoDuplicatesBatchSampler(
-        dataset=dummy_dataset, batch_size=batch_size, drop_last=False, valid_label_columns=["label"]
+        dataset=dummy_dataset, batch_size=batch_size, drop_last=True, valid_label_columns=["label"]
     )
 
     batches = list(iter(sampler))
 
     # Assert all batch sizes are correct
-    assert all(len(batch) == batch_size or (not sampler.drop_last and len(batch) < batch_size) for batch in batches)
+    assert all(len(batch) == batch_size for batch in batches)
 
     # Assert batches contain no duplicate values
     for batch in batches:
