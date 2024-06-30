@@ -49,3 +49,17 @@ def test_round_robin_batch_sampler(dummy_dataset):
         assert all(
             dummy_dataset[idx]["data"] >= 100 for idx in batch_2
         ), f"Batch {i+1} contains data from the first part of the dataset: {[dummy_dataset[idx]['data'] for idx in batch_2]}"
+
+
+def test_round_robin_batch_sampler_value_error(dummy_dataset):
+    batch_size = 4
+    batch_sampler_1 = BatchSampler(SequentialSampler(range(DATASET_LENGTH)), batch_size=batch_size, drop_last=True)
+    batch_sampler_2 = BatchSampler(SequentialSampler(range(DATASET_LENGTH)), batch_size=batch_size, drop_last=True)
+    batch_sampler_3 = BatchSampler(SequentialSampler(range(DATASET_LENGTH)), batch_size=batch_size, drop_last=True)
+
+    with pytest.raises(
+        ValueError, match="The number of batch samplers must match the number of datasets in the ConcatDataset"
+    ):
+        RoundRobinBatchSampler(
+            dataset=dummy_dataset, batch_samplers=[batch_sampler_1, batch_sampler_2, batch_sampler_3]
+        )
