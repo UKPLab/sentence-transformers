@@ -152,8 +152,8 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
         self,
         dataset: ConcatDataset,
         batch_samplers: List[BatchSampler],
-        generator: torch.Generator,
-        seed: int,
+        generator: torch.Generator = None,
+        seed: int = None,
     ) -> None:
         super().__init__(dataset, batch_samplers[0].batch_size, batch_samplers[0].drop_last)
         self.dataset = dataset
@@ -162,7 +162,8 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
         self.seed = seed
 
     def __iter__(self) -> Iterator[List[int]]:
-        self.generator.manual_seed(self.seed + self.epoch)
+        if self.generator and self.seed:
+            self.generator.manual_seed(self.seed + self.epoch)
 
         num_samples = [len(dataset) for dataset in self.dataset.datasets]
         sample_offsets = [0] + list(accumulate(num_samples))
