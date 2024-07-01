@@ -5,3 +5,6 @@ quality:
 style:
 	ruff check --fix
 	ruff format
+
+test-cov:
+	pytest --cov-report term --cov-report xml:coverage.xml --cov=sentence_transformers

@@ -26,3 +26,4 @@ checkpoints
 tmp
 .venv
 venv
+coverage.xml
