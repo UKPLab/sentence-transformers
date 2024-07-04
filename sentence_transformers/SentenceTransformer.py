@@ -538,45 +538,23 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         self.to(device)
 
-        all_embeddings = []
         length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
 
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
             sentences_batch = sentences_sorted[start_index : start_index + batch_size]
             features = self.tokenize(sentences_batch)
+
             if self.device.type == "hpu":
                 if "input_ids" in features:
-                    curr_tokenize_len = features["input_ids"].shape
-                    additional_pad_len = 2 ** math.ceil(math.log2(curr_tokenize_len[1])) - curr_tokenize_len[1]
-                    features["input_ids"] = torch.cat(
-                        (
-                            features["input_ids"],
-                            torch.ones((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
-                        ),
-                        -1,
-                    )
-                    features["attention_mask"] = torch.cat(
-                        (
-                            features["attention_mask"],
-                            torch.zeros((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
-                        ),
-                        -1,
-                    )
-                    if "token_type_ids" in features:
-                        features["token_type_ids"] = torch.cat(
-                            (
-                                features["token_type_ids"],
-                                torch.zeros((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
-                            ),
-                            -1,
-                        )
+                    self._pad_features(features)
 
             features = batch_to_device(features, device)
             features.update(extra_features)
 
             with torch.no_grad():
                 out_features = self.forward(features)
+
                 if self.device.type == "hpu":
                     out_features = copy.deepcopy(out_features)
 
@@ -584,30 +562,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     out_features["sentence_embedding"], self.truncate_dim
                 )
 
-                if output_value == "token_embeddings":
-                    embeddings = []
-                    for token_emb, attention in zip(out_features[output_value], out_features["attention_mask"]):
-                        last_mask_id = len(attention) - 1
-                        while last_mask_id > 0 and attention[last_mask_id].item() == 0:
-                            last_mask_id -= 1
-
-                        embeddings.append(token_emb[0 : last_mask_id + 1])
-                elif output_value is None:  # Return all outputs
-                    embeddings = []
-                    for sent_idx in range(len(out_features["sentence_embedding"])):
-                        row = {name: out_features[name][sent_idx] for name in out_features}
-                        embeddings.append(row)
-                else:  # Sentence embeddings
-                    embeddings = out_features[output_value]
-                    embeddings = embeddings.detach()
-                    if normalize_embeddings:
-                        embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
-
-                    # fixes for #522 and #487 to avoid oom problems on gpu with large datasets
-                    if convert_to_numpy:
-                        embeddings = embeddings.cpu()
-
-                all_embeddings.extend(embeddings)
+                all_embeddings = self._process_embeddings(out_features, output_value)
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
@@ -635,6 +590,68 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             all_embeddings = all_embeddings[0]
 
         return all_embeddings
+
+    @staticmethod
+    def _pad_features(features):
+        curr_tokenize_len = features["input_ids"].shape
+        additional_pad_len = 2 ** math.ceil(math.log2(curr_tokenize_len[1])) - curr_tokenize_len[1]
+        features["input_ids"] = torch.cat(
+            (
+                features["input_ids"],
+                torch.ones((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
+            ),
+            -1,
+        )
+        features["attention_mask"] = torch.cat(
+            (
+                features["attention_mask"],
+                torch.zeros((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
+            ),
+            -1,
+        )
+        if "token_type_ids" in features:
+            features["token_type_ids"] = torch.cat(
+                (
+                    features["token_type_ids"],
+                    torch.zeros((curr_tokenize_len[0], additional_pad_len), dtype=torch.int8),
+                ),
+                -1,
+            )
+
+    @staticmethod
+    def _process_token_embeddings(out_features):
+        embeddings = []
+        for token_emb, attention in zip(out_features["token_embeddings"], out_features["attention_mask"]):
+            last_mask_id = len(attention) - 1
+            while last_mask_id > 0 and attention[last_mask_id].item() == 0:
+                last_mask_id -= 1
+            embeddings.append(token_emb[0 : last_mask_id + 1])
+        return embeddings
+
+    @staticmethod
+    def _process_all_outputs(out_features):
+        embeddings = []
+        for sent_idx in range(len(out_features["sentence_embedding"])):
+            row = {name: out_features[name][sent_idx] for name in out_features}
+            embeddings.append(row)
+        return embeddings
+
+    def _process_sentence_embeddings(self, out_features):
+        embeddings = out_features["sentence_embedding"]
+        embeddings = embeddings.detach()
+        if self.normalize_embeddings:
+            embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+        if self.convert_to_numpy:
+            embeddings = embeddings.cpu()
+        return embeddings
+
+    def _process_embeddings(self, out_features, output_value):
+        if output_value == "token_embeddings":
+            return self._process_token_embeddings(out_features)
+        elif output_value is None:
+            return self._process_all_outputs(out_features)
+        else:
+            return self._process_sentence_embeddings(out_features)
 
     @property
     def similarity_fn_name(self) -> Optional[str]:
