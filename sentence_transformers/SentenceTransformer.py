@@ -537,6 +537,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             device = self.device
 
         self.to(device)
+        all_embeddings = []
 
         length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
@@ -562,15 +563,16 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     out_features["sentence_embedding"], self.truncate_dim
                 )
 
-            all_embeddings: list = []
-            if output_value == "token_embeddings":
-                all_embeddings.extend(self._process_token_embeddings(out_features))
-            elif output_value == "sentence_embeddings":
-                all_embeddings.extend(
-                    self._process_sentence_embeddings(out_features, normalize_embeddings, convert_to_numpy)
-                )
-            elif not output_value:
-                all_embeddings.extend(self._process_all_outputs(out_features))
+                if output_value == "token_embeddings":
+                    all_embeddings.extend(self._process_token_embeddings(out_features))
+                elif output_value == "sentence_embedding":
+                    all_embeddings.extend(
+                        self._process_sentence_embeddings(out_features, normalize_embeddings, convert_to_numpy)
+                    )
+                elif not output_value:
+                    all_embeddings.extend(self._process_all_outputs(out_features))
+                else:
+                    raise ValueError(f"Got unexpected value for 'output_value' : {output_value}")
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
@@ -644,7 +646,8 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             embeddings.append(row)
         return embeddings
 
-    def _process_sentence_embeddings(self, out_features, normalize_embeddings, convert_to_numpy):
+    @staticmethod
+    def _process_sentence_embeddings(out_features, normalize_embeddings, convert_to_numpy):
         embeddings = out_features["sentence_embedding"]
         embeddings = embeddings.detach()
         if normalize_embeddings:
