@@ -572,7 +572,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 elif not output_value:
                     all_embeddings.extend(self._process_all_outputs(out_features))
                 else:
-                    raise ValueError(f"Got unexpected value for 'output_value' : {output_value}")
+                    raise ValueError(
+                        f"Got unexpected value for 'output_value' : {output_value}. Valid values are 'token_embeddings', 'sentence_embedding' or None."
+                    )
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
