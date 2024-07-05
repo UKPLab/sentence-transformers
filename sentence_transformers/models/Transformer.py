@@ -183,8 +183,8 @@ class Transformer(nn.Module):
         with open(os.path.join(output_path, "sentence_bert_config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut, indent=2)
 
-    @staticmethod
-    def load(input_path: str) -> "Transformer":
+    @classmethod
+    def load(cls, input_path: str) -> "Transformer":
         # Old classes used other config names than 'sentence_bert_config.json'
         for config_name in [
             "sentence_bert_config.json",
@@ -208,4 +208,4 @@ class Transformer(nn.Module):
             config["tokenizer_args"].pop("trust_remote_code")
         if "config_args" in config and "trust_remote_code" in config["config_args"]:
             config["config_args"].pop("trust_remote_code")
-        return Transformer(model_name_or_path=input_path, **config)
+        return cls(model_name_or_path=input_path, **config)
