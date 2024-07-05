@@ -88,8 +88,10 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         for column_name in valid_label_columns or []:
             if column_name in dataset.column_names:
                 return dataset[column_name]
-        else:
-            raise ValueError(f"None of the valid_label_columns {valid_label_columns} are in the dataset.")
+        raise ValueError(
+            f"None of the valid_label_columns {valid_label_columns} are in the dataset, "
+            f"which only has these columns: {dataset.column_names}."
+        )
 
     def __iter__(self) -> Iterator[List[int]]:
         if self.generator and self.seed:
