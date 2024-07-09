@@ -28,7 +28,7 @@ MANIFEST
 
 # Coverage
 htmlcov
-.coverage
+.coverage*
 coverage.xml
 
 # Examples
