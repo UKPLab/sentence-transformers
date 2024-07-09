@@ -518,7 +518,7 @@ def semantic_search(
 def mine_hard_negatives(
     dataset: "Dataset",
     model: "SentenceTransformer",
-    corpus: "Dataset" = None,
+    corpus: Optional[List[str]] = None,
     cross_encoder: Optional["CrossEncoder"] = None,
     range_min: int = 0,
     range_max: Optional[int] = None,
@@ -618,7 +618,8 @@ def mine_hard_negatives(
     Args:
         dataset (Dataset): A dataset containing (anchor, positive) pairs.
         model (SentenceTransformer): A SentenceTransformer model to use for embedding the sentences.
-        corpus (Dataset): A dataset with one column, containing documents as strings that will be retrieved for negative document candidates. Defaults to None, in which case the positives will be used as corpus.
+        corpus (List[str], optional): A list containing documents as strings that will be used as candidate negatives.
+            Defaults to None, in which case the second column in `dataset` will be used as the negative candidate corpus.
         cross_encoder (CrossEncoder, optional): A CrossEncoder model to use for rescoring the candidates. Defaults to None.
         range_min (int): Minimum rank of the closest matches to consider as negatives. Defaults to 0.
         range_max (int, optional): Maximum rank of the closest matches to consider as negatives. Defaults to None.
@@ -661,11 +662,6 @@ def mine_hard_negatives(
 
     if corpus is None:
         corpus = positives
-    else:
-        corpus_columns = corpus.column_names
-        if len(columns) != 1:
-            raise ValueError("Corpus must contain exactly one column.")
-        corpus = corpus[corpus_columns[0]]
 
     # Embed the corpus, queries, and positives
     corpus_embeddings = model.encode(corpus, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
