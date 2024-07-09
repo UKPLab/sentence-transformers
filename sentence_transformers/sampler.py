@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from itertools import accumulate, cycle
-from typing import Iterator, List
+from typing import Iterator, List, Any
 
 import torch
 from torch.utils.data import BatchSampler, ConcatDataset, SubsetRandomSampler
@@ -34,6 +34,25 @@ class DefaultBatchSampler(SetEpochMixin, BatchSampler):
 
 
 class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
+    """
+    This sampler groups samples by their labels and aims to create batches such that
+    each batch contains samples where the labels are as homogeneous as possible.
+    This sampler is meant to be used alongside the `Batch...TripletLoss` classes, which
+    require that each batch contains at least 2 examples per label class.
+
+    Args:
+        dataset (Dataset): The dataset to sample from.
+        batch_size (int): Number of samples per batch. Must be divisible by 2.
+        drop_last (bool): If True, drop the last incomplete batch, if the dataset size
+            is not divisible by the batch size.
+        valid_label_columns (List[str]): List of column names to check for labels.
+            The first column name found in the dataset will
+            be used as the label column.
+        generator (torch.Generator, optional): Optional random number generator for shuffling
+            the indices.
+        seed (int, optional): Seed for the random number generator to ensure reproducibility.
+    """
+
     def __init__(
         self,
         dataset: "Dataset",
@@ -53,14 +72,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         if self.batch_size % 2 == 1:
             raise ValueError("The batch size for `GroupByLabelBatchSampler` must be divisible by 2.")
 
-        for column_name in valid_label_columns or []:
-            if column_name in dataset.column_names:
-                labels = dataset["label"]
-                break
-        else:
-            raise ValueError(f"None of the valid_label_columns {valid_label_columns} are in the dataset.")
-
-        del dataset
+        labels = self._determine_labels_to_use(dataset, valid_label_columns)
         groups = defaultdict(list)
         for sample_idx, label in enumerate(labels):
             groups[label].append(sample_idx)
@@ -68,17 +80,27 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         self.groups = {
             label: sample_indices[:num_samples]
             for label, sample_indices in groups.items()
-            if (num_samples := len(sample_indices) // 2)
+            if (num_samples := len(sample_indices) // 2 * 2)
         }
+
+    @staticmethod
+    def _determine_labels_to_use(dataset: "Dataset", valid_label_columns: List[str]) -> List[Any]:
+        for column_name in valid_label_columns or []:
+            if column_name in dataset.column_names:
+                return dataset[column_name]
+        raise ValueError(
+            f"None of the valid_label_columns {valid_label_columns} are in the dataset, "
+            f"which only has these columns: {dataset.column_names}."
+        )
 
     def __iter__(self) -> Iterator[List[int]]:
         if self.generator and self.seed:
             self.generator.manual_seed(self.seed + self.epoch)
 
-        labels = list(self.groups.keys())
         partial_batch = []
+        unique_labels = list(self.groups.keys())
         for label_idx in torch.randperm(len(self.groups), generator=self.generator):
-            label = labels[label_idx]
+            label = unique_labels[label_idx]
             samples = self.groups[label]
             partial_batch.extend(samples)
             while len(partial_batch) >= self.batch_size:
