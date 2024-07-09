@@ -19,11 +19,17 @@ def setup_model_and_data():
     matryoshka_weights = [1, 1, 1, 1, 1]
     loss = MultipleNegativesRankingLoss(model)
 
-    features = [
-        {"input_ids": torch.tensor([[1, 2, 3], [4, 5, 6]]), "attention_mask": torch.tensor([[1, 1, 1], [1, 1, 1]])},
-        {"input_ids": torch.tensor([[7, 8, 9], [10, 11, 12]]), "attention_mask": torch.tensor([[1, 1, 1], [1, 1, 1]])},
-    ]
-    labels = torch.tensor([1, 0])
+    anchors = {
+        "input_ids": torch.tensor([[1, 2, 3], [4, 5, 6]]),
+        "attention_mask": torch.tensor([[1, 1, 1], [1, 1, 1]]),
+    }
+    positives = {
+        "input_ids": torch.tensor([[7, 8, 9, 10], [11, 12, 13, 14]]),
+        "attention_mask": torch.tensor([[1, 1, 1, 1], [1, 1, 1, 1]]),
+    }
+    features = [anchors, positives]
+    # MultipleNegativesRankingLoss does not require labels
+    labels = None
 
     return model, loss, matryoshka_dims, matryoshka_weights, features, labels
 
