@@ -149,7 +149,9 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
 
 class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
     """
-    Batch sampler that yields batches in a round-robin fashion from multiple batch samplers.
+    Batch sampler that yields batches in a round-robin fashion from multiple batch samplers, until one is exhausted.
+    With this sampler, it's unlikely that all samples from each dataset are used, but we do ensure that each dataset
+    is sampled from equally.
 
     Args:
         dataset (ConcatDataset): A concatenation of multiple datasets.
