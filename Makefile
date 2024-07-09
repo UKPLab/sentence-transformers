@@ -6,11 +6,12 @@ check: ## Run code quality tools.
 
 .PHONY: test
 test: ## Run unit tests
-	pytest
+	@pytest
 
 .PHONY: test-cov
 test-cov: ## Run unit tests and generate a coverage report
-	pytest --cov-report term --cov-report=html --cov=sentence_transformers
+	@pytest --cov-report term --cov-report=html --cov=sentence_transformers
+	@open htmlcov/index.html
 
 .PHONY: help
 help: ## Show help for the commands.
