@@ -47,7 +47,7 @@ Repository = "https://github.com/UKPLab/sentence-transformers/"
 
 [project.optional-dependencies]
 train = ["datasets", "accelerate>=0.20.3"]
-dev = ["datasets", "accelerate>=0.20.3", "pre-commit", "pytest"]
+dev = ["datasets", "accelerate>=0.20.3", "pre-commit", "pytest", "pytest-cov"]
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
