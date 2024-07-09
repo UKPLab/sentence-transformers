@@ -659,16 +659,19 @@ def mine_hard_negatives(
     log_counters = {}
     queries = dataset[columns[0]]
     positives = dataset[columns[1]]
-
-    if corpus is None:
+    separate_corpus = corpus is not None
+    if not separate_corpus:
         corpus = positives
 
     # Embed the corpus, queries, and positives
     corpus_embeddings = model.encode(corpus, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
     query_embeddings = model.encode(queries, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
-    positives_embeddings = model.encode(
-        positives, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True
-    )
+    if separate_corpus:
+        positives_embeddings = model.encode(
+            positives, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True
+        )
+    else:
+        positives_embeddings = corpus_embeddings
     batch_idx = torch.arange(len(queries)).unsqueeze(-1)
 
     if use_faiss:
