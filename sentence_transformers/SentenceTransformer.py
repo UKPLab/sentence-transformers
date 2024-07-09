@@ -604,7 +604,10 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return all_embeddings
 
     @staticmethod
-    def _pad_features(features):
+    def _pad_features(features: Dict[str, torch.Tensor]) -> None:
+        """
+        Pads the input features to the next power of 2 for compatibility with certain hardware accelerators.
+        """
         curr_tokenize_len = features["input_ids"].shape
         additional_pad_len = 2 ** math.ceil(math.log2(curr_tokenize_len[1])) - curr_tokenize_len[1]
         features["input_ids"] = torch.cat(
@@ -631,7 +634,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             )
 
     @staticmethod
-    def _process_token_embeddings(out_features):
+    def _process_token_embeddings(out_features: Dict[str, torch.Tensor]) -> List[torch.Tensor]:
         embeddings = []
         for token_emb, attention in zip(out_features["token_embeddings"], out_features["attention_mask"]):
             last_mask_id = len(attention) - 1
@@ -641,7 +644,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return embeddings
 
     @staticmethod
-    def _process_all_outputs(out_features):
+    def _process_all_outputs(out_features: Dict[str, torch.Tensor]) -> List[Dict[str, torch.Tensor]]:
         embeddings = []
         for sent_idx in range(len(out_features["sentence_embedding"])):
             row = {name: out_features[name][sent_idx] for name in out_features}
@@ -649,7 +652,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return embeddings
 
     @staticmethod
-    def _process_sentence_embeddings(out_features, normalize_embeddings, convert_to_numpy):
+    def _process_sentence_embeddings(
+        out_features: Dict[str, torch.Tensor], normalize_embeddings: bool, convert_to_numpy: bool
+    ) -> Union[List[np.ndarray], List[torch.Tensor]]:
         embeddings = out_features["sentence_embedding"]
         embeddings = embeddings.detach()
         if normalize_embeddings:
