@@ -47,7 +47,7 @@ Repository = "https://github.com/UKPLab/sentence-transformers/"
 
 [project.optional-dependencies]
 train = ["datasets", "accelerate>=0.20.3"]
-dev = ["datasets", "accelerate>=0.20.3", "pre-commit", "pytest", "ruff>=0.4.10"]
+dev = ["datasets", "accelerate>=0.20.3", "pre-commit", "pytest"]
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
@@ -60,9 +60,14 @@ packages=["sentence_transformers"]
 line-length = 119
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "W"]
+select = ["E", "F", "W"]
 # Skip `E731` (do not assign a lambda expression, use a def)
-ignore = ["E731"]
+ignore = [
+    # LineTooLong
+    "E501",
+    # DoNotAssignLambda
+    "E731",
+]
 
 [tool.ruff.lint.per-file-ignores]
 # Ignore `E402` (import violations) in all examples

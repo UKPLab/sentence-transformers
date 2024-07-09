@@ -9,7 +9,7 @@ class SentenceTransformerDataCollator:
     """Collator for a SentenceTransformers model.
     This encodes the text columns to {column}_input_ids and {column}_attention_mask columns.
     This works with the two text dataset that is used as the example in the training overview:
-    https://www.sbert.net/docs/training/overview.html
+    https://www.sbert.net/docs/sentence_transformer/training_overview.html
     """
 
     tokenize_fn: Callable
