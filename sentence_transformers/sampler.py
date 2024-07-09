@@ -148,13 +148,27 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
 
 
 class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
+    """
+    Batch sampler that yields batches in a round-robin fashion from multiple batch samplers, until one is exhausted.
+    With this sampler, it's unlikely that all samples from each dataset are used, but we do ensure that each dataset
+    is sampled from equally.
+
+    Args:
+        dataset (ConcatDataset): A concatenation of multiple datasets.
+        batch_samplers (List[BatchSampler]): A list of batch samplers, one for each dataset in the ConcatDataset.
+        generator (torch.Generator, optional): A generator for reproducible sampling. Defaults to None.
+        seed (int, optional): A seed for the generator. Defaults to None.
+    """
+
     def __init__(
         self,
         dataset: ConcatDataset,
         batch_samplers: List[BatchSampler],
-        generator: torch.Generator,
-        seed: int,
+        generator: torch.Generator = None,
+        seed: int = None,
     ) -> None:
+        if len(dataset.datasets) != len(batch_samplers):
+            raise ValueError("The number of batch samplers must match the number of datasets in the ConcatDataset.")
         super().__init__(dataset, batch_samplers[0].batch_size, batch_samplers[0].drop_last)
         self.dataset = dataset
         self.batch_samplers = batch_samplers
@@ -162,7 +176,8 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
         self.seed = seed
 
     def __iter__(self) -> Iterator[List[int]]:
-        self.generator.manual_seed(self.seed + self.epoch)
+        if self.generator and self.seed:
+            self.generator.manual_seed(self.seed + self.epoch)
 
         num_samples = [len(dataset) for dataset in self.dataset.datasets]
         sample_offsets = [0] + list(accumulate(num_samples))
@@ -172,13 +187,12 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
             sample_offset = sample_offsets[dataset_idx]
             try:
                 yield [idx + sample_offset for idx in next(batch_samplers[dataset_idx])]
-
             except StopIteration:
                 # current iterator is apparently exhausted
                 break
 
     def __len__(self) -> int:
-        return min([len(sampler) for sampler in self.batch_samplers]) * len(self.batch_samplers)
+        return min(len(sampler) for sampler in self.batch_samplers) * len(self.batch_samplers)
 
 
 class ProportionalBatchSampler(SetEpochMixin, BatchSampler):
