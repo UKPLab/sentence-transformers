@@ -32,7 +32,7 @@ def dummy_uneven_dataset():
     return Dataset.from_dict(data)
 
 
-def test_group_by_label_batch_sampler_label_a(dummy_dataset):
+def test_group_by_label_batch_sampler_label_a(dummy_dataset: Dataset) -> None:
     batch_size = 10
 
     sampler = GroupByLabelBatchSampler(
@@ -50,7 +50,7 @@ def test_group_by_label_batch_sampler_label_a(dummy_dataset):
         assert len(set(labels)) == 1, f"Batch {batch} does not have identical labels: {labels}"
 
 
-def test_group_by_label_batch_sampler_label_b(dummy_dataset):
+def test_group_by_label_batch_sampler_label_b(dummy_dataset: Dataset) -> None:
     batch_size = 8
 
     sampler = GroupByLabelBatchSampler(
@@ -75,7 +75,7 @@ def test_group_by_label_batch_sampler_label_b(dummy_dataset):
         assert counts == [8] or counts == [4, 4]
 
 
-def test_group_by_label_batch_sampler_uneven_dataset(dummy_uneven_dataset):
+def test_group_by_label_batch_sampler_uneven_dataset(dummy_uneven_dataset: Dataset) -> None:
     batch_size = 8
 
     sampler = GroupByLabelBatchSampler(
@@ -83,6 +83,7 @@ def test_group_by_label_batch_sampler_uneven_dataset(dummy_uneven_dataset):
     )
 
     # With a batch_size of 8 and 17 samples per label; verify that every label in a batch occurs at least twice.
+    # We accept some tiny data loss (1 sample per label) due to the uneven number of samples per label.
     batches = list(iter(sampler))
     for batch in batches:
         labels = [dummy_uneven_dataset[int(idx)]["label"] for idx in batch]
