@@ -23,9 +23,9 @@ Steps to reproduce the behavior:
 **System [please complete the following information]:**
 
 -   OS: e.g. [Ubuntu 18.04]
--   Python Version: [e.g. Python 3.8]
--   Pytorch Version: [e.g. Pytorch 1.11.0]
--   Transformers Version: [e.g. transformers 4.34.0]
+-   Python version: [e.g. Python 3.8]
+-   Pytorch version: [e.g. Pytorch 1.11.0]
+-   Transformers version: [e.g. transformers 4.34.0]
 
 **Additional context**
 
