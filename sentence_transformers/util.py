@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from datasets import Dataset
+    from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
     from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
     from sentence_transformers.SentenceTransformer import SentenceTransformer
