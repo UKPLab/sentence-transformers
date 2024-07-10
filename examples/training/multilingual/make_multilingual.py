@@ -22,8 +22,8 @@ import traceback
 from datetime import datetime
 
 import numpy as np
-
 from datasets import DatasetDict, load_dataset
+
 from sentence_transformers import LoggingHandler, SentenceTransformer
 from sentence_transformers.evaluation import (
     EmbeddingSimilarityEvaluator,

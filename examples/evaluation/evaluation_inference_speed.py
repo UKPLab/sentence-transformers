@@ -11,8 +11,8 @@ import sys
 import time
 
 import torch
-
 from datasets import load_dataset
+
 from sentence_transformers import SentenceTransformer
 
 # Limit torch to 4 threads
