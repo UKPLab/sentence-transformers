@@ -663,6 +663,12 @@ def mine_hard_negatives(
     if not separate_corpus:
         corpus = positives
 
+    # Deduplicate the corpus
+    corpus = list(set(corpus))
+    pos_to_corpus_indices = torch.tensor(
+        [corpus.index(positive) if positive in corpus else -1 for positive in positives], dtype=torch.long
+    )
+
     # Embed the corpus, queries, and positives
     corpus_embeddings = model.encode(corpus, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
     query_embeddings = model.encode(queries, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
@@ -671,7 +677,7 @@ def mine_hard_negatives(
             positives, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True
         )
     else:
-        positives_embeddings = corpus_embeddings
+        positives_embeddings = corpus_embeddings[pos_to_corpus_indices]
     batch_idx = torch.arange(len(queries)).unsqueeze(-1)
 
     if use_faiss:
@@ -714,19 +720,7 @@ def mine_hard_negatives(
 
     # Scores is a [num_queries, range_max + 1] tensor, where we set the values to -inf to disqualify the corresponding
     # text as a negative candidate. Here we disqualify the positive pair
-
-    # positive_indices = indices == torch.arange(len(queries), device=indices.device).unsqueeze(-1)
-    # scores[positive_indices] = -float("inf")
-    positive_indices = []
-    for positive in positives:
-        if positive in corpus:
-            index = corpus.index(positive)
-            positive_indices.append(index)
-        else:
-            positive_indices.append(-1)
-    positive_indices = torch.Tensor(positive_indices).to(torch.int32).unsqueeze(-1)
-    positive_indices = indices == positive_indices
-
+    positive_indices = indices == pos_to_corpus_indices.unsqueeze(-1)
     scores[positive_indices] = -float("inf")
 
     num_candidates = scores.numel()
