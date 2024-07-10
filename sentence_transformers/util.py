@@ -736,12 +736,8 @@ def mine_hard_negatives(
                 convert_to_tensor=True,
             )
             # If we rescored a positive pair, make sure that it is disqualified again
-            # if idx in candidate_neg_idx:
-            #    pred_scores[candidate_neg_idx == idx] = -float("inf")
-
-            if positives[idx] in candidate_passages:
-                positives_index = candidate_passages.index(positives[idx])
-                pred_scores[positives_index] = -float("inf")
+            if pos_to_corpus_indices[idx] in candidate_neg_idx:
+                pred_scores[candidate_neg_idx == pos_to_corpus_indices[idx]] = -float("inf")
 
             scores[idx] = pred_scores
         positive_scores = cross_encoder.predict(
