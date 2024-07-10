@@ -53,8 +53,9 @@ dev = ["datasets", "accelerate>=0.20.3", "pre-commit", "pytest", "pytest-cov"]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages=["sentence_transformers"]
+[tool.setuptools.packages.find]
+include = ["sentence_transformers*"]
+namespaces = false
 
 [tool.ruff]
 line-length = 119
