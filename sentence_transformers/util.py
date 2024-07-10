@@ -7,7 +7,18 @@ import queue
 import random
 import sys
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Type, Union, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Type,
+    Union,
+    overload,
+)
 
 import numpy as np
 import requests
@@ -21,9 +32,10 @@ from transformers import is_torch_npu_available
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentence_transformers.SentenceTransformer import SentenceTransformer
-    from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
     from datasets import Dataset
+
+    from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 def _convert_to_tensor(a: Union[list, np.ndarray, Tensor]) -> Tensor:
@@ -344,7 +356,10 @@ def paraphrase_mining(
 
     # Compute embedding for the sentences
     embeddings = model.encode(
-        sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True
+        sentences,
+        show_progress_bar=show_progress_bar,
+        batch_size=batch_size,
+        convert_to_tensor=True,
     )
 
     return paraphrase_mining_embeddings(
@@ -489,7 +504,11 @@ def semantic_search(
 
             # Get top-k scores
             cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(
-                cos_scores, min(top_k, len(cos_scores[0])), dim=1, largest=True, sorted=False
+                cos_scores,
+                min(top_k, len(cos_scores[0])),
+                dim=1,
+                largest=True,
+                sorted=False,
             )
             cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
             cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
@@ -509,10 +528,403 @@ def semantic_search(
     for query_id in range(len(queries_result_list)):
         for doc_itr in range(len(queries_result_list[query_id])):
             score, corpus_id = queries_result_list[query_id][doc_itr]
-            queries_result_list[query_id][doc_itr] = {"corpus_id": corpus_id, "score": score}
+            queries_result_list[query_id][doc_itr] = {
+                "corpus_id": corpus_id,
+                "score": score,
+            }
         queries_result_list[query_id] = sorted(queries_result_list[query_id], key=lambda x: x["score"], reverse=True)
 
     return queries_result_list
+
+
+def mine_hard_negatives_from_corpus(
+    queries_dataset: "Dataset",
+    corpus_dataset: "Dataset",
+    relevance_dataset: "Dataset",
+    model: "SentenceTransformer",
+    cross_encoder: Optional["CrossEncoder"] = None,
+    range_min: int = 0,
+    range_max: Optional[int] = None,
+    max_score: Optional[float] = None,
+    margin: Optional[float] = None,
+    num_negatives: int = 3,
+    keep_title: bool = True,
+    sampling_strategy: Literal["random", "top"] = "top",
+    as_triplets: bool = True,
+    batch_size: int = 32,
+    chunk_size: int = 16384,
+    verbose: bool = True,
+    num_processes: int = 4,
+    positive_score_threshold: float = 1.0,
+    query_id_column: str = "_id",
+    corpus_id_column: str = "_id",
+    query_text_column: str = "text",
+    corpus_text_column: str = "text",
+    relevance_query_id_column: str = "query-id",
+    relevance_corpus_id_column: str = "corpus-id",
+    relevance_score_column: str = "score",
+    negatives_per_positive: Optional[int] = None,
+) -> "Dataset":
+    if not is_datasets_available():
+        raise ImportError("Please install `datasets` to use this function: `pip install datasets`.")
+    from datasets import Dataset
+
+    try:
+        import faiss
+    except ImportError:
+        raise ImportError("Please install `faiss` to use this function: `pip install faiss-cpu`.")
+
+    def _maybe_add_title(example):
+        if "title" in example and keep_title:
+            example[corpus_text_column] = f"{example['title']} {example[corpus_text_column]}"
+        return example
+
+    corpus_dataset = corpus_dataset.map(_maybe_add_title, remove_columns=[corpus_text_column], num_proc=num_processes)
+    # We need to find the corresponding indices in the queries and corpus datasets.
+    # But first, we need to filter out the examples that are not in the queries and corpus datasets or not in the relevance dataset.
+    valid_query_ids = set(queries_dataset[query_id_column]).intersection(
+        set(relevance_dataset[relevance_query_id_column])
+    )
+    valid_corpus_ids = set(corpus_dataset[corpus_id_column])
+
+    queries_dataset = queries_dataset.filter(
+        lambda example: example[query_id_column] in valid_query_ids,
+        num_proc=num_processes,
+    )
+    corpus_dataset = corpus_dataset.filter(
+        lambda example: example[corpus_id_column] in valid_corpus_ids,
+        num_proc=num_processes,
+    )
+
+    corpus_idx = {corpus_id: i for i, corpus_id in enumerate(corpus_dataset[corpus_id_column])}
+
+    log_counters = {}
+
+    # prepare the relevance dataset
+    relevance_dataset = relevance_dataset.filter(
+        lambda example: example[relevance_query_id_column] in valid_query_ids
+        and example[relevance_corpus_id_column] in valid_corpus_ids
+        and example[relevance_score_column] >= positive_score_threshold,
+        num_proc=num_processes,
+    )
+
+    # relevance_dataset = relevance_dataset.map(
+    #     lambda example: {
+    #         "query_idx": query_idx[example["query-id"]],
+    #         "corpus_idx": corpus_idx[example["corpus-id"]],
+    #     },
+    #     num_proc=num_processes,
+    # )
+
+    queries = queries_dataset[query_text_column]
+    corpus = corpus_dataset[corpus_text_column]
+    batch_idx = torch.arange(len(queries)).unsqueeze(-1)
+    # build a qrels-like structure for storing the relevant documents for each query
+    qrels = {}
+    for row in relevance_dataset:
+        query_id = row["query-id"]
+        corpus_id = row["corpus-id"]
+        if query_id not in qrels:
+            qrels[query_id] = []
+        qrels[query_id].append(corpus_idx[corpus_id])
+    # Get the maximum number of relevant documents for a query and use it to compute the range_max
+    max_positives = max(len(v) for v in qrels.values())
+    if range_max is None:
+        if margin is not None or max_score is not None:
+            # 1 positive, 10 * num_negatives negatives because some might be skipped, and range_min skipped
+            range_max = range_min + (num_negatives * 10) + max_positives
+        else:
+            # 1 positive, num_negatives negatives, and range_min skipped
+            range_max = range_min + num_negatives + max_positives
+        if verbose:
+            print(f"Setting range_max to {range_max} based on the number of positive documents per query.")
+        if range_max > 2048:
+            range_max = 2048
+            if verbose:
+                print("Using FAISS, we can only retrieve up to 2048 documents per query. Setting range_max to 2048.")
+
+    index = faiss.IndexFlatIP(model.get_sentence_embedding_dimension())
+    # Move the index to the GPU if available
+    try:
+        co = faiss.GpuMultipleClonerOptions()
+        co.useFloat16 = True
+        index: faiss.IndexFlatIP = faiss.index_cpu_to_all_gpus(index, co=co)
+    except Exception:
+        pass
+
+    # If the dataset is too large, it is better to encode the corpus in chunks and index the chunks as they go, instead of keeping the whole think in VRAM.
+    pbar = tqdm(total=len(corpus), desc="Encoding and indexing corpus")
+    for i in range(0, len(corpus), chunk_size):
+        chunk = corpus[i : i + chunk_size]
+        chunk_embeddings = model.encode(
+            chunk,
+            convert_to_numpy=True,
+            show_progress_bar=False,
+            batch_size=batch_size,
+        )
+        index.add(chunk_embeddings)
+        pbar.update(len(chunk))
+    pbar.close()
+    positive_indices_list = []
+    negative_indices_list = []
+    scores_list = []
+    indices_list = []
+
+    # Iterate over the queries in chunks, encode them, and retrieve the top-k documents
+    pbar = tqdm(total=len(queries), desc="Retrieving top-k documents")
+    for i in range(0, len(queries), chunk_size):
+        chunk = queries_dataset[i : i + chunk_size]
+        chunk_queries = chunk["text"]
+        chunk_qids = chunk["_id"]
+        chunk_embeddings = model.encode(
+            chunk_queries,
+            convert_to_tensor=True,
+            show_progress_bar=False,
+            batch_size=batch_size,
+        )
+        scores, indices = index.search(chunk_embeddings.cpu().numpy(), k=range_max)
+
+        # If no positives were retrieved, score a random positive for the query and replace the last negative with it
+        for q_idx, qid in tqdm(
+            enumerate(chunk_qids),
+            desc="Adding missing positives",
+            leave=False,
+            total=len(chunk),
+        ):
+            # find if any of the indices is in the positive set
+            positive_corpus_idxs = list(qrels[qid])
+            positive_indices = np.in1d(indices[q_idx], positive_corpus_idxs)
+            negative_indices = ~positive_indices
+            if not any(positive_indices):
+                # Get a positive and score it manually
+                random_positive_idx = np.random.choice(positive_corpus_idxs)
+                positive_embedding = model.encode(
+                    corpus[random_positive_idx],
+                    convert_to_tensor=True,
+                    show_progress_bar=False,
+                )
+                query_embedding = chunk_embeddings[q_idx]
+                positive_score = model.similarity_pairwise(
+                    query_embedding.unsqueeze(0), positive_embedding.unsqueeze(0)
+                ).item()
+                scores[q_idx][-1] = positive_score
+                indices[q_idx][-1] = random_positive_idx
+                positive_indices[q_idx][-1] = True
+            pbar.update()
+            positive_indices_list.append(positive_indices)
+            negative_indices_list.append(negative_indices)
+        scores_list.append(scores)
+        indices_list.append(indices)
+
+    pbar.close()
+    scores = torch.from_numpy(np.concatenate(scores_list))
+    indices = torch.from_numpy(np.concatenate(indices_list))
+    positive_indices_mask = torch.from_numpy(np.stack(positive_indices_list))
+    negative_indices_mask = torch.from_numpy(np.stack(negative_indices_list))
+    del chunk_embeddings
+
+    if cross_encoder is not None and (margin is not None or max_score is not None):
+        for idx, candidate_idx in tqdm(enumerate(indices), desc="Rescoring with CrossEncoder", total=len(indices)):
+            query = queries[idx]
+            candidate_passages = [corpus[_idx] for _idx in candidate_idx]
+            pred_scores = cross_encoder.predict(
+                list(zip([query] * (range_max + 1), candidate_passages)),
+                batch_size=batch_size,
+                convert_to_tensor=True,
+            )
+            scores[idx] = pred_scores
+
+    # Keep a copy of the scores for the positive and negative indices
+    # instead of operating over the original indices sa in the mine_hard_negatives function
+    negative_scores = scores.clone()
+    negative_scores[positive_indices_mask] = -float("inf")
+    positive_scores = scores.clone()
+    positive_scores[negative_indices_mask] = -float("inf")
+    positive_indices = indices.clone()
+    negative_indices = indices.clone()
+
+    # Keep the max_positive_scores for each query for filtering the negatives
+    max_positive_scores, _ = torch.max(scores * positive_indices_mask, dim=1)
+    num_candidates = scores.numel()
+
+    if margin is not None:
+        removed_indices_negatives = negative_scores + margin > max_positive_scores.repeat(negative_scores.size(1), 1).T
+        negative_scores[removed_indices_negatives] = -float("inf")
+
+        num_skipped = removed_indices_negatives.sum().item()
+        if num_skipped:
+            log_counters["margin"] = {
+                "skipped": num_skipped,
+                "ratio": num_skipped / num_candidates,
+            }
+            num_candidates -= num_skipped
+
+    if max_score is not None:
+        removed_indices_negatives = negative_scores > max_score
+        negative_scores[removed_indices_negatives] = -float("inf")
+
+        num_skipped = removed_indices_negatives.sum().item()
+        if num_skipped:
+            log_counters["max_score"] = {
+                "skipped": num_skipped,
+                "ratio": num_skipped / num_candidates,
+            }
+            num_candidates -= num_skipped
+
+    # Grab the top negative candidates and remove the first range_min candidates
+    negative_scores, sorted_negative_indexes = torch.topk(negative_scores, k=range_max, dim=1)
+    negative_indices = negative_indices[batch_idx, sorted_negative_indexes]
+    if range_min:
+        negative_indices = negative_indices[:, range_min:]
+        negative_scores = negative_scores[:, range_min:]
+
+    # Do the same for the positives and max_positives
+    sorted_positive_scores, sorted_positive_indexes = torch.topk(positive_scores, k=range_max, dim=1)
+    _positive_indices = positive_indices[batch_idx, sorted_positive_indexes]
+    positive_indices = _positive_indices[:, :max_positives]
+    positive_scores = sorted_positive_scores[:, :max_positives]
+
+    # Either grab the top negatives or sample randomly
+    if sampling_strategy == "top":
+        negative_indices = negative_indices[:, :num_negatives]
+        negative_scores = negative_scores[:, :num_negatives]
+
+    elif sampling_strategy == "random":
+        # Prevent sampling -inf values if possible
+        num_options = negative_indices.size(1) - negative_scores.isinf().sum(1)
+        num_options = num_options.clamp(min=num_negatives)
+        # Randomly sample negatives from each row
+        sampled_idx = [random.sample(range(options), k=num_negatives) for options in num_options]
+        negative_indices = negative_indices[batch_idx, sampled_idx]
+        negative_scores = negative_scores[batch_idx, sampled_idx]
+        # Resort the indices and scores
+        negative_scores, sorted_negative_indexes = negative_scores.sort(dim=1, descending=True)
+        negative_indices = negative_indices[batch_idx, sorted_negative_indexes]
+
+    if as_triplets:
+        # If calling as triples, we will explode the dataset into triplets.
+        difference_scores = []
+        triplets_data = {
+            "query": [],
+            "positive": [],
+            "negative": [],
+        }
+        for q_idx, query in tqdm(
+            enumerate(queries_dataset),
+            desc="building triplets dataset",
+            total=len(queries_dataset),
+        ):
+            negative_indices_to_keep = negative_scores[q_idx] != -float("inf")
+            query_negative_indices = negative_indices[q_idx][negative_indices_to_keep]
+
+            positive_indices_to_keep = positive_scores[q_idx] != -float("inf")
+            query_positive_indices = positive_indices[q_idx][positive_indices_to_keep]
+
+            query = queries_dataset[q_idx]
+            # query_positive_indices_to_keep = positive_indices[q_idx]
+            for _idx, positive_idx in enumerate(query_positive_indices):
+                positive_example = corpus_dataset[positive_idx.item()]
+                positive_score = positive_scores[q_idx][_idx]
+                if negatives_per_positive is not None:
+                    # randomly select negatives_per_positive negatives for each positive
+                    sampled_idx = random.sample(range(len(query_negative_indices)), k=negatives_per_positive)
+                else:
+                    sampled_idx = range(len(query_negative_indices))
+                for _idx in sampled_idx:
+                    negative_idx = query_negative_indices[_idx]
+                    negative_example = corpus_dataset[negative_idx.item()]
+                    triplets_data["query"].append(query)
+                    triplets_data["positive"].append(positive_example)
+                    triplets_data["negative"].append(negative_example)
+                    negative_score = negative_scores[q_idx][_idx]
+                    difference_scores.append(positive_score - negative_score)
+    else:
+        difference_scores = []
+        triplets_data = {
+            "query": [],
+            "positives": [],
+            "negatives": [],
+        }
+
+        for q_idx, query in tqdm(
+            enumerate(queries_dataset),
+            desc="building triplets dataset",
+            total=len(queries_dataset),
+        ):
+            negative_indices_to_keep = negative_scores[q_idx] != -float("inf")
+            query_negative_indices = negative_indices[q_idx][negative_indices_to_keep]
+
+            positive_indices_to_keep = positive_scores[q_idx] != -float("inf")
+            query_positive_indices = positive_indices[q_idx][positive_indices_to_keep]
+
+            triplets_data["query"].append(queries_dataset[q_idx])
+            triplets_data["positives"].append(
+                [corpus_dataset[positive_idx.item()] for positive_idx in query_positive_indices]
+            )
+            triplets_data["negatives"].append(
+                [corpus_dataset[negative_idx.item()] for negative_idx in query_negative_indices]
+            )
+
+            # This is not equivalent to the triplet difference, but it is an estimate.
+            difference_scores.append(
+                torch.mean(positive_scores[q_idx][positive_indices_to_keep])
+                - torch.mean(negative_scores[q_idx][negative_indices_to_keep])
+            )
+    if len(triplets_data) == 0:
+        raise ValueError("No triplets could be generated. Please check the parameters and dataset.")
+    triplets_dataset = Dataset.from_dict(triplets_data)
+    # Report some statistics
+    if verbose:
+        difference_scores = torch.tensor(difference_scores)
+        row_format = "{:<6} {:>14} {:>14} {:>14}"
+        formatter = lambda value: (f"{value.item():.4f}" if isinstance(value, torch.Tensor) else f"{value:,}")
+        print(row_format.format("Metric", "Positive", "Negative", "Difference"))
+        for metric, function in [
+            ("count", len),
+            ("mean", torch.mean),
+            ("median", torch.median),
+            ("std", torch.std),
+            ("min", torch.min),
+            ("25%", lambda scores: torch.quantile(scores.float(), q=0.25)),
+            ("50%", lambda scores: torch.quantile(scores.float(), q=0.5)),
+            ("75%", lambda scores: torch.quantile(scores.float(), q=0.75)),
+            ("max", torch.max),
+        ]:
+            print(
+                row_format.format(
+                    metric.capitalize(),
+                    formatter(function(positive_scores)),
+                    formatter(function(negative_scores)),
+                    formatter(function(difference_scores)),
+                )
+            )
+        if "margin" in log_counters:
+            print(
+                f"Skipped {log_counters['margin']['skipped']} potential negatives ({log_counters['margin']['ratio']:.2%}) due to the margin of {margin}."
+            )
+        if "max_score" in log_counters:
+            print(
+                f"Skipped {log_counters['max_score']['skipped']} potential negatives ({log_counters['max_score']['ratio']:.2%}) due to the maximum score of {max_score}."
+            )
+    missing_negatives = (num_negatives * len(queries)) - len(negative_scores.flatten())
+    missing_negatives = (num_negatives * len(queries)) - len(negative_scores)
+    if missing_negatives > 0:
+        solutions = ["range_max"]
+        if range_min > 0:
+            solutions.append("range_min")
+        if margin is not None:
+            solutions.append("margin")
+        if max_score is not None:
+            solutions.append("max_score")
+        considerations = ", ".join(solutions[:-1])
+        if len(solutions) > 1:
+            considerations += " and " + solutions[-1]
+        missing_negatives_ratio = missing_negatives / (num_negatives * len(queries))
+        print(
+            f"Could not find enough negatives for {missing_negatives} samples ({missing_negatives_ratio:.2%})."
+            f" Consider adjusting the {considerations} parameter{'s' if len(solutions) > 1 else ''} if you'd like to find more valid negatives."
+        )
+    return triplets_dataset
 
 
 def mine_hard_negatives(
@@ -821,7 +1233,7 @@ def mine_hard_negatives(
     # Report some statistics
     if verbose:
         row_format = "{:<6} {:>14} {:>14} {:>14}"
-        formatter = lambda value: f"{value.item():.4f}" if isinstance(value, torch.Tensor) else f"{value:,}"
+        formatter = lambda value: (f"{value.item():.4f}" if isinstance(value, torch.Tensor) else f"{value:,}")
         print(row_format.format("Metric", "Positive", "Negative", "Difference"))
         for metric, function in [
             ("count", len),
@@ -892,7 +1304,10 @@ def http_get(url: str, path: str) -> None:
 
     req = requests.get(url, stream=True)
     if req.status_code != 200:
-        print("Exception when trying to download {}. Response {}".format(url, req.status_code), file=sys.stderr)
+        print(
+            "Exception when trying to download {}. Response {}".format(url, req.status_code),
+            file=sys.stderr,
+        )
         req.raise_for_status()
         return
 
@@ -987,7 +1402,10 @@ def import_from_string(dotted_path: str) -> Type:
     try:
         return getattr(module, class_name)
     except AttributeError:
-        msg = 'Module "%s" does not define a "%s" attribute/class' % (module_path, class_name)
+        msg = 'Module "%s" does not define a "%s" attribute/class' % (
+            module_path,
+            class_name,
+        )
         raise ImportError(msg)
 
 
@@ -1028,7 +1446,9 @@ def community_detection(
     sort_max_size = min(max(2 * min_community_size, 50), len(embeddings))
 
     for start_idx in tqdm(
-        range(0, len(embeddings), batch_size), desc="Finding clusters", disable=not show_progress_bar
+        range(0, len(embeddings), batch_size),
+        desc="Finding clusters",
+        disable=not show_progress_bar,
     ):
         # Compute cosine similarity scores
         cos_scores = embeddings[start_idx : start_idx + batch_size] @ embeddings.T
