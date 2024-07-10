@@ -3,7 +3,6 @@ from __future__ import annotations
 import random
 
 import pytest
-
 from datasets import Dataset
 
 from sentence_transformers.sampler import NoDuplicatesBatchSampler
