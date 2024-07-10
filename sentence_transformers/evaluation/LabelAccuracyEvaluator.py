@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 import torch
 from torch.utils.data import DataLoader
@@ -46,7 +48,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
 
     def __call__(
         self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         model.eval()
         total = 0
         correct = 0

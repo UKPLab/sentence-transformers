@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
-from typing import Dict, List, Literal
+from typing import Literal
 
 import torch
 from torch import Tensor, nn
@@ -19,8 +21,8 @@ class BoW(nn.Module):
 
     def __init__(
         self,
-        vocab: List[str],
-        word_weights: Dict[str, float] = {},
+        vocab: list[str],
+        word_weights: dict[str, float] = {},
         unknown_word_weight: float = 1,
         cumulative_term_frequency: bool = True,
     ):
@@ -54,11 +56,11 @@ class BoW(nn.Module):
         self.tokenizer = WhitespaceTokenizer(vocab, stop_words=set(), do_lower_case=False)
         self.sentence_embedding_dimension = len(vocab)
 
-    def forward(self, features: Dict[str, Tensor]):
+    def forward(self, features: dict[str, Tensor]):
         # Nothing to do, everything is done in get_sentence_features
         return features
 
-    def tokenize(self, texts: List[str], **kwargs) -> List[int]:
+    def tokenize(self, texts: list[str], **kwargs) -> list[int]:
         tokenized = [self.tokenizer.tokenize(text, **kwargs) for text in texts]
         return self.get_sentence_features(tokenized)
 
@@ -66,8 +68,8 @@ class BoW(nn.Module):
         return self.sentence_embedding_dimension
 
     def get_sentence_features(
-        self, tokenized_texts: List[List[int]], pad_seq_length: int = 0
-    ) -> Dict[Literal["sentence_embedding"], torch.Tensor]:
+        self, tokenized_texts: list[list[int]], pad_seq_length: int = 0
+    ) -> dict[Literal["sentence_embedding"], torch.Tensor]:
         vectors = []
 
         for tokens in tokenized_texts:

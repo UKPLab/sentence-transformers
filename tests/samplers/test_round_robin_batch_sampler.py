@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from datasets import Dataset
 from torch.utils.data import BatchSampler, ConcatDataset, SequentialSampler

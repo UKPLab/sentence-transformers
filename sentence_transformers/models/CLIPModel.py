@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from __future__ import annotations
 
 import torch
 import transformers
@@ -19,7 +19,7 @@ class CLIPModel(nn.Module):
     def __repr__(self) -> str:
         return "CLIPModel()"
 
-    def forward(self, features: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         image_embeds = []
         text_embeds = []
 
@@ -51,7 +51,7 @@ class CLIPModel(nn.Module):
 
         return features
 
-    def tokenize(self, texts, padding: Union[str, bool] = True) -> Dict[str, torch.Tensor]:
+    def tokenize(self, texts, padding: str | bool = True) -> dict[str, torch.Tensor]:
         images = []
         texts_values = []
         image_text_info = []

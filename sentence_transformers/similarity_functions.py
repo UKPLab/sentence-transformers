@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Callable, List, Union
+from typing import Callable
 
 from numpy import ndarray
 from torch import Tensor
@@ -34,8 +36,8 @@ class SimilarityFunction(Enum):
 
     @staticmethod
     def to_similarity_fn(
-        similarity_function: Union[str, "SimilarityFunction"],
-    ) -> Callable[[Union[Tensor, ndarray], Union[Tensor, ndarray]], Tensor]:
+        similarity_function: str | "SimilarityFunction",
+    ) -> Callable[[Tensor | ndarray, Tensor | ndarray], Tensor]:
         """
         Converts a similarity function name or enum value to the corresponding similarity function.
 
@@ -74,8 +76,8 @@ class SimilarityFunction(Enum):
 
     @staticmethod
     def to_similarity_pairwise_fn(
-        similarity_function: Union[str, "SimilarityFunction"],
-    ) -> Callable[[Union[Tensor, ndarray], Union[Tensor, ndarray]], Tensor]:
+        similarity_function: str | "SimilarityFunction",
+    ) -> Callable[[Tensor | ndarray, Tensor | ndarray], Tensor]:
         """
         Converts a similarity function into a pairwise similarity function.
 
@@ -116,7 +118,7 @@ class SimilarityFunction(Enum):
         )
 
     @staticmethod
-    def possible_values() -> List[str]:
+    def possible_values() -> list[str]:
         """
         Returns a list of possible values for the SimilarityFunction enum.
 

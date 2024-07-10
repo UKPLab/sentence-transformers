@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import json
 import os
-from typing import List
 
 import torch
 from safetensors.torch import load_model as load_safetensors_model
@@ -15,8 +16,8 @@ class CNN(nn.Module):
         self,
         in_word_embedding_dimension: int,
         out_channels: int = 256,
-        kernel_sizes: List[int] = [1, 3, 5],
-        stride_sizes: List[int] = None,
+        kernel_sizes: list[int] = [1, 3, 5],
+        stride_sizes: list[int] = None,
     ):
         nn.Module.__init__(self)
         self.config_keys = ["in_word_embedding_dimension", "out_channels", "kernel_sizes"]
@@ -55,7 +56,7 @@ class CNN(nn.Module):
     def get_word_embedding_dimension(self) -> int:
         return self.embeddings_dimension
 
-    def tokenize(self, text: str, **kwargs) -> List[int]:
+    def tokenize(self, text: str, **kwargs) -> list[int]:
         raise NotImplementedError()
 
     def save(self, output_path: str, safe_serialization: bool = True):

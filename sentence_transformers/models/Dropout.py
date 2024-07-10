@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import json
 import os
-from typing import Dict
 
 from torch import Tensor, nn
 
@@ -17,7 +18,7 @@ class Dropout(nn.Module):
         self.dropout = dropout
         self.dropout_layer = nn.Dropout(self.dropout)
 
-    def forward(self, features: Dict[str, Tensor]):
+    def forward(self, features: dict[str, Tensor]):
         features.update({"sentence_embedding": self.dropout_layer(features["sentence_embedding"])})
         return features
 

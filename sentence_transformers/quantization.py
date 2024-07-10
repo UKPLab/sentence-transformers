@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 import time
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from torch import Tensor
@@ -15,17 +17,17 @@ if TYPE_CHECKING:
 
 def semantic_search_faiss(
     query_embeddings: np.ndarray,
-    corpus_embeddings: Optional[np.ndarray] = None,
-    corpus_index: Optional["faiss.Index"] = None,
+    corpus_embeddings: np.ndarray | None = None,
+    corpus_index: "faiss.Index" | None = None,
     corpus_precision: Literal["float32", "uint8", "ubinary"] = "float32",
     top_k: int = 10,
-    ranges: Optional[np.ndarray] = None,
-    calibration_embeddings: Optional[np.ndarray] = None,
+    ranges: np.ndarray | None = None,
+    calibration_embeddings: np.ndarray | None = None,
     rescore: bool = True,
     rescore_multiplier: int = 2,
     exact: bool = True,
     output_index: bool = False,
-) -> Tuple[List[List[Dict[str, Union[int, float]]]], float, "faiss.Index"]:
+) -> tuple[list[list[dict[str, int | float]]], float, "faiss.Index"]:
     """
     Performs semantic search using the FAISS library.
 
@@ -182,17 +184,17 @@ def semantic_search_faiss(
 
 def semantic_search_usearch(
     query_embeddings: np.ndarray,
-    corpus_embeddings: Optional[np.ndarray] = None,
-    corpus_index: Optional["usearch.index.Index"] = None,
+    corpus_embeddings: np.ndarray | None = None,
+    corpus_index: "usearch.index.Index" | None = None,
     corpus_precision: Literal["float32", "int8", "binary"] = "float32",
     top_k: int = 10,
-    ranges: Optional[np.ndarray] = None,
-    calibration_embeddings: Optional[np.ndarray] = None,
+    ranges: np.ndarray | None = None,
+    calibration_embeddings: np.ndarray | None = None,
     rescore: bool = True,
     rescore_multiplier: int = 2,
     exact: bool = True,
     output_index: bool = False,
-) -> Tuple[List[List[Dict[str, Union[int, float]]]], float, "usearch.index.Index"]:
+) -> tuple[list[list[dict[str, int | float]]], float, "usearch.index.Index"]:
     """
     Performs semantic search using the usearch library.
 
@@ -361,10 +363,10 @@ def semantic_search_usearch(
 
 
 def quantize_embeddings(
-    embeddings: Union[Tensor, np.ndarray],
+    embeddings: Tensor | np.ndarray,
     precision: Literal["float32", "int8", "uint8", "binary", "ubinary"],
-    ranges: Optional[np.ndarray] = None,
-    calibration_embeddings: Optional[np.ndarray] = None,
+    ranges: np.ndarray | None = None,
+    calibration_embeddings: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Quantizes embeddings to a lower precision. This can be used to reduce the memory footprint and increase the

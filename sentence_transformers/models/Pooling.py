@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import json
 import os
-from typing import Any, Dict
+from typing import Any
 
 import torch
 from torch import Tensor, nn
@@ -128,7 +130,7 @@ class Pooling(nn.Module):
 
         return "+".join(modes)
 
-    def forward(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def forward(self, features: dict[str, Tensor]) -> dict[str, Tensor]:
         token_embeddings = features["token_embeddings"]
         attention_mask = features["attention_mask"]
         if not self.include_prompt and "prompt_length" in features:
@@ -226,7 +228,7 @@ class Pooling(nn.Module):
     def get_sentence_embedding_dimension(self) -> int:
         return self.pooling_output_dimension
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {key: self.__dict__[key] for key in self.config_keys}
 
     def save(self, output_path) -> None:

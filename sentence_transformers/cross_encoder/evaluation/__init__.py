@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .CEBinaryAccuracyEvaluator import CEBinaryAccuracyEvaluator
 from .CEBinaryClassificationEvaluator import CEBinaryClassificationEvaluator
 from .CECorrelationEvaluator import CECorrelationEvaluator

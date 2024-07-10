@@ -2,6 +2,8 @@
 Tests the correct computation of evaluation scores from BinaryClassificationEvaluator
 """
 
+from __future__ import annotations
+
 import csv
 import gzip
 import os

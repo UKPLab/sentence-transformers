@@ -1,4 +1,6 @@
-from typing import Any, Dict, Iterable
+from __future__ import annotations
+
+from typing import Any, Iterable
 
 import torch
 from torch import Tensor, nn
@@ -88,7 +90,7 @@ class GISTEmbedLoss(nn.Module):
     def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         with torch.no_grad():
             if self.must_retokenize:
@@ -157,7 +159,7 @@ class GISTEmbedLoss(nn.Module):
 
         return nn.CrossEntropyLoss()(scores, labels)
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {
             "guide": self.guide,
             "temperature": self.temperature,

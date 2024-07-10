@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable
 
 import torch
 
@@ -13,9 +15,9 @@ class SentenceTransformerDataCollator:
     """
 
     tokenize_fn: Callable
-    valid_label_columns: List[str] = field(default_factory=lambda: ["label", "score"])
+    valid_label_columns: list[str] = field(default_factory=lambda: ["label", "score"])
 
-    def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+    def __call__(self, features: list[dict[str, Any]]) -> dict[str, torch.Tensor]:
         columns = list(features[0].keys())
 
         # We should always be able to return a loss, label or not:

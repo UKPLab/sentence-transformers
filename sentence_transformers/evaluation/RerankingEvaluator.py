@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 import torch
@@ -51,8 +53,8 @@ class RerankingEvaluator(SentenceEvaluator):
         batch_size: int = 64,
         show_progress_bar: bool = False,
         use_batched_encoding: bool = True,
-        truncate_dim: Optional[int] = None,
-        mrr_at_k: Optional[int] = None,
+        truncate_dim: int | None = None,
+        mrr_at_k: int | None = None,
     ):
         super().__init__()
         self.samples = samples
@@ -91,7 +93,7 @@ class RerankingEvaluator(SentenceEvaluator):
 
     def __call__(
         self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Evaluates the model on the dataset and returns the evaluation metrics.
 

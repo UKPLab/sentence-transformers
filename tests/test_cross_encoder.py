@@ -2,12 +2,14 @@
 Tests that the pretrained models produce the correct scores on the STSbenchmark dataset
 """
 
+from __future__ import annotations
+
 import csv
 import gzip
 import os
 import tempfile
 from pathlib import Path
-from typing import Generator, List, Tuple
+from typing import Generator
 
 import numpy as np
 import pytest
@@ -20,7 +22,7 @@ from sentence_transformers.readers import InputExample
 
 
 @pytest.fixture()
-def sts_resource() -> Generator[Tuple[List[InputExample], List[InputExample]], None, None]:
+def sts_resource() -> Generator[tuple[list[InputExample], list[InputExample]], None, None]:
     sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
     if not os.path.exists(sts_dataset_path):
         util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
@@ -43,7 +45,7 @@ def sts_resource() -> Generator[Tuple[List[InputExample], List[InputExample]], N
 def evaluate_stsb_test(
     distilroberta_base_ce_model: CrossEncoder,
     expected_score: float,
-    test_samples: List[InputExample],
+    test_samples: list[InputExample],
     num_test_samples: int = -1,
 ) -> None:
     model = distilroberta_base_ce_model
@@ -53,7 +55,7 @@ def evaluate_stsb_test(
     assert score > expected_score or abs(score - expected_score) < 0.1
 
 
-def test_pretrained_stsb(sts_resource: Tuple[List[InputExample], List[InputExample]]):
+def test_pretrained_stsb(sts_resource: tuple[list[InputExample], list[InputExample]]):
     _, sts_test_samples = sts_resource
     model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
     evaluate_stsb_test(model, 87.92, sts_test_samples)
@@ -61,7 +63,7 @@ def test_pretrained_stsb(sts_resource: Tuple[List[InputExample], List[InputExamp
 
 @pytest.mark.slow
 def test_train_stsb_slow(
-    distilroberta_base_ce_model: CrossEncoder, sts_resource: Tuple[List[InputExample], List[InputExample]]
+    distilroberta_base_ce_model: CrossEncoder, sts_resource: tuple[list[InputExample], list[InputExample]]
 ) -> None:
     model = distilroberta_base_ce_model
     sts_train_samples, sts_test_samples = sts_resource
@@ -75,7 +77,7 @@ def test_train_stsb_slow(
 
 
 def test_train_stsb(
-    distilroberta_base_ce_model: CrossEncoder, sts_resource: Tuple[List[InputExample], List[InputExample]]
+    distilroberta_base_ce_model: CrossEncoder, sts_resource: tuple[list[InputExample], list[InputExample]]
 ) -> None:
     model = distilroberta_base_ce_model
     sts_train_samples, sts_test_samples = sts_resource

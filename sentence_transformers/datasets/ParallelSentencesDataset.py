@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import gzip
 import logging
 import random
-from typing import List
 
 from torch.utils.data import Dataset
 
@@ -99,7 +100,7 @@ class ParallelSentencesDataset(Dataset):
 
     def add_dataset(
         self,
-        parallel_sentences: List[List[str]],
+        parallel_sentences: list[list[str]],
         weight: int = 100,
         max_sentences: int = None,
         max_sentence_length: int = 128,

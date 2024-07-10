@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
-from typing import List
 
 from scipy.stats import pearsonr, spearmanr
 
@@ -17,7 +18,7 @@ class CECorrelationEvaluator:
     and the gold score.
     """
 
-    def __init__(self, sentence_pairs: List[List[str]], scores: List[float], name: str = "", write_csv: bool = True):
+    def __init__(self, sentence_pairs: list[list[str]], scores: list[float], name: str = "", write_csv: bool = True):
         self.sentence_pairs = sentence_pairs
         self.scores = scores
         self.name = name
@@ -27,7 +28,7 @@ class CECorrelationEvaluator:
         self.write_csv = write_csv
 
     @classmethod
-    def from_input_examples(cls, examples: List[InputExample], **kwargs):
+    def from_input_examples(cls, examples: list[InputExample], **kwargs):
         sentence_pairs = []
         scores = []
 

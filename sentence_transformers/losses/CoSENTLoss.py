@@ -1,4 +1,6 @@
-from typing import Any, Dict, Iterable
+from __future__ import annotations
+
+from typing import Any, Iterable
 
 import torch
 from torch import Tensor, nn
@@ -75,7 +77,7 @@ class CoSENTLoss(nn.Module):
         self.similarity_fct = similarity_fct
         self.scale = scale
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
         scores = self.similarity_fct(embeddings[0], embeddings[1])
@@ -95,7 +97,7 @@ class CoSENTLoss(nn.Module):
 
         return loss
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
 
     @property

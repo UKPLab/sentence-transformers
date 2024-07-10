@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import json
 import os
-from typing import Dict
 
 import torch
 from safetensors.torch import load_model as load_safetensors_model
@@ -48,7 +49,7 @@ class Dense(nn.Module):
         if init_bias is not None:
             self.linear.bias = nn.Parameter(init_bias)
 
-    def forward(self, features: Dict[str, Tensor]):
+    def forward(self, features: dict[str, Tensor]):
         features.update({"sentence_embedding": self.activation_function(self.linear(features["sentence_embedding"]))})
         return features
 

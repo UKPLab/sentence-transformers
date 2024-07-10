@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import re
-from typing import TYPE_CHECKING, Any, Dict, Union
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -27,7 +29,7 @@ class SentenceEvaluator:
 
     def __call__(
         self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
-    ) -> Union[float, Dict[str, float]]:
+    ) -> float | dict[str, float]:
         """
         This is called during training to evaluate the model.
         It returns a score for the evaluation with a higher score indicating a better result.
@@ -52,7 +54,7 @@ class SentenceEvaluator:
         """
         pass
 
-    def prefix_name_to_metrics(self, metrics: Dict[str, float], name: str) -> Dict[str, float]:
+    def prefix_name_to_metrics(self, metrics: dict[str, float], name: str) -> dict[str, float]:
         if not name:
             return metrics
         metrics = {name + "_" + key: value for key, value in metrics.items()}
@@ -60,7 +62,7 @@ class SentenceEvaluator:
             self.primary_metric = name + "_" + self.primary_metric
         return metrics
 
-    def store_metrics_in_model_card_data(self, model: "SentenceTransformer", metrics: Dict[str, Any]) -> None:
+    def store_metrics_in_model_card_data(self, model: "SentenceTransformer", metrics: dict[str, Any]) -> None:
         model.model_card_data.set_evaluation_metrics(self, metrics)
 
     @property

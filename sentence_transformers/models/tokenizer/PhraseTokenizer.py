@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import collections
 import json
 import logging
 import os
 import string
-from typing import Iterable, List
+from typing import Iterable
 
 from transformers.utils.import_utils import NLTK_IMPORT_ERROR, is_nltk_available
 
@@ -58,7 +60,7 @@ class PhraseTokenizer(WordTokenizer):
             logger.info("PhraseTokenizer - Phrase ngram lengths: {}".format(self.ngram_lengths))
             logger.info("PhraseTokenizer - Num phrases: {}".format(len(self.ngram_lookup)))
 
-    def tokenize(self, text: str, **kwargs) -> List[int]:
+    def tokenize(self, text: str, **kwargs) -> list[int]:
         from nltk import word_tokenize
 
         tokens = word_tokenize(text, preserve_line=True)

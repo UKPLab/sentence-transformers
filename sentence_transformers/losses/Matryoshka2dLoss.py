@@ -1,4 +1,6 @@
-from typing import Any, Dict, List, Optional, Union
+from __future__ import annotations
+
+from typing import Any
 
 from torch.nn import Module
 
@@ -11,8 +13,8 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
         self,
         model: SentenceTransformer,
         loss: Module,
-        matryoshka_dims: List[int],
-        matryoshka_weights: Optional[List[Union[float, int]]] = None,
+        matryoshka_dims: list[int],
+        matryoshka_weights: list[float | int] | None = None,
         n_layers_per_step: int = 1,
         n_dims_per_step: int = 1,
         last_layer_weight: float = 1.0,
@@ -124,7 +126,7 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
             kl_temperature=kl_temperature,
         )
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {
             **super().get_config_dict(),
             **self.loss.get_config_dict(),
