@@ -59,6 +59,7 @@ namespaces = false
 
 [tool.ruff]
 line-length = 119
+fix = true
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]
