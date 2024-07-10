@@ -1,8 +1,8 @@
 import pytest
+from torch.utils.data import BatchSampler, ConcatDataset, SequentialSampler
+
 from datasets import Dataset
 from sentence_transformers.sampler import RoundRobinBatchSampler
-
-from torch.utils.data import BatchSampler, SequentialSampler, ConcatDataset
 
 DATASET_LENGTH = 25
 
