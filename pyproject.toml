@@ -76,7 +76,7 @@ ignore = [
 "examples/**" = ["E402"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["datasets"]
+known-third-party = ["datasets"]
 
 [tool.pytest.ini_options]
 testpaths = [
