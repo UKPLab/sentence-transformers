@@ -1,6 +1,7 @@
 from collections import Counter
 
 import pytest
+
 from datasets import Dataset
 
 from sentence_transformers.sampler import GroupByLabelBatchSampler
