@@ -90,7 +90,7 @@ class BatchSemiHardTripletLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(BatchSemiHardTripletLoss, self).__init__()
+        super().__init__()
         self.sentence_embedder = model
         self.margin = margin
         self.distance_metric = distance_metric

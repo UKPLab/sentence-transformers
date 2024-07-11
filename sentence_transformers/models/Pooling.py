@@ -59,7 +59,7 @@ class Pooling(nn.Module):
         pooling_mode_lasttoken: bool = False,
         include_prompt=True,
     ) -> None:
-        super(Pooling, self).__init__()
+        super().__init__()
 
         self.config_keys = [
             "word_embedding_dimension",

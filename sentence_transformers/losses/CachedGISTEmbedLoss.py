@@ -132,7 +132,7 @@ class CachedGISTEmbedLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(CachedGISTEmbedLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.guide = guide
         self.temperature = temperature

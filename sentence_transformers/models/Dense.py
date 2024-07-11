@@ -36,7 +36,7 @@ class Dense(nn.Module):
         init_weight: Tensor = None,
         init_bias: Tensor = None,
     ):
-        super(Dense, self).__init__()
+        super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.bias = bias

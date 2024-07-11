@@ -26,7 +26,7 @@ class BoW(nn.Module):
         unknown_word_weight: float = 1,
         cumulative_term_frequency: bool = True,
     ):
-        super(BoW, self).__init__()
+        super().__init__()
         vocab = list(set(vocab))  # Ensure vocab is unique
         self.config_keys = ["vocab", "word_weights", "unknown_word_weight", "cumulative_term_frequency"]
         self.vocab = vocab

@@ -68,7 +68,7 @@ class MSELoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(MSELoss, self).__init__()
+        super().__init__()
         self.model = model
         self.loss_fct = nn.MSELoss()
 

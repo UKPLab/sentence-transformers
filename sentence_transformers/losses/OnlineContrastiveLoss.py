@@ -66,7 +66,7 @@ class OnlineContrastiveLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(OnlineContrastiveLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.margin = margin
         self.distance_metric = distance_metric

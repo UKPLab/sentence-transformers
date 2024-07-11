@@ -72,7 +72,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
                     epochs=10,
                 )
         """
-        super(DenoisingAutoEncoderLoss, self).__init__()
+        super().__init__()
         self.encoder = model  # This will be the final model used during the inference time.
         self.tokenizer_encoder = model.tokenizer
 

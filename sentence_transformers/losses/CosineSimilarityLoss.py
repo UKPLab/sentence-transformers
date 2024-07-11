@@ -69,7 +69,7 @@ class CosineSimilarityLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(CosineSimilarityLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.loss_fct = loss_fct
         self.cos_score_transformation = cos_score_transformation

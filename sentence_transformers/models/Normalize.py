@@ -8,7 +8,7 @@ class Normalize(nn.Module):
     """This layer normalizes embeddings to unit length"""
 
     def __init__(self) -> None:
-        super(Normalize, self).__init__()
+        super().__init__()
 
     def forward(self, features: dict[str, Tensor]) -> dict[str, Tensor]:
         features.update({"sentence_embedding": F.normalize(features["sentence_embedding"], p=2, dim=1)})

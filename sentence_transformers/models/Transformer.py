@@ -42,7 +42,7 @@ class Transformer(nn.Module):
         do_lower_case: bool = False,
         tokenizer_name_or_path: str = None,
     ) -> None:
-        super(Transformer, self).__init__()
+        super().__init__()
         self.config_keys = ["max_seq_length", "do_lower_case"]
         self.do_lower_case = do_lower_case
         if model_args is None:

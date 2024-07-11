@@ -14,7 +14,7 @@ class Dropout(nn.Module):
     """
 
     def __init__(self, dropout: float = 0.2):
-        super(Dropout, self).__init__()
+        super().__init__()
         self.dropout = dropout
         self.dropout_layer = nn.Dropout(self.dropout)
 

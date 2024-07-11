@@ -72,7 +72,7 @@ class TripletLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(TripletLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.distance_metric = distance_metric
         self.triplet_margin = triplet_margin

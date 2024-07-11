@@ -83,7 +83,7 @@ class SoftmaxLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(SoftmaxLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.num_labels = num_labels
         self.concatenation_sent_rep = concatenation_sent_rep

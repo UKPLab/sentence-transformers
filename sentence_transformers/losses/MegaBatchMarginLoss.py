@@ -75,7 +75,7 @@ class MegaBatchMarginLoss(nn.Module):
                     epochs=10,
                 )
         """
-        super(MegaBatchMarginLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.positive_margin = positive_margin
         self.negative_margin = negative_margin

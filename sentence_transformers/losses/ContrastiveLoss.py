@@ -77,7 +77,7 @@ class ContrastiveLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(ContrastiveLoss, self).__init__()
+        super().__init__()
         self.distance_metric = distance_metric
         self.margin = margin
         self.model = model
