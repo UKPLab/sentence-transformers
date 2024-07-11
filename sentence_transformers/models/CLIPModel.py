@@ -84,5 +84,5 @@ class CLIPModel(nn.Module):
         self.processor.save_pretrained(output_path)
 
     @staticmethod
-    def load(input_path: str) -> "CLIPModel":
+    def load(input_path: str) -> CLIPModel:
         return CLIPModel(model_name=input_path)

@@ -143,7 +143,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         return cls(sentences1, sentences2, scores, **kwargs)
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
@@ -201,22 +201,14 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         eval_pearson_dot, _ = pearsonr(labels, dot_products)
         eval_spearman_dot, _ = spearmanr(labels, dot_products)
 
+        logger.info(f"Cosine-Similarity :\tPearson: {eval_pearson_cosine:.4f}\tSpearman: {eval_spearman_cosine:.4f}")
         logger.info(
-            "Cosine-Similarity :\tPearson: {:.4f}\tSpearman: {:.4f}".format(eval_pearson_cosine, eval_spearman_cosine)
+            f"Manhattan-Distance:\tPearson: {eval_pearson_manhattan:.4f}\tSpearman: {eval_spearman_manhattan:.4f}"
         )
         logger.info(
-            "Manhattan-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
-                eval_pearson_manhattan, eval_spearman_manhattan
-            )
+            f"Euclidean-Distance:\tPearson: {eval_pearson_euclidean:.4f}\tSpearman: {eval_spearman_euclidean:.4f}"
         )
-        logger.info(
-            "Euclidean-Distance:\tPearson: {:.4f}\tSpearman: {:.4f}".format(
-                eval_pearson_euclidean, eval_spearman_euclidean
-            )
-        )
-        logger.info(
-            "Dot-Product-Similarity:\tPearson: {:.4f}\tSpearman: {:.4f}".format(eval_pearson_dot, eval_spearman_dot)
-        )
+        logger.info(f"Dot-Product-Similarity:\tPearson: {eval_pearson_dot:.4f}\tSpearman: {eval_spearman_dot:.4f}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

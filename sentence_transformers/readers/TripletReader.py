@@ -6,7 +6,7 @@ import os
 from . import InputExample
 
 
-class TripletReader(object):
+class TripletReader:
     """Reads in the a Triplet Dataset: Each line contains (at least) 3 columns, one anchor column (s1),
     one positive example (s2) and one negative example (s3)
     """

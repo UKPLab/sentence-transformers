@@ -116,19 +116,19 @@ class SentenceTransformerTrainer(Trainer):
 
     def __init__(
         self,
-        model: "SentenceTransformer" | None = None,
+        model: SentenceTransformer | None = None,
         args: SentenceTransformerTrainingArguments = None,
-        train_dataset: "Dataset" | "DatasetDict" | dict[str, "Dataset"] | None = None,
-        eval_dataset: "Dataset" | "DatasetDict" | dict[str, "Dataset"] | None = None,
+        train_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
+        eval_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
         loss: nn.Module
         | dict[str, nn.Module]
-        | Callable[["SentenceTransformer"], torch.nn.Module]
-        | dict[str, Callable[["SentenceTransformer"], torch.nn.Module]]
+        | Callable[[SentenceTransformer], torch.nn.Module]
+        | dict[str, Callable[[SentenceTransformer], torch.nn.Module]]
         | None = None,
         evaluator: SentenceEvaluator | list[SentenceEvaluator] | None = None,
         data_collator: DataCollator | None = None,
         tokenizer: PreTrainedTokenizerBase | Callable | None = None,
-        model_init: Callable[[], "SentenceTransformer"] | None = None,
+        model_init: Callable[[], SentenceTransformer] | None = None,
         compute_metrics: Callable[[EvalPrediction], dict] | None = None,
         callbacks: list[TrainerCallback] | None = None,
         optimizers: tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
@@ -237,7 +237,7 @@ class SentenceTransformerTrainer(Trainer):
         self.add_callback(model_card_callback)
         model_card_callback.on_init_end(self.args, self.state, self.control, self.model)
 
-    def call_model_init(self, trial=None) -> "SentenceTransformer":
+    def call_model_init(self, trial=None) -> SentenceTransformer:
         model = super().call_model_init(trial=trial)
         # If the Trainer already has a loss, then we'll want to override the model in the loss function
         if not hasattr(self, "loss"):
@@ -262,7 +262,7 @@ class SentenceTransformerTrainer(Trainer):
             self.loss = self.override_model_in_loss(self.loss, model)
         return model
 
-    def override_model_in_loss(self, loss: torch.nn.Module, model: "SentenceTransformer") -> torch.nn.Module:
+    def override_model_in_loss(self, loss: torch.nn.Module, model: SentenceTransformer) -> torch.nn.Module:
         from sentence_transformers import SentenceTransformer
 
         for name, child in loss.named_children():
@@ -274,14 +274,14 @@ class SentenceTransformerTrainer(Trainer):
 
     def prepare_loss(
         self,
-        loss: Callable[["SentenceTransformer"], torch.nn.Module] | torch.nn.Module,
-        model: "SentenceTransformer",
+        loss: Callable[[SentenceTransformer], torch.nn.Module] | torch.nn.Module,
+        model: SentenceTransformer,
     ) -> torch.nn.Module:
         if isinstance(loss, torch.nn.Module):
             return loss.to(model.device)
         return loss(model).to(model.device)
 
-    def add_dataset_name_column(self, dataset_dict: "DatasetDict") -> "DatasetDict":
+    def add_dataset_name_column(self, dataset_dict: DatasetDict) -> DatasetDict:
         for key, dataset in dataset_dict.items():
             if "dataset_name" not in dataset.column_names:
                 dataset_dict[key] = dataset.add_column("dataset_name", [key] * len(dataset))
@@ -289,7 +289,7 @@ class SentenceTransformerTrainer(Trainer):
 
     def compute_loss(
         self,
-        model: "SentenceTransformer",
+        model: SentenceTransformer,
         inputs: dict[str, torch.Tensor | Any],
         return_outputs: bool = False,
     ) -> torch.Tensor | tuple[torch.Tensor, dict[str, Any]]:
@@ -371,7 +371,7 @@ class SentenceTransformerTrainer(Trainer):
 
     def evaluate(
         self,
-        eval_dataset: "Dataset" | dict[str, "Dataset"] | None = None,
+        eval_dataset: Dataset | dict[str, Dataset] | None = None,
         ignore_keys: list[str] | None = None,
         metric_key_prefix: str = "eval",
     ) -> dict[str, float]:
@@ -448,7 +448,7 @@ class SentenceTransformerTrainer(Trainer):
             self.model = full_model
             self.model[0].auto_model = loaded_auto_model
 
-    def validate_column_names(self, dataset: "Dataset", dataset_name: str | None = None) -> bool:
+    def validate_column_names(self, dataset: Dataset, dataset_name: str | None = None) -> bool:
         if overlap := set(dataset.column_names) & {"return_loss", "dataset_name"}:
             raise ValueError(
                 f"The following column names are invalid in your {dataset_name + ' ' if dataset_name else ''}dataset: {list(overlap)}."
@@ -457,7 +457,7 @@ class SentenceTransformerTrainer(Trainer):
 
     def get_batch_sampler(
         self,
-        dataset: "Dataset",
+        dataset: Dataset,
         batch_size: int,
         drop_last: bool,
         valid_label_columns: list[str] | None = None,
@@ -580,7 +580,7 @@ class SentenceTransformerTrainer(Trainer):
         self._train_dataloader = self.accelerator.prepare(DataLoader(train_dataset, **dataloader_params))
         return self._train_dataloader
 
-    def get_eval_dataloader(self, eval_dataset: "Dataset" | None = None) -> DataLoader:
+    def get_eval_dataloader(self, eval_dataset: Dataset | None = None) -> DataLoader:
         """
         Returns the evaluation [`~torch.utils.data.DataLoader`].
 
@@ -649,7 +649,7 @@ class SentenceTransformerTrainer(Trainer):
         self.accelerator.even_batches = True
         return self.accelerator.prepare(DataLoader(eval_dataset, **dataloader_params))
 
-    def get_test_dataloader(self, test_dataset: "Dataset") -> DataLoader:
+    def get_test_dataloader(self, test_dataset: Dataset) -> DataLoader:
         """
         Returns the training [`~torch.utils.data.DataLoader`].
 

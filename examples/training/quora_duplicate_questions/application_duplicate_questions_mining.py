@@ -39,4 +39,4 @@ pairs = util.paraphrase_mining(model, questions)
 
 # Output Top-20 pairs:
 for score, qid1, qid2 in pairs[0:20]:
-    print("{:.3f}\t{}\t\t\t{}".format(score, questions[qid1], questions[qid2]))
+    print(f"{score:.3f}\t{questions[qid1]}\t\t\t{questions[qid2]}")

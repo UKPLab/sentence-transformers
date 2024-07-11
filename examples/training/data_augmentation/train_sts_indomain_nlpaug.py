@@ -111,7 +111,7 @@ silver_dataset = Dataset.from_dict(silver_samples)
 progress.reset()
 progress.close()
 logging.info("Textual augmentation completed....")
-logging.info("Number of silver pairs generated: {}".format(len(silver_samples)))
+logging.info(f"Number of silver pairs generated: {len(silver_samples)}")
 
 ###################################################################
 #

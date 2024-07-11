@@ -191,23 +191,23 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
         for score_name in self.score_function_names:
             for k in accuracy_at_k:
-                self.csv_headers.append("{}-Accuracy@{}".format(score_name, k))
+                self.csv_headers.append(f"{score_name}-Accuracy@{k}")
 
             for k in precision_recall_at_k:
-                self.csv_headers.append("{}-Precision@{}".format(score_name, k))
-                self.csv_headers.append("{}-Recall@{}".format(score_name, k))
+                self.csv_headers.append(f"{score_name}-Precision@{k}")
+                self.csv_headers.append(f"{score_name}-Recall@{k}")
 
             for k in mrr_at_k:
-                self.csv_headers.append("{}-MRR@{}".format(score_name, k))
+                self.csv_headers.append(f"{score_name}-MRR@{k}")
 
             for k in ndcg_at_k:
-                self.csv_headers.append("{}-NDCG@{}".format(score_name, k))
+                self.csv_headers.append(f"{score_name}-NDCG@{k}")
 
             for k in map_at_k:
-                self.csv_headers.append("{}-MAP@{}".format(score_name, k))
+                self.csv_headers.append(f"{score_name}-MAP@{k}")
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
@@ -277,7 +277,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         return metrics
 
     def compute_metrices(
-        self, model: "SentenceTransformer", corpus_model=None, corpus_embeddings: Tensor = None
+        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor = None
     ) -> dict[str, float]:
         if corpus_model is None:
             corpus_model = model
@@ -352,15 +352,15 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                     score, corpus_id = queries_result_list[name][query_itr][doc_itr]
                     queries_result_list[name][query_itr][doc_itr] = {"corpus_id": corpus_id, "score": score}
 
-        logger.info("Queries: {}".format(len(self.queries)))
-        logger.info("Corpus: {}\n".format(len(self.corpus)))
+        logger.info(f"Queries: {len(self.queries)}")
+        logger.info(f"Corpus: {len(self.corpus)}\n")
 
         # Compute scores
         scores = {name: self.compute_metrics(queries_result_list[name]) for name in self.score_functions}
 
         # Output
         for name in self.score_function_names:
-            logger.info("Score-Function: {}".format(name))
+            logger.info(f"Score-Function: {name}")
             self.output_scores(scores[name])
 
         return scores

@@ -37,6 +37,6 @@ for i in range(3):
     emb = model.encode(sentences, batch_size=32)
     end_time = time.time()
     diff_time = end_time - start_time
-    print("Done after {:.2f} seconds".format(diff_time))
-    print("Speed: {:.2f} sentences / second".format(len(sentences) / diff_time))
+    print(f"Done after {diff_time:.2f} seconds")
+    print(f"Speed: {len(sentences) / diff_time:.2f} sentences / second")
     print("=====")

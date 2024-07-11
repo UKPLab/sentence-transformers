@@ -18,5 +18,5 @@ class Normalize(nn.Module):
         pass
 
     @staticmethod
-    def load(input_path) -> "Normalize":
+    def load(input_path) -> Normalize:
         return Normalize()

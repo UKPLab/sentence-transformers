@@ -39,17 +39,17 @@ class CERerankingEvaluator:
         self.csv_headers = [
             "epoch",
             "steps",
-            "MRR@{}".format(self.at_k),
-            "NDCG@{}".format(self.at_k),
+            f"MRR@{self.at_k}",
+            f"NDCG@{self.at_k}",
         ]
         self.write_csv = write_csv
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             if steps == -1:
-                out_txt = " after epoch {}:".format(epoch)
+                out_txt = f" after epoch {epoch}:"
             else:
-                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
+                out_txt = f" in epoch {epoch} after {steps} steps:"
         else:
             out_txt = ":"
 
@@ -91,18 +91,10 @@ class CERerankingEvaluator:
         mean_ndcg = np.mean(all_ndcg_scores)
 
         logger.info(
-            "Queries: {} \t Positives: Min {:.1f}, Mean {:.1f}, Max {:.1f} \t Negatives: Min {:.1f}, Mean {:.1f}, Max {:.1f}".format(
-                num_queries,
-                np.min(num_positives),
-                np.mean(num_positives),
-                np.max(num_positives),
-                np.min(num_negatives),
-                np.mean(num_negatives),
-                np.max(num_negatives),
-            )
+            f"Queries: {num_queries} \t Positives: Min {np.min(num_positives):.1f}, Mean {np.mean(num_positives):.1f}, Max {np.max(num_positives):.1f} \t Negatives: Min {np.min(num_negatives):.1f}, Mean {np.mean(num_negatives):.1f}, Max {np.max(num_negatives):.1f}"
         )
-        logger.info("MRR@{}: {:.2f}".format(self.at_k, mean_mrr * 100))
-        logger.info("NDCG@{}: {:.2f}".format(self.at_k, mean_ndcg * 100))
+        logger.info(f"MRR@{self.at_k}: {mean_mrr * 100:.2f}")
+        logger.info(f"NDCG@{self.at_k}: {mean_ndcg * 100:.2f}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

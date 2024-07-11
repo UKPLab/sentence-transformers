@@ -102,7 +102,7 @@ class TranslationEvaluator(SentenceEvaluator):
         self.primary_metric = "mean_accuracy"
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
@@ -164,8 +164,8 @@ class TranslationEvaluator(SentenceEvaluator):
         acc_src2trg = correct_src2trg / len(cos_sims)
         acc_trg2src = correct_trg2src / len(cos_sims)
 
-        logger.info("Accuracy src2trg: {:.2f}".format(acc_src2trg * 100))
-        logger.info("Accuracy trg2src: {:.2f}".format(acc_trg2src * 100))
+        logger.info(f"Accuracy src2trg: {acc_src2trg * 100:.2f}")
+        logger.info(f"Accuracy trg2src: {acc_trg2src * 100:.2f}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

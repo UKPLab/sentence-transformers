@@ -110,7 +110,7 @@ class Pooling(nn.Module):
         self.pooling_output_dimension = pooling_mode_multiplier * word_embedding_dimension
 
     def __repr__(self) -> str:
-        return "Pooling({})".format(self.get_config_dict())
+        return f"Pooling({self.get_config_dict()})"
 
     def get_pooling_mode_str(self) -> str:
         """Returns the pooling mode as string"""
@@ -236,7 +236,7 @@ class Pooling(nn.Module):
             json.dump(self.get_config_dict(), fOut, indent=2)
 
     @staticmethod
-    def load(input_path) -> "Pooling":
+    def load(input_path) -> Pooling:
         with open(os.path.join(input_path, "config.json")) as fIn:
             config = json.load(fIn)
 

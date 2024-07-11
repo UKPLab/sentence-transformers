@@ -87,7 +87,7 @@ sentence_transformer.max_seq_length = max_seq_length
 #
 #####################################################################
 
-logging.info("Step 1: Train cross-encoder: ({}) with STSbenchmark".format(model_name))
+logging.info(f"Step 1: Train cross-encoder: ({model_name}) with STSbenchmark")
 
 # Load the STSB dataset: https://huggingface.co/datasets/sentence-transformers/stsb
 train_dataset = load_dataset("sentence-transformers/stsb", split="train")
@@ -113,7 +113,7 @@ evaluator = CECorrelationEvaluator(
 
 # Configure the training
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logging.info(f"Warmup-steps: {warmup_steps}")
 
 # Train the cross-encoder model
 cross_encoder.fit(
@@ -134,7 +134,7 @@ cross_encoder.fit(
 #### Larger the k, bigger the silver dataset ####
 
 index_name = "stsb"  # index-name should be in lowercase
-logging.info("Step 2.1: Generate STSbenchmark (silver dataset) using top-{} bm25 combinations".format(top_k))
+logging.info(f"Step 2.1: Generate STSbenchmark (silver dataset) using top-{top_k} bm25 combinations")
 
 unique_sentences = set()
 
@@ -148,7 +148,7 @@ duplicates = set(
 )  # not to include gold pairs of sentences again
 
 # Ignore 400 cause by IndexAlreadyExistsException when creating an index
-logging.info("Creating elastic-search index - {}".format(index_name))
+logging.info(f"Creating elastic-search index - {index_name}")
 es.indices.create(index=index_name, ignore=[400])
 
 # indexing all sentences
@@ -156,7 +156,7 @@ logging.info("Starting to index....")
 for sent in unique_sentences:
     response = es.index(index=index_name, id=sent2idx[sent], body={"sent": sent})
 
-logging.info("Indexing complete for {} unique sentences".format(len(unique_sentences)))
+logging.info(f"Indexing complete for {len(unique_sentences)} unique sentences")
 
 silver_data = []
 progress = tqdm.tqdm(unit="docs", total=len(sent2idx))
@@ -173,8 +173,8 @@ for sent, idx in sent2idx.items():
 progress.reset()
 progress.close()
 
-logging.info("Number of silver pairs generated for STSbenchmark: {}".format(len(silver_data)))
-logging.info("Step 2.2: Label STSbenchmark (silver dataset) with cross-encoder: {}".format(model_name))
+logging.info(f"Number of silver pairs generated for STSbenchmark: {len(silver_data)}")
+logging.info(f"Step 2.2: Label STSbenchmark (silver dataset) with cross-encoder: {model_name}")
 
 cross_encoder = CrossEncoder(cross_encoder_path)
 silver_scores = cross_encoder.predict(silver_data)
@@ -188,7 +188,7 @@ assert all(0.0 <= score <= 1.0 for score in silver_scores)
 #
 #################################################################################################
 
-logging.info("Step 3: Train bi-encoder: {} with STSbenchmark (gold + silver dataset)".format(model_name))
+logging.info(f"Step 3: Train bi-encoder: {model_name} with STSbenchmark (gold + silver dataset)")
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read STSbenchmark gold and silver train dataset")

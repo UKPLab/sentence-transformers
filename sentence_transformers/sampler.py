@@ -57,7 +57,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
 
     def __init__(
         self,
-        dataset: "Dataset",
+        dataset: Dataset,
         batch_size: int,
         drop_last: bool,
         valid_label_columns: list[str] = None,
@@ -86,7 +86,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         }
 
     @staticmethod
-    def _determine_labels_to_use(dataset: "Dataset", valid_label_columns: list[str]) -> list[Any]:
+    def _determine_labels_to_use(dataset: Dataset, valid_label_columns: list[str]) -> list[Any]:
         for column_name in valid_label_columns or []:
             if column_name in dataset.column_names:
                 return dataset[column_name]
@@ -116,7 +116,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
 class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
     def __init__(
         self,
-        dataset: "Dataset",
+        dataset: Dataset,
         batch_size: int,
         drop_last: bool,
         valid_label_columns: list[str] = [],

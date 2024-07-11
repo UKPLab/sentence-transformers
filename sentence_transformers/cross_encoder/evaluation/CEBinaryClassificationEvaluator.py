@@ -68,9 +68,9 @@ class CEBinaryClassificationEvaluator:
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             if steps == -1:
-                out_txt = " after epoch {}:".format(epoch)
+                out_txt = f" after epoch {epoch}:"
             else:
-                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
+                out_txt = f" in epoch {epoch} after {steps} steps:"
         else:
             out_txt = ":"
 
@@ -85,11 +85,11 @@ class CEBinaryClassificationEvaluator:
         )
         ap = average_precision_score(self.labels, pred_scores)
 
-        logger.info("Accuracy:           {:.2f}\t(Threshold: {:.4f})".format(acc * 100, acc_threshold))
-        logger.info("F1:                 {:.2f}\t(Threshold: {:.4f})".format(f1 * 100, f1_threshold))
-        logger.info("Precision:          {:.2f}".format(precision * 100))
-        logger.info("Recall:             {:.2f}".format(recall * 100))
-        logger.info("Average Precision:  {:.2f}\n".format(ap * 100))
+        logger.info(f"Accuracy:           {acc * 100:.2f}\t(Threshold: {acc_threshold:.4f})")
+        logger.info(f"F1:                 {f1 * 100:.2f}\t(Threshold: {f1_threshold:.4f})")
+        logger.info(f"Precision:          {precision * 100:.2f}")
+        logger.info(f"Recall:             {recall * 100:.2f}")
+        logger.info(f"Average Precision:  {ap * 100:.2f}\n")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

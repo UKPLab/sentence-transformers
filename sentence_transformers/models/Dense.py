@@ -74,7 +74,7 @@ class Dense(nn.Module):
             torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
 
     def __repr__(self):
-        return "Dense({})".format(self.get_config_dict())
+        return f"Dense({self.get_config_dict()})"
 
     @staticmethod
     def load(input_path):

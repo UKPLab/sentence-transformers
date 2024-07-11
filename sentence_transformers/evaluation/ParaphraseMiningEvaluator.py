@@ -158,7 +158,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.primary_metric = "average_precision"
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
@@ -215,11 +215,11 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
 
         average_precision = average_precision / self.total_num_duplicates
 
-        logger.info("Average Precision: {:.2f}".format(average_precision * 100))
-        logger.info("Optimal threshold: {:.4f}".format(threshold))
-        logger.info("Precision: {:.2f}".format(best_precision * 100))
-        logger.info("Recall: {:.2f}".format(best_recall * 100))
-        logger.info("F1: {:.2f}\n".format(best_f1 * 100))
+        logger.info(f"Average Precision: {average_precision * 100:.2f}")
+        logger.info(f"Optimal threshold: {threshold:.4f}")
+        logger.info(f"Precision: {best_precision * 100:.2f}")
+        logger.info(f"Recall: {best_recall * 100:.2f}")
+        logger.info(f"F1: {best_f1 * 100:.2f}\n")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

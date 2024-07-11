@@ -188,7 +188,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         if device is None:
             device = get_device_name()
-            logger.info("Use pytorch device_name: {}".format(device))
+            logger.info(f"Use pytorch device_name: {device}")
 
         if device == "hpu" and importlib.util.find_spec("optimum") is not None:
             from optimum.habana.transformers.modeling_utils import adapt_transformers_to_gaudi
@@ -196,7 +196,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             adapt_transformers_to_gaudi()
 
         if model_name_or_path is not None and model_name_or_path != "":
-            logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
+            logger.info(f"Load pretrained SentenceTransformer: {model_name_or_path}")
 
             # Old models that don't belong to any organization
             basic_transformer_models = [
@@ -273,7 +273,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             if not os.path.exists(model_name_or_path):
                 # Not a path, load from hub
                 if "\\" in model_name_or_path or model_name_or_path.count("/") > 1:
-                    raise ValueError("Path {} not found".format(model_name_or_path))
+                    raise ValueError(f"Path {model_name_or_path} not found")
 
                 if "/" not in model_name_or_path and model_name_or_path.lower() not in basic_transformer_models:
                     # A model from sentence-transformers
@@ -776,9 +776,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         """
         if target_devices is None:
             if torch.cuda.is_available():
-                target_devices = ["cuda:{}".format(i) for i in range(torch.cuda.device_count())]
+                target_devices = [f"cuda:{i}" for i in range(torch.cuda.device_count())]
             elif is_torch_npu_available():
-                target_devices = ["npu:{}".format(i) for i in range(torch.npu.device_count())]
+                target_devices = [f"npu:{i}" for i in range(torch.npu.device_count())]
             else:
                 logger.info("CUDA/NPU is not available. Starting 4 CPU workers")
                 target_devices = ["cpu"] * 4
@@ -924,7 +924,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     @staticmethod
     def _encode_multi_process_worker(
-        target_device: str, model: "SentenceTransformer", input_queue: Queue, results_queue: Queue
+        target_device: str, model: SentenceTransformer, input_queue: Queue, results_queue: Queue
     ) -> None:
         """
         Internal working process to encode sentences in multi-process setup
@@ -1078,7 +1078,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         os.makedirs(path, exist_ok=True)
 
-        logger.info("Save model to {}".format(path))
+        logger.info(f"Save model to {path}")
         modules_config = []
 
         # Save some model info
@@ -1583,7 +1583,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return modules
 
     @staticmethod
-    def load(input_path) -> "SentenceTransformer":
+    def load(input_path) -> SentenceTransformer:
         return SentenceTransformer(input_path)
 
     @property

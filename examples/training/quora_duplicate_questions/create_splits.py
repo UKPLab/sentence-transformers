@@ -408,7 +408,7 @@ print("Test duplicates", len(test_duplicates))
 with open("quora-IR-dataset/graph/sentences.tsv", "w", encoding="utf8") as fOut:
     fOut.write("qid\tquestion\n")
     for id, question in sentences.items():
-        fOut.write("{}\t{}\n".format(id, question))
+        fOut.write(f"{id}\t{question}\n")
 
 duplicates_list = set()
 for a in duplicates:
@@ -424,7 +424,7 @@ print("\nWrite duplicate graph in pairwise format")
 with open("quora-IR-dataset/graph/duplicates-graph-pairwise.tsv", "w", encoding="utf8") as fOut:
     fOut.write("qid1\tqid2\n")
     for a, b in duplicates_list:
-        fOut.write("{}\t{}\n".format(a, b))
+        fOut.write(f"{a}\t{b}\n")
 
 
 print("Write duplicate graph in list format")
@@ -467,12 +467,12 @@ def write_mining_files(name, ids, dups):
     with open("quora-IR-dataset/duplicate-mining/" + name + "_corpus.tsv", "w", encoding="utf8") as fOut:
         fOut.write("qid\tquestion\n")
         for id in ids:
-            fOut.write("{}\t{}\n".format(id, sentences[id]))
+            fOut.write(f"{id}\t{sentences[id]}\n")
 
     with open("quora-IR-dataset/duplicate-mining/" + name + "_duplicates.tsv", "w", encoding="utf8") as fOut:
         fOut.write("qid1\tqid2\n")
         for a, b in dups:
-            fOut.write("{}\t{}\n".format(a, b))
+            fOut.write(f"{a}\t{b}\n")
 
 
 write_mining_files("train", train_ids, train_duplicates)
@@ -552,7 +552,7 @@ print("Test queries:", len(test_queries))
 with open("quora-IR-dataset/information-retrieval/corpus.tsv", "w", encoding="utf8") as fOut:
     fOut.write("qid\tquestion\n")
     for id in sorted(corpus_ids, key=lambda id: int(id)):
-        fOut.write("{}\t{}\n".format(id, sentences[id]))
+        fOut.write(f"{id}\t{sentences[id]}\n")
 
 with open("quora-IR-dataset/information-retrieval/dev-queries.tsv", "w", encoding="utf8") as fOut:
     fOut.write("qid\tquestion\tduplicate_qids\n")

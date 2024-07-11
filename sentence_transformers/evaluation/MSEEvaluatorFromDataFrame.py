@@ -41,7 +41,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
     def __init__(
         self,
         dataframe: list[dict[str, str]],
-        teacher_model: "SentenceTransformer",
+        teacher_model: SentenceTransformer,
         combinations: list[tuple[str, str]],
         batch_size: int = 8,
         name: str = "",
@@ -76,7 +76,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
                     trg_sentences.append(row[trg_lang])
 
             self.data[(src_lang, trg_lang)] = (src_sentences, trg_sentences)
-            self.csv_headers.append("{}-{}".format(src_lang, trg_lang))
+            self.csv_headers.append(f"{src_lang}-{trg_lang}")
 
         all_source_sentences = list(all_source_sentences)
         with nullcontext() if self.truncate_dim is None else teacher_model.truncate_sentence_embeddings(
@@ -86,7 +86,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         self.teacher_embeddings = {sent: emb for sent, emb in zip(all_source_sentences, all_src_embeddings)}
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         model.eval()
 
@@ -102,8 +102,8 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             mse *= 100
             mse_scores.append(mse)
 
-            logger.info("MSE evaluation on {} dataset - {}-{}:".format(self.name, src_lang, trg_lang))
-            logger.info("MSE (*100):\t{:4f}".format(mse))
+            logger.info(f"MSE evaluation on {self.name} dataset - {src_lang}-{trg_lang}:")
+            logger.info(f"MSE (*100):\t{mse:4f}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

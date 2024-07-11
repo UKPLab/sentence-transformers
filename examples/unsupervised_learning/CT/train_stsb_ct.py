@@ -37,7 +37,7 @@ if not os.path.exists(wikipedia_dataset_path):
 
 # train_sentences are simply your list of sentences
 train_sentences = []
-with open(wikipedia_dataset_path, "r", encoding="utf8") as fIn:
+with open(wikipedia_dataset_path, encoding="utf8") as fIn:
     for line in fIn:
         line = line.strip()
         if len(line) >= 10:

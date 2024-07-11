@@ -65,9 +65,7 @@ class SentenceLabelDataset(IterableDataset):
         np.random.shuffle(self.label_range)
 
         logger.info(
-            "SentenceLabelDataset: {} examples, from which {} examples could be used (those labels appeared at least {} times). {} different labels found.".format(
-                len(examples), len(self.grouped_inputs), self.samples_per_label, num_labels
-            )
+            f"SentenceLabelDataset: {len(examples)} examples, from which {len(self.grouped_inputs)} examples could be used (those labels appeared at least {self.samples_per_label} times). {num_labels} different labels found."
         )
 
     def __iter__(self):

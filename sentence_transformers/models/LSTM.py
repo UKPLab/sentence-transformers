@@ -75,7 +75,7 @@ class LSTM(nn.Module):
 
     @staticmethod
     def load(input_path: str):
-        with open(os.path.join(input_path, "lstm_config.json"), "r") as fIn:
+        with open(os.path.join(input_path, "lstm_config.json")) as fIn:
             config = json.load(fIn)
 
         model = LSTM(**config)

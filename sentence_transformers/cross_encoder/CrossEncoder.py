@@ -109,7 +109,7 @@ class CrossEncoder(PushToHubMixin):
 
         if device is None:
             device = get_device_name()
-            logger.info("Use pytorch device: {}".format(device))
+            logger.info(f"Use pytorch device: {device}")
 
         self._target_device = torch.device(device)
 
@@ -118,9 +118,7 @@ class CrossEncoder(PushToHubMixin):
             try:
                 self.config.sbert_ce_default_activation_function = fullname(self.default_activation_function)
             except Exception as e:
-                logger.warning(
-                    "Was not able to update config about the default_activation_function: {}".format(str(e))
-                )
+                logger.warning(f"Was not able to update config about the default_activation_function: {str(e)}")
         elif (
             hasattr(self.config, "sbert_ce_default_activation_function")
             and self.config.sbert_ce_default_activation_function is not None
@@ -559,7 +557,7 @@ class CrossEncoder(PushToHubMixin):
         if path is None:
             return
 
-        logger.info("Save model to {}".format(path))
+        logger.info(f"Save model to {path}")
         self.model.save_pretrained(path, safe_serialization=safe_serialization, **kwargs)
         self.tokenizer.save_pretrained(path, **kwargs)
 

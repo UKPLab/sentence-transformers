@@ -57,8 +57,8 @@ class PhraseTokenizer(WordTokenizer):
                     self.ngram_lengths.add(ngram_count)
 
         if len(vocab) > 0:
-            logger.info("PhraseTokenizer - Phrase ngram lengths: {}".format(self.ngram_lengths))
-            logger.info("PhraseTokenizer - Num phrases: {}".format(len(self.ngram_lookup)))
+            logger.info(f"PhraseTokenizer - Phrase ngram lengths: {self.ngram_lengths}")
+            logger.info(f"PhraseTokenizer - Num phrases: {len(self.ngram_lookup)}")
 
     def tokenize(self, text: str, **kwargs) -> list[int]:
         from nltk import word_tokenize
@@ -116,7 +116,7 @@ class PhraseTokenizer(WordTokenizer):
 
     @staticmethod
     def load(input_path: str):
-        with open(os.path.join(input_path, "phrasetokenizer_config.json"), "r") as fIn:
+        with open(os.path.join(input_path, "phrasetokenizer_config.json")) as fIn:
             config = json.load(fIn)
 
         return PhraseTokenizer(**config)

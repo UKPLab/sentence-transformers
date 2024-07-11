@@ -69,7 +69,7 @@ class SaveModelCallback(TrainerCallback):
         state: TrainerState,
         control: TrainerControl,
         metrics: dict[str, Any],
-        model: "SentenceTransformer",
+        model: SentenceTransformer,
         **kwargs,
     ) -> None:
         if self.evaluator is not None and self.save_best_model:
@@ -85,7 +85,7 @@ class SaveModelCallback(TrainerCallback):
         args: SentenceTransformerTrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        model: "SentenceTransformer",
+        model: SentenceTransformer,
         **kwargs,
     ) -> None:
         if self.evaluator is None:
@@ -110,7 +110,7 @@ class EvaluatorCallback(TrainerCallback):
         args: SentenceTransformerTrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        model: "SentenceTransformer",
+        model: SentenceTransformer,
         **kwargs,
     ) -> None:
         evaluator_metrics = self.evaluator(model, epoch=state.epoch)
@@ -402,9 +402,9 @@ class FitMixin:
                 optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total
             )
         else:
-            raise ValueError("Unknown scheduler {}".format(scheduler))
+            raise ValueError(f"Unknown scheduler {scheduler}")
 
-    def smart_batching_collate(self, batch: list["InputExample"]) -> tuple[list[dict[str, Tensor]], Tensor]:
+    def smart_batching_collate(self, batch: list[InputExample]) -> tuple[list[dict[str, Tensor]], Tensor]:
         """
         Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
         Here, batch is a list of InputExample instances: [InputExample(...), ...]

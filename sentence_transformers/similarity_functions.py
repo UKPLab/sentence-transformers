@@ -36,7 +36,7 @@ class SimilarityFunction(Enum):
 
     @staticmethod
     def to_similarity_fn(
-        similarity_function: str | "SimilarityFunction",
+        similarity_function: str | SimilarityFunction,
     ) -> Callable[[Tensor | ndarray, Tensor | ndarray], Tensor]:
         """
         Converts a similarity function name or enum value to the corresponding similarity function.
@@ -69,14 +69,12 @@ class SimilarityFunction(Enum):
             return euclidean_sim
 
         raise ValueError(
-            "The provided function {} is not supported. Use one of the supported values: {}.".format(
-                similarity_function, SimilarityFunction.possible_values()
-            )
+            f"The provided function {similarity_function} is not supported. Use one of the supported values: {SimilarityFunction.possible_values()}."
         )
 
     @staticmethod
     def to_similarity_pairwise_fn(
-        similarity_function: str | "SimilarityFunction",
+        similarity_function: str | SimilarityFunction,
     ) -> Callable[[Tensor | ndarray, Tensor | ndarray], Tensor]:
         """
         Converts a similarity function into a pairwise similarity function.
@@ -112,9 +110,7 @@ class SimilarityFunction(Enum):
             return pairwise_euclidean_sim
 
         raise ValueError(
-            "The provided function {} is not supported. Use one of the supported values: {}.".format(
-                similarity_function, SimilarityFunction.possible_values()
-            )
+            f"The provided function {similarity_function} is not supported. Use one of the supported values: {SimilarityFunction.possible_values()}."
         )
 
     @staticmethod

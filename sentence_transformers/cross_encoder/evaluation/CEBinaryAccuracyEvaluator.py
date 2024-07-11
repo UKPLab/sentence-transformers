@@ -51,9 +51,9 @@ class CEBinaryAccuracyEvaluator:
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             if steps == -1:
-                out_txt = " after epoch {}:".format(epoch)
+                out_txt = f" after epoch {epoch}:"
             else:
-                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
+                out_txt = f" in epoch {epoch} after {steps} steps:"
         else:
             out_txt = ":"
 
@@ -65,7 +65,7 @@ class CEBinaryAccuracyEvaluator:
 
         acc = np.sum(pred_labels == self.labels) / len(self.labels)
 
-        logger.info("Accuracy: {:.2f}".format(acc * 100))
+        logger.info(f"Accuracy: {acc * 100:.2f}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
