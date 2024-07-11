@@ -28,9 +28,6 @@ if TYPE_CHECKING:
     from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
     from sentence_transformers.SentenceTransformer import SentenceTransformer
 
-    from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
-    from sentence_transformers.SentenceTransformer import SentenceTransformer
-
 
 def _convert_to_tensor(a: list | np.ndarray | Tensor) -> Tensor:
     """
