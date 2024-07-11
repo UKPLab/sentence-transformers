@@ -62,7 +62,7 @@ line-length = 119
 fix = true
 
 [tool.ruff.lint]
-select = ["E", "F", "W"]
+select = ["E", "F", "W", "I"]
 # Skip `E731` (do not assign a lambda expression, use a def)
 ignore = [
     # LineTooLong
@@ -74,6 +74,9 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Ignore `E402` (import violations) in all examples
 "examples/**" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["datasets"]
 
 [tool.pytest.ini_options]
 testpaths = [

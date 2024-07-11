@@ -10,9 +10,9 @@ import time
 
 import faiss
 import numpy as np
+from datasets import load_dataset
 from usearch.index import Index
 
-from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.quantization import quantize_embeddings
 

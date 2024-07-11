@@ -21,9 +21,10 @@ from transformers import is_torch_npu_available
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentence_transformers.SentenceTransformer import SentenceTransformer
-    from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
     from datasets import Dataset
+
+    from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
+    from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 def _convert_to_tensor(a: Union[list, np.ndarray, Tensor]) -> Tensor:

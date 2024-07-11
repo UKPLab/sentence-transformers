@@ -1,7 +1,9 @@
+import random
+
 import pytest
 from datasets import Dataset
+
 from sentence_transformers.sampler import NoDuplicatesBatchSampler
-import random
 
 
 @pytest.fixture

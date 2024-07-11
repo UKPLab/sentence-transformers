@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from itertools import accumulate, cycle
-from typing import Iterator, List, Any
+from typing import Any, Iterator, List
 
 import torch
 from torch.utils.data import BatchSampler, ConcatDataset, SubsetRandomSampler

@@ -33,10 +33,10 @@ import traceback
 from datetime import datetime
 
 import tqdm
+from datasets import Dataset, concatenate_datasets, load_dataset
 from elasticsearch import Elasticsearch
 from torch.utils.data import DataLoader
 
-from datasets import Dataset, concatenate_datasets, load_dataset
 from sentence_transformers import SentenceTransformer, losses
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
