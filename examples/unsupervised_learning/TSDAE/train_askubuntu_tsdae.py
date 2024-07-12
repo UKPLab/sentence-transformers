@@ -72,7 +72,7 @@ for id, sentence in corpus.items():
         train_sentences.append(sentence)
 
 
-logging.info("{} train sentences".format(len(train_sentences)))
+logging.info(f"{len(train_sentences)} train sentences")
 
 ################# Initialize an SBERT model #################
 model_name = sys.argv[1] if len(sys.argv) >= 2 else "bert-base-uncased"

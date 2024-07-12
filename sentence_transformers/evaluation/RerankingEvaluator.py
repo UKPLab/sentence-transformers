@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 import torch
@@ -51,8 +53,8 @@ class RerankingEvaluator(SentenceEvaluator):
         batch_size: int = 64,
         show_progress_bar: bool = False,
         use_batched_encoding: bool = True,
-        truncate_dim: Optional[int] = None,
-        mrr_at_k: Optional[int] = None,
+        truncate_dim: int | None = None,
+        mrr_at_k: int | None = None,
     ):
         super().__init__()
         self.samples = samples
@@ -83,15 +85,15 @@ class RerankingEvaluator(SentenceEvaluator):
             "epoch",
             "steps",
             "MAP",
-            "MRR@{}".format(self.at_k),
-            "NDCG@{}".format(self.at_k),
+            f"MRR@{self.at_k}",
+            f"NDCG@{self.at_k}",
         ]
         self.write_csv = write_csv
         self.primary_metric = "map"
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
-    ) -> Dict[str, float]:
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> dict[str, float]:
         """
         Evaluates the model on the dataset and returns the evaluation metrics.
 
@@ -126,19 +128,11 @@ class RerankingEvaluator(SentenceEvaluator):
         num_negatives = [len(sample["negative"]) for sample in self.samples]
 
         logger.info(
-            "Queries: {} \t Positives: Min {:.1f}, Mean {:.1f}, Max {:.1f} \t Negatives: Min {:.1f}, Mean {:.1f}, Max {:.1f}".format(
-                len(self.samples),
-                np.min(num_positives),
-                np.mean(num_positives),
-                np.max(num_positives),
-                np.min(num_negatives),
-                np.mean(num_negatives),
-                np.max(num_negatives),
-            )
+            f"Queries: {len(self.samples)} \t Positives: Min {np.min(num_positives):.1f}, Mean {np.mean(num_positives):.1f}, Max {np.max(num_positives):.1f} \t Negatives: Min {np.min(num_negatives):.1f}, Mean {np.mean(num_negatives):.1f}, Max {np.max(num_negatives):.1f}"
         )
-        logger.info("MAP: {:.2f}".format(mean_ap * 100))
-        logger.info("MRR@{}: {:.2f}".format(self.at_k, mean_mrr * 100))
-        logger.info("NDCG@{}: {:.2f}".format(self.at_k, mean_ndcg * 100))
+        logger.info(f"MAP: {mean_ap * 100:.2f}")
+        logger.info(f"MRR@{self.at_k}: {mean_mrr * 100:.2f}")
+        logger.info(f"NDCG@{self.at_k}: {mean_ndcg * 100:.2f}")
 
         #### Write results to disc
         if output_path is not None and self.write_csv:

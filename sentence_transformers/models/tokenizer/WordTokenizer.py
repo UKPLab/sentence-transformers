@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Iterable, List
+from typing import Iterable
 
 ENGLISH_STOP_WORDS = [
     "!",
@@ -401,7 +403,7 @@ class WordTokenizer(ABC):
         pass
 
     @abstractmethod
-    def tokenize(self, text: str, **kwargs) -> List[int]:
+    def tokenize(self, text: str, **kwargs) -> list[int]:
         pass
 
     @abstractmethod

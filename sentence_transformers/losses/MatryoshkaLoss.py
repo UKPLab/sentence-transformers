@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import random
 import warnings
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Iterable
 
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -33,7 +35,7 @@ class ForwardDecorator:
         tensor = F.normalize(tensor, p=2, dim=-1)
         return tensor
 
-    def __call__(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def __call__(self, features: dict[str, Tensor]) -> dict[str, Tensor]:
         # Growing cache:
         if self.cache_dim is None or self.cache_dim == self.dim:
             output = self.fn(features)
@@ -53,8 +55,8 @@ class MatryoshkaLoss(nn.Module):
         self,
         model: SentenceTransformer,
         loss: nn.Module,
-        matryoshka_dims: List[int],
-        matryoshka_weights: Optional[List[Union[float, int]]] = None,
+        matryoshka_dims: list[int],
+        matryoshka_weights: list[float | int] | None = None,
         n_dims_per_step: int = -1,
     ) -> None:
         """
@@ -129,7 +131,7 @@ class MatryoshkaLoss(nn.Module):
         self.matryoshka_dims, self.matryoshka_weights = zip(*sorted(dims_weights, key=lambda x: x[0], reverse=True))
         self.n_dims_per_step = n_dims_per_step
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         original_forward = self.model.forward
         try:
             decorated_forward = ForwardDecorator(original_forward)
@@ -149,7 +151,7 @@ class MatryoshkaLoss(nn.Module):
             self.model.forward = original_forward
         return loss
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {
             "loss": self.loss.__class__.__name__,
             "matryoshka_dims": self.matryoshka_dims,

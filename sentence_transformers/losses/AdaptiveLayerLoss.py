@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import random
 import warnings
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Iterable
 
 import torch
 from torch import Tensor, nn
@@ -23,9 +25,9 @@ class TransformerDecorator:
     def __init__(self, transformer: Transformer, original_forward) -> None:
         self.transformer = transformer
         self.original_forward = original_forward
-        self.embeddings: List[Tuple[Tensor]] = []
-        self.last_embeddings: List[Tensor] = []
-        self.features: List[Dict[str, Tensor]] = []
+        self.embeddings: list[tuple[Tensor]] = []
+        self.last_embeddings: list[Tensor] = []
+        self.features: list[dict[str, Tensor]] = []
         self.layer_idx = None
         self.call_idx = 0
 
@@ -36,7 +38,7 @@ class TransformerDecorator:
     def get_layer_embeddings(self) -> Tensor:
         return torch.concat([embedding[self.layer_idx] for embedding in self.embeddings], dim=1)
 
-    def __call__(self, features) -> Dict[str, Tensor]:
+    def __call__(self, features) -> dict[str, Tensor]:
         if self.layer_idx is None:
             output = self.call_grow_cache(features)
         else:
@@ -44,7 +46,7 @@ class TransformerDecorator:
             self.call_idx += 1
         return output
 
-    def call_grow_cache(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def call_grow_cache(self, features: dict[str, Tensor]) -> dict[str, Tensor]:
         """
         Temporarily sets the output_hidden_states to True, runs the model, and then restores the original setting.
         Use the all_layer_embeddings to get the embeddings of all layers.
@@ -70,7 +72,7 @@ class TransformerDecorator:
 
         return output
 
-    def call_use_cache(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def call_use_cache(self, features: dict[str, Tensor]) -> dict[str, Tensor]:
         return {**self.features[self.call_idx], "token_embeddings": self.embeddings[self.call_idx][self.layer_idx]}
 
 
@@ -86,7 +88,7 @@ class ForwardDecorator:
         self.fn = fn
         self.embeddings = []
 
-    def __call__(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def __call__(self, features: dict[str, Tensor]) -> dict[str, Tensor]:
         output = self.fn(features)
         self.embeddings.append(output["sentence_embedding"])
         return output
@@ -194,7 +196,7 @@ class AdaptiveLayerLoss(nn.Module):
         if isinstance(loss, CachedGISTEmbedLoss):
             warnings.warn("MatryoshkaLoss is not compatible with CachedGISTEmbedLoss.", stacklevel=2)
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Decorate the forward function of the transformer to cache the embeddings of all layers
         original_transformer_forward = self.model[0].forward
         transformer_decorator = TransformerDecorator(self.model[0], original_transformer_forward)
@@ -241,7 +243,7 @@ class AdaptiveLayerLoss(nn.Module):
 
         return loss
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {
             "loss": self.loss.__class__.__name__,
             "n_layers_per_step": self.n_layers_per_step,

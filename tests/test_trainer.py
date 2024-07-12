@@ -1,7 +1,9 @@
-from contextlib import nullcontext
-from copy import deepcopy
+from __future__ import annotations
+
 import re
 import tempfile
+from contextlib import nullcontext
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -20,7 +22,7 @@ if is_datasets_available():
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_trainer_multi_dataset_errors(
-    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: "DatasetDict"
+    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: DatasetDict
 ) -> None:
     train_dataset = stsb_dataset_dict["train"]
     loss = {
@@ -89,7 +91,7 @@ def test_trainer_multi_dataset_errors(
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_trainer_invalid_column_names(
-    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: "DatasetDict"
+    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: DatasetDict
 ) -> None:
     train_dataset = stsb_dataset_dict["train"]
     for column_name in ("return_loss", "dataset_name"):
@@ -132,7 +134,7 @@ def test_model_card_reuse(stsb_bert_tiny_model: SentenceTransformer):
         model_path = Path(tmp_folder) / "tiny_model_local"
         stsb_bert_tiny_model.save(str(model_path))
 
-        with open(model_path / "README.md", "r") as f:
+        with open(model_path / "README.md") as f:
             model_card_text = f.read()
         assert model_card_text == stsb_bert_tiny_model._model_card_text
 
@@ -143,7 +145,7 @@ def test_model_card_reuse(stsb_bert_tiny_model: SentenceTransformer):
         model_path = Path(tmp_folder) / "tiny_model_local"
         stsb_bert_tiny_model.save(str(model_path))
 
-        with open(model_path / "README.md", "r") as f:
+        with open(model_path / "README.md") as f:
             model_card_text = f.read()
         assert model_card_text != stsb_bert_tiny_model._model_card_text
 

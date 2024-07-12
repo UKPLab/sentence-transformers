@@ -2,6 +2,8 @@
 Compute image embeddings
 """
 
+from __future__ import annotations
+
 import os
 
 from PIL import Image

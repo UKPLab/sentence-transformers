@@ -33,7 +33,7 @@ max_seq_length = 75
 
 # Input file path (a text file, each line a sentence)
 if len(sys.argv) < 2:
-    print("Run this script with: python {} path/to/sentences.txt".format(sys.argv[0]))
+    print(f"Run this script with: python {sys.argv[0]} path/to/sentences.txt")
     exit()
 
 filepath = sys.argv[1]
@@ -64,7 +64,7 @@ with gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else
             train_sentences.append(line)
 
 
-logging.info("Train sentences: {}".format(len(train_sentences)))
+logging.info(f"Train sentences: {len(train_sentences)}")
 
 # A regular torch DataLoader and as loss we use losses.ContrastiveTensionLossInBatchNegatives
 train_dataloader = DataLoader(train_sentences, batch_size=batch_size, shuffle=True, drop_last=True)
@@ -72,7 +72,7 @@ train_loss = losses.ContrastiveTensionLossInBatchNegatives(model)
 
 
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logging.info(f"Warmup-steps: {warmup_steps}")
 
 # Train the model
 model.fit(

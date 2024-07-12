@@ -2,6 +2,8 @@
 Tests general behaviour of the SentenceTransformer class
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -9,7 +11,7 @@ import re
 import tempfile
 from functools import partial
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Union, cast
+from typing import Dict, List, Literal, cast
 
 import numpy as np
 import pytest
@@ -339,7 +341,7 @@ def test_save_load_prompts() -> None:
         model.save(str(model_path))
         config_path = model_path / "config_sentence_transformers.json"
         assert config_path.exists()
-        with open(config_path, "r", encoding="utf8") as f:
+        with open(config_path, encoding="utf8") as f:
             saved_config = json.load(f)
         assert saved_config["prompts"] == {"query": "query: "}
         assert saved_config["default_prompt_name"] == "query"
@@ -444,11 +446,11 @@ def test_encode_quantization(
 @pytest.mark.parametrize("normalize_embeddings", [True, False])
 @pytest.mark.parametrize("output_value", ["sentence_embedding", None])
 def test_encode_truncate(
-    sentences: Union[str, List[str]],
+    sentences: str | list[str],
     convert_to_tensor: bool,
     convert_to_numpy: bool,
     normalize_embeddings: bool,
-    output_value: Optional[Literal["sentence_embedding"]],
+    output_value: Literal["sentence_embedding"] | None,
 ) -> None:
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
     embeddings_full_unnormalized: torch.Tensor = model.encode(
@@ -582,7 +584,7 @@ def test_model_card_save_update_model_id(stsb_bert_tiny_model: SentenceTransform
     model._model_card_text = ""
     with tempfile.TemporaryDirectory() as tmp_folder:
         model.save(tmp_folder)
-        with open(Path(tmp_folder) / "README.md", "r", encoding="utf8") as f:
+        with open(Path(tmp_folder) / "README.md", encoding="utf8") as f:
             model_card_text = f.read()
             assert 'model = SentenceTransformer("sentence_transformers_model_id"' in model_card_text
 
@@ -593,7 +595,7 @@ def test_model_card_save_update_model_id(stsb_bert_tiny_model: SentenceTransform
     with tempfile.TemporaryDirectory() as tmp_folder:
         loaded_model.save(tmp_folder, model_name="test_user/test_model")
 
-        with open(Path(tmp_folder) / "README.md", "r", encoding="utf8") as f:
+        with open(Path(tmp_folder) / "README.md", encoding="utf8") as f:
             model_card_text = f.read()
             assert 'model = SentenceTransformer("test_user/test_model"' in model_card_text
 
@@ -636,7 +638,7 @@ def test_override_config_versions(stsb_bert_tiny_model: SentenceTransformer) -> 
         SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency"),
     ],
 )
-def test_safetensors(modules: Union[List[nn.Module], SentenceTransformer]) -> None:
+def test_safetensors(modules: list[nn.Module] | SentenceTransformer) -> None:
     if isinstance(modules, SentenceTransformer):
         model = modules
     else:

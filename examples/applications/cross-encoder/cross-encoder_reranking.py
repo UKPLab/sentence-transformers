@@ -68,7 +68,7 @@ else:
         corpus_embeddings = cache_data["embeddings"][0:max_corpus_size]
 
 ###############################
-print("Corpus loaded with {} sentences / embeddings".format(len(corpus_sentences)))
+print(f"Corpus loaded with {len(corpus_sentences)} sentences / embeddings")
 
 while True:
     inp_question = input("Please enter a question: ")
@@ -80,7 +80,7 @@ while True:
     hits = util.semantic_search(question_embedding, corpus_embeddings, top_k=num_candidates)
     hits = hits[0]  # Get the hits for the first query
 
-    print("Cosine-Similarity search took {:.3f} seconds".format(time.time() - start_time))
+    print(f"Cosine-Similarity search took {time.time() - start_time:.3f} seconds")
     print("Top 5 hits with cosine-similarity:")
     for hit in hits[0:5]:
         print("\t{:.3f}\t{}".format(hit["score"], corpus_sentences[hit["corpus_id"]]))
@@ -95,7 +95,7 @@ while True:
 
     # Sort list by CrossEncoder scores
     hits = sorted(hits, key=lambda x: x["cross-encoder_score"], reverse=True)
-    print("\nRe-ranking with CrossEncoder took {:.3f} seconds".format(time.time() - start_time))
+    print(f"\nRe-ranking with CrossEncoder took {time.time() - start_time:.3f} seconds")
     print("Top 5 hits with CrossEncoder:")
     for hit in hits[0:5]:
         print("\t{:.3f}\t{}".format(hit["cross-encoder_score"], corpus_sentences[hit["corpus_id"]]))

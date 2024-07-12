@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 import os
 from functools import wraps
-from typing import Callable, Dict, List, Literal, Optional, Tuple, Type, Union, overload
+from typing import Callable, Literal, overload
 
 import numpy as np
 import torch
@@ -58,11 +60,11 @@ class CrossEncoder(PushToHubMixin):
         model_name: str,
         num_labels: int = None,
         max_length: int = None,
-        device: Optional[str] = None,
-        tokenizer_args: Dict = None,
-        automodel_args: Dict = None,
+        device: str | None = None,
+        tokenizer_args: dict = None,
+        automodel_args: dict = None,
         trust_remote_code: bool = False,
-        revision: Optional[str] = None,
+        revision: str | None = None,
         local_files_only: bool = False,
         default_activation_function=None,
         classifier_dropout: float = None,
@@ -107,7 +109,7 @@ class CrossEncoder(PushToHubMixin):
 
         if device is None:
             device = get_device_name()
-            logger.info("Use pytorch device: {}".format(device))
+            logger.info(f"Use pytorch device: {device}")
 
         self._target_device = torch.device(device)
 
@@ -116,9 +118,7 @@ class CrossEncoder(PushToHubMixin):
             try:
                 self.config.sbert_ce_default_activation_function = fullname(self.default_activation_function)
             except Exception as e:
-                logger.warning(
-                    "Was not able to update config about the default_activation_function: {}".format(str(e))
-                )
+                logger.warning(f"Was not able to update config about the default_activation_function: {str(e)}")
         elif (
             hasattr(self.config, "sbert_ce_default_activation_function")
             and self.config.sbert_ce_default_activation_function is not None
@@ -127,7 +127,7 @@ class CrossEncoder(PushToHubMixin):
         else:
             self.default_activation_function = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
 
-    def smart_batching_collate(self, batch: List[InputExample]) -> Tuple[BatchEncoding, Tensor]:
+    def smart_batching_collate(self, batch: list[InputExample]) -> tuple[BatchEncoding, Tensor]:
         texts = [[] for _ in range(len(batch[0].texts))]
         labels = []
 
@@ -149,7 +149,7 @@ class CrossEncoder(PushToHubMixin):
 
         return tokenized, labels
 
-    def smart_batching_collate_text_only(self, batch: List[InputExample]) -> BatchEncoding:
+    def smart_batching_collate_text_only(self, batch: list[InputExample]) -> BatchEncoding:
         texts = [[] for _ in range(len(batch[0]))]
 
         for example in batch:
@@ -174,8 +174,8 @@ class CrossEncoder(PushToHubMixin):
         activation_fct=nn.Identity(),
         scheduler: str = "WarmupLinear",
         warmup_steps: int = 10000,
-        optimizer_class: Type[Optimizer] = torch.optim.AdamW,
-        optimizer_params: Dict[str, object] = {"lr": 2e-5},
+        optimizer_class: type[Optimizer] = torch.optim.AdamW,
+        optimizer_params: dict[str, object] = {"lr": 2e-5},
         weight_decay: float = 0.01,
         evaluation_steps: int = 0,
         output_path: str = None,
@@ -305,12 +305,12 @@ class CrossEncoder(PushToHubMixin):
     @overload
     def predict(
         self,
-        sentences: Union[Tuple[str, str], List[str]],
+        sentences: tuple[str, str] | list[str],
         batch_size: int = ...,
-        show_progress_bar: Optional[bool] = ...,
+        show_progress_bar: bool | None = ...,
         num_workers: int = ...,
-        activation_fct: Optional[Callable] = ...,
-        apply_softmax: Optional[bool] = ...,
+        activation_fct: Callable | None = ...,
+        apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[False] = ...,
         convert_to_tensor: Literal[False] = ...,
     ) -> torch.Tensor: ...
@@ -318,12 +318,12 @@ class CrossEncoder(PushToHubMixin):
     @overload
     def predict(
         self,
-        sentences: Union[List[Tuple[str, str]], List[List[str]], Tuple[str, str], List[str]],
+        sentences: list[tuple[str, str]] | list[list[str]] | tuple[str, str] | list[str],
         batch_size: int = ...,
-        show_progress_bar: Optional[bool] = ...,
+        show_progress_bar: bool | None = ...,
         num_workers: int = ...,
-        activation_fct: Optional[Callable] = ...,
-        apply_softmax: Optional[bool] = ...,
+        activation_fct: Callable | None = ...,
+        apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[True] = True,
         convert_to_tensor: Literal[False] = False,
     ) -> np.ndarray: ...
@@ -331,12 +331,12 @@ class CrossEncoder(PushToHubMixin):
     @overload
     def predict(
         self,
-        sentences: Union[List[Tuple[str, str]], List[List[str]], Tuple[str, str], List[str]],
+        sentences: list[tuple[str, str]] | list[list[str]] | tuple[str, str] | list[str],
         batch_size: int = ...,
-        show_progress_bar: Optional[bool] = ...,
+        show_progress_bar: bool | None = ...,
         num_workers: int = ...,
-        activation_fct: Optional[Callable] = ...,
-        apply_softmax: Optional[bool] = ...,
+        activation_fct: Callable | None = ...,
+        apply_softmax: bool | None = ...,
         convert_to_numpy: bool = ...,
         convert_to_tensor: Literal[True] = ...,
     ) -> torch.Tensor: ...
@@ -344,27 +344,27 @@ class CrossEncoder(PushToHubMixin):
     @overload
     def predict(
         self,
-        sentences: Union[List[Tuple[str, str]], List[List[str]]],
+        sentences: list[tuple[str, str]] | list[list[str]],
         batch_size: int = ...,
-        show_progress_bar: Optional[bool] = ...,
+        show_progress_bar: bool | None = ...,
         num_workers: int = ...,
-        activation_fct: Optional[Callable] = ...,
-        apply_softmax: Optional[bool] = ...,
+        activation_fct: Callable | None = ...,
+        apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[False] = ...,
         convert_to_tensor: Literal[False] = ...,
-    ) -> List[torch.Tensor]: ...
+    ) -> list[torch.Tensor]: ...
 
     def predict(
         self,
-        sentences: Union[List[Tuple[str, str]], List[List[str]], Tuple[str, str], List[str]],
+        sentences: list[tuple[str, str]] | list[list[str]] | tuple[str, str] | list[str],
         batch_size: int = 32,
-        show_progress_bar: Optional[bool] = None,
+        show_progress_bar: bool | None = None,
         num_workers: int = 0,
-        activation_fct: Optional[Callable] = None,
-        apply_softmax: Optional[bool] = False,
+        activation_fct: Callable | None = None,
+        apply_softmax: bool | None = False,
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-    ) -> Union[List[torch.Tensor], np.ndarray, torch.Tensor]:
+    ) -> list[torch.Tensor] | np.ndarray | torch.Tensor:
         """
         Performs predictions with the CrossEncoder on the given sentence pairs.
 
@@ -451,8 +451,8 @@ class CrossEncoder(PushToHubMixin):
     def rank(
         self,
         query: str,
-        documents: List[str],
-        top_k: Optional[int] = None,
+        documents: list[str],
+        top_k: int | None = None,
         return_documents: bool = False,
         batch_size: int = 32,
         show_progress_bar: bool = None,
@@ -461,7 +461,7 @@ class CrossEncoder(PushToHubMixin):
         apply_softmax=False,
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-    ) -> List[Dict[Literal["corpus_id", "score", "text"], Union[int, float, str]]]:
+    ) -> list[dict[Literal["corpus_id", "score", "text"], int | float | str]]:
         """
         Performs ranking with the CrossEncoder on the given query and documents. Returns a sorted list with the document indices and scores.
 
@@ -557,7 +557,7 @@ class CrossEncoder(PushToHubMixin):
         if path is None:
             return
 
-        logger.info("Save model to {}".format(path))
+        logger.info(f"Save model to {path}")
         self.model.save_pretrained(path, safe_serialization=safe_serialization, **kwargs)
         self.tokenizer.save_pretrained(path, **kwargs)
 
@@ -572,10 +572,10 @@ class CrossEncoder(PushToHubMixin):
         self,
         repo_id: str,
         *,
-        commit_message: Optional[str] = None,
-        private: Optional[bool] = None,
+        commit_message: str | None = None,
+        private: bool | None = None,
         safe_serialization: bool = True,
-        tags: Optional[List[str]] = None,
+        tags: list[str] | None = None,
         **kwargs,
     ) -> str:
         if isinstance(tags, str):

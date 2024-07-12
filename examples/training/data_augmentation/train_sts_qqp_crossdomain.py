@@ -82,13 +82,13 @@ bi_encoder_path = (
 
 ###### Cross-encoder (simpletransformers) ######
 
-logging.info("Loading cross-encoder model: {}".format(model_name))
+logging.info(f"Loading cross-encoder model: {model_name}")
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for cross-encoder model
 cross_encoder = CrossEncoder(model_name, num_labels=1)
 
 ###### Bi-encoder (sentence-transformers) ######
 
-logging.info("Loading bi-encoder model: {}".format(model_name))
+logging.info(f"Loading bi-encoder model: {model_name}")
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
@@ -110,7 +110,7 @@ bi_encoder = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 #
 #####################################################
 
-logging.info("Step 1: Train cross-encoder: {} with STSbenchmark (source dataset)".format(model_name))
+logging.info(f"Step 1: Train cross-encoder: {model_name} with STSbenchmark (source dataset)")
 
 gold_samples = []
 dev_samples = []
@@ -140,7 +140,7 @@ evaluator = CECorrelationEvaluator.from_input_examples(dev_samples, name="sts-de
 
 # Configure the training
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logging.info(f"Warmup-steps: {warmup_steps}")
 
 # Train the cross-encoder model
 cross_encoder.fit(
@@ -158,7 +158,7 @@ cross_encoder.fit(
 #
 ##################################################################
 
-logging.info("Step 2: Label QQP (target dataset) with cross-encoder: {}".format(model_name))
+logging.info(f"Step 2: Label QQP (target dataset) with cross-encoder: {model_name}")
 
 cross_encoder = CrossEncoder(cross_encoder_path)
 
@@ -183,7 +183,7 @@ binary_silver_scores = [1 if score >= 0.5 else 0 for score in silver_scores]
 #
 ###########################################################################
 
-logging.info("Step 3: Train bi-encoder: {} over labeled QQP (target dataset)".format(model_name))
+logging.info(f"Step 3: Train bi-encoder: {model_name} over labeled QQP (target dataset)")
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Loading BERT labeled QQP dataset")
@@ -216,7 +216,7 @@ evaluator = BinaryClassificationEvaluator(dev_sentences1, dev_sentences2, dev_la
 
 # Configure the training.
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logging.info(f"Warmup-steps: {warmup_steps}")
 
 # Train the bi-encoder model
 bi_encoder.fit(

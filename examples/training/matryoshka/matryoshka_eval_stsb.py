@@ -9,9 +9,9 @@ from typing import Dict, List, Optional, Tuple, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
+from datasets import load_dataset
 from tqdm.auto import tqdm
 
-from datasets import load_dataset
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import (
     EmbeddingSimilarityEvaluator,

@@ -33,11 +33,9 @@ os.makedirs(parallel_sentences_folder, exist_ok=True)
 for source_lang in source_languages:
     for target_lang in target_languages:
         filename_train = os.path.join(
-            parallel_sentences_folder, "WikiMatrix-{}-{}-train.tsv.gz".format(source_lang, target_lang)
+            parallel_sentences_folder, f"WikiMatrix-{source_lang}-{target_lang}-train.tsv.gz"
         )
-        filename_dev = os.path.join(
-            parallel_sentences_folder, "WikiMatrix-{}-{}-dev.tsv.gz".format(source_lang, target_lang)
-        )
+        filename_dev = os.path.join(parallel_sentences_folder, f"WikiMatrix-{source_lang}-{target_lang}-dev.tsv.gz")
 
         if not os.path.exists(filename_train) and not os.path.exists(filename_dev):
             langs_ordered = sorted([source_lang, target_lang])

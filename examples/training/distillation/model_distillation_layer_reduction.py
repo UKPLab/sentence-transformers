@@ -26,8 +26,8 @@ from datetime import datetime
 
 import pandas as pd
 import torch
-
 from datasets import Dataset, concatenate_datasets, load_dataset
+
 from sentence_transformers import SentenceTransformer, evaluation, losses
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.similarity_functions import SimilarityFunction
@@ -59,7 +59,7 @@ auto_model = student_model._first_module().auto_model
 # Keep every third layer:
 layers_to_keep = [0, 3, 6, 9, 12, 15, 18, 21]
 
-logging.info("Remove layers from student. Only keep these layers: {}".format(layers_to_keep))
+logging.info(f"Remove layers from student. Only keep these layers: {layers_to_keep}")
 new_layers = torch.nn.ModuleList(
     [layer_module for i, layer_module in enumerate(auto_model.encoder.layer) if i in layers_to_keep]
 )

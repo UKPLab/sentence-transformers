@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass, field
-from typing import Union
 
 from transformers import TrainingArguments as TransformersTrainingArguments
 from transformers.training_args import ParallelMode
@@ -62,10 +63,10 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
             for valid options. Defaults to ``MultiDatasetBatchSamplers.PROPORTIONAL``.
     """
 
-    batch_sampler: Union[BatchSamplers, str] = field(
+    batch_sampler: BatchSamplers | str = field(
         default=BatchSamplers.BATCH_SAMPLER, metadata={"help": "The batch sampler to use."}
     )
-    multi_dataset_batch_sampler: Union[MultiDatasetBatchSamplers, str] = field(
+    multi_dataset_batch_sampler: MultiDatasetBatchSamplers | str = field(
         default=MultiDatasetBatchSamplers.PROPORTIONAL, metadata={"help": "The multi-dataset batch sampler to use."}
     )
 

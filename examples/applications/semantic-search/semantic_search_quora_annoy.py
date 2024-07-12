@@ -90,7 +90,7 @@ else:
 
 if not os.path.exists(annoy_index_path):
     # Create Annoy Index
-    print("Create Annoy index with {} trees. This can take some time.".format(n_trees))
+    print(f"Create Annoy index with {n_trees} trees. This can take some time.")
     annoy_index = AnnoyIndex(embedding_size, "angular")
 
     for i in range(len(corpus_embeddings)):
@@ -108,7 +108,7 @@ corpus_embeddings = torch.from_numpy(corpus_embeddings)
 
 ######### Search in the index ###########
 
-print("Corpus loaded with {} sentences / embeddings".format(len(corpus_sentences)))
+print(f"Corpus loaded with {len(corpus_sentences)} sentences / embeddings")
 
 while True:
     inp_question = input("Please enter a question: ")
@@ -124,7 +124,7 @@ while True:
     end_time = time.time()
 
     print("Input question:", inp_question)
-    print("Results (after {:.3f} seconds):".format(end_time - start_time))
+    print(f"Results (after {end_time - start_time:.3f} seconds):")
     for hit in hits[0:top_k_hits]:
         print("\t{:.3f}\t{}".format(hit["score"], corpus_sentences[hit["corpus_id"]]))
 
@@ -139,7 +139,7 @@ while True:
         print("Approximate Nearest Neighbor returned a different number of results than expected")
 
     recall = len(ann_corpus_ids.intersection(correct_hits_ids)) / len(correct_hits_ids)
-    print("\nApproximate Nearest Neighbor Recall@{}: {:.2f}".format(top_k_hits, recall * 100))
+    print(f"\nApproximate Nearest Neighbor Recall@{top_k_hits}: {recall * 100:.2f}")
 
     if recall < 1:
         print("Missing results:")

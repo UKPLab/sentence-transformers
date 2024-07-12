@@ -73,14 +73,14 @@ logging.info("Evaluating speed of unquantized model")
 start_time = time.time()
 emb = model.encode(sentences, show_progress_bar=True)
 diff_normal = time.time() - start_time
-logging.info("Done after {:.2f} sec. {:.2f} sentences / sec".format(diff_normal, len(sentences) / diff_normal))
+logging.info(f"Done after {diff_normal:.2f} sec. {len(sentences) / diff_normal:.2f} sentences / sec")
 
 logging.info("Evaluating speed of quantized model")
 start_time = time.time()
 emb = q_model.encode(sentences, show_progress_bar=True)
 diff_quantized = time.time() - start_time
-logging.info("Done after {:.2f} sec. {:.2f} sentences / sec".format(diff_quantized, len(sentences) / diff_quantized))
-logging.info("Speed-up: {:.2f}".format(diff_normal / diff_quantized))
+logging.info(f"Done after {diff_quantized:.2f} sec. {len(sentences) / diff_quantized:.2f} sentences / sec")
+logging.info(f"Speed-up: {diff_normal / diff_quantized:.2f}")
 #########
 
 evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name="sts-test")

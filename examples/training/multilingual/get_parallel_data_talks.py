@@ -44,11 +44,9 @@ files_to_create = []
 for source_lang in source_languages:
     for target_lang in target_languages:
         output_filename_train = os.path.join(
-            parallel_sentences_folder, "talks-{}-{}-train.tsv.gz".format(source_lang, target_lang)
+            parallel_sentences_folder, f"talks-{source_lang}-{target_lang}-train.tsv.gz"
         )
-        output_filename_dev = os.path.join(
-            parallel_sentences_folder, "talks-{}-{}-dev.tsv.gz".format(source_lang, target_lang)
-        )
+        output_filename_dev = os.path.join(parallel_sentences_folder, f"talks-{source_lang}-{target_lang}-dev.tsv.gz")
         train_files.append(output_filename_train)
         dev_files.append(output_filename_dev)
         if not os.path.exists(output_filename_train) or not os.path.exists(output_filename_dev):
@@ -82,7 +80,7 @@ if len(files_to_create) > 0:
                     else:
                         fOut = outfile["fTrain"]
 
-                    fOut.write("{}\t{}\n".format(src_text, trg_text))
+                    fOut.write(f"{src_text}\t{trg_text}\n")
 
     for outfile in files_to_create:
         outfile["fTrain"].close()

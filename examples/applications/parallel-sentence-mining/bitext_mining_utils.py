@@ -45,7 +45,7 @@ def kNN(x, y, k, use_ann_search=False, ann_num_clusters=32768, ann_num_cluster_p
         idx.add(y)
         sim, ind = idx.search(x, k)
 
-    print("Done: {:.2f} sec".format(time.time() - start_time))
+    print(f"Done: {time.time() - start_time:.2f} sec")
     return sim, ind
 
 
@@ -56,4 +56,4 @@ def file_open(filepath):
     elif filepath.endswith("xz"):
         return lzma.open(filepath, "rt", encoding="utf8")
     else:
-        return open(filepath, "r", encoding="utf8")
+        return open(filepath, encoding="utf8")

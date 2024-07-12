@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
-from typing import List
 
 from scipy.stats import pearsonr, spearmanr
 
@@ -17,7 +18,7 @@ class CECorrelationEvaluator:
     and the gold score.
     """
 
-    def __init__(self, sentence_pairs: List[List[str]], scores: List[float], name: str = "", write_csv: bool = True):
+    def __init__(self, sentence_pairs: list[list[str]], scores: list[float], name: str = "", write_csv: bool = True):
         self.sentence_pairs = sentence_pairs
         self.scores = scores
         self.name = name
@@ -27,7 +28,7 @@ class CECorrelationEvaluator:
         self.write_csv = write_csv
 
     @classmethod
-    def from_input_examples(cls, examples: List[InputExample], **kwargs):
+    def from_input_examples(cls, examples: list[InputExample], **kwargs):
         sentence_pairs = []
         scores = []
 
@@ -39,9 +40,9 @@ class CECorrelationEvaluator:
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
             if steps == -1:
-                out_txt = " after epoch {}:".format(epoch)
+                out_txt = f" after epoch {epoch}:"
             else:
-                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
+                out_txt = f" in epoch {epoch} after {steps} steps:"
         else:
             out_txt = ":"
 
@@ -51,7 +52,7 @@ class CECorrelationEvaluator:
         eval_pearson, _ = pearsonr(self.scores, pred_scores)
         eval_spearman, _ = spearmanr(self.scores, pred_scores)
 
-        logger.info("Correlation:\tPearson: {:.4f}\tSpearman: {:.4f}".format(eval_pearson, eval_spearman))
+        logger.info(f"Correlation:\tPearson: {eval_pearson:.4f}\tSpearman: {eval_spearman:.4f}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

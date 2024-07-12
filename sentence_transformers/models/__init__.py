@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .Asym import Asym
 from .BoW import BoW
 from .CLIPModel import CLIPModel
