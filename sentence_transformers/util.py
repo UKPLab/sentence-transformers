@@ -1059,7 +1059,10 @@ def mine_hard_negatives(
     if len(columns) != 2:
         raise ValueError("Dataset must contain exactly two columns.")
 
-    max_positives = dataset.to_pandas().groupby(columns[0]).count().max()[columns[1]]
+    # To avoid re-embedding the same query multiple times, we keep a counter of the number of positives per query
+    positives_per_query = list(dataset.to_pandas().groupby(columns[0]).count().to_dict()[columns[1]].values())
+    max_positives = max(positives_per_query)
+
     if range_max is None:
         if margin is not None or max_score is not None:
             # 1 positive, 10 * num_negatives negatives because some might be skipped, and range_min skipped
@@ -1091,26 +1094,21 @@ def mine_hard_negatives(
         [corpus_idx[positive] if positive in corpus_idx else -1 for positive in positives], dtype=torch.long
     )
 
-    # Embed the corpus, queries, and positives
-    corpus_embeddings = model.encode(corpus, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
-    query_embeddings = model.encode(queries, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
-    if separate_corpus:
-        positives_embeddings = model.encode(
-            positives, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True
-        )
-    else:
-        positives_embeddings = corpus_embeddings[pos_to_corpus_indices]
+    # Keep track of the positive indices for each query
+    _positive_indices = {}
+    for query, positive in zip(queries, positives):
+        if query not in _positive_indices:
+            _positive_indices[query] = []
+        _positive_indices[query].append(corpus_idx[positive])
+
+    positive_indices = [np.array(p) for p in _positive_indices.values()]
+
     batch_idx = torch.arange(len(queries)).unsqueeze(-1)
 
     if use_faiss:
         import faiss
 
-        # Compute the positive scores separate from FAISS
-        positive_scores = model.similarity_pairwise(query_embeddings, positives_embeddings).cpu()
-
-        query_embeddings = query_embeddings.cpu().numpy()
-        corpus_embeddings = corpus_embeddings.cpu().numpy()
-        index = faiss.IndexFlatIP(len(corpus_embeddings[0]))
+        index = faiss.IndexFlatIP(model.get_sentence_embedding_dimension())
         # Move the index to the GPU if available
         try:
             co = faiss.GpuMultipleClonerOptions()
@@ -1119,59 +1117,141 @@ def mine_hard_negatives(
             index: faiss.IndexFlatIP = faiss.index_cpu_to_all_gpus(index, co=co)
         except Exception:
             pass
-        index.add(corpus_embeddings)
+
+        # Encode the corpus in batches to avoid OOM
+        for i in trange(0, len(corpus), chunk_size, desc="Encoding and indexing corpus"):
+            chunk = corpus[i : i + chunk_size]
+            chunk_embeddings = model.encode(
+                chunk,
+                convert_to_numpy=True,
+                show_progress_bar=False,
+                batch_size=batch_size,
+            )
+            index.add(chunk_embeddings)
         scores_list = []
         indices_list = []
-        # Iterate over query embeddings in batches so we can track the progress
-        for i in trange(0, len(query_embeddings), batch_size, desc="Querying FAISS index"):
-            query_chunk = query_embeddings[i : i + batch_size]
-            scores, indices = index.search(query_chunk, k=range_max + 1)
+
+        # Iterate over the queries in chunks, encode them, and retrieve the top-k documents
+        for i in trange(0, len(queries), chunk_size, desc="Retrieving top-k documents"):
+            chunk = queries[i : i + chunk_size]
+            chunk_embeddings = model.encode(
+                chunk,
+                convert_to_tensor=True,
+                show_progress_bar=False,
+                batch_size=batch_size,
+            )
+            scores, indices = index.search(chunk_embeddings.cpu().numpy(), k=range_max)
             scores_list.append(scores)
             indices_list.append(indices)
+
         scores = torch.from_numpy(np.concatenate(scores_list, axis=0))
         indices = torch.from_numpy(np.concatenate(indices_list, axis=0))
+        del chunk_embeddings
+
     else:
-        # Compute all similarity scores
-        scores = model.similarity(query_embeddings, corpus_embeddings).cpu()
-        positive_scores = model.similarity_pairwise(query_embeddings, positives_embeddings).cpu()
+        # Embed the corpus, queries, and positives
+        corpus_embeddings = model.encode(corpus, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
+        query_embeddings = model.encode(queries, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
+        if separate_corpus:
+            positives_embeddings = model.encode(
+                positives, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True
+            )
+        else:
+            positives_embeddings = corpus_embeddings[pos_to_corpus_indices]
+            # Compute all similarity scores
+            scores = model.similarity(query_embeddings, corpus_embeddings).cpu()
+            positive_scores = model.similarity_pairwise(query_embeddings, positives_embeddings).cpu()
+
+        del query_embeddings
+        del corpus_embeddings
 
         # Keep only the range_max + 1 highest scores. We offset by 1 to potentially include the positive pair
         scores, indices = torch.topk(scores, k=range_max + 1, dim=1)
-    del query_embeddings
-    del corpus_embeddings
+    # Make sure that at least one positive is retrieved for each query
+    # Otherwise, score a random positive for the query and replace the last negative with it
+    queries_with_missing_positives = []
+    missing_positives = []
+    positive_indices_list = []
+    negative_indices_list = []
 
-    # Scores is a [num_queries, range_max + 1] tensor, where we set the values to -inf to disqualify the corresponding
-    # text as a negative candidate. Here we disqualify the positive pair
-    positive_indices = indices == pos_to_corpus_indices.unsqueeze(-1)
-    scores[positive_indices] = -float("inf")
+    for q_idx, qid in enumerate(queries):
+        # find if any of the indices is in the positive set
+        positive_corpus_idxs = positive_indices[qid].numpy()
+        query_positive_indices = np.in1d(indices[q_idx], positive_corpus_idxs)
+        positive_indices_list.append(query_positive_indices)
+        negative_indices_list.append(~query_positive_indices)
 
-    num_candidates = scores.numel()
+        if not any(query_positive_indices):
+            queries_with_missing_positives.append(q_idx)
+            # Get a positive and score it manually
+            random_positive_idx = np.random.choice(positive_corpus_idxs)
+            missing_positives.append(random_positive_idx)
+    positive_indices_mask = torch.from_numpy(np.stack(positive_indices_list))
+    negative_indices_mask = torch.from_numpy(np.stack(negative_indices_list))
+
+    # encode the missing positives and queries
+    if queries_with_missing_positives:
+        missing_positives = [corpus[idx] for idx in missing_positives]
+        missing_positives_embeddings = model.encode(
+            missing_positives,
+            convert_to_tensor=True,
+            show_progress_bar=False,
+        )
+        missing_queries = [queries[idx] for idx in queries_with_missing_positives]
+        missing_queries_embeddings = model.encode(
+            missing_queries,
+            convert_to_tensor=True,
+            show_progress_bar=False,
+        )
+        # score the missing positives
+        missing_positive_scores = model.similarity_pairwise(
+            missing_queries_embeddings, missing_positives_embeddings
+        ).cpu()
+        # replace the last negative with the missing positive
+        for q_idx, positive_idx, positive_score in zip(
+            queries_with_missing_positives, missing_positives, missing_positive_scores
+        ):
+            scores[q_idx][-1] = positive_score
+            indices[q_idx][-1] = positive_idx
+            positive_indices_mask[q_idx][-1] = True
+            negative_indices_mask[q_idx][-1] = False
+
+        del missing_positives_embeddings
+        del missing_queries_embeddings
 
     # Rescore with cross_encoder
     if cross_encoder is not None and (margin is not None or max_score is not None):
-        for idx, candidate_neg_idx in tqdm(enumerate(indices), desc="Rescoring with CrossEncoder", total=len(indices)):
+        for idx, candidate_idx in tqdm(enumerate(indices), desc="Rescoring with CrossEncoder", total=len(indices)):
             query = queries[idx]
-            candidate_passages = [corpus[neg_idx] for neg_idx in candidate_neg_idx]
+            candidate_passages = [corpus[_idx] for _idx in candidate_idx]
             pred_scores = cross_encoder.predict(
                 list(zip([query] * (range_max + 1), candidate_passages)),
                 batch_size=batch_size,
                 convert_to_tensor=True,
             )
-            # If we rescored a positive pair, make sure that it is disqualified again
-            if pos_to_corpus_indices[idx] in candidate_neg_idx:
-                pred_scores[candidate_neg_idx == pos_to_corpus_indices[idx]] = -float("inf")
-
             scores[idx] = pred_scores
-        positive_scores = cross_encoder.predict(
-            list(zip(queries, positives)),
-            batch_size=batch_size,
-            convert_to_tensor=True,
-        )
+    # We will change the scores for the positive and negatives constantly.
+    # So, we will keep twi copies of the scores and operate on them instead of the original scores.
+    negative_scores = scores.clone()
+    positive_scores = scores.clone()
+    positive_indices = indices.clone()
+    negative_indices = indices.clone()
+
+    # Scores is a [num_queries, range_max] tensor, where we set the values to -inf to disqualify the corresponding
+    # negative (or positive) candidates
+    negative_scores[positive_indices_mask] = -float("inf")
+    positive_scores[negative_indices_mask] = -float("inf")
+
+    # If we have a margin or max_score, we will remove candidates that are too close to the positive pair
+    # If there are multiple positives, we need to define which one to use for the margin
+    # To be on the safe side, we will use the _minimum_ positive score (i.e., harder positive) for the margin
+    max_positive_scores, _ = torch.min(positive_scores, dim=1)
+    num_candidates = scores.numel()
 
     # Remove based on margin
     if margin is not None:
-        removed_indices = scores + margin > positive_scores.repeat(scores.size(1), 1).T
-        scores[removed_indices] = -float("inf")
+        removed_indices = negative_scores + margin > max_positive_scores.repeat(negative_scores.size(1), 1).T
+        negative_scores[removed_indices] = -float("inf")
 
         num_skipped = removed_indices.sum().item()
         if num_skipped:
@@ -1183,8 +1263,8 @@ def mine_hard_negatives(
 
     # Remove based on max_score
     if max_score is not None:
-        removed_indices = scores > max_score
-        scores[removed_indices] = -float("inf")
+        removed_indices = negative_scores > max_score
+        negative_scores[removed_indices] = -float("inf")
 
         num_skipped = removed_indices.sum().item()
         if num_skipped:
@@ -1194,29 +1274,38 @@ def mine_hard_negatives(
             }
 
     # Grab the top negative candidates and remove the first range_min candidates
-    negative_scores, local_indices = torch.topk(scores, k=range_max, dim=1)
-    indices = indices[batch_idx, local_indices]
+    negative_scores, local_negative_indices = torch.topk(scores, k=range_max, dim=1)
+    negative_indices = negative_indices[batch_idx, local_negative_indices]
+
     if range_min:
-        indices = indices[:, range_min:]
+        negative_indices = negative_indices[:, range_min:]
         negative_scores = negative_scores[:, range_min:]
+
+    # Do the same for the positives and max_positives
+    sorted_positive_scores, sorted_positive_indexes = torch.topk(positive_scores, k=range_max, dim=1)
+    positive_indices = positive_indices[batch_idx, sorted_positive_indexes]
+    positive_indices = positive_indices[:, :max_positives]
+    positive_scores = sorted_positive_scores[:, :max_positives]
 
     # Either grab the top negatives or sample randomly
     if sampling_strategy == "top":
-        indices = indices[:, :num_negatives]
+        negative_indices = negative_indices[:, :num_negatives]
         negative_scores = negative_scores[:, :num_negatives]
+
     elif sampling_strategy == "random":
         # Prevent sampling -inf values if possible
-        num_options = indices.size(1) - negative_scores.isinf().sum(1)
+        num_options = negative_indices.size(1) - negative_scores.isinf().sum(1)
         num_options = num_options.clamp(min=num_negatives)
         # Randomly sample negatives from each row
         sampled_idx = [random.sample(range(options), k=num_negatives) for options in num_options]
-        indices = indices[batch_idx, sampled_idx]
+        negative_indices = negative_indices[batch_idx, sampled_idx]
         negative_scores = negative_scores[batch_idx, sampled_idx]
         # Resort the indices and scores
-        negative_scores, local_indices = negative_scores.sort(dim=1, descending=True)
-        indices = indices[batch_idx, local_indices]
+        negative_scores, sorted_negative_indexes = negative_scores.sort(dim=1, descending=True)
+        negative_indices = negative_indices[batch_idx, sorted_negative_indexes]
 
     if as_triplets:
+        # If calling as triples and there are multiple positives per query, we will explode the dataset into triplets.
         # negative_scores is [num_queries, num_negatives], but may contain some -inf values if not enough negatives were found
         indices_to_keep = negative_scores != -float("inf")
         # This turns indices and negative_scores into 1d tensors
