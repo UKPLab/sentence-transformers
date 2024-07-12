@@ -32,7 +32,7 @@ from sentence_transformers.training_args import SentenceTransformerTrainingArgum
 from sentence_transformers.util import fullname, is_accelerate_available, is_datasets_available
 
 if is_datasets_available():
-    from datasets import Dataset, DatasetDict, Value
+    from datasets import Dataset, DatasetDict, IterableDataset, Value
 
 logger = logging.getLogger(__name__)
 
@@ -402,6 +402,10 @@ class SentenceTransformerModelCardData(CardData):
         self.best_model_step = step
 
     def set_widget_examples(self, dataset: Dataset | DatasetDict) -> None:
+        if isinstance(dataset, IterableDataset):
+            # We can't set widget examples from an IterableDataset without losing data
+            return
+
         if isinstance(dataset, Dataset):
             dataset = DatasetDict(dataset=dataset)
 
@@ -512,53 +516,32 @@ class SentenceTransformerModelCardData(CardData):
                 for dataset in self.infer_datasets(sub_dataset, dataset_name=dataset_name)
             ]
 
-        def subtuple_finder(tuple: tuple[str], subtuple: tuple[str]) -> int:
-            for i, element in enumerate(tuple):
-                if element == subtuple[0] and tuple[i : i + len(subtuple)] == subtuple:
-                    return i
-            return -1
-
-        cache_files = dataset.cache_files
-        dataset_output = {}
         # Ignore the dataset name if it is a default name from the FitMixin backwards compatibility
         if dataset_name and re.match(r"_dataset_\d+", dataset_name):
             dataset_name = None
-        if dataset_name:
-            dataset_output["name"] = dataset_name
-        if cache_files and "filename" in cache_files[0]:
-            cache_path_parts = Path(cache_files[0]["filename"]).parts
-            # Check if the cachefile is under "huggingface/datasets"
-            subtuple = ("huggingface", "datasets")
-            index = subtuple_finder(cache_path_parts, subtuple)
-            if index == -1:
-                return [dataset_output]
 
-            # Get the folder after "huggingface/datasets"
-            cache_dataset_name = cache_path_parts[index + len(subtuple)]
-            # If the dataset has an author:
-            if "___" in cache_dataset_name:
-                author, dataset_name = cache_dataset_name.split("___")
-                dataset_output["id"] = f"{author}/{dataset_name}"
-            else:
-                author = None
-                dataset_name = cache_dataset_name
-                # We can still be dealing with a local dataset here, so we wrap this with try-except
-                try:
-                    dataset_output["id"] = get_dataset_info(dataset_name).id
-                except Exception:
-                    # We can have a wide range of errors here, such as the dataset not existing, no internet, etc.
-                    # So we use the generic Exception
-                    pass
+        dataset_output = {
+            "name": dataset_name or dataset.info.dataset_name,
+            "split": str(dataset.split),
+        }
+        if dataset.info.splits and dataset.split in dataset.info.splits:
+            dataset_output["size"] = dataset.info.splits[dataset.split].num_examples
 
-            # If the cache path ends with a 40 character hash, it is the current revision
-            if len(cache_path_parts[-2]) == 40:
-                dataset_output["revision"] = cache_path_parts[-2]
+        # The download checksums seems like a fairly safe way to extract the dataset ID and revision
+        # for iterable datasets as well as regular datasets from the Hub
+        if checksums := dataset.download_checksums:
+            source = list(checksums.keys())[0]
+            if source.startswith("hf://datasets/") and "@" in source:
+                source_parts = source[len("hf://datasets/") :].split("@")
+                dataset_output["id"] = source_parts[0]
+                if (revision := source_parts[1].split("/")[0]) and len(revision) == 40:
+                    dataset_output["revision"] = revision
 
         return [dataset_output]
 
     def compute_dataset_metrics(
         self,
-        dataset: dict[str, str],
+        dataset: Dataset | IterableDataset | None,
         dataset_info: dict[str, Any],
         loss: dict[str, nn.Module] | nn.Module | None,
     ) -> dict[str, str]:
@@ -578,91 +561,93 @@ class SentenceTransformerModelCardData(CardData):
         if not dataset:
             return {}
 
-        dataset_info["size"] = len(dataset)
+        if "size" not in dataset_info and isinstance(dataset, Dataset):
+            dataset_info["size"] = len(dataset)
         dataset_info["columns"] = [f"<code>{column}</code>" for column in dataset.column_names]
         dataset_info["stats"] = {}
-        for column in dataset.column_names:
-            subsection = dataset[:1000][column]
-            first = subsection[0]
-            if isinstance(first, str):
-                tokenized = self.model.tokenize(subsection)
-                if isinstance(tokenized, dict) and "attention_mask" in tokenized:
-                    lengths = tokenized["attention_mask"].sum(dim=1).tolist()
-                    suffix = "tokens"
-                else:
-                    lengths = [len(sentence) for sentence in subsection]
-                    suffix = "characters"
-                dataset_info["stats"][column] = {
-                    "dtype": "string",
-                    "data": {
-                        "min": f"{round(min(lengths), 2)} {suffix}",
-                        "mean": f"{round(sum(lengths) / len(lengths), 2)} {suffix}",
-                        "max": f"{round(max(lengths), 2)} {suffix}",
-                    },
-                }
-            elif isinstance(first, (int, bool)):
-                counter = Counter(subsection)
-                dataset_info["stats"][column] = {
-                    "dtype": "int",
-                    "data": {
-                        key: f"{'~' if len(counter) > 1 else ''}{counter[key] / len(subsection):.2%}"
-                        for key in sorted(counter)
-                    },
-                }
-            elif isinstance(first, float):
-                dataset_info["stats"][column] = {
-                    "dtype": "float",
-                    "data": {
-                        "min": round(min(dataset[column]), 2),
-                        "mean": round(sum(dataset[column]) / len(dataset), 2),
-                        "max": round(max(dataset[column]), 2),
-                    },
-                }
-            elif isinstance(first, list):
-                counter = Counter([len(lst) for lst in subsection])
-                if len(counter) == 1:
-                    dataset_info["stats"][column] = {
-                        "dtype": "list",
-                        "data": {
-                            "size": f"{len(first)} elements",
-                        },
-                    }
-                else:
-                    dataset_info["stats"][column] = {
-                        "dtype": "list",
-                        "data": {
-                            "min": f"{min(counter)} elements",
-                            "mean": f"{sum(counter) / len(counter):.2f} elements",
-                            "max": f"{max(counter)} elements",
-                        },
-                    }
-            else:
-                dataset_info["stats"][column] = {"dtype": fullname(first), "data": {}}
-
-        def to_html_list(data: dict):
-            return "<ul><li>" + "</li><li>".join(f"{key}: {value}" for key, value in data.items()) + "</li></ul>"
-
-        stats_lines = [
-            {"": "type", **{key: value["dtype"] for key, value in dataset_info["stats"].items()}},
-            {"": "details", **{key: to_html_list(value["data"]) for key, value in dataset_info["stats"].items()}},
-        ]
-        dataset_info["stats_table"] = indent(make_markdown_table(stats_lines).replace("-:|", "--|"), "  ")
-
-        dataset_info["examples"] = dataset[:3]
-        num_samples = len(dataset_info["examples"][list(dataset_info["examples"])[0]])
-        examples_lines = []
-        for sample_idx in range(num_samples):
-            columns = {}
+        if isinstance(dataset, Dataset):
             for column in dataset.column_names:
-                value = dataset_info["examples"][column][sample_idx]
-                # If the value is a long list, truncate it
-                if isinstance(value, list) and len(value) > 5:
-                    value = str(value[:5])[:-1] + ", ...]"
-                # Avoid newlines in the table
-                value = str(value).replace("\n", "<br>")
-                columns[column] = f"<code>{value}</code>"
-            examples_lines.append(columns)
-        dataset_info["examples_table"] = indent(make_markdown_table(examples_lines).replace("-:|", "--|"), "  ")
+                subsection = dataset[:1000][column]
+                first = subsection[0]
+                if isinstance(first, str):
+                    tokenized = self.model.tokenize(subsection)
+                    if isinstance(tokenized, dict) and "attention_mask" in tokenized:
+                        lengths = tokenized["attention_mask"].sum(dim=1).tolist()
+                        suffix = "tokens"
+                    else:
+                        lengths = [len(sentence) for sentence in subsection]
+                        suffix = "characters"
+                    dataset_info["stats"][column] = {
+                        "dtype": "string",
+                        "data": {
+                            "min": f"{round(min(lengths), 2)} {suffix}",
+                            "mean": f"{round(sum(lengths) / len(lengths), 2)} {suffix}",
+                            "max": f"{round(max(lengths), 2)} {suffix}",
+                        },
+                    }
+                elif isinstance(first, (int, bool)):
+                    counter = Counter(subsection)
+                    dataset_info["stats"][column] = {
+                        "dtype": "int",
+                        "data": {
+                            key: f"{'~' if len(counter) > 1 else ''}{counter[key] / len(subsection):.2%}"
+                            for key in sorted(counter)
+                        },
+                    }
+                elif isinstance(first, float):
+                    dataset_info["stats"][column] = {
+                        "dtype": "float",
+                        "data": {
+                            "min": round(min(dataset[column]), 2),
+                            "mean": round(sum(dataset[column]) / len(dataset), 2),
+                            "max": round(max(dataset[column]), 2),
+                        },
+                    }
+                elif isinstance(first, list):
+                    counter = Counter([len(lst) for lst in subsection])
+                    if len(counter) == 1:
+                        dataset_info["stats"][column] = {
+                            "dtype": "list",
+                            "data": {
+                                "size": f"{len(first)} elements",
+                            },
+                        }
+                    else:
+                        dataset_info["stats"][column] = {
+                            "dtype": "list",
+                            "data": {
+                                "min": f"{min(counter)} elements",
+                                "mean": f"{sum(counter) / len(counter):.2f} elements",
+                                "max": f"{max(counter)} elements",
+                            },
+                        }
+                else:
+                    dataset_info["stats"][column] = {"dtype": fullname(first), "data": {}}
+
+            def to_html_list(data: dict):
+                return "<ul><li>" + "</li><li>".join(f"{key}: {value}" for key, value in data.items()) + "</li></ul>"
+
+            stats_lines = [
+                {"": "type", **{key: value["dtype"] for key, value in dataset_info["stats"].items()}},
+                {"": "details", **{key: to_html_list(value["data"]) for key, value in dataset_info["stats"].items()}},
+            ]
+            dataset_info["stats_table"] = indent(make_markdown_table(stats_lines).replace("-:|", "--|"), "  ")
+
+            dataset_info["examples"] = dataset[:3]
+            num_samples = len(dataset_info["examples"][list(dataset_info["examples"])[0]])
+            examples_lines = []
+            for sample_idx in range(num_samples):
+                columns = {}
+                for column in dataset.column_names:
+                    value = dataset_info["examples"][column][sample_idx]
+                    # If the value is a long list, truncate it
+                    if isinstance(value, list) and len(value) > 5:
+                        value = str(value[:5])[:-1] + ", ...]"
+                    # Avoid newlines in the table
+                    value = str(value).replace("\n", "<br>")
+                    columns[column] = f"<code>{value}</code>"
+                examples_lines.append(columns)
+            dataset_info["examples_table"] = indent(make_markdown_table(examples_lines).replace("-:|", "--|"), "  ")
 
         dataset_info["loss"] = {
             "fullname": fullname(loss),
@@ -966,7 +951,7 @@ class SentenceTransformerModelCardData(CardData):
 
     def to_yaml(self, line_break=None) -> str:
         return yaml_dump(
-            {key: value for key, value in self.to_dict().items() if key in YAML_FIELDS and value is not None},
+            {key: value for key, value in self.to_dict().items() if key in YAML_FIELDS and value not in (None, [])},
             sort_keys=False,
             line_break=line_break,
         ).strip()
