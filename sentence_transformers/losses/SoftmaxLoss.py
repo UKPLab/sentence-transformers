@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Callable, Dict, Iterable, Tuple, Union
+from typing import Callable, Iterable
 
 import torch
 from torch import Tensor, nn
@@ -102,8 +104,8 @@ class SoftmaxLoss(nn.Module):
         self.loss_fct = loss_fct
 
     def forward(
-        self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor
-    ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+        self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor
+    ) -> Tensor | tuple[Tensor, Tensor]:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         rep_a, rep_b = reps
 

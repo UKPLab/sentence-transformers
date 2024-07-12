@@ -2,10 +2,12 @@
 Tests that the pretrained models produce the correct scores on the STSbenchmark dataset
 """
 
+from __future__ import annotations
+
 import csv
 import gzip
 import os
-from typing import Generator, List, Tuple
+from typing import Generator
 
 import pytest
 import torch
@@ -23,7 +25,7 @@ from sentence_transformers.util import is_training_available
 
 
 @pytest.fixture()
-def sts_resource() -> Generator[Tuple[List[InputExample], List[InputExample]], None, None]:
+def sts_resource() -> Generator[tuple[list[InputExample], list[InputExample]], None, None]:
     sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
     if not os.path.exists(sts_dataset_path):
         util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
@@ -44,7 +46,7 @@ def sts_resource() -> Generator[Tuple[List[InputExample], List[InputExample]], N
 
 
 @pytest.fixture()
-def nli_resource() -> Generator[List[InputExample], None, None]:
+def nli_resource() -> Generator[list[InputExample], None, None]:
     nli_dataset_path = "datasets/AllNLI.tsv.gz"
     if not os.path.exists(nli_dataset_path):
         util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
@@ -77,7 +79,7 @@ def evaluate_stsb_test(model, expected_score, test_samples) -> None:
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_train_stsb_slow(
-    distilbert_base_uncased_model: SentenceTransformer, sts_resource: Tuple[List[InputExample], List[InputExample]]
+    distilbert_base_uncased_model: SentenceTransformer, sts_resource: tuple[list[InputExample], list[InputExample]]
 ) -> None:
     model = distilbert_base_uncased_model
     sts_train_samples, sts_test_samples = sts_resource
@@ -102,7 +104,7 @@ def test_train_stsb_slow(
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_train_stsb(
-    distilbert_base_uncased_model: SentenceTransformer, sts_resource: Tuple[List[InputExample], List[InputExample]]
+    distilbert_base_uncased_model: SentenceTransformer, sts_resource: tuple[list[InputExample], list[InputExample]]
 ) -> None:
     model = distilbert_base_uncased_model
     sts_train_samples, sts_test_samples = sts_resource
@@ -128,8 +130,8 @@ def test_train_stsb(
 )
 def test_train_nli_slow(
     distilbert_base_uncased_model: SentenceTransformer,
-    nli_resource: List[InputExample],
-    sts_resource: Tuple[List[InputExample], List[InputExample]],
+    nli_resource: list[InputExample],
+    sts_resource: tuple[list[InputExample], list[InputExample]],
 ):
     model = distilbert_base_uncased_model
     _, sts_test_samples = sts_resource
@@ -158,8 +160,8 @@ def test_train_nli_slow(
 )
 def test_train_nli(
     distilbert_base_uncased_model: SentenceTransformer,
-    nli_resource: List[InputExample],
-    sts_resource: Tuple[List[InputExample], List[InputExample]],
+    nli_resource: list[InputExample],
+    sts_resource: tuple[list[InputExample], list[InputExample]],
 ):
     model = distilbert_base_uncased_model
     _, sts_test_samples = sts_resource

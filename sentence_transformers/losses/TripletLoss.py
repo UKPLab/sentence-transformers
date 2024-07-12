@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Any, Dict, Iterable
+from typing import Any, Iterable
 
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -75,7 +77,7 @@ class TripletLoss(nn.Module):
         self.distance_metric = distance_metric
         self.triplet_margin = triplet_margin
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
         rep_anchor, rep_pos, rep_neg = reps
@@ -85,7 +87,7 @@ class TripletLoss(nn.Module):
         losses = F.relu(distance_pos - distance_neg + self.triplet_margin)
         return losses.mean()
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         distance_metric_name = self.distance_metric.__name__
         for name, value in vars(TripletDistanceMetric).items():
             if value == self.distance_metric:

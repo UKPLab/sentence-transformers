@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import json
 import os
 from collections import OrderedDict
-from typing import Dict, List, Tuple, Union
+from typing import List
 
 from torch import Tensor, nn
 
@@ -9,7 +11,7 @@ from sentence_transformers.util import import_from_string
 
 
 class Asym(nn.Sequential):
-    def __init__(self, sub_modules: Dict[str, List[nn.Module]], allow_empty_key: bool = True):
+    def __init__(self, sub_modules: dict[str, list[nn.Module]], allow_empty_key: bool = True):
         """
         This model allows to create asymmetric SentenceTransformer models, that apply different models depending on the specified input key.
 
@@ -50,7 +52,7 @@ class Asym(nn.Sequential):
                 ordered_dict[name + "-" + str(idx)] = model
         super(Asym, self).__init__(ordered_dict)
 
-    def forward(self, features: Dict[str, Tensor]):
+    def forward(self, features: dict[str, Tensor]):
         if "text_keys" in features and len(features["text_keys"]) > 0:
             text_key = features["text_keys"][0]
             for model in self.sub_modules[text_key]:
@@ -95,7 +97,7 @@ class Asym(nn.Sequential):
                 indent=2,
             )
 
-    def tokenize(self, texts: Union[List[str], List[Tuple[str, str]]], **kwargs):
+    def tokenize(self, texts: list[str] | list[tuple[str, str]], **kwargs):
         """Tokenizes a text and maps tokens to token-ids"""
         if not isinstance(texts[0], dict):
             raise AttributeError("Asym. model requires that texts are passed as dicts: {'key': 'text'}")

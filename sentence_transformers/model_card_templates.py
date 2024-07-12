@@ -3,6 +3,8 @@ This file contains the templating for model cards prior to the v3.0 release. It 
 SentenceTransformer.old_fit for backwards compatibility, but will be removed in a future release.
 """
 
+from __future__ import annotations
+
 import logging
 
 from .util import fullname

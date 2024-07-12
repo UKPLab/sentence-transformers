@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from functools import partial
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Any, Iterable, Iterator
 
 import torch
 import tqdm
@@ -37,7 +37,7 @@ class RandContext:
 
 def _backward_hook(
     grad_output: Tensor,
-    sentence_features: Iterable[Dict[str, Tensor]],
+    sentence_features: Iterable[dict[str, Tensor]],
     loss_obj: CachedMultipleNegativesRankingLoss,
 ) -> None:
     """A backward hook to backpropagate the cached gradients mini-batch by mini-batch."""
@@ -144,19 +144,19 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         self.similarity_fct = similarity_fct
         self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.mini_batch_size = mini_batch_size
-        self.cache: Optional[List[List[Tensor]]] = None
-        self.random_states: Optional[List[List[RandContext]]] = None
+        self.cache: list[list[Tensor]] | None = None
+        self.random_states: list[list[RandContext]] | None = None
         self.show_progress_bar = show_progress_bar
 
     def embed_minibatch(
         self,
-        sentence_feature: Dict[str, Tensor],
+        sentence_feature: dict[str, Tensor],
         begin: int,
         end: int,
         with_grad: bool,
         copy_random_state: bool,
-        random_state: Optional[RandContext] = None,
-    ) -> Tuple[Tensor, Optional[RandContext]]:
+        random_state: RandContext | None = None,
+    ) -> tuple[Tensor, RandContext | None]:
         """Do forward pass on a minibatch of the input features and return corresponding embeddings."""
         grad_context = nullcontext if with_grad else torch.no_grad
         random_state_context = nullcontext() if random_state is None else random_state
@@ -169,11 +169,11 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
     def embed_minibatch_iter(
         self,
-        sentence_feature: Dict[str, Tensor],
+        sentence_feature: dict[str, Tensor],
         with_grad: bool,
         copy_random_state: bool,
-        random_states: Optional[List[RandContext]] = None,
-    ) -> Iterator[Tuple[Tensor, Optional[RandContext]]]:
+        random_states: list[RandContext] | None = None,
+    ) -> Iterator[tuple[Tensor, RandContext | None]]:
         """Do forward pass on all the minibatches of the input features and yield corresponding embeddings."""
         input_ids: Tensor = sentence_feature["input_ids"]
         bsz, _ = input_ids.shape
@@ -197,7 +197,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             )
             yield reps, random_state  # reps: (mbsz, hdim)
 
-    def calculate_loss_and_cache_gradients(self, reps: List[List[Tensor]]) -> Tensor:
+    def calculate_loss_and_cache_gradients(self, reps: list[list[Tensor]]) -> Tensor:
         """Calculate the cross-entropy loss and cache the gradients wrt. the embeddings."""
         embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
         embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
@@ -206,7 +206,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         labels = torch.tensor(
             range(batch_size), dtype=torch.long, device=embeddings_a.device
         )  # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
-        losses: List[torch.Tensor] = []
+        losses: list[torch.Tensor] = []
         for b in tqdm.trange(
             0,
             batch_size,
@@ -226,7 +226,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
         return loss
 
-    def calculate_loss(self, reps: List[List[Tensor]]) -> Tensor:
+    def calculate_loss(self, reps: list[list[Tensor]]) -> Tensor:
         """Calculate the cross-entropy loss. No need to cache the gradients."""
         embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
         embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
@@ -235,7 +235,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         labels = torch.tensor(
             range(batch_size), dtype=torch.long, device=embeddings_a.device
         )  # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
-        losses: List[torch.Tensor] = []
+        losses: list[torch.Tensor] = []
         for b in tqdm.trange(
             0,
             batch_size,
@@ -251,7 +251,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         loss = sum(losses)
         return loss
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Step (1): A quick embedding step without gradients/computation graphs to get all the embeddings
         reps = []
         self.random_states = []  # Copy random states to guarantee exact reproduction of the embeddings during the second forward pass, i.e. step (3)
@@ -280,7 +280,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
         return loss
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
 
     @property

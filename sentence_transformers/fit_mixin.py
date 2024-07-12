@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
 import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Callable, Iterable
 
 import numpy as np
 import torch
@@ -49,7 +51,7 @@ class SaveModelCallback(TrainerCallback):
         We save after the model has been trained.
     """
 
-    def __init__(self, output_dir: str, evaluator: Optional[SentenceEvaluator], save_best_model: bool) -> None:
+    def __init__(self, output_dir: str, evaluator: SentenceEvaluator | None, save_best_model: bool) -> None:
         super().__init__()
         self.output_dir = output_dir
         self.evaluator = evaluator
@@ -66,7 +68,7 @@ class SaveModelCallback(TrainerCallback):
         args: SentenceTransformerTrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        metrics: Dict[str, Any],
+        metrics: dict[str, Any],
         model: "SentenceTransformer",
         **kwargs,
     ) -> None:
@@ -140,7 +142,7 @@ class OriginalCallback(TrainerCallback):
         args: transformers.TrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        metrics: Dict[str, Any],
+        metrics: dict[str, Any],
         **kwargs,
     ) -> None:
         metric_key = getattr(self.evaluator, "primary_metric", "evaluator")
@@ -154,14 +156,14 @@ class FitMixin:
 
     def fit(
         self,
-        train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
+        train_objectives: Iterable[tuple[DataLoader, nn.Module]],
         evaluator: SentenceEvaluator = None,
         epochs: int = 1,
         steps_per_epoch=None,
         scheduler: str = "WarmupLinear",
         warmup_steps: int = 10000,
-        optimizer_class: Type[Optimizer] = torch.optim.AdamW,
-        optimizer_params: Dict[str, object] = {"lr": 2e-5},
+        optimizer_class: type[Optimizer] = torch.optim.AdamW,
+        optimizer_params: dict[str, object] = {"lr": 2e-5},
         weight_decay: float = 0.01,
         evaluation_steps: int = 0,
         output_path: str = None,
@@ -402,7 +404,7 @@ class FitMixin:
         else:
             raise ValueError("Unknown scheduler {}".format(scheduler))
 
-    def smart_batching_collate(self, batch: List["InputExample"]) -> Tuple[List[Dict[str, Tensor]], Tensor]:
+    def smart_batching_collate(self, batch: list["InputExample"]) -> tuple[list[dict[str, Tensor]], Tensor]:
         """
         Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
         Here, batch is a list of InputExample instances: [InputExample(...), ...]
@@ -432,14 +434,14 @@ class FitMixin:
 
     def old_fit(
         self,
-        train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
+        train_objectives: Iterable[tuple[DataLoader, nn.Module]],
         evaluator: SentenceEvaluator = None,
         epochs: int = 1,
         steps_per_epoch=None,
         scheduler: str = "WarmupLinear",
         warmup_steps: int = 10000,
-        optimizer_class: Type[Optimizer] = torch.optim.AdamW,
-        optimizer_params: Dict[str, object] = {"lr": 2e-5},
+        optimizer_class: type[Optimizer] = torch.optim.AdamW,
+        optimizer_params: dict[str, object] = {"lr": 2e-5},
         weight_decay: float = 0.01,
         evaluation_steps: int = 0,
         output_path: str = None,

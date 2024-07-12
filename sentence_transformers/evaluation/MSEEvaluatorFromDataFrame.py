@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -38,13 +40,13 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
 
     def __init__(
         self,
-        dataframe: List[Dict[str, str]],
+        dataframe: list[dict[str, str]],
         teacher_model: "SentenceTransformer",
-        combinations: List[Tuple[str, str]],
+        combinations: list[tuple[str, str]],
         batch_size: int = 8,
         name: str = "",
         write_csv: bool = True,
-        truncate_dim: Optional[int] = None,
+        truncate_dim: int | None = None,
     ):
         super().__init__()
         self.combinations = combinations
@@ -85,7 +87,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
 
     def __call__(
         self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         model.eval()
 
         mse_scores = []

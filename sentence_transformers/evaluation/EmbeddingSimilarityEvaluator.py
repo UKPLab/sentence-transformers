@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
@@ -59,16 +61,16 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
     def __init__(
         self,
-        sentences1: List[str],
-        sentences2: List[str],
-        scores: List[float],
+        sentences1: list[str],
+        sentences2: list[str],
+        scores: list[float],
         batch_size: int = 16,
-        main_similarity: Optional[Union[str, SimilarityFunction]] = None,
+        main_similarity: str | SimilarityFunction | None = None,
         name: str = "",
         show_progress_bar: bool = False,
         write_csv: bool = True,
-        precision: Optional[Literal["float32", "int8", "uint8", "binary", "ubinary"]] = None,
-        truncate_dim: Optional[int] = None,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] | None = None,
+        truncate_dim: int | None = None,
     ):
         """
         Constructs an evaluator based for the dataset.
@@ -129,7 +131,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         ]
 
     @classmethod
-    def from_input_examples(cls, examples: List[InputExample], **kwargs):
+    def from_input_examples(cls, examples: list[InputExample], **kwargs):
         sentences1 = []
         sentences2 = []
         scores = []
@@ -142,7 +144,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
     def __call__(
         self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import heapq
 import logging
 import os
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 import torch
@@ -112,25 +114,25 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
     def __init__(
         self,
-        queries: Dict[str, str],  # qid => query
-        corpus: Dict[str, str],  # cid => doc
-        relevant_docs: Dict[str, Set[str]],  # qid => Set[cid]
+        queries: dict[str, str],  # qid => query
+        corpus: dict[str, str],  # cid => doc
+        relevant_docs: dict[str, set[str]],  # qid => Set[cid]
         corpus_chunk_size: int = 50000,
-        mrr_at_k: List[int] = [10],
-        ndcg_at_k: List[int] = [10],
-        accuracy_at_k: List[int] = [1, 3, 5, 10],
-        precision_recall_at_k: List[int] = [1, 3, 5, 10],
-        map_at_k: List[int] = [100],
+        mrr_at_k: list[int] = [10],
+        ndcg_at_k: list[int] = [10],
+        accuracy_at_k: list[int] = [1, 3, 5, 10],
+        precision_recall_at_k: list[int] = [1, 3, 5, 10],
+        map_at_k: list[int] = [100],
         show_progress_bar: bool = False,
         batch_size: int = 32,
         name: str = "",
         write_csv: bool = True,
-        truncate_dim: Optional[int] = None,
-        score_functions: Dict[str, Callable[[Tensor, Tensor], Tensor]] = {
+        truncate_dim: int | None = None,
+        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = {
             SimilarityFunction.COSINE.value: cos_sim,
             SimilarityFunction.DOT_PRODUCT.value: dot_score,
         },  # Score function, higher=more similar
-        main_score_function: Optional[Union[str, SimilarityFunction]] = None,
+        main_score_function: str | SimilarityFunction | None = None,
     ) -> None:
         """
         Initializes the InformationRetrievalEvaluator.
@@ -206,7 +208,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
     def __call__(
         self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -276,7 +278,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
     def compute_metrices(
         self, model: "SentenceTransformer", corpus_model=None, corpus_embeddings: Tensor = None
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         if corpus_model is None:
             corpus_model = model
 
@@ -363,7 +365,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
         return scores
 
-    def compute_metrics(self, queries_result_list: List[object]):
+    def compute_metrics(self, queries_result_list: list[object]):
         # Init score computation values
         num_hits_at_k = {k: 0 for k in self.accuracy_at_k}
         precisions_at_k = {k: [] for k in self.precision_recall_at_k}

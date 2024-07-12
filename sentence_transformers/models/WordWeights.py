@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
-from typing import Dict, List
 
 import torch
 from torch import Tensor, nn
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 class WordWeights(nn.Module):
     """This model can weight word embeddings, for example, with idf-values."""
 
-    def __init__(self, vocab: List[str], word_weights: Dict[str, float], unknown_word_weight: float = 1):
+    def __init__(self, vocab: list[str], word_weights: dict[str, float], unknown_word_weight: float = 1):
         """
         Initializes the WordWeights class.
 
@@ -50,7 +51,7 @@ class WordWeights(nn.Module):
         self.emb_layer = nn.Embedding(len(vocab), 1)
         self.emb_layer.load_state_dict({"weight": torch.FloatTensor(weights).unsqueeze(1)})
 
-    def forward(self, features: Dict[str, Tensor]):
+    def forward(self, features: dict[str, Tensor]):
         attention_mask = features["attention_mask"]
         token_embeddings = features["token_embeddings"]
 

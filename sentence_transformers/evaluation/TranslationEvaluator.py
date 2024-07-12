@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -55,14 +57,14 @@ class TranslationEvaluator(SentenceEvaluator):
 
     def __init__(
         self,
-        source_sentences: List[str],
-        target_sentences: List[str],
+        source_sentences: list[str],
+        target_sentences: list[str],
         show_progress_bar: bool = False,
         batch_size: int = 16,
         name: str = "",
         print_wrong_matches: bool = False,
         write_csv: bool = True,
-        truncate_dim: Optional[int] = None,
+        truncate_dim: int | None = None,
     ):
         """
         Constructs an evaluator based for the dataset
@@ -101,7 +103,7 @@ class TranslationEvaluator(SentenceEvaluator):
 
     def __call__(
         self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"

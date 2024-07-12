@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import os
 import warnings
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable
 
 import torch
 from torch import nn
@@ -114,26 +116,23 @@ class SentenceTransformerTrainer(Trainer):
 
     def __init__(
         self,
-        model: Optional["SentenceTransformer"] = None,
+        model: "SentenceTransformer" | None = None,
         args: SentenceTransformerTrainingArguments = None,
-        train_dataset: Optional[Union["Dataset", "DatasetDict", Dict[str, "Dataset"]]] = None,
-        eval_dataset: Optional[Union["Dataset", "DatasetDict", Dict[str, "Dataset"]]] = None,
-        loss: Optional[
-            Union[
-                nn.Module,
-                Dict[str, nn.Module],
-                Callable[["SentenceTransformer"], torch.nn.Module],
-                Dict[str, Callable[["SentenceTransformer"], torch.nn.Module]],
-            ]
-        ] = None,
-        evaluator: Optional[Union[SentenceEvaluator, List[SentenceEvaluator]]] = None,
-        data_collator: Optional[DataCollator] = None,
-        tokenizer: Optional[Union[PreTrainedTokenizerBase, Callable]] = None,
-        model_init: Optional[Callable[[], "SentenceTransformer"]] = None,
-        compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = None,
-        callbacks: Optional[List[TrainerCallback]] = None,
-        optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
-        preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
+        train_dataset: "Dataset" | "DatasetDict" | dict[str, "Dataset"] | None = None,
+        eval_dataset: "Dataset" | "DatasetDict" | dict[str, "Dataset"] | None = None,
+        loss: nn.Module
+        | dict[str, nn.Module]
+        | Callable[["SentenceTransformer"], torch.nn.Module]
+        | dict[str, Callable[["SentenceTransformer"], torch.nn.Module]]
+        | None = None,
+        evaluator: SentenceEvaluator | list[SentenceEvaluator] | None = None,
+        data_collator: DataCollator | None = None,
+        tokenizer: PreTrainedTokenizerBase | Callable | None = None,
+        model_init: Callable[[], "SentenceTransformer"] | None = None,
+        compute_metrics: Callable[[EvalPrediction], dict] | None = None,
+        callbacks: list[TrainerCallback] | None = None,
+        optimizers: tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
+        preprocess_logits_for_metrics: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None = None,
     ) -> None:
         if not is_training_available():
             raise RuntimeError(
@@ -275,7 +274,7 @@ class SentenceTransformerTrainer(Trainer):
 
     def prepare_loss(
         self,
-        loss: Union[Callable[["SentenceTransformer"], torch.nn.Module], torch.nn.Module],
+        loss: Callable[["SentenceTransformer"], torch.nn.Module] | torch.nn.Module,
         model: "SentenceTransformer",
     ) -> torch.nn.Module:
         if isinstance(loss, torch.nn.Module):
@@ -291,9 +290,9 @@ class SentenceTransformerTrainer(Trainer):
     def compute_loss(
         self,
         model: "SentenceTransformer",
-        inputs: Dict[str, Union[torch.Tensor, Any]],
+        inputs: dict[str, torch.Tensor | Any],
         return_outputs: bool = False,
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, Any]]]:
+    ) -> torch.Tensor | tuple[torch.Tensor, dict[str, Any]]:
         """
         Computes the loss for the SentenceTransformer model.
 
@@ -336,8 +335,8 @@ class SentenceTransformerTrainer(Trainer):
         return loss
 
     def collect_features(
-        self, inputs: Dict[str, Union[torch.Tensor, Any]]
-    ) -> Tuple[List[Dict[str, torch.Tensor]], Optional[torch.Tensor]]:
+        self, inputs: dict[str, torch.Tensor | Any]
+    ) -> tuple[list[dict[str, torch.Tensor]], torch.Tensor | None]:
         """Turn the inputs from the dataloader into the separate model inputs & the labels.
 
         Example::
@@ -372,10 +371,10 @@ class SentenceTransformerTrainer(Trainer):
 
     def evaluate(
         self,
-        eval_dataset: Optional[Union["Dataset", Dict[str, "Dataset"]]] = None,
-        ignore_keys: Optional[List[str]] = None,
+        eval_dataset: "Dataset" | dict[str, "Dataset"] | None = None,
+        ignore_keys: list[str] | None = None,
         metric_key_prefix: str = "eval",
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         eval_dataset = eval_dataset if eval_dataset is not None else self.eval_dataset
         if isinstance(eval_dataset, DatasetDict) and isinstance(self.loss, dict):
             eval_dataset = self.add_dataset_name_column(eval_dataset)
@@ -385,8 +384,8 @@ class SentenceTransformerTrainer(Trainer):
         self,
         dataloader: DataLoader,
         description: str,
-        prediction_loss_only: Optional[bool] = None,
-        ignore_keys: Optional[List[str]] = None,
+        prediction_loss_only: bool | None = None,
+        ignore_keys: list[str] | None = None,
         metric_key_prefix: str = "eval",
     ) -> EvalLoopOutput:
         output = super().evaluation_loop(
@@ -449,7 +448,7 @@ class SentenceTransformerTrainer(Trainer):
             self.model = full_model
             self.model[0].auto_model = loaded_auto_model
 
-    def validate_column_names(self, dataset: "Dataset", dataset_name: Optional[str] = None) -> bool:
+    def validate_column_names(self, dataset: "Dataset", dataset_name: str | None = None) -> bool:
         if overlap := set(dataset.column_names) & {"return_loss", "dataset_name"}:
             raise ValueError(
                 f"The following column names are invalid in your {dataset_name + ' ' if dataset_name else ''}dataset: {list(overlap)}."
@@ -461,8 +460,8 @@ class SentenceTransformerTrainer(Trainer):
         dataset: "Dataset",
         batch_size: int,
         drop_last: bool,
-        valid_label_columns: Optional[List[str]] = None,
-        generator: Optional[torch.Generator] = None,
+        valid_label_columns: list[str] | None = None,
+        generator: torch.Generator | None = None,
     ) -> BatchSampler:
         if self.args.batch_sampler == BatchSamplers.NO_DUPLICATES:
             return NoDuplicatesBatchSampler(
@@ -491,9 +490,9 @@ class SentenceTransformerTrainer(Trainer):
     def get_multi_dataset_batch_sampler(
         self,
         dataset: ConcatDataset,
-        batch_samplers: List[BatchSampler],
-        generator: Optional[torch.Generator] = None,
-        seed: Optional[int] = 0,
+        batch_samplers: list[BatchSampler],
+        generator: torch.Generator | None = None,
+        seed: int | None = 0,
     ) -> BatchSampler:
         if self.args.multi_dataset_batch_sampler == MultiDatasetBatchSamplers.ROUND_ROBIN:
             return RoundRobinBatchSampler(
@@ -581,7 +580,7 @@ class SentenceTransformerTrainer(Trainer):
         self._train_dataloader = self.accelerator.prepare(DataLoader(train_dataset, **dataloader_params))
         return self._train_dataloader
 
-    def get_eval_dataloader(self, eval_dataset: Union["Dataset", None] = None) -> DataLoader:
+    def get_eval_dataloader(self, eval_dataset: "Dataset" | None = None) -> DataLoader:
         """
         Returns the evaluation [`~torch.utils.data.DataLoader`].
 
@@ -718,7 +717,7 @@ class SentenceTransformerTrainer(Trainer):
         self._train_dataloader = self.accelerator.prepare(DataLoader(test_dataset, **dataloader_params))
         return self._train_dataloader
 
-    def _save(self, output_dir: Optional[str] = None, state_dict=None) -> None:
+    def _save(self, output_dir: str | None = None, state_dict=None) -> None:
         # If we are executing this function, we are the process zero, so we don't check for that.
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
@@ -740,15 +739,15 @@ class SentenceTransformerTrainer(Trainer):
 
     def create_model_card(
         self,
-        language: Optional[str] = None,
-        license: Optional[str] = None,
-        tags: Union[str, List[str], None] = None,
-        model_name: Optional[str] = None,
-        finetuned_from: Optional[str] = None,
-        tasks: Union[str, List[str], None] = None,
-        dataset_tags: Union[str, List[str], None] = None,
-        dataset: Union[str, List[str], None] = None,
-        dataset_args: Union[str, List[str], None] = None,
+        language: str | None = None,
+        license: str | None = None,
+        tags: str | list[str] | None = None,
+        model_name: str | None = None,
+        finetuned_from: str | None = None,
+        tasks: str | list[str] | None = None,
+        dataset_tags: str | list[str] | None = None,
+        dataset: str | list[str] | None = None,
+        dataset_args: str | list[str] | None = None,
         **kwargs,
     ) -> None:
         if not self.is_world_process_zero():

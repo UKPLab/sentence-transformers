@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 from sklearn.metrics import average_precision_score
@@ -94,14 +96,14 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
 
     def __init__(
         self,
-        sentences1: List[str],
-        sentences2: List[str],
-        labels: List[int],
+        sentences1: list[str],
+        sentences2: list[str],
+        labels: list[int],
         name: str = "",
         batch_size: int = 32,
         show_progress_bar: bool = False,
         write_csv: bool = True,
-        truncate_dim: Optional[int] = None,
+        truncate_dim: int | None = None,
     ):
         self.sentences1 = sentences1
         self.sentences2 = sentences2
@@ -140,7 +142,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                 self.csv_headers.append(f"{v}_{m}")
 
     @classmethod
-    def from_input_examples(cls, examples: List[InputExample], **kwargs):
+    def from_input_examples(cls, examples: list[InputExample], **kwargs):
         sentences1 = []
         sentences2 = []
         scores = []
@@ -153,7 +155,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
 
     def __call__(
         self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Compute the evaluation metrics for the given model.
 

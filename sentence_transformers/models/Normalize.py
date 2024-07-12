@@ -1,4 +1,4 @@
-from typing import Dict
+from __future__ import annotations
 
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -10,7 +10,7 @@ class Normalize(nn.Module):
     def __init__(self) -> None:
         super(Normalize, self).__init__()
 
-    def forward(self, features: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def forward(self, features: dict[str, Tensor]) -> dict[str, Tensor]:
         features.update({"sentence_embedding": F.normalize(features["sentence_embedding"], p=2, dim=1)})
         return features
 

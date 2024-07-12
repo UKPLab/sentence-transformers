@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import gzip
 import json
 import logging
 import os
-from typing import List
 
 import numpy as np
 import torch
@@ -54,7 +55,7 @@ class WordEmbeddings(nn.Module):
         )
         return features
 
-    def tokenize(self, texts: List[str], **kwargs):
+    def tokenize(self, texts: list[str], **kwargs):
         tokenized_texts = [self.tokenizer.tokenize(text, **kwargs) for text in texts]
         sentence_lengths = [len(tokens) for tokens in tokenized_texts]
         max_len = max(sentence_lengths)

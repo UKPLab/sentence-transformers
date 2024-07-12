@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .InputExample import InputExample
 from .LabelSentenceReader import LabelSentenceReader
 from .NLIDataReader import NLIDataReader

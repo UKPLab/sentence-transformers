@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 
@@ -68,14 +70,14 @@ class MSEEvaluator(SentenceEvaluator):
 
     def __init__(
         self,
-        source_sentences: List[str],
-        target_sentences: List[str],
+        source_sentences: list[str],
+        target_sentences: list[str],
         teacher_model=None,
         show_progress_bar: bool = False,
         batch_size: int = 32,
         name: str = "",
         write_csv: bool = True,
-        truncate_dim: Optional[int] = None,
+        truncate_dim: int | None = None,
     ):
         super().__init__()
         self.truncate_dim = truncate_dim
@@ -96,7 +98,7 @@ class MSEEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.primary_metric = "negative_mse"
 
-    def __call__(self, model: "SentenceTransformer", output_path: str = None, epoch=-1, steps=-1) -> Dict[str, float]:
+    def __call__(self, model: "SentenceTransformer", output_path: str = None, epoch=-1, steps=-1) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"

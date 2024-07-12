@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import logging
-from typing import List
 
 import numpy as np
 from torch.utils.data import IterableDataset
@@ -23,7 +24,7 @@ class SentenceLabelDataset(IterableDataset):
     by the samples drawn per label.
     """
 
-    def __init__(self, examples: List[InputExample], samples_per_label: int = 2, with_replacement: bool = False):
+    def __init__(self, examples: list[InputExample], samples_per_label: int = 2, with_replacement: bool = False):
         """
         Creates a LabelSampler for a SentenceLabelDataset.
 

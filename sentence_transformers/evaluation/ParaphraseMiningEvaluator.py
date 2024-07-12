@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
 from collections import defaultdict
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 from sentence_transformers.util import paraphrase_mining
@@ -62,9 +64,9 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
 
     def __init__(
         self,
-        sentences_map: Dict[str, str],
-        duplicates_list: List[Tuple[str, str]] = None,
-        duplicates_dict: Dict[str, Dict[str, bool]] = None,
+        sentences_map: dict[str, str],
+        duplicates_list: list[tuple[str, str]] = None,
+        duplicates_dict: dict[str, dict[str, bool]] = None,
         add_transitive_closure: bool = False,
         query_chunk_size: int = 5000,
         corpus_chunk_size: int = 100000,
@@ -74,7 +76,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         batch_size: int = 16,
         name: str = "",
         write_csv: bool = True,
-        truncate_dim: Optional[int] = None,
+        truncate_dim: int | None = None,
     ):
         """
         Initializes the ParaphraseMiningEvaluator.
@@ -157,7 +159,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
 
     def __call__(
         self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"

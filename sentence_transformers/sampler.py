@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 from itertools import accumulate, cycle
-from typing import Any, Iterator, List
+from typing import Any, Iterator
 
 import torch
 from torch.utils.data import BatchSampler, ConcatDataset, SubsetRandomSampler
@@ -58,7 +60,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         dataset: "Dataset",
         batch_size: int,
         drop_last: bool,
-        valid_label_columns: List[str] = None,
+        valid_label_columns: list[str] = None,
         generator: torch.Generator = None,
         seed: int = 0,
     ) -> None:
@@ -84,7 +86,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         }
 
     @staticmethod
-    def _determine_labels_to_use(dataset: "Dataset", valid_label_columns: List[str]) -> List[Any]:
+    def _determine_labels_to_use(dataset: "Dataset", valid_label_columns: list[str]) -> list[Any]:
         for column_name in valid_label_columns or []:
             if column_name in dataset.column_names:
                 return dataset[column_name]
@@ -93,7 +95,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
             f"which only has these columns: {dataset.column_names}."
         )
 
-    def __iter__(self) -> Iterator[List[int]]:
+    def __iter__(self) -> Iterator[list[int]]:
         if self.generator and self.seed:
             self.generator.manual_seed(self.seed + self.epoch)
 
@@ -117,7 +119,7 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
         dataset: "Dataset",
         batch_size: int,
         drop_last: bool,
-        valid_label_columns: List[str] = [],
+        valid_label_columns: list[str] = [],
         generator: torch.Generator = None,
         seed: int = 0,
     ) -> None:
@@ -130,7 +132,7 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
         self.generator = generator
         self.seed = seed
 
-    def __iter__(self) -> Iterator[List[int]]:
+    def __iter__(self) -> Iterator[list[int]]:
         """
         Iterate over the remaining non-yielded indices. For each index, check if the sample values are already in the
         batch. If not, add the sample values to the batch keep going until the batch is full. If the batch is full, yield
@@ -185,7 +187,7 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
     def __init__(
         self,
         dataset: ConcatDataset,
-        batch_samplers: List[BatchSampler],
+        batch_samplers: list[BatchSampler],
         generator: torch.Generator = None,
         seed: int = None,
     ) -> None:
@@ -197,7 +199,7 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
         self.generator = generator
         self.seed = seed
 
-    def __iter__(self) -> Iterator[List[int]]:
+    def __iter__(self) -> Iterator[list[int]]:
         if self.generator and self.seed:
             self.generator.manual_seed(self.seed + self.epoch)
 
@@ -221,7 +223,7 @@ class ProportionalBatchSampler(SetEpochMixin, BatchSampler):
     def __init__(
         self,
         dataset: ConcatDataset,
-        batch_samplers: List[BatchSampler],
+        batch_samplers: list[BatchSampler],
         generator: torch.Generator,
         seed: int,
     ) -> None:
@@ -231,7 +233,7 @@ class ProportionalBatchSampler(SetEpochMixin, BatchSampler):
         self.generator = generator
         self.seed = seed
 
-    def __iter__(self) -> Iterator[List[int]]:
+    def __iter__(self) -> Iterator[list[int]]:
         self.generator.manual_seed(self.seed + self.epoch)
 
         num_samples = [len(dataset) for dataset in self.dataset.datasets]

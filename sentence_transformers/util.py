@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import heapq
 import importlib
@@ -7,7 +9,7 @@ import queue
 import random
 import sys
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Type, Union, overload
+from typing import TYPE_CHECKING, Any, Callable, Literal, overload
 
 import numpy as np
 import requests
@@ -27,7 +29,7 @@ if TYPE_CHECKING:
     from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
-def _convert_to_tensor(a: Union[list, np.ndarray, Tensor]) -> Tensor:
+def _convert_to_tensor(a: list | np.ndarray | Tensor) -> Tensor:
     """
     Converts the input `a` to a PyTorch tensor if it is not already a tensor.
 
@@ -57,7 +59,7 @@ def _convert_to_batch(a: Tensor) -> Tensor:
     return a
 
 
-def _convert_to_batch_tensor(a: Union[list, np.ndarray, Tensor]) -> Tensor:
+def _convert_to_batch_tensor(a: list | np.ndarray | Tensor) -> Tensor:
     """
     Converts the input data to a tensor with a batch dimension.
 
@@ -86,7 +88,7 @@ def pytorch_cos_sim(a: Tensor, b: Tensor) -> Tensor:
     return cos_sim(a, b)
 
 
-def cos_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]) -> Tensor:
+def cos_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) -> Tensor:
     """
     Computes the cosine similarity between two tensors.
 
@@ -122,7 +124,7 @@ def pairwise_cos_sim(a: Tensor, b: Tensor) -> Tensor:
     return pairwise_dot_score(normalize_embeddings(a), normalize_embeddings(b))
 
 
-def dot_score(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]) -> Tensor:
+def dot_score(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) -> Tensor:
     """
     Computes the dot-product dot_prod(a[i], b[j]) for all i and j.
 
@@ -156,7 +158,7 @@ def pairwise_dot_score(a: Tensor, b: Tensor) -> Tensor:
     return (a * b).sum(dim=-1)
 
 
-def manhattan_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]) -> Tensor:
+def manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) -> Tensor:
     """
     Computes the manhattan similarity (i.e., negative distance) between two tensors.
 
@@ -173,7 +175,7 @@ def manhattan_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray,
     return -torch.cdist(a, b, p=1.0)
 
 
-def pairwise_manhattan_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]):
+def pairwise_manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor):
     """
     Computes the manhattan similarity (i.e., negative distance) between pairs of tensors.
 
@@ -190,7 +192,7 @@ def pairwise_manhattan_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np
     return -torch.sum(torch.abs(a - b), dim=-1)
 
 
-def euclidean_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]) -> Tensor:
+def euclidean_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) -> Tensor:
     """
     Computes the euclidean similarity (i.e., negative distance) between two tensors.
 
@@ -207,7 +209,7 @@ def euclidean_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray,
     return -torch.cdist(a, b, p=2.0)
 
 
-def pairwise_euclidean_sim(a: Union[list, np.ndarray, Tensor], b: Union[list, np.ndarray, Tensor]):
+def pairwise_euclidean_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor):
     """
     Computes the euclidean distance (i.e., negative distance) between pairs of tensors.
 
@@ -272,16 +274,14 @@ def normalize_embeddings(embeddings: Tensor) -> Tensor:
 
 
 @overload
-def truncate_embeddings(embeddings: np.ndarray, truncate_dim: Optional[int]) -> np.ndarray: ...
+def truncate_embeddings(embeddings: np.ndarray, truncate_dim: int | None) -> np.ndarray: ...
 
 
 @overload
-def truncate_embeddings(embeddings: torch.Tensor, truncate_dim: Optional[int]) -> torch.Tensor: ...
+def truncate_embeddings(embeddings: torch.Tensor, truncate_dim: int | None) -> torch.Tensor: ...
 
 
-def truncate_embeddings(
-    embeddings: Union[np.ndarray, torch.Tensor], truncate_dim: Optional[int]
-) -> Union[np.ndarray, torch.Tensor]:
+def truncate_embeddings(embeddings: np.ndarray | torch.Tensor, truncate_dim: int | None) -> np.ndarray | torch.Tensor:
     """
     Truncates the embeddings matrix.
 
@@ -315,7 +315,7 @@ def truncate_embeddings(
 
 def paraphrase_mining(
     model,
-    sentences: List[str],
+    sentences: list[str],
     show_progress_bar: bool = False,
     batch_size: int = 32,
     query_chunk_size: int = 5000,
@@ -323,7 +323,7 @@ def paraphrase_mining(
     max_pairs: int = 500000,
     top_k: int = 100,
     score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
-) -> List[List[Union[float, int]]]:
+) -> list[list[float | int]]:
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
     other sentences and returns a list with the pairs that have the highest cosine similarity score.
@@ -365,7 +365,7 @@ def paraphrase_mining_embeddings(
     max_pairs: int = 500000,
     top_k: int = 100,
     score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
-) -> List[List[Union[float, int]]]:
+) -> list[list[float | int]]:
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
     other sentences and returns a list with the pairs that have the highest cosine similarity score.
@@ -431,7 +431,7 @@ def paraphrase_mining_embeddings(
     return pairs_list
 
 
-def information_retrieval(*args, **kwargs) -> List[List[Dict[str, Union[int, float]]]]:
+def information_retrieval(*args, **kwargs) -> list[list[dict[str, int | float]]]:
     """This function is deprecated. Use semantic_search instead"""
     return semantic_search(*args, **kwargs)
 
@@ -443,7 +443,7 @@ def semantic_search(
     corpus_chunk_size: int = 500000,
     top_k: int = 10,
     score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
-) -> List[List[Dict[str, Union[int, float]]]]:
+) -> list[list[dict[str, int | float]]]:
     """
     This function performs a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
     It can be used for Information Retrieval / Semantic Search for corpora up to about 1 Million entries.
@@ -519,11 +519,11 @@ def semantic_search(
 def mine_hard_negatives(
     dataset: "Dataset",
     model: "SentenceTransformer",
-    cross_encoder: Optional["CrossEncoder"] = None,
+    cross_encoder: "CrossEncoder" | None = None,
     range_min: int = 0,
-    range_max: Optional[int] = None,
-    max_score: Optional[float] = None,
-    margin: Optional[float] = None,
+    range_max: int | None = None,
+    max_score: float | None = None,
+    margin: float | None = None,
     num_negatives: int = 3,
     sampling_strategy: Literal["random", "top"] = "top",
     as_triplets: bool = True,
@@ -911,7 +911,7 @@ def http_get(url: str, path: str) -> None:
     progress.close()
 
 
-def batch_to_device(batch: Dict[str, Any], target_device: device) -> Dict[str, Any]:
+def batch_to_device(batch: dict[str, Any], target_device: device) -> dict[str, Any]:
     """
     Send a PyTorch batch (i.e., a dictionary of string keys to Tensors) to a device (e.g. "cpu", "cuda", "mps").
 
@@ -956,7 +956,7 @@ def fullname(o) -> str:
         return module + "." + o.__class__.__name__
 
 
-def import_from_string(dotted_path: str) -> Type:
+def import_from_string(dotted_path: str) -> type:
     """
     Import a dotted module path and return the attribute/class designated by the
     last name in the path. Raise ImportError if the import failed.
@@ -993,12 +993,12 @@ def import_from_string(dotted_path: str) -> Type:
 
 
 def community_detection(
-    embeddings: Union[torch.Tensor, np.ndarray],
+    embeddings: torch.Tensor | np.ndarray,
     threshold: float = 0.75,
     min_community_size: int = 10,
     batch_size: int = 1024,
     show_progress_bar: bool = False,
-) -> List[List[int]]:
+) -> list[list[int]]:
     """
     Function for Fast Community Detection.
 
@@ -1141,9 +1141,9 @@ def disable_logging(highest_level=logging.CRITICAL):
 
 def is_sentence_transformer_model(
     model_name_or_path: str,
-    token: Optional[Union[bool, str]] = None,
-    cache_folder: Optional[str] = None,
-    revision: Optional[str] = None,
+    token: bool | str | None = None,
+    cache_folder: str | None = None,
+    revision: str | None = None,
     local_files_only: bool = False,
 ) -> bool:
     """
@@ -1174,11 +1174,11 @@ def is_sentence_transformer_model(
 def load_file_path(
     model_name_or_path: str,
     filename: str,
-    token: Optional[Union[bool, str]],
-    cache_folder: Optional[str],
-    revision: Optional[str] = None,
+    token: bool | str | None,
+    cache_folder: str | None,
+    revision: str | None = None,
     local_files_only: bool = False,
-) -> Optional[str]:
+) -> str | None:
     """
     Loads a file from a local or remote location.
 
@@ -1216,11 +1216,11 @@ def load_file_path(
 def load_dir_path(
     model_name_or_path: str,
     directory: str,
-    token: Optional[Union[bool, str]],
-    cache_folder: Optional[str],
-    revision: Optional[str] = None,
+    token: bool | str | None,
+    cache_folder: str | None,
+    revision: str | None = None,
     local_files_only: bool = False,
-) -> Optional[str]:
+) -> str | None:
     """
     Loads the directory path for a given model name or path.
 

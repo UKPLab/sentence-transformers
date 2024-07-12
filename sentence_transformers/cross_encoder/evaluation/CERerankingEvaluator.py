@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
-from typing import Optional
 
 import numpy as np
 from sklearn.metrics import ndcg_score
@@ -22,9 +23,7 @@ class CERerankingEvaluator:
             of positive (relevant) documents, negative is a list of negative (irrelevant) documents.
     """
 
-    def __init__(
-        self, samples, at_k: int = 10, name: str = "", write_csv: bool = True, mrr_at_k: Optional[int] = None
-    ):
+    def __init__(self, samples, at_k: int = 10, name: str = "", write_csv: bool = True, mrr_at_k: int | None = None):
         self.samples = samples
         self.name = name
         if mrr_at_k is not None:

@@ -1,4 +1,6 @@
 # CoSENTLoss must be imported before AnglELoss
+from __future__ import annotations
+
 from .CoSENTLoss import CoSENTLoss  # isort: skip
 
 from .AdaptiveLayerLoss import AdaptiveLayerLoss

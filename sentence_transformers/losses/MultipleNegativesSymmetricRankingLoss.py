@@ -1,4 +1,6 @@
-from typing import Any, Dict, Iterable
+from __future__ import annotations
+
+from typing import Any, Iterable
 
 import torch
 from torch import Tensor, nn
@@ -69,7 +71,7 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
         self.similarity_fct = similarity_fct
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         anchor = reps[0]
         candidates = torch.cat(reps[1:])
@@ -84,5 +86,5 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
         backward_loss = self.cross_entropy_loss(anchor_positive_scores.transpose(0, 1), labels)
         return (forward_loss + backward_loss) / 2
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
