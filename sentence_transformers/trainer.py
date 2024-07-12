@@ -36,7 +36,7 @@ from sentence_transformers.training_args import (
 from sentence_transformers.util import disable_logging, is_datasets_available, is_training_available
 
 if is_datasets_available():
-    from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
+    from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, Value
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +178,21 @@ class SentenceTransformerTrainer(Trainer):
 
         if data_collator is None:
             data_collator = SentenceTransformerDataCollator(tokenize_fn=model.tokenize)
+
+        for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
+            if isinstance(dataset, IterableDataset) and dataset.column_names is None:
+                sample = next(iter(dataset))
+                naive_type_mapping = {str: "string", int: "int64", float: "float32", bool: "bool"}
+                example_features = {
+                    key: Value(naive_type_mapping.get(type(value), "null")) for key, value in sample.items()
+                }
+                raise ValueError(
+                    f"The provided `{dataset_name}_dataset` must have Features. Specify them with e.g.:\n"
+                    f"{dataset_name}_dataset = {dataset_name}_dataset.cast(Features({example_features}))\n"
+                    "or by providing the Features to the IterableDataset initialization method. See the Datasets "
+                    "documentation for more information on dataset Features: "
+                    "https://huggingface.co/docs/datasets/en/about_dataset_features"
+                )
 
         if isinstance(train_dataset, dict) and not isinstance(train_dataset, DatasetDict):
             train_dataset = DatasetDict(train_dataset)
