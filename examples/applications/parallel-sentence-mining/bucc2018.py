@@ -54,12 +54,8 @@ use_pca = False
 pca_dimensions = 128
 
 # We store the embeddings on disc, so that they can later be loaded from disc
-source_embedding_file = "{}_{}_{}.emb".format(
-    model_name, os.path.basename(source_file), pca_dimensions if use_pca else model.get_sentence_embedding_dimension()
-)
-target_embedding_file = "{}_{}_{}.emb".format(
-    model_name, os.path.basename(target_file), pca_dimensions if use_pca else model.get_sentence_embedding_dimension()
-)
+source_embedding_file = f"{model_name}_{os.path.basename(source_file)}_{pca_dimensions if use_pca else model.get_sentence_embedding_dimension()}.emb"
+target_embedding_file = f"{model_name}_{os.path.basename(target_file)}_{pca_dimensions if use_pca else model.get_sentence_embedding_dimension()}.emb"
 
 
 # Use PCA to reduce the dimensionality of the sentence embedding model

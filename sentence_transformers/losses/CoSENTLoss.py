@@ -72,7 +72,7 @@ class CoSENTLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(CoSENTLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.similarity_fct = similarity_fct
         self.scale = scale

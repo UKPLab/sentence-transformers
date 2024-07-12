@@ -24,7 +24,7 @@ class WordWeights(nn.Module):
             unknown_word_weight (float, optional): Weight for words in vocab that do not appear in the word_weights lookup.
                 These can be, for example, rare words in the vocab where no weight exists. Defaults to 1.
         """
-        super(WordWeights, self).__init__()
+        super().__init__()
         self.config_keys = ["vocab", "word_weights", "unknown_word_weight"]
         self.vocab = vocab
         self.word_weights = word_weights
@@ -43,9 +43,7 @@ class WordWeights(nn.Module):
             weights.append(weight)
 
         logger.info(
-            "{} of {} words without a weighting value. Set weight to {}".format(
-                num_unknown_words, len(vocab), unknown_word_weight
-            )
+            f"{num_unknown_words} of {len(vocab)} words without a weighting value. Set weight to {unknown_word_weight}"
         )
 
         self.emb_layer = nn.Embedding(len(vocab), 1)

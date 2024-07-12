@@ -11,7 +11,7 @@ from torch import Tensor, nn
 
 class LayerNorm(nn.Module):
     def __init__(self, dimension: int):
-        super(LayerNorm, self).__init__()
+        super().__init__()
         self.dimension = dimension
         self.norm = nn.LayerNorm(dimension)
 

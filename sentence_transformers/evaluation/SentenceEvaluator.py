@@ -28,7 +28,7 @@ class SentenceEvaluator:
         self.primary_metric = None
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> float | dict[str, float]:
         """
         This is called during training to evaluate the model.
@@ -62,7 +62,7 @@ class SentenceEvaluator:
             self.primary_metric = name + "_" + self.primary_metric
         return metrics
 
-    def store_metrics_in_model_card_data(self, model: "SentenceTransformer", metrics: dict[str, Any]) -> None:
+    def store_metrics_in_model_card_data(self, model: SentenceTransformer, metrics: dict[str, Any]) -> None:
         model.model_card_data.set_evaluation_metrics(self, metrics)
 
     @property

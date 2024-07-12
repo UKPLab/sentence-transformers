@@ -67,7 +67,7 @@ else:
         corpus_embeddings = cache_data["embeddings"][0:max_corpus_size]
 
 ###############################
-print("Corpus loaded with {} sentences / embeddings".format(len(corpus_sentences)))
+print(f"Corpus loaded with {len(corpus_sentences)} sentences / embeddings")
 
 # Move embeddings to the target device of the model
 corpus_embeddings = corpus_embeddings.to(model.device)
@@ -82,7 +82,7 @@ while True:
     hits = hits[0]  # Get the hits for the first query
 
     print("Input question:", inp_question)
-    print("Results (after {:.3f} seconds):".format(end_time - start_time))
+    print(f"Results (after {end_time - start_time:.3f} seconds):")
     for hit in hits[0:5]:
         print("\t{:.3f}\t{}".format(hit["score"], corpus_sentences[hit["corpus_id"]]))
 

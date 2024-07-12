@@ -85,7 +85,7 @@ class MultipleNegativesRankingLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(MultipleNegativesRankingLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct

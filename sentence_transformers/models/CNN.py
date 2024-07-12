@@ -73,7 +73,7 @@ class CNN(nn.Module):
 
     @staticmethod
     def load(input_path: str):
-        with open(os.path.join(input_path, "cnn_config.json"), "r") as fIn:
+        with open(os.path.join(input_path, "cnn_config.json")) as fIn:
             config = json.load(fIn)
 
         model = CNN(**config)

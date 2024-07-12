@@ -110,7 +110,7 @@ class MarginMSELoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(MarginMSELoss, self).__init__()
+        super().__init__()
         self.model = model
         self.similarity_fct = similarity_fct
         self.loss_fct = nn.MSELoss()

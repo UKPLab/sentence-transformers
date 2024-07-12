@@ -26,7 +26,7 @@ class BoW(nn.Module):
         unknown_word_weight: float = 1,
         cumulative_term_frequency: bool = True,
     ):
-        super(BoW, self).__init__()
+        super().__init__()
         vocab = list(set(vocab))  # Ensure vocab is unique
         self.config_keys = ["vocab", "word_weights", "unknown_word_weight", "cumulative_term_frequency"]
         self.vocab = vocab
@@ -48,9 +48,7 @@ class BoW(nn.Module):
             self.weights.append(weight)
 
         logger.info(
-            "{} out of {} words without a weighting value. Set weight to {}".format(
-                num_unknown_words, len(vocab), unknown_word_weight
-            )
+            f"{num_unknown_words} out of {len(vocab)} words without a weighting value. Set weight to {unknown_word_weight}"
         )
 
         self.tokenizer = WhitespaceTokenizer(vocab, stop_words=set(), do_lower_case=False)

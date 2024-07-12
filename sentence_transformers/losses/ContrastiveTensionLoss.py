@@ -73,7 +73,7 @@ class ContrastiveTensionLoss(nn.Module):
     """
 
     def __init__(self, model: SentenceTransformer) -> None:
-        super(ContrastiveTensionLoss, self).__init__()
+        super().__init__()
         self.model2 = model  # This will be the final model used during the inference time.
         self.model1 = copy.deepcopy(model)
         self.criterion = nn.BCEWithLogitsLoss(reduction="sum")
@@ -165,7 +165,7 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
                     epochs=10,
                 )
         """
-        super(ContrastiveTensionLossInBatchNegatives, self).__init__()
+        super().__init__()
         self.model2 = model  # This will be the final model used during the inference time.
         self.model1 = copy.deepcopy(model)
         self.similarity_fct = similarity_fct

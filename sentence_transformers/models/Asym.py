@@ -50,7 +50,7 @@ class Asym(nn.Sequential):
 
             for idx, model in enumerate(models):
                 ordered_dict[name + "-" + str(idx)] = model
-        super(Asym, self).__init__(ordered_dict)
+        super().__init__(ordered_dict)
 
     def forward(self, features: dict[str, Tensor]):
         if "text_keys" in features and len(features["text_keys"]) > 0:

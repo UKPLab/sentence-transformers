@@ -138,7 +138,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(CachedMultipleNegativesRankingLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct

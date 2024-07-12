@@ -15,7 +15,7 @@ class WeightedLayerPooling(nn.Module):
     def __init__(
         self, word_embedding_dimension, num_hidden_layers: int = 12, layer_start: int = 4, layer_weights=None
     ):
-        super(WeightedLayerPooling, self).__init__()
+        super().__init__()
         self.config_keys = ["word_embedding_dimension", "layer_start", "num_hidden_layers"]
         self.word_embedding_dimension = word_embedding_dimension
         self.layer_start = layer_start

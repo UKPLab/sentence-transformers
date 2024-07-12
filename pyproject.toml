@@ -62,13 +62,13 @@ line-length = 119
 fix = true
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP006", "UP007"]
+select = ["E", "F", "W", "I", "UP"]
 # Skip `E731` (do not assign a lambda expression, use a def)
 ignore = [
     # LineTooLong
     "E501",
     # DoNotAssignLambda
-    "E731",
+    "E731"
 ]
 
 [tool.ruff.lint.per-file-ignores]

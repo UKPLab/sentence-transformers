@@ -72,7 +72,7 @@ class GISTEmbedLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(GISTEmbedLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.guide = guide
         self.temperature = temperature
@@ -118,7 +118,7 @@ class GISTEmbedLoss(nn.Module):
             anchor, positive, negative = embeddings
             anchor_guide, positive_guide, negative_guide = guide_embeddings
         else:
-            raise ValueError("Expected 2 or 3 embeddings, got {}".format(len(embeddings)))
+            raise ValueError(f"Expected 2 or 3 embeddings, got {len(embeddings)}")
 
         # Compute the model's similarities
         ap_sim = self.sim_matrix(anchor, positive)

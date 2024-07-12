@@ -69,7 +69,7 @@ def evaluate_stsb_test(model, expected_score, test_samples) -> None:
     evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name="sts-test")
     scores = model.evaluate(evaluator)
     score = scores[evaluator.primary_metric] * 100
-    print("STS-Test Performance: {:.2f} vs. exp: {:.2f}".format(score, expected_score))
+    print(f"STS-Test Performance: {score:.2f} vs. exp: {expected_score:.2f}")
     assert score > expected_score or abs(score - expected_score) < 0.1
 
 

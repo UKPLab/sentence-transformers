@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 def semantic_search_faiss(
     query_embeddings: np.ndarray,
     corpus_embeddings: np.ndarray | None = None,
-    corpus_index: "faiss.Index" | None = None,
+    corpus_index: faiss.Index | None = None,
     corpus_precision: Literal["float32", "uint8", "ubinary"] = "float32",
     top_k: int = 10,
     ranges: np.ndarray | None = None,
@@ -27,7 +27,7 @@ def semantic_search_faiss(
     rescore_multiplier: int = 2,
     exact: bool = True,
     output_index: bool = False,
-) -> tuple[list[list[dict[str, int | float]]], float, "faiss.Index"]:
+) -> tuple[list[list[dict[str, int | float]]], float, faiss.Index]:
     """
     Performs semantic search using the FAISS library.
 
@@ -185,7 +185,7 @@ def semantic_search_faiss(
 def semantic_search_usearch(
     query_embeddings: np.ndarray,
     corpus_embeddings: np.ndarray | None = None,
-    corpus_index: "usearch.index.Index" | None = None,
+    corpus_index: usearch.index.Index | None = None,
     corpus_precision: Literal["float32", "int8", "binary"] = "float32",
     top_k: int = 10,
     ranges: np.ndarray | None = None,
@@ -194,7 +194,7 @@ def semantic_search_usearch(
     rescore_multiplier: int = 2,
     exact: bool = True,
     output_index: bool = False,
-) -> tuple[list[list[dict[str, int | float]]], float, "usearch.index.Index"]:
+) -> tuple[list[list[dict[str, int | float]]], float, usearch.index.Index]:
     """
     Performs semantic search using the usearch library.
 

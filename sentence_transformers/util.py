@@ -517,9 +517,9 @@ def semantic_search(
 
 
 def mine_hard_negatives(
-    dataset: "Dataset",
-    model: "SentenceTransformer",
-    cross_encoder: "CrossEncoder" | None = None,
+    dataset: Dataset,
+    model: SentenceTransformer,
+    cross_encoder: CrossEncoder | None = None,
     range_min: int = 0,
     range_max: int | None = None,
     max_score: float | None = None,
@@ -530,7 +530,7 @@ def mine_hard_negatives(
     batch_size=32,
     use_faiss: bool = False,
     verbose: bool = True,
-) -> "Dataset":
+) -> Dataset:
     """
     Add hard negatives to a dataset of (anchor, positive) pairs to create (anchor, positive, negative) triplets or
     (anchor, positive, negative_1, ..., negative_n) tuples.
@@ -893,7 +893,7 @@ def http_get(url: str, path: str) -> None:
 
     req = requests.get(url, stream=True)
     if req.status_code != 200:
-        print("Exception when trying to download {}. Response {}".format(url, req.status_code), file=sys.stderr)
+        print(f"Exception when trying to download {url}. Response {req.status_code}", file=sys.stderr)
         req.raise_for_status()
         return
 
@@ -977,7 +977,7 @@ def import_from_string(dotted_path: str) -> type:
     try:
         module_path, class_name = dotted_path.rsplit(".", 1)
     except ValueError:
-        msg = "%s doesn't look like a module path" % dotted_path
+        msg = f"{dotted_path} doesn't look like a module path"
         raise ImportError(msg)
 
     try:
@@ -988,7 +988,7 @@ def import_from_string(dotted_path: str) -> type:
     try:
         return getattr(module, class_name)
     except AttributeError:
-        msg = 'Module "%s" does not define a "%s" attribute/class' % (module_path, class_name)
+        msg = f'Module "{module_path}" does not define a "{class_name}" attribute/class'
         raise ImportError(msg)
 
 

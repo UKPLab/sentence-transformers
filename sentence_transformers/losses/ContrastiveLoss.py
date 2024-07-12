@@ -77,7 +77,7 @@ class ContrastiveLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(ContrastiveLoss, self).__init__()
+        super().__init__()
         self.distance_metric = distance_metric
         self.margin = margin
         self.model = model
@@ -87,7 +87,7 @@ class ContrastiveLoss(nn.Module):
         distance_metric_name = self.distance_metric.__name__
         for name, value in vars(SiameseDistanceMetric).items():
             if value == self.distance_metric:
-                distance_metric_name = "SiameseDistanceMetric.{}".format(name)
+                distance_metric_name = f"SiameseDistanceMetric.{name}"
                 break
 
         return {"distance_metric": distance_metric_name, "margin": self.margin, "size_average": self.size_average}

@@ -134,7 +134,7 @@ class BatchHardTripletLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(BatchHardTripletLoss, self).__init__()
+        super().__init__()
         self.sentence_embedder = model
         self.triplet_margin = margin
         self.distance_metric = distance_metric

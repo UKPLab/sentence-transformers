@@ -81,7 +81,7 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
                 )
                 trainer.train()
         """
-        super(BatchHardSoftMarginTripletLoss, self).__init__(model)
+        super().__init__(model)
         self.sentence_embedder = model
         self.distance_metric = distance_metric
 

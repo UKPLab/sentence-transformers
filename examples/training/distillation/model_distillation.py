@@ -147,7 +147,7 @@ if student_model.get_sentence_embedding_dimension() < teacher_model.get_sentence
     dense.linear.weight = torch.nn.Parameter(torch.tensor(pca.components_))
     teacher_model.add_module("dense", dense)
 
-    logging.info("Teacher Performance with {} dimensions:".format(teacher_model.get_sentence_embedding_dimension()))
+    logging.info(f"Teacher Performance with {teacher_model.get_sentence_embedding_dimension()} dimensions:")
     dev_evaluator_stsb(teacher_model)
 
 

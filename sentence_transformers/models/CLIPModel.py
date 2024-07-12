@@ -8,7 +8,7 @@ from torch import nn
 
 class CLIPModel(nn.Module):
     def __init__(self, model_name: str = "openai/clip-vit-base-patch32", processor_name=None) -> None:
-        super(CLIPModel, self).__init__()
+        super().__init__()
 
         if processor_name is None:
             processor_name = model_name
@@ -84,5 +84,5 @@ class CLIPModel(nn.Module):
         self.processor.save_pretrained(output_path)
 
     @staticmethod
-    def load(input_path: str) -> "CLIPModel":
+    def load(input_path: str) -> CLIPModel:
         return CLIPModel(model_name=input_path)

@@ -132,7 +132,7 @@ class CachedGISTEmbedLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(CachedGISTEmbedLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.guide = guide
         self.temperature = temperature
@@ -226,7 +226,7 @@ class CachedGISTEmbedLoss(nn.Module):
             anchor, positive, negative = reps
             anchor_guide, positive_guide, negative_guide = reps_guided
         else:
-            raise ValueError("Expected 2 or 3 embeddings, got {}".format(len(reps)))
+            raise ValueError(f"Expected 2 or 3 embeddings, got {len(reps)}")
 
         anchor = torch.cat(anchor, dim=0)
         positive = torch.cat(positive, dim=0)
@@ -300,7 +300,7 @@ class CachedGISTEmbedLoss(nn.Module):
             anchor, positive, negative = reps
             anchor_guide, positive_guide, negative_guide = reps_guided
         else:
-            raise ValueError("Expected 2 or 3 embeddings, got {}".format(len(reps)))
+            raise ValueError(f"Expected 2 or 3 embeddings, got {len(reps)}")
 
         anchor = torch.cat(anchor, dim=0)
         positive = torch.cat(positive, dim=0)

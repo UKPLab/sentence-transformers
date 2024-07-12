@@ -38,7 +38,7 @@ class SequentialEvaluator(SentenceEvaluator):
         self.main_score_function = main_score_function
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         evaluations = []
         scores = []

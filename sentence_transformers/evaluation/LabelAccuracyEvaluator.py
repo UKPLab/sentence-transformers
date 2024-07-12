@@ -47,7 +47,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         self.primary_metric = "accuracy"
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         model.eval()
         total = 0
@@ -55,9 +55,9 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
 
         if epoch != -1:
             if steps == -1:
-                out_txt = " after epoch {}:".format(epoch)
+                out_txt = f" after epoch {epoch}:"
             else:
-                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
+                out_txt = f" in epoch {epoch} after {steps} steps:"
         else:
             out_txt = ":"
 
@@ -75,7 +75,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
             correct += torch.argmax(prediction, dim=1).eq(label_ids).sum().item()
         accuracy = correct / total
 
-        logger.info("Accuracy: {:.4f} ({}/{})\n".format(accuracy, correct, total))
+        logger.info(f"Accuracy: {accuracy:.4f} ({correct}/{total})\n")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

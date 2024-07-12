@@ -40,7 +40,7 @@ def pretrained_model_score(
 
     scores = model.evaluate(evaluator)
     score = scores[evaluator.primary_metric] * 100
-    print(model_name, "{:.2f} vs. exp: {:.2f}".format(score, expected_score))
+    print(model_name, f"{score:.2f} vs. exp: {expected_score:.2f}")
     assert score > expected_score or abs(score - expected_score) < 0.1
 
 

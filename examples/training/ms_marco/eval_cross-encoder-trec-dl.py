@@ -85,7 +85,7 @@ with gzip.open(passage_filepath, "rt", encoding="utf8") as fIn:
 
         passage_cand[qid].append([pid, passage])
 
-logging.info("Queries: {}".format(len(queries)))
+logging.info(f"Queries: {len(queries)}")
 
 queries_result_list = []
 run = {}

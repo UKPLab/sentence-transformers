@@ -72,7 +72,7 @@ class TripletLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(TripletLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.distance_metric = distance_metric
         self.triplet_margin = triplet_margin
@@ -91,7 +91,7 @@ class TripletLoss(nn.Module):
         distance_metric_name = self.distance_metric.__name__
         for name, value in vars(TripletDistanceMetric).items():
             if value == self.distance_metric:
-                distance_metric_name = "TripletDistanceMetric.{}".format(name)
+                distance_metric_name = f"TripletDistanceMetric.{name}"
                 break
 
         return {"distance_metric": distance_metric_name, "triplet_margin": self.triplet_margin}

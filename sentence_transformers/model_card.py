@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 
 
 class ModelCardCallback(TrainerCallback):
-    def __init__(self, trainer: "SentenceTransformerTrainer", default_args_dict: dict[str, Any]) -> None:
+    def __init__(self, trainer: SentenceTransformerTrainer, default_args_dict: dict[str, Any]) -> None:
         super().__init__()
         self.trainer = trainer
         self.default_args_dict = default_args_dict
@@ -64,7 +64,7 @@ class ModelCardCallback(TrainerCallback):
         args: SentenceTransformerTrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        model: "SentenceTransformer",
+        model: SentenceTransformer,
         **kwargs,
     ) -> None:
         from sentence_transformers.losses import AdaptiveLayerLoss, Matryoshka2dLoss, MatryoshkaLoss
@@ -104,7 +104,7 @@ class ModelCardCallback(TrainerCallback):
         args: SentenceTransformerTrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        model: "SentenceTransformer",
+        model: SentenceTransformer,
         **kwargs,
     ) -> None:
         # model.model_card_data.hyperparameters = extract_hyperparameters_from_trainer(self.trainer)
@@ -147,7 +147,7 @@ class ModelCardCallback(TrainerCallback):
         args: SentenceTransformerTrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        model: "SentenceTransformer",
+        model: SentenceTransformer,
         metrics: dict[str, float],
         **kwargs,
     ) -> None:
@@ -171,7 +171,7 @@ class ModelCardCallback(TrainerCallback):
         args: SentenceTransformerTrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        model: "SentenceTransformer",
+        model: SentenceTransformer,
         logs: dict[str, float],
         **kwargs,
     ) -> None:
@@ -294,7 +294,7 @@ class SentenceTransformerModelCardData(CardData):
     base_model_revision: str | None = field(default=None, init=False)
     non_default_hyperparameters: dict[str, Any] = field(default_factory=dict, init=False)
     all_hyperparameters: dict[str, Any] = field(default_factory=dict, init=False)
-    eval_results_dict: dict["SentenceEvaluator", dict[str, Any]] | None = field(default_factory=dict, init=False)
+    eval_results_dict: dict[SentenceEvaluator, dict[str, Any]] | None = field(default_factory=dict, init=False)
     training_logs: list[dict[str, float]] = field(default_factory=list, init=False)
     widget: list[dict[str, str]] = field(default_factory=list, init=False)
     predict_example: str | None = field(default=None, init=False)
@@ -302,7 +302,7 @@ class SentenceTransformerModelCardData(CardData):
     code_carbon_callback: CodeCarbonCallback | None = field(default=None, init=False)
     citations: dict[str, str] = field(default_factory=dict, init=False)
     best_model_step: int | None = field(default=None, init=False)
-    trainer: "SentenceTransformerTrainer" | None = field(default=None, init=False, repr=False)
+    trainer: SentenceTransformerTrainer | None = field(default=None, init=False, repr=False)
     datasets: list[str] = field(default_factory=list, init=False, repr=False)
 
     # Utility fields
@@ -315,7 +315,7 @@ class SentenceTransformerModelCardData(CardData):
     version: dict[str, str] = field(default_factory=get_versions, init=False)
 
     # Passed via `register_model` only
-    model: "SentenceTransformer" | None = field(default=None, init=False, repr=False)
+    model: SentenceTransformer | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         # We don't want to save "ignore_metadata_errors" in our Model Card
@@ -401,7 +401,7 @@ class SentenceTransformerModelCardData(CardData):
     def set_best_model_step(self, step: int) -> None:
         self.best_model_step = step
 
-    def set_widget_examples(self, dataset: "Dataset" | "DatasetDict") -> None:
+    def set_widget_examples(self, dataset: Dataset | DatasetDict) -> None:
         if isinstance(dataset, Dataset):
             dataset = DatasetDict(dataset=dataset)
 
@@ -452,7 +452,7 @@ class SentenceTransformerModelCardData(CardData):
                 )
                 self.predict_example = sentences[:3]
 
-    def set_evaluation_metrics(self, evaluator: "SentenceEvaluator", metrics: dict[str, Any]) -> None:
+    def set_evaluation_metrics(self, evaluator: SentenceEvaluator, metrics: dict[str, Any]) -> None:
         from sentence_transformers.evaluation import SequentialEvaluator
 
         self.eval_results_dict[evaluator] = copy(metrics)
@@ -483,7 +483,7 @@ class SentenceTransformerModelCardData(CardData):
                     }
                 )
 
-    def set_label_examples(self, dataset: "Dataset") -> None:
+    def set_label_examples(self, dataset: Dataset) -> None:
         num_examples_per_label = 3
         examples = defaultdict(list)
         finished_labels = set()
@@ -504,9 +504,7 @@ class SentenceTransformerModelCardData(CardData):
             for label, example_set in examples.items()
         ]
 
-    def infer_datasets(
-        self, dataset: "Dataset" | "DatasetDict", dataset_name: str | None = None
-    ) -> list[dict[str, str]]:
+    def infer_datasets(self, dataset: Dataset | DatasetDict, dataset_name: str | None = None) -> list[dict[str, str]]:
         if isinstance(dataset, DatasetDict):
             return [
                 dataset
@@ -679,7 +677,7 @@ class SentenceTransformerModelCardData(CardData):
         return dataset_info
 
     def extract_dataset_metadata(
-        self, dataset: "Dataset" | "DatasetDict", dataset_metadata, dataset_type: Literal["train", "eval"]
+        self, dataset: Dataset | DatasetDict, dataset_metadata, dataset_type: Literal["train", "eval"]
     ) -> dict[str, Any]:
         if dataset:
             if dataset_metadata and (
@@ -717,7 +715,7 @@ class SentenceTransformerModelCardData(CardData):
 
         return self.validate_datasets(dataset_metadata)
 
-    def register_model(self, model: "SentenceTransformer") -> None:
+    def register_model(self, model: SentenceTransformer) -> None:
         self.model = model
 
     def set_model_id(self, model_id: str) -> None:
@@ -974,7 +972,7 @@ class SentenceTransformerModelCardData(CardData):
         ).strip()
 
 
-def generate_model_card(model: "SentenceTransformer") -> str:
+def generate_model_card(model: SentenceTransformer) -> str:
     template_path = Path(__file__).parent / "model_card_template.md"
     model_card = ModelCard.from_template(card_data=model.model_card_data, template_path=template_path, hf_emoji="🤗")
     return model_card.content

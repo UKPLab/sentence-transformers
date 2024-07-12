@@ -72,7 +72,7 @@ class WhitespaceTokenizer(WordTokenizer):
 
     @staticmethod
     def load(input_path: str):
-        with open(os.path.join(input_path, "whitespacetokenizer_config.json"), "r") as fIn:
+        with open(os.path.join(input_path, "whitespacetokenizer_config.json")) as fIn:
             config = json.load(fIn)
 
         return WhitespaceTokenizer(**config)

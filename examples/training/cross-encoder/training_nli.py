@@ -71,7 +71,7 @@ f1_evaluator = CEF1Evaluator.from_input_examples(dev_samples, name="AllNLI-dev")
 evaluator = SequentialEvaluator([accuracy_evaluator, f1_evaluator])
 
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-logger.info("Warmup-steps: {}".format(warmup_steps))
+logger.info(f"Warmup-steps: {warmup_steps}")
 
 
 # Train the model

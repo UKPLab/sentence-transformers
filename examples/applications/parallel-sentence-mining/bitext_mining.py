@@ -177,4 +177,4 @@ with gzip.open("parallel-sentences-out.tsv.gz", "wt", encoding="utf8") as fOut:
             )
             sentences_written += 1
 
-print("Done. {} sentences written".format(sentences_written))
+print(f"Done. {sentences_written} sentences written")

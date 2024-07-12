@@ -77,7 +77,7 @@ dense.linear.weight = torch.nn.Parameter(torch.tensor(pca_comp))
 model.add_module("dense", dense)
 
 # Evaluate the model with the reduce embedding size
-logging.info("Model with {} dimensions:".format(new_dimension))
+logging.info(f"Model with {new_dimension} dimensions:")
 stsb_evaluator(model)
 
 

@@ -123,7 +123,7 @@ class TripletEvaluator(SentenceEvaluator):
         return cls(anchors, positives, negatives, **kwargs)
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
@@ -201,10 +201,10 @@ class TripletEvaluator(SentenceEvaluator):
         accuracy_manhattan = num_correct_manhattan_triplets / num_triplets
         accuracy_euclidean = num_correct_euclidean_triplets / num_triplets
 
-        logger.info("Accuracy Cosine Distance:   \t{:.2f}".format(accuracy_cos * 100))
-        logger.info("Accuracy Dot Product:       \t{:.2f}".format(accuracy_dot * 100))
-        logger.info("Accuracy Manhattan Distance:\t{:.2f}".format(accuracy_manhattan * 100))
-        logger.info("Accuracy Euclidean Distance:\t{:.2f}\n".format(accuracy_euclidean * 100))
+        logger.info(f"Accuracy Cosine Distance:   \t{accuracy_cos * 100:.2f}")
+        logger.info(f"Accuracy Dot Product:       \t{accuracy_dot * 100:.2f}")
+        logger.info(f"Accuracy Manhattan Distance:\t{accuracy_manhattan * 100:.2f}")
+        logger.info(f"Accuracy Euclidean Distance:\t{accuracy_euclidean * 100:.2f}\n")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

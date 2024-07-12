@@ -98,7 +98,7 @@ class MSEEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.primary_metric = "negative_mse"
 
-    def __call__(self, model: "SentenceTransformer", output_path: str = None, epoch=-1, steps=-1) -> dict[str, float]:
+    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch=-1, steps=-1) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -121,7 +121,7 @@ class MSEEvaluator(SentenceEvaluator):
         mse *= 100
 
         logger.info(f"MSE evaluation (lower = better) on the {self.name} dataset{out_txt}:")
-        logger.info("MSE (*100):\t{:4f}".format(mse))
+        logger.info(f"MSE (*100):\t{mse:4f}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

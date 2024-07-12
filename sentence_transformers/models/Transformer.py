@@ -42,7 +42,7 @@ class Transformer(nn.Module):
         do_lower_case: bool = False,
         tokenizer_name_or_path: str = None,
     ) -> None:
-        super(Transformer, self).__init__()
+        super().__init__()
         self.config_keys = ["max_seq_length", "do_lower_case"]
         self.do_lower_case = do_lower_case
         if model_args is None:
@@ -107,9 +107,7 @@ class Transformer(nn.Module):
         )
 
     def __repr__(self) -> str:
-        return "Transformer({}) with Transformer model: {} ".format(
-            self.get_config_dict(), self.auto_model.__class__.__name__
-        )
+        return f"Transformer({self.get_config_dict()}) with Transformer model: {self.auto_model.__class__.__name__} "
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         """Returns token_embeddings, cls_token"""
@@ -186,7 +184,7 @@ class Transformer(nn.Module):
             json.dump(self.get_config_dict(), fOut, indent=2)
 
     @classmethod
-    def load(cls, input_path: str) -> "Transformer":
+    def load(cls, input_path: str) -> Transformer:
         # Old classes used other config names than 'sentence_bert_config.json'
         for config_name in [
             "sentence_bert_config.json",
