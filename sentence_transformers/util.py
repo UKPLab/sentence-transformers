@@ -1077,8 +1077,9 @@ def mine_hard_negatives(
 
     # Deduplicate the corpus
     corpus = list(set(corpus))
+    corpus_idx = {text: idx for idx, text in enumerate(corpus)}
     pos_to_corpus_indices = torch.tensor(
-        [corpus.index(positive) if positive in corpus else -1 for positive in positives], dtype=torch.long
+        [corpus_idx[positive] if positive in corpus_idx else -1 for positive in positives], dtype=torch.long
     )
 
     # Embed the corpus, queries, and positives
