@@ -940,6 +940,7 @@ def mine_hard_negatives(
     sampling_strategy: Literal["random", "top"] = "top",
     as_triplets: bool = True,
     batch_size: int = 32,
+    chunk_size: int = 16384,
     use_faiss: bool = False,
     verbose: bool = True,
 ) -> "Dataset":
@@ -1053,20 +1054,28 @@ def mine_hard_negatives(
 
     from datasets import Dataset
 
+    # If a dataset has duplicate queries, assume that all duplicates are positive pairs.
+    columns = dataset.column_names
+    if len(columns) != 2:
+        raise ValueError("Dataset must contain exactly two columns.")
+
+    max_positives = dataset.to_pandas().groupby(columns[0]).count().max()[columns[1]]
     if range_max is None:
         if margin is not None or max_score is not None:
             # 1 positive, 10 * num_negatives negatives because some might be skipped, and range_min skipped
-            range_max = range_min + (num_negatives * 10) + 1
+            range_max = range_min + (num_negatives * 10) + max_positives
         else:
             # 1 positive, num_negatives negatives, and range_min skipped
-            range_max = range_min + num_negatives + 1
+            range_max = range_min + num_negatives + max_positives
+        if range_max > 2048 and use_faiss:
+            # FAISS on GPU can only retrieve up to 2048 documents per query
+            range_max = 2048
+            if verbose:
+                print("Using FAISS, we can only retrieve up to 2048 documents per query. Setting range_max to 2048.")
         if verbose:
             print(f"Setting range_max to {range_max} based on other parameters.")
 
     # Combine anchor and positive sentences to get unique corpus
-    columns = dataset.column_names
-    if len(columns) != 2:
-        raise ValueError("Dataset must contain exactly two columns.")
 
     log_counters = {}
     queries = dataset[columns[0]]
