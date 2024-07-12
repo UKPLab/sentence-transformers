@@ -930,6 +930,7 @@ def mine_hard_negatives_from_corpus(
 def mine_hard_negatives(
     dataset: "Dataset",
     model: "SentenceTransformer",
+    corpus: Optional[List[str]] = None,
     cross_encoder: Optional["CrossEncoder"] = None,
     range_min: int = 0,
     range_max: Optional[int] = None,
@@ -938,7 +939,7 @@ def mine_hard_negatives(
     num_negatives: int = 3,
     sampling_strategy: Literal["random", "top"] = "top",
     as_triplets: bool = True,
-    batch_size=32,
+    batch_size: int = 32,
     use_faiss: bool = False,
     verbose: bool = True,
 ) -> "Dataset":
@@ -1029,6 +1030,8 @@ def mine_hard_negatives(
     Args:
         dataset (Dataset): A dataset containing (anchor, positive) pairs.
         model (SentenceTransformer): A SentenceTransformer model to use for embedding the sentences.
+        corpus (List[str], optional): A list containing documents as strings that will be used as candidate negatives.
+            Defaults to None, in which case the second column in `dataset` will be used as the negative candidate corpus.
         cross_encoder (CrossEncoder, optional): A CrossEncoder model to use for rescoring the candidates. Defaults to None.
         range_min (int): Minimum rank of the closest matches to consider as negatives. Defaults to 0.
         range_max (int, optional): Maximum rank of the closest matches to consider as negatives. Defaults to None.
@@ -1067,18 +1070,33 @@ def mine_hard_negatives(
 
     log_counters = {}
     queries = dataset[columns[0]]
-    corpus = dataset[columns[1]]
+    positives = dataset[columns[1]]
+    separate_corpus = corpus is not None
+    if not separate_corpus:
+        corpus = positives
 
-    # Embed the corpus and queries
+    # Deduplicate the corpus
+    corpus = list(set(corpus))
+    pos_to_corpus_indices = torch.tensor(
+        [corpus.index(positive) if positive in corpus else -1 for positive in positives], dtype=torch.long
+    )
+
+    # Embed the corpus, queries, and positives
     corpus_embeddings = model.encode(corpus, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
     query_embeddings = model.encode(queries, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
+    if separate_corpus:
+        positives_embeddings = model.encode(
+            positives, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True
+        )
+    else:
+        positives_embeddings = corpus_embeddings[pos_to_corpus_indices]
     batch_idx = torch.arange(len(queries)).unsqueeze(-1)
 
     if use_faiss:
         import faiss
 
         # Compute the positive scores separate from FAISS
-        positive_scores = model.similarity_pairwise(query_embeddings, corpus_embeddings).cpu()
+        positive_scores = model.similarity_pairwise(query_embeddings, positives_embeddings).cpu()
 
         query_embeddings = query_embeddings.cpu().numpy()
         corpus_embeddings = corpus_embeddings.cpu().numpy()
@@ -1105,7 +1123,7 @@ def mine_hard_negatives(
     else:
         # Compute all similarity scores
         scores = model.similarity(query_embeddings, corpus_embeddings).cpu()
-        positive_scores = scores.diagonal().clone()
+        positive_scores = model.similarity_pairwise(query_embeddings, positives_embeddings).cpu()
 
         # Keep only the range_max + 1 highest scores. We offset by 1 to potentially include the positive pair
         scores, indices = torch.topk(scores, k=range_max + 1, dim=1)
@@ -1114,7 +1132,7 @@ def mine_hard_negatives(
 
     # Scores is a [num_queries, range_max + 1] tensor, where we set the values to -inf to disqualify the corresponding
     # text as a negative candidate. Here we disqualify the positive pair
-    positive_indices = indices == torch.arange(len(queries), device=indices.device).unsqueeze(-1)
+    positive_indices = indices == pos_to_corpus_indices.unsqueeze(-1)
     scores[positive_indices] = -float("inf")
 
     num_candidates = scores.numel()
@@ -1130,11 +1148,12 @@ def mine_hard_negatives(
                 convert_to_tensor=True,
             )
             # If we rescored a positive pair, make sure that it is disqualified again
-            if idx in candidate_neg_idx:
-                pred_scores[candidate_neg_idx == idx] = -float("inf")
+            if pos_to_corpus_indices[idx] in candidate_neg_idx:
+                pred_scores[candidate_neg_idx == pos_to_corpus_indices[idx]] = -float("inf")
+
             scores[idx] = pred_scores
         positive_scores = cross_encoder.predict(
-            list(zip(queries, corpus)),
+            list(zip(queries, positives)),
             batch_size=batch_size,
             convert_to_tensor=True,
         )
@@ -1203,7 +1222,7 @@ def mine_hard_negatives(
         }
         for anchor_idx, negative_idx in zip(anchor_indices, indices):
             triplets_data[columns[0]].append(queries[anchor_idx])
-            triplets_data[columns[1]].append(corpus[anchor_idx])
+            triplets_data[columns[1]].append(positives[anchor_idx])
             triplets_data["negative"].append(corpus[negative_idx])
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
 
@@ -1216,7 +1235,7 @@ def mine_hard_negatives(
         # Create a list of (anchor, positive, negative_1, ..., negative_`num_negatives`) tuples
         triplets_data = {
             columns[0]: [queries[idx] for idx in range(len(queries)) if indices_to_keep[idx]],
-            columns[1]: [corpus[idx] for idx in range(len(corpus)) if indices_to_keep[idx]],
+            columns[1]: [positives[idx] for idx in range(len(positives)) if indices_to_keep[idx]],
             **{
                 f"negative_{i}": [corpus[neg_idx] for neg_idx in neg_indices]
                 for i, neg_indices in enumerate(indices.T, start=1)
