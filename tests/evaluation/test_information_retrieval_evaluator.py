@@ -10,6 +10,37 @@ from sentence_transformers.evaluation import InformationRetrievalEvaluator
 
 
 @pytest.fixture
+def mock_model():
+    def mock_encode(sentences: str | list[str], **kwargs) -> torch.Tensor:
+        """
+        We simply one-hot encode the sentences; if a sentence contains a keyword, the corresponding one-hot
+        encoding is added to the sentence embedding.
+        """
+        one_hot_encodings = {
+            "pokemon": torch.tensor([1.0, 0.0, 0.0, 0.0, 0.0]),
+            "car": torch.tensor([0.0, 1.0, 0.0, 0.0, 0.0]),
+            "vehicle": torch.tensor([0.0, 0.0, 1.0, 0.0, 0.0]),
+            "fruit": torch.tensor([0.0, 0.0, 0.0, 1.0, 0.0]),
+            "vegetable": torch.tensor([0.0, 0.0, 0.0, 0.0, 1.0]),
+        }
+        if isinstance(sentences, str):
+            sentences = [sentences]
+        embeddings = []
+        for sentence in sentences:
+            encoding = torch.zeros(5)
+            for keyword, one_hot in one_hot_encodings.items():
+                if keyword in sentence:
+                    encoding += one_hot
+            embeddings.append(encoding)
+        return torch.stack(embeddings)
+
+    model = Mock(spec=SentenceTransformer)
+    model.encode.side_effect = mock_encode
+    model.model_card_data = PropertyMock(return_value=Mock())
+    return model
+
+
+@pytest.fixture
 def test_data():
     queries = {
         "0": "What is a pokemon?",
@@ -68,34 +99,8 @@ def test_simple(test_data):
     assert set(results.keys()) == set(expected_keys)
 
 
-def test_metrices(test_data):
+def test_metrices(test_data, mock_model):
     queries, corpus, relevant_docs = test_data
-
-    def mock_encode(sentences: str | list[str], **kwargs) -> torch.Tensor:
-        """
-        We simply one-hot encode the sentences; if a sentence contains a keyword, the corresponding one-hot encoding is added to the sentence embedding.
-        """
-        one_hot_encodings = {
-            "pokemon": torch.tensor([1.0, 0.0, 0.0, 0.0, 0.0]),
-            "car": torch.tensor([0.0, 1.0, 0.0, 0.0, 0.0]),
-            "vehicle": torch.tensor([0.0, 0.0, 1.0, 0.0, 0.0]),
-            "fruit": torch.tensor([0.0, 0.0, 0.0, 1.0, 0.0]),
-            "vegetable": torch.tensor([0.0, 0.0, 0.0, 0.0, 1.0]),
-        }
-        if isinstance(sentences, str):
-            sentences = [sentences]
-        embeddings = []
-        for sentence in sentences:
-            encoding = torch.zeros(5)
-            for keyword, one_hot in one_hot_encodings.items():
-                if keyword in sentence:
-                    encoding += one_hot
-            embeddings.append(encoding)
-        return torch.stack(embeddings)
-
-    model = Mock(spec=SentenceTransformer)
-    model.encode.side_effect = mock_encode
-    model.model_card_data = PropertyMock(return_value=Mock())
 
     ir_evaluator = InformationRetrievalEvaluator(
         queries=queries,
@@ -108,7 +113,7 @@ def test_metrices(test_data):
         ndcg_at_k=[3],
         map_at_k=[5],
     )
-    results = ir_evaluator(model)
+    results = ir_evaluator(mock_model)
     # We expect test_cosine_precision@3 to be 0.4, since 6 out of 15 (5 queries * 3) are True Positives
     # We expect test_cosine_recall@1 to be 0.9; the average of 4 times a recall of 1 and once a recall of 0.5
     expected_results = {
