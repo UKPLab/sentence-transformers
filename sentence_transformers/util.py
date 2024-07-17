@@ -883,19 +883,19 @@ def mine_hard_negatives(
     # Either grab the top negatives or sample randomly
     if sampling_strategy == "top":
         indices = indices[:, :num_negatives]
-        scores = scores[:, :num_negatives]
+        negative_scores = negative_scores[:, :num_negatives]
 
     elif sampling_strategy == "random":
         # Prevent sampling -inf values if possible
-        num_options = indices.size(1) - indices.isinf().sum(1)
+        num_options = indices.size(1) - negative_scores.isinf().sum(1)
         num_options = num_options.clamp(min=num_negatives)
         # Randomly sample negatives from each row
         sampled_idx = [random.sample(range(options), k=num_negatives) for options in num_options]
         indices = indices[batch_idx, sampled_idx]
-        scores = indices[batch_idx, sampled_idx]
+        negative_scores = negative_scores[batch_idx, sampled_idx]
         # Resort the indices and scores
-        scores, sorted_negative_indexes = scores.sort(dim=1, descending=True)
-        indices = indices[batch_idx, sorted_negative_indexes]
+        negative_scores, local_indices = negative_scores.sort(dim=1, descending=True)
+        indices = indices[batch_idx, local_indices]
 
     # flatten the unique_query_indices and use to fetch the positives
     unique_query_indices = [idx for indices in unique_query_indices for idx in indices]
