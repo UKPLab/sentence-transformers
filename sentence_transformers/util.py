@@ -653,6 +653,7 @@ def mine_hard_negatives(
         as_triplets (bool): If True, returns up to `num_negatives` (anchor, positive, negative) triplets for each input sample.
             If False, returns 1 (anchor, positive, negative_1, ..., negative_n) tuple for each input sample. Defaults to True.
         batch_size (int): Batch size for processing. Defaults to 32.
+        chunk_size (int): Chunk size for each chunk to be indexed or used to search. Only works with faiss. Defaults to 16384.
         use_faiss (bool): Whether to use FAISS for similarity search. May be recommended for large datasets. Defaults to False.
         verbose (bool): Whether to print statistics and logging. Defaults to True.
 
