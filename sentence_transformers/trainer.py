@@ -628,7 +628,7 @@ class SentenceTransformerTrainer(Trainer):
         else:
             batch_sampler = self.get_batch_sampler(
                 eval_dataset,
-                batch_size=self.args.train_batch_size,
+                batch_size=self.args.eval_batch_size,
                 drop_last=self.args.dataloader_drop_last,
                 valid_label_columns=data_collator.valid_label_columns,
                 generator=generator,
