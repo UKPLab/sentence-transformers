@@ -28,6 +28,12 @@ if TYPE_CHECKING:
     from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
     from sentence_transformers.SentenceTransformer import SentenceTransformer
 
+class ImageChannelDimension():
+    """
+    Defines the color channels' position in an Image's shape
+    """
+    FIRST = "channels_first"
+    LAST = "channels_last"
 
 def _convert_to_tensor(a: list | np.ndarray | Tensor) -> Tensor:
     """
