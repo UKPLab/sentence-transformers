@@ -2,11 +2,12 @@
 Tests that the pretrained models produce the correct scores on the STSbenchmark dataset
 """
 
+from __future__ import annotations
+
 import csv
 import gzip
 import os
 from functools import partial
-from typing import Optional
 
 import pytest
 
@@ -15,7 +16,7 @@ from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 
 
 def pretrained_model_score(
-    model_name, expected_score: float, max_test_samples: int = 100, cache_dir: Optional[str] = None
+    model_name, expected_score: float, max_test_samples: int = 100, cache_dir: str | None = None
 ) -> None:
     model = SentenceTransformer(model_name, cache_folder=cache_dir)
     sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
@@ -39,7 +40,7 @@ def pretrained_model_score(
 
     scores = model.evaluate(evaluator)
     score = scores[evaluator.primary_metric] * 100
-    print(model_name, "{:.2f} vs. exp: {:.2f}".format(score, expected_score))
+    print(model_name, f"{score:.2f} vs. exp: {expected_score:.2f}")
     assert score > expected_score or abs(score - expected_score) < 0.1
 
 

@@ -88,7 +88,7 @@ for query in queries:
     results = sorted(results, key=lambda x: x["score"], reverse=True)
 
     print("Query:", query)
-    print("Search took {:.2f} seconds".format(time.time() - start_time))
+    print(f"Search took {time.time() - start_time:.2f} seconds")
     for hit in results[0:5]:
         print("Score: {:.2f}".format(hit["score"]), "\t", hit["input"][1])
 

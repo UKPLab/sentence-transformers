@@ -78,7 +78,7 @@ for id, sentence in corpus.items():
     if id not in dev_test_ids:
         train_sentences.append(InputExample(texts=[sentence, sentence]))
 
-logging.info("{} train sentences".format(len(train_sentences)))
+logging.info(f"{len(train_sentences)} train sentences")
 
 ################# Initialize an SBERT model #################
 

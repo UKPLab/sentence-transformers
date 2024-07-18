@@ -48,7 +48,7 @@ for query in queries:
     print("Top 5 most similar sentences in corpus:")
 
     for score, idx in zip(scores, indices):
-        print(corpus[idx], "(Score: {:.4f})".format(score))
+        print(corpus[idx], f"(Score: {score:.4f})")
 
     """
     # Alternatively, we can also use util.semantic_search to perform cosine similarty + topk
