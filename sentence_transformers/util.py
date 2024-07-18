@@ -529,7 +529,7 @@ def semantic_search(
 def mine_hard_negatives(
     dataset: Dataset,
     model: SentenceTransformer,
-    corpus: List[str] | None = None,
+    corpus: list[str] | None = None,
     cross_encoder: CrossEncoder | None = None,
     range_min: int = 0,
     range_max: int | None = None,
