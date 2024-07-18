@@ -697,37 +697,39 @@ def mine_hard_negatives(
         corpus = positives
 
     # Deduplicate the corpus
-    corpus = list(set(corpus))
+    # make sure all the positives are also in the corpus and de-duplicate it.
+    unique_corpus = set(corpus)
+    unique_corpus.update(set(positives))
+    corpus = list(unique_corpus)
+
+    # corpus_idx maps the corpus text into its position in the corpus
+    # This position does not necessarily matches the original corpus, as it was de-duplicated.
     corpus_idx = {text: idx for idx, text in enumerate(corpus)}
 
-    # Deduplicate the queries
+    # Deduplicate the queries, but keep the original one for later reference.
     all_queries = queries.copy()
     queries = list(set(queries))
     queries_idx = {query: idx for idx, query in enumerate(queries)}
+    n_queries = len(queries)
+    batch_idx = torch.arange(n_queries).unsqueeze(-1)
 
-    if len(queries) != len(all_queries) and verbose:
-        print(f"Found {len(queries)} unique queries out of {len(all_queries)} total queries.")
+    device = model.device
+
+    if n_queries != len(all_queries) and verbose:
+        print(f"Found {n_queries} unique queries out of {len(all_queries)} total queries.")
 
     # Keep track of the positive indices for each (unique) query.
     # As we may have duplicated queries (i.e., a single query with multiple positives),
     # We keep track, for each unique query, of where their positives are in the list of positives (positive_indices).
-    # We also keep track of the indices of their duplicates in the list of queries (unique_query_indices).
-    # This will be used when re-constructing the dataset.
-    positive_indices = [[] for _ in range(len(queries))]
-    unique_query_indices = [[] for _ in range(len(queries))]
+    # Note that as queries may have differing numbers of positives, we cannot guarantee that this is a fixed-length matrix.
+    positive_indices = [[] for _ in range(n_queries)]
 
     for (idx, query), positive in zip(enumerate(all_queries), positives):
         query_idx = queries_idx[query]
         positive_indices[query_idx].append(corpus_idx[positive])
-        unique_query_indices[query_idx].append(idx)
 
-    batch_idx = torch.arange(len(queries)).unsqueeze(-1)
-
-    if verbose and max_positives > 1 and as_triplets:
-        avg_positives_per_query = np.mean(positives_per_query)
-        print(f"The dataset provided has multiple positives per query (avg: {avg_positives_per_query:.2f}).")
-        print(f"Each positive will be paired with {num_negatives} negative examples.")
-        print(f"The final dataset will have {len(queries) * max_positives * num_negatives} triplets.")
+    positive_indices = [torch.tensor(p, device=device) for p in positive_indices]
+    n_positives = [len(p) for p in positive_indices]
 
     if use_faiss:
         import faiss
@@ -757,21 +759,20 @@ def mine_hard_negatives(
         indices_list = []
 
         # Iterate over the queries in chunks, encode them, and retrieve the top-k documents
-        for i in trange(0, len(queries), chunk_size, desc="Retrieving top-k documents"):
+        for i in trange(0, n_queries, chunk_size, desc="Retrieving top-k documents"):
             chunk = queries[i : i + chunk_size]
             chunk_embeddings = model.encode(
                 chunk,
-                convert_to_tensor=True,
+                convert_to_numpy=True,
                 show_progress_bar=False,
                 batch_size=batch_size,
             )
-            scores, indices = index.search(chunk_embeddings.cpu().numpy(), k=range_max)
+            scores, indices = index.search(chunk_embeddings, k=range_max)
             scores_list.append(scores)
             indices_list.append(indices)
 
-        # Keep then as numpy arrays for now
-        scores = np.concatenate(scores_list, axis=0)
-        indices = np.concatenate(indices_list, axis=0)
+        scores = torch.from_numpy(np.concatenate(scores_list, axis=0)).to(device)
+        indices = torch.from_numpy(np.concatenate(indices_list, axis=0)).to(device)
         del chunk_embeddings
 
     else:
@@ -790,9 +791,9 @@ def mine_hard_negatives(
 
     # Make sure that at least one positive is retrieved for each query
     # Otherwise, score a random positive for the query and replace the last negative with it
-    missing_positives = [~np.in1d(indices[q_idx], positive_indices[q_idx]).any() for q_idx in range(len(queries))]
+    missing_positives = [~torch.isin(indices[q_idx], positive_indices[q_idx]).any() for q_idx in range(n_queries)]
     missing_queries = [query for query, missing in zip(queries, missing_positives) if missing]
-    p_idx = [random.choice(positive_indices[q_idx]) for q_idx in range(len(queries)) if missing_positives[q_idx]]
+    p_idx = [random.choice(positive_indices[q_idx]) for q_idx in range(n_queries) if missing_positives[q_idx]]
     positives_to_embed = [corpus[idx] for idx in p_idx]
 
     # If we have any queries that didn't retrieve any positives, manually score one random positive for each of them
@@ -814,10 +815,6 @@ def mine_hard_negatives(
         indices[missing_indices, -1] = p_idx
         scores[missing_indices, -1] = scores_missing.cpu().numpy()
 
-    # Turn the scores and indices back into tensors
-    scores = torch.from_numpy(scores)
-    indices = torch.from_numpy(indices)
-
     # Rescore with cross_encoder
     if cross_encoder is not None and (margin is not None or max_score is not None):
         for idx, candidate_idx in tqdm(enumerate(indices), desc="Rescoring with CrossEncoder", total=len(indices)):
@@ -830,9 +827,7 @@ def mine_hard_negatives(
             )
             scores[idx] = pred_scores
     # for each query, create a mask that is True for the positives and False for the negatives in the indices
-    positive_mask = torch.stack(
-        [torch.isin(indices[q_idx], torch.tensor(positive_indices[q_idx])) for q_idx in range(len(queries))]
-    )
+    positive_mask = torch.stack([torch.isin(indices[q_idx], positive_indices[q_idx]) for q_idx in range(n_queries)])
     # We keep a copy of the positive scores to use later
     positive_scores = scores.clone()
     positive_scores[~positive_mask] = float("inf")
@@ -897,11 +892,13 @@ def mine_hard_negatives(
         negative_scores, local_indices = negative_scores.sort(dim=1, descending=True)
         indices = indices[batch_idx, local_indices]
 
-    # flatten the unique_query_indices and use to fetch the positives
-    unique_query_indices = [idx for indices in unique_query_indices for idx in indices]
-    # Flatten the positive scores as well
+    # Flatten the positive scores
     positive_scores_indices_to_keep = positive_scores != float("inf")
     positive_scores = positive_scores[positive_scores_indices_to_keep]
+
+    # repeat indices and negative_scores by the number of positives of each query
+    indices = torch.cat([indices[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
+    negative_scores = torch.cat([negative_scores[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
 
     if as_triplets:
         # If calling as triples and there are multiple positives per query, we will explode the dataset into triplets.
@@ -910,14 +907,28 @@ def mine_hard_negatives(
         indices = indices[indices_to_keep]
         negative_scores = negative_scores[indices_to_keep]
 
-        # Keep the queries in the original order and repeat them n_positives times
-        anchors = [
-            queries_idx[queries[q_idx]] for q_idx in range(len(queries)) for _ in range(len(positive_indices[q_idx]))
-        ]
-        anchor_indices = (
-            torch.tensor(anchors, dtype=torch.long, device=indices_to_keep.device).repeat(num_negatives, 1).T
-        )
+        # repeat the queries (n_positive+n_negatives) times
+        anchor_indices = torch.from_numpy(
+            np.stack(
+                [
+                    [queries_idx[queries[idx]]] * num_negatives
+                    for idx in range(n_queries)
+                    for _ in range(n_positives[idx])
+                ]
+            )
+        ).to(device)
         anchor_indices = anchor_indices[indices_to_keep]
+
+        positive_indices = torch.cat([positive_indices[idx].repeat(num_negatives, 1).T for idx in range(n_queries)])
+        positive_indices = positive_indices[indices_to_keep]
+
+        positive_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep]
+
+        if verbose and len(anchor_indices) != len(queries) * num_negatives:
+            avg_positives_per_query = np.mean(positives_per_query)
+            print(f"The dataset provided has multiple positives per query (avg: {avg_positives_per_query:.2f}).")
+            print(f"Each positive will be paired with {num_negatives} negative examples.")
+            print(f"The final dataset will have {len(anchor_indices)} triplets.")
 
         triplets_data = {
             columns[0]: [],
@@ -925,11 +936,11 @@ def mine_hard_negatives(
             "negative": [],
         }
 
-        for anchor_idx, negative_idx in zip(anchor_indices, indices):
+        for anchor_idx, negative_idx, positive_idx in zip(anchor_indices, indices, positive_indices):
             triplets_data[columns[0]].append(queries[anchor_idx])
-            triplets_data[columns[1]].append(positives[unique_query_indices[anchor_idx]])
+            triplets_data[columns[1]].append(corpus[positive_idx])
             triplets_data["negative"].append(corpus[negative_idx])
-        difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
+        difference_scores = positive_scores - negative_scores
 
     else:
         # Keep only indices where num_negative negatives were found
@@ -938,20 +949,21 @@ def mine_hard_negatives(
         indices = indices[indices_to_keep]
 
         anchors = [
-            queries_idx[queries[q_idx]] for q_idx in range(len(queries)) for _ in range(len(positive_indices[q_idx]))
+            queries_idx[queries[q_idx]] for q_idx in range(n_queries) for _ in range(len(positive_indices[q_idx]))
         ]
+
+        # TODO: Change indices_to_keep to a set for faster lookups?
         triplets_data = {
             columns[0]: [queries[idx] for idx in anchors if indices_to_keep[idx]],
-            columns[1]: [positives[idx] for idx in unique_query_indices if indices_to_keep[idx]],
+            columns[1]: [corpus[x] for idx in range(n_queries) if indices_to_keep[idx] for x in positive_indices[idx]],
             **{
                 f"negative_{i}": [corpus[neg_idx] for neg_idx in neg_indices]
                 for i, neg_indices in enumerate(indices.T, start=1)
             },
         }
         negative_scores = negative_scores.flatten()
-        positive_scores_indices_to_keep = positive_scores != float("inf")
-        positive_scores = positive_scores[positive_scores_indices_to_keep]
-        difference_scores = positive_scores[indices_to_keep].repeat(num_negatives, 1).T.flatten() - negative_scores
+        positive_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep].flatten()
+        difference_scores = positive_scores - negative_scores
 
     if len(triplets_data) == 0:
         raise ValueError("No triplets could be generated. Please check the parameters and dataset.")
@@ -991,7 +1003,7 @@ def mine_hard_negatives(
                 f"Skipped {log_counters['max_score']['skipped']} potential negatives ({log_counters['max_score']['ratio']:.2%}) due to the maximum score of {max_score}."
             )
 
-        missing_negatives = (num_negatives * len(queries)) - len(negative_scores)
+        missing_negatives = (num_negatives * n_queries) - len(negative_scores)
         if missing_negatives > 0:
             solutions = ["range_max"]
             if range_min > 0:
@@ -1003,7 +1015,7 @@ def mine_hard_negatives(
             considerations = ", ".join(solutions[:-1])
             if len(solutions) > 1:
                 considerations += " and " + solutions[-1]
-            missing_negatives_ratio = missing_negatives / (num_negatives * len(queries))
+            missing_negatives_ratio = missing_negatives / (num_negatives * n_queries)
             print(
                 f"Could not find enough negatives for {missing_negatives} samples ({missing_negatives_ratio:.2%})."
                 f" Consider adjusting the {considerations} parameter{'s' if len(solutions) > 1 else ''} if you'd like to find more valid negatives."
