@@ -707,18 +707,39 @@ def mine_hard_negatives(
     if n_queries != len(all_queries) and verbose:
         print(f"Found {n_queries} unique queries out of {len(all_queries)} total queries.")
 
-    # Keep track of the positive indices for each (unique) query.
     # As we may have duplicated queries (i.e., a single query with multiple positives),
     # We keep track, for each unique query, of where their positives are in the list of positives (positive_indices).
     # Note that as queries may have differing numbers of positives, we cannot guarantee that this is a fixed-length matrix.
     positive_indices = [[] for _ in range(n_queries)]
 
-    for (idx, query), positive in zip(enumerate(all_queries), positives):
+    for query, positive in zip(all_queries, positives):
         query_idx = queries_idx[query]
         positive_indices[query_idx].append(corpus_idx[positive])
-
     positive_indices = [torch.tensor(p, device=device) for p in positive_indices]
     n_positives = [len(p) for p in positive_indices]
+
+    # re-sort the positives and all_queries according to the deduplicated queries
+    positives = []
+    all_queries = []
+    for idx in range(n_queries):
+        positives.extend([corpus[doc_idx] for doc_idx in positive_indices[idx]])
+        all_queries.extend([queries[idx]] * n_positives[idx])
+
+    positive_indices = [torch.tensor(p, device=device) for p in positive_indices]
+
+    # Encode the positives and the queries and score them accordingly.
+    positive_scores = torch.empty(len(all_queries), dtype=torch.float32, device=device)
+    for i in trange(0, len(all_queries), chunk_size, desc="Computing positive scores"):
+        query_chunk = all_queries[i : i + chunk_size]
+        positives_chunk = positives[i : i + chunk_size]
+
+        q_embeddings = model.encode(
+            query_chunk, convert_to_tensor=True, show_progress_bar=False, batch_size=batch_size
+        )
+        p_embeddings = model.encode(
+            positives_chunk, convert_to_tensor=True, show_progress_bar=False, batch_size=batch_size
+        )
+        positive_scores[i : len(query_chunk)] = model.similarity_pairwise(q_embeddings, p_embeddings)
 
     if use_faiss:
         import faiss
@@ -765,7 +786,7 @@ def mine_hard_negatives(
         del chunk_embeddings
 
     else:
-        # Embed the corpus, queries, and positives
+        # Embed the corpus and the queries
         corpus_embeddings = model.encode(corpus, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
         query_embeddings = model.encode(queries, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
         scores = model.similarity(query_embeddings, corpus_embeddings).cpu()
@@ -775,34 +796,6 @@ def mine_hard_negatives(
 
         # Keep only the range_max + max_positives highest scores. We offset by 1 to potentially include the positive pair
         scores, indices = torch.topk(scores, k=range_max + max_positives, dim=1)
-        scores = scores.numpy()
-        indices = indices.numpy()
-
-    # Make sure that at least one positive is retrieved for each query
-    # Otherwise, score a random positive for the query and replace the last negative with it
-    missing_positives = [~torch.isin(indices[q_idx], positive_indices[q_idx]).any() for q_idx in range(n_queries)]
-    missing_queries = [query for query, missing in zip(queries, missing_positives) if missing]
-    p_idx = [random.choice(positive_indices[q_idx]) for q_idx in range(n_queries) if missing_positives[q_idx]]
-    positives_to_embed = [corpus[idx] for idx in p_idx]
-
-    # If we have any queries that didn't retrieve any positives, manually score one random positive for each of them
-    if missing_queries:
-        if verbose:
-            print(f"{len(missing_queries)} queries did not retrieve any positives.")
-            print("manually scoring one random positive for each query")
-
-        q_embeddings = model.encode(
-            missing_queries, convert_to_tensor=True, show_progress_bar=False, batch_size=batch_size
-        )
-        p_embeddings = model.encode(
-            positives_to_embed, convert_to_tensor=True, show_progress_bar=False, batch_size=batch_size
-        )
-        scores_missing = model.similarity_pairwise(q_embeddings, p_embeddings)
-        missing_indices = [idx for idx, missing in enumerate(missing_positives) if missing]
-
-        # add the index of the positives_to_embed_idx in the last position of the indices
-        indices[missing_indices, -1] = p_idx
-        scores[missing_indices, -1] = scores_missing.cpu().numpy()
 
     # Rescore with cross_encoder
     if cross_encoder is not None and (margin is not None or max_score is not None):
@@ -815,24 +808,32 @@ def mine_hard_negatives(
                 convert_to_tensor=True,
             )
             scores[idx] = pred_scores
+        positive_scores = cross_encoder.predict(
+            list(zip(all_queries, positives)),
+            batch_size=batch_size,
+            convert_to_tensor=True,
+        )
+
     # for each query, create a mask that is True for the positives and False for the negatives in the indices
     positive_mask = torch.stack([torch.isin(indices[q_idx], positive_indices[q_idx]) for q_idx in range(n_queries)])
-    # We keep a copy of the positive scores to use later
-    positive_scores = scores.clone()
-    positive_scores[~positive_mask] = float("inf")
 
     # Scores is a [num_queries, range_max] tensor, where we set the values to -inf to disqualify the corresponding
     # positive candidates
     scores[positive_mask] = -float("inf")
 
-    # If we have a margin or max_score, we will remove candidates that are too close to the positive pair
-    # If there are multiple positives, we need to define which one to use for the margin
-    # To be on the safe side, we will use the _minimum_ positive score (i.e., harder positive) for the margin
-    max_positive_scores, _ = torch.min(positive_scores, dim=1)
     num_candidates = scores.numel()
 
     # Remove based on margin
     if margin is not None:
+        # If we have a margin, we will remove candidates that are too close to the positive pair
+        # If there are multiple positives, we need to define which one to use for the margin
+        # To be on the safe side, we will use the _minimum_ positive score (i.e., harder positive) for the margin
+        max_positive_scores = torch.empty(n_queries, device=positive_scores.device, dtype=positive_scores.dtype)
+        start_idx = 0
+        for q_idx in range(n_queries):
+            max_positive_scores[q_idx] = torch.min(positive_scores[start_idx : start_idx + n_positives[q_idx]])
+            start_idx += n_positives[q_idx - 1]
+
         removed_indices = scores + margin > max_positive_scores.repeat(scores.size(1), 1).T
         scores[removed_indices] = -float("inf")
 
@@ -881,35 +882,32 @@ def mine_hard_negatives(
         negative_scores, local_indices = negative_scores.sort(dim=1, descending=True)
         indices = indices[batch_idx, local_indices]
 
-    # Flatten the positive scores
-    positive_scores_indices_to_keep = positive_scores != float("inf")
-    positive_scores = positive_scores[positive_scores_indices_to_keep]
-
     # repeat indices and negative_scores by the number of positives of each query
     indices = torch.cat([indices[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
     negative_scores = torch.cat([negative_scores[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
 
     if as_triplets:
         # If calling as triples and there are multiple positives per query, we will explode the dataset into triplets.
-        # negative_scores is [num_queries, num_negatives], but may contain some -inf values if not enough negatives were found
         indices_to_keep = negative_scores != -float("inf")
+        anchor_indices = torch.empty_like(indices)
+        pos_indices = torch.empty_like(indices)
+
         indices = indices[indices_to_keep]
         negative_scores = negative_scores[indices_to_keep]
 
-        # repeat the queries (n_positive+n_negatives) times
-        anchor_indices = torch.from_numpy(
-            np.stack(
-                [
-                    [queries_idx[queries[idx]]] * num_negatives
-                    for idx in range(n_queries)
-                    for _ in range(n_positives[idx])
-                ]
+        # the anchor_indices matrix is shaped [n_total_queries, n_negatives]
+        start_idx = 0
+        for q_idx in range(n_queries):
+            anchor_indices[start_idx : start_idx + n_positives[q_idx]] = torch.tensor(q_idx).repeat(
+                n_positives[q_idx], num_negatives
             )
-        ).to(device)
-        anchor_indices = anchor_indices[indices_to_keep]
+            pos_indices[start_idx : start_idx + n_positives[q_idx]] = (
+                positive_indices[q_idx].repeat(num_negatives, 1).T
+            )
+            start_idx += n_positives[q_idx]
 
-        positive_indices = torch.cat([positive_indices[idx].repeat(num_negatives, 1).T for idx in range(n_queries)])
-        positive_indices = positive_indices[indices_to_keep]
+        anchor_indices = anchor_indices[indices_to_keep]
+        positive_indices = pos_indices[indices_to_keep]
 
         positive_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep]
 
@@ -1032,7 +1030,10 @@ def http_get(url: str, path: str) -> None:
 
     req = requests.get(url, stream=True)
     if req.status_code != 200:
-        print(f"Exception when trying to download {url}. Response {req.status_code}", file=sys.stderr)
+        print(
+            f"Exception when trying to download {url}. Response {req.status_code}",
+            file=sys.stderr,
+        )
         req.raise_for_status()
         return
 
