@@ -715,7 +715,7 @@ def mine_hard_negatives(
     for query, positive in zip(all_queries, positives):
         query_idx = queries_idx[query]
         positive_indices[query_idx].append(corpus_idx[positive])
-    positive_indices = [torch.tensor(p, device=device) for p in positive_indices]
+
     n_positives = [len(p) for p in positive_indices]
 
     # re-sort the positives and all_queries according to the deduplicated queries
