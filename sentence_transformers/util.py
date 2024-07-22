@@ -739,7 +739,7 @@ def mine_hard_negatives(
         p_embeddings = model.encode(
             positives_chunk, convert_to_tensor=True, show_progress_bar=False, batch_size=batch_size
         )
-        positive_scores[i : len(query_chunk)] = model.similarity_pairwise(q_embeddings, p_embeddings)
+        positive_scores[i : i + len(query_chunk)] = model.similarity_pairwise(q_embeddings, p_embeddings)
 
     if use_faiss:
         import faiss
