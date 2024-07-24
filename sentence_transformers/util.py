@@ -1304,7 +1304,7 @@ def get_device_name() -> Literal["mps", "cuda", "npu", "hpu", "cpu"]:
     return "cpu"
 
 
-def check_package_availability(package_name: str, owner: str) -> None:
+def check_package_availability(package_name: str, owner: str) -> bool:
     """
     Checks if a package is available from the correct owner.
     """
