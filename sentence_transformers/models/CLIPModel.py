@@ -52,7 +52,7 @@ class CLIPModel(nn.Module):
 
         return features
 
-    def tokenize(self, texts, padding: str | bool = True, input_data_format: str = ImageChannelDimension.LAST) -> dict[str, torch.Tensor]:
+    def tokenize(self, texts, padding: str | bool = True, image_channel_dimension: str = ImageChannelDimension.LAST) -> dict[str, torch.Tensor]:
         images = []
         texts_values = []
         image_text_info = []
@@ -70,7 +70,7 @@ class CLIPModel(nn.Module):
             encoding = self.processor.tokenizer(texts_values, return_tensors="pt", padding=padding)
 
         if len(images):
-            image_features = self.processor.image_processor(images, return_tensors="pt", input_data_format=input_data_format)
+            image_features = self.processor.image_processor(images, return_tensors="pt", input_data_format=image_channel_dimension)
             encoding["pixel_values"] = image_features.pixel_values
 
         encoding["image_text_info"] = image_text_info
