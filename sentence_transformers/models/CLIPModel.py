@@ -52,10 +52,11 @@ class CLIPModel(nn.Module):
 
         return features
 
-    def tokenize(self, texts, padding: str | bool = True, image_channel_dimension: str = ImageChannelDimension.LAST) -> dict[str, torch.Tensor]:
+    def tokenize(self, texts, padding: str | bool = True, **kwargs) -> dict[str, torch.Tensor]:
         images = []
         texts_values = []
         image_text_info = []
+        image_channel_dimension = kwargs.get("image_channel_dimension", ImageChannelDimension.LAST)
 
         for idx, data in enumerate(texts):
             if isinstance(data, Image.Image):  # An Image

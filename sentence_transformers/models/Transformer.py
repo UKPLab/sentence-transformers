@@ -134,7 +134,7 @@ class Transformer(nn.Module):
         return self.auto_model.config.hidden_size
 
     def tokenize(
-        self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True
+        self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True, **kwargs
     ) -> dict[str, torch.Tensor]:
         """Tokenizes a text and maps tokens to token-ids"""
         output = {}
