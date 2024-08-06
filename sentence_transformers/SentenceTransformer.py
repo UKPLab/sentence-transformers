@@ -1319,16 +1319,19 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # This isn't expected to ever be reached.
         return folder_url
 
-    def _text_length(self, text: list[int] | list[list[int]]) -> int:
+    # def text_length(self, text: Union[List[int], List[List[int]]]) -> int:
+    def text_length(self, text: Union[str, List[str], List[int], List[List[int]]]):
         """
         Help function to get the length for the input text. Text can be either
-        a list of ints (which means a single text as input), or a tuple of list of ints
-        (representing several text inputs to the model).
+        a string, a list of strings, a list of ints (which means a single text as input),
+        or a tuple of list of ints (representing several text inputs to the model).
         """
-
-        if isinstance(text, dict):  # {key: value} case
+        # if isinstance(text, dict):  # {key: value} case
+        if isinstance(text, str):
+            return len(text)
+        elif isinstance(text, dict):  # {key: value} case
             return len(next(iter(text.values())))
-        elif not hasattr(text, "__len__"):  # Object has no len() method
+        elif not hasattr(text, "_len_"):  # Object has no len() method
             return 1
         elif len(text) == 0 or isinstance(text[0], int):  # Empty string or list of ints
             return len(text)
