@@ -246,7 +246,10 @@ class ProportionalBatchSampler(SetEpochMixin, BatchSampler):
         batch_samplers = [iter(sampler) for sampler in self.batch_samplers]
         for dataset_idx in dataset_idx_sampler:
             sample_offset = sample_offsets[dataset_idx]
-            yield [idx + sample_offset for idx in next(batch_samplers[dataset_idx])]
+            try:
+                yield [idx + sample_offset for idx in next(batch_samplers[dataset_idx])]
+            except StopIteration:
+                continue
 
     def __len__(self) -> int:
         return sum([len(sampler) for sampler in self.batch_samplers])
