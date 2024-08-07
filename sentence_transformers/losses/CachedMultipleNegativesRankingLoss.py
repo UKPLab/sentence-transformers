@@ -11,7 +11,6 @@ from torch.utils.checkpoint import get_device_states, set_device_states
 
 from sentence_transformers import SentenceTransformer, util
 
-
 class RandContext:
     """
     Random-state context manager class. Reference: https://github.com/luyug/GradCache.
