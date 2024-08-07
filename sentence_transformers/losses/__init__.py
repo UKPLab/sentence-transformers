@@ -11,6 +11,7 @@ from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDist
 from .BatchSemiHardTripletLoss import BatchSemiHardTripletLoss
 from .CachedGISTEmbedLoss import CachedGISTEmbedLoss
 from .CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
+from .CachedMultipleNegativesSymmetricRankingLoss import CachedMultipleNegativesSymmetricRankingLoss
 from .ContrastiveLoss import ContrastiveLoss, SiameseDistanceMetric
 from .ContrastiveTensionLoss import (
     ContrastiveTensionDataLoader,
@@ -47,6 +48,7 @@ __all__ = [
     "SiameseDistanceMetric",
     "CachedGISTEmbedLoss",
     "CachedMultipleNegativesRankingLoss",
+    "CachedMultipleNegativesSymmetricRankingLoss",
     "ContrastiveTensionLoss",
     "ContrastiveTensionLossInBatchNegatives",
     "ContrastiveTensionDataLoader",
