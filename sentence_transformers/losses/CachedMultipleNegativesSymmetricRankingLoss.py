@@ -47,7 +47,7 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
         """
         Cached version of MultipleNegativesSymmetricRankingLoss with GradCache optimization.
 
-        This loss is an adaptation of MultipleNegativesRankingLoss and CachedMultipleNegativesRankingLoss.
+        This loss is an adaptation of MultipleNegativesSymmetricRankingLoss and CachedMultipleNegativesRankingLoss.
         It computes the following loss:
 
         For a given anchor and a list of candidates, find the positive candidate (symmetric version).
