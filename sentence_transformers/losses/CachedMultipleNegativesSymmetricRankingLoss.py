@@ -7,10 +7,10 @@ from typing import Any, Iterable, Iterator
 import torch
 import tqdm
 from torch import Tensor, nn
-from torch.utils.checkpoint import get_device_states, set_device_states
 
 from sentence_transformers import SentenceTransformer, util
 from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import RandContext
+
 
 def _backward_hook(
     grad_output: Tensor,
@@ -49,7 +49,7 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
 
         This loss is an adaptation of MultipleNegativesRankingLoss and CachedMultipleNegativesRankingLoss.
         It computes the following loss:
-        
+
         For a given anchor and a list of candidates, find the positive candidate (symmetric version).
 
         In CachedMultipleNegativesSymmetricRankingLoss, we add another loss term: Given the positive and a list of all anchors,
@@ -66,7 +66,7 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
         Args:
             model: SentenceTransformer model
             scale: Output of similarity function is multiplied by scale value
-            similarity_fct: similarity function between sentence embeddings. By default, cos_sim. 
+            similarity_fct: similarity function between sentence embeddings. By default, cos_sim.
                             Can also be set to dot product (and then set scale to 1)
             mini_batch_size: Mini-batch size for the forward pass, this denotes how much memory is actually used during
                 training and evaluation. The larger the mini-batch size, the more memory efficient the training is, but
@@ -190,10 +190,10 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             e = min(b + self.mini_batch_size, batch_size)
             scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
             forward_loss: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e])
-            
+
             positive_scores = scores[:, b:e]
-            backward_loss: torch.Tensor = self.cross_entropy_loss(positive_scores.t(), labels[:len(positive_scores)])
-            
+            backward_loss: torch.Tensor = self.cross_entropy_loss(positive_scores.t(), labels[: len(positive_scores)])
+
             loss_mbatch = (forward_loss + backward_loss) / 2
             loss_mbatch.backward()
             losses.append(loss_mbatch.detach())
@@ -224,10 +224,10 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             e = min(b + self.mini_batch_size, batch_size)
             scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
             forward_loss: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e])
-            
+
             positive_scores = scores[:, b:e]
-            backward_loss: torch.Tensor = self.cross_entropy_loss(positive_scores.t(), labels[:len(positive_scores)])
-            
+            backward_loss: torch.Tensor = self.cross_entropy_loss(positive_scores.t(), labels[: len(positive_scores)])
+
             loss_mbatch = (forward_loss + backward_loss) / 2
             losses.append(loss_mbatch)
 
