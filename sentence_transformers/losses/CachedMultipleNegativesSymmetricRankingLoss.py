@@ -187,7 +187,7 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             desc="Preparing caches",
             disable=not self.show_progress_bar,
         ):
-            e = b + self.mini_batch_size
+            e = min(b + self.mini_batch_size, batch_size)
             scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
             forward_loss: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e])
             
@@ -221,7 +221,7 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             desc="Calculating loss",
             disable=not self.show_progress_bar,
         ):
-            e = b + self.mini_batch_size
+            e = min(b + self.mini_batch_size, batch_size)
             scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
             forward_loss: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e])
             
