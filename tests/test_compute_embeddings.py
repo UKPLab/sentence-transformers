@@ -4,7 +4,10 @@ Computes embeddings
 
 from __future__ import annotations
 
+from typing import Literal
+
 import numpy as np
+import pytest
 
 from sentence_transformers import SentenceTransformer
 
@@ -84,3 +87,34 @@ def test_encode_tuple_sentences(paraphrase_distilroberta_base_v1_model: Sentence
     )
     assert emb.shape == (3, 768)
     assert abs(np.sum(emb) - 32.14627) < 0.002
+
+
+@pytest.mark.parametrize("precision", ("float32", "int8", "uint8"))
+def test_encode_token_embeddings_int_precision(
+    paraphrase_distilroberta_base_v1_model: SentenceTransformer,
+    precision: Literal["float32", "int8", "uint8", "binary", "ubinary"]
+) -> None:
+    model = paraphrase_distilroberta_base_v1_model
+    # Single sentence
+    emb = model.encode("Hello Word, a test sentence", output_value="token_embeddings", precision="uint8")
+    assert emb.shape == (8, 768)
+
+    # Single sentence as list
+    emb = model.encode(["Hello Word, a test sentence"], output_value="token_embeddings", precision="uint8")
+    assert isinstance(emb, list)
+    assert emb[0].shape == (8, 768)
+
+    # Sentence list
+    emb = model.encode(
+        [
+            "Hello Word, a test sentence",
+            "Here comes another sentence",
+            "My final sentence",
+        ],
+        output_value="token_embeddings",
+        precision=precision,
+    )
+    assert isinstance(emb, list)
+    assert emb[0].shape == (8, 768)
+    assert emb[1].shape == (6, 768)
+    assert emb[2].shape == (5, 768)

@@ -394,9 +394,15 @@ def quantize_embeddings(
     Returns:
         Quantized embeddings with the specified precision
     """
+    outputs, lengths = None, None
     if isinstance(embeddings, Tensor):
         embeddings = embeddings.cpu().numpy()
+        embeddings = np.concatenate(embeddings)
     elif isinstance(embeddings, list):
+        if not isinstance(embeddings[0], list) and len(embeddings[0].shape) == 2:
+            # It will happen when we request token_embeddings
+            lengths = [embedding.shape[0] for embedding in embeddings]
+            embeddings = np.concatenate(embeddings)
         if isinstance(embeddings[0], Tensor):
             embeddings = [embedding.cpu().numpy() for embedding in embeddings]
         embeddings = np.array(embeddings)
@@ -404,7 +410,7 @@ def quantize_embeddings(
         raise Exception("Embeddings to quantize must be float rather than int8 or uint8.")
 
     if precision == "float32":
-        return embeddings.astype(np.float32)
+        outputs = embeddings.astype(np.float32)
 
     if precision.endswith("int8"):
         # Either use the 1. provided ranges, 2. the calibration dataset or 3. the provided embeddings
@@ -423,14 +429,20 @@ def quantize_embeddings(
         steps = (ranges[1, :] - ranges[0, :]) / 255
 
         if precision == "uint8":
-            return ((embeddings - starts) / steps).astype(np.uint8)
+            outputs = ((embeddings - starts) / steps).astype(np.uint8)
         elif precision == "int8":
-            return ((embeddings - starts) / steps - 128).astype(np.int8)
+            outputs = ((embeddings - starts) / steps - 128).astype(np.int8)
 
     if precision == "binary":
-        return (np.packbits(embeddings > 0).reshape(embeddings.shape[0], -1) - 128).astype(np.int8)
+        outputs = (np.packbits(embeddings > 0).reshape(embeddings.shape[0], -1) - 128).astype(np.int8)
 
     if precision == "ubinary":
-        return np.packbits(embeddings > 0).reshape(embeddings.shape[0], -1)
+        outputs = np.packbits(embeddings > 0).reshape(embeddings.shape[0], -1)
 
-    raise ValueError(f"Precision {precision} is not supported")
+    if outputs is None:
+        raise ValueError(f"Precision {precision} is not supported")
+
+    if lengths is not None:
+        outputs = np.split(outputs, np.cumsum(lengths)[:-1])
+
+    return outputs
