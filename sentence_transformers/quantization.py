@@ -399,12 +399,12 @@ def quantize_embeddings(
         embeddings = embeddings.cpu().numpy()
         embeddings = np.concatenate(embeddings)
     elif isinstance(embeddings, list):
+        if isinstance(embeddings[0], Tensor):
+            embeddings = [embedding.cpu().numpy() for embedding in embeddings]
         if not isinstance(embeddings[0], list) and len(embeddings[0].shape) == 2:
             # It will happen when we request token_embeddings
             lengths = [embedding.shape[0] for embedding in embeddings]
             embeddings = np.concatenate(embeddings)
-        if isinstance(embeddings[0], Tensor):
-            embeddings = [embedding.cpu().numpy() for embedding in embeddings]
         embeddings = np.array(embeddings)
     if embeddings.dtype in (np.uint8, np.int8):
         raise Exception("Embeddings to quantize must be float rather than int8 or uint8.")
