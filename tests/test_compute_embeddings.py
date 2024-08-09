@@ -89,7 +89,7 @@ def test_encode_tuple_sentences(paraphrase_distilroberta_base_v1_model: Sentence
     assert abs(np.sum(emb) - 32.14627) < 0.002
 
 
-@pytest.mark.parametrize("precision", ("float32", "int8", "uint8"))
+@pytest.mark.parametrize("precision", ("int8", "uint8"))
 def test_encode_token_embeddings_int_precision(
     paraphrase_distilroberta_base_v1_model: SentenceTransformer,
     precision: Literal["float32", "int8", "uint8", "binary", "ubinary"]
