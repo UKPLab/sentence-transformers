@@ -1571,6 +1571,10 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                         local_files_only=local_files_only,
                     )
                 module = module_class.load(module_path)
+
+                if "torch_dtype" in model_kwargs:
+                    module = module.to(model_kwargs["torch_dtype"])
+
             modules[module_config["name"]] = module
 
         if revision is None:
