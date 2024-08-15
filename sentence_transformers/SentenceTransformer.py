@@ -598,6 +598,13 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     embeddings = []
                     for sent_idx in range(len(out_features["sentence_embedding"])):
                         row = {name: out_features[name][sent_idx] for name in out_features}
+
+                        attention = out_features["attention_mask"][sent_idx]
+                        last_mask_id = len(attention) - 1
+                        while last_mask_id > 0 and attention[last_mask_id].item() == 0:
+                            last_mask_id -= 1
+                        row["token_embeddings"] = row["token_embeddings"][0 : last_mask_id + 1]
+                        
                         embeddings.append(row)
                 else:  # Sentence embeddings
                     embeddings = out_features[output_value]
