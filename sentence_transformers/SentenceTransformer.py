@@ -1572,7 +1572,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     )
                 module = module_class.load(module_path)
 
-                if model_kwargs is not None and "torch_dtype" in model_kwargs:
+                if model_kwargs and "torch_dtype" in model_kwargs:
                     module = module.to(model_kwargs["torch_dtype"])
 
             modules[module_config["name"]] = module
