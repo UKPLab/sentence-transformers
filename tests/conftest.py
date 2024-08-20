@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import platform
 import tempfile
 
 import pytest
@@ -57,10 +56,8 @@ def cache_dir():
     """
     In the CI environment, we use a temporary directory as `cache_dir`
     to avoid keeping the downloaded models on disk after the test.
-
-    This is only required for Ubuntu, as we otherwise have disk space issues there.
     """
-    if os.environ.get("CI", None) and platform.system() == "Linux":
+    if os.environ.get("CI", None):
         with tempfile.TemporaryDirectory() as tmp_dir:
             yield tmp_dir
     else:
