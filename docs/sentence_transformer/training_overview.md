@@ -586,7 +586,7 @@ Training on multiple datasets looks like this:
     # (anchor, positive), (anchor, positive, negative)
     mnrl_loss = MultipleNegativesRankingLoss(model)
     # (sentence_A, sentence_B) + class
-    softmax_loss = SoftmaxLoss(model)
+    softmax_loss = SoftmaxLoss(model, model.get_sentence_embedding_dimension(), 3)
     # (sentence_A, sentence_B) + score
     cosent_loss = CoSENTLoss(model)
 
