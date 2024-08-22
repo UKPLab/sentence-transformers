@@ -103,7 +103,9 @@ def test_push_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
             git_ref_info2 = GitRefInfo(name="revision_test", ref="refs/heads/revision_test", target_commit="678901")
         except TypeError:
             git_ref_info = GitRefInfo(dict(name="main", ref="refs/heads/main", targetCommit="123456"))
-            git_ref_info2 = GitRefInfo(dict(name="revision_test", ref="refs/heads/revision_test", target_commit="678901"))
+            git_ref_info2 = GitRefInfo(
+                dict(name="revision_test", ref="refs/heads/revision_test", target_commit="678901")
+            )
         # workaround for https://github.com/huggingface/huggingface_hub/issues/1956
         git_ref_kwargs = {"branches": [git_ref_info, git_ref_info2], "converts": [], "tags": [], "pull_requests": None}
         try:

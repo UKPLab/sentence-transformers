@@ -1314,7 +1314,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     train_datasets=train_datasets,
                     safe_serialization=safe_serialization,
                 )
-                folder_url = api.upload_folder(repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message, revision=revision)
+                folder_url = api.upload_folder(
+                    repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message, revision=revision
+                )
 
         refs = api.list_repo_refs(repo_id=repo_id)
         for branch in refs.branches:
