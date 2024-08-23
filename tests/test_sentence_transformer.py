@@ -100,19 +100,27 @@ def test_push_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
     def mock_list_repo_refs(self, repo_id=None, **kwargs):
         try:
             git_ref_info = GitRefInfo(name="main", ref="refs/heads/main", target_commit="123456")
+            git_ref_info2 = GitRefInfo(name="revision_test", ref="refs/heads/revision_test", target_commit="678901")
         except TypeError:
             git_ref_info = GitRefInfo(dict(name="main", ref="refs/heads/main", targetCommit="123456"))
+            git_ref_info2 = GitRefInfo(
+                dict(name="revision_test", ref="refs/heads/revision_test", target_commit="678901")
+            )
         # workaround for https://github.com/huggingface/huggingface_hub/issues/1956
-        git_ref_kwargs = {"branches": [git_ref_info], "converts": [], "tags": [], "pull_requests": None}
+        git_ref_kwargs = {"branches": [git_ref_info, git_ref_info2], "converts": [], "tags": [], "pull_requests": None}
         try:
             return GitRefs(**git_ref_kwargs)
         except TypeError:
             git_ref_kwargs.pop("pull_requests")
             return GitRefs(**git_ref_kwargs)
 
+    def mock_create_branch(self, repo_id, branch, revision=None, **kwargs):
+        return None
+
     monkeypatch.setattr(HfApi, "create_repo", mock_create_repo)
     monkeypatch.setattr(HfApi, "upload_folder", mock_upload_folder)
     monkeypatch.setattr(HfApi, "list_repo_refs", mock_list_repo_refs)
+    monkeypatch.setattr(HfApi, "create_branch", mock_create_branch)
 
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
 
@@ -226,6 +234,13 @@ def test_push_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
             caplog.record_tuples[1][2]
             == 'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
         )
+    mock_upload_folder_kwargs.clear()
+
+    url = model.push_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors", revision="revision_test")
+    assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+    assert mock_upload_folder_kwargs["revision"] == "revision_test"
+    assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/678901"
+    mock_upload_folder_kwargs.clear()
 
 
 @pytest.mark.parametrize("safe_serialization", [True, False, None])

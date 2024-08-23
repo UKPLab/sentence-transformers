@@ -1269,6 +1269,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         exist_ok: bool = False,
         replace_model_card: bool = False,
         train_datasets: list[str] | None = None,
+        revision: str | None = None,
     ) -> str:
         """
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
@@ -1283,6 +1284,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             exist_ok (bool, optional): If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
             replace_model_card (bool, optional): If true, replace an existing model card in the hub with the automatically created model card
             train_datasets (List[str], optional): Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
+            revision (str, optional): Branch to push the uploaded files to
 
         Returns:
             str: The url of the commit of your model in the repository on the Hugging Face Hub.
@@ -1296,9 +1298,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         )
         repo_id = repo_url.repo_id  # Update the repo_id in case the old repo_id didn't contain a user or organization
         self.model_card_data.set_model_id(repo_id)
+        if revision is not None:
+            api.create_branch(repo_id=repo_id, branch=revision, exist_ok=True)
         if local_model_path:
             folder_url = api.upload_folder(
-                repo_id=repo_id, folder_path=local_model_path, commit_message=commit_message
+                repo_id=repo_id, folder_path=local_model_path, commit_message=commit_message, revision=revision
             )
         else:
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1310,12 +1314,17 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     train_datasets=train_datasets,
                     safe_serialization=safe_serialization,
                 )
-                folder_url = api.upload_folder(repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message)
+                folder_url = api.upload_folder(
+                    repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message, revision=revision
+                )
 
         refs = api.list_repo_refs(repo_id=repo_id)
         for branch in refs.branches:
-            if branch.name == "main":
+            if revision is None and branch.name == "main":
                 return f"https://huggingface.co/{repo_id}/commit/{branch.target_commit}"
+            elif branch.name == revision:
+                return f"https://huggingface.co/{repo_id}/commit/{branch.target_commit}"
+
         # This isn't expected to ever be reached.
         return folder_url
 
