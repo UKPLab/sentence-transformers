@@ -80,7 +80,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         use_auth_token (bool or str, optional): Deprecated argument. Please use `token` instead.
         truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
             only applicable during inference when :meth:`SentenceTransformer.encode` is called.
-        model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Huggingface Transformers model.
+        model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers model.
             Particularly useful options are:
 
             - ``torch_dtype``: Override the default `torch.dtype` and load the model under a specific `dtype`.
@@ -105,11 +105,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             See the `PreTrainedModel.from_pretrained
             <https://huggingface.co/docs/transformers/en/main_classes/model#transformers.PreTrainedModel.from_pretrained>`_
             documentation for more details.
-        tokenizer_kwargs (Dict[str, Any], optional): Additional tokenizer configuration parameters to be passed to the Huggingface Transformers tokenizer.
+        tokenizer_kwargs (Dict[str, Any], optional): Additional tokenizer configuration parameters to be passed to the Hugging Face Transformers tokenizer.
             See the `AutoTokenizer.from_pretrained
             <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoTokenizer.from_pretrained>`_
             documentation for more details.
-        config_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Huggingface Transformers config.
+        config_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers config.
             See the `AutoConfig.from_pretrained
             <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoConfig.from_pretrained>`_
             documentation for more details.

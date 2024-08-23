@@ -59,4 +59,4 @@ In the following table, we provide various pre-trained Cross-Encoders together w
 | amberoad/bert-multilingual-passage-reranking-msmarco | 68.40 | 35.54 | 330 |  
 | sebastian-hofstaetter/distilbert-cat-margin_mse-T2-msmarco | 72.82 | 37.88 | 720
  
- Note: Runtime was computed on a V100 GPU with Huggingface Transformers v4. 
+ Note: Runtime was computed on a V100 GPU with Hugging Face Transformers v4. 
