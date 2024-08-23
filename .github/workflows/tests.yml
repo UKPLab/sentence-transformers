@@ -24,6 +24,7 @@ jobs:
     steps:
       - name: Remove unnecessary files
         run: |
+          df -h /
           # Remove software and language runtimes we're not using
           sudo rm -rf \
             "$AGENT_TOOLSDIRECTORY" \
