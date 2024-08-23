@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import os
-import tempfile
 
 import pytest
 
 from sentence_transformers import CrossEncoder, SentenceTransformer
 from sentence_transformers.models import Pooling, Transformer
 from sentence_transformers.util import is_datasets_available
+from tests.utils import SafeTemporaryDirectory
 
 if is_datasets_available():
     from datasets import DatasetDict, load_dataset
@@ -60,7 +60,7 @@ def cache_dir():
     if os.environ.get("CI", None):
         # Note: `ignore_cleanup_errors=True` is used to avoid NotADirectoryError in Windows on GitHub Actions.
         # See https://github.com/python/cpython/issues/107408, https://www.scivision.dev/python-tempfile-permission-error-windows/
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp_dir:
+        with SafeTemporaryDirectory() as tmp_dir:
             yield tmp_dir
     else:
         yield None
