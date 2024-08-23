@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Remove unnecessary files
+      - name: Remove unnecessary files (Linux)
         run: |
           df -h /
           # Remove software and language runtimes we're not using
@@ -42,6 +42,20 @@ jobs:
             /usr/share/swift
           df -h /
         if: runner.os == 'Linux'
+      - name: Remove unnecessary files (Windows)
+        run: |
+          $disk = Get-WmiObject Win32_LogicalDisk -Filter "DeviceID='C:'" | Select-Object Size, FreeSpace
+          Write-Host ("{0}GB total" -f [math]::truncate($disk.Size / 1GB))
+          Write-Host ("{0}GB free" -f [math]::truncate($disk.FreeSpace / 1GB))
+
+          rmdir /s /q "C:\Program Files\dotnet"
+          rmdir /s /q "C:\Program Files (x86)\Android\android-sdk"
+          rmdir /s /q "C:\npm"
+
+          $disk = Get-WmiObject Win32_LogicalDisk -Filter "DeviceID='C:'" | Select-Object Size, FreeSpace
+          Write-Host ("{0}GB total" -f [math]::truncate($disk.Size / 1GB))
+          Write-Host ("{0}GB free" -f [math]::truncate($disk.FreeSpace / 1GB))
+        if: runner.os == 'Windows'
 
       - name: Checkout code
         uses: actions/checkout@v3
