@@ -9,6 +9,7 @@ import queue
 import random
 import sys
 from contextlib import contextmanager
+from importlib.metadata import PackageNotFoundError, metadata
 from typing import TYPE_CHECKING, Any, Callable, Literal, overload
 
 import numpy as np
@@ -1304,22 +1305,34 @@ def get_device_name() -> Literal["mps", "cuda", "npu", "hpu", "cpu"]:
     return "cpu"
 
 
+def check_package_availability(package_name: str, owner: str) -> bool:
+    """
+    Checks if a package is available from the correct owner.
+    """
+    try:
+        meta = metadata(package_name)
+        return meta["Name"] == package_name and owner in meta["Home-page"]
+    except PackageNotFoundError:
+        return False
+
+
 def is_accelerate_available() -> bool:
     """
-    Returns True if the accelerate library is available.
+    Returns True if the Huggingface accelerate library is available.
     """
-    return importlib.util.find_spec("accelerate") is not None
+    return check_package_availability("accelerate", "huggingface")
 
 
 def is_datasets_available() -> bool:
     """
-    Returns True if the datasets library is available.
+    Returns True if the Huggingface datasets library is available.
     """
-    return importlib.util.find_spec("datasets") is not None
+    return check_package_availability("datasets", "huggingface")
 
 
 def is_training_available() -> bool:
     """
-    Returns True if we have the required dependencies for training Sentence Transformer models
+    Returns True if we have the required dependencies for training Sentence
+    Transformers models, i.e. Huggingface datasets and Huggingface accelerate.
     """
     return is_accelerate_available() and is_datasets_available()
