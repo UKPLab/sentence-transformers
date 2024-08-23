@@ -160,7 +160,7 @@ def test_rank() -> None:
 
 @pytest.mark.parametrize("safe_serialization", [True, False, None])
 def test_safe_serialization(safe_serialization: bool) -> None:
-    with tempfile.TemporaryDirectory() as cache_folder:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as cache_folder:
         model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
         if safe_serialization:
             model.save(cache_folder, safe_serialization=safe_serialization)

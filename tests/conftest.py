@@ -58,7 +58,9 @@ def cache_dir():
     to avoid keeping the downloaded models on disk after the test.
     """
     if os.environ.get("CI", None):
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        # Note: `ignore_cleanup_errors=True` is used to avoid NotADirectoryError in Windows on GitHub Actions.
+        # See https://github.com/python/cpython/issues/107408, https://www.scivision.dev/python-tempfile-permission-error-windows/
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp_dir:
             yield tmp_dir
     else:
         yield None
