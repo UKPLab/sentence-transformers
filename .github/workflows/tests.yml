@@ -48,9 +48,9 @@ jobs:
           Write-Host ("{0}GB total" -f [math]::truncate($disk.Size / 1GB))
           Write-Host ("{0}GB free" -f [math]::truncate($disk.FreeSpace / 1GB))
 
-          RMDIR "C:\Program Files\dotnet"
-          RMDIR "C:\Program Files (x86)\Android\android-sdk"
-          RMDIR "C:\npm"
+          Remove-Item -Path "C:\Program Files\dotnet" -Force -Recurse
+          Remove-Item -Path "C:\Program Files (x86)\Android\android-sdk" -Force -Recurse
+          Remove-Item -Path "C:\npm" -Force -Recurse
 
           $disk = Get-WmiObject Win32_LogicalDisk -Filter "DeviceID='C:'" | Select-Object Size, FreeSpace
           Write-Host ("{0}GB total" -f [math]::truncate($disk.Size / 1GB))
