@@ -7,7 +7,7 @@ only find extremely similar sentences, a lower threshold will find more sentence
 
 A second parameter is 'min_community_size': Only communities with at least a certain number of sentences will be returned.
 
-The method for finding the communities is extremely fast, for clustering 50k sentences it requires only 5 seconds (plus embedding comuptation).
+The method for finding the communities is extremely fast, for clustering 50k sentences it requires only 5 seconds (plus embedding computation).
 
 In this example, we download a large set of questions from Quora and then find similar questions in this set.
 """
