@@ -7,7 +7,6 @@ from __future__ import annotations
 import csv
 import gzip
 import os
-import tempfile
 from pathlib import Path
 from typing import Generator
 
@@ -19,6 +18,7 @@ from torch.utils.data import DataLoader
 from sentence_transformers import CrossEncoder, util
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
 from sentence_transformers.readers import InputExample
+from tests.utils import SafeTemporaryDirectory
 
 
 @pytest.fixture()
@@ -160,7 +160,7 @@ def test_rank() -> None:
 
 @pytest.mark.parametrize("safe_serialization", [True, False, None])
 def test_safe_serialization(safe_serialization: bool) -> None:
-    with tempfile.TemporaryDirectory() as cache_folder:
+    with SafeTemporaryDirectory() as cache_folder:
         model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
         if safe_serialization:
             model.save(cache_folder, safe_serialization=safe_serialization)
