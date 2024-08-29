@@ -46,7 +46,7 @@ if len(sys.argv) >= 3:
 model_output_path = "output/train_ct-improved{}-{}".format(output_name, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 
-# Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
+# Use Hugging Face/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
 
 # Apply mean pooling to get one fixed sized sentence vector

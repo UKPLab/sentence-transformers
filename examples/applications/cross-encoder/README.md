@@ -39,7 +39,7 @@ scores = model.predict([["My first", "sentence pair"], ["Second text", "pair"]])
 
 You pass to `model.predict` a list of sentence **pairs**. Note, Cross-Encoder do not work on individual sentence, you have to pass sentence pairs.
 
-As model name, you can pass any model or path that is compatible with Huggingface [AutoModel](https://huggingface.co/transformers/model_doc/auto.html) class
+As model name, you can pass any model or path that is compatible with Hugging Face [AutoModel](https://huggingface.co/transformers/model_doc/auto.html) class
 
 
 For a full example, to score a query with all possible sentences in a corpus see [cross-encoder_usage.py](cross-encoder_usage.py).
