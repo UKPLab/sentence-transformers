@@ -4,8 +4,10 @@ from typing import Any
 
 from torch.nn import Module
 
-from sentence_transformers.losses import AdaptiveLayerLoss, MatryoshkaLoss
-from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers import SentenceTransformer
+
+from .AdaptiveLayerLoss import AdaptiveLayerLoss
+from .MatryoshkaLoss import MatryoshkaLoss
 
 
 class Matryoshka2dLoss(AdaptiveLayerLoss):
