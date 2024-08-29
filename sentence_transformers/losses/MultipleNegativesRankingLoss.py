@@ -50,8 +50,8 @@ class MultipleNegativesRankingLoss(nn.Module):
 
         Relations:
             - :class:`CachedMultipleNegativesRankingLoss` is equivalent to this loss, but it uses caching that allows for
-              much higher batch sizes (and thus better performance) without extra memory usage. However, it requires more
-              training time.
+              much higher batch sizes (and thus better performance) without extra memory usage. However, it is slightly
+              slower.
             - :class:`MultipleNegativesSymmetricRankingLoss` is equivalent to this loss, but with an additional loss term.
             - :class:`GISTEmbedLoss` is equivalent to this loss, but uses a guide model to guide the in-batch negative
               sample selection. `GISTEmbedLoss` yields a stronger training signal at the cost of some training overhead.
