@@ -12,15 +12,15 @@ from sentence_transformers.SentenceTransformer import SentenceTransformer
 class MultipleNegativesSymmetricRankingLoss(nn.Module):
     def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim) -> None:
         """
-        This loss is an adaptation of MultipleNegativesRankingLoss. MultipleNegativesRankingLoss computes the following loss:
-        For a given anchor and a list of candidates, find the positive candidate.
+        Given a list of (anchor, positive) pairs, this loss sums the following two losses:
 
-        In MultipleNegativesSymmetricRankingLoss, we add another loss term: Given the positive and a list of all anchors,
-        find the correct (matching) anchor.
+        1. Forward loss: Given an anchor, find the sample with the highest similarity out of all positives in the batch.
+           This is equivalent to :class:`MultipleNegativesRankingLoss`.
+        2. Backward loss: Given a positive, find the sample with the highest similarity out of all anchors in the batch.
 
-        For the example of question-answering: You have (question, answer)-pairs. MultipleNegativesRankingLoss just computes
-        the loss to find the answer for a given question. MultipleNegativesSymmetricRankingLoss additionally computes the
-        loss to find the question for a given answer.
+        For example with question-answer pairs, :class:`MultipleNegativesRankingLoss` just computes the loss to find
+        the answer given a question, but :class:`MultipleNegativesSymmetricRankingLoss` additionally computes the
+        loss to find the question given an answer.
 
         Note: If you pass triplets, the negative entry will be ignored. A anchor is just searched for the positive.
 
@@ -37,6 +37,9 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
 
         Relations:
             - Like :class:`MultipleNegativesRankingLoss`, but with an additional loss term.
+            - :class:`CachedMultipleNegativesSymmetricRankingLoss` is equivalent to this loss, but it uses caching that
+              allows for much higher batch sizes (and thus better performance) without extra memory usage. However, it
+              is slightly slower.
 
         Inputs:
             +---------------------------------------+--------+

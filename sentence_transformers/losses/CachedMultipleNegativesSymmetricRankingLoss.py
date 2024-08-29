@@ -45,21 +45,18 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
         show_progress_bar: bool = False,
     ) -> None:
         """
-        Cached version of MultipleNegativesSymmetricRankingLoss with GradCache optimization.
+        Boosted version of :class:`MultipleNegativesSymmetricRankingLoss` (MNSRL) by GradCache (https://arxiv.org/pdf/2101.06983.pdf).
 
-        This loss is an adaptation of MultipleNegativesSymmetricRankingLoss and CachedMultipleNegativesRankingLoss.
-        It computes the following loss:
+        Given a list of (anchor, positive) pairs, MNSRL sums the following two losses:
 
-        For a given anchor and a list of candidates, find the positive candidate (symmetric version).
+        1. Forward loss: Given an anchor, find the sample with the highest similarity out of all positives in the batch.
+        2. Backward loss: Given a positive, find the sample with the highest similarity out of all anchors in the batch.
 
-        In CachedMultipleNegativesSymmetricRankingLoss, we add another loss term: Given the positive and a list of all anchors,
-        find the correct (matching) anchor. This creates a symmetric loss function.
+        For example with question-answer pairs, the forward loss finds the answer for a given question and the backward loss
+        finds the question for a given answer. This loss is common in symmetric tasks, such as semantic textual similarity.
 
-        The caching mechanism allows for processing of larger batch sizes without increasing memory usage,
-        inspired by the GradCache technique (https://arxiv.org/pdf/2101.06983.pdf).
-
-        For the example of question-answering: You have (question, answer)-pairs. This loss computes
-        the loss to find the answer for a given question AND the loss to find the question for a given answer.
+        The caching modification allows for large batch sizes (which give a better training signal) with constant memory usage,
+        allowing you to reach optimal training signal with regular hardware.
 
         Note: If you pass triplets, the negative entry will be ignored. An anchor is just searched for the positive.
 
@@ -67,7 +64,7 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             model: SentenceTransformer model
             scale: Output of similarity function is multiplied by scale value
             similarity_fct: similarity function between sentence embeddings. By default, cos_sim.
-                            Can also be set to dot product (and then set scale to 1)
+                Can also be set to dot product (and then set scale to 1)
             mini_batch_size: Mini-batch size for the forward pass, this denotes how much memory is actually used during
                 training and evaluation. The larger the mini-batch size, the more memory efficient the training is, but
                 the slower the training will be.
