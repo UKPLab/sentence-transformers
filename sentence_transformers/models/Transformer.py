@@ -10,20 +10,20 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Conf
 
 
 class Transformer(nn.Module):
-    """Huggingface AutoModel to generate token embeddings.
+    """Hugging Face AutoModel to generate token embeddings.
     Loads the correct class, e.g. BERT / RoBERTa etc.
 
     Args:
-        model_name_or_path: Huggingface models name
+        model_name_or_path: Hugging Face models name
             (https://huggingface.co/models)
         max_seq_length: Truncate any inputs longer than max_seq_length
-        model_args: Keyword arguments passed to the Huggingface
+        model_args: Keyword arguments passed to the Hugging Face
             Transformers model
-        tokenizer_args: Keyword arguments passed to the Huggingface
+        tokenizer_args: Keyword arguments passed to the Hugging Face
             Transformers tokenizer
-        config_args: Keyword arguments passed to the Huggingface
+        config_args: Keyword arguments passed to the Hugging Face
             Transformers config
-        cache_dir: Cache dir for Huggingface Transformers to store/load
+        cache_dir: Cache dir for Hugging Face Transformers to store/load
             models
         do_lower_case: If true, lowercases the input (independent if the
             model is cased or not)

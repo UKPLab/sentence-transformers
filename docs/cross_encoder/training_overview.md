@@ -6,7 +6,7 @@
     The CrossEncoder training approach has not been updated in v3.0 when `training Sentence Transformer models <../sentence_transformer/training_overview.html>`_ was improved. Improving training CrossEncoders is planned for a future major update.
 ```
 
-The `CrossEncoder` class is a wrapper around Huggingface `AutoModelForSequenceClassification`, but with some methods to make training and predicting scores a little bit easier. The saved models are 100% compatible with Huggingface and can also be loaded with their classes.
+The `CrossEncoder` class is a wrapper around Hugging Face `AutoModelForSequenceClassification`, but with some methods to make training and predicting scores a little bit easier. The saved models are 100% compatible with Hugging Face and can also be loaded with their classes.
 
 First, you need some sentence pair data. You can either have a continuous score, like:
 
