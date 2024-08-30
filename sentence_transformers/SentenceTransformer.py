@@ -167,6 +167,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
         self.similarity_fn_name = similarity_fn_name
+        self.trust_remote_code = trust_remote_code
         self.truncate_dim = truncate_dim
         self.model_card_data = model_card_data or SentenceTransformerModelCardData()
         self._model_card_vars = {}
