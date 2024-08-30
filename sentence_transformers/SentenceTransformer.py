@@ -614,7 +614,23 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
         if precision and precision != "float32":
-            all_embeddings = quantize_embeddings(all_embeddings, precision=precision)
+            if output_value:
+                all_embeddings = quantize_embeddings(all_embeddings, precision=precision)
+            else:
+                # output_value=None, means we want to get both token and sentence embeddings.
+                # The value of all_embeddings is now a list of dictionaries. We temporarily
+                # build a list of token embeddings and sentence embeddings separately, quantize
+                # them, and then recombine them into a list of dictionaries.
+                combined_embeddings = []
+                for emb in embeddings:
+                    combined_embeddings.append(emb["token_embeddings"])
+                    combined_embeddings.append(emb["sentence_embedding"].reshape(1, -1))
+                combined_embeddings = quantize_embeddings(combined_embeddings, precision=precision)
+
+                # Reconstruct the list of dictionaries with quantized embeddings
+                for i, emb in enumerate(all_embeddings):
+                    emb["token_embeddings"] = combined_embeddings[2 * i]
+                    emb["sentence_embedding"] = combined_embeddings[2 * i + 1].reshape(-1)
 
         if convert_to_tensor:
             if len(all_embeddings):

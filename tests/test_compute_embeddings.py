@@ -90,19 +90,53 @@ def test_encode_tuple_sentences(paraphrase_distilroberta_base_v1_model: Sentence
 
 
 @pytest.mark.parametrize("precision", ("int8", "uint8"))
+def test_encode_sentence_embedding_int_precision(
+    paraphrase_distilroberta_base_v1_model: SentenceTransformer,
+    precision: Literal["float32", "int8", "uint8", "binary", "ubinary"]
+) -> None:
+    model = paraphrase_distilroberta_base_v1_model
+    # Single sentence
+    emb = model.encode("Hello Word, a test sentence", output_value="sentence_embedding", precision=precision)
+    assert emb.shape == (768, )
+    assert emb.dtype == np.dtype(precision)
+
+    # Single sentence as list
+    emb = model.encode(["Hello Word, a test sentence"], output_value="sentence_embedding", precision=precision)
+    assert isinstance(emb, np.ndarray)
+    assert emb.shape == (1, 768)
+    assert emb.dtype == np.dtype(precision)
+
+    # Sentence list
+    emb = model.encode(
+        [
+            "Hello Word, a test sentence",
+            "Here comes another sentence",
+            "My final sentence",
+        ],
+        output_value="sentence_embedding",
+        precision=precision,
+    )
+    assert isinstance(emb, np.ndarray)
+    assert emb.shape == (3, 768)
+    assert emb.dtype == np.dtype(precision)
+
+
+@pytest.mark.parametrize("precision", ("int8", "uint8"))
 def test_encode_token_embeddings_int_precision(
     paraphrase_distilroberta_base_v1_model: SentenceTransformer,
     precision: Literal["float32", "int8", "uint8", "binary", "ubinary"]
 ) -> None:
     model = paraphrase_distilroberta_base_v1_model
     # Single sentence
-    emb = model.encode("Hello Word, a test sentence", output_value="token_embeddings", precision="uint8")
+    emb = model.encode("Hello Word, a test sentence", output_value="token_embeddings", precision=precision)
     assert emb.shape == (8, 768)
+    assert emb.dtype == np.dtype(precision)
 
     # Single sentence as list
-    emb = model.encode(["Hello Word, a test sentence"], output_value="token_embeddings", precision="uint8")
+    emb = model.encode(["Hello Word, a test sentence"], output_value="token_embeddings", precision=precision)
     assert isinstance(emb, list)
     assert emb[0].shape == (8, 768)
+    assert emb[0].dtype == np.dtype(precision)
 
     # Sentence list
     emb = model.encode(
@@ -116,5 +150,60 @@ def test_encode_token_embeddings_int_precision(
     )
     assert isinstance(emb, list)
     assert emb[0].shape == (8, 768)
+    assert emb[0].dtype == np.dtype(precision)
     assert emb[1].shape == (6, 768)
+    assert emb[1].dtype == np.dtype(precision)
     assert emb[2].shape == (5, 768)
+    assert emb[2].dtype == np.dtype(precision)
+
+
+@pytest.mark.parametrize("precision", ("int8", "uint8"))
+def test_encode_output_value_none_int_precision(
+    paraphrase_distilroberta_base_v1_model: SentenceTransformer,
+    precision: Literal["float32", "int8", "uint8", "binary", "ubinary"]
+) -> None:
+    model = paraphrase_distilroberta_base_v1_model
+    # Single sentence
+    emb = model.encode("Hello Word, a test sentence", output_value=None, precision=precision)
+    assert isinstance(emb, dict)
+    assert emb["sentence_embedding"].shape == (768,)
+    assert emb["sentence_embedding"].dtype == np.dtype(precision)
+    assert emb["token_embeddings"].shape == (8, 768)
+    assert emb["token_embeddings"].dtype == np.dtype(precision)
+
+    # Single sentence as list
+    emb = model.encode(["Hello Word, a test sentence"], output_value=None, precision=precision)
+    assert isinstance(emb, list)
+    assert isinstance(emb[0], dict)
+    assert emb[0]["sentence_embedding"].shape == (768,)
+    assert emb[0]["sentence_embedding"].dtype == np.dtype(precision)
+    assert emb[0]["token_embeddings"].shape == (8, 768)
+    assert emb[0]["token_embeddings"].dtype == np.dtype(precision)
+
+    # Sentence list
+    emb = model.encode(
+        [
+            "Hello Word, a test sentence",
+            "Here comes another sentence",
+            "My final sentence",
+        ],
+        output_value=None,
+        precision=precision,
+    )
+    assert isinstance(emb, list)
+    assert all(isinstance(e, dict) for e in emb)
+
+    assert emb[0]["sentence_embedding"].shape == (768,)
+    assert emb[0]["sentence_embedding"].dtype == np.dtype(precision)
+    assert emb[0]["token_embeddings"].shape == (8, 768)
+    assert emb[0]["token_embeddings"].dtype == np.dtype(precision)
+
+    assert emb[1]["sentence_embedding"].shape == (768,)
+    assert emb[1]["sentence_embedding"].dtype == np.dtype(precision)
+    assert emb[1]["token_embeddings"].shape == (8, 768)
+    assert emb[1]["token_embeddings"].dtype == np.dtype(precision)
+
+    assert emb[2]["sentence_embedding"].shape == (768,)
+    assert emb[2]["sentence_embedding"].dtype == np.dtype(precision)
+    assert emb[2]["token_embeddings"].shape == (8, 768)
+    assert emb[2]["token_embeddings"].dtype == np.dtype(precision)
