@@ -48,14 +48,6 @@ class MultipleNegativesRankingLoss(nn.Module):
         Requirements:
             1. (anchor, positive) pairs or (anchor, positive, negative) triplets
 
-        Relations:
-            - :class:`CachedMultipleNegativesRankingLoss` is equivalent to this loss, but it uses caching that allows for
-              much higher batch sizes (and thus better performance) without extra memory usage. However, it is slightly
-              slower.
-            - :class:`MultipleNegativesSymmetricRankingLoss` is equivalent to this loss, but with an additional loss term.
-            - :class:`GISTEmbedLoss` is equivalent to this loss, but uses a guide model to guide the in-batch negative
-              sample selection. `GISTEmbedLoss` yields a stronger training signal at the cost of some training overhead.
-
         Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
@@ -64,6 +56,18 @@ class MultipleNegativesRankingLoss(nn.Module):
             +---------------------------------------+--------+
             | (anchor, positive, negative) triplets | none   |
             +---------------------------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that no in-batch negatives are duplicates of the anchor or positive samples.
+
+        Relations:
+            - :class:`CachedMultipleNegativesRankingLoss` is equivalent to this loss, but it uses caching that allows for
+              much higher batch sizes (and thus better performance) without extra memory usage. However, it is slightly
+              slower.
+            - :class:`MultipleNegativesSymmetricRankingLoss` is equivalent to this loss, but with an additional loss term.
+            - :class:`GISTEmbedLoss` is equivalent to this loss, but uses a guide model to guide the in-batch negative
+              sample selection. `GISTEmbedLoss` yields a stronger training signal at the cost of some training overhead.
 
         Example:
             ::

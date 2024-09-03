@@ -50,18 +50,22 @@ class BatchSemiHardTripletLoss(nn.Module):
             2. Your dataset must contain at least 2 examples per labels class.
             3. Your dataset should contain semi hard positives and negatives.
 
-        Relations:
-            * :class:`BatchHardTripletLoss` uses only the hardest positive and negative samples, rather than only semi hard positive and negatives.
-            * :class:`BatchAllTripletLoss` uses all possible, valid triplets, rather than only semi hard positive and negatives.
-            * :class:`BatchHardSoftMarginTripletLoss` uses only the hardest positive and negative samples, rather than only semi hard positive and negatives.
-            Also, it does not require setting a margin.
-
         Inputs:
             +------------------+--------+
             | Texts            | Labels |
             +==================+========+
             | single sentences | class  |
             +------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.GROUP_BY_LABEL`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that each batch contains 2+ examples per label class.
+
+        Relations:
+            * :class:`BatchHardTripletLoss` uses only the hardest positive and negative samples, rather than only semi hard positive and negatives.
+            * :class:`BatchAllTripletLoss` uses all possible, valid triplets, rather than only semi hard positive and negatives.
+            * :class:`BatchHardSoftMarginTripletLoss` uses only the hardest positive and negative samples, rather than only semi hard positive and negatives.
+            Also, it does not require setting a margin.
 
         Example:
             ::
