@@ -38,6 +38,12 @@ class BatchSamplers(ExplicitEnum):
         - :class:`~sentence_transformers.losses.BatchHardTripletLoss`
         - :class:`~sentence_transformers.losses.BatchSemiHardTripletLoss`
 
+    If you want to use a custom batch sampler, you can create a new Trainer class that inherits from
+    :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` and overrides the
+    :meth:`~sentence_transformers.trainer.SentenceTransformerTrainer.get_batch_sampler` method. The
+    method must return a class instance that supports ``__iter__`` and ``__len__`` methods. The former
+    should yield a list of indices for each batch, and the latter should return the number of batches.
+
     Usage:
         ::
 
