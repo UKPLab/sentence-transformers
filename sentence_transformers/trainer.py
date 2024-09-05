@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import warnings
+from collections import OrderedDict
 from contextlib import nullcontext
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -14,7 +15,6 @@ from transformers.data.data_collator import DataCollator
 from transformers.integrations import WandbCallback
 from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.trainer_utils import EvalLoopOutput
-from transformers.training_args import ParallelMode
 
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
@@ -317,12 +317,13 @@ class SentenceTransformerTrainer(Trainer):
         if isinstance(loss_fn, dict) and dataset_name:
             loss_fn = loss_fn[dataset_name]
 
-        # Hackishly insert the distributed model into the loss function, if the loss stores the model
-        # Only called once per process
+        # Insert the wrapped (e.g. distributed or compiled) model into the loss function,
+        # if the loss stores the model. Only called once per process
         if (
-            self.args.parallel_mode != ParallelMode.NOT_PARALLEL
-            and hasattr(model, "module")
-            and hasattr(loss_fn, "model")
+            model == self.model_wrapped
+            and model != self.model  # Only if the model is wrapped
+            and hasattr(loss_fn, "model")  # Only if the loss stores the model
+            and loss_fn.model != model  # Only if the wrapped model is not already stored
         ):
             loss_fn = self.override_model_in_loss(loss_fn, model)
         loss = loss_fn(features, labels)
@@ -761,3 +762,41 @@ class SentenceTransformerTrainer(Trainer):
             self.model.model_card_data.add_tags(tags)
 
         self.model._create_model_card(self.args.output_dir, model_name=model_name)
+
+    def get_optimizer_cls_and_kwargs(
+        self, args: SentenceTransformerTrainingArguments, model: SentenceTransformer | None = None
+    ) -> tuple[Any, Any]:
+        """
+        We have to override the optimizer_grouped_parameters because the Trainer superclass bases it on the `model`
+        itself, but the SentenceTransformer losses can have weights that should be updated as well, e.g.
+        SoftmaxLoss (see #2872).
+
+        This method requires `transformers` >= 4.43.0.
+        """
+
+        if isinstance(self.loss, dict):
+            loss_model = nn.Sequential(OrderedDict(self.loss))
+        else:
+            loss_model = self.loss
+        optimizer_cls, optimizer_kwargs = super().get_optimizer_cls_and_kwargs(args, loss_model)
+
+        # If the kwargs were not overridden by the super() call, then we should override them here so that the potential
+        # weights in the loss(es) can also be updated.
+        if not {"params", "model", "optimizer_dict"} & set(optimizer_kwargs.keys()):
+            decay_parameters = self.get_decay_parameter_names(loss_model)
+            optimizer_kwargs["optimizer_dict"] = [
+                {
+                    "params": [
+                        p for n, p in loss_model.named_parameters() if (n in decay_parameters and p.requires_grad)
+                    ],
+                    "weight_decay": self.args.weight_decay,
+                },
+                {
+                    "params": [
+                        p for n, p in loss_model.named_parameters() if (n not in decay_parameters and p.requires_grad)
+                    ],
+                    "weight_decay": 0.0,
+                },
+            ]
+
+        return optimizer_cls, optimizer_kwargs
