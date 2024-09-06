@@ -1,4 +1,6 @@
-from typing import Any, Dict, Iterable
+from __future__ import annotations
+
+from typing import Any, Iterable
 
 import torch
 from torch import Tensor, nn
@@ -48,8 +50,8 @@ class MultipleNegativesRankingLoss(nn.Module):
 
         Relations:
             - :class:`CachedMultipleNegativesRankingLoss` is equivalent to this loss, but it uses caching that allows for
-              much higher batch sizes (and thus better performance) without extra memory usage. However, it requires more
-              training time.
+              much higher batch sizes (and thus better performance) without extra memory usage. However, it is slightly
+              slower.
             - :class:`MultipleNegativesSymmetricRankingLoss` is equivalent to this loss, but with an additional loss term.
             - :class:`GISTEmbedLoss` is equivalent to this loss, but uses a guide model to guide the in-batch negative
               sample selection. `GISTEmbedLoss` yields a stronger training signal at the cost of some training overhead.
@@ -83,13 +85,13 @@ class MultipleNegativesRankingLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(MultipleNegativesRankingLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         embeddings_a = reps[0]
         embeddings_b = torch.cat(reps[1:])
@@ -99,14 +101,14 @@ class MultipleNegativesRankingLoss(nn.Module):
         range_labels = torch.arange(0, scores.size(0), device=scores.device)
         return self.cross_entropy_loss(scores, range_labels)
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
 
     @property
     def citation(self) -> str:
         return """
 @misc{henderson2017efficient,
-    title={Efficient Natural Language Response Suggestion for Smart Reply}, 
+    title={Efficient Natural Language Response Suggestion for Smart Reply},
     author={Matthew Henderson and Rami Al-Rfou and Brian Strope and Yun-hsuan Sung and Laszlo Lukacs and Ruiqi Guo and Sanjiv Kumar and Balint Miklos and Ray Kurzweil},
     year={2017},
     eprint={1705.00652},

@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import csv
 import logging
 import os
-from typing import List
 
 import numpy as np
 from sklearn.metrics import f1_score
@@ -31,8 +32,8 @@ class CEF1Evaluator:
 
     def __init__(
         self,
-        sentence_pairs: List[List[str]],
-        labels: List[int],
+        sentence_pairs: list[list[str]],
+        labels: list[int],
         *,
         batch_size: int = 32,
         show_progress_bar: bool = False,
@@ -67,7 +68,7 @@ class CEF1Evaluator:
         self.csv_headers = ["epoch", "steps"] + [metric_name for metric_name, _ in self.f1_callables]
 
     @classmethod
-    def from_input_examples(cls, examples: List[InputExample], **kwargs):
+    def from_input_examples(cls, examples: list[InputExample], **kwargs):
         """
         Create an instance of CEF1Evaluator from a list of InputExample objects.
 

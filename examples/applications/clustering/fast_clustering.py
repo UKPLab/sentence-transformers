@@ -7,7 +7,7 @@ only find extremely similar sentences, a lower threshold will find more sentence
 
 A second parameter is 'min_community_size': Only communities with at least a certain number of sentences will be returned.
 
-The method for finding the communities is extremely fast, for clustering 50k sentences it requires only 5 seconds (plus embedding comuptation).
+The method for finding the communities is extremely fast, for clustering 50k sentences it requires only 5 seconds (plus embedding computation).
 
 In this example, we download a large set of questions from Quora and then find similar questions in this set.
 """
@@ -57,11 +57,11 @@ start_time = time.time()
 # threshold: Consider sentence pairs with a cosine-similarity larger than threshold as similar
 clusters = util.community_detection(corpus_embeddings, min_community_size=25, threshold=0.75)
 
-print("Clustering done after {:.2f} sec".format(time.time() - start_time))
+print(f"Clustering done after {time.time() - start_time:.2f} sec")
 
 # Print for all clusters the top 3 and bottom 3 elements
 for i, cluster in enumerate(clusters):
-    print("\nCluster {}, #{} Elements ".format(i + 1, len(cluster)))
+    print(f"\nCluster {i + 1}, #{len(cluster)} Elements ")
     for sentence_id in cluster[0:3]:
         print("\t", corpus_sentences[sentence_id])
     print("\t", "...")

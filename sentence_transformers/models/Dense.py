@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import json
 import os
-from typing import Dict
 
 import torch
 from safetensors.torch import load_model as load_safetensors_model
@@ -35,7 +36,7 @@ class Dense(nn.Module):
         init_weight: Tensor = None,
         init_bias: Tensor = None,
     ):
-        super(Dense, self).__init__()
+        super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.bias = bias
@@ -48,7 +49,7 @@ class Dense(nn.Module):
         if init_bias is not None:
             self.linear.bias = nn.Parameter(init_bias)
 
-    def forward(self, features: Dict[str, Tensor]):
+    def forward(self, features: dict[str, Tensor]):
         features.update({"sentence_embedding": self.activation_function(self.linear(features["sentence_embedding"]))})
         return features
 
@@ -73,7 +74,7 @@ class Dense(nn.Module):
             torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
 
     def __repr__(self):
-        return "Dense({})".format(self.get_config_dict())
+        return f"Dense({self.get_config_dict()})"
 
     @staticmethod
     def load(input_path):

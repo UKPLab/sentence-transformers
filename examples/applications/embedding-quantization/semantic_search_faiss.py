@@ -1,6 +1,7 @@
 import time
 
 from datasets import load_dataset
+
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.quantization import quantize_embeddings, semantic_search_faiss
 

@@ -3,6 +3,8 @@ This file contains the templating for model cards prior to the v3.0 release. It 
 SentenceTransformer.old_fit for backwards compatibility, but will be removed in a future release.
 """
 
+from __future__ import annotations
+
 import logging
 
 from .util import fullname
@@ -125,7 +127,7 @@ print(sentence_embeddings)
             return (
                 "max_pooling",
                 """
-# Max Pooling - Take the max value over time for every dimension. 
+# Max Pooling - Take the max value over time for every dimension.
 def max_pooling(model_output, attention_mask):
     token_embeddings = model_output[0] #First element of model_output contains all token embeddings
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
@@ -167,17 +169,17 @@ def cls_pooling(model_output, attention_mask):
                 if hasattr(dataloader, "batch_sampler"):
                     loader_params["batch_sampler"] = fullname(dataloader.batch_sampler)
 
-            dataloader_str = """**DataLoader**:\n\n`{}` of length {} with parameters:
+            dataloader_str = f"""**DataLoader**:\n\n`{fullname(dataloader)}` of length {len(dataloader)} with parameters:
 ```
-{}
-```""".format(fullname(dataloader), len(dataloader), loader_params)
+{loader_params}
+```"""
 
             loss_str = "**Loss**:\n\n`{}` {}".format(
                 fullname(loss),
-                """with parameters:
+                f"""with parameters:
   ```
-  {}
-  ```""".format(loss.get_config_dict())
+  {loss.get_config_dict()}
+  ```"""
                 if hasattr(loss, "get_config_dict")
                 else "",
             )
@@ -185,5 +187,5 @@ def cls_pooling(model_output, attention_mask):
             return [dataloader_str, loss_str]
 
         except Exception as e:
-            logging.WARN("Exception when creating get_train_objective_info: {}".format(str(e)))
+            logging.WARN(f"Exception when creating get_train_objective_info: {str(e)}")
             return ""

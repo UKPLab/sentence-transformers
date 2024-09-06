@@ -9,7 +9,7 @@ Characteristics of Cross Encoder (a.k.a reranker) models:
 3. Often **slower** than a Sentence Transformer model, as it requires computation for each pair rather than each text.
 4. Due to the previous 2 characteristics, Cross Encoders are often used to **re-rank the top-k results** from a Sentence Transformer model.
 
-Once you have installed `installed <installation.md>`_ Sentence Transformers, you can easily use Cross Encoder models:
+Once you have `installed <../../installation.html>`_ Sentence Transformers, you can easily use Cross Encoder models:
 
 .. sidebar:: Documentation
 

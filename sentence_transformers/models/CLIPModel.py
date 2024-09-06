@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from __future__ import annotations
 
 import torch
 import transformers
@@ -8,7 +8,7 @@ from torch import nn
 
 class CLIPModel(nn.Module):
     def __init__(self, model_name: str = "openai/clip-vit-base-patch32", processor_name=None) -> None:
-        super(CLIPModel, self).__init__()
+        super().__init__()
 
         if processor_name is None:
             processor_name = model_name
@@ -19,7 +19,7 @@ class CLIPModel(nn.Module):
     def __repr__(self) -> str:
         return "CLIPModel()"
 
-    def forward(self, features: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         image_embeds = []
         text_embeds = []
 
@@ -51,7 +51,7 @@ class CLIPModel(nn.Module):
 
         return features
 
-    def tokenize(self, texts, padding: Union[str, bool] = True) -> Dict[str, torch.Tensor]:
+    def tokenize(self, texts, padding: str | bool = True) -> dict[str, torch.Tensor]:
         images = []
         texts_values = []
         image_text_info = []
@@ -84,5 +84,5 @@ class CLIPModel(nn.Module):
         self.processor.save_pretrained(output_path)
 
     @staticmethod
-    def load(input_path: str) -> "CLIPModel":
+    def load(input_path: str) -> CLIPModel:
         return CLIPModel(model_name=input_path)

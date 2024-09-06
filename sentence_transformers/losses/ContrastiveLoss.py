@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Any, Dict, Iterable
+from typing import Any, Iterable
 
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -75,22 +77,22 @@ class ContrastiveLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(ContrastiveLoss, self).__init__()
+        super().__init__()
         self.distance_metric = distance_metric
         self.margin = margin
         self.model = model
         self.size_average = size_average
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         distance_metric_name = self.distance_metric.__name__
         for name, value in vars(SiameseDistanceMetric).items():
             if value == self.distance_metric:
-                distance_metric_name = "SiameseDistanceMetric.{}".format(name)
+                distance_metric_name = f"SiameseDistanceMetric.{name}"
                 break
 
         return {"distance_metric": distance_metric_name, "margin": self.margin, "size_average": self.size_average}
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         assert len(reps) == 2
         rep_anchor, rep_other = reps
@@ -105,8 +107,8 @@ class ContrastiveLoss(nn.Module):
         return """
 @inproceedings{hadsell2006dimensionality,
     author={Hadsell, R. and Chopra, S. and LeCun, Y.},
-    booktitle={2006 IEEE Computer Society Conference on Computer Vision and Pattern Recognition (CVPR'06)}, 
-    title={Dimensionality Reduction by Learning an Invariant Mapping}, 
+    booktitle={2006 IEEE Computer Society Conference on Computer Vision and Pattern Recognition (CVPR'06)},
+    title={Dimensionality Reduction by Learning an Invariant Mapping},
     year={2006},
     volume={2},
     number={},

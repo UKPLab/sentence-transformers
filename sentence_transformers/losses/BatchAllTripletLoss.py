@@ -1,4 +1,6 @@
-from typing import Dict, Iterable
+from __future__ import annotations
+
+from typing import Iterable
 
 from torch import Tensor, nn
 
@@ -78,12 +80,12 @@ class BatchAllTripletLoss(nn.Module):
                 trainer.train()
 
         """
-        super(BatchAllTripletLoss, self).__init__()
+        super().__init__()
         self.sentence_embedder = model
         self.triplet_margin = margin
         self.distance_metric = distance_metric
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         rep = self.sentence_embedder(sentence_features[0])["sentence_embedding"]
         return self.batch_all_triplet_loss(labels, rep)
 
@@ -134,7 +136,7 @@ class BatchAllTripletLoss(nn.Module):
     def citation(self) -> str:
         return """
 @misc{hermans2017defense,
-    title={In Defense of the Triplet Loss for Person Re-Identification}, 
+    title={In Defense of the Triplet Loss for Person Re-Identification},
     author={Alexander Hermans and Lucas Beyer and Bastian Leibe},
     year={2017},
     eprint={1703.07737},

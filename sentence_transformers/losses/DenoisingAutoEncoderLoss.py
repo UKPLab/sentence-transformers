@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Dict, Iterable, Optional
+from typing import Iterable
 
 from torch import Tensor, nn
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
@@ -11,9 +13,9 @@ logger = logging.getLogger(__name__)
 
 class DenoisingAutoEncoderLoss(nn.Module):
     def __init__(
-        self, model: SentenceTransformer, decoder_name_or_path: Optional[str] = None, tie_encoder_decoder: bool = True
+        self, model: SentenceTransformer, decoder_name_or_path: str | None = None, tie_encoder_decoder: bool = True
     ) -> None:
-        """
+        r"""
         This loss expects as input a pairs of damaged sentences and the corresponding original ones.
         During training, the decoder reconstructs the original sentences from the encoded sentence embeddings.
         Here the argument 'decoder_name_or_path' indicates the pretrained model (supported by Hugging Face) to be used as the decoder.
@@ -27,7 +29,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
 
         Args:
             model (SentenceTransformer): The SentenceTransformer model.
-            decoder_name_or_path (str, optional): Model name or path for initializing a decoder (compatible with Huggingface's Transformers). Defaults to None.
+            decoder_name_or_path (str, optional): Model name or path for initializing a decoder (compatible with Hugging Face's Transformers). Defaults to None.
             tie_encoder_decoder (bool): Whether to tie the trainable parameters of encoder and decoder. Defaults to True.
 
         References:
@@ -70,7 +72,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
                     epochs=10,
                 )
         """
-        super(DenoisingAutoEncoderLoss, self).__init__()
+        super().__init__()
         self.encoder = model  # This will be the final model used during the inference time.
         self.tokenizer_encoder = model.tokenizer
 
@@ -134,7 +136,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
                     encoder_name_or_path,
                 )
 
-    def retokenize(self, sentence_features: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    def retokenize(self, sentence_features: dict[str, Tensor]) -> dict[str, Tensor]:
         input_ids = sentence_features["input_ids"]
         device = input_ids.device
         sentences_decoded = self.tokenizer_encoder.batch_decode(
@@ -145,7 +147,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
         ).to(device)
         return retokenized
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         source_features, target_features = tuple(sentence_features)
         if self.need_retokenization:
             # since the sentence_features here are all tokenized by encoder's tokenizer,
@@ -181,7 +183,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
         return """
 @inproceedings{wang-2021-TSDAE,
     title = "TSDAE: Using Transformer-based Sequential Denoising Auto-Encoderfor Unsupervised Sentence Embedding Learning",
-    author = "Wang, Kexin and Reimers, Nils and Gurevych, Iryna", 
+    author = "Wang, Kexin and Reimers, Nils and Gurevych, Iryna",
     booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2021",
     month = nov,
     year = "2021",

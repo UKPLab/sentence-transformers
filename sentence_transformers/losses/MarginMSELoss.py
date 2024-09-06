@@ -1,4 +1,6 @@
-from typing import Dict, Iterable
+from __future__ import annotations
+
+from typing import Iterable
 
 from torch import Tensor, nn
 
@@ -108,12 +110,12 @@ class MarginMSELoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(MarginMSELoss, self).__init__()
+        super().__init__()
         self.model = model
         self.similarity_fct = similarity_fct
         self.loss_fct = nn.MSELoss()
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         # sentence_features: query, positive passage, negative passage
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         embeddings_query = reps[0]
@@ -130,7 +132,7 @@ class MarginMSELoss(nn.Module):
     def citation(self) -> str:
         return """
 @misc{hofstätter2021improving,
-    title={Improving Efficient Neural Ranking Models with Cross-Architecture Knowledge Distillation}, 
+    title={Improving Efficient Neural Ranking Models with Cross-Architecture Knowledge Distillation},
     author={Sebastian Hofstätter and Sophia Althammer and Michael Schröder and Mete Sertkan and Allan Hanbury},
     year={2021},
     eprint={2010.02666},

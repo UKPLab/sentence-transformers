@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import gzip
 
 from . import InputExample
 
 
-class PairedFilesReader(object):
+class PairedFilesReader:
     """Reads in the a Pair Dataset, split in two files"""
 
     def __init__(self, filepaths):

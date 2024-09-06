@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import copy
 import math
 import random
-from typing import Dict, Iterable
+from typing import Iterable
 
 import numpy as np
 import torch
@@ -71,12 +73,12 @@ class ContrastiveTensionLoss(nn.Module):
     """
 
     def __init__(self, model: SentenceTransformer) -> None:
-        super(ContrastiveTensionLoss, self).__init__()
+        super().__init__()
         self.model2 = model  # This will be the final model used during the inference time.
         self.model1 = copy.deepcopy(model)
         self.criterion = nn.BCEWithLogitsLoss(reduction="sum")
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         sentence_features1, sentence_features2 = tuple(sentence_features)
         reps_1 = self.model1(sentence_features1)["sentence_embedding"]  # (bsz, hdim)
         reps_2 = self.model2(sentence_features2)["sentence_embedding"]
@@ -163,14 +165,14 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
                     epochs=10,
                 )
         """
-        super(ContrastiveTensionLossInBatchNegatives, self).__init__()
+        super().__init__()
         self.model2 = model  # This will be the final model used during the inference time.
         self.model1 = copy.deepcopy(model)
         self.similarity_fct = similarity_fct
         self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(scale))
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         sentence_features1, sentence_features2 = tuple(sentence_features)
         embeddings_a = self.model1(sentence_features1)["sentence_embedding"]  # (bsz, hdim)
         embeddings_b = self.model2(sentence_features2)["sentence_embedding"]

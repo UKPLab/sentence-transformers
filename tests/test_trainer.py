@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import re
-import tempfile
 from pathlib import Path
 
 import pytest
 
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
 from sentence_transformers.util import is_datasets_available, is_training_available
+from tests.utils import SafeTemporaryDirectory
 
 if is_datasets_available():
     from datasets import DatasetDict
@@ -16,7 +18,7 @@ if is_datasets_available():
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_trainer_multi_dataset_errors(
-    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: "DatasetDict"
+    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: DatasetDict
 ) -> None:
     train_dataset = stsb_dataset_dict["train"]
     loss = {
@@ -40,7 +42,7 @@ def test_trainer_multi_dataset_errors(
     with pytest.raises(
         ValueError,
         match="If the provided `loss` is a dict, then all keys from the `train_dataset` dictionary must occur in `loss` also. "
-        "Currently, \['stsb-extra'\] occurs in `train_dataset` but not in `loss`.",
+        r"Currently, \['stsb-extra'\] occurs in `train_dataset` but not in `loss`.",
     ):
         SentenceTransformerTrainer(model=stsb_bert_tiny_model, train_dataset=train_dataset, loss=loss)
 
@@ -73,7 +75,7 @@ def test_trainer_multi_dataset_errors(
     with pytest.raises(
         ValueError,
         match="If the provided `loss` is a dict, then all keys from the `eval_dataset` dictionary must occur in `loss` also. "
-        "Currently, \['stsb-extra-1', 'stsb-extra-2'\] occur in `eval_dataset` but not in `loss`.",
+        r"Currently, \['stsb-extra-1', 'stsb-extra-2'\] occur in `eval_dataset` but not in `loss`.",
     ):
         SentenceTransformerTrainer(
             model=stsb_bert_tiny_model, train_dataset=train_dataset, eval_dataset=eval_dataset, loss=loss
@@ -85,7 +87,7 @@ def test_trainer_multi_dataset_errors(
     reason='Sentence Transformers was not installed with the `["train"]` extra.',
 )
 def test_trainer_invalid_column_names(
-    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: "DatasetDict"
+    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: DatasetDict
 ) -> None:
     train_dataset = stsb_dataset_dict["train"]
     for column_name in ("return_loss", "dataset_name"):
@@ -124,21 +126,21 @@ def test_trainer_invalid_column_names(
 def test_model_card_reuse(stsb_bert_tiny_model: SentenceTransformer):
     assert stsb_bert_tiny_model._model_card_text
     # Reuse the model card if no training was done
-    with tempfile.TemporaryDirectory() as tmp_folder:
+    with SafeTemporaryDirectory() as tmp_folder:
         model_path = Path(tmp_folder) / "tiny_model_local"
         stsb_bert_tiny_model.save(str(model_path))
 
-        with open(model_path / "README.md", "r") as f:
+        with open(model_path / "README.md") as f:
             model_card_text = f.read()
         assert model_card_text == stsb_bert_tiny_model._model_card_text
 
     # Create a new model card if a Trainer was initialized
     SentenceTransformerTrainer(model=stsb_bert_tiny_model)
 
-    with tempfile.TemporaryDirectory() as tmp_folder:
+    with SafeTemporaryDirectory() as tmp_folder:
         model_path = Path(tmp_folder) / "tiny_model_local"
         stsb_bert_tiny_model.save(str(model_path))
 
-        with open(model_path / "README.md", "r") as f:
+        with open(model_path / "README.md") as f:
             model_card_text = f.read()
         assert model_card_text != stsb_bert_tiny_model._model_card_text

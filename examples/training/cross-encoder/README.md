@@ -9,7 +9,7 @@ See the following examples how to train Cross-Encoders:
 
 ## Training CrossEncoders
 
-The `CrossEncoder` class is a wrapper around Huggingface `AutoModelForSequenceClassification`, but with some methods to make training and predicting scores a little bit easier. The saved models are 100% compatible with Huggingface and can also be loaded with their classes.
+The `CrossEncoder` class is a wrapper around Hugging Face `AutoModelForSequenceClassification`, but with some methods to make training and predicting scores a little bit easier. The saved models are 100% compatible with Hugging Face and can also be loaded with their classes.
 
 First, you need some sentence pair data. You can either have a continuous score, like:
 ```python
@@ -32,7 +32,7 @@ train_samples = [
 ]
 ```
 
-Then, you define the base model and the number of labels. You can take any [Huggingface pre-trained model](https://huggingface.co/transformers/pretrained_models.html) that is compatible with AutoModel:
+Then, you define the base model and the number of labels. You can take any [Hugging Face pre-trained model](https://huggingface.co/transformers/pretrained_models.html) that is compatible with AutoModel:
 ```
 model = CrossEncoder('distilroberta-base', num_labels=1)
 ```
