@@ -172,6 +172,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self.similarity_fn_name = similarity_fn_name
         self.truncate_dim = truncate_dim
         self.model_card_data = model_card_data or SentenceTransformerModelCardData()
+        self.module_kwargs = None
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -289,7 +290,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 revision=revision,
                 local_files_only=local_files_only,
             ):
-                modules = self._load_sbert_model(
+                modules, self.module_kwargs = self._load_sbert_model(
                     model_name_or_path,
                     token=token,
                     cache_folder=cache_folder,
@@ -370,6 +371,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[False] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        **kwargs,
     ) -> Tensor: ...
 
     @overload
@@ -386,6 +388,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[False] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        **kwargs,
     ) -> np.ndarray: ...
 
     @overload
@@ -402,6 +405,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[True] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        **kwargs,
     ) -> Tensor: ...
 
     @overload
@@ -418,6 +422,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[False] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        **kwargs,
     ) -> list[Tensor]: ...
 
     def encode(
@@ -433,6 +438,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: bool = False,
         device: str = None,
         normalize_embeddings: bool = False,
+        **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor:
         """
         Computes sentence embeddings.
@@ -581,7 +587,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             features.update(extra_features)
 
             with torch.no_grad():
-                out_features = self.forward(features)
+                out_features = self.forward(features, **kwargs)
                 if self.device.type == "hpu":
                     out_features = copy.deepcopy(out_features)
 
@@ -640,6 +646,16 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             all_embeddings = all_embeddings[0]
 
         return all_embeddings
+
+    def forward(self, input: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
+        for module_name, module in self.named_children():
+            if self.module_kwargs:
+                module_kwarg_keys = self.module_kwargs.get(module_name, [])
+                module_kwargs = {key: value for key, value in kwargs.items() if key in module_kwarg_keys}
+                input = module(input, **module_kwargs)
+            else:
+                input = module(input)
+        return input
 
     @property
     def similarity_fn_name(self) -> str | None:
@@ -1436,7 +1452,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return [transformer_model, pooling_model]
 
     def _load_module_class_from_ref(
-        self, class_ref: str, model_name_or_path: str, trust_remote_code: bool, model_kwargs: Optional[Dict[str, Any]]
+        self, class_ref: str, model_name_or_path: str, trust_remote_code: bool, model_kwargs: dict[str, Any] | None
     ) -> nn.Module:
         # If the class is from sentence_transformers, we can directly import it,
         # otherwise, we try to import it dynamically, and if that fails, we fall back to the default import
@@ -1451,7 +1467,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     model_name_or_path,
                     code_revision=code_revision,
                 )
-            except EnvironmentError:
+            except OSError:
                 # Ignore the error if the file does not exist, and fall back to the default import
                 pass
 
@@ -1547,6 +1563,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             modules_config = json.load(fIn)
 
         modules = OrderedDict()
+        module_kwargs = OrderedDict()
         for module_config in modules_config:
             class_ref = module_config["type"]
             module_class = self._load_module_class_from_ref(
@@ -1634,6 +1651,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     )
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
+            module_kwargs[module_config["name"]] = module_config.get("kwargs", [])
 
         if revision is None:
             path_parts = Path(modules_json_path)
@@ -1642,7 +1660,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 if len(revision_path_part) == 40:
                     revision = revision_path_part
         self.model_card_data.set_base_model(model_name_or_path, revision=revision)
-        return modules
+        return modules, module_kwargs
 
     @staticmethod
     def load(input_path) -> SentenceTransformer:
