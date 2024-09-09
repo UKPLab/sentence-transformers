@@ -4,8 +4,10 @@ from typing import Any
 
 from torch.nn import Module
 
-from sentence_transformers.losses import AdaptiveLayerLoss, MatryoshkaLoss
-from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers import SentenceTransformer
+
+from .AdaptiveLayerLoss import AdaptiveLayerLoss
+from .MatryoshkaLoss import MatryoshkaLoss
 
 
 class Matryoshka2dLoss(AdaptiveLayerLoss):
@@ -79,16 +81,16 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
         Requirements:
             1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`.
 
-        Relations:
-            - :class:`MatryoshkaLoss` is used in this loss, and it is responsible for the dimensionality reduction.
-            - :class:`AdaptiveLayerLoss` is used in this loss, and it is responsible for the layer reduction.
-
-        Input:
+        Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
             +=======================================+========+
             | any                                   | any    |
             +---------------------------------------+--------+
+
+        Relations:
+            - :class:`MatryoshkaLoss` is used in this loss, and it is responsible for the dimensionality reduction.
+            - :class:`AdaptiveLayerLoss` is used in this loss, and it is responsible for the layer reduction.
 
         Example:
             ::

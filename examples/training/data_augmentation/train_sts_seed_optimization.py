@@ -72,7 +72,7 @@ for seed in range(seed_count):
     num_epochs = 1
     model_save_path = "output/bi-encoder/training_stsbenchmark_" + model_name + "/seed-" + str(seed)
 
-    # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
+    # Use Hugging Face/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
     word_embedding_model = models.Transformer(model_name)
 
     # Apply mean pooling to get one fixed sized sentence vector

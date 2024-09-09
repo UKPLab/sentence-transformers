@@ -83,14 +83,14 @@ bi_encoder_path = (
 ###### Cross-encoder (simpletransformers) ######
 
 logging.info(f"Loading cross-encoder model: {model_name}")
-# Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for cross-encoder model
+# Use Hugging Face/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for cross-encoder model
 cross_encoder = CrossEncoder(model_name, num_labels=1)
 
 ###### Bi-encoder (sentence-transformers) ######
 
 logging.info(f"Loading bi-encoder model: {model_name}")
 
-# Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
+# Use Hugging Face/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
 
 # Apply mean pooling to get one fixed sized sentence vector
