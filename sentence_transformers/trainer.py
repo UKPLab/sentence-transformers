@@ -735,7 +735,7 @@ class SentenceTransformerTrainer(Trainer):
     def _load_from_checkpoint(self, checkpoint_path: str) -> None:
         from sentence_transformers import SentenceTransformer
 
-        loaded_model = SentenceTransformer(checkpoint_path)
+        loaded_model = SentenceTransformer(checkpoint_path, trust_remote_code=self.model.trust_remote_code)
         self.model.load_state_dict(loaded_model.state_dict())
 
     def create_model_card(
