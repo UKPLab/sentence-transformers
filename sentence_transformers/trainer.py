@@ -464,6 +464,25 @@ class SentenceTransformerTrainer(Trainer):
         valid_label_columns: list[str] | None = None,
         generator: torch.Generator | None = None,
     ) -> BatchSampler:
+        """
+        Returns the appropriate batch sampler based on the ``batch_sampler`` argument in ``self.args``.
+        This batch sampler class supports ``__len__`` and ``__iter__`` methods, and is used as the ``batch_sampler``
+        to create the :class:`torch.utils.data.DataLoader`.
+
+        .. note::
+            Override this method to provide a custom batch sampler.
+
+        Args:
+            dataset (Dataset): The dataset to sample from.
+            batch_size (int): Number of samples per batch.
+            drop_last (bool): If True, drop the last incomplete batch if the dataset size
+                is not divisible by the batch size.
+            valid_label_columns (List[str]): List of column names to check for labels.
+                The first column name from ``valid_label_columns`` found in the dataset will
+                be used as the label column.
+            generator (torch.Generator, optional): Optional random number generator for shuffling
+                the indices.
+        """
         if self.args.batch_sampler == BatchSamplers.NO_DUPLICATES:
             return NoDuplicatesBatchSampler(
                 dataset=dataset,
@@ -495,6 +514,20 @@ class SentenceTransformerTrainer(Trainer):
         generator: torch.Generator | None = None,
         seed: int | None = 0,
     ) -> BatchSampler:
+        """
+        Returns the appropriate multi-dataset batch sampler based on the ``multi_dataset_batch_sampler`` argument
+        in ``self.args``. This batch sampler class supports ``__len__`` and ``__iter__`` methods, and is used as the
+        ``batch_sampler`` to create the :class:`torch.utils.data.DataLoader`.
+
+        .. note::
+            Override this method to provide a custom multi-dataset batch sampler.
+
+        Args:
+            dataset (ConcatDataset): The concatenation of all datasets.
+            batch_samplers (List[BatchSampler]): List of batch samplers for each dataset in the concatenated dataset.
+            generator (torch.Generator, optional): Optional random number generator for shuffling the indices.
+            seed (int, optional): Optional seed for the random number generator
+        """
         if self.args.multi_dataset_batch_sampler == MultiDatasetBatchSamplers.ROUND_ROBIN:
             return RoundRobinBatchSampler(
                 dataset=dataset,

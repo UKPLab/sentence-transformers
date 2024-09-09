@@ -44,15 +44,19 @@ class BatchHardSoftMarginTripletLoss(BatchHardTripletLoss):
             2. Your dataset must contain at least 2 examples per labels class.
             3. Your dataset should contain hard positives and negatives.
 
-        Relations:
-            * :class:`BatchHardTripletLoss` uses a user-specified margin, while this loss does not require setting a margin.
-
         Inputs:
             +------------------+--------+
             | Texts            | Labels |
             +==================+========+
             | single sentences | class  |
             +------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.GROUP_BY_LABEL`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that each batch contains 2+ examples per label class.
+
+        Relations:
+            * :class:`BatchHardTripletLoss` uses a user-specified margin, while this loss does not require setting a margin.
 
         Example:
             ::
