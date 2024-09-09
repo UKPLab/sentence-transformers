@@ -247,6 +247,29 @@ To ensure that ``decay_pooling.DecayMeanPooling`` can be imported, you should co
 
    Using a custom module with remote code stored on the Hugging Face Hub requires that your users specify ``trust_remote_code`` as ``True`` when loading the model. This is a security measure to prevent remote code execution attacks.
 
+If you have your models and custom modelling code on the Hugging Face Hub, then it might make sense to separate your custom modules into a separate repository. This way, you only have to maintain one implementation of your custom module, and you can reuse it across multiple models. You can do this by updating the ``type`` in ``modules.json`` file to include the path to the repository where the custom module is stored like ``{repository_id}--{dot_path_to_module}``. For example, if the ``decay_pooling.py`` file is stored in a repository called ``my-user/my-model-implementation`` and the module is called ``DecayMeanPooling``, then the ``modules.json`` file may look like this::
+
+   [
+     {
+       "idx": 0,
+       "name": "0",
+       "path": "",
+       "type": "sentence_transformers.models.Transformer"
+     },
+     {
+       "idx": 1,
+       "name": "1",
+       "path": "1_DecayMeanPooling",
+       "type": "my-user/my-model-implementation--decay_pooling.DecayMeanPooling"
+     },
+     {
+       "idx": 2,
+       "name": "2",
+       "path": "2_Normalize",
+       "type": "sentence_transformers.models.Normalize"
+     }
+   ]
+
 Advanced: Keyword argument passthrough in Custom Modules
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
