@@ -71,7 +71,7 @@ class CrossEncoder(PushToHubMixin):
         default_activation_function=None,
         classifier_dropout: float = None,
         cache_dir: str = None,
-        config_args: Dict = None
+        config_args: dict = None,
     ) -> None:
         if tokenizer_args is None:
             tokenizer_args = {}
@@ -85,7 +85,7 @@ class CrossEncoder(PushToHubMixin):
             revision=revision,
             local_files_only=local_files_only,
             cache_dir=cache_dir,
-            **config_args
+            **config_args,
         )
         classifier_trained = True
         if self.config.architectures is not None:
