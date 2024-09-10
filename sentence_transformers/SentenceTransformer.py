@@ -7,6 +7,8 @@ import logging
 import math
 import os
 import queue
+import shutil
+import sys
 import tempfile
 import traceback
 import warnings
@@ -25,6 +27,7 @@ from numpy import ndarray
 from torch import Tensor, device, nn
 from tqdm.autonotebook import trange
 from transformers import is_torch_npu_available
+from transformers.dynamic_module_utils import get_class_from_dynamic_module, get_relative_import_files
 
 from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
 from sentence_transformers.similarity_functions import SimilarityFunction
@@ -170,6 +173,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self.trust_remote_code = trust_remote_code
         self.truncate_dim = truncate_dim
         self.model_card_data = model_card_data or SentenceTransformerModelCardData()
+        self.module_kwargs = None
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -287,7 +291,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 revision=revision,
                 local_files_only=local_files_only,
             ):
-                modules = self._load_sbert_model(
+                modules, self.module_kwargs = self._load_sbert_model(
                     model_name_or_path,
                     token=token,
                     cache_folder=cache_folder,
@@ -368,6 +372,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[False] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        **kwargs,
     ) -> Tensor: ...
 
     @overload
@@ -384,6 +389,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[False] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        **kwargs,
     ) -> np.ndarray: ...
 
     @overload
@@ -400,6 +406,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[True] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        **kwargs,
     ) -> Tensor: ...
 
     @overload
@@ -416,6 +423,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[False] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        **kwargs,
     ) -> list[Tensor]: ...
 
     def encode(
@@ -431,6 +439,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: bool = False,
         device: str = None,
         normalize_embeddings: bool = False,
+        **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor:
         """
         Computes sentence embeddings.
@@ -579,7 +588,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             features.update(extra_features)
 
             with torch.no_grad():
-                out_features = self.forward(features)
+                out_features = self.forward(features, **kwargs)
                 if self.device.type == "hpu":
                     out_features = copy.deepcopy(out_features)
 
@@ -638,6 +647,16 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             all_embeddings = all_embeddings[0]
 
         return all_embeddings
+
+    def forward(self, input: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
+        if self.module_kwargs is None:
+            return super().forward(input)
+
+        for module_name, module in self.named_children():
+            module_kwarg_keys = self.module_kwargs.get(module_name, [])
+            module_kwargs = {key: value for key, value in kwargs.items() if key in module_kwarg_keys}
+            input = module(input, **module_kwargs)
+        return input
 
     @property
     def similarity_fn_name(self) -> str | None:
@@ -1099,7 +1118,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # Save modules
         for idx, name in enumerate(self._modules):
             module = self._modules[name]
-            if idx == 0 and isinstance(module, Transformer):  # Save transformer model in the main folder
+            if idx == 0:  # Save first module in the main folder
                 model_path = path + "/"
             else:
                 model_path = os.path.join(path, str(idx) + "_" + type(module).__name__)
@@ -1111,9 +1130,28 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             except TypeError:
                 module.save(model_path)
 
-            modules_config.append(
-                {"idx": idx, "name": name, "path": os.path.basename(model_path), "type": type(module).__module__}
-            )
+            # "module" only works for Sentence Transformers as the modules have the same names as the classes
+            class_ref = type(module).__module__
+            # For remote modules, we want to remove "transformers_modules.{repo_name}":
+            if class_ref.startswith("transformers_modules."):
+                class_file = sys.modules[class_ref].__file__
+
+                # Save the custom module file
+                dest_file = Path(model_path) / (Path(class_file).name)
+                shutil.copy(class_file, dest_file)
+
+                # Save all files importeed in the custom module file
+                for needed_file in get_relative_import_files(class_file):
+                    dest_file = Path(model_path) / (Path(needed_file).name)
+                    shutil.copy(needed_file, dest_file)
+
+                # For remote modules, we want to ignore the "transformers_modules.{repo_id}" part,
+                # i.e. we only want the filename
+                class_ref = f"{class_ref.split('.')[-1]}.{type(module).__name__}"
+            # For other cases, we want to add the class name:
+            elif not class_ref.startswith("sentence_transformers."):
+                class_ref = f"{class_ref}.{type(module).__name__}"
+            modules_config.append({"idx": idx, "name": name, "path": os.path.basename(model_path), "type": class_ref})
 
         with open(os.path.join(path, "modules.json"), "w") as fOut:
             json.dump(modules_config, fOut, indent=2)
@@ -1414,6 +1452,28 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return [transformer_model, pooling_model]
 
+    def _load_module_class_from_ref(
+        self, class_ref: str, model_name_or_path: str, trust_remote_code: bool, model_kwargs: dict[str, Any] | None
+    ) -> nn.Module:
+        # If the class is from sentence_transformers, we can directly import it,
+        # otherwise, we try to import it dynamically, and if that fails, we fall back to the default import
+        if class_ref.startswith("sentence_transformers."):
+            return import_from_string(class_ref)
+
+        if trust_remote_code:
+            code_revision = model_kwargs.pop("code_revision", None) if model_kwargs else None
+            try:
+                return get_class_from_dynamic_module(
+                    class_ref,
+                    model_name_or_path,
+                    code_revision=code_revision,
+                )
+            except OSError:
+                # Ignore the error if the file does not exist, and fall back to the default import
+                pass
+
+        return import_from_string(class_ref)
+
     def _load_sbert_model(
         self,
         model_name_or_path: str,
@@ -1504,11 +1564,16 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             modules_config = json.load(fIn)
 
         modules = OrderedDict()
+        module_kwargs = OrderedDict()
         for module_config in modules_config:
-            module_class = import_from_string(module_config["type"])
+            class_ref = module_config["type"]
+            module_class = self._load_module_class_from_ref(
+                class_ref, model_name_or_path, trust_remote_code, model_kwargs
+            )
+
             # For Transformer, don't load the full directory, rely on `transformers` instead
             # But, do load the config file first.
-            if module_class == Transformer and module_config["path"] == "":
+            if module_config["path"] == "":
                 kwargs = {}
                 for config_name in [
                     "sentence_bert_config.json",
@@ -1566,7 +1631,12 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 if config_kwargs:
                     kwargs["config_args"].update(config_kwargs)
 
-                module = Transformer(model_name_or_path, cache_dir=cache_folder, **kwargs)
+                # Try to initialize the module with a lot of kwargs, but only if the module supports them
+                # Otherwise we fall back to the load method
+                try:
+                    module = module_class(model_name_or_path, cache_dir=cache_folder, **kwargs)
+                except TypeError:
+                    module = module_class.load(model_name_or_path)
             else:
                 # Normalize does not require any files to be loaded
                 if module_class == Normalize:
@@ -1582,6 +1652,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     )
                 module = module_class.load(module_path)
             modules[module_config["name"]] = module
+            module_kwargs[module_config["name"]] = module_config.get("kwargs", [])
 
         if revision is None:
             path_parts = Path(modules_json_path)
@@ -1590,7 +1661,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 if len(revision_path_part) == 40:
                     revision = revision_path_part
         self.model_card_data.set_base_model(model_name_or_path, revision=revision)
-        return modules
+        return modules, module_kwargs
 
     @staticmethod
     def load(input_path) -> SentenceTransformer:

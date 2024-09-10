@@ -56,4 +56,5 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    ../../../examples/applications/parallel-sentence-mining/README
    ../../../examples/applications/image-search/README
    ../../../examples/applications/embedding-quantization/README
+   custom_models.md
 
