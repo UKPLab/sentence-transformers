@@ -616,7 +616,7 @@ class SentenceTransformerTrainer(Trainer):
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
-                    batch_size=self.args.per_device_train_batch_size,
+                    batch_size=self.args.train_batch_size,
                     drop_last=self.args.dataloader_drop_last,
                     valid_label_columns=data_collator.valid_label_columns,
                     generator=generator,
@@ -710,7 +710,7 @@ class SentenceTransformerTrainer(Trainer):
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
-                    batch_size=self.args.per_device_eval_batch_size,
+                    batch_size=self.args.eval_batch_size,
                     drop_last=self.args.dataloader_drop_last,
                     valid_label_columns=data_collator.valid_label_columns,
                     generator=generator,
@@ -730,7 +730,7 @@ class SentenceTransformerTrainer(Trainer):
         elif isinstance(eval_dataset, Dataset):
             batch_sampler = self.get_batch_sampler(
                 eval_dataset,
-                batch_size=self.args.train_batch_size,
+                batch_size=self.args.eval_batch_size,
                 drop_last=self.args.dataloader_drop_last,
                 valid_label_columns=data_collator.valid_label_columns,
                 generator=generator,
@@ -798,7 +798,7 @@ class SentenceTransformerTrainer(Trainer):
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
-                    batch_size=self.args.per_device_train_batch_size,
+                    batch_size=self.args.eval_batch_size,
                     drop_last=self.args.dataloader_drop_last,
                     valid_label_columns=data_collator.valid_label_columns,
                     generator=generator,
