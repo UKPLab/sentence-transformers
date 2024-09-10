@@ -29,7 +29,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
 
         Args:
             model (SentenceTransformer): The SentenceTransformer model.
-            decoder_name_or_path (str, optional): Model name or path for initializing a decoder (compatible with Huggingface's Transformers). Defaults to None.
+            decoder_name_or_path (str, optional): Model name or path for initializing a decoder (compatible with Hugging Face's Transformers). Defaults to None.
             tie_encoder_decoder (bool): Whether to tie the trainable parameters of encoder and decoder. Defaults to True.
 
         References:
