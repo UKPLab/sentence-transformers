@@ -7,8 +7,8 @@ Sentence Transformer
    SentenceTransformer
    trainer
    training_args
-   sampler
    losses
+   sampler
    evaluation
    datasets
    models
