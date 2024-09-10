@@ -87,7 +87,7 @@ class SentenceTransformerDataCollator:
                     "the dataset column names. Consider renaming the columns to match the expected order, e.g.:\n"
                     f"dataset = dataset.select_columns({proposed_fix_columns})"
                 )
-                # We only need to warn once per column order
+                # We only need to warn once per list of column names to prevent spamming the user
                 break
 
         self._warned_columns.add(tuple(column_names))
