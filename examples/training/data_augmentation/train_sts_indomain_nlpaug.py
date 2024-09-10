@@ -61,7 +61,7 @@ output_dir = (
     + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 
-# Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
+# Use Hugging Face/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 model = SentenceTransformer(model_name)
 
 # Load the STSB dataset: https://huggingface.co/datasets/sentence-transformers/stsb

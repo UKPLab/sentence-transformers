@@ -45,12 +45,16 @@ class MegaBatchMarginLoss(nn.Module):
             1. (anchor, positive) pairs
             2. Large batches (500 or more examples)
 
-        Input:
+        Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
             +=======================================+========+
             | (anchor, positive) pairs              | none   |
             +---------------------------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that no in-batch negatives are duplicates of the anchor or positive samples.
 
         Example:
             ::
