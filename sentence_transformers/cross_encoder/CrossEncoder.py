@@ -41,8 +41,10 @@ class CrossEncoder(PushToHubMixin):
             length of the model will be used. Defaults to None.
         device (str, optional): Device that should be used for the model. If None, it will use CUDA if available.
             Defaults to None.
-        tokenizer_args (Dict, optional): Arguments passed to AutoTokenizer. Defaults to None.
         automodel_args (Dict, optional): Arguments passed to AutoModelForSequenceClassification. Defaults to None.
+        tokenizer_args (Dict, optional): Arguments passed to AutoTokenizer. Defaults to None.
+        config_args (Dict, optional): Arguments passed to AutoConfig. Defaults to None.
+        cache_dir (`str`, `Path`, optional): Path to the folder where cached files are stored.
         trust_remote_code (bool, optional): Whether or not to allow for custom models defined on the Hub in their own modeling files.
             This option should only be set to True for repositories you trust and in which you have read the code, as it
             will execute code present on the Hub on your local machine. Defaults to False.
@@ -53,8 +55,6 @@ class CrossEncoder(PushToHubMixin):
             should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
             else nn.Identity(). Defaults to None.
         classifier_dropout (float, optional): The dropout ratio for the classification head. Defaults to None.
-        cache_dir (`str`, `Path`, optional): Path to the folder where cached files are stored.
-        config_args (Dict, optional): Arguments passed to AutoConfig. Defaults to None.
     """
 
     def __init__(
@@ -63,15 +63,15 @@ class CrossEncoder(PushToHubMixin):
         num_labels: int = None,
         max_length: int = None,
         device: str | None = None,
-        tokenizer_args: dict = None,
         automodel_args: dict = None,
+        tokenizer_args: dict = None,
+        config_args: dict = None,
+        cache_dir: str = None,
         trust_remote_code: bool = False,
         revision: str | None = None,
         local_files_only: bool = False,
         default_activation_function=None,
         classifier_dropout: float = None,
-        cache_dir: str = None,
-        config_args: dict = None,
     ) -> None:
         if tokenizer_args is None:
             tokenizer_args = {}
