@@ -109,13 +109,13 @@ class Transformer(nn.Module):
     def __repr__(self) -> str:
         return f"Transformer({self.get_config_dict()}) with Transformer model: {self.auto_model.__class__.__name__} "
 
-    def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+    def forward(self, features: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
         """Returns token_embeddings, cls_token"""
         trans_features = {"input_ids": features["input_ids"], "attention_mask": features["attention_mask"]}
         if "token_type_ids" in features:
             trans_features["token_type_ids"] = features["token_type_ids"]
 
-        output_states = self.auto_model(**trans_features, return_dict=False)
+        output_states = self.auto_model(**trans_features, **kwargs, return_dict=False)
         output_tokens = output_states[0]
 
         features.update({"token_embeddings": output_tokens, "attention_mask": features["attention_mask"]})
