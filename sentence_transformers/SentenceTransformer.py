@@ -649,13 +649,13 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return all_embeddings
 
     def forward(self, input: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
+        if self.module_kwargs is None:
+            return super().forward(input)
+
         for module_name, module in self.named_children():
-            if self.module_kwargs:
-                module_kwarg_keys = self.module_kwargs.get(module_name, [])
-                module_kwargs = {key: value for key, value in kwargs.items() if key in module_kwarg_keys}
-                input = module(input, **module_kwargs)
-            else:
-                input = module(input)
+            module_kwarg_keys = self.module_kwargs.get(module_name, [])
+            module_kwargs = {key: value for key, value in kwargs.items() if key in module_kwarg_keys}
+            input = module(input, **module_kwargs)
         return input
 
     @property
