@@ -32,15 +32,15 @@ class MarginMSELoss(nn.Module):
             1. (query, passage_one, passage_two) triplets
             2. Usually used with a finetuned teacher M in a knowledge distillation setup
 
-        Relations:
-            - :class:`MSELoss` is equivalent to this loss, but without a margin through the negative pair.
-
         Inputs:
             +-----------------------------------------------+-----------------------------------------------+
             | Texts                                         | Labels                                        |
             +===============================================+===============================================+
             | (query, passage_one, passage_two) triplets    | M(query, passage_one) - M(query, passage_two) |
             +-----------------------------------------------+-----------------------------------------------+
+
+        Relations:
+            - :class:`MSELoss` is equivalent to this loss, but without a margin through the negative pair.
 
         Example:
 

@@ -170,6 +170,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
         self.similarity_fn_name = similarity_fn_name
+        self.trust_remote_code = trust_remote_code
         self.truncate_dim = truncate_dim
         self.model_card_data = model_card_data or SentenceTransformerModelCardData()
         self.module_kwargs = None
@@ -178,7 +179,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self._model_config = {}
         if use_auth_token is not None:
             warnings.warn(
-                "The `use_auth_token` argument is deprecated and will be removed in v3 of SentenceTransformers.",
+                "The `use_auth_token` argument is deprecated and will be removed in v4 of SentenceTransformers.",
                 FutureWarning,
             )
             if token is not None:
