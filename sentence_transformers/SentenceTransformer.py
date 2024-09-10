@@ -320,6 +320,16 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         super().__init__(modules)
 
+        # Ensure all tensors in the model are of the same dtype as the first tensor
+        # This is necessary if the first module has been given a lower precision via
+        # model_kwargs["torch_dtype"]. The rest of the model should be loaded in the same dtype
+        # See #2887 for more details
+        try:
+            dtype = next(self.parameters()).dtype
+            self.to(dtype)
+        except StopIteration:
+            pass
+
         self.to(device)
         self.is_hpu_graph_enabled = False
 
@@ -1651,6 +1661,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                         local_files_only=local_files_only,
                     )
                 module = module_class.load(module_path)
+
             modules[module_config["name"]] = module
             module_kwargs[module_config["name"]] = module_config.get("kwargs", [])
 
