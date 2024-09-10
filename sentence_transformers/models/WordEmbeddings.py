@@ -105,7 +105,9 @@ class WordEmbeddings(nn.Module):
         if os.path.exists(os.path.join(input_path, "model.safetensors")):
             weights = load_safetensors_file(os.path.join(input_path, "model.safetensors"))
         else:
-            weights = torch.load(os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"))
+            weights = torch.load(
+                os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
+            )
         embedding_weights = weights["emb_layer.weight"]
         model = WordEmbeddings(
             tokenizer=tokenizer, embedding_weights=embedding_weights, update_embeddings=config["update_embeddings"]
