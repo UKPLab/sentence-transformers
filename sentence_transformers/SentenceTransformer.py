@@ -175,7 +175,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self._model_config = {}
         if use_auth_token is not None:
             warnings.warn(
-                "The `use_auth_token` argument is deprecated and will be removed in v3 of SentenceTransformers.",
+                "The `use_auth_token` argument is deprecated and will be removed in v4 of SentenceTransformers.",
                 FutureWarning,
             )
             if token is not None:
