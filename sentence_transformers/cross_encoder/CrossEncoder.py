@@ -53,7 +53,7 @@ class CrossEncoder(PushToHubMixin):
             should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
             else nn.Identity(). Defaults to None.
         classifier_dropout (float, optional): The dropout ratio for the classification head. Defaults to None.
-        cache_dir (`str`, `Path`, *optional*): Path to the folder where cached files are stored.
+        cache_dir (`str`, `Path`, optional): Path to the folder where cached files are stored.
         config_args (Dict, optional): Arguments passed to AutoConfig. Defaults to None.
     """
 
