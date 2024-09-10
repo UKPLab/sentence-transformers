@@ -1,4 +1,6 @@
-from typing import Any, Dict, Iterable
+from __future__ import annotations
+
+from typing import Any, Iterable
 
 import torch
 from torch import Tensor, nn
@@ -38,16 +40,16 @@ class CoSENTLoss(nn.Module):
         Requirements:
             - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
 
-        Relations:
-            - :class:`AnglELoss` is CoSENTLoss with ``pairwise_angle_sim`` as the metric, rather than ``pairwise_cos_sim``.
-            - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than CoSENTLoss. In our experiments, CoSENTLoss is recommended.
-
         Inputs:
             +--------------------------------+------------------------+
             | Texts                          | Labels                 |
             +================================+========================+
             | (sentence_A, sentence_B) pairs | float similarity score |
             +--------------------------------+------------------------+
+
+        Relations:
+            - :class:`AnglELoss` is CoSENTLoss with ``pairwise_angle_sim`` as the metric, rather than ``pairwise_cos_sim``.
+            - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than CoSENTLoss. In our experiments, CoSENTLoss is recommended.
 
         Example:
             ::
@@ -70,12 +72,12 @@ class CoSENTLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(CoSENTLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.similarity_fct = similarity_fct
         self.scale = scale
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
         scores = self.similarity_fct(embeddings[0], embeddings[1])
@@ -95,7 +97,7 @@ class CoSENTLoss(nn.Module):
 
         return loss
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
 
     @property

@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import logging
 import os
 import warnings
+from collections import OrderedDict
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable
 
 import torch
 from torch import nn
@@ -12,7 +15,6 @@ from transformers.data.data_collator import DataCollator
 from transformers.integrations import WandbCallback
 from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.trainer_utils import EvalLoopOutput
-from transformers.training_args import ParallelMode
 
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
@@ -114,26 +116,23 @@ class SentenceTransformerTrainer(Trainer):
 
     def __init__(
         self,
-        model: Optional["SentenceTransformer"] = None,
+        model: SentenceTransformer | None = None,
         args: SentenceTransformerTrainingArguments = None,
-        train_dataset: Optional[Union["Dataset", "DatasetDict", Dict[str, "Dataset"]]] = None,
-        eval_dataset: Optional[Union["Dataset", "DatasetDict", Dict[str, "Dataset"]]] = None,
-        loss: Optional[
-            Union[
-                nn.Module,
-                Dict[str, nn.Module],
-                Callable[["SentenceTransformer"], torch.nn.Module],
-                Dict[str, Callable[["SentenceTransformer"], torch.nn.Module]],
-            ]
-        ] = None,
-        evaluator: Optional[Union[SentenceEvaluator, List[SentenceEvaluator]]] = None,
-        data_collator: Optional[DataCollator] = None,
-        tokenizer: Optional[Union[PreTrainedTokenizerBase, Callable]] = None,
-        model_init: Optional[Callable[[], "SentenceTransformer"]] = None,
-        compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = None,
-        callbacks: Optional[List[TrainerCallback]] = None,
-        optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
-        preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
+        train_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
+        eval_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
+        loss: nn.Module
+        | dict[str, nn.Module]
+        | Callable[[SentenceTransformer], torch.nn.Module]
+        | dict[str, Callable[[SentenceTransformer], torch.nn.Module]]
+        | None = None,
+        evaluator: SentenceEvaluator | list[SentenceEvaluator] | None = None,
+        data_collator: DataCollator | None = None,
+        tokenizer: PreTrainedTokenizerBase | Callable | None = None,
+        model_init: Callable[[], SentenceTransformer] | None = None,
+        compute_metrics: Callable[[EvalPrediction], dict] | None = None,
+        callbacks: list[TrainerCallback] | None = None,
+        optimizers: tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
+        preprocess_logits_for_metrics: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None = None,
     ) -> None:
         if not is_training_available():
             raise RuntimeError(
@@ -238,7 +237,7 @@ class SentenceTransformerTrainer(Trainer):
         self.add_callback(model_card_callback)
         model_card_callback.on_init_end(self.args, self.state, self.control, self.model)
 
-    def call_model_init(self, trial=None) -> "SentenceTransformer":
+    def call_model_init(self, trial=None) -> SentenceTransformer:
         model = super().call_model_init(trial=trial)
         # If the Trainer already has a loss, then we'll want to override the model in the loss function
         if not hasattr(self, "loss"):
@@ -263,7 +262,7 @@ class SentenceTransformerTrainer(Trainer):
             self.loss = self.override_model_in_loss(self.loss, model)
         return model
 
-    def override_model_in_loss(self, loss: torch.nn.Module, model: "SentenceTransformer") -> torch.nn.Module:
+    def override_model_in_loss(self, loss: torch.nn.Module, model: SentenceTransformer) -> torch.nn.Module:
         from sentence_transformers import SentenceTransformer
 
         for name, child in loss.named_children():
@@ -275,14 +274,14 @@ class SentenceTransformerTrainer(Trainer):
 
     def prepare_loss(
         self,
-        loss: Union[Callable[["SentenceTransformer"], torch.nn.Module], torch.nn.Module],
-        model: "SentenceTransformer",
+        loss: Callable[[SentenceTransformer], torch.nn.Module] | torch.nn.Module,
+        model: SentenceTransformer,
     ) -> torch.nn.Module:
         if isinstance(loss, torch.nn.Module):
             return loss.to(model.device)
         return loss(model).to(model.device)
 
-    def add_dataset_name_column(self, dataset_dict: "DatasetDict") -> "DatasetDict":
+    def add_dataset_name_column(self, dataset_dict: DatasetDict) -> DatasetDict:
         for key, dataset in dataset_dict.items():
             if "dataset_name" not in dataset.column_names:
                 dataset_dict[key] = dataset.add_column("dataset_name", [key] * len(dataset))
@@ -290,10 +289,10 @@ class SentenceTransformerTrainer(Trainer):
 
     def compute_loss(
         self,
-        model: "SentenceTransformer",
-        inputs: Dict[str, Union[torch.Tensor, Any]],
+        model: SentenceTransformer,
+        inputs: dict[str, torch.Tensor | Any],
         return_outputs: bool = False,
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, Any]]]:
+    ) -> torch.Tensor | tuple[torch.Tensor, dict[str, Any]]:
         """
         Computes the loss for the SentenceTransformer model.
 
@@ -318,12 +317,13 @@ class SentenceTransformerTrainer(Trainer):
         if isinstance(loss_fn, dict) and dataset_name:
             loss_fn = loss_fn[dataset_name]
 
-        # Hackishly insert the distributed model into the loss function, if the loss stores the model
-        # Only called once per process
+        # Insert the wrapped (e.g. distributed or compiled) model into the loss function,
+        # if the loss stores the model. Only called once per process
         if (
-            self.args.parallel_mode != ParallelMode.NOT_PARALLEL
-            and hasattr(model, "module")
-            and hasattr(loss_fn, "model")
+            model == self.model_wrapped
+            and model != self.model  # Only if the model is wrapped
+            and hasattr(loss_fn, "model")  # Only if the loss stores the model
+            and loss_fn.model != model  # Only if the wrapped model is not already stored
         ):
             loss_fn = self.override_model_in_loss(loss_fn, model)
         loss = loss_fn(features, labels)
@@ -336,8 +336,8 @@ class SentenceTransformerTrainer(Trainer):
         return loss
 
     def collect_features(
-        self, inputs: Dict[str, Union[torch.Tensor, Any]]
-    ) -> Tuple[List[Dict[str, torch.Tensor]], Optional[torch.Tensor]]:
+        self, inputs: dict[str, torch.Tensor | Any]
+    ) -> tuple[list[dict[str, torch.Tensor]], torch.Tensor | None]:
         """Turn the inputs from the dataloader into the separate model inputs & the labels.
 
         Example::
@@ -372,10 +372,10 @@ class SentenceTransformerTrainer(Trainer):
 
     def evaluate(
         self,
-        eval_dataset: Optional[Union["Dataset", Dict[str, "Dataset"]]] = None,
-        ignore_keys: Optional[List[str]] = None,
+        eval_dataset: Dataset | dict[str, Dataset] | None = None,
+        ignore_keys: list[str] | None = None,
         metric_key_prefix: str = "eval",
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         eval_dataset = eval_dataset if eval_dataset is not None else self.eval_dataset
         if isinstance(eval_dataset, DatasetDict) and isinstance(self.loss, dict):
             eval_dataset = self.add_dataset_name_column(eval_dataset)
@@ -385,8 +385,8 @@ class SentenceTransformerTrainer(Trainer):
         self,
         dataloader: DataLoader,
         description: str,
-        prediction_loss_only: Optional[bool] = None,
-        ignore_keys: Optional[List[str]] = None,
+        prediction_loss_only: bool | None = None,
+        ignore_keys: list[str] | None = None,
         metric_key_prefix: str = "eval",
     ) -> EvalLoopOutput:
         output = super().evaluation_loop(
@@ -449,7 +449,7 @@ class SentenceTransformerTrainer(Trainer):
             self.model = full_model
             self.model[0].auto_model = loaded_auto_model
 
-    def validate_column_names(self, dataset: "Dataset", dataset_name: Optional[str] = None) -> bool:
+    def validate_column_names(self, dataset: Dataset, dataset_name: str | None = None) -> bool:
         if overlap := set(dataset.column_names) & {"return_loss", "dataset_name"}:
             raise ValueError(
                 f"The following column names are invalid in your {dataset_name + ' ' if dataset_name else ''}dataset: {list(overlap)}."
@@ -458,12 +458,31 @@ class SentenceTransformerTrainer(Trainer):
 
     def get_batch_sampler(
         self,
-        dataset: "Dataset",
+        dataset: Dataset,
         batch_size: int,
         drop_last: bool,
-        valid_label_columns: Optional[List[str]] = None,
-        generator: Optional[torch.Generator] = None,
+        valid_label_columns: list[str] | None = None,
+        generator: torch.Generator | None = None,
     ) -> BatchSampler:
+        """
+        Returns the appropriate batch sampler based on the ``batch_sampler`` argument in ``self.args``.
+        This batch sampler class supports ``__len__`` and ``__iter__`` methods, and is used as the ``batch_sampler``
+        to create the :class:`torch.utils.data.DataLoader`.
+
+        .. note::
+            Override this method to provide a custom batch sampler.
+
+        Args:
+            dataset (Dataset): The dataset to sample from.
+            batch_size (int): Number of samples per batch.
+            drop_last (bool): If True, drop the last incomplete batch if the dataset size
+                is not divisible by the batch size.
+            valid_label_columns (List[str]): List of column names to check for labels.
+                The first column name from ``valid_label_columns`` found in the dataset will
+                be used as the label column.
+            generator (torch.Generator, optional): Optional random number generator for shuffling
+                the indices.
+        """
         if self.args.batch_sampler == BatchSamplers.NO_DUPLICATES:
             return NoDuplicatesBatchSampler(
                 dataset=dataset,
@@ -491,10 +510,24 @@ class SentenceTransformerTrainer(Trainer):
     def get_multi_dataset_batch_sampler(
         self,
         dataset: ConcatDataset,
-        batch_samplers: List[BatchSampler],
-        generator: Optional[torch.Generator] = None,
-        seed: Optional[int] = 0,
+        batch_samplers: list[BatchSampler],
+        generator: torch.Generator | None = None,
+        seed: int | None = 0,
     ) -> BatchSampler:
+        """
+        Returns the appropriate multi-dataset batch sampler based on the ``multi_dataset_batch_sampler`` argument
+        in ``self.args``. This batch sampler class supports ``__len__`` and ``__iter__`` methods, and is used as the
+        ``batch_sampler`` to create the :class:`torch.utils.data.DataLoader`.
+
+        .. note::
+            Override this method to provide a custom multi-dataset batch sampler.
+
+        Args:
+            dataset (ConcatDataset): The concatenation of all datasets.
+            batch_samplers (List[BatchSampler]): List of batch samplers for each dataset in the concatenated dataset.
+            generator (torch.Generator, optional): Optional random number generator for shuffling the indices.
+            seed (int, optional): Optional seed for the random number generator
+        """
         if self.args.multi_dataset_batch_sampler == MultiDatasetBatchSamplers.ROUND_ROBIN:
             return RoundRobinBatchSampler(
                 dataset=dataset,
@@ -581,7 +614,7 @@ class SentenceTransformerTrainer(Trainer):
         self._train_dataloader = self.accelerator.prepare(DataLoader(train_dataset, **dataloader_params))
         return self._train_dataloader
 
-    def get_eval_dataloader(self, eval_dataset: Union["Dataset", None] = None) -> DataLoader:
+    def get_eval_dataloader(self, eval_dataset: Dataset | None = None) -> DataLoader:
         """
         Returns the evaluation [`~torch.utils.data.DataLoader`].
 
@@ -650,7 +683,7 @@ class SentenceTransformerTrainer(Trainer):
         self.accelerator.even_batches = True
         return self.accelerator.prepare(DataLoader(eval_dataset, **dataloader_params))
 
-    def get_test_dataloader(self, test_dataset: "Dataset") -> DataLoader:
+    def get_test_dataloader(self, test_dataset: Dataset) -> DataLoader:
         """
         Returns the training [`~torch.utils.data.DataLoader`].
 
@@ -718,7 +751,7 @@ class SentenceTransformerTrainer(Trainer):
         self._train_dataloader = self.accelerator.prepare(DataLoader(test_dataset, **dataloader_params))
         return self._train_dataloader
 
-    def _save(self, output_dir: Optional[str] = None, state_dict=None) -> None:
+    def _save(self, output_dir: str | None = None, state_dict=None) -> None:
         # If we are executing this function, we are the process zero, so we don't check for that.
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
@@ -735,20 +768,20 @@ class SentenceTransformerTrainer(Trainer):
     def _load_from_checkpoint(self, checkpoint_path: str) -> None:
         from sentence_transformers import SentenceTransformer
 
-        loaded_model = SentenceTransformer(checkpoint_path)
+        loaded_model = SentenceTransformer(checkpoint_path, trust_remote_code=self.model.trust_remote_code)
         self.model.load_state_dict(loaded_model.state_dict())
 
     def create_model_card(
         self,
-        language: Optional[str] = None,
-        license: Optional[str] = None,
-        tags: Union[str, List[str], None] = None,
-        model_name: Optional[str] = None,
-        finetuned_from: Optional[str] = None,
-        tasks: Union[str, List[str], None] = None,
-        dataset_tags: Union[str, List[str], None] = None,
-        dataset: Union[str, List[str], None] = None,
-        dataset_args: Union[str, List[str], None] = None,
+        language: str | None = None,
+        license: str | None = None,
+        tags: str | list[str] | None = None,
+        model_name: str | None = None,
+        finetuned_from: str | None = None,
+        tasks: str | list[str] | None = None,
+        dataset_tags: str | list[str] | None = None,
+        dataset: str | list[str] | None = None,
+        dataset_args: str | list[str] | None = None,
         **kwargs,
     ) -> None:
         if not self.is_world_process_zero():
@@ -762,3 +795,41 @@ class SentenceTransformerTrainer(Trainer):
             self.model.model_card_data.add_tags(tags)
 
         self.model._create_model_card(self.args.output_dir, model_name=model_name)
+
+    def get_optimizer_cls_and_kwargs(
+        self, args: SentenceTransformerTrainingArguments, model: SentenceTransformer | None = None
+    ) -> tuple[Any, Any]:
+        """
+        We have to override the optimizer_grouped_parameters because the Trainer superclass bases it on the `model`
+        itself, but the SentenceTransformer losses can have weights that should be updated as well, e.g.
+        SoftmaxLoss (see #2872).
+
+        This method requires `transformers` >= 4.43.0.
+        """
+
+        if isinstance(self.loss, dict):
+            loss_model = nn.Sequential(OrderedDict(self.loss))
+        else:
+            loss_model = self.loss
+        optimizer_cls, optimizer_kwargs = super().get_optimizer_cls_and_kwargs(args, loss_model)
+
+        # If the kwargs were not overridden by the super() call, then we should override them here so that the potential
+        # weights in the loss(es) can also be updated.
+        if not {"params", "model", "optimizer_dict"} & set(optimizer_kwargs.keys()):
+            decay_parameters = self.get_decay_parameter_names(loss_model)
+            optimizer_kwargs["optimizer_dict"] = [
+                {
+                    "params": [
+                        p for n, p in loss_model.named_parameters() if (n in decay_parameters and p.requires_grad)
+                    ],
+                    "weight_decay": self.args.weight_decay,
+                },
+                {
+                    "params": [
+                        p for n, p in loss_model.named_parameters() if (n not in decay_parameters and p.requires_grad)
+                    ],
+                    "weight_decay": 0.0,
+                },
+            ]
+
+        return optimizer_cls, optimizer_kwargs

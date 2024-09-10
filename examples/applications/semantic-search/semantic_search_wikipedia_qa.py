@@ -73,7 +73,7 @@ while True:
 
     # Output of top-k hits
     print("Input question:", query)
-    print("Results (after {:.3f} seconds):".format(end_time - start_time))
+    print(f"Results (after {end_time - start_time:.3f} seconds):")
     for hit in hits:
         print("\t{:.3f}\t{}".format(hit["score"], passages[hit["corpus_id"]]))
 

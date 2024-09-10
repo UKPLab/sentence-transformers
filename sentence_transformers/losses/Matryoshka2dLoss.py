@@ -1,9 +1,13 @@
-from typing import Any, Dict, List, Optional, Union
+from __future__ import annotations
+
+from typing import Any
 
 from torch.nn import Module
 
-from sentence_transformers.losses import AdaptiveLayerLoss, MatryoshkaLoss
-from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers import SentenceTransformer
+
+from .AdaptiveLayerLoss import AdaptiveLayerLoss
+from .MatryoshkaLoss import MatryoshkaLoss
 
 
 class Matryoshka2dLoss(AdaptiveLayerLoss):
@@ -11,8 +15,8 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
         self,
         model: SentenceTransformer,
         loss: Module,
-        matryoshka_dims: List[int],
-        matryoshka_weights: Optional[List[Union[float, int]]] = None,
+        matryoshka_dims: list[int],
+        matryoshka_weights: list[float | int] | None = None,
         n_layers_per_step: int = 1,
         n_dims_per_step: int = 1,
         last_layer_weight: float = 1.0,
@@ -77,16 +81,16 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
         Requirements:
             1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`.
 
-        Relations:
-            - :class:`MatryoshkaLoss` is used in this loss, and it is responsible for the dimensionality reduction.
-            - :class:`AdaptiveLayerLoss` is used in this loss, and it is responsible for the layer reduction.
-
-        Input:
+        Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
             +=======================================+========+
             | any                                   | any    |
             +---------------------------------------+--------+
+
+        Relations:
+            - :class:`MatryoshkaLoss` is used in this loss, and it is responsible for the dimensionality reduction.
+            - :class:`AdaptiveLayerLoss` is used in this loss, and it is responsible for the layer reduction.
 
         Example:
             ::
@@ -124,7 +128,7 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
             kl_temperature=kl_temperature,
         )
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {
             **super().get_config_dict(),
             **self.loss.get_config_dict(),
@@ -134,7 +138,7 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
     def citation(self) -> str:
         return """
 @misc{li20242d,
-    title={2D Matryoshka Sentence Embeddings}, 
+    title={2D Matryoshka Sentence Embeddings},
     author={Xianming Li and Zongxi Li and Jing Li and Haoran Xie and Qing Li},
     year={2024},
     eprint={2402.14776},

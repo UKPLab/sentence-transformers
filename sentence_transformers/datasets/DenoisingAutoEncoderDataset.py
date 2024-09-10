@@ -1,4 +1,4 @@
-from typing import List
+from __future__ import annotations
 
 import numpy as np
 from torch.utils.data import Dataset
@@ -19,7 +19,7 @@ class DenoisingAutoEncoderDataset(Dataset):
             with noise, e.g. deleted words
     """
 
-    def __init__(self, sentences: List[str], noise_fn=lambda s: DenoisingAutoEncoderDataset.delete(s)):
+    def __init__(self, sentences: list[str], noise_fn=lambda s: DenoisingAutoEncoderDataset.delete(s)):
         if not is_nltk_available():
             raise ImportError(NLTK_IMPORT_ERROR.format(self.__class__.__name__))
 

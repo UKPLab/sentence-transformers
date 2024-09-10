@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import collections
 import json
 import os
 import string
-from typing import Iterable, List
+from typing import Iterable
 
 from .WordTokenizer import ENGLISH_STOP_WORDS, WordTokenizer
 
@@ -27,7 +29,7 @@ class WhitespaceTokenizer(WordTokenizer):
         self.vocab = vocab
         self.word2idx = collections.OrderedDict([(word, idx) for idx, word in enumerate(vocab)])
 
-    def tokenize(self, text: str, **kwargs) -> List[int]:
+    def tokenize(self, text: str, **kwargs) -> list[int]:
         if self.do_lower_case:
             text = text.lower()
 
@@ -70,7 +72,7 @@ class WhitespaceTokenizer(WordTokenizer):
 
     @staticmethod
     def load(input_path: str):
-        with open(os.path.join(input_path, "whitespacetokenizer_config.json"), "r") as fIn:
+        with open(os.path.join(input_path, "whitespacetokenizer_config.json")) as fIn:
             config = json.load(fIn)
 
         return WhitespaceTokenizer(**config)

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import json
 import os
-from typing import Dict
 
 import torch
 from safetensors.torch import load_model as load_safetensors_model
@@ -10,11 +11,11 @@ from torch import Tensor, nn
 
 class LayerNorm(nn.Module):
     def __init__(self, dimension: int):
-        super(LayerNorm, self).__init__()
+        super().__init__()
         self.dimension = dimension
         self.norm = nn.LayerNorm(dimension)
 
-    def forward(self, features: Dict[str, Tensor]):
+    def forward(self, features: dict[str, Tensor]):
         features["sentence_embedding"] = self.norm(features["sentence_embedding"])
         return features
 

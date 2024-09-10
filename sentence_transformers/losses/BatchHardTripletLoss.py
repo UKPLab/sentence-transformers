@@ -1,4 +1,6 @@
-from typing import Dict, Iterable
+from __future__ import annotations
+
+from typing import Iterable
 
 import torch
 from torch import Tensor, nn
@@ -100,6 +102,10 @@ class BatchHardTripletLoss(nn.Module):
             | single sentences | class  |
             +------------------+--------+
 
+        Recommendations:
+            - Use ``BatchSamplers.GROUP_BY_LABEL`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that each batch contains 2+ examples per label class.
+
         Relations:
             * :class:`BatchAllTripletLoss` uses all possible, valid triplets, rather than only the hardest positive and negative samples.
             * :class:`BatchSemiHardTripletLoss` uses only semi-hard triplets, valid triplets, rather than only the hardest positive and negative samples.
@@ -132,12 +138,12 @@ class BatchHardTripletLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(BatchHardTripletLoss, self).__init__()
+        super().__init__()
         self.sentence_embedder = model
         self.triplet_margin = margin
         self.distance_metric = distance_metric
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor):
         rep = self.sentence_embedder(sentence_features[0])["sentence_embedding"]
         return self.batch_hard_triplet_loss(labels, rep)
 
@@ -250,7 +256,7 @@ class BatchHardTripletLoss(nn.Module):
     def citation(self) -> str:
         return """
 @misc{hermans2017defense,
-    title={In Defense of the Triplet Loss for Person Re-Identification}, 
+    title={In Defense of the Triplet Loss for Person Re-Identification},
     author={Alexander Hermans and Lucas Beyer and Bastian Leibe},
     year={2017},
     eprint={1703.07737},

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import heapq
 import logging
 import os
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 import torch
@@ -112,25 +114,25 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
     def __init__(
         self,
-        queries: Dict[str, str],  # qid => query
-        corpus: Dict[str, str],  # cid => doc
-        relevant_docs: Dict[str, Set[str]],  # qid => Set[cid]
+        queries: dict[str, str],  # qid => query
+        corpus: dict[str, str],  # cid => doc
+        relevant_docs: dict[str, set[str]],  # qid => Set[cid]
         corpus_chunk_size: int = 50000,
-        mrr_at_k: List[int] = [10],
-        ndcg_at_k: List[int] = [10],
-        accuracy_at_k: List[int] = [1, 3, 5, 10],
-        precision_recall_at_k: List[int] = [1, 3, 5, 10],
-        map_at_k: List[int] = [100],
+        mrr_at_k: list[int] = [10],
+        ndcg_at_k: list[int] = [10],
+        accuracy_at_k: list[int] = [1, 3, 5, 10],
+        precision_recall_at_k: list[int] = [1, 3, 5, 10],
+        map_at_k: list[int] = [100],
         show_progress_bar: bool = False,
         batch_size: int = 32,
         name: str = "",
         write_csv: bool = True,
-        truncate_dim: Optional[int] = None,
-        score_functions: Dict[str, Callable[[Tensor, Tensor], Tensor]] = {
+        truncate_dim: int | None = None,
+        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = {
             SimilarityFunction.COSINE.value: cos_sim,
             SimilarityFunction.DOT_PRODUCT.value: dot_score,
         },  # Score function, higher=more similar
-        main_score_function: Optional[Union[str, SimilarityFunction]] = None,
+        main_score_function: str | SimilarityFunction | None = None,
     ) -> None:
         """
         Initializes the InformationRetrievalEvaluator.
@@ -189,24 +191,24 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
         for score_name in self.score_function_names:
             for k in accuracy_at_k:
-                self.csv_headers.append("{}-Accuracy@{}".format(score_name, k))
+                self.csv_headers.append(f"{score_name}-Accuracy@{k}")
 
             for k in precision_recall_at_k:
-                self.csv_headers.append("{}-Precision@{}".format(score_name, k))
-                self.csv_headers.append("{}-Recall@{}".format(score_name, k))
+                self.csv_headers.append(f"{score_name}-Precision@{k}")
+                self.csv_headers.append(f"{score_name}-Recall@{k}")
 
             for k in mrr_at_k:
-                self.csv_headers.append("{}-MRR@{}".format(score_name, k))
+                self.csv_headers.append(f"{score_name}-MRR@{k}")
 
             for k in ndcg_at_k:
-                self.csv_headers.append("{}-NDCG@{}".format(score_name, k))
+                self.csv_headers.append(f"{score_name}-NDCG@{k}")
 
             for k in map_at_k:
-                self.csv_headers.append("{}-MAP@{}".format(score_name, k))
+                self.csv_headers.append(f"{score_name}-MAP@{k}")
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
-    ) -> Dict[str, float]:
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+    ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
@@ -275,8 +277,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         return metrics
 
     def compute_metrices(
-        self, model: "SentenceTransformer", corpus_model=None, corpus_embeddings: Tensor = None
-    ) -> Dict[str, float]:
+        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor = None
+    ) -> dict[str, float]:
         if corpus_model is None:
             corpus_model = model
 
@@ -350,20 +352,20 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                     score, corpus_id = queries_result_list[name][query_itr][doc_itr]
                     queries_result_list[name][query_itr][doc_itr] = {"corpus_id": corpus_id, "score": score}
 
-        logger.info("Queries: {}".format(len(self.queries)))
-        logger.info("Corpus: {}\n".format(len(self.corpus)))
+        logger.info(f"Queries: {len(self.queries)}")
+        logger.info(f"Corpus: {len(self.corpus)}\n")
 
         # Compute scores
         scores = {name: self.compute_metrics(queries_result_list[name]) for name in self.score_functions}
 
         # Output
         for name in self.score_function_names:
-            logger.info("Score-Function: {}".format(name))
+            logger.info(f"Score-Function: {name}")
             self.output_scores(scores[name])
 
         return scores
 
-    def compute_metrics(self, queries_result_list: List[object]):
+    def compute_metrics(self, queries_result_list: list[object]):
         # Init score computation values
         num_hits_at_k = {k: 0 for k in self.accuracy_at_k}
         precisions_at_k = {k: [] for k in self.precision_recall_at_k}

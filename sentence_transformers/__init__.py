@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __version__ = "3.1.0.dev0"
 __MODEL_HUB_ORGANIZATION__ = "sentence-transformers"
 

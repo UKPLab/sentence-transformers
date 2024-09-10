@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sentence_transformers import SentenceTransformer, losses, util
 
 
@@ -31,16 +33,16 @@ class AnglELoss(losses.CoSENTLoss):
         Requirements:
             - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
 
-        Relations:
-            - :class:`CoSENTLoss` is AnglELoss with ``pairwise_cos_sim`` as the metric, rather than ``pairwise_angle_sim``.
-            - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than ``CoSENTLoss`` or ``AnglELoss``.
-
         Inputs:
             +--------------------------------+------------------------+
             | Texts                          | Labels                 |
             +================================+========================+
             | (sentence_A, sentence_B) pairs | float similarity score |
             +--------------------------------+------------------------+
+
+        Relations:
+            - :class:`CoSENTLoss` is AnglELoss with ``pairwise_cos_sim`` as the metric, rather than ``pairwise_angle_sim``.
+            - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than ``CoSENTLoss`` or ``AnglELoss``.
 
         Example:
             ::
@@ -69,7 +71,7 @@ class AnglELoss(losses.CoSENTLoss):
     def citation(self) -> str:
         return """
 @misc{li2023angleoptimized,
-    title={AnglE-optimized Text Embeddings}, 
+    title={AnglE-optimized Text Embeddings},
     author={Xianming Li and Jing Li},
     year={2023},
     eprint={2309.12871},

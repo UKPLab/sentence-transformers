@@ -1,4 +1,6 @@
-from typing import Any, Dict, Iterable
+from __future__ import annotations
+
+from typing import Any, Iterable
 
 import torch
 from torch import Tensor, nn
@@ -35,11 +37,6 @@ class GISTEmbedLoss(nn.Module):
             1. (anchor, positive, negative) triplets
             2. (anchor, positive) pairs
 
-        Relations:
-            - :class:`MultipleNegativesRankingLoss` is similar to this loss, but it does not use
-              a guide model to guide the in-batch negative sample selection. `GISTEmbedLoss` yields
-              a stronger training signal at the cost of some training overhead.
-
         Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
@@ -48,6 +45,15 @@ class GISTEmbedLoss(nn.Module):
             +---------------------------------------+--------+
             | (anchor, positive) pairs              | none   |
             +---------------------------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that no in-batch negatives are duplicates of the anchor or positive samples.
+
+        Relations:
+            - :class:`MultipleNegativesRankingLoss` is similar to this loss, but it does not use
+              a guide model to guide the in-batch negative sample selection. `GISTEmbedLoss` yields
+              a stronger training signal at the cost of some training overhead.
 
         Example:
             ::
@@ -70,7 +76,7 @@ class GISTEmbedLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(GISTEmbedLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.guide = guide
         self.temperature = temperature
@@ -88,7 +94,7 @@ class GISTEmbedLoss(nn.Module):
     def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         with torch.no_grad():
             if self.must_retokenize:
@@ -116,7 +122,7 @@ class GISTEmbedLoss(nn.Module):
             anchor, positive, negative = embeddings
             anchor_guide, positive_guide, negative_guide = guide_embeddings
         else:
-            raise ValueError("Expected 2 or 3 embeddings, got {}".format(len(embeddings)))
+            raise ValueError(f"Expected 2 or 3 embeddings, got {len(embeddings)}")
 
         # Compute the model's similarities
         ap_sim = self.sim_matrix(anchor, positive)
@@ -157,7 +163,7 @@ class GISTEmbedLoss(nn.Module):
 
         return nn.CrossEntropyLoss()(scores, labels)
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {
             "guide": self.guide,
             "temperature": self.temperature,
@@ -167,7 +173,7 @@ class GISTEmbedLoss(nn.Module):
     def citation(self) -> str:
         return """
 @misc{solatorio2024gistembed,
-    title={GISTEmbed: Guided In-sample Selection of Training Negatives for Text Embedding Fine-tuning}, 
+    title={GISTEmbed: Guided In-sample Selection of Training Negatives for Text Embedding Fine-tuning},
     author={Aivin V. Solatorio},
     year={2024},
     eprint={2402.16829},

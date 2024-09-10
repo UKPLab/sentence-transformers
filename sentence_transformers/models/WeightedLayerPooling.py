@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import json
 import os
-from typing import Dict
 
 import torch
 from safetensors.torch import load_model as load_safetensors_model
@@ -14,7 +15,7 @@ class WeightedLayerPooling(nn.Module):
     def __init__(
         self, word_embedding_dimension, num_hidden_layers: int = 12, layer_start: int = 4, layer_weights=None
     ):
-        super(WeightedLayerPooling, self).__init__()
+        super().__init__()
         self.config_keys = ["word_embedding_dimension", "layer_start", "num_hidden_layers"]
         self.word_embedding_dimension = word_embedding_dimension
         self.layer_start = layer_start
@@ -25,7 +26,7 @@ class WeightedLayerPooling(nn.Module):
             else nn.Parameter(torch.tensor([1] * (num_hidden_layers + 1 - layer_start), dtype=torch.float))
         )
 
-    def forward(self, features: Dict[str, Tensor]):
+    def forward(self, features: dict[str, Tensor]):
         ft_all_layers = features["all_layer_embeddings"]
 
         all_layer_embedding = torch.stack(ft_all_layers)

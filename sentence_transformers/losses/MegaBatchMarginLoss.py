@@ -1,4 +1,6 @@
-from typing import Dict, Iterable
+from __future__ import annotations
+
+from typing import Iterable
 
 import torch
 import torch.nn.functional as F
@@ -43,12 +45,16 @@ class MegaBatchMarginLoss(nn.Module):
             1. (anchor, positive) pairs
             2. Large batches (500 or more examples)
 
-        Input:
+        Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
             +=======================================+========+
             | (anchor, positive) pairs              | none   |
             +---------------------------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that no in-batch negatives are duplicates of the anchor or positive samples.
 
         Example:
             ::
@@ -73,14 +79,14 @@ class MegaBatchMarginLoss(nn.Module):
                     epochs=10,
                 )
         """
-        super(MegaBatchMarginLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.positive_margin = positive_margin
         self.negative_margin = negative_margin
         self.mini_batch_size = mini_batch_size
         self.forward = self.forward_mini_batched if use_mini_batched_version else self.forward_non_mini_batched
 
-    def forward_mini_batched(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward_mini_batched(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         anchor, positive = sentence_features
         feature_names = list(anchor.keys())
 
@@ -137,7 +143,7 @@ class MegaBatchMarginLoss(nn.Module):
         return losses
 
     ##### Non mini-batched version ###
-    def forward_non_mini_batched(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward_non_mini_batched(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         embeddings_a, embeddings_b = reps
 

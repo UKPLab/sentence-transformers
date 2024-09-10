@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from functools import partial
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Any, Iterable, Iterator
 
 import torch
 import tqdm
@@ -38,7 +38,7 @@ class RandContext:
 
 def _backward_hook(
     grad_output: Tensor,
-    sentence_features: Iterable[Dict[str, Tensor]],
+    sentence_features: Iterable[dict[str, Tensor]],
     loss_obj: CachedGISTEmbedLoss,
 ) -> None:
     """A backward hook to backpropagate the cached gradients mini-batch by mini-batch."""
@@ -99,9 +99,6 @@ class CachedGISTEmbedLoss(nn.Module):
             1. (anchor, positive) pairs or (anchor, positive, negative pairs)
             2. Should be used with large batch sizes for superior performance, but has slower training time than :class:`MultipleNegativesRankingLoss`
 
-        Relations:
-            - Equivalent to :class:`GISTEmbedLoss`, but with caching that allows for much higher batch sizes
-
         Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
@@ -110,6 +107,13 @@ class CachedGISTEmbedLoss(nn.Module):
             +---------------------------------------+--------+
             | (anchor, positive, negative) triplets | none   |
             +---------------------------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that no in-batch negatives are duplicates of the anchor or positive samples.
+
+        Relations:
+            - Equivalent to :class:`GISTEmbedLoss`, but with caching that allows for much higher batch sizes
 
         Example:
             ::
@@ -132,7 +136,7 @@ class CachedGISTEmbedLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(CachedGISTEmbedLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.guide = guide
         self.temperature = temperature
@@ -143,8 +147,8 @@ class CachedGISTEmbedLoss(nn.Module):
             )
         self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.mini_batch_size = mini_batch_size
-        self.cache: Optional[List[List[Tensor]]] = None
-        self.random_states: Optional[List[List[RandContext]]] = None
+        self.cache: list[list[Tensor]] | None = None
+        self.random_states: list[list[RandContext]] | None = None
         self.show_progress_bar = show_progress_bar
         self.must_retokenize = (
             model.tokenizer.vocab != guide.tokenizer.vocab or guide.max_seq_length < model.max_seq_length
@@ -157,13 +161,13 @@ class CachedGISTEmbedLoss(nn.Module):
 
     def embed_minibatch(
         self,
-        sentence_feature: Dict[str, Tensor],
+        sentence_feature: dict[str, Tensor],
         begin: int,
         end: int,
         with_grad: bool,
         copy_random_state: bool,
-        random_state: Optional[RandContext] = None,
-    ) -> Tuple[Tensor, Optional[RandContext]]:
+        random_state: RandContext | None = None,
+    ) -> tuple[Tensor, RandContext | None]:
         """Do forward pass on a minibatch of the input features and return corresponding embeddings."""
         grad_context = nullcontext if with_grad else torch.no_grad
         random_state_context = nullcontext() if random_state is None else random_state
@@ -187,11 +191,11 @@ class CachedGISTEmbedLoss(nn.Module):
 
     def embed_minibatch_iter(
         self,
-        sentence_feature: Dict[str, Tensor],
+        sentence_feature: dict[str, Tensor],
         with_grad: bool,
         copy_random_state: bool,
-        random_states: Optional[List[RandContext]] = None,
-    ) -> Iterator[Tuple[Tensor, Optional[RandContext]]]:
+        random_states: list[RandContext] | None = None,
+    ) -> Iterator[tuple[Tensor, RandContext | None]]:
         """Do forward pass on all the minibatches of the input features and yield corresponding embeddings."""
         input_ids: Tensor = sentence_feature["input_ids"]
         bsz, _ = input_ids.shape
@@ -215,7 +219,7 @@ class CachedGISTEmbedLoss(nn.Module):
             )
             yield reps, guide_reps, random_state  # reps: (mbsz, hdim)
 
-    def calculate_loss_and_cache_gradients(self, reps: List[List[Tensor]], reps_guided: List[List[Tensor]]) -> Tensor:
+    def calculate_loss_and_cache_gradients(self, reps: list[list[Tensor]], reps_guided: list[list[Tensor]]) -> Tensor:
         """Calculate the cross-entropy loss and cache the gradients wrt. the embeddings."""
         if len(reps) == 2:
             anchor, positive = reps
@@ -226,7 +230,7 @@ class CachedGISTEmbedLoss(nn.Module):
             anchor, positive, negative = reps
             anchor_guide, positive_guide, negative_guide = reps_guided
         else:
-            raise ValueError("Expected 2 or 3 embeddings, got {}".format(len(reps)))
+            raise ValueError(f"Expected 2 or 3 embeddings, got {len(reps)}")
 
         anchor = torch.cat(anchor, dim=0)
         positive = torch.cat(positive, dim=0)
@@ -240,7 +244,7 @@ class CachedGISTEmbedLoss(nn.Module):
         labels = torch.arange(anchor.size(0)).long().to(anchor.device)
         batch_size = anchor.shape[0]
 
-        losses: List[torch.Tensor] = []
+        losses: list[torch.Tensor] = []
         for b in tqdm.trange(
             0,
             batch_size,
@@ -289,7 +293,7 @@ class CachedGISTEmbedLoss(nn.Module):
 
         return loss
 
-    def calculate_loss(self, reps: List[List[Tensor]], reps_guided: List[List[Tensor]]) -> Tensor:
+    def calculate_loss(self, reps: list[list[Tensor]], reps_guided: list[list[Tensor]]) -> Tensor:
         """Calculate the cross-entropy loss. No need to cache the gradients."""
         if len(reps) == 2:
             anchor, positive = reps
@@ -300,7 +304,7 @@ class CachedGISTEmbedLoss(nn.Module):
             anchor, positive, negative = reps
             anchor_guide, positive_guide, negative_guide = reps_guided
         else:
-            raise ValueError("Expected 2 or 3 embeddings, got {}".format(len(reps)))
+            raise ValueError(f"Expected 2 or 3 embeddings, got {len(reps)}")
 
         anchor = torch.cat(anchor, dim=0)
         positive = torch.cat(positive, dim=0)
@@ -314,7 +318,7 @@ class CachedGISTEmbedLoss(nn.Module):
         labels = torch.arange(anchor.size(0)).long().to(anchor.device)
         batch_size = anchor.shape[0]
 
-        losses: List[torch.Tensor] = []
+        losses: list[torch.Tensor] = []
         for b in tqdm.trange(
             0,
             batch_size,
@@ -359,7 +363,7 @@ class CachedGISTEmbedLoss(nn.Module):
         loss = sum(losses)
         return loss
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Step (1): A quick embedding step without gradients/computation graphs to get all the embeddings
         reps = []
         reps_guided = []
@@ -391,7 +395,7 @@ class CachedGISTEmbedLoss(nn.Module):
             loss = self.calculate_loss(reps, reps_guided)
         return loss
 
-    def get_config_dict(self) -> Dict[str, Any]:
+    def get_config_dict(self) -> dict[str, Any]:
         return {
             "guide": self.guide,
             "temperature": self.temperature,

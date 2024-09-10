@@ -96,8 +96,8 @@ with open(collection_filepath, encoding="utf8") as fIn:
 
 
 ## Run evaluator
-logging.info("Queries: {}".format(len(dev_queries)))
-logging.info("Corpus: {}".format(len(corpus)))
+logging.info(f"Queries: {len(dev_queries)}")
+logging.info(f"Corpus: {len(corpus)}")
 
 ir_evaluator = evaluation.InformationRetrievalEvaluator(
     dev_queries,

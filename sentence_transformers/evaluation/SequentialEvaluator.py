@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Dict, Iterable
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Iterable
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 
@@ -36,8 +38,8 @@ class SequentialEvaluator(SentenceEvaluator):
         self.main_score_function = main_score_function
 
     def __call__(
-        self, model: "SentenceTransformer", output_path: str = None, epoch: int = -1, steps: int = -1
-    ) -> Dict[str, float]:
+        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> dict[str, float]:
         evaluations = []
         scores = []
         for evaluator_idx, evaluator in enumerate(self.evaluators):

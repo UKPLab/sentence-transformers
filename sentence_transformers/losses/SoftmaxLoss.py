@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import logging
-from typing import Callable, Dict, Iterable, Tuple, Union
+from typing import Callable, Iterable
 
 import torch
+import transformers
+from packaging import version
 from torch import Tensor, nn
 
 from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -81,7 +85,7 @@ class SoftmaxLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(SoftmaxLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.num_labels = num_labels
         self.concatenation_sent_rep = concatenation_sent_rep
@@ -95,15 +99,22 @@ class SoftmaxLoss(nn.Module):
             num_vectors_concatenated += 1
         if concatenation_sent_multiplication:
             num_vectors_concatenated += 1
-        logger.info("Softmax loss: #Vectors concatenated: {}".format(num_vectors_concatenated))
+        logger.info(f"Softmax loss: #Vectors concatenated: {num_vectors_concatenated}")
         self.classifier = nn.Linear(
             num_vectors_concatenated * sentence_embedding_dimension, num_labels, device=model.device
         )
         self.loss_fct = loss_fct
 
+        if version.parse(transformers.__version__) < version.parse("4.43.0"):
+            logger.warning(
+                "SoftmaxLoss requires transformers >= 4.43.0 to work correctly. "
+                "Otherwise, the classifier layer that maps embeddings to the labels cannot be updated. "
+                "Consider updating transformers with `pip install transformers>=4.43.0`."
+            )
+
     def forward(
-        self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor
-    ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+        self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor
+    ) -> Tensor | tuple[Tensor, Tensor]:
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         rep_a, rep_b = reps
 

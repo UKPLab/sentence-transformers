@@ -1,4 +1,6 @@
-from typing import Dict, Iterable
+from __future__ import annotations
+
+from typing import Iterable
 
 import torch
 from torch import Tensor, nn
@@ -26,10 +28,7 @@ class MSELoss(nn.Module):
         Requirements:
             1. Usually uses a finetuned teacher M in a knowledge distillation setup
 
-        Relations:
-            - :class:`MarginMSELoss` is equivalent to this loss, but with a margin through a negative pair.
-
-        Input:
+        Inputs:
             +-----------------------------------------+-----------------------------+
             | Texts                                   | Labels                      |
             +=========================================+=============================+
@@ -37,6 +36,9 @@ class MSELoss(nn.Module):
             +-----------------------------------------+-----------------------------+
             | sentence_1, sentence_2, ..., sentence_N | model sentence embeddings   |
             +-----------------------------------------+-----------------------------+
+
+        Relations:
+            - :class:`MarginMSELoss` is equivalent to this loss, but with a margin through a negative pair.
 
         Example:
             ::
@@ -66,11 +68,11 @@ class MSELoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(MSELoss, self).__init__()
+        super().__init__()
         self.model = model
         self.loss_fct = nn.MSELoss()
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Concatenate multiple inputs on the batch dimension
         if len(sentence_features) > 1:
             embeddings = torch.cat([self.model(inputs)["sentence_embedding"] for inputs in sentence_features], dim=0)

@@ -20,9 +20,9 @@ import random
 
 import numpy as np
 import torch
+from datasets import load_dataset
 from sklearn.decomposition import PCA
 
-from datasets import load_dataset
 from sentence_transformers import SentenceTransformer, models
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 
@@ -77,7 +77,7 @@ dense.linear.weight = torch.nn.Parameter(torch.tensor(pca_comp))
 model.add_module("dense", dense)
 
 # Evaluate the model with the reduce embedding size
-logging.info("Model with {} dimensions:".format(new_dimension))
+logging.info(f"Model with {new_dimension} dimensions:")
 stsb_evaluator(model)
 
 

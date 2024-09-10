@@ -30,7 +30,7 @@ batch_size = 8
 
 # Input file path (a text file, each line a sentence)
 if len(sys.argv) < 2:
-    print("Run this script with: python {} path/to/sentences.txt".format(sys.argv[0]))
+    print(f"Run this script with: python {sys.argv[0]} path/to/sentences.txt")
     exit()
 
 filepath = sys.argv[1]
@@ -54,7 +54,7 @@ with gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else
             train_sentences.append(line)
 
 
-logging.info("{} train sentences".format(len(train_sentences)))
+logging.info(f"{len(train_sentences)} train sentences")
 
 ################# Initialize an SBERT model #################
 

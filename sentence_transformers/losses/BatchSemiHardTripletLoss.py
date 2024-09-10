@@ -1,4 +1,6 @@
-from typing import Dict, Iterable
+from __future__ import annotations
+
+from typing import Iterable
 
 import torch
 from torch import Tensor, nn
@@ -48,18 +50,22 @@ class BatchSemiHardTripletLoss(nn.Module):
             2. Your dataset must contain at least 2 examples per labels class.
             3. Your dataset should contain semi hard positives and negatives.
 
-        Relations:
-            * :class:`BatchHardTripletLoss` uses only the hardest positive and negative samples, rather than only semi hard positive and negatives.
-            * :class:`BatchAllTripletLoss` uses all possible, valid triplets, rather than only semi hard positive and negatives.
-            * :class:`BatchHardSoftMarginTripletLoss` uses only the hardest positive and negative samples, rather than only semi hard positive and negatives.
-            Also, it does not require setting a margin.
-
         Inputs:
             +------------------+--------+
             | Texts            | Labels |
             +==================+========+
             | single sentences | class  |
             +------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.GROUP_BY_LABEL`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that each batch contains 2+ examples per label class.
+
+        Relations:
+            * :class:`BatchHardTripletLoss` uses only the hardest positive and negative samples, rather than only semi hard positive and negatives.
+            * :class:`BatchAllTripletLoss` uses all possible, valid triplets, rather than only semi hard positive and negatives.
+            * :class:`BatchHardSoftMarginTripletLoss` uses only the hardest positive and negative samples, rather than only semi hard positive and negatives.
+            Also, it does not require setting a margin.
 
         Example:
             ::
@@ -88,12 +94,12 @@ class BatchSemiHardTripletLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(BatchSemiHardTripletLoss, self).__init__()
+        super().__init__()
         self.sentence_embedder = model
         self.margin = margin
         self.distance_metric = distance_metric
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         rep = self.sentence_embedder(sentence_features[0])["sentence_embedding"]
         return self.batch_semi_hard_triplet_loss(labels, rep)
 
@@ -171,7 +177,7 @@ class BatchSemiHardTripletLoss(nn.Module):
     def citation(self) -> str:
         return """
 @misc{hermans2017defense,
-    title={In Defense of the Triplet Loss for Person Re-Identification}, 
+    title={In Defense of the Triplet Loss for Person Re-Identification},
     author={Alexander Hermans and Lucas Beyer and Bastian Leibe},
     year={2017},
     eprint={1703.07737},

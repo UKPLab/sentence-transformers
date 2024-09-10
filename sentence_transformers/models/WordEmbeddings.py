@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import gzip
 import json
 import logging
 import os
-from typing import List
 
 import numpy as np
 import torch
@@ -54,7 +55,7 @@ class WordEmbeddings(nn.Module):
         )
         return features
 
-    def tokenize(self, texts: List[str], **kwargs):
+    def tokenize(self, texts: list[str], **kwargs):
         tokenized_texts = [self.tokenizer.tokenize(text, **kwargs) for text in texts]
         sentence_lengths = [len(tokens) for tokens in tokenized_texts]
         max_len = max(sentence_lengths)
@@ -96,7 +97,7 @@ class WordEmbeddings(nn.Module):
 
     @staticmethod
     def load(input_path: str):
-        with open(os.path.join(input_path, "wordembedding_config.json"), "r") as fIn:
+        with open(os.path.join(input_path, "wordembedding_config.json")) as fIn:
             config = json.load(fIn)
 
         tokenizer_class = import_from_string(config["tokenizer_class"])
@@ -119,13 +120,13 @@ class WordEmbeddings(nn.Module):
         tokenizer=WhitespaceTokenizer(),
         max_vocab_size: int = None,
     ):
-        logger.info("Read in embeddings file {}".format(embeddings_file_path))
+        logger.info(f"Read in embeddings file {embeddings_file_path}")
 
         if not os.path.exists(embeddings_file_path):
-            logger.info("{} does not exist, try to download from server".format(embeddings_file_path))
+            logger.info(f"{embeddings_file_path} does not exist, try to download from server")
 
             if "/" in embeddings_file_path or "\\" in embeddings_file_path:
-                raise ValueError("Embeddings file not found: {}".format(embeddings_file_path))
+                raise ValueError(f"Embeddings file not found: {embeddings_file_path}")
 
             url = "https://public.ukp.informatik.tu-darmstadt.de/reimers/embeddings/" + embeddings_file_path
             http_get(url, embeddings_file_path)

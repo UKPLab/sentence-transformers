@@ -9,7 +9,7 @@ Characteristics of Sentence Transformer (a.k.a bi-encoder) models:
 3. Applicable for a **wide range of tasks**, such as semantic textual similarity, semantic search, clustering, classification, paraphrase mining, and more.
 4. Often used as a **first step in a two-step retrieval process**, where a Cross-Encoder (a.k.a. reranker) model is used to re-rank the top-k results from the bi-encoder.
 
-Once you have `installed <installation.md>`_ Sentence Transformers, you can easily use Sentence Transformer models:
+Once you have `installed <../../installation.html>`_ Sentence Transformers, you can easily use Sentence Transformer models:
 
 .. sidebar:: Documentation
 

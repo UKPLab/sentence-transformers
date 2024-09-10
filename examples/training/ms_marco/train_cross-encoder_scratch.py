@@ -77,7 +77,7 @@ if not os.path.exists(collection_filepath):
     with tarfile.open(tar_filepath, "r:gz") as tar:
         tar.extractall(path=data_folder)
 
-with open(collection_filepath, "r", encoding="utf8") as fIn:
+with open(collection_filepath, encoding="utf8") as fIn:
     for line in fIn:
         pid, passage = line.strip().split("\t")
         corpus[pid] = passage
@@ -96,7 +96,7 @@ if not os.path.exists(queries_filepath):
         tar.extractall(path=data_folder)
 
 
-with open(queries_filepath, "r", encoding="utf8") as fIn:
+with open(queries_filepath, encoding="utf8") as fIn:
     for line in fIn:
         qid, query = line.strip().split("\t")
         queries[qid] = query
@@ -170,7 +170,7 @@ evaluator = CERerankingEvaluator(dev_samples, name="train-eval")
 
 # Configure the training
 warmup_steps = 5000
-logging.info("Warmup-steps: {}".format(warmup_steps))
+logging.info(f"Warmup-steps: {warmup_steps}")
 
 
 # Train the model

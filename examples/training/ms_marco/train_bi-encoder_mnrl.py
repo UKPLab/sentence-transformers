@@ -106,7 +106,7 @@ if not os.path.exists(collection_filepath):
         tar.extractall(path=data_folder)
 
 logging.info("Read corpus: collection.tsv")
-with open(collection_filepath, "r", encoding="utf8") as fIn:
+with open(collection_filepath, encoding="utf8") as fIn:
     for line in fIn:
         pid, passage = line.strip().split("\t")
         pid = int(pid)
@@ -126,7 +126,7 @@ if not os.path.exists(queries_filepath):
         tar.extractall(path=data_folder)
 
 
-with open(queries_filepath, "r", encoding="utf8") as fIn:
+with open(queries_filepath, encoding="utf8") as fIn:
     for line in fIn:
         qid, query = line.strip().split("\t")
         qid = int(qid)
@@ -209,7 +209,7 @@ with gzip.open(hard_negatives_filepath, "rt") as fIn:
 
 del ce_scores
 
-logging.info("Train queries: {}".format(len(train_queries)))
+logging.info(f"Train queries: {len(train_queries)}")
 
 
 # We create a custom MSMARCO dataset that returns triplets (query, positive, negative)

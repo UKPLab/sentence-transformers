@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import gzip
 import os
 
 from . import InputExample
 
 
-class NLIDataReader(object):
+class NLIDataReader:
     """Reads in the Stanford NLI dataset and the MultiGenre NLI dataset"""
 
     def __init__(self, dataset_folder):

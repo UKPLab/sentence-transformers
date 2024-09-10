@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import importlib
 import json
@@ -12,7 +14,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from multiprocessing import Queue
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Literal, Optional, Tuple, Union, overload
+from typing import Any, Callable, Iterable, Iterator, Literal, overload
 
 import numpy as np
 import torch
@@ -78,7 +80,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         use_auth_token (bool or str, optional): Deprecated argument. Please use `token` instead.
         truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
             only applicable during inference when :meth:`SentenceTransformer.encode` is called.
-        model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Huggingface Transformers model.
+        model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers model.
             Particularly useful options are:
 
             - ``torch_dtype``: Override the default `torch.dtype` and load the model under a specific `dtype`.
@@ -103,11 +105,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             See the `PreTrainedModel.from_pretrained
             <https://huggingface.co/docs/transformers/en/main_classes/model#transformers.PreTrainedModel.from_pretrained>`_
             documentation for more details.
-        tokenizer_kwargs (Dict[str, Any], optional): Additional tokenizer configuration parameters to be passed to the Huggingface Transformers tokenizer.
+        tokenizer_kwargs (Dict[str, Any], optional): Additional tokenizer configuration parameters to be passed to the Hugging Face Transformers tokenizer.
             See the `AutoTokenizer.from_pretrained
             <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoTokenizer.from_pretrained>`_
             documentation for more details.
-        config_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Huggingface Transformers config.
+        config_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers config.
             See the `AutoConfig.from_pretrained
             <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoConfig.from_pretrained>`_
             documentation for more details.
@@ -143,28 +145,29 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     def __init__(
         self,
-        model_name_or_path: Optional[str] = None,
-        modules: Optional[Iterable[nn.Module]] = None,
-        device: Optional[str] = None,
-        prompts: Optional[Dict[str, str]] = None,
-        default_prompt_name: Optional[str] = None,
-        similarity_fn_name: Optional[Union[str, SimilarityFunction]] = None,
-        cache_folder: Optional[str] = None,
+        model_name_or_path: str | None = None,
+        modules: Iterable[nn.Module] | None = None,
+        device: str | None = None,
+        prompts: dict[str, str] | None = None,
+        default_prompt_name: str | None = None,
+        similarity_fn_name: str | SimilarityFunction | None = None,
+        cache_folder: str | None = None,
         trust_remote_code: bool = False,
-        revision: Optional[str] = None,
+        revision: str | None = None,
         local_files_only: bool = False,
-        token: Optional[Union[bool, str]] = None,
-        use_auth_token: Optional[Union[bool, str]] = None,
-        truncate_dim: Optional[int] = None,
-        model_kwargs: Optional[Dict[str, Any]] = None,
-        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
-        config_kwargs: Optional[Dict[str, Any]] = None,
-        model_card_data: Optional[SentenceTransformerModelCardData] = None,
+        token: bool | str | None = None,
+        use_auth_token: bool | str | None = None,
+        truncate_dim: int | None = None,
+        model_kwargs: dict[str, Any] | None = None,
+        tokenizer_kwargs: dict[str, Any] | None = None,
+        config_kwargs: dict[str, Any] | None = None,
+        model_card_data: SentenceTransformerModelCardData | None = None,
     ) -> None:
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
         self.similarity_fn_name = similarity_fn_name
+        self.trust_remote_code = trust_remote_code
         self.truncate_dim = truncate_dim
         self.model_card_data = model_card_data or SentenceTransformerModelCardData()
         self._model_card_vars = {}
@@ -186,7 +189,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         if device is None:
             device = get_device_name()
-            logger.info("Use pytorch device_name: {}".format(device))
+            logger.info(f"Use pytorch device_name: {device}")
 
         if device == "hpu" and importlib.util.find_spec("optimum") is not None:
             from optimum.habana.transformers.modeling_utils import adapt_transformers_to_gaudi
@@ -194,7 +197,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             adapt_transformers_to_gaudi()
 
         if model_name_or_path is not None and model_name_or_path != "":
-            logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
+            logger.info(f"Load pretrained SentenceTransformer: {model_name_or_path}")
 
             # Old models that don't belong to any organization
             basic_transformer_models = [
@@ -271,7 +274,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             if not os.path.exists(model_name_or_path):
                 # Not a path, load from hub
                 if "\\" in model_name_or_path or model_name_or_path.count("/") > 1:
-                    raise ValueError("Path {} not found".format(model_name_or_path))
+                    raise ValueError(f"Path {model_name_or_path} not found")
 
                 if "/" not in model_name_or_path and model_name_or_path.lower() not in basic_transformer_models:
                     # A model from sentence-transformers
@@ -355,11 +358,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     def encode(
         self,
         sentences: str,
-        prompt_name: Optional[str] = ...,
-        prompt: Optional[str] = ...,
+        prompt_name: str | None = ...,
+        prompt: str | None = ...,
         batch_size: int = ...,
-        show_progress_bar: Optional[bool] = ...,
-        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        show_progress_bar: bool | None = ...,
+        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: Literal[False] = ...,
         convert_to_tensor: Literal[False] = ...,
@@ -370,12 +373,12 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @overload
     def encode(
         self,
-        sentences: Union[str, List[str]],
-        prompt_name: Optional[str] = ...,
-        prompt: Optional[str] = ...,
+        sentences: str | list[str],
+        prompt_name: str | None = ...,
+        prompt: str | None = ...,
         batch_size: int = ...,
-        show_progress_bar: Optional[bool] = ...,
-        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        show_progress_bar: bool | None = ...,
+        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: Literal[True] = ...,
         convert_to_tensor: Literal[False] = ...,
@@ -386,12 +389,12 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @overload
     def encode(
         self,
-        sentences: Union[str, List[str]],
-        prompt_name: Optional[str] = ...,
-        prompt: Optional[str] = ...,
+        sentences: str | list[str],
+        prompt_name: str | None = ...,
+        prompt: str | None = ...,
         batch_size: int = ...,
-        show_progress_bar: Optional[bool] = ...,
-        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        show_progress_bar: bool | None = ...,
+        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: bool = ...,
         convert_to_tensor: Literal[True] = ...,
@@ -402,33 +405,33 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     @overload
     def encode(
         self,
-        sentences: Union[List[str], np.ndarray],
-        prompt_name: Optional[str] = ...,
-        prompt: Optional[str] = ...,
+        sentences: list[str] | np.ndarray,
+        prompt_name: str | None = ...,
+        prompt: str | None = ...,
         batch_size: int = ...,
-        show_progress_bar: Optional[bool] = ...,
-        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = ...,
+        show_progress_bar: bool | None = ...,
+        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: Literal[False] = ...,
         convert_to_tensor: Literal[False] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
-    ) -> List[Tensor]: ...
+    ) -> list[Tensor]: ...
 
     def encode(
         self,
-        sentences: Union[str, List[str]],
-        prompt_name: Optional[str] = None,
-        prompt: Optional[str] = None,
+        sentences: str | list[str],
+        prompt_name: str | None = None,
+        prompt: str | None = None,
         batch_size: int = 32,
-        show_progress_bar: Optional[bool] = None,
-        output_value: Optional[Literal["sentence_embedding", "token_embeddings"]] = "sentence_embedding",
+        show_progress_bar: bool | None = None,
+        output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
         device: str = None,
         normalize_embeddings: bool = False,
-    ) -> Union[List[Tensor], np.ndarray, Tensor]:
+    ) -> list[Tensor] | np.ndarray | Tensor:
         """
         Computes sentence embeddings.
 
@@ -637,7 +640,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return all_embeddings
 
     @property
-    def similarity_fn_name(self) -> Optional[str]:
+    def similarity_fn_name(self) -> str | None:
         """Return the name of the similarity function used by :meth:`SentenceTransformer.similarity` and :meth:`SentenceTransformer.similarity_pairwise`.
 
         Returns:
@@ -652,7 +655,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return self._similarity_fn_name
 
     @similarity_fn_name.setter
-    def similarity_fn_name(self, value: Union[str, SimilarityFunction]) -> None:
+    def similarity_fn_name(self, value: str | SimilarityFunction) -> None:
         if isinstance(value, SimilarityFunction):
             value = value.value
         self._similarity_fn_name = value
@@ -668,7 +671,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     def similarity(self, embeddings1: ndarray, embeddings2: ndarray) -> Tensor: ...
 
     @property
-    def similarity(self) -> Callable[[Union[Tensor, ndarray], Union[Tensor, ndarray]], Tensor]:
+    def similarity(self) -> Callable[[Tensor | ndarray, Tensor | ndarray], Tensor]:
         """
         Compute the similarity between two collections of embeddings. The output will be a matrix with the similarity
         scores between all embeddings from the first parameter and all embeddings from the second parameter. This
@@ -717,7 +720,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     def similarity_pairwise(self, embeddings1: ndarray, embeddings2: ndarray) -> Tensor: ...
 
     @property
-    def similarity_pairwise(self) -> Callable[[Union[Tensor, ndarray], Union[Tensor, ndarray]], Tensor]:
+    def similarity_pairwise(self) -> Callable[[Tensor | ndarray, Tensor | ndarray], Tensor]:
         """
         Compute the similarity between two collections of embeddings. The output will be a vector with the similarity
         scores between each pair of embeddings.
@@ -753,8 +756,8 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return self._similarity_pairwise
 
     def start_multi_process_pool(
-        self, target_devices: List[str] = None
-    ) -> Dict[Literal["input", "output", "processes"], Any]:
+        self, target_devices: list[str] = None
+    ) -> dict[Literal["input", "output", "processes"], Any]:
         """
         Starts a multi-process pool to process the encoding with several independent processes
         via :meth:`SentenceTransformer.encode_multi_process <sentence_transformers.SentenceTransformer.encode_multi_process>`.
@@ -774,9 +777,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         """
         if target_devices is None:
             if torch.cuda.is_available():
-                target_devices = ["cuda:{}".format(i) for i in range(torch.cuda.device_count())]
+                target_devices = [f"cuda:{i}" for i in range(torch.cuda.device_count())]
             elif is_torch_npu_available():
-                target_devices = ["npu:{}".format(i) for i in range(torch.npu.device_count())]
+                target_devices = [f"npu:{i}" for i in range(torch.npu.device_count())]
             else:
                 logger.info("CUDA/NPU is not available. Starting 4 CPU workers")
                 target_devices = ["cpu"] * 4
@@ -802,7 +805,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return {"input": input_queue, "output": output_queue, "processes": processes}
 
     @staticmethod
-    def stop_multi_process_pool(pool: Dict[Literal["input", "output", "processes"], Any]) -> None:
+    def stop_multi_process_pool(pool: dict[Literal["input", "output", "processes"], Any]) -> None:
         """
         Stops all processes started with start_multi_process_pool.
 
@@ -824,13 +827,13 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     def encode_multi_process(
         self,
-        sentences: List[str],
-        pool: Dict[Literal["input", "output", "processes"], Any],
-        prompt_name: Optional[str] = None,
-        prompt: Optional[str] = None,
+        sentences: list[str],
+        pool: dict[Literal["input", "output", "processes"], Any],
+        prompt_name: str | None = None,
+        prompt: str | None = None,
         batch_size: int = 32,
         chunk_size: int = None,
-        show_progress_bar: Optional[bool] = None,
+        show_progress_bar: bool | None = None,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         normalize_embeddings: bool = False,
     ) -> np.ndarray:
@@ -922,7 +925,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
     @staticmethod
     def _encode_multi_process_worker(
-        target_device: str, model: "SentenceTransformer", input_queue: Queue, results_queue: Queue
+        target_device: str, model: SentenceTransformer, input_queue: Queue, results_queue: Queue
     ) -> None:
         """
         Internal working process to encode sentences in multi-process setup
@@ -966,7 +969,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 module.include_prompt = include_prompt
                 break
 
-    def get_max_seq_length(self) -> Optional[int]:
+    def get_max_seq_length(self) -> int | None:
         """
         Returns the maximal sequence length that the model accepts. Longer inputs will be truncated.
 
@@ -978,7 +981,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         return None
 
-    def tokenize(self, texts: Union[List[str], List[Dict], List[Tuple[str, str]]]) -> Dict[str, Tensor]:
+    def tokenize(self, texts: list[str] | list[dict] | list[tuple[str, str]]) -> dict[str, Tensor]:
         """
         Tokenizes the texts.
 
@@ -991,10 +994,10 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         """
         return self._first_module().tokenize(texts)
 
-    def get_sentence_features(self, *features) -> Dict[Literal["sentence_embedding"], torch.Tensor]:
+    def get_sentence_features(self, *features) -> dict[Literal["sentence_embedding"], torch.Tensor]:
         return self._first_module().get_sentence_features(*features)
 
-    def get_sentence_embedding_dimension(self) -> Optional[int]:
+    def get_sentence_embedding_dimension(self) -> int | None:
         """
         Returns the number of dimensions in the output of :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>`.
 
@@ -1014,7 +1017,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return output_dim
 
     @contextmanager
-    def truncate_sentence_embeddings(self, truncate_dim: Optional[int]) -> Iterator[None]:
+    def truncate_sentence_embeddings(self, truncate_dim: int | None) -> Iterator[None]:
         """
         In this context, :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>` outputs
         sentence embeddings truncated at dimension ``truncate_dim``.
@@ -1054,9 +1057,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     def save(
         self,
         path: str,
-        model_name: Optional[str] = None,
+        model_name: str | None = None,
         create_model_card: bool = True,
-        train_datasets: Optional[List[str]] = None,
+        train_datasets: list[str] | None = None,
         safe_serialization: bool = True,
     ) -> None:
         """
@@ -1076,7 +1079,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         os.makedirs(path, exist_ok=True)
 
-        logger.info("Save model to {}".format(path))
+        logger.info(f"Save model to {path}")
         modules_config = []
 
         # Save some model info
@@ -1122,9 +1125,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     def save_pretrained(
         self,
         path: str,
-        model_name: Optional[str] = None,
+        model_name: str | None = None,
         create_model_card: bool = True,
-        train_datasets: Optional[List[str]] = None,
+        train_datasets: list[str] | None = None,
         safe_serialization: bool = True,
     ) -> None:
         """
@@ -1148,7 +1151,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         )
 
     def _create_model_card(
-        self, path: str, model_name: Optional[str] = None, train_datasets: Optional[List[str]] = "deprecated"
+        self, path: str, model_name: str | None = None, train_datasets: list[str] | None = "deprecated"
     ) -> None:
         """
         Create an automatic model and stores it in the specified path. If no training was done and the loaded model
@@ -1195,15 +1198,15 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     def save_to_hub(
         self,
         repo_id: str,
-        organization: Optional[str] = None,
-        token: Optional[str] = None,
-        private: Optional[bool] = None,
+        organization: str | None = None,
+        token: str | None = None,
+        private: bool | None = None,
         safe_serialization: bool = True,
         commit_message: str = "Add new SentenceTransformer model.",
-        local_model_path: Optional[str] = None,
+        local_model_path: str | None = None,
         exist_ok: bool = False,
         replace_model_card: bool = False,
-        train_datasets: Optional[List[str]] = None,
+        train_datasets: list[str] | None = None,
     ) -> str:
         """
         DEPRECATED, use `push_to_hub` instead.
@@ -1259,14 +1262,15 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     def push_to_hub(
         self,
         repo_id: str,
-        token: Optional[str] = None,
-        private: Optional[bool] = None,
+        token: str | None = None,
+        private: bool | None = None,
         safe_serialization: bool = True,
         commit_message: str = "Add new SentenceTransformer model.",
-        local_model_path: Optional[str] = None,
+        local_model_path: str | None = None,
         exist_ok: bool = False,
         replace_model_card: bool = False,
-        train_datasets: Optional[List[str]] = None,
+        train_datasets: list[str] | None = None,
+        revision: str | None = None,
     ) -> str:
         """
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
@@ -1281,6 +1285,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             exist_ok (bool, optional): If true, saving to an existing repository is OK. If false, saving only to a new repository is possible
             replace_model_card (bool, optional): If true, replace an existing model card in the hub with the automatically created model card
             train_datasets (List[str], optional): Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
+            revision (str, optional): Branch to push the uploaded files to
 
         Returns:
             str: The url of the commit of your model in the repository on the Hugging Face Hub.
@@ -1294,9 +1299,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         )
         repo_id = repo_url.repo_id  # Update the repo_id in case the old repo_id didn't contain a user or organization
         self.model_card_data.set_model_id(repo_id)
+        if revision is not None:
+            api.create_branch(repo_id=repo_id, branch=revision, exist_ok=True)
         if local_model_path:
             folder_url = api.upload_folder(
-                repo_id=repo_id, folder_path=local_model_path, commit_message=commit_message
+                repo_id=repo_id, folder_path=local_model_path, commit_message=commit_message, revision=revision
             )
         else:
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1308,16 +1315,21 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     train_datasets=train_datasets,
                     safe_serialization=safe_serialization,
                 )
-                folder_url = api.upload_folder(repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message)
+                folder_url = api.upload_folder(
+                    repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message, revision=revision
+                )
 
         refs = api.list_repo_refs(repo_id=repo_id)
         for branch in refs.branches:
-            if branch.name == "main":
+            if revision is None and branch.name == "main":
                 return f"https://huggingface.co/{repo_id}/commit/{branch.target_commit}"
+            elif branch.name == revision:
+                return f"https://huggingface.co/{repo_id}/commit/{branch.target_commit}"
+
         # This isn't expected to ever be reached.
         return folder_url
 
-    def _text_length(self, text: Union[List[int], List[List[int]]]) -> int:
+    def _text_length(self, text: list[int] | list[list[int]]) -> int:
         """
         Help function to get the length for the input text. Text can be either
         a list of ints (which means a single text as input), or a tuple of list of ints
@@ -1333,7 +1345,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         else:
             return sum([len(t) for t in text])  # Sum of length of individual strings
 
-    def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None) -> Union[Dict[str, float], float]:
+    def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None) -> dict[str, float] | float:
         """
         Evaluate the model based on an evaluator
 
@@ -1351,15 +1363,15 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     def _load_auto_model(
         self,
         model_name_or_path: str,
-        token: Optional[Union[bool, str]],
-        cache_folder: Optional[str],
-        revision: Optional[str] = None,
+        token: bool | str | None,
+        cache_folder: str | None,
+        revision: str | None = None,
         trust_remote_code: bool = False,
         local_files_only: bool = False,
-        model_kwargs: Optional[Dict[str, Any]] = None,
-        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
-        config_kwargs: Optional[Dict[str, Any]] = None,
-    ) -> List[nn.Module]:
+        model_kwargs: dict[str, Any] | None = None,
+        tokenizer_kwargs: dict[str, Any] | None = None,
+        config_kwargs: dict[str, Any] | None = None,
+    ) -> list[nn.Module]:
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
 
@@ -1405,15 +1417,15 @@ class SentenceTransformer(nn.Sequential, FitMixin):
     def _load_sbert_model(
         self,
         model_name_or_path: str,
-        token: Optional[Union[bool, str]],
-        cache_folder: Optional[str],
-        revision: Optional[str] = None,
+        token: bool | str | None,
+        cache_folder: str | None,
+        revision: str | None = None,
         trust_remote_code: bool = False,
         local_files_only: bool = False,
-        model_kwargs: Optional[Dict[str, Any]] = None,
-        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
-        config_kwargs: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, nn.Module]:
+        model_kwargs: dict[str, Any] | None = None,
+        tokenizer_kwargs: dict[str, Any] | None = None,
+        config_kwargs: dict[str, Any] | None = None,
+    ) -> dict[str, nn.Module]:
         """
         Loads a full SentenceTransformer model using the modules.json file.
 
@@ -1581,7 +1593,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return modules
 
     @staticmethod
-    def load(input_path) -> "SentenceTransformer":
+    def load(input_path) -> SentenceTransformer:
         return SentenceTransformer(input_path)
 
     @property
@@ -1595,7 +1607,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         except StopIteration:
             # For nn.DataParallel compatibility in PyTorch 1.5
 
-            def find_tensor_attributes(module: nn.Module) -> List[Tuple[str, Tensor]]:
+            def find_tensor_attributes(module: nn.Module) -> list[tuple[str, Tensor]]:
                 tuples = [(k, v) for k, v in module.__dict__.items() if torch.is_tensor(v)]
                 return tuples
 
@@ -1654,18 +1666,18 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return self.device
 
     @_target_device.setter
-    def _target_device(self, device: Optional[Union[int, str, torch.device]] = None) -> None:
+    def _target_device(self, device: int | str | torch.device | None = None) -> None:
         self.to(device)
 
     @property
-    def _no_split_modules(self) -> List[str]:
+    def _no_split_modules(self) -> list[str]:
         try:
             return self._first_module()._no_split_modules
         except AttributeError:
             return []
 
     @property
-    def _keys_to_ignore_on_save(self) -> List[str]:
+    def _keys_to_ignore_on_save(self) -> list[str]:
         try:
             return self._first_module()._keys_to_ignore_on_save
         except AttributeError:

@@ -1,4 +1,6 @@
-from typing import Dict, Iterable
+from __future__ import annotations
+
+from typing import Iterable
 
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -32,16 +34,16 @@ class OnlineContrastiveLoss(nn.Module):
             1. (anchor, positive/negative) pairs
             2. Data should include hard positives and hard negatives
 
-        Relations:
-            - :class:`ContrastiveLoss` is similar, but does not use hard positive and hard negative pairs.
-            :class:`OnlineContrastiveLoss` often yields better results.
-
         Inputs:
             +-----------------------------------------------+------------------------------+
             | Texts                                         | Labels                       |
             +===============================================+==============================+
             | (anchor, positive/negative) pairs             | 1 if positive, 0 if negative |
             +-----------------------------------------------+------------------------------+
+
+        Relations:
+            - :class:`ContrastiveLoss` is similar, but does not use hard positive and hard negative pairs.
+            :class:`OnlineContrastiveLoss` often yields better results.
 
         Example:
             ::
@@ -64,12 +66,12 @@ class OnlineContrastiveLoss(nn.Module):
                 )
                 trainer.train()
         """
-        super(OnlineContrastiveLoss, self).__init__()
+        super().__init__()
         self.model = model
         self.margin = margin
         self.distance_metric = distance_metric
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor, size_average=False) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor, size_average=False) -> Tensor:
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
         distance_matrix = self.distance_metric(embeddings[0], embeddings[1])

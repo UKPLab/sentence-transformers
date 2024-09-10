@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import nullcontext
-from typing import List
 
 import pytest
 import torch
@@ -79,8 +80,8 @@ from sentence_transformers import InputExample, SentenceTransformer, losses
     ],
 )
 def test_cmnrl_same_grad(
-    train_samples_mnrl: List[InputExample],
-    train_samples_cmnrl: List[InputExample],
+    train_samples_mnrl: list[InputExample],
+    train_samples_cmnrl: list[InputExample],
     same_grad: bool,
     scaler: float,
     precision: float,

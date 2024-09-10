@@ -10,10 +10,10 @@ https://huggingface.co/docs/datasets/stream
 
 import logging
 
+from datasets import load_dataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from datasets import load_dataset
 from sentence_transformers import LoggingHandler, SentenceTransformer
 
 logging.basicConfig(
