@@ -345,10 +345,7 @@ def paraphrase_mining(
 
     # Compute embedding for the sentences
     embeddings = model.encode(
-        sentences,
-        show_progress_bar=show_progress_bar,
-        batch_size=batch_size,
-        convert_to_tensor=True,
+        sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True
     )
 
     return paraphrase_mining_embeddings(
@@ -493,11 +490,7 @@ def semantic_search(
 
             # Get top-k scores
             cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(
-                cos_scores,
-                min(top_k, len(cos_scores[0])),
-                dim=1,
-                largest=True,
-                sorted=False,
+                cos_scores, min(top_k, len(cos_scores[0])), dim=1, largest=True, sorted=False
             )
             cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
             cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
@@ -517,10 +510,7 @@ def semantic_search(
     for query_id in range(len(queries_result_list)):
         for doc_itr in range(len(queries_result_list[query_id])):
             score, corpus_id = queries_result_list[query_id][doc_itr]
-            queries_result_list[query_id][doc_itr] = {
-                "corpus_id": corpus_id,
-                "score": score,
-            }
+            queries_result_list[query_id][doc_itr] = {"corpus_id": corpus_id, "score": score}
         queries_result_list[query_id] = sorted(queries_result_list[query_id], key=lambda x: x["score"], reverse=True)
 
     return queries_result_list
@@ -1003,10 +993,7 @@ def http_get(url: str, path: str) -> None:
 
     req = requests.get(url, stream=True)
     if req.status_code != 200:
-        print(
-            f"Exception when trying to download {url}. Response {req.status_code}",
-            file=sys.stderr,
-        )
+        print(f"Exception when trying to download {url}. Response {req.status_code}", file=sys.stderr)
         req.raise_for_status()
         return
 
@@ -1142,9 +1129,7 @@ def community_detection(
     sort_max_size = min(max(2 * min_community_size, 50), len(embeddings))
 
     for start_idx in tqdm(
-        range(0, len(embeddings), batch_size),
-        desc="Finding clusters",
-        disable=not show_progress_bar,
+        range(0, len(embeddings), batch_size), desc="Finding clusters", disable=not show_progress_bar
     ):
         # Compute cosine similarity scores
         cos_scores = embeddings[start_idx : start_idx + batch_size] @ embeddings.T
