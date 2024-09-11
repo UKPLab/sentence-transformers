@@ -539,7 +539,7 @@ def mine_hard_negatives(
     sampling_strategy: Literal["random", "top"] = "top",
     as_triplets: bool = True,
     batch_size: int = 32,
-    chunk_size: int = 16384,
+    faiss_batch_size: int = 16384,
     use_faiss: bool = False,
     verbose: bool = True,
 ) -> Dataset:
@@ -630,8 +630,9 @@ def mine_hard_negatives(
     Args:
         dataset (Dataset): A dataset containing (anchor, positive) pairs.
         model (SentenceTransformer): A SentenceTransformer model to use for embedding the sentences.
-        corpus (List[str], optional): A list containing documents as strings that will be used as candidate negatives.
-            Defaults to None, in which case the second column in `dataset` will be used as the negative candidate corpus.
+        corpus (List[str], optional): A list containing documents as strings that will be used as candidate negatives
+            in addition to the second column in `dataset`. Defaults to None, in which case the second column in
+            `dataset` will exclusively be used as the negative candidate corpus.
         cross_encoder (CrossEncoder, optional): A CrossEncoder model to use for rescoring the candidates. Defaults to None.
         range_min (int): Minimum rank of the closest matches to consider as negatives. Defaults to 0.
         range_max (int, optional): Maximum rank of the closest matches to consider as negatives. Defaults to None.
@@ -641,8 +642,8 @@ def mine_hard_negatives(
         sampling_strategy (Literal["random", "top"]): Sampling strategy for negatives: "top" or "random". Defaults to "top".
         as_triplets (bool): If True, returns up to `num_negatives` (anchor, positive, negative) triplets for each input sample.
             If False, returns 1 (anchor, positive, negative_1, ..., negative_n) tuple for each input sample. Defaults to True.
-        batch_size (int): Batch size for processing. Defaults to 32.
-        chunk_size (int): Chunk size for each chunk to be indexed or used to search. Only works with faiss. Defaults to 16384.
+        batch_size (int): Batch size for encoding the dataset. Defaults to 32.
+        faiss_batch_size (int): Batch size for FAISS top-k search. Defaults to 16384.
         use_faiss (bool): Whether to use FAISS for similarity search. May be recommended for large datasets. Defaults to False.
         verbose (bool): Whether to print statistics and logging. Defaults to True.
 
@@ -676,7 +677,7 @@ def mine_hard_negatives(
             if verbose:
                 print("Using FAISS, we can only retrieve up to 2048 documents per query. Setting range_max to 2048.")
         if verbose:
-            print(f"Setting range_max to {range_max} based on other parameters.")
+            print(f"Setting range_max to {range_max} based on the provided parameters.")
 
     log_counters = {}
     queries = dataset[columns[0]]
@@ -687,9 +688,7 @@ def mine_hard_negatives(
 
     # Deduplicate the corpus
     # make sure all the positives are also in the corpus and de-duplicate it.
-    unique_corpus = set(corpus)
-    unique_corpus.update(set(positives))
-    corpus = list(unique_corpus)
+    corpus = list(set(corpus) | set(positives))
 
     # corpus_idx maps the corpus text into its position in the corpus
     # This position does not necessarily matches the original corpus, as it was de-duplicated.
@@ -706,6 +705,47 @@ def mine_hard_negatives(
 
     if n_queries != len(all_queries) and verbose:
         print(f"Found {n_queries} unique queries out of {len(all_queries)} total queries.")
+
+    if max_positives > 1:
+        avg_positives_per_query = np.mean(positives_per_query)
+        print(f"Found an average of {avg_positives_per_query:.3f} positives per query.")
+
+    if use_faiss:
+        import faiss
+
+        index = faiss.IndexFlatIP(model.get_sentence_embedding_dimension())
+        # Move the index to the GPU if available
+        try:
+            co = faiss.GpuMultipleClonerOptions()
+            co.shard = True
+            co.useFloat16 = True
+            index: faiss.IndexFlatIP = faiss.index_cpu_to_all_gpus(index, co=co)
+        except Exception:
+            pass
+
+        corpus_embeddings = model.encode(corpus, batch_size=batch_size, convert_to_numpy=True, show_progress_bar=True)
+        query_embeddings = model.encode(queries, batch_size=batch_size, convert_to_numpy=True, show_progress_bar=True)
+        index.add(corpus_embeddings)
+
+        scores_list = []
+        indices_list = []
+        # Iterate over query embeddings in batches so we can track the progress
+        for i in trange(0, len(query_embeddings), faiss_batch_size, desc="Querying FAISS index"):
+            query_chunk = query_embeddings[i : i + faiss_batch_size]
+            scores, indices = index.search(query_chunk, k=range_max + 1)
+            scores_list.append(scores)
+            indices_list.append(indices)
+        scores = torch.from_numpy(np.concatenate(scores_list, axis=0)).to(device)
+        indices = torch.from_numpy(np.concatenate(indices_list, axis=0)).to(device)
+
+    else:
+        # Embed the corpus and the queries
+        corpus_embeddings = model.encode(corpus, batch_size=batch_size, convert_to_numpy=True, show_progress_bar=True)
+        query_embeddings = model.encode(queries, batch_size=batch_size, convert_to_numpy=True, show_progress_bar=True)
+        scores = model.similarity(query_embeddings, corpus_embeddings).to(device)
+
+        # Keep only the range_max + max_positives highest scores. We offset by 1 to potentially include the positive pair
+        scores, indices = torch.topk(scores, k=range_max + max_positives, dim=1)
 
     # As we may have duplicated queries (i.e., a single query with multiple positives),
     # We keep track, for each unique query, of where their positives are in the list of positives (positive_indices).
@@ -727,75 +767,14 @@ def mine_hard_negatives(
 
     positive_indices = [torch.tensor(p, device=device) for p in positive_indices]
 
-    # Encode the positives and the queries and score them accordingly.
-    positive_scores = torch.empty(len(all_queries), dtype=torch.float32, device=device)
-    for i in trange(0, len(all_queries), chunk_size, desc="Computing positive scores"):
-        query_chunk = all_queries[i : i + chunk_size]
-        positives_chunk = positives[i : i + chunk_size]
+    # Compute the positive scores
+    query_embeddings = query_embeddings[[idx for idx in range(n_queries) for _ in range(n_positives[idx])]]
+    positive_embeddings = corpus_embeddings[torch.cat(positive_indices).tolist()]
+    positive_scores = model.similarity_pairwise(query_embeddings, positive_embeddings).to(device)
 
-        q_embeddings = model.encode(
-            query_chunk, convert_to_tensor=True, show_progress_bar=False, batch_size=batch_size
-        )
-        p_embeddings = model.encode(
-            positives_chunk, convert_to_tensor=True, show_progress_bar=False, batch_size=batch_size
-        )
-        positive_scores[i : i + len(query_chunk)] = model.similarity_pairwise(q_embeddings, p_embeddings)
-
-    if use_faiss:
-        import faiss
-
-        index = faiss.IndexFlatIP(model.get_sentence_embedding_dimension())
-        # Move the index to the GPU if available
-        try:
-            co = faiss.GpuMultipleClonerOptions()
-            co.shard = True
-            co.useFloat16 = True
-            index: faiss.IndexFlatIP = faiss.index_cpu_to_all_gpus(index, co=co)
-        except Exception:
-            pass
-
-        # Encode the corpus in batches to avoid OOM for very large corpora
-        for i in trange(0, len(corpus), chunk_size, desc="Encoding and indexing corpus"):
-            chunk = corpus[i : i + chunk_size]
-            chunk_embeddings = model.encode(
-                chunk,
-                convert_to_numpy=True,
-                show_progress_bar=False,
-                batch_size=batch_size,
-            )
-            index.add(chunk_embeddings)
-
-        scores_list = []
-        indices_list = []
-
-        # Iterate over the queries in chunks, encode them, and retrieve the top-k documents
-        for i in trange(0, n_queries, chunk_size, desc="Retrieving top-k documents"):
-            chunk = queries[i : i + chunk_size]
-            chunk_embeddings = model.encode(
-                chunk,
-                convert_to_numpy=True,
-                show_progress_bar=False,
-                batch_size=batch_size,
-            )
-            scores, indices = index.search(chunk_embeddings, k=range_max)
-            scores_list.append(scores)
-            indices_list.append(indices)
-
-        scores = torch.from_numpy(np.concatenate(scores_list, axis=0)).to(device)
-        indices = torch.from_numpy(np.concatenate(indices_list, axis=0)).to(device)
-        del chunk_embeddings
-
-    else:
-        # Embed the corpus and the queries
-        corpus_embeddings = model.encode(corpus, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
-        query_embeddings = model.encode(queries, batch_size=batch_size, convert_to_tensor=True, show_progress_bar=True)
-        scores = model.similarity(query_embeddings, corpus_embeddings).cpu()
-
-        del query_embeddings
-        del corpus_embeddings
-
-        # Keep only the range_max + max_positives highest scores. We offset by 1 to potentially include the positive pair
-        scores, indices = torch.topk(scores, k=range_max + max_positives, dim=1)
+    del query_embeddings
+    del positive_embeddings
+    del corpus_embeddings
 
     # Rescore with cross_encoder
     if cross_encoder is not None and (margin is not None or max_score is not None):
@@ -911,12 +890,6 @@ def mine_hard_negatives(
 
         positive_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep]
 
-        if verbose and len(anchor_indices) != len(queries) * num_negatives:
-            avg_positives_per_query = np.mean(positives_per_query)
-            print(f"The dataset provided has multiple positives per query (avg: {avg_positives_per_query:.2f}).")
-            print(f"Each positive will be paired with {num_negatives} negative examples.")
-            print(f"The final dataset will have {len(anchor_indices)} triplets.")
-
         triplets_data = {
             columns[0]: [],
             columns[1]: [],
@@ -990,7 +963,7 @@ def mine_hard_negatives(
                 f"Skipped {log_counters['max_score']['skipped']} potential negatives ({log_counters['max_score']['ratio']:.2%}) due to the maximum score of {max_score}."
             )
 
-        missing_negatives = (num_negatives * n_queries) - len(negative_scores)
+        missing_negatives = (num_negatives * len(dataset)) - len(negative_scores)
         if missing_negatives > 0:
             solutions = ["range_max"]
             if range_min > 0:
@@ -1002,7 +975,7 @@ def mine_hard_negatives(
             considerations = ", ".join(solutions[:-1])
             if len(solutions) > 1:
                 considerations += " and " + solutions[-1]
-            missing_negatives_ratio = missing_negatives / (num_negatives * n_queries)
+            missing_negatives_ratio = missing_negatives / (num_negatives * len(dataset))
             print(
                 f"Could not find enough negatives for {missing_negatives} samples ({missing_negatives_ratio:.2%})."
                 f" Consider adjusting the {considerations} parameter{'s' if len(solutions) > 1 else ''} if you'd like to find more valid negatives."
