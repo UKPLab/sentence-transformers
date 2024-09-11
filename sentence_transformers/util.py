@@ -878,8 +878,6 @@ def mine_hard_negatives(
         anchor_indices = anchor_indices[indices_to_keep]
         positive_indices = pos_indices[indices_to_keep]
 
-        positive_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep]
-
         triplets_data = {
             columns[0]: [],
             columns[1]: [],
@@ -890,7 +888,7 @@ def mine_hard_negatives(
             triplets_data[columns[0]].append(queries[anchor_idx])
             triplets_data[columns[1]].append(corpus[positive_idx])
             triplets_data["negative"].append(corpus[negative_idx])
-        difference_scores = positive_scores - negative_scores
+        difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
 
     else:
         # Keep only indices where num_negative negatives were found
@@ -907,8 +905,7 @@ def mine_hard_negatives(
             },
         }
         negative_scores = negative_scores.flatten()
-        positive_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep].flatten()
-        difference_scores = positive_scores - negative_scores
+        difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep].flatten() - negative_scores
 
     if len(triplets_data) == 0:
         raise ValueError("No triplets could be generated. Please check the parameters and dataset.")
