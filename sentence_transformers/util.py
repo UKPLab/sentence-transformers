@@ -898,14 +898,9 @@ def mine_hard_negatives(
         negative_scores = negative_scores[indices_to_keep]
         indices = indices[indices_to_keep]
 
-        anchors = [
-            queries_idx[queries[q_idx]] for q_idx in range(n_queries) for _ in range(len(positive_indices[q_idx]))
-        ]
-
-        # TODO: Change indices_to_keep to a set for faster lookups?
         triplets_data = {
-            columns[0]: [queries[idx] for idx in anchors if indices_to_keep[idx]],
-            columns[1]: [corpus[x] for idx in range(n_queries) if indices_to_keep[idx] for x in positive_indices[idx]],
+            columns[0]: [all_queries[idx] for idx, keep in enumerate(indices_to_keep) if keep],
+            columns[1]: [positives[idx] for idx, keep in enumerate(indices_to_keep) if keep],
             **{
                 f"negative_{i}": [corpus[neg_idx] for neg_idx in neg_indices]
                 for i, neg_indices in enumerate(indices.T, start=1)
