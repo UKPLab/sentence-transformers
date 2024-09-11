@@ -916,8 +916,15 @@ def mine_hard_negatives(
         row_format = "{:<6} {:>14} {:>14} {:>14}"
         formatter = lambda value: (f"{value.item():.4f}" if isinstance(value, torch.Tensor) else f"{value:,}")
         print(row_format.format("Metric", "Positive", "Negative", "Difference"))
+        print(
+            row_format.format(
+                "Count",
+                formatter(len(positive_scores)),
+                formatter(len(negative_scores)),
+                "",
+            )
+        )
         for metric, function in [
-            ("count", len),
             ("mean", torch.mean),
             ("median", torch.median),
             ("std", torch.std),
