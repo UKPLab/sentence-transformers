@@ -1,12 +1,15 @@
 [project]
 name = "sentence-transformers"
 version = "3.2.0.dev0"
-description = "Multilingual text embeddings"
-license = { file = "LICENSE" }
+description = "State-of-the-Art Text Embeddings"
+license = { text = "Apache 2.0" }
 readme = "README.md"
 authors = [
     { name = "Nils Reimers", email = "info@nils-reimers.de" },
-    { name = "Tom Aarsen" },
+    { name = "Tom Aarsen", email = "tom.aarsen@huggingface.co" },
+]
+maintainers = [
+    { name = "Tom Aarsen", email = "tom.aarsen@huggingface.co" }
 ]
 requires-python = ">=3.8"
 keywords = [
