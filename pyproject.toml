@@ -1,12 +1,15 @@
 [project]
 name = "sentence-transformers"
-version = "3.1.0"
-description = "Multilingual text embeddings"
-license = { file = "LICENSE" }
+version = "3.1.1"
+description = "State-of-the-Art Text Embeddings"
+license = { text = "Apache 2.0" }
 readme = "README.md"
 authors = [
     { name = "Nils Reimers", email = "info@nils-reimers.de" },
-    { name = "Tom Aarsen" },
+    { name = "Tom Aarsen", email = "tom.aarsen@huggingface.co" },
+]
+maintainers = [
+    { name = "Tom Aarsen", email = "tom.aarsen@huggingface.co" }
 ]
 requires-python = ">=3.8"
 keywords = [
@@ -33,7 +36,6 @@ dependencies = [
     "transformers>=4.38.0,<5.0.0",
     "tqdm",
     "torch>=1.11.0",
-    "numpy<2.0.0",
     "scikit-learn",
     "scipy",
     "huggingface-hub>=0.19.3",
