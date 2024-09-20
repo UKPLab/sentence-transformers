@@ -10,20 +10,20 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Conf
 
 
 class Transformer(nn.Module):
-    """Huggingface AutoModel to generate token embeddings.
+    """Hugging Face AutoModel to generate token embeddings.
     Loads the correct class, e.g. BERT / RoBERTa etc.
 
     Args:
-        model_name_or_path: Huggingface models name
+        model_name_or_path: Hugging Face models name
             (https://huggingface.co/models)
         max_seq_length: Truncate any inputs longer than max_seq_length
-        model_args: Keyword arguments passed to the Huggingface
+        model_args: Keyword arguments passed to the Hugging Face
             Transformers model
-        tokenizer_args: Keyword arguments passed to the Huggingface
+        tokenizer_args: Keyword arguments passed to the Hugging Face
             Transformers tokenizer
-        config_args: Keyword arguments passed to the Huggingface
+        config_args: Keyword arguments passed to the Hugging Face
             Transformers config
-        cache_dir: Cache dir for Huggingface Transformers to store/load
+        cache_dir: Cache dir for Hugging Face Transformers to store/load
             models
         do_lower_case: If true, lowercases the input (independent if the
             model is cased or not)
@@ -109,13 +109,13 @@ class Transformer(nn.Module):
     def __repr__(self) -> str:
         return f"Transformer({self.get_config_dict()}) with Transformer model: {self.auto_model.__class__.__name__} "
 
-    def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+    def forward(self, features: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
         """Returns token_embeddings, cls_token"""
         trans_features = {"input_ids": features["input_ids"], "attention_mask": features["attention_mask"]}
         if "token_type_ids" in features:
             trans_features["token_type_ids"] = features["token_type_ids"]
 
-        output_states = self.auto_model(**trans_features, return_dict=False)
+        output_states = self.auto_model(**trans_features, **kwargs, return_dict=False)
         output_tokens = output_states[0]
 
         features.update({"token_embeddings": output_tokens, "attention_mask": features["attention_mask"]})

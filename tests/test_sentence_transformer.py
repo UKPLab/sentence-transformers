@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import re
-import tempfile
 from functools import partial
 from pathlib import Path
 from typing import Dict, List, Literal, cast
@@ -31,10 +30,11 @@ from sentence_transformers.models import (
     WeightedLayerPooling,
 )
 from sentence_transformers.similarity_functions import SimilarityFunction
+from tests.utils import SafeTemporaryDirectory
 
 
 def test_load_with_safetensors() -> None:
-    with tempfile.TemporaryDirectory() as cache_folder:
+    with SafeTemporaryDirectory() as cache_folder:
         safetensors_model = SentenceTransformer(
             "sentence-transformers-testing/stsb-bert-tiny-safetensors",
             cache_folder=cache_folder,
@@ -46,7 +46,7 @@ def test_load_with_safetensors() -> None:
         safetensors_files = list(Path(cache_folder).glob("**/model.safetensors"))
         assert 1 == len(safetensors_files), "Safetensors model file must be downloaded."
 
-    with tempfile.TemporaryDirectory() as cache_folder:
+    with SafeTemporaryDirectory() as cache_folder:
         transformer = Transformer(
             "sentence-transformers-testing/stsb-bert-tiny-safetensors",
             cache_dir=cache_folder,
@@ -87,6 +87,18 @@ def test_to() -> None:
     assert model.device.type == "cpu", "Ensure that setting `_target_device` doesn't crash."
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test fp16 and bf16 inference.")
+@pytest.mark.parametrize("torch_dtype", ["auto", "float16", "bfloat16", torch.float16, torch.bfloat16])
+def test_torch_dtype(torch_dtype) -> None:
+    model = SentenceTransformer(
+        "sentence-transformers-testing/all-nli-bert-tiny-dense",
+        device="cuda",
+        model_kwargs={"torch_dtype": torch_dtype},
+    )
+    embedding = model.encode("Test sentence")
+    assert embedding.shape[-1] == model.get_sentence_embedding_dimension()
+
+
 def test_push_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     def mock_create_repo(self, repo_id, **kwargs):
         return RepoUrl(f"https://huggingface.co/{repo_id}")
@@ -100,19 +112,27 @@ def test_push_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
     def mock_list_repo_refs(self, repo_id=None, **kwargs):
         try:
             git_ref_info = GitRefInfo(name="main", ref="refs/heads/main", target_commit="123456")
+            git_ref_info2 = GitRefInfo(name="revision_test", ref="refs/heads/revision_test", target_commit="678901")
         except TypeError:
             git_ref_info = GitRefInfo(dict(name="main", ref="refs/heads/main", targetCommit="123456"))
+            git_ref_info2 = GitRefInfo(
+                dict(name="revision_test", ref="refs/heads/revision_test", target_commit="678901")
+            )
         # workaround for https://github.com/huggingface/huggingface_hub/issues/1956
-        git_ref_kwargs = {"branches": [git_ref_info], "converts": [], "tags": [], "pull_requests": None}
+        git_ref_kwargs = {"branches": [git_ref_info, git_ref_info2], "converts": [], "tags": [], "pull_requests": None}
         try:
             return GitRefs(**git_ref_kwargs)
         except TypeError:
             git_ref_kwargs.pop("pull_requests")
             return GitRefs(**git_ref_kwargs)
 
+    def mock_create_branch(self, repo_id, branch, revision=None, **kwargs):
+        return None
+
     monkeypatch.setattr(HfApi, "create_repo", mock_create_repo)
     monkeypatch.setattr(HfApi, "upload_folder", mock_upload_folder)
     monkeypatch.setattr(HfApi, "list_repo_refs", mock_list_repo_refs)
+    monkeypatch.setattr(HfApi, "create_branch", mock_create_branch)
 
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
 
@@ -226,11 +246,18 @@ def test_push_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
             caplog.record_tuples[1][2]
             == 'Providing an `organization` to `save_to_hub` is deprecated, please use `repo_id="sentence-transformers-testing/stsb-bert-tiny-safetensors"` instead.'
         )
+    mock_upload_folder_kwargs.clear()
+
+    url = model.push_to_hub("sentence-transformers-testing/stsb-bert-tiny-safetensors", revision="revision_test")
+    assert mock_upload_folder_kwargs["repo_id"] == "sentence-transformers-testing/stsb-bert-tiny-safetensors"
+    assert mock_upload_folder_kwargs["revision"] == "revision_test"
+    assert url == "https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors/commit/678901"
+    mock_upload_folder_kwargs.clear()
 
 
 @pytest.mark.parametrize("safe_serialization", [True, False, None])
 def test_safe_serialization(safe_serialization: bool) -> None:
-    with tempfile.TemporaryDirectory() as cache_folder:
+    with SafeTemporaryDirectory() as cache_folder:
         model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
         if safe_serialization:
             model.save(cache_folder, safe_serialization=safe_serialization)
@@ -264,7 +291,7 @@ def test_load_with_revision() -> None:
 def test_load_local_without_normalize_directory() -> None:
     tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
     tiny_model.add_module("Normalize", Normalize())
-    with tempfile.TemporaryDirectory() as tmp_folder:
+    with SafeTemporaryDirectory() as tmp_folder:
         model_path = Path(tmp_folder) / "tiny_model_local"
         tiny_model.save(str(model_path))
 
@@ -336,7 +363,7 @@ def test_save_load_prompts() -> None:
     assert model.prompts == {"query": "query: "}
     assert model.default_prompt_name == "query"
 
-    with tempfile.TemporaryDirectory() as tmp_folder:
+    with SafeTemporaryDirectory() as tmp_folder:
         model_path = Path(tmp_folder) / "tiny_model_local"
         model.save(str(model_path))
         config_path = model_path / "config_sentence_transformers.json"
@@ -357,7 +384,7 @@ def test_load_with_torch_dtype() -> None:
 
     assert model.encode(["Hello there!"], convert_to_tensor=True).dtype == torch.float32
 
-    with tempfile.TemporaryDirectory() as tmp_folder:
+    with SafeTemporaryDirectory() as tmp_folder:
         fp16_model_dir = Path(tmp_folder) / "fp16_model"
         model.half()
         model.save(str(fp16_model_dir))
@@ -570,7 +597,7 @@ def test_similarity_score_save(stsb_bert_tiny_model: SentenceTransformer) -> Non
     assert model.similarity_fn_name == "cosine"
 
     model.similarity_fn_name = "euclidean"
-    with tempfile.TemporaryDirectory() as tmp_folder:
+    with SafeTemporaryDirectory() as tmp_folder:
         model.save(tmp_folder)
         loaded_model = SentenceTransformer(tmp_folder)
     assert loaded_model.similarity_fn_name == "euclidean"
@@ -582,7 +609,7 @@ def test_model_card_save_update_model_id(stsb_bert_tiny_model: SentenceTransform
     model = stsb_bert_tiny_model
     # Removing the saved model card will cause a fresh one to be generated when we save
     model._model_card_text = ""
-    with tempfile.TemporaryDirectory() as tmp_folder:
+    with SafeTemporaryDirectory() as tmp_folder:
         model.save(tmp_folder)
         with open(Path(tmp_folder) / "README.md", encoding="utf8") as f:
             model_card_text = f.read()
@@ -592,7 +619,7 @@ def test_model_card_save_update_model_id(stsb_bert_tiny_model: SentenceTransform
         # if we have it set
         loaded_model = SentenceTransformer(tmp_folder)
 
-    with tempfile.TemporaryDirectory() as tmp_folder:
+    with SafeTemporaryDirectory() as tmp_folder:
         loaded_model.save(tmp_folder, model_name="test_user/test_model")
 
         with open(Path(tmp_folder) / "README.md", encoding="utf8") as f:
@@ -604,7 +631,7 @@ def test_override_config_versions(stsb_bert_tiny_model: SentenceTransformer) -> 
     model = stsb_bert_tiny_model
 
     assert model._model_config["__version__"]["sentence_transformers"] == "2.2.2"
-    with tempfile.TemporaryDirectory() as tmp_folder:
+    with SafeTemporaryDirectory() as tmp_folder:
         model.save(tmp_folder)
         loaded_model = SentenceTransformer(tmp_folder)
     # Verify that the version has now been updated when saving the model again
@@ -648,7 +675,7 @@ def test_safetensors(modules: list[nn.Module] | SentenceTransformer) -> None:
         model = SentenceTransformer(modules=modules)
     original_embedding = model.encode("Hello, World!")
 
-    with tempfile.TemporaryDirectory() as tmp_folder:
+    with SafeTemporaryDirectory() as tmp_folder:
         model.save(tmp_folder)
         # Ensure that we only have the safetensors file and no pytorch_model.bin
         assert list(Path(tmp_folder).rglob("**/model.safetensors"))

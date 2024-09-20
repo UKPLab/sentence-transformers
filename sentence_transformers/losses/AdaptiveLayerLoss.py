@@ -150,16 +150,16 @@ class AdaptiveLayerLoss(nn.Module):
         Requirements:
             1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss` or :class:`CachedGISTEmbedLoss`.
 
-        Relations:
-            - :class:`Matryoshka2dLoss` uses this loss in combination with :class:`MatryoshkaLoss` which allows for
-                output dimensionality reduction for faster downstream tasks (e.g. retrieval).
-
-        Input:
+        Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
             +=======================================+========+
             | any                                   | any    |
             +---------------------------------------+--------+
+
+        Relations:
+            - :class:`Matryoshka2dLoss` uses this loss in combination with :class:`MatryoshkaLoss` which allows for
+                output dimensionality reduction for faster downstream tasks (e.g. retrieval).
 
         Example:
             ::

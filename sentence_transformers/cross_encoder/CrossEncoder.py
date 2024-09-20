@@ -41,8 +41,10 @@ class CrossEncoder(PushToHubMixin):
             length of the model will be used. Defaults to None.
         device (str, optional): Device that should be used for the model. If None, it will use CUDA if available.
             Defaults to None.
-        tokenizer_args (Dict, optional): Arguments passed to AutoTokenizer. Defaults to None.
         automodel_args (Dict, optional): Arguments passed to AutoModelForSequenceClassification. Defaults to None.
+        tokenizer_args (Dict, optional): Arguments passed to AutoTokenizer. Defaults to None.
+        config_args (Dict, optional): Arguments passed to AutoConfig. Defaults to None.
+        cache_dir (`str`, `Path`, optional): Path to the folder where cached files are stored.
         trust_remote_code (bool, optional): Whether or not to allow for custom models defined on the Hub in their own modeling files.
             This option should only be set to True for repositories you trust and in which you have read the code, as it
             will execute code present on the Hub on your local machine. Defaults to False.
@@ -61,8 +63,10 @@ class CrossEncoder(PushToHubMixin):
         num_labels: int = None,
         max_length: int = None,
         device: str | None = None,
-        tokenizer_args: dict = None,
         automodel_args: dict = None,
+        tokenizer_args: dict = None,
+        config_args: dict = None,
+        cache_dir: str = None,
         trust_remote_code: bool = False,
         revision: str | None = None,
         local_files_only: bool = False,
@@ -73,8 +77,15 @@ class CrossEncoder(PushToHubMixin):
             tokenizer_args = {}
         if automodel_args is None:
             automodel_args = {}
+        if config_args is None:
+            config_args = {}
         self.config = AutoConfig.from_pretrained(
-            model_name, trust_remote_code=trust_remote_code, revision=revision, local_files_only=local_files_only
+            model_name,
+            trust_remote_code=trust_remote_code,
+            revision=revision,
+            local_files_only=local_files_only,
+            cache_dir=cache_dir,
+            **config_args,
         )
         classifier_trained = True
         if self.config.architectures is not None:
@@ -96,6 +107,7 @@ class CrossEncoder(PushToHubMixin):
             revision=revision,
             trust_remote_code=trust_remote_code,
             local_files_only=local_files_only,
+            cache_dir=cache_dir,
             **automodel_args,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -103,6 +115,7 @@ class CrossEncoder(PushToHubMixin):
             revision=revision,
             local_files_only=local_files_only,
             trust_remote_code=trust_remote_code,
+            cache_dir=cache_dir,
             **tokenizer_args,
         )
         self.max_length = max_length
