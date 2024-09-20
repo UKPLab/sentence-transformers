@@ -532,7 +532,7 @@ class CrossEncoder(PushToHubMixin):
         """
         query_doc_pairs = [[query, doc] for doc in documents]
         scores = self.predict(
-            query_doc_pairs,
+            sentences=query_doc_pairs,
             batch_size=batch_size,
             show_progress_bar=show_progress_bar,
             num_workers=num_workers,
