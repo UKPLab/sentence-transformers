@@ -139,7 +139,7 @@ class Pooling(nn.Module):
             if "attention_mask" in features
             else torch.ones(token_embeddings.shape[:-1], device=token_embeddings.device, dtype=torch.int64)
         )
-        if self.mask_prompt:
+        if self.mask_prompt and "prompt_mask" in features:
             attention_mask = features["prompt_mask"]
         elif not self.include_prompt and "prompt_length" in features:
             attention_mask[:, : features["prompt_length"]] = 0
