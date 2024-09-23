@@ -123,7 +123,8 @@ class Transformer(nn.Module):
                 pad_mask = features["input_ids"] == self.tokenizer.pad_token_id
                 first_non_pad_token = pad_mask.long().argmin(dim=1)
                 last_instruction_token = first_non_pad_token + features["prompt_length"]
-                mask_indices = torch.arange(0, embed_mask.shape[1]).long()[None, :] <= last_instruction_token[:, None]
+                mask_indices = torch.arange(0, embed_mask.shape[1]).long()[None, :].to(embed_mask.device)
+                mask_indices = mask_indices <= last_instruction_token[:, None]
                 embed_mask[mask_indices] = 0
                 trans_features["attention_mask"] = embed_mask
             else:
