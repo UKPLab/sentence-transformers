@@ -177,11 +177,8 @@ class Transformer(nn.Module):
         if mask_prompt and prompt_length is not None:
             # We need to grab the first non-pad token in the input_ids and mask from there until prompt_length tokens
             if self.tokenizer.padding_side == "left":
-                input_ids = tokens["input_ids"]
-                attention_mask = tokens["attention_mask"]
-                embed_mask = attention_mask.clone()
-                pad_token_id = self.tokenizer.pad_token_id
-                pad_mask = input_ids == pad_token_id
+                embed_mask = tokens["attention_mask"].clone()
+                pad_mask = tokens["input_ids"] == self.tokenizer.pad_token_id
                 first_non_pad_token = pad_mask.long().argmin(dim=1)
                 last_instruction_token = first_non_pad_token + prompt_length
                 mask_indices = torch.arange(0, embed_mask.shape[1]).long()[None, :] <= last_instruction_token[:, None]
