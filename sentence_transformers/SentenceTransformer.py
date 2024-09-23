@@ -154,6 +154,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         prompts: dict[str, str] | None = None,
         default_prompt_name: str | None = None,
         similarity_fn_name: str | SimilarityFunction | None = None,
+        mask_prompt: bool = False,
         cache_folder: str | None = None,
         trust_remote_code: bool = False,
         revision: str | None = None,
@@ -166,10 +167,11 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         config_kwargs: dict[str, Any] | None = None,
         model_card_data: SentenceTransformerModelCardData | None = None,
     ) -> None:
-        # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
+        # Note: self._load_sbert_model can also update `self.prompts`, `self.default_prompt_name` and `self.mask_prompt`
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
         self.similarity_fn_name = similarity_fn_name
+        self.mask_prompt = mask_prompt
         self.trust_remote_code = trust_remote_code
         self.truncate_dim = truncate_dim
         self.model_card_data = model_card_data or SentenceTransformerModelCardData()
@@ -354,6 +356,8 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         # suspect the user is using an INSTRUCTOR model.
         if model_name_or_path in ("hkunlp/instructor-base", "hkunlp/instructor-large", "hkunlp/instructor-xl"):
             self.set_pooling_include_prompt(include_prompt=False)
+        if self.mask_prompt:
+            self.set_pooling_mask_prompt(mask_prompt=True)
         elif (
             model_name_or_path
             and "/" in model_name_or_path
@@ -566,7 +570,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
             sentences_batch = sentences_sorted[start_index : start_index + batch_size]
-            features = self.tokenize(sentences_batch)
+            features = self.tokenize(sentences_batch, prompt_length=extra_features.get("prompt_length", None))
             if self.device.type == "hpu":
                 if "input_ids" in features:
                     curr_tokenize_len = features["input_ids"].shape
@@ -658,7 +662,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         return all_embeddings
 
-    def forward(self, input: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
+    def forward(self, input: dict[str, Tensor], **kwargs) -> dict[str, Tensor]:
         if self.module_kwargs is None:
             return super().forward(input)
 
@@ -998,6 +1002,24 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 module.include_prompt = include_prompt
                 break
 
+    def set_pooling_mask_prompt(self, mask_prompt: bool) -> None:
+        """
+        Sets the `mask_prompt` attribute in the pooling layer, if there is one.
+
+        This triggers the use of the `embed_mask` in the pooling, instead of the attention mask. This is useful for models, such as NV-Embed and LLM2Vec that masks the user's prompt.
+
+
+        Args:
+            mask_prompt (bool): Whether to mask the prompt in the model.
+
+        Returns:
+            None
+        """
+        for module in self:
+            if isinstance(module, Pooling):
+                module.mask_prompt = mask_prompt
+                break
+
     def get_max_seq_length(self) -> int | None:
         """
         Returns the maximal sequence length that the model accepts. Longer inputs will be truncated.
@@ -1010,7 +1032,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         return None
 
-    def tokenize(self, texts: list[str] | list[dict] | list[tuple[str, str]]) -> dict[str, Tensor]:
+    def tokenize(
+        self, texts: list[str] | list[dict] | list[tuple[str, str]], prompt_length: int | None = None
+    ) -> dict[str, Tensor]:
         """
         Tokenizes the texts.
 
@@ -1021,9 +1045,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             Dict[str, Tensor]: A dictionary of tensors with the tokenized texts. Common keys are "input_ids",
                 "attention_mask", and "token_type_ids".
         """
-        return self._first_module().tokenize(texts)
+        return self._first_module().tokenize(texts, mask_prompt=self.mask_prompt, prompt_length=prompt_length)
 
-    def get_sentence_features(self, *features) -> dict[Literal["sentence_embedding"], torch.Tensor]:
+    def get_sentence_features(self, *features) -> dict[Literal["sentence_embedding"], Tensor]:
         return self._first_module().get_sentence_features(*features)
 
     def get_sentence_embedding_dimension(self) -> int | None:
@@ -1123,6 +1147,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             config["prompts"] = self.prompts
             config["default_prompt_name"] = self.default_prompt_name
             config["similarity_fn_name"] = self.similarity_fn_name
+            config["mask_prompt"] = self.mask_prompt
             json.dump(config, fOut, indent=2)
 
         # Save modules
@@ -1544,6 +1569,8 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 self.prompts = self._model_config.get("prompts", {})
             if not self.default_prompt_name:
                 self.default_prompt_name = self._model_config.get("default_prompt_name", None)
+            if not self.mask_prompt:
+                self.mask_prompt = self._model_config.get("mask_prompt", False)
 
         # Check if a readme exists
         model_card_path = load_file_path(

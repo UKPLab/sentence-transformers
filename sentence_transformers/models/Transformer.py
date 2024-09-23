@@ -114,7 +114,8 @@ class Transformer(nn.Module):
         trans_features = {"input_ids": features["input_ids"], "attention_mask": features["attention_mask"]}
         if "token_type_ids" in features:
             trans_features["token_type_ids"] = features["token_type_ids"]
-
+        if "prompt_mask" in features:
+            trans_features["attention_mask"] = features["prompt_mask"]
         output_states = self.auto_model(**trans_features, **kwargs, return_dict=False)
         output_tokens = output_states[0]
 
@@ -134,7 +135,11 @@ class Transformer(nn.Module):
         return self.auto_model.config.hidden_size
 
     def tokenize(
-        self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True
+        self,
+        texts: list[str] | list[dict] | list[tuple[str, str]],
+        padding: str | bool = True,
+        mask_prompt: bool = False,
+        prompt_length: int | None = None,
     ) -> dict[str, torch.Tensor]:
         """Tokenizes a text and maps tokens to token-ids"""
         output = {}
@@ -162,15 +167,32 @@ class Transformer(nn.Module):
         if self.do_lower_case:
             to_tokenize = [[s.lower() for s in col] for col in to_tokenize]
 
-        output.update(
-            self.tokenizer(
-                *to_tokenize,
-                padding=padding,
-                truncation="longest_first",
-                return_tensors="pt",
-                max_length=self.max_seq_length,
-            )
+        tokens = self.tokenizer(
+            *to_tokenize,
+            padding=padding,
+            truncation="longest_first",
+            return_tensors="pt",
+            max_length=self.max_seq_length,
         )
+        if mask_prompt and prompt_length is not None:
+            # We need to grab the first non-pad token in the input_ids and mask from there until prompt_length tokens
+            if self.tokenizer.padding_side == "left":
+                input_ids = tokens["input_ids"]
+                attention_mask = tokens["attention_mask"]
+                embed_mask = attention_mask.clone()
+                pad_token_id = self.tokenizer.pad_token_id
+                pad_mask = input_ids == pad_token_id
+                first_non_pad_token = pad_mask.long().argmin(dim=1)
+                last_instruction_token = first_non_pad_token + prompt_length
+                mask_indices = torch.arange(0, embed_mask.shape[1]).long()[None, :] <= last_instruction_token[:, None]
+                embed_mask[mask_indices] = 0
+                tokens["prompt_mask"] = embed_mask
+            else:
+                # For righ-sided padding, just mask from the start until prompt_length
+                tokens["prompt_mask"] = torch.ones_like(tokens["attention_mask"])
+                tokens["prompt_mask"][:, :prompt_length] = 0
+
+        output.update(tokens)
         return output
 
     def get_config_dict(self) -> dict[str, Any]:

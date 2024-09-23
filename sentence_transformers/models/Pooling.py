@@ -57,7 +57,8 @@ class Pooling(nn.Module):
         pooling_mode_mean_sqrt_len_tokens: bool = False,
         pooling_mode_weightedmean_tokens: bool = False,
         pooling_mode_lasttoken: bool = False,
-        include_prompt=True,
+        include_prompt: bool = True,
+        mask_prompt: bool = False,
     ) -> None:
         super().__init__()
 
@@ -96,6 +97,7 @@ class Pooling(nn.Module):
         self.pooling_mode_lasttoken = pooling_mode_lasttoken
 
         self.include_prompt = include_prompt
+        self.mask_prompt = mask_prompt
 
         pooling_mode_multiplier = sum(
             [
@@ -137,7 +139,9 @@ class Pooling(nn.Module):
             if "attention_mask" in features
             else torch.ones(token_embeddings.shape[:-1], device=token_embeddings.device, dtype=torch.int64)
         )
-        if not self.include_prompt and "prompt_length" in features:
+        if self.mask_prompt:
+            attention_mask = features["prompt_mask"]
+        elif not self.include_prompt and "prompt_length" in features:
             attention_mask[:, : features["prompt_length"]] = 0
 
         ## Pooling strategy
