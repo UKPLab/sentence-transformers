@@ -133,6 +133,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             SimilarityFunction.DOT_PRODUCT.value: dot_score,
         },  # Score function, higher=more similar
         main_score_function: str | SimilarityFunction | None = None,
+        query_prompt: str | None = None,
+        corpus_prompt: str | None = None,
     ) -> None:
         """
         Initializes the InformationRetrievalEvaluator.
@@ -154,6 +156,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             truncate_dim (int, optional): The dimension to truncate the embeddings to. Defaults to None.
             score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to {SimilarityFunction.COSINE.value: cos_sim, SimilarityFunction.DOT_PRODUCT.value: dot_score}.
             main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
+            query_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
+            corpus_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
         """
         super().__init__()
         self.queries_ids = []
@@ -165,6 +169,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
         self.corpus_ids = list(corpus.keys())
         self.corpus = [corpus[cid] for cid in self.corpus_ids]
+
+        self.query_prompt = query_prompt
+        self.corpus_prompt = corpus_prompt
 
         self.relevant_docs = relevant_docs
         self.corpus_chunk_size = corpus_chunk_size
@@ -277,7 +284,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         return metrics
 
     def compute_metrices(
-        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor = None
+        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor | None = None
     ) -> dict[str, float]:
         if corpus_model is None:
             corpus_model = model
@@ -294,8 +301,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
             query_embeddings = model.encode(
                 self.queries,
-                show_progress_bar=self.show_progress_bar,
+                prompt=self.query_prompt,
                 batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
                 convert_to_tensor=True,
             )
 
@@ -316,8 +324,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 ):
                     sub_corpus_embeddings = corpus_model.encode(
                         self.corpus[corpus_start_idx:corpus_end_idx],
-                        show_progress_bar=False,
+                        prompt=self.corpus_prompt,
                         batch_size=self.batch_size,
+                        show_progress_bar=False,
                         convert_to_tensor=True,
                     )
             else:
