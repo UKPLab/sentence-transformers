@@ -357,7 +357,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         if model_name_or_path in ("hkunlp/instructor-base", "hkunlp/instructor-large", "hkunlp/instructor-xl"):
             self.set_pooling_include_prompt(include_prompt=False)
         if self.mask_prompt:
-            self.set_pooling_mask_prompt(mask_prompt=True)
+            self.set_mask_prompt(mask_prompt=True)
         elif (
             model_name_or_path
             and "/" in model_name_or_path
@@ -570,7 +570,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
             sentences_batch = sentences_sorted[start_index : start_index + batch_size]
-            features = self.tokenize(sentences_batch, prompt_length=extra_features.get("prompt_length", None))
+            features = self.tokenize(sentences_batch)
             if self.device.type == "hpu":
                 if "input_ids" in features:
                     curr_tokenize_len = features["input_ids"].shape
@@ -1002,9 +1002,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 module.include_prompt = include_prompt
                 break
 
-    def set_pooling_mask_prompt(self, mask_prompt: bool) -> None:
+    def set_mask_prompt(self, mask_prompt: bool) -> None:
         """
-        Sets the `mask_prompt` attribute in the pooling layer, if there is one.
+        Sets the `mask_prompt` attribute in the pooling and Transformer layers, if there is one.
 
         This triggers the use of the `embed_mask` in the pooling, instead of the attention mask. This is useful for models, such as NV-Embed and LLM2Vec that masks the user's prompt.
 
@@ -1018,7 +1018,8 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         for module in self:
             if isinstance(module, Pooling):
                 module.mask_prompt = mask_prompt
-                break
+            elif isinstance(module, Transformer):
+                module.mask_prompt = mask_prompt
 
     def get_max_seq_length(self) -> int | None:
         """
@@ -1032,9 +1033,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         return None
 
-    def tokenize(
-        self, texts: list[str] | list[dict] | list[tuple[str, str]], prompt_length: int | None = None
-    ) -> dict[str, Tensor]:
+    def tokenize(self, texts: list[str] | list[dict] | list[tuple[str, str]]) -> dict[str, Tensor]:
         """
         Tokenizes the texts.
 
@@ -1045,7 +1044,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             Dict[str, Tensor]: A dictionary of tensors with the tokenized texts. Common keys are "input_ids",
                 "attention_mask", and "token_type_ids".
         """
-        return self._first_module().tokenize(texts, mask_prompt=self.mask_prompt, prompt_length=prompt_length)
+        return self._first_module().tokenize(texts)
 
     def get_sentence_features(self, *features) -> dict[Literal["sentence_embedding"], Tensor]:
         return self._first_module().get_sentence_features(*features)
