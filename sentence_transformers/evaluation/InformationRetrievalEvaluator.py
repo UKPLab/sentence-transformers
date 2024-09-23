@@ -134,7 +134,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         },  # Score function, higher=more similar
         main_score_function: str | SimilarityFunction | None = None,
         query_prompt: str | None = None,
+        query_prompt_name: str | None = None,
         corpus_prompt: str | None = None,
+        corpus_prompt_name: str | None = None,
     ) -> None:
         """
         Initializes the InformationRetrievalEvaluator.
@@ -157,7 +159,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to {SimilarityFunction.COSINE.value: cos_sim, SimilarityFunction.DOT_PRODUCT.value: dot_score}.
             main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
             query_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
+            query_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
             corpus_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
+            corpus_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
         """
         super().__init__()
         self.queries_ids = []
@@ -171,7 +175,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.corpus = [corpus[cid] for cid in self.corpus_ids]
 
         self.query_prompt = query_prompt
+        self.query_prompt_name = query_prompt_name
         self.corpus_prompt = corpus_prompt
+        self.corpus_prompt_name = corpus_prompt_name
 
         self.relevant_docs = relevant_docs
         self.corpus_chunk_size = corpus_chunk_size
@@ -302,6 +308,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             query_embeddings = model.encode(
                 self.queries,
                 prompt=self.query_prompt,
+                prompt_name=self.query_prompt_name,
                 batch_size=self.batch_size,
                 show_progress_bar=self.show_progress_bar,
                 convert_to_tensor=True,
@@ -325,6 +332,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                     sub_corpus_embeddings = corpus_model.encode(
                         self.corpus[corpus_start_idx:corpus_end_idx],
                         prompt=self.corpus_prompt,
+                        prompt_name=self.corpus_prompt_name,
                         batch_size=self.batch_size,
                         show_progress_bar=False,
                         convert_to_tensor=True,
