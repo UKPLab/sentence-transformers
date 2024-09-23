@@ -174,6 +174,11 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.corpus_ids = list(corpus.keys())
         self.corpus = [corpus[cid] for cid in self.corpus_ids]
 
+        self.query_prompt = query_prompt
+        self.query_prompt_name = query_prompt_name
+        self.corpus_prompt = corpus_prompt
+        self.corpus_prompt_name = corpus_prompt_name
+
         self.relevant_docs = relevant_docs
         self.corpus_chunk_size = corpus_chunk_size
         self.mrr_at_k = mrr_at_k
