@@ -6,7 +6,6 @@ from typing import Any, Iterable, Iterator
 
 import torch
 import tqdm
-from accelerate import PartialState
 from torch import Tensor, nn
 from torch.utils.checkpoint import get_device_states, set_device_states
 
@@ -182,7 +181,15 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         """Do forward pass on all the minibatches of the input features and yield corresponding embeddings."""
         input_ids: Tensor = sentence_feature["input_ids"]
         bsz, _ = input_ids.shape
-        for i, b in enumerate(range(0, bsz, self.mini_batch_size)):
+        for i, b in enumerate(
+            tqdm.trange(
+                0,
+                bsz,
+                self.mini_batch_size,
+                desc="Embed mini-batches",
+                disable=not self.show_progress_bar,
+            )
+        ):
             e = b + self.mini_batch_size
             reps, random_state = self.embed_minibatch(
                 sentence_feature=sentence_feature,
@@ -192,7 +199,6 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
                 copy_random_state=copy_random_state,
                 random_state=None if random_states is None else random_states[i],
             )
-            self.pbar.update(e - b)
             yield reps, random_state  # reps: (mbsz, hdim)
 
     def calculate_loss_and_cache_gradients(self, reps: list[list[Tensor]]) -> Tensor:
@@ -211,8 +217,6 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             self.mini_batch_size,
             desc="Preparing caches",
             disable=not self.show_progress_bar,
-            leave=False,
-            position=1,
         ):
             e = b + self.mini_batch_size
             scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
@@ -242,8 +246,6 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             self.mini_batch_size,
             desc="Preparing caches",
             disable=not self.show_progress_bar,
-            leave=False,
-            position=1,
         ):
             e = b + self.mini_batch_size
             scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
@@ -257,13 +259,6 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         # Step (1): A quick embedding step without gradients/computation graphs to get all the embeddings
         reps = []
         self.random_states = []  # Copy random states to guarantee exact reproduction of the embeddings during the second forward pass, i.e. step (3)
-        total_docs = sum(len(sentence_feature["input_ids"]) for sentence_feature in sentence_features)
-        self.pbar = tqdm.tqdm(
-            total=total_docs,
-            desc="Embedding documents",
-            disable=not self.show_progress_bar or not PartialState().is_main_process,
-            leave=False,
-        )
         for sentence_feature in sentence_features:
             reps_mbs = []
             random_state_mbs = []
@@ -276,7 +271,6 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
                 random_state_mbs.append(random_state)
             reps.append(reps_mbs)
             self.random_states.append(random_state_mbs)
-        self.pbar.close()
 
         if torch.is_grad_enabled():
             # Step (2): Calculate the loss, backward up to the embeddings and cache the gradients wrt. to the embeddings

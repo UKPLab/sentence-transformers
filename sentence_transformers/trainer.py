@@ -24,6 +24,7 @@ from sentence_transformers.models.Transformer import Transformer
 from sentence_transformers.sampler import (
     DefaultBatchSampler,
     GroupByLabelBatchSampler,
+    MultipleNegativesBatchSampler,
     NoDuplicatesBatchSampler,
     ProportionalBatchSampler,
     RoundRobinBatchSampler,
@@ -525,6 +526,14 @@ class SentenceTransformerTrainer(Trainer):
                 SubsetRandomSampler(range(len(dataset)), generator=generator),
                 batch_size=batch_size,
                 drop_last=drop_last,
+            )
+        if self.args.batch_sampler == BatchSamplers.MULTIPLE_NEGATIVES:
+            return MultipleNegativesBatchSampler(
+                dataset=dataset,
+                batch_size=batch_size,
+                drop_last=drop_last,
+                valid_label_columns=valid_label_columns,
+                generator=generator,
             )
 
     def get_multi_dataset_batch_sampler(

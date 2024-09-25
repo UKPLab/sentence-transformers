@@ -223,15 +223,15 @@ class MultipleNegativesBatchSampler(SetEpochMixin, BatchSampler):
         seed: int = 0,
     ) -> None:
         """
-        This sampler creates batches such that each batch contains samples where the values are unique,
-        even across columns. This is useful when losses consider other samples in a batch to be in-batch
-        negatives, and you want to ensure that the negatives are not duplicates of the anchor/positive sample.
+        This sampler creates batches such that each batch contains samples where the negatives are not present
+        in any of the positives already sampled in the batch. This is useful when using a loss with in-batch
+        negatives as it will avoid that a positive also appears as a negative for the same anchor.
+        Using this sampler also avoids that the positives become duplicated
+        the batch, as its hard negatives are part of the same sample.
 
         Recommended for:
             - :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`
             - :class:`~sentence_transformers.losses.CachedMultipleNegativesRankingLoss`
-            - :class:`~sentence_transformers.losses.MultipleNegativesSymmetricRankingLoss`
-            - :class:`~sentence_transformers.losses.CachedMultipleNegativesSymmetricRankingLoss`
             - :class:`~sentence_transformers.losses.MegaBatchMarginLoss`
             - :class:`~sentence_transformers.losses.GISTEmbedLoss`
             - :class:`~sentence_transformers.losses.CachedGISTEmbedLoss`
@@ -268,15 +268,18 @@ class MultipleNegativesBatchSampler(SetEpochMixin, BatchSampler):
         anchor_column = self.dataset.column_names[0]
         positive_column = self.dataset.column_names[1]
         negative_columns = [self.dataset.column_names[i] for i in range(2, len(self.dataset.column_names))]
+
         remaining_indices = set(torch.randperm(len(self.dataset), generator=self.generator).tolist())
+
         while remaining_indices:
             batch_values = set()
             batch_indices = []
             for index in remaining_indices:
                 sample = self.dataset[index]
-                # Make sure that either the positive or the negative ARE NOT in the seen values
+                # Make sure that either the positive or the negatives ARE NOT in the seen positives or queries
                 if negative_columns:
-                    if any(sample[negative_column] in batch_values for negative_column in negative_columns):
+                    negatives = set([sample[negative_column] for negative_column in negative_columns])
+                    if negatives & batch_values:
                         continue
                 elif sample[positive_column] in batch_values:
                     continue
