@@ -41,12 +41,10 @@ class Transformer(nn.Module):
         cache_dir: str | None = None,
         do_lower_case: bool = False,
         tokenizer_name_or_path: str = None,
-        mask_prompt: bool = False,
     ) -> None:
         super().__init__()
         self.config_keys = ["max_seq_length", "do_lower_case"]
         self.do_lower_case = do_lower_case
-        self.mask_prompt = mask_prompt
         if model_args is None:
             model_args = {}
         if tokenizer_args is None:
@@ -116,21 +114,6 @@ class Transformer(nn.Module):
         trans_features = {"input_ids": features["input_ids"], "attention_mask": features["attention_mask"]}
         if "token_type_ids" in features:
             trans_features["token_type_ids"] = features["token_type_ids"]
-
-        if self.mask_prompt and "prompt_length" in features:
-            if self.tokenizer.padding_side == "left":
-                embed_mask = features["attention_mask"].clone()
-                pad_mask = features["input_ids"] == self.tokenizer.pad_token_id
-                first_non_pad_token = pad_mask.long().argmin(dim=1)
-                last_instruction_token = first_non_pad_token + features["prompt_length"]
-                mask_indices = torch.arange(0, embed_mask.shape[1]).long()[None, :].to(embed_mask.device)
-                mask_indices = mask_indices <= last_instruction_token[:, None]
-                embed_mask[mask_indices] = 0
-                trans_features["attention_mask"] = embed_mask
-            else:
-                trans_features["attention_mask"] = torch.ones_like(features["attention_mask"])
-                trans_features["attention_mask"][:, : features["prompt_length"]] = 0
-            features.update({"prompt_mask": trans_features["attention_mask"]})
 
         output_states = self.auto_model(**trans_features, **kwargs, return_dict=False)
         output_tokens = output_states[0]
