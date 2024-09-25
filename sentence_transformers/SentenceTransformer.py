@@ -166,7 +166,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         config_kwargs: dict[str, Any] | None = None,
         model_card_data: SentenceTransformerModelCardData | None = None,
     ) -> None:
-        # Note: self._load_sbert_model can also update `self.prompts` and`self.default_prompt_name`
+        # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
         self.default_prompt_name = default_prompt_name
         self.similarity_fn_name = similarity_fn_name

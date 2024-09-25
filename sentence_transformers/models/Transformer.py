@@ -41,8 +41,6 @@ class Transformer(nn.Module):
         cache_dir: str | None = None,
         do_lower_case: bool = False,
         tokenizer_name_or_path: str = None,
-        include_prompt: bool = True,
-        prompt_length: int | None = None,
     ) -> None:
         super().__init__()
         self.config_keys = ["max_seq_length", "do_lower_case"]
@@ -75,9 +73,6 @@ class Transformer(nn.Module):
                 max_seq_length = min(self.auto_model.config.max_position_embeddings, self.tokenizer.model_max_length)
 
         self.max_seq_length = max_seq_length
-
-        self.include_prompt = include_prompt
-        self.prompt_length = prompt_length
 
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
@@ -166,15 +161,16 @@ class Transformer(nn.Module):
         # Lowercase
         if self.do_lower_case:
             to_tokenize = [[s.lower() for s in col] for col in to_tokenize]
-        tokens = self.tokenizer(
-            *to_tokenize,
-            padding=padding,
-            truncation="longest_first",
-            return_tensors="pt",
-            max_length=self.max_seq_length,
-        )
 
-        output.update(tokens)
+        output.update(
+            self.tokenizer(
+                *to_tokenize,
+                padding=padding,
+                truncation="longest_first",
+                return_tensors="pt",
+                max_length=self.max_seq_length,
+            )
+        )
         return output
 
     def get_config_dict(self) -> dict[str, Any]:
