@@ -182,23 +182,28 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
         """
         if self.generator and self.seed:
             self.generator.manual_seed(self.seed + self.epoch)
-
+        anchor_column = self.dataset.column_names[0]
+        positive_column = self.dataset.column_names[1]
+        negative_columns = [self.dataset.column_names[i] for i in range(2, len(self.dataset.column_names))]
         remaining_indices = set(torch.randperm(len(self.dataset), generator=self.generator).tolist())
         while remaining_indices:
             batch_values = set()
             batch_indices = []
             for index in remaining_indices:
-                sample_values = set(self.dataset[index].values())
-                if sample_values & batch_values:
+                sample = self.dataset[index]
+                # Make sure that either the positive or the negative ARE NOT in the seen values
+                if negative_columns:
+                    if any(sample[negative_column] in batch_values for negative_column in negative_columns):
+                        continue
+                elif sample[positive_column] in batch_values:
                     continue
-
                 batch_indices.append(index)
                 if len(batch_indices) == self.batch_size:
                     yield batch_indices
                     break
 
-                batch_values.update(sample_values)
-
+                batch_values.add(sample[anchor_column])
+                batch_values.add(sample[positive_column])
             else:
                 # NOTE: some indices might still have been ignored here
                 if not self.drop_last:
