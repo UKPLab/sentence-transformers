@@ -48,6 +48,9 @@ class SentenceTransformerDataCollator:
 
         # Extract the feature columns
         for column_name in column_names:
+            if column_name.endswith("_prompt_length"):
+                batch[column_name] = torch.tensor([row[column_name] for row in features])
+                continue
             tokenized = self.tokenize_fn([row[column_name] for row in features])
             for key, value in tokenized.items():
                 batch[f"{column_name}_{key}"] = value
