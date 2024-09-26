@@ -781,6 +781,9 @@ class SentenceTransformerTrainer(Trainer):
             dataloader_params["batch_sampler"] = batch_sampler
 
         elif isinstance(eval_dataset, Dataset):
+            if self.prompt is not None:
+                eval_dataset = self.add_prompts_to_dataset(eval_dataset)
+
             batch_sampler = self.get_batch_sampler(
                 eval_dataset,
                 batch_size=self.args.eval_batch_size,
@@ -789,8 +792,6 @@ class SentenceTransformerTrainer(Trainer):
                 generator=generator,
             )
             dataloader_params["batch_sampler"] = batch_sampler
-            if self.prompt is not None:
-                eval_dataset = self.add_prompts_to_dataset(eval_dataset, self.prompt)
 
         else:
             raise ValueError(
@@ -848,6 +849,8 @@ class SentenceTransformerTrainer(Trainer):
                     raise ValueError(
                         "Sentence Transformers is not compatible with a DatasetDict containing an IterableDataset."
                     )
+                if self.prompt is not None:
+                    test_dataset[dataset_name] = self.add_prompts_to_dataset(dataset, dataset_name)
             if isinstance(self.loss, dict):
                 test_dataset = self.add_dataset_name_column(test_dataset)
             batch_samplers = [
@@ -873,6 +876,8 @@ class SentenceTransformerTrainer(Trainer):
         elif isinstance(test_dataset, Dataset):
             self.validate_column_names(test_dataset)
 
+            if self.prompt is not None:
+                test_dataset = self.add_prompts_to_dataset(test_dataset)
             batch_sampler = self.get_batch_sampler(
                 test_dataset,
                 batch_size=self.args.eval_batch_size,
