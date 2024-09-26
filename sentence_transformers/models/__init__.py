@@ -10,6 +10,7 @@ from .LayerNorm import LayerNorm
 from .LSTM import LSTM
 from .Normalize import Normalize
 from .Pooling import Pooling
+from .StaticEmbedding import StaticEmbedding
 from .Transformer import Transformer
 from .WeightedLayerPooling import WeightedLayerPooling
 from .WordEmbeddings import WordEmbeddings
@@ -17,6 +18,7 @@ from .WordWeights import WordWeights
 
 __all__ = [
     "Transformer",
+    "StaticEmbedding",
     "Asym",
     "BoW",
     "CNN",
