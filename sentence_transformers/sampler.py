@@ -191,6 +191,7 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
                 sample_values = set(self.dataset[index].values())
                 if sample_values & batch_values:
                     continue
+
                 batch_indices.append(index)
                 if len(batch_indices) == self.batch_size:
                     yield batch_indices
