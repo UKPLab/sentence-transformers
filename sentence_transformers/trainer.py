@@ -125,6 +125,7 @@ class SentenceTransformerTrainer(Trainer):
         | Callable[[SentenceTransformer], torch.nn.Module]
         | dict[str, Callable[[SentenceTransformer], torch.nn.Module]]
         | None = None,
+        prompt: dict[str, dict[str, str]] | dict[str, str] | str | None = None,
         evaluator: SentenceEvaluator | list[SentenceEvaluator] | None = None,
         data_collator: DataCollator | None = None,
         tokenizer: PreTrainedTokenizerBase | Callable | None = None,
@@ -242,6 +243,9 @@ class SentenceTransformerTrainer(Trainer):
                     )
         else:
             self.loss = self.prepare_loss(loss, model)
+
+        self.prompt = prompt
+
         # If evaluator is a list, we wrap it in a SequentialEvaluator
         if evaluator is not None and not isinstance(evaluator, SentenceEvaluator):
             evaluator = SequentialEvaluator(evaluator)
@@ -301,6 +305,33 @@ class SentenceTransformerTrainer(Trainer):
             if "dataset_name" not in dataset.column_names:
                 dataset_dict[key] = dataset.add_column("dataset_name", [key] * len(dataset))
         return dataset_dict
+
+    def add_prompts_to_dataset(self, dataset: Dataset, prompt: str | dict[str, str]) -> Dataset:
+        def _add_prompts(sample):
+            if isinstance(prompt, dict):
+                for col in prompt.keys():
+                    sample[col] = prompt[col] + sample[col]
+            else:
+                for col in dataset.column_names:
+                    sample[col] = prompt + sample[col]
+            return sample
+
+        dataset = dataset.map(_add_prompts, desc="Adding prompts to dataset")
+        if isinstance(prompt, str):
+            tokenized_prompt = self.tokenize([prompt])
+            prompt_len = tokenized_prompt["input_ids"].shape[-1] - 1
+            prompt_lens = [prompt_len] * len(dataset)
+            dataset.add_column("prompt_length", prompt_lens)
+            return dataset
+
+        for col_name in dataset.column_names:
+            _prompt = prompt.get(col_name, None)
+            if _prompt is not None:
+                tokenized_prompt = self.model.tokenize([_prompt])
+                prompt_len = tokenized_prompt["input_ids"].shape[-1] - 1
+                prompt_lens = [prompt_len] * len(dataset)
+                dataset.add_column(f"{col_name}_prompt_length", prompt_lens)
+        return dataset
 
     def compute_loss(
         self,
@@ -611,8 +642,11 @@ class SentenceTransformerTrainer(Trainer):
                     raise ValueError(
                         "Sentence Transformers is not compatible with a DatasetDict containing an IterableDataset."
                     )
+                if isinstance(self.prompt, dict) and dataset_name in self.prompt:
+                    train_dataset[dataset_name] = self.add_prompts_to_dataset(dataset, self.prompt[dataset_name])
             if isinstance(self.loss, dict):
                 train_dataset = self.add_dataset_name_column(train_dataset)
+
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
@@ -635,6 +669,13 @@ class SentenceTransformerTrainer(Trainer):
 
         elif isinstance(train_dataset, Dataset):
             self.validate_column_names(train_dataset)
+
+            if self.prompt is not None:
+                if isinstance(self.prompt, dict) and isinstance(list(self.prompt.keys())[0], dict):
+                    raise ValueError(
+                        "When defining prompts and a single dataset, use either a single string for applying the prompt to all columns or a dict mapping column names to prompts."
+                    )
+                train_dataset = self.add_prompts_to_dataset(train_dataset, self.prompt)
 
             batch_sampler = self.get_batch_sampler(
                 train_dataset,
