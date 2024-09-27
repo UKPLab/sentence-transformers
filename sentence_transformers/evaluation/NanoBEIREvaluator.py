@@ -53,7 +53,7 @@ clean_names = {
 }
 
 
-class NanoBEIREvaluator(SentenceEvaluator):
+class NanoBeIREvaluator(SentenceEvaluator):
     """
     This class evaluates the performance of a SentenceTransformer Model on the NanoBEIR collection of datasets.
 
@@ -61,20 +61,72 @@ class NanoBEIREvaluator(SentenceEvaluator):
     The datasets are available on HuggingFace at https://huggingface.co/collections/zeta-alpha-ai/nanobeir-66e1a0af21dfd93e620cd9f6
     The Evaluator will return the same metrics as the InformationRetrievalEvaluator (i.e., MRR, nDCG, Recall@k), for each dataset and on average.
 
-    Internally, it uses a SequentialEvaluator with multiple InformationRetrievalEvaluators, and combines the results into a single score.
 
     Example:
         ::
 
             from sentence_transformers import SentenceTransformer
             from sentence_transformers.evaluation import NanoBEIREvaluator
-            from datasets import load_dataset
 
             # Load a model
             model = SentenceTransformer('all-mpnet-base-v2')
 
+            datasets = ["QuoraRetrieval", "MSMARCO"]
+            query_prompts = {
+                "QuoraRetrieval": "Instruct: Given a question, retrieve questions that are semantically equivalent to the given question\nQuery: ",
+                "MSMARCO": "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: "
+            }
 
+            evaluator = NanoBEIREvaluator(
+                dataset_names=datasets,
+                name="NanoBEIR",
+                query_prompts=query_prompts,
+            )
 
+            results = evaluator(model)
+            '''
+            NanoBEeIR Evaluation of the model on ['QuoraRetrieval', 'MSMARCO'] dataset:
+            Evaluating NanoBeIRNanoQuoraRetrieval
+            Evaluating NanoBeIRNanoMSMARCO
+
+            Average Queries: 50.0
+            Average Corpus: 5044.5
+
+            Aggregated for Score Function: cosine
+            Accuracy@1: 39.00%
+            Accuracy@3: 57.00%
+            Accuracy@5: 66.00%
+            Accuracy@10: 77.00%
+            Precision@1: 39.00%
+            Recall@1: 34.03%
+            Precision@3: 20.67%
+            Recall@3: 54.07%
+            Precision@5: 15.00%
+            Recall@5: 64.27%
+            Precision@10: 8.90%
+            Recall@10: 75.97%
+            MRR@10: 0.5004
+            NDCG@10: 0.5513
+            Aggregated for Score Function: dot
+            Accuracy@1: 39.00%
+            Accuracy@3: 57.00%
+            Accuracy@5: 66.00%
+            Accuracy@10: 77.00%
+            Precision@1: 39.00%
+            Recall@1: 34.03%
+            Precision@3: 20.67%
+            Recall@3: 54.07%
+            Precision@5: 15.00%
+            Recall@5: 64.27%
+            Precision@10: 8.90%
+            Recall@10: 75.97%
+            MRR@10: 0.5004
+            NDCG@10: 0.5513
+            '''
+            logger.info(evaluator.primary_metric)
+            # => "cosine_ndcg@10"
+            logger.info(results["mean"][evaluator.primary_metric])
+            # => 0.5512516989358924
     """
 
     def __init__(
@@ -117,6 +169,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
             score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to {SimilarityFunction.COSINE.value: cos_sim, SimilarityFunction.DOT_PRODUCT.value: dot_score}.
             main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
             aggregate_fn (Callable[[list[float]], float]): The function to aggregate the scores. Defaults to np.mean.
+            aggregate_key (str): The key to use for the aggregated score. Defaults to "mean".
             query_prompts (str | dict[str, str], optional): The prompts to add to the queries. If a string, will add the same prompt to all queries. If a dict, expects that all datasets in dataset_names are keys.
             corpus_prompts (str | dict[str, str], optional): The prompts to add to the corpus. If a string, will add the same prompt to all corpus. If a dict, expects that all datasets in dataset_names are keys.
         """
@@ -133,6 +186,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
         self.score_functions = score_functions
         self.score_function_names = sorted(list(self.score_functions.keys()))
         self.main_score_function = main_score_function
+        self.truncate_dim = truncate_dim
 
         self.mrr_at_k = mrr_at_k
         self.ndcg_at_k = ndcg_at_k
@@ -156,8 +210,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
             "score_functions": score_functions,
             "main_score_function": main_score_function,
         }
-        if name:
-            name = "_" + name
+
         self.name = name
 
         self.evaluators = [self._load_dataset(name, **ir_evaluator_kwargs) for name in self.dataset_names]
@@ -187,7 +240,18 @@ class NanoBEIREvaluator(SentenceEvaluator):
     ) -> dict[str, float]:
         per_metric_results = {}
         per_dataset_results = {}
+        if epoch != -1:
+            if steps == -1:
+                out_txt = f" after epoch {epoch}"
+            else:
+                out_txt = f" in epoch {epoch} after {steps} steps"
+        else:
+            out_txt = ""
+        if self.truncate_dim is not None:
+            out_txt += f" (truncated to {self.truncate_dim})"
+        logger.info(f"NanoBEeIR Evaluation of the model on {self.dataset_names} dataset{out_txt}:")
         for evaluator in tqdm(self.evaluators, desc="Evaluating datasets", disable=not self.show_progress_bar):
+            logger.info(f"Evaluating {evaluator.name}")
             evaluation = evaluator(model, output_path, epoch, steps)
             for k in evaluation:
                 dataset, metric = k.split("_", maxsplit=1)
@@ -242,13 +306,36 @@ class NanoBEIREvaluator(SentenceEvaluator):
                 )[0]
                 self.primary_metric = f"{score_function}_ndcg@{max(self.ndcg_at_k)}"
             else:
-                self.primary_metric = f"{self.main_score_function.value}_ndcg@{max(self.map_at_k)}"
+                self.primary_metric = f"{self.main_score_function.value}_ndcg@{max(self.ndcg_at_k)}"
 
         self.store_metrics_in_model_card_data(model, agg_results)
+
+        avg_queries = np.mean([len(evaluator.queries) for evaluator in self.evaluators])
+        avg_corpus = np.mean([len(evaluator.corpus) for evaluator in self.evaluators])
+        logger.info(f"\nAverage Queries: {avg_queries}")
+        logger.info(f"Average Corpus: {avg_corpus}\n")
+
+        scores = per_dataset_results[self.aggregate_key]
+        for name in self.score_function_names:
+            logger.info(f"Aggregated for Score Function: {name}")
+            for k in self.accuracy_at_k:
+                logger.info("Accuracy@{}: {:.2f}%".format(k, scores[f"{name}_accuracy@{k}"] * 100))
+
+            for k in self.precision_recall_at_k:
+                logger.info("Precision@{}: {:.2f}%".format(k, scores[f"{name}_precision@{k}"] * 100))
+                logger.info("Recall@{}: {:.2f}%".format(k, scores[f"{name}_recall@{k}"] * 100))
+
+            for k in self.mrr_at_k:
+                logger.info("MRR@{}: {:.4f}".format(k, scores[f"{name}_mrr@{k}"]))
+
+            for k in self.ndcg_at_k:
+                logger.info("NDCG@{}: {:.4f}".format(k, scores[f"{name}_ndcg@{k}"]))
+            per_dataset_results[self.aggregate_key]
+            self.output_scores(per_dataset_results[name])
         return per_dataset_results
 
     def __get_clean_name(self, dataset_name: str) -> str:
-        return f"Nano{clean_names[dataset_paths[dataset_name]]}"
+        return f"Nano{clean_names[dataset_paths[dataset_name.lower()]]}"
 
     def _load_dataset(self, dataset_name: str, **ir_evaluator_kwargs) -> InformationRetrievalEvaluator:
         if not is_datasets_available():
@@ -306,57 +393,3 @@ class NanoBEIREvaluator(SentenceEvaluator):
             warning_msg += f"The following datasets are missing corpus prompts: {missing_corpus_prompts}\n"
         if warning_msg:
             raise ValueError(warning_msg)
-
-
-if __name__ == "__main__":
-    names = ["quoraretrieval", "msmarco"]
-    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-    query_prompts = {
-        "quoraretrieval": "Instruct: Given a question, retrieve questions that are semantically equivalent to the given question\nQuery: ",
-        "msmarco": "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: ",
-    }
-    evaluator = NanoBEIREvaluator(
-        dataset_names=names,
-        accuracy_at_k=[1, 3],
-        precision_recall_at_k=[1, 3],
-        mrr_at_k=[3],
-        ndcg_at_k=[3],
-        map_at_k=[5],
-        query_prompts=query_prompts,
-    )
-
-    results = evaluator(model)
-    print(results)
-
-# def get_st_evaluators(
-#     names: list[str],
-#     prompting_method: PromptingStrategy = PromptingStrategy.raw,
-# ) -> tuple[list[InformationRetrievalEvaluator], list[str], list[str]]:
-#     # Let's use our own NanoDatasets for this.
-#     evaluators: list[InformationRetrievalEvaluator] = []
-#     for name in names:
-#         corpus = load_dataset(f"zeta-alpha-ai/Nano{name}", "corpus", split="train")
-#         queries = load_dataset(f"zeta-alpha-ai/Nano{name}", "queries", split="train")
-#         qrels = load_dataset(f"zeta-alpha-ai/Nano{name}", "qrels", split="train")
-#         corpus_dict = {sample["_id"]: sample["text"] for sample in corpus if len(sample["text"]) > 0}
-#         queries_dict = {sample["_id"]: sample["text"] for sample in queries if len(sample["text"]) > 0}
-#         qrels_dict = {}
-#         for sample in qrels:
-#             if sample["query-id"] not in qrels_dict:
-#                 qrels_dict[sample["query-id"]] = set()
-#             qrels_dict[sample["query-id"]].add(sample["corpus-id"])
-#         query_prompt = get_prompt_prefix_query(name, prompting_method)
-#         corpus_prompt = get_prompt_prefix_corpus(name, prompting_method)
-#         evaluators.append(
-#             InformationRetrievalEvaluator(
-#                 queries=queries_dict,
-#                 corpus=corpus_dict,
-#                 relevant_docs=qrels_dict,
-#                 query_prompt=query_prompt,
-#                 corpus_prompt=corpus_prompt,
-#                 name=f"Nano{name}",
-#             )
-#         )
-#         evaluators[-1].primary_metric = "dot_ndcg@10"
-#     evaluators = SequentialEvaluator(evaluators, main_score_function=lambda x: np.mean(x))
-#     return evaluators
