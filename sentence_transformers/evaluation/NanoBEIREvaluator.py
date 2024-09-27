@@ -174,7 +174,8 @@ class NanoBeIREvaluator(SentenceEvaluator):
             corpus_prompts (str | dict[str, str], optional): The prompts to add to the corpus. If a string, will add the same prompt to all corpus. If a dict, expects that all datasets in dataset_names are keys.
         """
         super().__init__()
-
+        if dataset_names is None:
+            dataset_names = list(dataset_paths.keys())
         self.dataset_names = dataset_names
         self.aggregate_fn = aggregate_fn
         self.aggregate_key = aggregate_key
