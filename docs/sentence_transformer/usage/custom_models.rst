@@ -30,7 +30,7 @@ Whenever a Sentence Transformer model is saved, three types of files are generat
 
 * ``modules.json``: This file contains a list of module names, paths, and types that are used to reconstruct the model.
 * ``config_sentence_transformers.json``: This file contains some configuration options of the Sentence Transformer model, including saved prompts, the model its similarity function, and the Sentence Transformer package version used by the model author.
-* **Module-specific files**: Each module is saved in a separate folder, with the first module saved in the root folder and all subsequent modules saved in subfolders named after the module index and the model name (e.g., ``1_Pooling``, ``2_Normalize``).
+* **Module-specific files**: Each module is saved in separate subfolders named after the module index and the model name (e.g., ``1_Pooling``, ``2_Normalize``), except the first module may be saved in the root directory if it has a ``save_in_root`` attribute set to ``True``. In Sentence Transformers, this is the case for the :class:`~sentence_transformers.models.Transformer` and :class:`~sentence_transformers.models.CLIPModel` modules.
   Most module folders contain a ``config.json`` (or ``sentence_bert_config.json`` for the :class:`~sentence_transformers.models.Transformer` module) file that stores default values for keyword arguments passed to that Module. So, a ``sentence_bert_config.json`` of::
 
     {
@@ -187,6 +187,10 @@ For example, we can create a custom pooling method by implementing a custom Modu
 .. note::
 
    Adding ``**kwargs`` to the ``__init__``, ``forward``, ``save``, ``load``, and ``tokenize`` methods is recommended to ensure that the methods are compatible with future updates to the Sentence Transformers library.
+
+.. note::
+
+   If your module is the first module, then you can set ``save_in_root = True`` in the module's class definition if you want your module to be saved in the root directory upon save. Do note that unlike the subdirectories, the root directory is not downloaded from the Hugging Face Hub before loading the module. As a result, the module should first check if the required files exist locally and otherwise use :func:`huggingface_hub.hf_hub_download` to download them.
 
 This can now be used as a module in a Sentence Transformer model::
    
