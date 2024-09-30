@@ -658,7 +658,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         return all_embeddings
 
-    def forward(self, input: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
+    def forward(self, input: dict[str, Tensor], **kwargs) -> dict[str, Tensor]:
         if self.module_kwargs is None:
             return super().forward(input)
 
@@ -1023,7 +1023,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         """
         return self._first_module().tokenize(texts)
 
-    def get_sentence_features(self, *features) -> dict[Literal["sentence_embedding"], torch.Tensor]:
+    def get_sentence_features(self, *features) -> dict[Literal["sentence_embedding"], Tensor]:
         return self._first_module().get_sentence_features(*features)
 
     def get_sentence_embedding_dimension(self) -> int | None:
