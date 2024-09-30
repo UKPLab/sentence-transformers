@@ -33,15 +33,15 @@ class ContrastiveTensionLoss(nn.Module):
         * Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
         * `Unsupervised Learning > CT <../../examples/unsupervised_learning/CT/README.html>`_
 
-    Relations:
-        * :class:`ContrastiveTensionLossInBatchNegatives` uses in-batch negative sampling, which gives a stronger training signal than this loss.
-
     Inputs:
         +------------------+--------+
         | Texts            | Labels |
         +==================+========+
         | single sentences | none   |
         +------------------+--------+
+
+    Relations:
+        * :class:`ContrastiveTensionLossInBatchNegatives` uses in-batch negative sampling, which gives a stronger training signal than this loss.
 
     Example:
         ::

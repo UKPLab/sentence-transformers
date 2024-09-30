@@ -99,9 +99,6 @@ class CachedGISTEmbedLoss(nn.Module):
             1. (anchor, positive) pairs or (anchor, positive, negative pairs)
             2. Should be used with large batch sizes for superior performance, but has slower training time than :class:`MultipleNegativesRankingLoss`
 
-        Relations:
-            - Equivalent to :class:`GISTEmbedLoss`, but with caching that allows for much higher batch sizes
-
         Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
@@ -110,6 +107,13 @@ class CachedGISTEmbedLoss(nn.Module):
             +---------------------------------------+--------+
             | (anchor, positive, negative) triplets | none   |
             +---------------------------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that no in-batch negatives are duplicates of the anchor or positive samples.
+
+        Relations:
+            - Equivalent to :class:`GISTEmbedLoss`, but with caching that allows for much higher batch sizes
 
         Example:
             ::

@@ -81,6 +81,8 @@ class CNN(nn.Module):
             load_safetensors_model(model, os.path.join(input_path, "model.safetensors"))
         else:
             model.load_state_dict(
-                torch.load(os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"))
+                torch.load(
+                    os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
+                )
             )
         return model

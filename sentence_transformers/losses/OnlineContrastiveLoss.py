@@ -34,16 +34,16 @@ class OnlineContrastiveLoss(nn.Module):
             1. (anchor, positive/negative) pairs
             2. Data should include hard positives and hard negatives
 
-        Relations:
-            - :class:`ContrastiveLoss` is similar, but does not use hard positive and hard negative pairs.
-            :class:`OnlineContrastiveLoss` often yields better results.
-
         Inputs:
             +-----------------------------------------------+------------------------------+
             | Texts                                         | Labels                       |
             +===============================================+==============================+
             | (anchor, positive/negative) pairs             | 1 if positive, 0 if negative |
             +-----------------------------------------------+------------------------------+
+
+        Relations:
+            - :class:`ContrastiveLoss` is similar, but does not use hard positive and hard negative pairs.
+            :class:`OnlineContrastiveLoss` often yields better results.
 
         Example:
             ::

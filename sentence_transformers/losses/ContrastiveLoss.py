@@ -45,16 +45,16 @@ class ContrastiveLoss(nn.Module):
         Requirements:
             1. (anchor, positive/negative) pairs
 
-        Relations:
-            - :class:`OnlineContrastiveLoss` is similar, but uses hard positive and hard negative pairs.
-            It often yields better results.
-
         Inputs:
             +-----------------------------------------------+------------------------------+
             | Texts                                         | Labels                       |
             +===============================================+==============================+
             | (anchor, positive/negative) pairs             | 1 if positive, 0 if negative |
             +-----------------------------------------------+------------------------------+
+
+        Relations:
+            - :class:`OnlineContrastiveLoss` is similar, but uses hard positive and hard negative pairs.
+            It often yields better results.
 
         Example:
             ::

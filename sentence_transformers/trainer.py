@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import warnings
+from collections import OrderedDict
 from contextlib import nullcontext
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -14,7 +15,6 @@ from transformers.data.data_collator import DataCollator
 from transformers.integrations import WandbCallback
 from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.trainer_utils import EvalLoopOutput
-from transformers.training_args import ParallelMode
 
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
@@ -36,7 +36,7 @@ from sentence_transformers.training_args import (
 from sentence_transformers.util import disable_logging, is_datasets_available, is_training_available
 
 if is_datasets_available():
-    from datasets import Dataset, DatasetDict
+    from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, Value
 
 logger = logging.getLogger(__name__)
 
@@ -67,10 +67,10 @@ class SentenceTransformerTrainer(Trainer):
             The arguments to tweak for training. Will default to a basic instance of
             :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` with the
             `output_dir` set to a directory named *tmp_trainer* in the current directory if not provided.
-        train_dataset (Union[:class:`datasets.Dataset`, :class:`datasets.DatasetDict`, Dict[str, :class:`datasets.Dataset`]], *optional*):
+        train_dataset (Union[:class:`datasets.Dataset`, :class:`datasets.DatasetDict`, :class:`datasets.IterableDataset`, Dict[str, :class:`datasets.Dataset`]], *optional*):
             The dataset to use for training. Must have a format accepted by your loss function, see
             `Training Overview > Dataset Format <../../../docs/sentence_transformer/training_overview.html#dataset-format>`_.
-        eval_dataset (Union[:class:`datasets.Dataset`, :class:`datasets.DatasetDict`, Dict[str, :class:`datasets.Dataset`]], *optional*):
+        eval_dataset (Union[:class:`datasets.Dataset`, :class:`datasets.DatasetDict`, :class:`datasets.IterableDataset`, Dict[str, :class:`datasets.Dataset`]], *optional*):
             The dataset to use for evaluation. Must have a format accepted by your loss function, see
             `Training Overview > Dataset Format <../../../docs/sentence_transformer/training_overview.html#dataset-format>`_.
         loss (Optional[Union[:class:`torch.nn.Module`, Dict[str, :class:`torch.nn.Module`],\
@@ -118,8 +118,8 @@ class SentenceTransformerTrainer(Trainer):
         self,
         model: SentenceTransformer | None = None,
         args: SentenceTransformerTrainingArguments = None,
-        train_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
-        eval_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
+        train_dataset: Dataset | DatasetDict | IterableDataset | dict[str, Dataset] | None = None,
+        eval_dataset: Dataset | DatasetDict | IterableDataset | dict[str, Dataset] | None = None,
         loss: nn.Module
         | dict[str, nn.Module]
         | Callable[[SentenceTransformer], torch.nn.Module]
@@ -179,9 +179,24 @@ class SentenceTransformerTrainer(Trainer):
         if data_collator is None:
             data_collator = SentenceTransformerDataCollator(tokenize_fn=model.tokenize)
 
+        for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
+            if isinstance(dataset, IterableDataset) and dataset.column_names is None:
+                sample = next(iter(dataset))
+                naive_type_mapping = {str: "string", int: "int64", float: "float32", bool: "bool"}
+                example_features = {
+                    key: Value(naive_type_mapping.get(type(value), "null")) for key, value in sample.items()
+                }
+                raise ValueError(
+                    f"The provided `{dataset_name}_dataset` must have Features. Specify them with e.g.:\n"
+                    f"{dataset_name}_dataset = {dataset_name}_dataset.cast(Features({example_features}))\n"
+                    "or by providing the Features to the IterableDataset initialization method. See the Datasets "
+                    "documentation for more information on dataset Features: "
+                    "https://huggingface.co/docs/datasets/en/about_dataset_features"
+                )
+
         if isinstance(train_dataset, dict) and not isinstance(train_dataset, DatasetDict):
             train_dataset = DatasetDict(train_dataset)
-        if isinstance(eval_dataset, dict) and not isinstance(eval_dataset, Dataset):
+        if isinstance(eval_dataset, dict) and not isinstance(eval_dataset, DatasetDict):
             eval_dataset = DatasetDict(eval_dataset)
         super().__init__(
             model=None if self.model_init else model,
@@ -317,12 +332,13 @@ class SentenceTransformerTrainer(Trainer):
         if isinstance(loss_fn, dict) and dataset_name:
             loss_fn = loss_fn[dataset_name]
 
-        # Hackishly insert the distributed model into the loss function, if the loss stores the model
-        # Only called once per process
+        # Insert the wrapped (e.g. distributed or compiled) model into the loss function,
+        # if the loss stores the model. Only called once per process
         if (
-            self.args.parallel_mode != ParallelMode.NOT_PARALLEL
-            and hasattr(model, "module")
-            and hasattr(loss_fn, "model")
+            model == self.model_wrapped
+            and model != self.model  # Only if the model is wrapped
+            and hasattr(loss_fn, "model")  # Only if the loss stores the model
+            and loss_fn.model != model  # Only if the wrapped model is not already stored
         ):
             loss_fn = self.override_model_in_loss(loss_fn, model)
         loss = loss_fn(features, labels)
@@ -462,7 +478,31 @@ class SentenceTransformerTrainer(Trainer):
         drop_last: bool,
         valid_label_columns: list[str] | None = None,
         generator: torch.Generator | None = None,
-    ) -> BatchSampler:
+    ) -> BatchSampler | None:
+        """
+        Returns the appropriate batch sampler based on the ``batch_sampler`` argument in ``self.args``.
+        This batch sampler class supports ``__len__`` and ``__iter__`` methods, and is used as the ``batch_sampler``
+        to create the :class:`torch.utils.data.DataLoader`.
+
+        .. note::
+            Override this method to provide a custom batch sampler.
+
+        Args:
+            dataset (Dataset): The dataset to sample from.
+            batch_size (int): Number of samples per batch.
+            drop_last (bool): If True, drop the last incomplete batch if the dataset size
+                is not divisible by the batch size.
+            valid_label_columns (List[str]): List of column names to check for labels.
+                The first column name from ``valid_label_columns`` found in the dataset will
+                be used as the label column.
+            generator (torch.Generator, optional): Optional random number generator for shuffling
+                the indices.
+        """
+        if isinstance(dataset, IterableDataset):
+            if self.args.batch_sampler != BatchSamplers.BATCH_SAMPLER:
+                logger.warning("When using an IterableDataset, you cannot specify a batch sampler.")
+            return None
+
         if self.args.batch_sampler == BatchSamplers.NO_DUPLICATES:
             return NoDuplicatesBatchSampler(
                 dataset=dataset,
@@ -494,6 +534,20 @@ class SentenceTransformerTrainer(Trainer):
         generator: torch.Generator | None = None,
         seed: int | None = 0,
     ) -> BatchSampler:
+        """
+        Returns the appropriate multi-dataset batch sampler based on the ``multi_dataset_batch_sampler`` argument
+        in ``self.args``. This batch sampler class supports ``__len__`` and ``__iter__`` methods, and is used as the
+        ``batch_sampler`` to create the :class:`torch.utils.data.DataLoader`.
+
+        .. note::
+            Override this method to provide a custom multi-dataset batch sampler.
+
+        Args:
+            dataset (ConcatDataset): The concatenation of all datasets.
+            batch_samplers (List[BatchSampler]): List of batch samplers for each dataset in the concatenated dataset.
+            generator (torch.Generator, optional): Optional random number generator for shuffling the indices.
+            seed (int, optional): Optional seed for the random number generator
+        """
         if self.args.multi_dataset_batch_sampler == MultiDatasetBatchSamplers.ROUND_ROBIN:
             return RoundRobinBatchSampler(
                 dataset=dataset,
@@ -529,15 +583,40 @@ class SentenceTransformerTrainer(Trainer):
         if self.args.seed:
             generator.manual_seed(self.args.seed)
 
-        if isinstance(train_dataset, DatasetDict):
+        dataloader_params = {
+            "collate_fn": data_collator,
+            "num_workers": self.args.dataloader_num_workers,
+            "pin_memory": self.args.dataloader_pin_memory,
+            "persistent_workers": self.args.dataloader_persistent_workers,
+            "prefetch_factor": self.args.dataloader_prefetch_factor,
+        }
+
+        if isinstance(train_dataset, IterableDataset):
+            dataloader_params.update(
+                {
+                    "batch_size": self.args.train_batch_size,
+                    "drop_last": self.args.dataloader_drop_last,
+                }
+            )
+
+        elif isinstance(train_dataset, IterableDatasetDict):
+            raise ValueError(
+                "Sentence Transformers is not compatible with IterableDatasetDict. Please use a DatasetDict instead."
+            )
+
+        elif isinstance(train_dataset, DatasetDict):
             for dataset_name, dataset in train_dataset.items():
                 self.validate_column_names(dataset, dataset_name=dataset_name)
+                if isinstance(dataset, IterableDataset):
+                    raise ValueError(
+                        "Sentence Transformers is not compatible with a DatasetDict containing an IterableDataset."
+                    )
             if isinstance(self.loss, dict):
                 train_dataset = self.add_dataset_name_column(train_dataset)
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
-                    batch_size=self.args.per_device_train_batch_size,
+                    batch_size=self.args.train_batch_size,
                     drop_last=self.args.dataloader_drop_last,
                     valid_label_columns=data_collator.valid_label_columns,
                     generator=generator,
@@ -552,8 +631,9 @@ class SentenceTransformerTrainer(Trainer):
                 generator=generator,
                 seed=self.args.seed,
             )
+            dataloader_params["batch_sampler"] = batch_sampler
 
-        else:
+        elif isinstance(train_dataset, Dataset):
             self.validate_column_names(train_dataset)
 
             batch_sampler = self.get_batch_sampler(
@@ -563,15 +643,11 @@ class SentenceTransformerTrainer(Trainer):
                 valid_label_columns=data_collator.valid_label_columns,
                 generator=generator,
             )
-
-        dataloader_params = {
-            "collate_fn": data_collator,
-            "num_workers": self.args.dataloader_num_workers,
-            "pin_memory": self.args.dataloader_pin_memory,
-            "persistent_workers": self.args.dataloader_persistent_workers,
-            "prefetch_factor": self.args.dataloader_prefetch_factor,
-            "batch_sampler": batch_sampler,
-        }
+            dataloader_params["batch_sampler"] = batch_sampler
+        else:
+            raise ValueError(
+                "Unsupported `train_dataset` type. Use a Dataset, DatasetDict, or IterableDataset for training."
+            )
 
         # If 'even_batches' is True, it will use the initial few samples to pad out the last sample. This can
         # cause issues with multi-dataset training, so we want to set this to False.
@@ -603,14 +679,38 @@ class SentenceTransformerTrainer(Trainer):
         if self.args.seed:
             generator.manual_seed(self.args.seed)
 
-        # TODO: Correctly validate the column names for the eval_dataset
-        if isinstance(eval_dataset, DatasetDict):
+        dataloader_params = {
+            "collate_fn": data_collator,
+            "num_workers": self.args.dataloader_num_workers,
+            "pin_memory": self.args.dataloader_pin_memory,
+            "persistent_workers": self.args.dataloader_persistent_workers,
+            "prefetch_factor": self.args.dataloader_prefetch_factor,
+        }
+        if isinstance(eval_dataset, IterableDataset):
+            dataloader_params.update(
+                {
+                    "batch_size": self.args.eval_batch_size,
+                    "drop_last": self.args.dataloader_drop_last,
+                }
+            )
+
+        elif isinstance(eval_dataset, IterableDatasetDict):
+            raise ValueError(
+                "Sentence Transformers is not compatible with IterableDatasetDict. Please use a DatasetDict instead."
+            )
+
+        elif isinstance(eval_dataset, DatasetDict):
+            for dataset in eval_dataset.values():
+                if isinstance(dataset, IterableDataset):
+                    raise ValueError(
+                        "Sentence Transformers is not compatible with a DatasetDict containing an IterableDataset."
+                    )
             if isinstance(self.loss, dict):
                 eval_dataset = self.add_dataset_name_column(eval_dataset)
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
-                    batch_size=self.args.per_device_eval_batch_size,
+                    batch_size=self.args.eval_batch_size,
                     drop_last=self.args.dataloader_drop_last,
                     valid_label_columns=data_collator.valid_label_columns,
                     generator=generator,
@@ -625,23 +725,22 @@ class SentenceTransformerTrainer(Trainer):
                 generator=generator,
                 seed=self.args.seed,
             )
-        else:
+            dataloader_params["batch_sampler"] = batch_sampler
+
+        elif isinstance(eval_dataset, Dataset):
             batch_sampler = self.get_batch_sampler(
                 eval_dataset,
-                batch_size=self.args.train_batch_size,
+                batch_size=self.args.eval_batch_size,
                 drop_last=self.args.dataloader_drop_last,
                 valid_label_columns=data_collator.valid_label_columns,
                 generator=generator,
             )
+            dataloader_params["batch_sampler"] = batch_sampler
 
-        dataloader_params = {
-            "collate_fn": data_collator,
-            "num_workers": self.args.dataloader_num_workers,
-            "pin_memory": self.args.dataloader_pin_memory,
-            "persistent_workers": self.args.dataloader_persistent_workers,
-            "prefetch_factor": self.args.dataloader_prefetch_factor,
-            "batch_sampler": batch_sampler,
-        }
+        else:
+            raise ValueError(
+                "Unsupported `eval_dataset` type. Use a Dataset, DatasetDict, or IterableDataset for evaluation."
+            )
 
         # If 'even_batches' is True, it will use the initial few samples to pad out the last sample. This can
         # cause issues with multi-dataset training, so we want to set this to False during training.
@@ -666,15 +765,40 @@ class SentenceTransformerTrainer(Trainer):
         if self.args.seed:
             generator.manual_seed(self.args.seed)
 
-        if isinstance(test_dataset, DatasetDict):
+        dataloader_params = {
+            "collate_fn": data_collator,
+            "num_workers": self.args.dataloader_num_workers,
+            "pin_memory": self.args.dataloader_pin_memory,
+            "persistent_workers": self.args.dataloader_persistent_workers,
+            "prefetch_factor": self.args.dataloader_prefetch_factor,
+        }
+
+        if isinstance(test_dataset, IterableDataset):
+            dataloader_params.update(
+                {
+                    "batch_size": self.args.eval_batch_size,
+                    "drop_last": self.args.dataloader_drop_last,
+                }
+            )
+
+        elif isinstance(test_dataset, IterableDatasetDict):
+            raise ValueError(
+                "Sentence Transformers is not compatible with IterableDatasetDict. Please use a DatasetDict instead."
+            )
+
+        elif isinstance(test_dataset, DatasetDict):
             for dataset_name, dataset in test_dataset.items():
                 self.validate_column_names(dataset, dataset_name=dataset_name)
+                if isinstance(dataset, IterableDataset):
+                    raise ValueError(
+                        "Sentence Transformers is not compatible with a DatasetDict containing an IterableDataset."
+                    )
             if isinstance(self.loss, dict):
                 test_dataset = self.add_dataset_name_column(test_dataset)
             batch_samplers = [
                 self.get_batch_sampler(
                     dataset,
-                    batch_size=self.args.per_device_train_batch_size,
+                    batch_size=self.args.eval_batch_size,
                     drop_last=self.args.dataloader_drop_last,
                     valid_label_columns=data_collator.valid_label_columns,
                     generator=generator,
@@ -689,26 +813,24 @@ class SentenceTransformerTrainer(Trainer):
                 generator=generator,
                 seed=self.args.seed,
             )
+            dataloader_params["batch_sampler"] = batch_sampler
 
-        else:
+        elif isinstance(test_dataset, Dataset):
             self.validate_column_names(test_dataset)
 
             batch_sampler = self.get_batch_sampler(
                 test_dataset,
-                batch_size=self.args.train_batch_size,
+                batch_size=self.args.eval_batch_size,
                 drop_last=self.args.dataloader_drop_last,
                 valid_label_columns=data_collator.valid_label_columns,
                 generator=generator,
             )
+            dataloader_params["batch_sampler"] = batch_sampler
 
-        dataloader_params = {
-            "collate_fn": data_collator,
-            "num_workers": self.args.dataloader_num_workers,
-            "pin_memory": self.args.dataloader_pin_memory,
-            "persistent_workers": self.args.dataloader_persistent_workers,
-            "prefetch_factor": self.args.dataloader_prefetch_factor,
-            "batch_sampler": batch_sampler,
-        }
+        else:
+            raise ValueError(
+                "Unsupported `test_dataset` type. Use a Dataset, DatasetDict, or IterableDataset for testing."
+            )
 
         # If 'even_batches' is True, it will use the initial few samples to pad out the last sample. This can
         # cause issues with multi-dataset training, so we want to set this to False.
@@ -734,7 +856,7 @@ class SentenceTransformerTrainer(Trainer):
     def _load_from_checkpoint(self, checkpoint_path: str) -> None:
         from sentence_transformers import SentenceTransformer
 
-        loaded_model = SentenceTransformer(checkpoint_path)
+        loaded_model = SentenceTransformer(checkpoint_path, trust_remote_code=self.model.trust_remote_code)
         self.model.load_state_dict(loaded_model.state_dict())
 
     def create_model_card(
@@ -761,3 +883,41 @@ class SentenceTransformerTrainer(Trainer):
             self.model.model_card_data.add_tags(tags)
 
         self.model._create_model_card(self.args.output_dir, model_name=model_name)
+
+    def get_optimizer_cls_and_kwargs(
+        self, args: SentenceTransformerTrainingArguments, model: SentenceTransformer | None = None
+    ) -> tuple[Any, Any]:
+        """
+        We have to override the optimizer_grouped_parameters because the Trainer superclass bases it on the `model`
+        itself, but the SentenceTransformer losses can have weights that should be updated as well, e.g.
+        SoftmaxLoss (see #2872).
+
+        This method requires `transformers` >= 4.43.0.
+        """
+
+        if isinstance(self.loss, dict):
+            loss_model = nn.Sequential(OrderedDict(self.loss))
+        else:
+            loss_model = self.loss
+        optimizer_cls, optimizer_kwargs = super().get_optimizer_cls_and_kwargs(args, loss_model)
+
+        # If the kwargs were not overridden by the super() call, then we should override them here so that the potential
+        # weights in the loss(es) can also be updated.
+        if not {"params", "model", "optimizer_dict"} & set(optimizer_kwargs.keys()):
+            decay_parameters = self.get_decay_parameter_names(loss_model)
+            optimizer_kwargs["optimizer_dict"] = [
+                {
+                    "params": [
+                        p for n, p in loss_model.named_parameters() if (n in decay_parameters and p.requires_grad)
+                    ],
+                    "weight_decay": self.args.weight_decay,
+                },
+                {
+                    "params": [
+                        p for n, p in loss_model.named_parameters() if (n not in decay_parameters and p.requires_grad)
+                    ],
+                    "weight_decay": 0.0,
+                },
+            ]
+
+        return optimizer_cls, optimizer_kwargs
