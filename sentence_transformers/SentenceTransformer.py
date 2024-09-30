@@ -1545,7 +1545,6 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             if not self.default_prompt_name:
                 self.default_prompt_name = self._model_config.get("default_prompt_name", None)
 
-
         # Check if a readme exists
         model_card_path = load_file_path(
             model_name_or_path,
