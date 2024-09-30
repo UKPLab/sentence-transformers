@@ -723,7 +723,7 @@ def mine_hard_negatives(
 
             query_embeddings = model.encode_multi_process(
                 queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True)
-        else
+        else:
             corpus_embeddings = model.encode(
                 corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
             )
@@ -754,7 +754,7 @@ def mine_hard_negatives(
 
             query_embeddings = model.encode_multi_process(
                 queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True)
-        else
+        else:
             corpus_embeddings = model.encode(
                 corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
             )
