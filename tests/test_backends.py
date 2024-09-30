@@ -39,12 +39,18 @@ def test_backend_export(backend, expected_auto_model_class, model_kwargs) -> Non
     assert embedding.shape == (model.get_sentence_embedding_dimension(),)
 
 
-@pytest.mark.parametrize("backend", ["onnx", "openvino"])
-def test_backend_no_export_crash(backend):
+def test_backend_no_export_crash():
+    # ONNX Crashes when it can't export & the model repo/path doesn't contain an exported model
     with pytest.raises(OSError):
         SentenceTransformer(
-            "sentence-transformers-testing/stsb-bert-tiny-safetensors", backend=backend, model_kwargs={"export": False}
+            "sentence-transformers-testing/stsb-bert-tiny-safetensors", backend="onnx", model_kwargs={"export": False}
         )
+
+    # OpenVINO will forcibly override the export=False if the model repo/path doesn't contain an exported model
+    model = SentenceTransformer(
+        "sentence-transformers-testing/stsb-bert-tiny-safetensors", backend="openvino", model_kwargs={"export": False}
+    )
+    assert isinstance(model[0].auto_model, OVModelForFeatureExtraction)
 
 
 ## Testing loading exported models:
