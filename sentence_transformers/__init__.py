@@ -6,6 +6,7 @@ __MODEL_HUB_ORGANIZATION__ = "sentence-transformers"
 import importlib
 import os
 
+from sentence_transformers.backend import export_optimized_onnx_model
 from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
 from sentence_transformers.datasets import ParallelSentencesDataset, SentencesDataset
 from sentence_transformers.LoggingHandler import LoggingHandler
@@ -16,7 +17,6 @@ from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
-from sentence_transformers.util import export_optimized_onnx_model
 
 # If codecarbon is installed and the log level is not defined,
 # automatically overwrite the default to "error"
