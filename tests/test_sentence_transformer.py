@@ -15,7 +15,7 @@ from typing import Dict, List, Literal, cast
 import numpy as np
 import pytest
 import torch
-from huggingface_hub import GitRefInfo, GitRefs, HfApi, RepoUrl
+from huggingface_hub import CommitInfo, HfApi, RepoUrl
 from torch import nn
 
 from sentence_transformers import SentenceTransformer, util
@@ -108,30 +108,26 @@ def test_push_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
     def mock_upload_folder(self, **kwargs):
         nonlocal mock_upload_folder_kwargs
         mock_upload_folder_kwargs = kwargs
-
-    def mock_list_repo_refs(self, repo_id=None, **kwargs):
-        try:
-            git_ref_info = GitRefInfo(name="main", ref="refs/heads/main", target_commit="123456")
-            git_ref_info2 = GitRefInfo(name="revision_test", ref="refs/heads/revision_test", target_commit="678901")
-        except TypeError:
-            git_ref_info = GitRefInfo(dict(name="main", ref="refs/heads/main", targetCommit="123456"))
-            git_ref_info2 = GitRefInfo(
-                dict(name="revision_test", ref="refs/heads/revision_test", target_commit="678901")
+        if kwargs.get("revision") is None:
+            return CommitInfo(
+                commit_url=f"https://huggingface.co/{kwargs.get('repo_id')}/commit/123456",
+                commit_message="commit_message",
+                commit_description="commit_description",
+                oid="oid",
             )
-        # workaround for https://github.com/huggingface/huggingface_hub/issues/1956
-        git_ref_kwargs = {"branches": [git_ref_info, git_ref_info2], "converts": [], "tags": [], "pull_requests": None}
-        try:
-            return GitRefs(**git_ref_kwargs)
-        except TypeError:
-            git_ref_kwargs.pop("pull_requests")
-            return GitRefs(**git_ref_kwargs)
+        else:
+            return CommitInfo(
+                commit_url=f"https://huggingface.co/{kwargs.get('repo_id')}/commit/678901",
+                commit_message="commit_message",
+                commit_description="commit_description",
+                oid="oid",
+            )
 
     def mock_create_branch(self, repo_id, branch, revision=None, **kwargs):
         return None
 
     monkeypatch.setattr(HfApi, "create_repo", mock_create_repo)
     monkeypatch.setattr(HfApi, "upload_folder", mock_upload_folder)
-    monkeypatch.setattr(HfApi, "list_repo_refs", mock_list_repo_refs)
     monkeypatch.setattr(HfApi, "create_branch", mock_create_branch)
 
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
