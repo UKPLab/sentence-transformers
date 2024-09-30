@@ -17,10 +17,6 @@ except ImportError:
 
 from sentence_transformers import SentenceTransformer
 
-# openvino_unavailable = pytest.mark.skipif(find_spec("openvino") is None or find_spec("optimum.intel") is None, reason="OpenVINO must be installed for OpenVINO tests")
-# onnx_unavailable = pytest.mark.skipif(find_spec("onnxruntime") is None, reason="onnxruntime must be installed for ONNX tests")
-# backends_unavailable = pytest.mark.skipif()
-
 
 ## Testing exporting:
 @pytest.mark.parametrize(
@@ -116,10 +112,6 @@ def test_incorrect_backend() -> None:
         SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors", backend="incorrect_backend")
 
 
-# @pytest.mark.skipif(
-#     find_spec("openvino") is None or find_spec("optimum.intel") is None,
-#     reason="optimum-intel and openvino must be installed for OpenVINO test",
-# )
 def test_openvino_backend() -> None:
     model_id = "sentence-transformers-testing/stsb-bert-tiny-safetensors"
     # Test that OpenVINO output is close to PyTorch output
