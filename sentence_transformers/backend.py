@@ -98,7 +98,7 @@ def export_optimized_onnx_model(
                 path_in_repo=destination,
                 repo_id=model_name_or_path,
                 repo_type="model",
-                commit_message=f"Add optimized ONNX model {file_name!r}.",
+                commit_message=f"Add optimized ONNX model {file_name!r}",
                 create_pr=create_pr,
             )
 
