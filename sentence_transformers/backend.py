@@ -93,12 +93,52 @@ def export_optimized_onnx_model(
             file_name = f"model_{file_suffix}.onnx"
             source = (Path(save_dir) / file_name).as_posix()
             destination = Path(file_name).as_posix()
+
+            commit_description = ""
+            if create_pr:
+                opt_config_string = (
+                    str(optimization_config).replace("(", "(\n\t").replace(", ", ",\n\t").replace(")", "\n)")
+                )
+                commit_description = f"""\
+Hello!
+
+*This pull request has been automatically generated from the `export_optimized_onnx_model` function from the Sentence Transformers library.*
+
+## Optimization Config
+```python
+{opt_config_string}
+```
+
+## Tip:
+Consider testing this pull request before merging by loading the model from this PR with the `revision` argument:
+```python
+from sentence_transformers import SentenceTransformer
+
+# TODO: Fill in the PR number
+pr_number = 2
+model = SentenceTransformer(
+    "{model_name_or_path}",
+    revision=f"refs/pr/{{pr_number}}",
+    backend="onnx",
+    model_kwargs={{"file_name": "{destination}"}},
+)
+
+# Verify that everything works as expected
+embeddings = model.encode(["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."])
+print(embeddings.shape)
+
+similarities = model.similarity(embeddings, embeddings)
+print(similarities)
+```
+"""
+
             huggingface_hub.upload_file(
                 path_or_fileobj=source,
                 path_in_repo=destination,
                 repo_id=model_name_or_path,
                 repo_type="model",
                 commit_message=f"Add optimized ONNX model {file_name!r}",
+                commit_description=commit_description,
                 create_pr=create_pr,
             )
 

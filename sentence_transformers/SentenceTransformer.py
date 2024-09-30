@@ -1375,7 +1375,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             commit_description = f"""\
 Hello!
 
-*This pull request has been automatically generated from the `push_to_hub` method in the SentenceTransformers library.*
+*This pull request has been automatically generated from the `push_to_hub` method from the Sentence Transformers library.*
 
 ## Full Model Architecture:
 ```
@@ -1389,7 +1389,11 @@ from sentence_transformers import SentenceTransformer
 
 # TODO: Fill in the PR number
 pr_number = 2
-model = SentenceTransformer("{repo_id}", revision=f"refs/pr/{{pr_number}}", backend="{self.get_backend()}")
+model = SentenceTransformer(
+    "{repo_id}",
+    revision=f"refs/pr/{{pr_number}}",
+    backend="{self.get_backend()}",
+)
 
 # Verify that everything works as expected
 embeddings = model.encode(["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."])
