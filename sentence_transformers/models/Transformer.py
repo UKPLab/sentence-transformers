@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any
 
+import huggingface_hub
 import torch
 from torch import nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Config
+
+logger = logging.getLogger(__name__)
 
 
 class Transformer(nn.Module):
@@ -30,6 +34,8 @@ class Transformer(nn.Module):
             model is cased or not)
         tokenizer_name_or_path: Name or path of the tokenizer. When
             None, then model_name_or_path is used
+        backend: Backend used for model inference. Can be `torch`, `onnx`,
+            or `openvino`. Default is `torch`.
     """
 
     def __init__(
@@ -42,11 +48,12 @@ class Transformer(nn.Module):
         cache_dir: str | None = None,
         do_lower_case: bool = False,
         tokenizer_name_or_path: str = None,
-        backend: str = None,
+        backend: str = "torch",
     ) -> None:
         super().__init__()
         self.config_keys = ["max_seq_length", "do_lower_case"]
         self.do_lower_case = do_lower_case
+        self.backend = backend
         if model_args is None:
             model_args = {}
         if tokenizer_args is None:
@@ -81,7 +88,7 @@ class Transformer(nn.Module):
 
     def _load_model(self, model_name_or_path, config, cache_dir, backend, **model_args) -> None:
         """Loads the transformer model"""
-        if backend is None:
+        if backend == "torch":
             if isinstance(config, T5Config):
                 self._load_t5_model(model_name_or_path, config, cache_dir, **model_args)
             elif isinstance(config, MT5Config):
@@ -90,43 +97,129 @@ class Transformer(nn.Module):
                 self.auto_model = AutoModel.from_pretrained(
                     model_name_or_path, config=config, cache_dir=cache_dir, **model_args
                 )
+        elif backend == "onnx":
+            self._load_onnx_model(model_name_or_path, config, cache_dir, **model_args)
         elif backend == "openvino":
-            if isinstance(config, T5Config) or isinstance(config, MT5Config):
-                raise ValueError("T5 models are not yet supported by the OpenVINO backend.")
-            else:
-                self._load_openvino_model(model_name_or_path, cache_dir, **model_args)
+            self._load_openvino_model(model_name_or_path, config, cache_dir, **model_args)
         else:
-            raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `None` or `openvino`.")
+            raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, or `openvino`.")
 
-    def _load_openvino_model(self, model_name_or_path, cache_dir, **model_args) -> None:
-        config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_dir)
+    def _load_openvino_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         if isinstance(config, T5Config) or isinstance(config, MT5Config):
             raise ValueError("T5 models are not yet supported by the OpenVINO backend.")
 
         try:
             from optimum.intel import OVModelForFeatureExtraction
+            from optimum.intel.openvino import OV_XML_FILE_NAME
         except ModuleNotFoundError:
             raise Exception(
-                "Using the OpenVINO backend requires installing optimum-intel and OpenVINO. You can install them with pip: `pip install optimum-intel openvino`."
+                "Using the OpenVINO backend requires installing Optimum and OpenVINO. "
+                "You can install them with pip: `pip install optimum[openvino]`."
             )
 
-        export = not (Path(model_name_or_path) / "openvino_model.xml").is_file()
+        load_path = Path(model_name_or_path)
+        is_local = load_path.exists()
 
+        # Determine whether the model should be exported or whether we can load it directly
+        export = self._backend_should_export(load_path, is_local, model_args, OV_XML_FILE_NAME)
+
+        # If we're exporting, then there's no need for a file_name to load the model from
+        if export:
+            model_args.pop("file_name", None)
+
+        # ov_config can be either a dictionary, or point to a json file with an OpenVINO config
         if "ov_config" in model_args:
             ov_config = model_args["ov_config"]
-            # ov_config can be either a dictionary, or point to a json file with an OpenVINO config
             if not isinstance(ov_config, dict):
                 if not Path(ov_config).exists():
                     raise ValueError(
                         "ov_config should be a dictionary or point to a .json file containing an OpenVINO config"
                     )
-                with open(ov_config) as f:
+                with open(ov_config, encoding="utf-8") as f:
                     model_args["ov_config"] = json.load(f)
         else:
             model_args["ov_config"] = {}
-        self.auto_model = OVModelForFeatureExtraction.from_pretrained(
-            model_name_or_path, export=export, cache_dir=cache_dir, **model_args
+
+        # Either load an exported model, or export the model to ONNX
+        self.auto_model: OVModelForFeatureExtraction = OVModelForFeatureExtraction.from_pretrained(
+            model_name_or_path,
+            config=config,
+            cache_dir=cache_dir,
+            export=export,
+            **model_args,
         )
+
+        # Warn the user to save the model if they haven't already
+        if export:
+            self._backend_warn_to_save(model_name_or_path, is_local, "ONNX")
+
+    def _load_onnx_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
+        try:
+            import onnxruntime as ort
+            from optimum.onnxruntime import ONNX_WEIGHTS_NAME, ORTModelForFeatureExtraction
+        except ModuleNotFoundError:
+            raise Exception(
+                "Using the ONNX backend requires installing Optimum and ONNX Runtime. "
+                "You can install them with pip: `pip install optimum[onnxruntime]` "
+                "or `pip install optimum[onnxruntime-gpu]`"
+            )
+
+        # Default to the highest priority available provider if not specified
+        # E.g. Tensorrt > CUDA > CPU
+        model_args["provider"] = model_args.pop("provider", ort.get_available_providers()[0])
+
+        load_path = Path(model_name_or_path)
+        is_local = load_path.exists()
+
+        # Determine whether the model should be exported or whether we can load it directly
+        export = self._backend_should_export(load_path, is_local, model_args, ONNX_WEIGHTS_NAME)
+
+        # If we're exporting, then there's no need for a file_name to load the model from
+        if export:
+            model_args.pop("file_name", None)
+
+        # Either load an exported model, or export the model to ONNX
+        self.auto_model: ORTModelForFeatureExtraction = ORTModelForFeatureExtraction.from_pretrained(
+            model_name_or_path,
+            config=config,
+            cache_dir=cache_dir,
+            export=export,
+            **model_args,
+        )
+
+        # Warn the user to save the model if they haven't already
+        if export:
+            self._backend_warn_to_save(model_name_or_path, is_local, "ONNX")
+
+    def _backend_should_export(
+        self, load_path: Path, is_local: bool, model_args: dict[str, Any], target_file_name: str
+    ) -> None:
+        export = model_args.pop("export", None)
+        if export is not None:
+            return export
+
+        file_name = model_args.get("file_name", target_file_name)
+        subfolder = model_args.get("subfolder", None)
+        full_path = os.path.join(subfolder, file_name) if subfolder else file_name
+
+        if is_local:
+            return not (load_path / full_path).is_file()
+
+        all_files = huggingface_hub.list_repo_files(
+            load_path.as_posix(),
+            repo_type="model",
+            revision=model_args.get("revision", None),
+            token=model_args.get("token", None),
+        )
+        return full_path not in all_files
+
+    def _backend_warn_to_save(self, model_name_or_path: str, is_local: str, backend_name: str) -> None:
+        to_log = f"Saving the exported {backend_name} model is heavily recommended to avoid having to export it again."
+        if is_local:
+            to_log += f" Do so with `model.save_pretrained({model_name_or_path!r})`."
+        else:
+            to_log += f" Do so with `model.push_to_hub({model_name_or_path!r}, create_pr=True)`."
+        logger.warning(to_log)
 
     def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         """Loads the encoder model from T5"""

@@ -655,7 +655,6 @@ def test_override_config_versions(stsb_bert_tiny_model: SentenceTransformer) -> 
         SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency"),
     ],
 )
-
 def test_safetensors(modules: list[nn.Module] | SentenceTransformer) -> None:
     if isinstance(modules, SentenceTransformer):
         model = modules
