@@ -12,6 +12,8 @@ from tokenizers import Tokenizer
 from torch import nn
 from transformers import PreTrainedTokenizerFast
 
+from sentence_transformers.util import get_device_name
+
 
 class StaticEmbedding(nn.Module):
     def __init__(
@@ -127,20 +129,30 @@ class StaticEmbedding(nn.Module):
         return StaticEmbedding(tokenizer, embedding_weights=weights)
 
     @classmethod
-    def from_distillation(cls, model_name: str, **kwargs) -> StaticEmbedding:
+    def from_distillation(
+        cls,
+        model_name: str,
+        vocabulary: list[str] | None = None,
+        device: str | None = None,
+        pca_dims: int | None = 256,
+        apply_zipf: bool = True,
+        use_subword: bool = True,
+    ) -> StaticEmbedding:
         """
         Creates a StaticEmbedding instance from a distillation process using the `model2vec` package.
 
         Args:
             model_name (str): The name of the model to distill.
             vocabulary (list[str] | None, optional): A list of vocabulary words to use. Defaults to None.
-            device (str, optional): The device to run the distillation on (e.g., 'cpu', 'cuda'). Defaults to "cpu".
+            device (str): The device to run the distillation on (e.g., 'cpu', 'cuda'). If not specified,
+                the strongest device is automatically detected. Defaults to None.
             pca_dims (int | None, optional): The number of dimensions for PCA reduction. Defaults to 256.
-            apply_zipf (bool, optional): Whether to apply Zipf's law during distillation. Defaults to True.
-            **kwargs: Additional keyword arguments to pass to the distillation process.
+            apply_zipf (bool): Whether to apply Zipf's law during distillation. Defaults to True.
+            use_subword (bool): Whether to use subword tokenization. Defaults to True.
 
         Returns:
-            StaticEmbedding: An instance of StaticEmbedding initialized with the distilled model's tokenizer and embedding weights.
+            StaticEmbedding: An instance of StaticEmbedding initialized with the distilled model's
+                tokenizer and embedding weights.
 
         Raises:
             ImportError: If the `model2vec` package is not installed.
@@ -151,7 +163,15 @@ class StaticEmbedding(nn.Module):
         except ImportError:
             raise ImportError("To use this method, please install the `model2vec` package: `pip install model2vec`")
 
-        static_model = distill(model_name, **kwargs)
+        device = get_device_name()
+        static_model = distill(
+            model_name,
+            vocabulary=vocabulary,
+            device=device,
+            pca_dims=pca_dims,
+            apply_zipf=apply_zipf,
+            use_subword=use_subword,
+        )
         embedding_weights = static_model.embedding.weight
         tokenizer: Tokenizer = static_model.tokenizer
 
