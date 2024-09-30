@@ -116,6 +116,7 @@ class Transformer(nn.Module):
         trans_features = {"input_ids": features["input_ids"], "attention_mask": features["attention_mask"]}
         if "token_type_ids" in features:
             trans_features["token_type_ids"] = features["token_type_ids"]
+
         output_states = self.auto_model(**trans_features, **kwargs, return_dict=False)
         output_tokens = output_states[0]
 
@@ -135,9 +136,7 @@ class Transformer(nn.Module):
         return self.auto_model.config.hidden_size
 
     def tokenize(
-        self,
-        texts: list[str] | list[dict] | list[tuple[str, str]],
-        padding: str | bool = True
+        self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True
     ) -> dict[str, torch.Tensor]:
         """Tokenizes a text and maps tokens to token-ids"""
         output = {}

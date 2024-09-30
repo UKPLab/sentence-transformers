@@ -658,7 +658,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         return all_embeddings
 
-    def forward(self, input: dict[str, Tensor], **kwargs) -> dict[str, Tensor]:
+    def forward(self, input: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
         if self.module_kwargs is None:
             return super().forward(input)
 
