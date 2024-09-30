@@ -1023,7 +1023,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         """
         return self._first_module().tokenize(texts)
 
-    def get_sentence_features(self, *features) -> dict[Literal["sentence_embedding"], Tensor]:
+    def get_sentence_features(self, *features) -> dict[Literal["sentence_embedding"], torch.Tensor]:
         return self._first_module().get_sentence_features(*features)
 
     def get_sentence_embedding_dimension(self) -> int | None:
