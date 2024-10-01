@@ -13,6 +13,7 @@ from typing import Generator
 import numpy as np
 import pytest
 import torch
+from pytest import FixtureRequest
 from torch.utils.data import DataLoader
 
 from sentence_transformers import CrossEncoder, util
@@ -138,7 +139,7 @@ def test_load_with_revision() -> None:
     argvalues=[True, False],
     ids=["return-docs", "no-return-docs"],
 )
-def test_rank(return_documents: bool) -> None:
+def test_rank(return_documents: bool, request: FixtureRequest) -> None:
     model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
     # We want to compute the similarity between the query sentence
     query = "A man is eating pasta."
@@ -159,6 +160,9 @@ def test_rank(return_documents: bool) -> None:
 
     # 1. We rank all sentences in the corpus for the query
     ranks = model.rank(query=query, documents=corpus, return_documents=return_documents)
+    if request.node.callspec.id == "return-docs":
+        assert {*corpus} == {rank.get("text") for rank in ranks}
+
     pred_ranking = [rank["corpus_id"] for rank in ranks]
     assert pred_ranking == expected_ranking
 
