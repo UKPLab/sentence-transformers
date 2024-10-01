@@ -546,7 +546,7 @@ class CrossEncoder(PushToHubMixin):
         for i, score in enumerate(scores):
             results.append({"corpus_id": i, "score": score})
             if return_documents:
-                results[-1] |= {"text": documents[i]}
+                results[-1] = {**results[-1], "text": documents[i]}
 
         results = sorted(results, key=lambda x: x["score"], reverse=True)
         return results[:top_k]
