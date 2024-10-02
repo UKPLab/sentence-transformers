@@ -316,10 +316,8 @@ class SentenceTransformerTrainer(Trainer):
         for module in model:
             if isinstance(module, Pooling):
                 if module.include_prompt is False:
-                    return
-                else:
                     collator.set_prompts(prompts)
-                    return collator
+                return collator
         return collator
 
     def compute_loss(
