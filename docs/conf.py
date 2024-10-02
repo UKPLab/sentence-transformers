@@ -67,6 +67,7 @@ exclude_patterns = [
 intersphinx_mapping = {
     "datasets": ("https://huggingface.co/docs/datasets/main/en/", None),
     "transformers": ("https://huggingface.co/docs/transformers/main/en/", None),
+    "huggingface_hub": ("https://huggingface.co/docs/huggingface_hub/main/en/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
 }
 

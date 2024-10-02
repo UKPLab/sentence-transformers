@@ -7,6 +7,8 @@ from torch import nn
 
 
 class CLIPModel(nn.Module):
+    save_in_root: bool = True
+
     def __init__(self, model_name: str = "openai/clip-vit-base-patch32", processor_name=None) -> None:
         super().__init__()
 

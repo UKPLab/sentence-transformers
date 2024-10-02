@@ -57,7 +57,7 @@ class Pooling(nn.Module):
         pooling_mode_mean_sqrt_len_tokens: bool = False,
         pooling_mode_weightedmean_tokens: bool = False,
         pooling_mode_lasttoken: bool = False,
-        include_prompt=True,
+        include_prompt: bool = True,
     ) -> None:
         super().__init__()
 
