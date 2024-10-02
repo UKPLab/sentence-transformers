@@ -318,7 +318,7 @@ class SentenceTransformerTrainer(Trainer):
                 if module.include_prompt is False:
                     return
                 else:
-                    collator.add_prompts(prompts)
+                    collator.set_prompts(prompts)
                     return collator
         return collator
 

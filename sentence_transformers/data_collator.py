@@ -59,7 +59,7 @@ class SentenceTransformerDataCollator:
                 batch[f"{column_name}_{key}"] = value
         return batch
 
-    def add_prompts(self, prompts: dict[str, dict[str, str]] | dict[str, str]):
+    def set_prompts(self, prompts: dict[str, dict[str, str]] | dict[str, str]):
         self.prompts = prompts
         self._prompt_lengths = {}
         for key, value in prompts.items():
