@@ -533,7 +533,7 @@ def mine_hard_negatives(
     faiss_batch_size: int = 16384,
     use_faiss: bool = False,
     verbose: bool = True,
-    use_multiple_gpus = True,
+    use_multiple_gpus = False,
 ) -> Dataset:
     """
     Add hard negatives to a dataset of (anchor, positive) pairs to create (anchor, positive, negative) triplets or
