@@ -20,6 +20,7 @@ from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
 from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
 from sentence_transformers.model_card import ModelCardCallback
+from sentence_transformers.models import Pooling
 from sentence_transformers.models.Transformer import Transformer
 from sentence_transformers.sampler import (
     DefaultBatchSampler,
@@ -179,6 +180,8 @@ class SentenceTransformerTrainer(Trainer):
 
         if data_collator is None:
             data_collator = SentenceTransformerDataCollator(tokenize_fn=model.tokenize)
+        if prompts is not None and isinstance(data_collator, SentenceTransformerDataCollator):
+            data_collator = self.maybe_add_prompts_to_collator(data_collator, model, prompts)
 
         for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
             if isinstance(dataset, IterableDataset) and dataset.column_names is None:
@@ -244,8 +247,6 @@ class SentenceTransformerTrainer(Trainer):
         else:
             self.loss = self.prepare_loss(loss, model)
 
-        self.prompts = prompts
-
         # If evaluator is a list, we wrap it in a SequentialEvaluator
         if evaluator is not None and not isinstance(evaluator, SentenceEvaluator):
             evaluator = SequentialEvaluator(evaluator)
@@ -306,45 +307,20 @@ class SentenceTransformerTrainer(Trainer):
                 dataset_dict[key] = dataset.add_column("dataset_name", [key] * len(dataset))
         return dataset_dict
 
-    def add_prompts_to_dataset(self, dataset: Dataset, dataset_name: str | None = None) -> Dataset:
-        if dataset_name is not None:
-            if isinstance(self.prompts, dict):
-                if dataset_name not in self.prompts:
-                    raise ValueError(f"dataset_name {dataset_name} not found in self.prompt")
-                prompt = self.prompts[dataset_name]
-        else:
-            # If self.prompt is dict[str, dict[str, str]], raise an error.
-            if isinstance(self.prompts, dict) and not isinstance(list(self.prompts.keys())[0], str):
-                raise ValueError(
-                    "When defining prompts and a single dataset, use either a single string for applying the prompt to all columns or a dict mapping column names to prompts."
-                )
-            prompt = self.prompts
-
-        def _add_prompts(sample):
-            if isinstance(prompt, dict):
-                for col in prompt.keys():
-                    sample[col] = prompt[col] + sample[col]
-            else:
-                for col in dataset.column_names:
-                    sample[col] = prompt + sample[col]
-            return sample
-
-        dataset = dataset.map(_add_prompts, desc="Adding prompts to dataset")
-        if isinstance(prompt, str):
-            tokenized_prompt = self.tokenize([prompt])
-            prompt_len = tokenized_prompt["input_ids"].shape[-1] - 1
-            prompt_lens = [prompt_len] * len(dataset)
-            dataset.add_column("prompt_length", prompt_lens)
-            return dataset
-
-        for col_name in dataset.column_names:
-            _prompt = prompt.get(col_name, None)
-            if _prompt is not None:
-                tokenized_prompt = self.model.tokenize([_prompt])
-                prompt_len = tokenized_prompt["input_ids"].shape[-1] - 1
-                prompt_lens = [prompt_len] * len(dataset)
-                dataset.add_column(f"{col_name}_prompt_length", prompt_lens)
-        return dataset
+    def maybe_add_prompts_to_collator(
+        self,
+        collator: SentenceTransformerDataCollator,
+        model: SentenceTransformer,
+        prompts: dict[str, dict[str, str]] | dict[str, str] | str,
+    ) -> SentenceTransformerDataCollator:
+        for module in model:
+            if isinstance(module, Pooling):
+                if module.include_prompt is False:
+                    return
+                else:
+                    collator.add_prompts(prompts)
+                    return collator
+        return collator
 
     def compute_loss(
         self,
@@ -655,8 +631,6 @@ class SentenceTransformerTrainer(Trainer):
                     raise ValueError(
                         "Sentence Transformers is not compatible with a DatasetDict containing an IterableDataset."
                     )
-                if self.prompts is not None:
-                    train_dataset[dataset_name] = self.add_prompts_to_dataset(dataset, dataset_name)
 
             if isinstance(self.loss, dict):
                 train_dataset = self.add_dataset_name_column(train_dataset)
@@ -683,9 +657,6 @@ class SentenceTransformerTrainer(Trainer):
 
         elif isinstance(train_dataset, Dataset):
             self.validate_column_names(train_dataset)
-
-            if self.prompts is not None:
-                train_dataset = self.add_prompts_to_dataset(train_dataset)
 
             batch_sampler = self.get_batch_sampler(
                 train_dataset,
@@ -756,8 +727,7 @@ class SentenceTransformerTrainer(Trainer):
                     raise ValueError(
                         "Sentence Transformers is not compatible with a DatasetDict containing an IterableDataset."
                     )
-                if self.prompts is not None:
-                    eval_dataset[dataset_name] = self.add_prompts_to_dataset(dataset)
+
             if isinstance(self.loss, dict):
                 eval_dataset = self.add_dataset_name_column(eval_dataset)
             batch_samplers = [
@@ -781,9 +751,6 @@ class SentenceTransformerTrainer(Trainer):
             dataloader_params["batch_sampler"] = batch_sampler
 
         elif isinstance(eval_dataset, Dataset):
-            if self.prompts is not None:
-                eval_dataset = self.add_prompts_to_dataset(eval_dataset)
-
             batch_sampler = self.get_batch_sampler(
                 eval_dataset,
                 batch_size=self.args.eval_batch_size,
@@ -849,8 +816,7 @@ class SentenceTransformerTrainer(Trainer):
                     raise ValueError(
                         "Sentence Transformers is not compatible with a DatasetDict containing an IterableDataset."
                     )
-                if self.prompts is not None:
-                    test_dataset[dataset_name] = self.add_prompts_to_dataset(dataset, dataset_name)
+
             if isinstance(self.loss, dict):
                 test_dataset = self.add_dataset_name_column(test_dataset)
             batch_samplers = [
@@ -876,8 +842,6 @@ class SentenceTransformerTrainer(Trainer):
         elif isinstance(test_dataset, Dataset):
             self.validate_column_names(test_dataset)
 
-            if self.prompts is not None:
-                test_dataset = self.add_prompts_to_dataset(test_dataset)
             batch_sampler = self.get_batch_sampler(
                 test_dataset,
                 batch_size=self.args.eval_batch_size,

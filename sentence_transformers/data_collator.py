@@ -25,6 +25,8 @@ class SentenceTransformerDataCollator:
     tokenize_fn: Callable
     valid_label_columns: list[str] = field(default_factory=lambda: ["label", "score"])
     _warned_columns: set[tuple[str]] = field(default_factory=set, init=False, repr=False)
+    prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None
+    _prompt_lengths: dict[str, int] | dict[str, dict[str, int]] = {}
 
     def __call__(self, features: list[dict[str, Any]]) -> dict[str, torch.Tensor]:
         column_names = list(features[0].keys())
@@ -48,6 +50,7 @@ class SentenceTransformerDataCollator:
 
         # Extract the feature columns
         for column_name in column_names:
+            batch[column_name] = self.maybe_add_prompts([row[column_name] for row in features])
             if column_name.endswith("_prompt_length"):
                 batch[column_name] = torch.tensor([row[column_name] for row in features])
                 continue
@@ -55,6 +58,21 @@ class SentenceTransformerDataCollator:
             for key, value in tokenized.items():
                 batch[f"{column_name}_{key}"] = value
         return batch
+
+    def add_prompts(self, prompts: dict[str, dict[str, str]] | dict[str, str]):
+        self.prompts = prompts
+        self._prompt_lengths = {}
+        for key, value in prompts.items():
+            if isinstance(value, str):
+                tokenized_prompt = self.tokenize_fn(value)
+                self._prompt_lengths[key] = len(tokenized_prompt["input_ids"]) - 1
+            elif isinstance(value, dict):
+                self._prompt_lengths[key] = {}
+                for k, v in value.items():
+                    tokenized_prompt = self.tokenize_fn(v)
+                    self._prompt_lengths[key][k] = len(tokenized_prompt["input_ids"]) - 1
+            else:
+                raise ValueError(f"Invalid prompts type: {type(value)}")
 
     def maybe_warn_about_column_order(self, column_names: list[str]) -> None:
         """Warn the user if the columns are likely not in the expected order."""
