@@ -25,8 +25,10 @@ class SentenceTransformerDataCollator:
     tokenize_fn: Callable
     valid_label_columns: list[str] = field(default_factory=lambda: ["label", "score"])
     _warned_columns: set[tuple[str]] = field(default_factory=set, init=False, repr=False)
+    _warned_about_prompts: bool = field(default=False, repr=False)
+    _columns_without_prompts: set[str] = field(default_factory=set, init=False, repr=False)
     prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None
-    _prompt_lengths: dict[str, int] | dict[str, dict[str, int]] = {}
+    _prompt_lengths: dict[str, int] | dict[str, dict[str, int]] | int = None
 
     def __call__(self, features: list[dict[str, Any]]) -> dict[str, torch.Tensor]:
         column_names = list(features[0].keys())
@@ -50,17 +52,61 @@ class SentenceTransformerDataCollator:
 
         # Extract the feature columns
         for column_name in column_names:
-            batch[column_name] = self.maybe_add_prompts([row[column_name] for row in features])
-            if column_name.endswith("_prompt_length"):
-                batch[column_name] = torch.tensor([row[column_name] for row in features])
-                continue
-            tokenized = self.tokenize_fn([row[column_name] for row in features])
+            values = [row[column_name] for row in features]
+            sentences, prompt_len = self._maybe_add_prompts_and_lengths(
+                values, column_name, batch.get("dataset_name", None)
+            )
+            tokenized = self.tokenize_fn(sentences)
+            n_samples = len(values)
             for key, value in tokenized.items():
                 batch[f"{column_name}_{key}"] = value
+            if prompt_len is not None:
+                batch[f"{column_name}_prompt_length"] = torch.Tensor(
+                    [prompt_len] * n_samples, device=batch[f"{column_name}_input_ids"].device
+                )
+        self.maybe_warn_about_missing_prompt()
         return batch
 
-    def set_prompts(self, prompts: dict[str, dict[str, str]] | dict[str, str]):
+    def _maybe_add_prompts_and_lengths(
+        self, column_values: list[str], column_name: str, dataset_name: str | None = None
+    ) -> tuple[list[str], int | None]:
+        if self.prompts is None:
+            return column_values, None
+        # We expect to have a dictionary mapping column_name to prompt in the end.
+        # if self.prompt is a nested dictionary, assume that the first key is the dataset name.
+        if isinstance(self.prompts, str):
+            prompt_dict = {column_name: self.prompts}
+            prompt_length_dict = {column_name: self._prompt_lenghts}
+        else:
+            k = list(self.prompts.keys())[0]
+            prompts_is_flat_dict = isinstance(self.prompts[k], str)
+            if prompts_is_flat_dict:
+                # if the dataset name is in the prompts, use it for all columns
+                # Otherwise, Asume that the dictionary is mapping columns.
+                # We deal with missing column_names later
+                prompt_dict = self.prompts.get(dataset_name, self.prompts)
+                prompt_length_dict = self._prompt_lenghts.get(dataset_name, self._prompt_lenghts)
+            elif dataset_name in self.prompts:
+                prompt_dict = self.prompts[dataset_name]
+                prompt_length_dict = self._prompt_lenghts[dataset_name]
+            else:
+                raise ValueError(
+                    f"A nested prompts dictionary was provided, but the dataset {dataset_name!r} was not found. The provided datasets are {self.prompts.keys}"
+                )
+        # prompt_dict should have a key with the column name.
+        prompt = prompt_dict.get(column_name, None)
+        prompt_len = prompt_length_dict.get(column_name, None)
+        if prompt is None:
+            self._columns_without_prompts.append(column_name)
+            return column_values, None
+        return column_values, prompt_len
+
+    def set_prompts(self, prompts: dict[str, dict[str, str]] | dict[str, str] | str):
         self.prompts = prompts
+        if isinstance(prompts, str):
+            self.prompts = prompts
+            tokenized_prompt = self.tokenize_fn([prompts])
+            self._prompt_lenghts = len(tokenized_prompt["input_ids"]) - 1
         self._prompt_lengths = {}
         for key, value in prompts.items():
             if isinstance(value, str):
@@ -73,6 +119,17 @@ class SentenceTransformerDataCollator:
                     self._prompt_lengths[key][k] = len(tokenized_prompt["input_ids"]) - 1
             else:
                 raise ValueError(f"Invalid prompts type: {type(value)}")
+
+    def maybe_warn_about_missing_prompt(self) -> None:
+        if self._warned_about_prompts:
+            return
+        if len(self._columns_without_prompts) > 0:
+            logger.warning(
+                "You provided a dictionary of prompts per column to the data collator, but no "
+                f"prompts to the columns {self._columns_without_prompts!r} wer provided. No prompt will be added to "
+                "these columns. If it is an expected behavior, you can safely ignore this warning."
+            )
+            self._warned_about_prompts = True
 
     def maybe_warn_about_column_order(self, column_names: list[str]) -> None:
         """Warn the user if the columns are likely not in the expected order."""
