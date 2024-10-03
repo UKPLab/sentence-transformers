@@ -331,8 +331,6 @@ class NanoBeIREvaluator(SentenceEvaluator):
 
             for k in self.ndcg_at_k:
                 logger.info("NDCG@{}: {:.4f}".format(k, scores[f"{name}_ndcg@{k}"]))
-            per_dataset_results[self.aggregate_key]
-            self.output_scores(per_dataset_results[name])
         return per_dataset_results
 
     def __get_clean_name(self, dataset_name: str) -> str:
