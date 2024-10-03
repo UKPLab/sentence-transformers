@@ -59,7 +59,7 @@ class SentenceTransformerDataCollator:
             for key, value in tokenized.items():
                 batch[f"{column_name}_{key}"] = value
             if prompt_len is not None:
-                batch[f"{column_name}_prompt_length"] = torch.Tensor(
+                batch[f"{column_name}_prompt_length"] = torch.tensor(
                     [prompt_len] * len(values), device=batch[f"{column_name}_input_ids"].device, dtype=torch.long
                 )
         return batch

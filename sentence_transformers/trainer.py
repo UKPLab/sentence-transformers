@@ -878,10 +878,14 @@ class SentenceTransformerTrainer(Trainer):
         loaded_model = SentenceTransformer(checkpoint_path, trust_remote_code=self.model.trust_remote_code)
         self.model.load_state_dict(loaded_model.state_dict())
 
-    def maybe_add_dataset_name_column(self, dataset_dict: DatasetDict | Dataset) -> DatasetDict | Dataset:
+    def maybe_add_dataset_name_column(
+        self, dataset_dict: DatasetDict | Dataset | None
+    ) -> DatasetDict | Dataset | None:
         """
         Check if the the dataset_name should be added to the dataset. True if the dataset and loss are Dict or the prompts are mapping to dataset names.
         """
+        if dataset_dict is None:
+            return None
         loss_is_dict = isinstance(self.loss, dict)
         dataset_is_dict = isinstance(dataset_dict, DatasetDict)
 
