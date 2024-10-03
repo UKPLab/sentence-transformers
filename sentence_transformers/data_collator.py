@@ -117,12 +117,10 @@ class SentenceTransformerDataCollator:
         self.prompts = prompts
         if pool_include_prompt:
             # prompts will not be masked. No need to compute the lenghts.
-            self._prompt_lengths = {}
             return
         if isinstance(prompts, str):
             tokenized_prompt = self.tokenize_fn([prompts])
             self._prompt_lengths = len(tokenized_prompt["input_ids"]) - 1
-        self._prompt_lengths = {}
         for key, value in prompts.items():
             if isinstance(value, str):
                 tokenized_prompt = self.tokenize_fn(value)
