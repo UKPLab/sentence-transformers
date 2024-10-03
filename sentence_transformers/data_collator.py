@@ -27,7 +27,9 @@ class SentenceTransformerDataCollator:
     _warned_columns: set[tuple[str]] = field(default_factory=set, init=False, repr=False)
     _columns_without_prompts: set[str] = field(default_factory=set, init=False, repr=False)
     prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None
-    _prompt_lengths: dict[str, int] | dict[str, dict[str, int]] | int = {}
+    _prompt_lengths: dict[str, int] | dict[str, dict[str, int]] | int = field(
+        default_factory=dict, init=False, repr=False
+    )
 
     def __call__(self, features: list[dict[str, Any]]) -> dict[str, torch.Tensor]:
         column_names = list(features[0].keys())
@@ -72,8 +74,8 @@ class SentenceTransformerDataCollator:
         # if self.prompt is a nested dictionary, assume that the first key is the dataset name.
         if isinstance(self.prompts, str):
             sentences = [self.prompts + sentence for sentence in column_values]
-            if isinstance(self._prompt_lenghts, int):
-                return sentences, self._prompt_lenghts
+            if isinstance(self._prompt_lengths, int):
+                return sentences, self._prompt_lengths
             return sentences, None
 
         k = list(self.prompts.keys())[0]
@@ -81,17 +83,17 @@ class SentenceTransformerDataCollator:
         if prompts_is_nested:
             # The Trainer have already checked if the dataset name exist. We should be good here.
             prompts = self.prompts.get(dataset_name)
-            prompt_lenghts = self._prompt_lenghts.get(dataset_name, {})
+            prompt_lengths = self._prompt_lengths.get(dataset_name, {})
         else:
             prompts = self.prompts
-            prompt_lenghts = self._prompt_lenghts
+            prompt_lengths = self._prompt_lengths
         # Try to get the prompt using the dataset name
         prompt = prompts.get(dataset_name, None)
-        prompt_len = prompt_lenghts.get(dataset_name, None)
+        prompt_len = prompt_lengths.get(dataset_name, None)
         if prompt is None:
             # try to get the prompt using the column name
             prompt = prompts.get(column_name, None)
-            prompt_len = prompt_lenghts.get(column_name, None)
+            prompt_len = prompt_lengths.get(column_name, None)
         if prompt is None:
             # No prompt to add here. Return the original data and no length.
             return column_values, None
@@ -109,17 +111,17 @@ class SentenceTransformerDataCollator:
                 If a Dict[str, str], we try to match the key to either a dataset_name (if the `dataset_name` column exists) or to a column name.
                 If a Dict[str, Dict[str]], we match the first key to the `dataset_name` column and the second to the column name.
             pool_include_prompt (bool): Whether to skip adding a prompt_length column to the dataset.
-                If False, we assume that the pooling layer WILL mask the prompt tokens, so we will add a `{column_name}_prompt_lenght` to the dataset.
+                If False, we assume that the pooling layer WILL mask the prompt tokens, so we will add a `{column_name}_prompt_length` to the dataset.
                 Otherwise, we assume that the pooling layer will treat prompt tokens are regular tokens, and the column will not be added.
         """
         self.prompts = prompts
         if pool_include_prompt:
             # prompts will not be masked. No need to compute the lenghts.
-            self._prompt_lenghts = {}
+            self._prompt_lengths = {}
             return
         if isinstance(prompts, str):
             tokenized_prompt = self.tokenize_fn([prompts])
-            self._prompt_lenghts = len(tokenized_prompt["input_ids"]) - 1
+            self._prompt_lengths = len(tokenized_prompt["input_ids"]) - 1
         self._prompt_lengths = {}
         for key, value in prompts.items():
             if isinstance(value, str):
@@ -128,9 +130,8 @@ class SentenceTransformerDataCollator:
             elif isinstance(value, dict):
                 self._prompt_lengths[key] = {}
                 for k, v in value.items():
-                    if v:
-                        tokenized_prompt = self.tokenize_fn(v)
-                        self._prompt_lengths[key][k] = len(tokenized_prompt["input_ids"]) - 1
+                    tokenized_prompt = self.tokenize_fn(v)
+                    self._prompt_lengths[key][k] = len(tokenized_prompt["input_ids"]) - 1
             else:
                 raise ValueError(f"Invalid prompts type: {type(value)}")
 
