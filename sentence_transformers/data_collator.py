@@ -62,7 +62,6 @@ class SentenceTransformerDataCollator:
                 batch[f"{column_name}_prompt_length"] = torch.Tensor(
                     [prompt_len] * len(values), device=batch[f"{column_name}_input_ids"].device
                 )
-        self.maybe_warn_about_missing_prompt()
         return batch
 
     def add_prompts_to_column(
