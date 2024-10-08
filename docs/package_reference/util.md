@@ -7,6 +7,12 @@
    :members: paraphrase_mining, semantic_search, community_detection, http_get, truncate_embeddings, normalize_embeddings, is_training_available, mine_hard_negatives
 ```
 
+## Model Optimization
+```eval_rst
+.. automodule:: sentence_transformers.backend
+   :members: export_optimized_onnx_model, export_dynamic_quantized_onnx_model
+```
+
 ## Similarity Metrics
 
 ```eval_rst

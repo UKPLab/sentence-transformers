@@ -104,6 +104,13 @@ class SentenceTransformer(nn.Sequential, FitMixin):
               or `"flash_attention_2"` (using `Dao-AILab/flash-attention <https://github.com/Dao-AILab/flash-attention>`_).
               By default, if available, SDPA will be used for torch>=2.1.1. The default is otherwise the manual `"eager"`
               implementation.
+            - ``provider``: If backend is "onnx", this is the provider to use for inference, for example "CPUExecutionProvider",
+              "CUDAExecutionProvider", etc. See https://onnxruntime.ai/docs/execution-providers/ for all ONNX execution providers.
+            - ``file_name``: If backend is "onnx" or "openvino", this is the file name to load, useful for loading optimized
+              or quantized ONNX or OpenVINO models.
+            - ``export``: If backend is "onnx" or "openvino", then this is a boolean flag specifying whether this model should
+              be exported to the backend. If not specified, the model will be exported only if the model repository or directory
+              does not already contain an exported model.
 
             See the `PreTrainedModel.from_pretrained
             <https://huggingface.co/docs/transformers/en/main_classes/model#transformers.PreTrainedModel.from_pretrained>`_
@@ -120,6 +127,8 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             card data object that contains information about the model. This is used to generate a model card when saving
             the model. If not set, a default model card data object is created.
         backend (str): The backend to use for inference. Can be one of "torch" (default), "onnx", or "openvino".
+            See https://sbert.net/docs/sentence_transformer/usage/efficiency.html for benchmarking information
+            on the different backends.
 
     Example:
         ::
@@ -1375,7 +1384,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             commit_description = f"""\
 Hello!
 
-*This pull request has been automatically generated from the `push_to_hub` method from the Sentence Transformers library.*
+*This pull request has been automatically generated from the [`push_to_hub`](https://sbert.net/docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer.push_to_hub) method from the Sentence Transformers library.*
 
 ## Full Model Architecture:
 ```
@@ -1523,7 +1532,12 @@ print(similarities)
         return [transformer_model, pooling_model]
 
     def _load_module_class_from_ref(
-        self, class_ref: str, model_name_or_path: str, trust_remote_code: bool, model_kwargs: dict[str, Any] | None
+        self,
+        class_ref: str,
+        model_name_or_path: str,
+        trust_remote_code: bool,
+        revision: str | None,
+        model_kwargs: dict[str, Any] | None,
     ) -> nn.Module:
         # If the class is from sentence_transformers, we can directly import it,
         # otherwise, we try to import it dynamically, and if that fails, we fall back to the default import
@@ -1536,6 +1550,7 @@ print(similarities)
                 return get_class_from_dynamic_module(
                     class_ref,
                     model_name_or_path,
+                    revision=revision,
                     code_revision=code_revision,
                 )
             except OSError:
@@ -1638,7 +1653,7 @@ print(similarities)
         for module_config in modules_config:
             class_ref = module_config["type"]
             module_class = self._load_module_class_from_ref(
-                class_ref, model_name_or_path, trust_remote_code, model_kwargs
+                class_ref, model_name_or_path, trust_remote_code, revision, model_kwargs
             )
 
             # For Transformer, don't load the full directory, rely on `transformers` instead
@@ -1703,10 +1718,10 @@ print(similarities)
 
                 # Try to initialize the module with a lot of kwargs, but only if the module supports them
                 # Otherwise we fall back to the load method
-                try:
-                    module = module_class(model_name_or_path, cache_dir=cache_folder, backend=self.backend, **kwargs)
-                except TypeError:
-                    module = module_class.load(model_name_or_path)
+                # try:
+                module = module_class(model_name_or_path, cache_dir=cache_folder, backend=self.backend, **kwargs)
+                # except TypeError:
+                #     module = module_class.load(model_name_or_path)
             else:
                 # Normalize does not require any files to be loaded
                 if module_class == Normalize:

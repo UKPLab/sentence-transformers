@@ -1,6 +1,6 @@
 .. note::
 
-   Sentence Transformers v3.0 just released, introducing a new training API for Sentence Transformer models. Read `SentenceTransformer > Training Overview <docs/sentence_transformer/training_overview.html>`_ to learn more about the training API, and check out `v3.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v3.0.0>`_ for details on the other changes.
+   Sentence Transformers v3.2 just released, introducing the ONNX and OpenVINO backends for Sentence Transformer models. Read `SentenceTransformer > Usage > Speeding up Inference <docs/sentence_transformer/usage/efficiency.html>`_ to learn more about the new backends and what they can mean for your inference speed.
 
 SentenceTransformers Documentation
 ==================================

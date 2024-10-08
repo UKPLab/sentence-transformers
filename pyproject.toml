@@ -51,7 +51,7 @@ Repository = "https://github.com/UKPLab/sentence-transformers/"
 train = ["datasets", "accelerate>=0.20.3"]
 onnx = ["optimum[onnxruntime]"]
 onnx-gpu = ["optimum[onnxruntime-gpu]"]
-openvino = ["optimum[openvino]"]
+openvino = ["optimum[openvino]<1.19.0"]
 dev = ["datasets", "accelerate>=0.20.3", "pre-commit", "pytest", "pytest-cov"]
 
 [build-system]

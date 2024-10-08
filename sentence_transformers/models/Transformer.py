@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+from fnmatch import fnmatch
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import huggingface_hub
 import torch
@@ -12,6 +13,14 @@ from torch import nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Config
 
 logger = logging.getLogger(__name__)
+
+
+def _save_pretrained_wrapper(_save_pretrained_fn: Callable, subfolder: str) -> Callable[..., None]:
+    def wrapper(save_directory: str | Path, **kwargs) -> None:
+        os.makedirs(Path(save_directory) / subfolder, exist_ok=True)
+        return _save_pretrained_fn(Path(save_directory) / subfolder, **kwargs)
+
+    return wrapper
 
 
 class Transformer(nn.Module):
@@ -121,9 +130,13 @@ class Transformer(nn.Module):
 
         load_path = Path(model_name_or_path)
         is_local = load_path.exists()
+        backend_name = "OpenVINO"
+        target_file_glob = "openvino*.xml"
 
         # Determine whether the model should be exported or whether we can load it directly
-        export = self._backend_should_export(load_path, is_local, model_args, OV_XML_FILE_NAME)
+        export = self._backend_should_export(
+            load_path, is_local, model_args, OV_XML_FILE_NAME, target_file_glob, backend_name
+        )
 
         # If we're exporting, then there's no need for a file_name to load the model from
         if export:
@@ -135,7 +148,7 @@ class Transformer(nn.Module):
             if not isinstance(ov_config, dict):
                 if not Path(ov_config).exists():
                     raise ValueError(
-                        "ov_config should be a dictionary or point to a .json file containing an OpenVINO config"
+                        "ov_config should be a dictionary or a path to a .json file containing an OpenVINO config"
                     )
                 with open(ov_config, encoding="utf-8") as f:
                     model_args["ov_config"] = json.load(f)
@@ -150,10 +163,12 @@ class Transformer(nn.Module):
             export=export,
             **model_args,
         )
+        # Wrap the save_pretrained method to save the model in the correct subfolder
+        self.auto_model._save_pretrained = _save_pretrained_wrapper(self.auto_model._save_pretrained, self.backend)
 
         # Warn the user to save the model if they haven't already
         if export:
-            self._backend_warn_to_save(model_name_or_path, is_local, "ONNX")
+            self._backend_warn_to_save(model_name_or_path, is_local, backend_name)
 
     def _load_onnx_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         try:
@@ -172,9 +187,13 @@ class Transformer(nn.Module):
 
         load_path = Path(model_name_or_path)
         is_local = load_path.exists()
+        backend_name = "ONNX"
+        target_file_glob = "*.onnx"
 
         # Determine whether the model should be exported or whether we can load it directly
-        export = self._backend_should_export(load_path, is_local, model_args, ONNX_WEIGHTS_NAME)
+        export = self._backend_should_export(
+            load_path, is_local, model_args, ONNX_WEIGHTS_NAME, target_file_glob, backend_name
+        )
 
         # If we're exporting, then there's no need for a file_name to load the model from
         if export:
@@ -188,13 +207,21 @@ class Transformer(nn.Module):
             export=export,
             **model_args,
         )
+        # Wrap the save_pretrained method to save the model in the correct subfolder
+        self.auto_model._save_pretrained = _save_pretrained_wrapper(self.auto_model._save_pretrained, self.backend)
 
         # Warn the user to save the model if they haven't already
         if export:
-            self._backend_warn_to_save(model_name_or_path, is_local, "ONNX")
+            self._backend_warn_to_save(model_name_or_path, is_local, backend_name)
 
     def _backend_should_export(
-        self, load_path: Path, is_local: bool, model_args: dict[str, Any], target_file_name: str
+        self,
+        load_path: Path,
+        is_local: bool,
+        model_args: dict[str, Any],
+        target_file_name: str,
+        target_file_glob: str,
+        backend_name: str,
     ) -> None:
         export = model_args.pop("export", None)
         if export is not None:
@@ -202,18 +229,51 @@ class Transformer(nn.Module):
 
         file_name = model_args.get("file_name", target_file_name)
         subfolder = model_args.get("subfolder", None)
-        full_path = os.path.join(subfolder, file_name) if subfolder else file_name
+        primary_full_path = Path(subfolder, file_name).as_posix() if subfolder else file_name
+        secondary_full_path = (
+            Path(subfolder, self.backend, file_name).as_posix()
+            if subfolder
+            else Path(self.backend, file_name).as_posix()
+        )
+        glob_pattern = f"{subfolder}/**/{target_file_glob}" if subfolder else f"**/{target_file_glob}"
 
         if is_local:
-            return not (load_path / full_path).is_file()
+            target_files = [path.relative_to(load_path).as_posix() for path in load_path.glob(glob_pattern)]
 
-        all_files = huggingface_hub.list_repo_files(
-            load_path.as_posix(),
-            repo_type="model",
-            revision=model_args.get("revision", None),
-            token=model_args.get("token", None),
-        )
-        return full_path not in all_files
+        else:
+            all_files = huggingface_hub.list_repo_files(
+                load_path.as_posix(),
+                repo_type="model",
+                revision=model_args.get("revision", None),
+                token=model_args.get("token", None),
+            )
+            target_files = [fname for fname in all_files if fnmatch(fname, glob_pattern)]
+
+        # First check if the expected file exists in the root of the model directory
+        # If it doesn't, check if it exists in the backend subfolder.
+        # If it does, set the file_name to include the backend subfolder
+        export = primary_full_path not in target_files
+        if export and "file_name" not in model_args:
+            export = secondary_full_path not in target_files
+            if not export:
+                if len(target_files) > 1:
+                    logger.warning(
+                        f"Multiple {backend_name} files found in {load_path.as_posix()!r}: {target_files}, defaulting to {secondary_full_path!r}. "
+                        f'Please specify the desired file name via `model_kwargs={{"file_name": "<file_name>"}}`.'
+                    )
+                model_args["file_name"] = Path(self.backend, file_name).as_posix()
+
+        if export:
+            logger.warning(
+                f"No {file_name!r} found in {load_path.as_posix()!r}. Exporting the model to {backend_name}."
+            )
+            if target_files:
+                logger.warning(
+                    f"If you intended to load one of the {target_files} {backend_name} files, "
+                    f'please specify the desired file name via `model_kwargs={{"file_name": "{target_files[0]!r}"}}`.'
+                )
+
+        return export
 
     def _backend_warn_to_save(self, model_name_or_path: str, is_local: str, backend_name: str) -> None:
         to_log = f"Saving the exported {backend_name} model is heavily recommended to avoid having to export it again."

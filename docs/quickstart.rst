@@ -23,6 +23,7 @@ Once you have `installed <installation.html>`_ Sentence Transformers, you can ea
 
    - :meth:`SentenceTransformer.similarity_pairwise <sentence_transformers.SentenceTransformer.similarity_pairwise>`
    - `SentenceTransformer > Usage <./sentence_transformer/usage/usage.html>`_
+   - `SentenceTransformer > Usage > Speeding up Inference <./sentence_transformer/usage/efficiency.html>`_
    - `SentenceTransformer > Pretrained Models <./sentence_transformer/pretrained_models.html>`_
    - `SentenceTransformer > Training Overview <./sentence_transformer/training_overview.html>`_
    - `SentenceTransformer > Dataset Overview <./sentence_transformer/dataset_overview.html>`_
