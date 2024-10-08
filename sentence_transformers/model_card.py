@@ -27,7 +27,7 @@ from transformers.modelcard import make_markdown_table
 from transformers.trainer_callback import TrainerControl, TrainerState
 
 from sentence_transformers import __version__ as sentence_transformers_version
-from sentence_transformers.models import Transformer
+from sentence_transformers.models import StaticEmbedding, Transformer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sentence_transformers.util import fullname, is_accelerate_available, is_datasets_available
 
@@ -753,6 +753,9 @@ class SentenceTransformerModelCardData(CardData):
             for model_id in candidate_model_ids:
                 if self.set_base_model(model_id):
                     break
+        elif isinstance(self.model[0], StaticEmbedding):
+            if self.model[0].base_model:
+                self.set_base_model(self.model[0].base_model)
 
     def format_eval_metrics(self) -> dict[str, Any]:
         """Format the evaluation metrics for the model card.

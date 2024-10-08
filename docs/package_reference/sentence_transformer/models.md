@@ -15,6 +15,7 @@
 .. autoclass:: sentence_transformers.models.CNN
 .. autoclass:: sentence_transformers.models.LSTM
 .. autoclass:: sentence_transformers.models.Normalize
+.. autoclass:: sentence_transformers.models.StaticEmbedding
 .. autoclass:: sentence_transformers.models.WeightedLayerPooling
 .. autoclass:: sentence_transformers.models.WordEmbeddings
 .. autoclass:: sentence_transformers.models.WordWeights
