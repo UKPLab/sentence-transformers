@@ -48,19 +48,10 @@ def test_backend_no_export_crash():
 
     # OpenVINO will forcibly override the export=False if the model repo/path doesn't contain an exported model
     # But only starting from v1.19.0
-    # We enforce <v1.19 to avoid an issue with the export=False overriding, so now we do expect an error
-    """
     model = SentenceTransformer(
         "sentence-transformers-testing/stsb-bert-tiny-safetensors", backend="openvino", model_kwargs={"export": False}
     )
     assert isinstance(model[0].auto_model, OVModelForFeatureExtraction)
-    """
-    with pytest.raises(OSError):
-        SentenceTransformer(
-            "sentence-transformers-testing/stsb-bert-tiny-safetensors",
-            backend="openvino",
-            model_kwargs={"export": False},
-        )
 
 
 ## Testing loading exported models:
@@ -155,7 +146,7 @@ def test_openvino_backend() -> None:
         assert openvino_model_with_config[0].auto_model.request.get_property("NUM_STREAMS") == 2
 
         # Test that saving and loading local OpenVINO models works as expected
-        openvino_model_with_config.save(tmpdirname)
+        openvino_model_with_config.save_pretrained(tmpdirname)
         local_openvino_model = SentenceTransformer(
             tmpdirname, backend="openvino", model_kwargs={"ov_config": {"INFERENCE_PRECISION_HINT": "f32"}}
         )

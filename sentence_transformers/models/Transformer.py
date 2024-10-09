@@ -134,7 +134,7 @@ class Transformer(nn.Module):
         target_file_glob = "openvino*.xml"
 
         # Determine whether the model should be exported or whether we can load it directly
-        export = self._backend_should_export(
+        export, model_args = self._backend_should_export(
             load_path, is_local, model_args, OV_XML_FILE_NAME, target_file_glob, backend_name
         )
 
@@ -191,7 +191,7 @@ class Transformer(nn.Module):
         target_file_glob = "*.onnx"
 
         # Determine whether the model should be exported or whether we can load it directly
-        export = self._backend_should_export(
+        export, model_args = self._backend_should_export(
             load_path, is_local, model_args, ONNX_WEIGHTS_NAME, target_file_glob, backend_name
         )
 
@@ -222,10 +222,40 @@ class Transformer(nn.Module):
         target_file_name: str,
         target_file_glob: str,
         backend_name: str,
-    ) -> None:
+    ) -> tuple[bool, dict[str, Any]]:
+        """
+        Determines whether the model should be exported to the backend, or if it can be loaded directly.
+        Also update the `file_name` and `subfolder` model_args if necessary.
+
+        These are the cases:
+
+        1. If export is set in model_args, just return export
+        2. If `<subfolder>/<file_name>` exists; set export to False
+        3. If `<backend>/<file_name>` exists; set export to False and set subfolder to the backend (e.g. "onnx")
+        4. If `<file_name>` contains a folder, add those folders to the subfolder and set the file_name to the last part
+
+        We will warn if:
+
+        1. The expected file does not exist in the model directory given the optional file_name and subfolder.
+           If there are valid files for this backend, but they're don't align with file_name, then we give a useful warning.
+        2. Multiple files are found in the model directory that match the target file name and the user did not
+           specify the desired file name via `model_kwargs={"file_name": "<file_name>"}`
+
+        Args:
+            load_path: The model repository or directory, as a Path instance
+            is_local: Whether the model is local or remote, i.e. whether load_path is a local directory
+            model_args: The model_args dictionary. Notable keys are "export", "file_name", and "subfolder"
+            target_file_name: The expected file name in the model directory, e.g. "model.onnx" or "openvino_model.xml"
+            target_file_glob: The glob pattern to match the target file name, e.g. "*.onnx" or "openvino*.xml"
+            backend_name: The human-readable name of the backend for use in warnings, e.g. "ONNX" or "OpenVINO"
+
+        Returns:
+            Tuple[bool, dict[str, Any]]: A tuple of the export boolean and the updated model_args dictionary.
+        """
+
         export = model_args.pop("export", None)
         if export is not None:
-            return export
+            return export, model_args
 
         file_name = model_args.get("file_name", target_file_name)
         subfolder = model_args.get("subfolder", None)
@@ -237,9 +267,9 @@ class Transformer(nn.Module):
         )
         glob_pattern = f"{subfolder}/**/{target_file_glob}" if subfolder else f"**/{target_file_glob}"
 
+        # Get the list of files in the model directory that match the target file name
         if is_local:
-            target_files = [path.relative_to(load_path).as_posix() for path in load_path.glob(glob_pattern)]
-
+            model_file_names = [path.relative_to(load_path).as_posix() for path in load_path.glob(glob_pattern)]
         else:
             all_files = huggingface_hub.list_repo_files(
                 load_path.as_posix(),
@@ -247,33 +277,40 @@ class Transformer(nn.Module):
                 revision=model_args.get("revision", None),
                 token=model_args.get("token", None),
             )
-            target_files = [fname for fname in all_files if fnmatch(fname, glob_pattern)]
+            model_file_names = [fname for fname in all_files if fnmatch(fname, glob_pattern)]
 
         # First check if the expected file exists in the root of the model directory
         # If it doesn't, check if it exists in the backend subfolder.
-        # If it does, set the file_name to include the backend subfolder
-        export = primary_full_path not in target_files
-        if export and "file_name" not in model_args:
-            export = secondary_full_path not in target_files
+        # If it does, set the subfolder to include the backend
+        export = primary_full_path not in model_file_names
+        if export and "subfolder" not in model_args:
+            export = secondary_full_path not in model_file_names
             if not export:
-                if len(target_files) > 1:
+                if len(model_file_names) > 1 and "file_name" not in model_args:
                     logger.warning(
-                        f"Multiple {backend_name} files found in {load_path.as_posix()!r}: {target_files}, defaulting to {secondary_full_path!r}. "
+                        f"Multiple {backend_name} files found in {load_path.as_posix()!r}: {model_file_names}, defaulting to {secondary_full_path!r}. "
                         f'Please specify the desired file name via `model_kwargs={{"file_name": "<file_name>"}}`.'
                     )
-                model_args["file_name"] = Path(self.backend, file_name).as_posix()
+                model_args["subfolder"] = self.backend
+                model_args["file_name"] = file_name
+
+        # If the file_name contains subfolders, set it as the subfolder instead
+        file_name_parts = Path(file_name).parts
+        if len(file_name_parts) > 1:
+            model_args["file_name"] = file_name_parts[-1]
+            model_args["subfolder"] = Path(model_args.get("subfolder", ""), *file_name_parts[:-1]).as_posix()
 
         if export:
             logger.warning(
                 f"No {file_name!r} found in {load_path.as_posix()!r}. Exporting the model to {backend_name}."
             )
-            if target_files:
+            if model_file_names:
                 logger.warning(
-                    f"If you intended to load one of the {target_files} {backend_name} files, "
-                    f'please specify the desired file name via `model_kwargs={{"file_name": "{target_files[0]!r}"}}`.'
+                    f"If you intended to load one of the {model_file_names} {backend_name} files, "
+                    f'please specify the desired file name via `model_kwargs={{"file_name": "{model_file_names[0]}"}}`.'
                 )
 
-        return export
+        return export, model_args
 
     def _backend_warn_to_save(self, model_name_or_path: str, is_local: str, backend_name: str) -> None:
         to_log = f"Saving the exported {backend_name} model is heavily recommended to avoid having to export it again."
