@@ -267,7 +267,9 @@ To convert a model to OpenVINO format, you can use the following code:
    sentences = ["This is an example sentence", "Each sentence is converted"]
    embeddings = model.encode(sentences)
 
-All keyword arguments passed via ``model_kwargs`` will be passed on to :meth:`OVBaseModel.from_pretrained <optimum.intel.openvino.modeling_base.OVBaseModel.from_pretrained>`. Some notable arguments include:
+.. raw:: html
+
+   All keyword arguments passed via <code>model_kwargs</code> will be passed on to <a href="https://huggingface.co/docs/optimum/intel/openvino/reference#optimum.intel.openvino.modeling_base.OVBaseModel.from_pretrained"><code style="color: #404040; font-weight: 700;">OVBaseModel.from_pretrained()</code></a>. Some notable arguments include:
 
 * ``file_name``: The name of the ONNX file to load. If not specified, will default to ``"openvino_model.xml"`` or otherwise ``"openvino/openvino_model.xml"``. This argument is useful for specifying optimized or quantized models.
 * ``export``: A boolean flag specifying whether the model will be exported. If not provided, ``export`` will be set to ``True`` if the model repository or directory does not already contain an OpenVINO model.
