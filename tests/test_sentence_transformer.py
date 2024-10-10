@@ -420,30 +420,26 @@ def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert transformer_kwargs["model_args"]["attn_implementation"] == "eager"
 
 def test_load_checkpoint_with_peft_and_lora(monkeypatch: pytest.MonkeyPatch) -> None:
-    from transformers.utils.import_utils import is_peft_available
-    if is_peft_available():
-        from peft import LoraConfig, TaskType, get_peft_model
+    from peft import LoraConfig, TaskType, get_peft_model
 
-        peft_config = LoraConfig(
-            target_modules=["query", "key", "value"],
-            task_type=TaskType.FEATURE_EXTRACTION,
-            inference_mode=False,
-            r=8,
-            lora_alpha=32,
-            lora_dropout=0.1,
-        )
+    peft_config = LoraConfig(
+        target_modules=["query", "key", "value"],
+        task_type=TaskType.FEATURE_EXTRACTION,
+        inference_mode=False,
+        r=8,
+        lora_alpha=32,
+        lora_dropout=0.1,
+    )
 
-        with SafeTemporaryDirectory() as cache_folder:
-            model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-            model._modules["0"].auto_model = get_peft_model(model._modules["0"].auto_model, peft_config)
-            model.save(cache_folder)
-            model_path = Path(cache_folder) / "sentence-transformers-testing_stsb-bert-tiny-safetensors"
-            model = SentenceTransformer(str(model_path))
+    with SafeTemporaryDirectory() as cache_folder:
+        model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+        model._modules["0"].auto_model = get_peft_model(model._modules["0"].auto_model, peft_config)
+        model.save(cache_folder)
+        model_path = Path(cache_folder) / "sentence-transformers-testing_stsb-bert-tiny-safetensors"
+        model = SentenceTransformer(str(model_path))
 
-            assert isinstance(model._modules["0"].auto_model, nn.Module)
-            assert model._modules["0"].auto_model.config.task_type == TaskType.FEATURE_EXTRACTION
-    else:
-        pytest.skip("PEFT is not available.")
+        assert isinstance(model._modules["0"].auto_model, nn.Module)
+        assert model._modules["0"].auto_model.config.task_type == TaskType.FEATURE_EXTRACTION
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
