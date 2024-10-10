@@ -7,7 +7,8 @@ from typing import Any
 import torch
 from torch import nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Config
-
+from transformers.utils.peft_utils import find_adapter_config_file
+from transformers.utils.import_utils import is_peft_available
 
 class Transformer(nn.Module):
     """Hugging Face AutoModel to generate token embeddings.
@@ -53,6 +54,14 @@ class Transformer(nn.Module):
             tokenizer_args = {}
         if config_args is None:
             config_args = {}
+
+        if is_peft_available():
+            maybe_adapter_path = find_adapter_config_file(model_name_or_path)
+
+            if maybe_adapter_path is not None:
+                with open(maybe_adapter_path, "r", encoding="utf-8") as f:
+                    adapter_config = json.load(f)
+                    model_name_or_path = adapter_config["base_model_name_or_path"]
 
         config = AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
         self._load_model(model_name_or_path, config, cache_dir, **model_args)
