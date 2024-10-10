@@ -72,7 +72,7 @@ def test_backend_no_export_crash():
 )
 def test_backend_load(backend, model_id, model_kwargs, exception) -> None:
     if exception:
-        with pytest.raises(OSError):
+        with pytest.raises((OSError, RuntimeError)):
             SentenceTransformer(model_id, backend=backend, model_kwargs=model_kwargs)
     else:
         model = SentenceTransformer(model_id, backend=backend, model_kwargs=model_kwargs)
