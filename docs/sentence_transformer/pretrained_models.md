@@ -31,6 +31,10 @@ similarities = model.similarity(embeddings, embeddings)
 
     - **Model sizes**: it is recommended to filter away the large models that might not be feasible without excessive hardware.
     - **Experimentation is key**: models that perform well on the leaderboard do not necessarily do well on your tasks, it is **crucial** to experiment with various promising models.
+
+.. tip::
+
+    Read `Sentence Transformer > Usage > Speeding up Inference <./usage/efficiency.html>`_ for tips on how to speed up inference of models by up to 2x-3x.
 ```
 
 ## Original Models
