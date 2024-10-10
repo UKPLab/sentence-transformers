@@ -655,7 +655,7 @@ def mine_hard_negatives(
 
     # If a dataset has duplicate queries, assume that all duplicates are positive pairs.
     columns = dataset.column_names
-    
+
     if not anchor_column_name or anchor_column_name not in columns:
         anchor_column_name = columns[0]
 
@@ -666,7 +666,9 @@ def mine_hard_negatives(
         raise ValueError("Dataset must contain exactly two columns.")
 
     # To avoid re-embedding the same query multiple times, we keep a counter of the number of positives per query
-    positives_per_query = list(dataset.to_pandas().groupby(anchor_column_name).count().to_dict()[positive_column_name].values())
+    positives_per_query = list(
+        dataset.to_pandas().groupby(anchor_column_name).count().to_dict()[positive_column_name].values()
+    )
     max_positives = max(positives_per_query)
 
     if range_max is None:
@@ -963,11 +965,11 @@ def mine_hard_negatives(
             ("mean", torch.mean),
             ("median", torch.median),
             ("std", torch.std),
-            ("min", lambda scores: torch.min(scores) if scores.numel() > 0 else float('inf')),
-            ("25%", lambda scores: torch.quantile(scores.float(), q=0.25) if scores.numel() > 0 else float('inf')),
-            ("50%", lambda scores: torch.quantile(scores.float(), q=0.5) if scores.numel() > 0 else float('inf')),
-            ("75%", lambda scores: torch.quantile(scores.float(), q=0.75) if scores.numel() > 0 else float('inf')),
-            ("max", lambda scores: torch.max(scores) if scores.numel() > 0 else float('-inf')),
+            ("min", lambda scores: torch.min(scores) if scores.numel() > 0 else float("inf")),
+            ("25%", lambda scores: torch.quantile(scores.float(), q=0.25) if scores.numel() > 0 else float("inf")),
+            ("50%", lambda scores: torch.quantile(scores.float(), q=0.5) if scores.numel() > 0 else float("inf")),
+            ("75%", lambda scores: torch.quantile(scores.float(), q=0.75) if scores.numel() > 0 else float("inf")),
+            ("max", lambda scores: torch.max(scores) if scores.numel() > 0 else float("-inf")),
         ]:
             print(
                 row_format.format(
