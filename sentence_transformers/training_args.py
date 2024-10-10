@@ -74,6 +74,7 @@ class BatchSamplers(ExplicitEnum):
     BATCH_SAMPLER = "batch_sampler"
     NO_DUPLICATES = "no_duplicates"
     GROUP_BY_LABEL = "group_by_label"
+    MULTIPLE_NEGATIVES = "multiple_negatives"
 
 
 class MultiDatasetBatchSamplers(ExplicitEnum):
