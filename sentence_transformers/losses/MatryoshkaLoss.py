@@ -44,7 +44,8 @@ class ForwardDecorator:
         # Using cache:
         else:
             output = self.cache[self.idx]
-        output["token_embeddings"] = self.shrink(output["token_embeddings"])
+        if "token_embeddings" in output:
+            output["token_embeddings"] = self.shrink(output["token_embeddings"])
         output["sentence_embedding"] = self.shrink(output["sentence_embedding"])
         self.idx += 1
         return output
@@ -86,16 +87,16 @@ class MatryoshkaLoss(nn.Module):
         Requirements:
             1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss` or :class:`CachedGISTEmbedLoss`.
 
-        Relations:
-            - :class:`Matryoshka2dLoss` uses this loss in combination with :class:`AdaptiveLayerLoss` which allows for
-                layer reduction for faster inference.
-
-        Input:
+        Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
             +=======================================+========+
             | any                                   | any    |
             +---------------------------------------+--------+
+
+        Relations:
+            - :class:`Matryoshka2dLoss` uses this loss in combination with :class:`AdaptiveLayerLoss` which allows for
+                layer reduction for faster inference.
 
         Example:
             ::

@@ -33,16 +33,16 @@ class AnglELoss(losses.CoSENTLoss):
         Requirements:
             - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
 
-        Relations:
-            - :class:`CoSENTLoss` is AnglELoss with ``pairwise_cos_sim`` as the metric, rather than ``pairwise_angle_sim``.
-            - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than ``CoSENTLoss`` or ``AnglELoss``.
-
         Inputs:
             +--------------------------------+------------------------+
             | Texts                          | Labels                 |
             +================================+========================+
             | (sentence_A, sentence_B) pairs | float similarity score |
             +--------------------------------+------------------------+
+
+        Relations:
+            - :class:`CoSENTLoss` is AnglELoss with ``pairwise_cos_sim`` as the metric, rather than ``pairwise_angle_sim``.
+            - :class:`CosineSimilarityLoss` seems to produce a weaker training signal than ``CoSENTLoss`` or ``AnglELoss``.
 
         Example:
             ::

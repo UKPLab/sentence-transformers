@@ -87,6 +87,18 @@ def test_to() -> None:
     assert model.device.type == "cpu", "Ensure that setting `_target_device` doesn't crash."
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test fp16 and bf16 inference.")
+@pytest.mark.parametrize("torch_dtype", ["auto", "float16", "bfloat16", torch.float16, torch.bfloat16])
+def test_torch_dtype(torch_dtype) -> None:
+    model = SentenceTransformer(
+        "sentence-transformers-testing/all-nli-bert-tiny-dense",
+        device="cuda",
+        model_kwargs={"torch_dtype": torch_dtype},
+    )
+    embedding = model.encode("Test sentence")
+    assert embedding.shape[-1] == model.get_sentence_embedding_dimension()
+
+
 def test_push_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     def mock_create_repo(self, repo_id, **kwargs):
         return RepoUrl(f"https://huggingface.co/{repo_id}")

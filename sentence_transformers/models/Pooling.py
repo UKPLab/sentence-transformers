@@ -57,7 +57,7 @@ class Pooling(nn.Module):
         pooling_mode_mean_sqrt_len_tokens: bool = False,
         pooling_mode_weightedmean_tokens: bool = False,
         pooling_mode_lasttoken: bool = False,
-        include_prompt=True,
+        include_prompt: bool = True,
     ) -> None:
         super().__init__()
 
@@ -132,7 +132,11 @@ class Pooling(nn.Module):
 
     def forward(self, features: dict[str, Tensor]) -> dict[str, Tensor]:
         token_embeddings = features["token_embeddings"]
-        attention_mask = features["attention_mask"]
+        attention_mask = (
+            features["attention_mask"]
+            if "attention_mask" in features
+            else torch.ones(token_embeddings.shape[:-1], device=token_embeddings.device, dtype=torch.int64)
+        )
         if not self.include_prompt and "prompt_length" in features:
             attention_mask[:, : features["prompt_length"]] = 0
 

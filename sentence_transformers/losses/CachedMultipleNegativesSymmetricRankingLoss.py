@@ -74,16 +74,20 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             1. (anchor, positive) pairs
             2. Should be used with large batch sizes for superior performance, but has slower training time than non-cached versions
 
-        Relations:
-            - Like :class:`MultipleNegativesRankingLoss`, but with an additional symmetric loss term and caching mechanism.
-            - Inspired by :class:`CachedMultipleNegativesRankingLoss`, adapted for symmetric loss calculation.
-
         Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
             +=======================================+========+
             | (anchor, positive) pairs              | none   |
             +---------------------------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that no in-batch negatives are duplicates of the anchor or positive samples.
+
+        Relations:
+            - Like :class:`MultipleNegativesRankingLoss`, but with an additional symmetric loss term and caching mechanism.
+            - Inspired by :class:`CachedMultipleNegativesRankingLoss`, adapted for symmetric loss calculation.
 
         Example:
             ::
