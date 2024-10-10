@@ -7,7 +7,7 @@ We recommend **Python 3.8+**, **[PyTorch 1.11.0+](https://pytorch.org/get-starte
 * **Default and Training**: Like **Default**, plus training.
 * **Development**: All of the above plus some dependencies for developing Sentence Transformers, see [Editable Install](#editable-install).
 
-Note that you can mix and match the various extras, e.g. ``pip install -U "sentence-transformers[train, onnx-gpu]"``
+Note that you can mix and match the various extras, e.g. ``pip install -U "sentence-transformers[train,onnx-gpu]"``.
 
 ## Install with pip
 
