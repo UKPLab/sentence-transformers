@@ -338,7 +338,7 @@ The following images show the benchmark results for the different backends on GP
          </ul>
       </li>
    </ul>
-   Performance ratio: The same models and hardware was used.
+   Performance ratio: The same models and hardware was used. We compare the performance against the performance of PyTorch with fp32, i.e. the default backend and precision.
    <ul>
       <li>
          <b>Evaluation: </b>
@@ -353,7 +353,50 @@ The following images show the benchmark results for the different backends on GP
       </li>
    </ul>
 
-   <code>onnx-qint8</code> refers to int8 quantization with a <code>quantization_config</code> of <code>"avx512_vnni"</code>. The different quantization configurations resulted in roughly equivalent speedups.
+   <ul>
+      <li>
+         <b>Backends: </b>
+         <ul>
+            <li>
+               <code>torch-fp32</code>: PyTorch with float32 precision (default).
+            </li>
+            <li>
+               <code>torch-fp16</code>: PyTorch with float16 precision, via <code>model_kwargs={"torch_dtype": "float16"}</code>.
+            </li>
+            <li>
+               <code>torch-bf16</code>: PyTorch with bfloat16 precision, via <code>model_kwargs={"torch_dtype": "bfloat16"}</code>.
+            </li>
+            <li>
+               <code>onnx</code>: ONNX with float32 precision, via <code>backend="onnx"</code>.
+            </li>
+            <li>
+               <code>onnx-O1</code>: ONNX with float32 precision and O1 optimization, via <code>export_optimized_onnx_model(..., "O1", ...)</code> and <code>backend="onnx"</code>.
+            </li>
+            <li>
+               <code>onnx-O2</code>: ONNX with float32 precision and O2 optimization, via <code>export_optimized_onnx_model(..., "O2", ...)</code> and <code>backend="onnx"</code>.
+            </li>
+            <li>
+               <code>onnx-O3</code>: ONNX with float32 precision and O3 optimization, via <code>export_optimized_onnx_model(..., "O3", ...)</code> and <code>backend="onnx"</code>.
+            </li>
+            <li>
+               <code>onnx-O4</code>: ONNX with float16 precision and O4 optimization, via <code>export_optimized_onnx_model(..., "O4", ...)</code> and <code>backend="onnx"</code>.
+            </li>
+            <li>
+               <code>onnx-qint8</code>: ONNX quantized to int8 with "avx512_vnni", via <code>export_dynamic_quantized_onnx_model(..., "avx512_vnni", ...)</code> and <code>backend="onnx"</code>. The different quantization configurations resulted in roughly equivalent speedups.
+            </li>
+            <li>
+               <code>openvino</code>: OpenVINO, via <code>backend="openvino"</code>.
+            </li>
+            <li>
+               <code>openvino-igpu</code>: OpenVINO, via <code>backend="openvino"</code> and <code>model_kwargs={"device": "GPU"})</code> to use the iGPU from my CPU.
+            </li>
+         </ul>
+      </li>
+   </ul>
+
+   Note that the aggressive averaging across models, datasets, and batch sizes prevents some more intricate patterns from being visible. For example, for GPUs, if we only consider the stsb dataset with the shortest texts, ONNX becomes better: 1.46x for ONNX, and ONNX-O4 reaches 1.83x whereas fp16 and bf16 reach 1.54x and 1.53x respectively. So, for shorter texts we recommend ONNX on GPU.<br>
+   <br>
+   For CPU, ONNX is also stronger for the stsb dataset with the shortest texts: 1.39x for ONNX, outperforming 1.29x for OpenVINO. ONNX with int8 quantization is even stronger with a 3.08x speedup. For longer texts, ONNX and OpenVINO can even perform slightly worse than PyTorch, so we recommend testing the different backends with your specific model and data to find the best one for your use case.
 
    </details>
    <br>
