@@ -33,12 +33,12 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "transformers>=4.38.0,<5.0.0",
+    "transformers>=4.41.0,<5.0.0",
     "tqdm",
     "torch>=1.11.0",
     "scikit-learn",
     "scipy",
-    "huggingface-hub>=0.19.3",
+    "huggingface-hub>=0.20.0",
     "Pillow",
 ]
 
@@ -49,6 +49,9 @@ Repository = "https://github.com/UKPLab/sentence-transformers/"
 
 [project.optional-dependencies]
 train = ["datasets", "accelerate>=0.20.3"]
+onnx = ["optimum[onnxruntime]>=1.23.0"]
+onnx-gpu = ["optimum[onnxruntime-gpu]>=1.23.0"]
+openvino = ["optimum-intel[openvino]>=1.20.0"]
 dev = ["datasets", "accelerate>=0.20.3", "pre-commit", "pytest", "pytest-cov"]
 
 [build-system]

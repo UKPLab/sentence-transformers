@@ -24,6 +24,16 @@ def stsb_bert_tiny_model_reused() -> SentenceTransformer:
 
 
 @pytest.fixture()
+def stsb_bert_tiny_model_onnx() -> SentenceTransformer:
+    return SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-onnx")
+
+
+@pytest.fixture()
+def stsb_bert_tiny_model_openvino() -> SentenceTransformer:
+    return SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-openvino")
+
+
+@pytest.fixture()
 def paraphrase_distilroberta_base_v1_model() -> SentenceTransformer:
     return SentenceTransformer("paraphrase-distilroberta-base-v1")
 
