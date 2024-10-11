@@ -416,7 +416,6 @@ def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "attn_implementation" in transformer_kwargs["model_args"]
     assert transformer_kwargs["model_args"]["attn_implementation"] == "eager"
 
-
 def test_load_checkpoint_with_peft_and_lora() -> None:
     from peft import LoraConfig, TaskType, get_peft_model
 
@@ -435,7 +434,6 @@ def test_load_checkpoint_with_peft_and_lora() -> None:
         model.save(tmp_folder)
 
         loaded_peft_model = SentenceTransformer(tmp_folder)
-        breakpoint()
         assert isinstance(model._modules["0"].auto_model, nn.Module)
         assert isinstance(loaded_peft_model._modules["0"].auto_model, PeftModel)
 
