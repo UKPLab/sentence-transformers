@@ -10,6 +10,10 @@ import pytest
 from sentence_transformers import SentenceTransformer
 
 
+@pytest.mark.skip(
+    "This test fails if optimum.intel.openvino is imported, because openvinotoolkit/nncf "
+    "patches torch._C._nn.gelu in a way that breaks pickling."
+)
 @pytest.mark.parametrize("normalize_embeddings", (False, True))
 @pytest.mark.parametrize("prompt_name", (None, "retrieval"))
 def test_encode_multi_process(
