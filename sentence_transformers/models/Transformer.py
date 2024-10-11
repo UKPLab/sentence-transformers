@@ -12,8 +12,7 @@ import torch
 from torch import nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Config
 from transformers.utils.peft_utils import find_adapter_config_file
-from transformers.utils.import_utils import is_peft_available
-from peft import PeftConfig, PeftModel
+
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +23,7 @@ def _save_pretrained_wrapper(_save_pretrained_fn: Callable, subfolder: str) -> C
         return _save_pretrained_fn(Path(save_directory) / subfolder, **kwargs)
 
     return wrapper
+
 
 
 class Transformer(nn.Module):
@@ -100,12 +100,17 @@ class Transformer(nn.Module):
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
-
     def _load_config(
         self, model_name_or_path: str, cache_dir: str | None, config_args: dict[str, Any]
-    ) -> PeftConfig | AutoConfig:
+    ):
         """Loads the configuration of a model"""
         if find_adapter_config_file(model_name_or_path) is not None:
+            try:
+                from peft import PeftConfig
+            except ModuleNotFoundError:
+                raise Exception(
+                    "Using a PEFT model requires installing the `peft` package. You can install it via `pip install peft`."
+                )
             config = PeftConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
         else:
             config = AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
@@ -122,16 +127,29 @@ class Transformer(nn.Module):
                 self.auto_model = AutoModel.from_pretrained(
                     model_name_or_path, config=config, cache_dir=cache_dir, **model_args
                 )
-                if isinstance(config, PeftConfig):
-                    self.auto_model = PeftModel.from_pretrained(
-                        self.auto_model, model_name_or_path, config=config, cache_dir=cache_dir, **model_args
-                    )
+                self._load_peft_model(self, model_name_or_path, config, cache_dir, **model_args)
         elif backend == "onnx":
             self._load_onnx_model(model_name_or_path, config, cache_dir, **model_args)
         elif backend == "openvino":
             self._load_openvino_model(model_name_or_path, config, cache_dir, **model_args)
         else:
             raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, or `openvino`.")
+
+    def _load_peft_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
+        try:
+            from peft import PeftConfig
+            if isinstance(config, PeftConfig):
+                try:
+                    from peft import PeftModel
+                except ModuleNotFoundError:
+                    raise Exception(
+                        "Using a PEFT model requires installing the `peft` package. You can install it via `pip install peft`."
+                    )
+                self.auto_model = PeftModel.from_pretrained(
+                    self.auto_model, model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+                )
+        except ModuleNotFoundError:
+            pass
 
     def _load_openvino_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         if isinstance(config, T5Config) or isinstance(config, MT5Config):
