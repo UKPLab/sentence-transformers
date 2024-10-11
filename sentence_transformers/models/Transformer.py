@@ -86,7 +86,7 @@ class Transformer(nn.Module):
         self, model_name_or_path: str, cache_dir: str | None, config_args: dict[str, Any]
     ) -> PeftConfig | AutoConfig:
         """Loads the configuration of a model"""
-        if is_peft_available() and (find_adapter_config_file(model_name_or_path) is not None):
+        if find_adapter_config_file(model_name_or_path) is not None:
             config = PeftConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
         else:
             config = AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
