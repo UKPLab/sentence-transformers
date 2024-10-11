@@ -433,10 +433,14 @@ def test_load_checkpoint_with_peft_and_lora() -> None:
         model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
         model._modules["0"].auto_model = get_peft_model(model._modules["0"].auto_model, peft_config)
         model.save(tmp_folder)
+        expecteds = model.encode(["Hello there!", "How are you?"])
 
         loaded_peft_model = SentenceTransformer(tmp_folder)
+        actuals = loaded_peft_model.encode(["Hello there!", "How are you?"])
+
         assert isinstance(model._modules["0"].auto_model, nn.Module)
         assert isinstance(loaded_peft_model._modules["0"].auto_model, PeftModel)
+        assert [expected.tolist() for expected in expecteds] == [actual.tolist() for actual in actuals]
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
