@@ -16,6 +16,7 @@ import numpy as np
 import pytest
 import torch
 from huggingface_hub import CommitInfo, HfApi, RepoUrl
+from peft import PeftModel
 from torch import nn
 
 from sentence_transformers import SentenceTransformer, util
@@ -31,7 +32,6 @@ from sentence_transformers.models import (
 )
 from sentence_transformers.similarity_functions import SimilarityFunction
 from tests.utils import SafeTemporaryDirectory
-from peft import PeftModel
 
 
 def test_load_with_safetensors() -> None:
