@@ -9,6 +9,8 @@ from torch import nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Config
 from transformers.utils.peft_utils import find_adapter_config_file
 from transformers.utils.import_utils import is_peft_available
+from peft import PeftConfig, PeftModel
+
 
 class Transformer(nn.Module):
     """Hugging Face AutoModel to generate token embeddings.
@@ -55,15 +57,7 @@ class Transformer(nn.Module):
         if config_args is None:
             config_args = {}
 
-        if is_peft_available():
-            maybe_adapter_path = find_adapter_config_file(model_name_or_path)
-
-            if maybe_adapter_path is not None:
-                with open(maybe_adapter_path, "r", encoding="utf-8") as f:
-                    adapter_config = json.load(f)
-                    model_name_or_path = adapter_config["base_model_name_or_path"]
-
-        config = AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
+        config = self._load_config(model_name_or_path, cache_dir, config_args)
         self._load_model(model_name_or_path, config, cache_dir, **model_args)
 
         if max_seq_length is not None and "model_max_length" not in tokenizer_args:
@@ -88,6 +82,16 @@ class Transformer(nn.Module):
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
+    def _load_config(
+        self, model_name_or_path: str, cache_dir: str | None, config_args: dict[str, Any]
+    ) -> PeftConfig | AutoConfig:
+        """Loads the configuration of a model"""
+        if is_peft_available() and (find_adapter_config_file(model_name_or_path) is not None):
+            config = PeftConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
+        else:
+            config = AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
+        return config
+
     def _load_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         """Loads the transformer model"""
         if isinstance(config, T5Config):
@@ -98,6 +102,10 @@ class Transformer(nn.Module):
             self.auto_model = AutoModel.from_pretrained(
                 model_name_or_path, config=config, cache_dir=cache_dir, **model_args
             )
+            if isinstance(config, PeftConfig):
+                self.auto_model = PeftModel.from_pretrained(
+                    self.auto_model, model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+                )
 
     def _load_t5_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         """Loads the encoder model from T5"""
