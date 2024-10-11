@@ -25,7 +25,6 @@ def _save_pretrained_wrapper(_save_pretrained_fn: Callable, subfolder: str) -> C
     return wrapper
 
 
-
 class Transformer(nn.Module):
     """Hugging Face AutoModel to generate token embeddings.
     Loads the correct class, e.g. BERT / RoBERTa etc.
@@ -100,9 +99,7 @@ class Transformer(nn.Module):
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
-    def _load_config(
-        self, model_name_or_path: str, cache_dir: str | None, config_args: dict[str, Any]
-    ):
+    def _load_config(self, model_name_or_path: str, cache_dir: str | None, config_args: dict[str, Any]):
         """Loads the configuration of a model"""
         if find_adapter_config_file(model_name_or_path) is not None:
             try:
@@ -138,6 +135,7 @@ class Transformer(nn.Module):
     def _load_peft_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         try:
             from peft import PeftConfig
+
             if isinstance(config, PeftConfig):
                 try:
                     from peft import PeftModel
