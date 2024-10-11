@@ -127,7 +127,7 @@ class Transformer(nn.Module):
                 self.auto_model = AutoModel.from_pretrained(
                     model_name_or_path, config=config, cache_dir=cache_dir, **model_args
                 )
-                self._load_peft_model(self, model_name_or_path, config, cache_dir, **model_args)
+                self._load_peft_model(model_name_or_path, config, cache_dir, **model_args)
         elif backend == "onnx":
             self._load_onnx_model(model_name_or_path, config, cache_dir, **model_args)
         elif backend == "openvino":
