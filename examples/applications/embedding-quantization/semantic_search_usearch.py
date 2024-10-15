@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.quantization import quantize_embeddings, semantic_search_usearch
 
 # 1. Load the quora corpus with questions
-dataset = load_dataset("quora", split="train").map(
+dataset = load_dataset("quora", split="train", trust_remote_code=True).map(
     lambda batch: {"text": [text for sample in batch["questions"] for text in sample["text"]]},
     batched=True,
     remove_columns=["questions", "is_duplicate"],
