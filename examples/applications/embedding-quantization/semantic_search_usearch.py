@@ -26,7 +26,7 @@ model = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
 # 4. Choose a target precision for the corpus embeddings
 corpus_precision = "binary"
 # Valid options are: "float32", "uint8", "int8", "ubinary", and "binary"
-# But usearch only supports "float32", "int8", and "binary"
+# But usearch only supports "float32", "int8", "binary" and "ubinary"
 
 # 5. Encode the corpus
 full_corpus_embeddings = model.encode(corpus, normalize_embeddings=True, show_progress_bar=True)
