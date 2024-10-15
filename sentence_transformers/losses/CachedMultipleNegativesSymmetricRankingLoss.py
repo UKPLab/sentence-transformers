@@ -10,6 +10,7 @@ from torch import Tensor, nn
 
 from sentence_transformers import SentenceTransformer, util
 from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import RandContext
+from sentence_transformers.models import StaticEmbedding
 
 
 def _backward_hook(
@@ -114,6 +115,12 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             - Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup: https://arxiv.org/pdf/2101.06983.pdf
         """
         super().__init__()
+        if isinstance(model[0], StaticEmbedding):
+            raise ValueError(
+                "CachedMultipleNegativesSymmetricRankingLoss is not compatible with a SentenceTransformer model based on a StaticEmbedding. "
+                "Consider using MultipleNegativesSymmetricRankingLoss instead."
+            )
+
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct
