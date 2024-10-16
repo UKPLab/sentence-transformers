@@ -35,6 +35,7 @@ from sentence_transformers.similarity_functions import SimilarityFunction
 from . import __MODEL_HUB_ORGANIZATION__, __version__
 from .evaluation import SentenceEvaluator
 from .fit_mixin import FitMixin
+from .peft_mixin import PeftAdapterMixin
 from .models import Normalize, Pooling, Transformer
 from .quantization import quantize_embeddings
 from .util import (
@@ -51,7 +52,7 @@ from .util import (
 logger = logging.getLogger(__name__)
 
 
-class SentenceTransformer(nn.Sequential, FitMixin):
+class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
     """
     Loads or creates a SentenceTransformer model that can be used to map sentences / text to embeddings.
 
