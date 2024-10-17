@@ -159,10 +159,16 @@ class StaticEmbedding(nn.Module):
         """
 
         try:
-            from model2vec import distill
+            from model2vec import __version__ as m2v_version
+            if m2v_version >= '0.3':
+                # Import distill from model2vec.distill
+                from model2vec.distill import distill
+            else:
+                # Import distill from model2vec
+                from model2vec import distill
         except ImportError:
-            raise ImportError("To use this method, please install the `model2vec` package: `pip install model2vec`")
-
+            raise ImportError("To use this method, please install the `model2vec` package: `pip install model2vec[distill]`")
+            
         device = get_device_name()
         static_model = distill(
             model_name,
