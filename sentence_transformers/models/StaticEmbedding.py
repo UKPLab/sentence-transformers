@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-import importlib.metadata
 import os
 from pathlib import Path
 
@@ -160,15 +159,7 @@ class StaticEmbedding(nn.Module):
         """
 
         try:
-            m2v_version = importlib.metadata.version("model2vec")
-            if m2v_version >= '0.3':
-                # Import distill from model2vec.distill
-                from model2vec.distill import distill
-            else:
-                # Import distill from model2vec
-                from model2vec import distill
-        except importlib.metadata.PackageNotFoundError:
-            raise ImportError("To use this method, please install the `model2vec` package: `pip install model2vec[distill]`")
+            from model2vec.distill import distill
         except ImportError:
             raise ImportError("To use this method, please install the `model2vec` package: `pip install model2vec[distill]`")
         
