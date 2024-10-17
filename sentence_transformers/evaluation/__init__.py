@@ -6,7 +6,7 @@ from .InformationRetrievalEvaluator import InformationRetrievalEvaluator
 from .LabelAccuracyEvaluator import LabelAccuracyEvaluator
 from .MSEEvaluator import MSEEvaluator
 from .MSEEvaluatorFromDataFrame import MSEEvaluatorFromDataFrame
-from .NanoBEIREvaluator import NanoBeIREvaluator
+from .NanoBEIREvaluator import NanoBEIREvaluator
 from .ParaphraseMiningEvaluator import ParaphraseMiningEvaluator
 from .RerankingEvaluator import RerankingEvaluator
 from .SentenceEvaluator import SentenceEvaluator
@@ -29,5 +29,5 @@ __all__ = [
     "TranslationEvaluator",
     "TripletEvaluator",
     "RerankingEvaluator",
-    "NanoBeIREvaluator",
+    "NanoBEIREvaluator",
 ]
