@@ -331,8 +331,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 ):
                     sub_corpus_embeddings = corpus_model.encode(
                         self.corpus[corpus_start_idx:corpus_end_idx],
-                        prompt_name=self.query_prompt_name,
-                        prompt=self.query_prompt,
+                        prompt_name=self.corpus_prompt_name,
+                        prompt=self.corpus_prompt,
                         batch_size=self.batch_size,
                         show_progress_bar=False,
                         convert_to_tensor=True,
