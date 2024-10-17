@@ -35,8 +35,8 @@ from sentence_transformers.similarity_functions import SimilarityFunction
 from . import __MODEL_HUB_ORGANIZATION__, __version__
 from .evaluation import SentenceEvaluator
 from .fit_mixin import FitMixin
-from .peft_mixin import PeftAdapterMixin
 from .models import Normalize, Pooling, Transformer
+from .peft_mixin import PeftAdapterMixin
 from .quantization import quantize_embeddings
 from .util import (
     batch_to_device,

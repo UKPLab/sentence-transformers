@@ -1,6 +1,22 @@
-import logging
+from __future__ import annotations
+
+from functools import wraps
+
 from transformers.integrations.peft import PeftAdapterMixin as PeftAdapterMixinTransformers
-logger = logging.getLogger(__name__)
+
+from .models import Transformer
+
+
+def peft_wrapper(func):
+    """Wrapper to call the method on the auto_model with a check for PEFT compatibility."""
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        self.check_peft_compatible_model()
+        method = getattr(self._modules["0"].auto_model, func.__name__)
+        return method(*args, **kwargs)
+
+    return wrapper
 
 
 class PeftAdapterMixin:
@@ -9,11 +25,23 @@ class PeftAdapterMixin:
     more details about adapters check out the documentation of PEFT
     library: https://huggingface.co/docs/peft/index
 
-    Currently supported PEFT methods follow those supported by transformers library, 
+    Currently supported PEFT methods follow those supported by transformers library,
     you can find more information on:
     https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin
     """
 
+    def has_peft_compatible_model(self) -> bool:
+        return isinstance(self._modules["0"], Transformer) and isinstance(
+            self._modules["0"].auto_model, PeftAdapterMixinTransformers
+        )
+
+    def check_peft_compatible_model(self) -> None:
+        if not self.has_peft_compatible_model():
+            raise ValueError(
+                "PEFT methods are only supported for Transformers models that inherit from PeftAdapterMixin"
+            )
+
+    @peft_wrapper
     def load_adapter(
         self,
         *args,
@@ -23,7 +51,7 @@ class PeftAdapterMixin:
         Load adapter weights from file or remote Hub folder." If you are not familiar with adapters and PEFT methods, we
         invite you to read more about them on PEFT official documentation: https://huggingface.co/docs/peft
 
-        Requires peft as a backend to load the adapter weights.
+        Requires peft as a backend to load the adapter weights and the underlying model to be compatible with PEFT.
 
         Args:
             *args:
@@ -33,13 +61,16 @@ class PeftAdapterMixin:
                 Keyword arguments to pass to the underlying AutoModel `load_adapter` function. More information can be found in the transformers documentation
                 https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.load_adapter
         """
-        self._modules["0"].auto_model.load_adapter(*args, **kwargs)
+        ...  # Implementation handled by the wrapper
 
+    @peft_wrapper
     def add_adapter(self, *args, **kwargs) -> None:
         """
-        Adds a fresh new adapter to the current model for training purpose. If no adapter name is passed, a default
+        Adds a fresh new adapter to the current model for training purposes. If no adapter name is passed, a default
         name is assigned to the adapter to follow the convention of PEFT library (in PEFT we use "default" as the
         default adapter name).
+
+        Requires peft as a backend to load the adapter weights and the underlying model to be compatible with PEFT.
 
         Args:
             *args:
@@ -48,10 +79,11 @@ class PeftAdapterMixin:
             **kwargs:
                 Keyword arguments to pass to the underlying AutoModel `add_adapter` function. More information can be found in the transformers documentation
                 https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.add_adapter
-            
-        """
-        self._modules["0"].auto_model.add_adapter(*args, **kwargs)
 
+        """
+        ...  # Implementation handled by the wrapper
+
+    @peft_wrapper
     def set_adapter(self, *args, **kwargs) -> None:
         """
         Sets a specific adapter by forcing the model to use a that adapter and disable the other adapters.
@@ -64,21 +96,23 @@ class PeftAdapterMixin:
                 Keyword arguments to pass to the underlying AutoModel `set_adapter` function. More information can be found in the transformers documentation
                 https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.set_adapter
         """
-        self._modules["0"].auto_model.set_adapter(*args, **kwargs)
+        ...  # Implementation handled by the wrapper
 
+    @peft_wrapper
     def disable_adapters(self) -> None:
         """
         Disable all adapters that are attached to the model. This leads to inferring with the base model only.
         """
-        self._modules["0"].auto_model.disable_adapters()
-        
+        ...  # Implementation handled by the wrapper
 
+    @peft_wrapper
     def enable_adapters(self) -> None:
         """
         Enable adapters that are attached to the model. The model will use `self.active_adapter()`
         """
-        self._modules["0"].auto_model.enable_adapters()
+        ...  # Implementation handled by the wrapper
 
+    @peft_wrapper
     def active_adapters(self) -> list[str]:
         """
         If you are not familiar with adapters and PEFT methods, we invite you to read more about them on the PEFT
@@ -90,11 +124,12 @@ class PeftAdapterMixin:
         For previous PEFT versions (that does not support multi-adapter inference), `module.active_adapter` will return
         a single string.
         """
-        return self._modules["0"].auto_model.active_adapters()
+        ...  # Implementation handled by the wrapper
 
-    def active_adapter(self) -> str:
-        return self._modules["0"].auto_model.active_adapter()
+    @peft_wrapper
+    def active_adapter(self) -> str: ...  # Implementation handled by the wrapper
 
+    @peft_wrapper
     def get_adapter_state_dict(self, *args, **kwargs) -> dict:
         """
         If you are not familiar with adapters and PEFT methods, we invite you to read more about them on the PEFT
@@ -111,4 +146,4 @@ class PeftAdapterMixin:
                 Keyword arguments to pass to the underlying AutoModel `get_adapter_state_dict` function. More information can be found in the transformers documentation
                 https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.get_adapter_state_dict
         """
-        return self._modules["0"].auto_model.get_adapter_state_dict(*args, **kwargs)
+        ...  # Implementation handled by the wrapper
