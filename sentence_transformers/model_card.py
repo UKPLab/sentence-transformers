@@ -816,7 +816,7 @@ class SentenceTransformerModelCardData(CardData):
                         task_name=description,
                         task_type=description.lower().replace(" ", "-"),
                         dataset_type=dataset_name or "unknown",
-                        dataset_name=dataset_name.replace("_", " ").replace("-", " ") or "Unknown",
+                        dataset_name=dataset_name.replace("_", " ").replace("-", " ") if dataset_name else "Unknown",
                         metric_name=metric_key.replace("_", " ").title(),
                         metric_type=metric_key,
                         metric_value=metric_value,
