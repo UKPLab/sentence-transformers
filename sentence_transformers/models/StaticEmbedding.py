@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import importlib.metadata
 import os
 from pathlib import Path
 
@@ -159,7 +160,7 @@ class StaticEmbedding(nn.Module):
         """
 
         try:
-            from model2vec import __version__ as m2v_version
+            m2v_version = importlib.metadata.version("model2vec")
             if m2v_version >= '0.3':
                 # Import distill from model2vec.distill
                 from model2vec.distill import distill
