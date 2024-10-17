@@ -536,7 +536,7 @@ def mine_hard_negatives(
     faiss_batch_size: int = 16384,
     use_faiss: bool = False,
     verbose: bool = True,
-    use_multiple_gpus = False,
+    use_multiple_gpus=False,
 ) -> Dataset:
     """
     Add hard negatives to a dataset of (anchor, positive) pairs to create (anchor, positive, negative) triplets or
@@ -735,16 +735,22 @@ def mine_hard_negatives(
             pool = model.start_multi_process_pool()
 
             corpus_embeddings = model.encode_multi_process(
-                corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True)
+                corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+            )
 
             query_embeddings = model.encode_multi_process(
-                queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True)
+                queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+            )
         else:
             corpus_embeddings = model.encode(
                 corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
             )
             query_embeddings = model.encode(
-                queries, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
+                queries,
+                batch_size=batch_size,
+                normalize_embeddings=True,
+                convert_to_numpy=True,
+                show_progress_bar=True,
             )
         index.add(corpus_embeddings)
 
@@ -766,16 +772,22 @@ def mine_hard_negatives(
             pool = model.start_multi_process_pool()
 
             corpus_embeddings = model.encode_multi_process(
-                corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True)
+                corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+            )
 
             query_embeddings = model.encode_multi_process(
-                queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True)
+                queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+            )
         else:
             corpus_embeddings = model.encode(
                 corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
             )
             query_embeddings = model.encode(
-                queries, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
+                queries,
+                batch_size=batch_size,
+                normalize_embeddings=True,
+                convert_to_numpy=True,
+                show_progress_bar=True,
             )
         scores = model.similarity(query_embeddings, corpus_embeddings).to(device)
 
