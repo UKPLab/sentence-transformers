@@ -7,6 +7,7 @@ from torch import Tensor, nn
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.models import StaticEmbedding
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,12 @@ class DenoisingAutoEncoderLoss(nn.Module):
                 )
         """
         super().__init__()
+
+        if isinstance(model[0], StaticEmbedding):
+            raise ValueError(
+                "DenoisingAutoEncoderLoss is not compatible with a SentenceTransformer model based on a StaticEmbedding."
+            )
+
         self.encoder = model  # This will be the final model used during the inference time.
         self.tokenizer_encoder = model.tokenizer
 

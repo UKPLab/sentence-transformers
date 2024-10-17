@@ -27,7 +27,7 @@ from transformers.modelcard import make_markdown_table
 from transformers.trainer_callback import TrainerControl, TrainerState
 
 from sentence_transformers import __version__ as sentence_transformers_version
-from sentence_transformers.models import Transformer
+from sentence_transformers.models import StaticEmbedding, Transformer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sentence_transformers.util import fullname, is_accelerate_available, is_datasets_available
 
@@ -152,6 +152,8 @@ class ModelCardCallback(TrainerCallback):
         **kwargs,
     ) -> None:
         loss_dict = {" ".join(key.split("_")[1:]): metrics[key] for key in metrics if key.endswith("_loss")}
+        if len(loss_dict) == 1 and "loss" in loss_dict:
+            loss_dict = {"Validation Loss": loss_dict["loss"]}
         if (
             model.model_card_data.training_logs
             and model.model_card_data.training_logs[-1]["Step"] == state.global_step
@@ -751,6 +753,9 @@ class SentenceTransformerModelCardData(CardData):
             for model_id in candidate_model_ids:
                 if self.set_base_model(model_id):
                     break
+        elif isinstance(self.model[0], StaticEmbedding):
+            if self.model[0].base_model:
+                self.set_base_model(self.model[0].base_model)
 
     def format_eval_metrics(self) -> dict[str, Any]:
         """Format the evaluation metrics for the model card.
@@ -830,19 +835,25 @@ class SentenceTransformerModelCardData(CardData):
 
     def format_training_logs(self):
         # Get the keys from all evaluation lines
-        eval_lines_keys = {key for lines in self.training_logs for key in lines.keys()}
+        eval_lines_keys = []
+        for lines in self.training_logs:
+            for key in lines.keys():
+                if key not in eval_lines_keys:
+                    eval_lines_keys.append(key)
 
         # Sort the metric columns: Epoch, Step, Training Loss, Validation Loss, Evaluator results
         def sort_metrics(key: str) -> str:
             if key == "Epoch":
-                return "0"
+                return 0
             if key == "Step":
-                return "1"
+                return 1
             if key == "Training Loss":
-                return "2"
+                return 2
+            if key == "Validation Loss":
+                return 3
             if key.endswith("loss"):
-                return "3"
-            return key
+                return 4
+            return eval_lines_keys.index(key) + 5
 
         sorted_eval_lines_keys = sorted(eval_lines_keys, key=sort_metrics)
         training_logs = [
