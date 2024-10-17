@@ -8,6 +8,13 @@ from tokenizers import Tokenizer
 
 from sentence_transformers.models.StaticEmbedding import StaticEmbedding
 
+try:
+    import model2vec
+except ImportError:
+    model2vec = None
+
+skip_if_no_model2vec = pytest.mark.skipif(model2vec is None, reason="The model2vec library is not installed.")
+
 
 @pytest.fixture
 def tokenizer() -> Tokenizer:
@@ -57,11 +64,13 @@ def test_save_and_load(tmp_path: Path, static_embedding: StaticEmbedding) -> Non
     assert loaded_model.embedding.weight.shape == static_embedding.embedding.weight.shape
 
 
+@skip_if_no_model2vec()
 def test_from_distillation() -> None:
     model = StaticEmbedding.from_distillation("sentence-transformers-testing/stsb-bert-tiny-safetensors", pca_dims=32)
     assert model.embedding.weight.shape == (29528, 32)
 
 
+@skip_if_no_model2vec()
 def test_from_model2vec() -> None:
     model = StaticEmbedding.from_model2vec("minishlab/M2V_base_output")
     assert model.embedding.weight.shape == (29528, 256)
