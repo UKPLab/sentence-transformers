@@ -174,7 +174,10 @@ class StaticEmbedding(nn.Module):
             apply_zipf=apply_zipf,
             use_subword=use_subword,
         )
-        embedding_weights = static_model.embedding.weight
+        if isinstance(static_model.embedding, np.ndarray):
+            embedding_weights = torch.from_numpy(static_model.embedding)
+        else:
+            embedding_weights = static_model.embedding.weight
         tokenizer: Tokenizer = static_model.tokenizer
 
         return cls(tokenizer, embedding_weights=embedding_weights, base_model=model_name)
@@ -202,7 +205,10 @@ class StaticEmbedding(nn.Module):
             raise ImportError("To use this method, please install the `model2vec` package: `pip install model2vec`")
 
         static_model = StaticModel.from_pretrained(model_id_or_path)
-        embedding_weights = static_model.embedding.weight
+        if isinstance(static_model.embedding, np.ndarray):
+            embedding_weights = torch.from_numpy(static_model.embedding)
+        else:
+            embedding_weights = static_model.embedding.weight
         tokenizer: Tokenizer = static_model.tokenizer
 
         return cls(tokenizer, embedding_weights=embedding_weights, base_model=model_id_or_path)
