@@ -104,6 +104,13 @@ class SentenceTransformer(nn.Sequential, FitMixin):
               or `"flash_attention_2"` (using `Dao-AILab/flash-attention <https://github.com/Dao-AILab/flash-attention>`_).
               By default, if available, SDPA will be used for torch>=2.1.1. The default is otherwise the manual `"eager"`
               implementation.
+            - ``provider``: If backend is "onnx", this is the provider to use for inference, for example "CPUExecutionProvider",
+              "CUDAExecutionProvider", etc. See https://onnxruntime.ai/docs/execution-providers/ for all ONNX execution providers.
+            - ``file_name``: If backend is "onnx" or "openvino", this is the file name to load, useful for loading optimized
+              or quantized ONNX or OpenVINO models.
+            - ``export``: If backend is "onnx" or "openvino", then this is a boolean flag specifying whether this model should
+              be exported to the backend. If not specified, the model will be exported only if the model repository or directory
+              does not already contain an exported model.
 
             See the `PreTrainedModel.from_pretrained
             <https://huggingface.co/docs/transformers/en/main_classes/model#transformers.PreTrainedModel.from_pretrained>`_
@@ -119,6 +126,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         model_card_data (:class:`~sentence_transformers.model_card.SentenceTransformerModelCardData`, optional): A model
             card data object that contains information about the model. This is used to generate a model card when saving
             the model. If not set, a default model card data object is created.
+        backend (str): The backend to use for inference. Can be one of "torch" (default), "onnx", or "openvino".
+            See https://sbert.net/docs/sentence_transformer/usage/efficiency.html for benchmarking information
+            on the different backends.
 
     Example:
         ::
@@ -165,6 +175,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         tokenizer_kwargs: dict[str, Any] | None = None,
         config_kwargs: dict[str, Any] | None = None,
         model_card_data: SentenceTransformerModelCardData | None = None,
+        backend: Literal["torch", "onnx", "openvino"] = "torch",
     ) -> None:
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
@@ -177,6 +188,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
+        self.backend = backend
         if use_auth_token is not None:
             warnings.warn(
                 "The `use_auth_token` argument is deprecated and will be removed in v4 of SentenceTransformers.",
@@ -367,6 +379,14 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
         # Pass the model to the model card data for later use in generating a model card upon saving this model
         self.model_card_data.register_model(self)
+
+    def get_backend(self) -> Literal["torch", "onnx", "openvino"]:
+        """Return the backend used for inference, which can be one of "torch", "onnx", or "openvino".
+
+        Returns:
+            str: The backend used for inference.
+        """
+        return self.backend
 
     @overload
     def encode(
@@ -1313,12 +1333,13 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         token: str | None = None,
         private: bool | None = None,
         safe_serialization: bool = True,
-        commit_message: str = "Add new SentenceTransformer model.",
+        commit_message: str | None = None,
         local_model_path: str | None = None,
         exist_ok: bool = False,
         replace_model_card: bool = False,
         train_datasets: list[str] | None = None,
         revision: str | None = None,
+        create_pr: bool = False,
     ) -> str:
         """
         Uploads all elements of this Sentence Transformer to a new HuggingFace Hub repository.
@@ -1334,6 +1355,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             replace_model_card (bool, optional): If true, replace an existing model card in the hub with the automatically created model card
             train_datasets (List[str], optional): Datasets used to train the model. If set, the datasets will be added to the model card in the Hub.
             revision (str, optional): Branch to push the uploaded files to
+            create_pr (bool, optional): If True, create a pull request instead of pushing directly to the main branch
 
         Returns:
             str: The url of the commit of your model in the repository on the Hugging Face Hub.
@@ -1343,20 +1365,67 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             repo_id=repo_id,
             private=private,
             repo_type=None,
-            exist_ok=exist_ok,
+            exist_ok=exist_ok or create_pr,
         )
         repo_id = repo_url.repo_id  # Update the repo_id in case the old repo_id didn't contain a user or organization
         self.model_card_data.set_model_id(repo_id)
         if revision is not None:
             api.create_branch(repo_id=repo_id, branch=revision, exist_ok=True)
+
+        if commit_message is None:
+            backend = self.get_backend()
+            if backend == "torch":
+                commit_message = "Add new SentenceTransformer model"
+            else:
+                commit_message = f"Add new SentenceTransformer model with an {backend} backend"
+
+        commit_description = ""
+        if create_pr:
+            commit_description = f"""\
+Hello!
+
+*This pull request has been automatically generated from the [`push_to_hub`](https://sbert.net/docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer.push_to_hub) method from the Sentence Transformers library.*
+
+## Full Model Architecture:
+```
+{self}
+```
+
+## Tip:
+Consider testing this pull request before merging by loading the model from this PR with the `revision` argument:
+```python
+from sentence_transformers import SentenceTransformer
+
+# TODO: Fill in the PR number
+pr_number = 2
+model = SentenceTransformer(
+    "{repo_id}",
+    revision=f"refs/pr/{{pr_number}}",
+    backend="{self.get_backend()}",
+)
+
+# Verify that everything works as expected
+embeddings = model.encode(["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."])
+print(embeddings.shape)
+
+similarities = model.similarity(embeddings, embeddings)
+print(similarities)
+```
+"""
+
         if local_model_path:
             folder_url = api.upload_folder(
-                repo_id=repo_id, folder_path=local_model_path, commit_message=commit_message, revision=revision
+                repo_id=repo_id,
+                folder_path=local_model_path,
+                commit_message=commit_message,
+                commit_description=commit_description,
+                revision=revision,
+                create_pr=create_pr,
             )
         else:
             with tempfile.TemporaryDirectory() as tmp_dir:
                 create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, "README.md"))
-                self.save(
+                self.save_pretrained(
                     tmp_dir,
                     model_name=repo_url.repo_id,
                     create_model_card=create_model_card,
@@ -1364,18 +1433,17 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                     safe_serialization=safe_serialization,
                 )
                 folder_url = api.upload_folder(
-                    repo_id=repo_id, folder_path=tmp_dir, commit_message=commit_message, revision=revision
+                    repo_id=repo_id,
+                    folder_path=tmp_dir,
+                    commit_message=commit_message,
+                    commit_description=commit_description,
+                    revision=revision,
+                    create_pr=create_pr,
                 )
 
-        refs = api.list_repo_refs(repo_id=repo_id)
-        for branch in refs.branches:
-            if revision is None and branch.name == "main":
-                return f"https://huggingface.co/{repo_id}/commit/{branch.target_commit}"
-            elif branch.name == revision:
-                return f"https://huggingface.co/{repo_id}/commit/{branch.target_commit}"
-
-        # This isn't expected to ever be reached.
-        return folder_url
+        if create_pr:
+            return folder_url.pr_url
+        return folder_url.commit_url
 
     def _text_length(self, text: list[int] | list[list[int]]) -> int:
         """
@@ -1457,13 +1525,19 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             model_args=model_kwargs,
             tokenizer_args=tokenizer_kwargs,
             config_args=config_kwargs,
+            backend=self.backend,
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
         self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return [transformer_model, pooling_model]
 
     def _load_module_class_from_ref(
-        self, class_ref: str, model_name_or_path: str, trust_remote_code: bool, model_kwargs: dict[str, Any] | None
+        self,
+        class_ref: str,
+        model_name_or_path: str,
+        trust_remote_code: bool,
+        revision: str | None,
+        model_kwargs: dict[str, Any] | None,
     ) -> nn.Module:
         # If the class is from sentence_transformers, we can directly import it,
         # otherwise, we try to import it dynamically, and if that fails, we fall back to the default import
@@ -1476,6 +1550,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
                 return get_class_from_dynamic_module(
                     class_ref,
                     model_name_or_path,
+                    revision=revision,
                     code_revision=code_revision,
                 )
             except OSError:
@@ -1578,7 +1653,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         for module_config in modules_config:
             class_ref = module_config["type"]
             module_class = self._load_module_class_from_ref(
-                class_ref, model_name_or_path, trust_remote_code, model_kwargs
+                class_ref, model_name_or_path, trust_remote_code, revision, model_kwargs
             )
 
             # For Transformer, don't load the full directory, rely on `transformers` instead
@@ -1643,10 +1718,10 @@ class SentenceTransformer(nn.Sequential, FitMixin):
 
                 # Try to initialize the module with a lot of kwargs, but only if the module supports them
                 # Otherwise we fall back to the load method
-                try:
-                    module = module_class(model_name_or_path, cache_dir=cache_folder, **kwargs)
-                except TypeError:
-                    module = module_class.load(model_name_or_path)
+                # try:
+                module = module_class(model_name_or_path, cache_dir=cache_folder, backend=self.backend, **kwargs)
+                # except TypeError:
+                #     module = module_class.load(model_name_or_path)
             else:
                 # Normalize does not require any files to be loaded
                 if module_class == Normalize:
@@ -1684,6 +1759,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         Get torch.device from module, assuming that the whole module has one device.
         In case there are no PyTorch parameters, fall back to CPU.
         """
+        if isinstance(self[0], Transformer):
+            return self[0].auto_model.device
+
         try:
             return next(self.parameters()).device
         except StopIteration:

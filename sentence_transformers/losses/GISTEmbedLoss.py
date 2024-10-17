@@ -5,7 +5,7 @@ from typing import Any, Iterable
 import torch
 from torch import Tensor, nn
 
-from sentence_transformers.models import Transformer
+from sentence_transformers.models import StaticEmbedding, Transformer
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
@@ -90,6 +90,12 @@ class GISTEmbedLoss(nn.Module):
         )
         if self.must_retokenize:
             self.tokenizer = self.model.tokenizer
+
+            if isinstance(self.model[0], StaticEmbedding):
+                raise ValueError(
+                    "If we must retokenize because the guide model has a different tokenizer, "
+                    "then the Sentence Transformer model must not be based on a StaticEmbedding."
+                )
 
     def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))

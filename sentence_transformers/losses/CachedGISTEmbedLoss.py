@@ -10,7 +10,7 @@ from torch import Tensor, nn
 from torch.utils.checkpoint import get_device_states, set_device_states
 
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.models import Transformer
+from sentence_transformers.models import StaticEmbedding, Transformer
 
 
 class RandContext:
@@ -139,6 +139,11 @@ class CachedGISTEmbedLoss(nn.Module):
                 trainer.train()
         """
         super().__init__()
+        if isinstance(model[0], StaticEmbedding):
+            raise ValueError(
+                "CachedGISTEmbedLoss is not compatible with a SentenceTransformer model based on a StaticEmbedding. "
+                "Consider using GISTEmbedLoss instead."
+            )
         self.model = model
         self.guide = guide
         self.temperature = temperature

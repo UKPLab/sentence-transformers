@@ -216,8 +216,8 @@ def semantic_search_usearch(
             `corpus_embeddings` or `corpus_index` should be used, not
             both.
         corpus_precision: Precision of the corpus embeddings. The
-            options are "float32", "int8", or "binary". Default is
-            "float32".
+            options are "float32", "int8", "ubinary" or "binary". Default
+            is "float32".
         top_k: Number of top results to retrieve. Default is 10.
         ranges: Ranges for quantization of embeddings. This is only used
             for int8 quantization, where the ranges refers to the
@@ -263,8 +263,8 @@ def semantic_search_usearch(
         raise ValueError("Only corpus_embeddings or corpus_index should be used, not both.")
     if corpus_embeddings is None and corpus_index is None:
         raise ValueError("Either corpus_embeddings or corpus_index should be used.")
-    if corpus_precision not in ["float32", "int8", "binary"]:
-        raise ValueError('corpus_precision must be "float32", "int8", or "binary" for usearch')
+    if corpus_precision not in ["float32", "int8", "ubinary", "binary"]:
+        raise ValueError('corpus_precision must be "float32", "int8", "ubinary", "binary" for usearch')
 
     # If corpus_index is not provided, create a new index
     if corpus_index is None:
@@ -283,6 +283,12 @@ def semantic_search_usearch(
         elif corpus_precision == "binary":
             corpus_index = Index(
                 ndim=corpus_embeddings.shape[1],
+                metric="hamming",
+                dtype="i8",
+            )
+        elif corpus_precision == "ubinary":
+            corpus_index = Index(
+                ndim=corpus_embeddings.shape[1] * 8,
                 metric="hamming",
                 dtype="b1",
             )
@@ -331,7 +337,7 @@ def semantic_search_usearch(
     if rescore_embeddings is not None:
         top_k_embeddings = np.array([corpus_index.get(query_indices) for query_indices in indices])
         # If the corpus precision is binary, we need to unpack the bits
-        if corpus_precision == "binary":
+        if corpus_precision in ("ubinary", "binary"):
             top_k_embeddings = np.unpackbits(top_k_embeddings.astype(np.uint8), axis=-1)
         top_k_embeddings = top_k_embeddings.astype(int)
 

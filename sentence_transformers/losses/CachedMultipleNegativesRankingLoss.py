@@ -10,6 +10,7 @@ from torch import Tensor, nn
 from torch.utils.checkpoint import get_device_states, set_device_states
 
 from sentence_transformers import SentenceTransformer, util
+from sentence_transformers.models import StaticEmbedding
 
 
 class RandContext:
@@ -145,6 +146,12 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
                 trainer.train()
         """
         super().__init__()
+        if isinstance(model[0], StaticEmbedding):
+            raise ValueError(
+                "CachedMultipleNegativesRankingLoss is not compatible with a SentenceTransformer model based on a StaticEmbedding. "
+                "Consider using MultipleNegativesRankingLoss instead."
+            )
+
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct
