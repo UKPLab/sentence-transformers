@@ -16,6 +16,7 @@ import numpy as np
 import pytest
 import torch
 from huggingface_hub import CommitInfo, HfApi, RepoUrl
+from peft import PeftModel
 from torch import nn
 
 from sentence_transformers import SentenceTransformer, util
@@ -414,6 +415,32 @@ def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert transformer_kwargs["model_args"]["low_cpu_mem_usage"] is False
     assert "attn_implementation" in transformer_kwargs["model_args"]
     assert transformer_kwargs["model_args"]["attn_implementation"] == "eager"
+
+
+def test_load_checkpoint_with_peft_and_lora() -> None:
+    from peft import LoraConfig, TaskType, get_peft_model
+
+    peft_config = LoraConfig(
+        target_modules=["query", "key", "value"],
+        task_type=TaskType.FEATURE_EXTRACTION,
+        inference_mode=False,
+        r=8,
+        lora_alpha=32,
+        lora_dropout=0.1,
+    )
+
+    with SafeTemporaryDirectory() as tmp_folder:
+        model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+        model._modules["0"].auto_model = get_peft_model(model._modules["0"].auto_model, peft_config)
+        model.save(tmp_folder)
+        expecteds = model.encode(["Hello there!", "How are you?"])
+
+        loaded_peft_model = SentenceTransformer(tmp_folder)
+        actuals = loaded_peft_model.encode(["Hello there!", "How are you?"])
+
+        assert isinstance(model._modules["0"].auto_model, nn.Module)
+        assert isinstance(loaded_peft_model._modules["0"].auto_model, PeftModel)
+        assert [expected.tolist() for expected in expecteds] == [actual.tolist() for actual in actuals]
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
