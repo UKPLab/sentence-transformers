@@ -429,6 +429,9 @@ class SentenceTransformerModelCardData(CardData):
             ]
             str_dataset = dataset[dataset_name].select_columns(columns)
             dataset_size = len(str_dataset)
+            if dataset_size == 0:
+                continue
+
             lengths = {}
             for idx, sample in enumerate(
                 str_dataset.select(random.sample(range(dataset_size), k=min(num_samples_to_check, dataset_size)))
