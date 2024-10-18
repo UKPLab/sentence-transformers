@@ -158,10 +158,10 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             truncate_dim (int, optional): The dimension to truncate the embeddings to. Defaults to None.
             score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to {SimilarityFunction.COSINE.value: cos_sim, SimilarityFunction.DOT_PRODUCT.value: dot_score}.
             main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
-            query_prompt (str, optional): A prompt to use for the queries. Defaults to None.
-            query_prompt_name (str, optional): A name for the query prompt. Defaults to None.
-            corpus_prompt (str, optional): A prompt to use for the corpus. Defaults to None.
-            corpus_prompt_name (str, optional): A name for the corpus prompt. Defaults to None.
+            query_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
+            query_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
+            corpus_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
+            corpus_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
         """
         super().__init__()
         self.queries_ids = []
@@ -290,7 +290,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         return metrics
 
     def compute_metrices(
-        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor = None
+        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor | None = None
     ) -> dict[str, float]:
         if corpus_model is None:
             corpus_model = model
@@ -309,8 +309,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 self.queries,
                 prompt_name=self.query_prompt_name,
                 prompt=self.query_prompt,
-                show_progress_bar=self.show_progress_bar,
                 batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
                 convert_to_tensor=True,
             )
 
@@ -333,8 +333,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                         self.corpus[corpus_start_idx:corpus_end_idx],
                         prompt_name=self.corpus_prompt_name,
                         prompt=self.corpus_prompt,
-                        show_progress_bar=False,
                         batch_size=self.batch_size,
+                        show_progress_bar=False,
                         convert_to_tensor=True,
                     )
             else:
