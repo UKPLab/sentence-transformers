@@ -155,7 +155,7 @@ class Transformer(nn.Module):
         else:
             model_args["ov_config"] = {}
 
-        # Either load an exported model, or export the model to ONNX
+        # Either load an exported model, or export the model to OpenVINO
         self.auto_model: OVModelForFeatureExtraction = OVModelForFeatureExtraction.from_pretrained(
             model_name_or_path,
             config=config,
