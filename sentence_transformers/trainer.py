@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import warnings
 from collections import OrderedDict
 from contextlib import nullcontext
 from typing import TYPE_CHECKING, Any, Callable
@@ -156,13 +155,18 @@ class SentenceTransformerTrainer(Trainer):
                 raise RuntimeError("`Trainer` requires either a `model` or `model_init` argument")
         else:
             if model_init is not None:
-                warnings.warn(
+                logger.warning(
                     "`Trainer` requires either a `model` or `model_init` argument, but not both. `model_init` will"
-                    " overwrite your model when calling the `train` method. This will become a fatal error in the next"
-                    " release.",
-                    FutureWarning,
+                    " overwrite your model when calling the `train` method."
                 )
             self.model_init = model_init
+
+        if compute_metrics is not None:
+            logger.warning(
+                "`compute_metrics` is currently not compatible with the SentenceTransformerTrainer. Please use the "
+                "`evaluator` argument instead for detailed evaluation metrics, or the `eval_dataset` argument for "
+                "the evaluation loss."
+            )
 
         # Get a dictionary of the default training arguments, so we can determine which arguments have been changed
         # for the model card
