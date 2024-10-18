@@ -157,8 +157,7 @@ class SentenceTransformerTrainer(Trainer):
             if model_init is not None:
                 logger.warning(
                     "`Trainer` requires either a `model` or `model_init` argument, but not both. `model_init` will"
-                    " overwrite your model when calling the `train` method. This will become a fatal error in the next"
-                    " release."
+                    " overwrite your model when calling the `train` method."
                 )
             self.model_init = model_init
 
