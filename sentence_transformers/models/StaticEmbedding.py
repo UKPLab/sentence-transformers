@@ -8,11 +8,13 @@ import numpy as np
 import torch
 from safetensors.torch import load_file as load_safetensors_file
 from safetensors.torch import save_file as save_safetensors_file
-from tokenizers import Tokenizer
 from torch import nn
-from transformers import PreTrainedTokenizerFast
+from transformers import PreTrainedTokenizerFast, is_tokenizers_available, requires_backends
 
 from sentence_transformers.util import get_device_name
+
+if is_tokenizers_available():
+    from tokenizers import Tokenizer
 
 
 class StaticEmbedding(nn.Module):
@@ -60,6 +62,7 @@ class StaticEmbedding(nn.Module):
             ValueError: If neither `embedding_weights` nor `embedding_dim` is provided.
         """
         super().__init__()
+        requires_backends(self, "tokenizers")
 
         if isinstance(tokenizer, PreTrainedTokenizerFast):
             tokenizer = tokenizer._tokenizer
@@ -118,6 +121,7 @@ class StaticEmbedding(nn.Module):
         self.tokenizer.save(str(Path(save_dir) / "tokenizer.json"))
 
     def load(load_dir: str, **kwargs) -> StaticEmbedding:
+        requires_backends(StaticEmbedding, "tokenizers")
         tokenizer = Tokenizer.from_file(str(Path(load_dir) / "tokenizer.json"))
         if os.path.exists(os.path.join(load_dir, "model.safetensors")):
             weights = load_safetensors_file(os.path.join(load_dir, "model.safetensors"))
@@ -157,7 +161,7 @@ class StaticEmbedding(nn.Module):
         Raises:
             ImportError: If the `model2vec` package is not installed.
         """
-
+        requires_backends(cls, "tokenizers")
         try:
             from model2vec import distill
         except ImportError:
@@ -193,7 +197,7 @@ class StaticEmbedding(nn.Module):
         Raises:
             ImportError: If the `model2vec` package is not installed.
         """
-
+        requires_backends(cls, "tokenizers")
         try:
             from model2vec import StaticModel
         except ImportError:
