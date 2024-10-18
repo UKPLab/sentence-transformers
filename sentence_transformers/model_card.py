@@ -423,7 +423,9 @@ class SentenceTransformerModelCardData(CardData):
             columns = [
                 column
                 for column, feature in dataset[dataset_name].features.items()
-                if isinstance(feature, Value) and feature.dtype == "string" and column != "dataset_name"
+                if isinstance(feature, Value)
+                and (feature.dtype == "string" or feature.dtype == "large_string")
+                and column != "dataset_name"
             ]
             str_dataset = dataset[dataset_name].select_columns(columns)
             dataset_size = len(str_dataset)
