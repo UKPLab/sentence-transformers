@@ -165,7 +165,7 @@ class SentenceTransformerTrainer(Trainer):
             logger.warning(
                 "`compute_metrics` is currently not compatible with the SentenceTransformerTrainer. Please use the "
                 "`evaluator` argument instead for detailed evaluation metrics, or the `eval_dataset` argument for "
-                "the evaluation loss.",
+                "the evaluation loss."
             )
 
         # Get a dictionary of the default training arguments, so we can determine which arguments have been changed
