@@ -213,6 +213,98 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
             return (len(self.dataset) + self.batch_size - 1) // self.batch_size
 
 
+class MultipleNegativesBatchSampler(SetEpochMixin, BatchSampler):
+    def __init__(
+        self,
+        dataset: Dataset,
+        batch_size: int,
+        drop_last: bool,
+        valid_label_columns: list[str] = [],
+        generator: torch.Generator = None,
+        seed: int = 0,
+    ) -> None:
+        """
+        This sampler creates batches such that each batch contains samples where the negatives are not present
+        in any of the positives already sampled in the batch. This is useful when using a loss with in-batch
+        negatives as it will avoid that a positive also appears as a negative for the same anchor.
+        Using this sampler also avoids that the positives become duplicated
+        the batch, as its hard negatives are part of the same sample.
+
+        Recommended for:
+            - :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`
+            - :class:`~sentence_transformers.losses.CachedMultipleNegativesRankingLoss`
+            - :class:`~sentence_transformers.losses.MegaBatchMarginLoss`
+            - :class:`~sentence_transformers.losses.GISTEmbedLoss`
+            - :class:`~sentence_transformers.losses.CachedGISTEmbedLoss`
+
+        Args:
+            dataset (Dataset): The dataset to sample from.
+            batch_size (int): Number of samples per batch.
+            drop_last (bool): If True, drop the last incomplete batch if the dataset size
+                is not divisible by the batch size.
+            valid_label_columns (List[str]): List of column names to check for labels.
+                The first column name from ``valid_label_columns`` found in the dataset will
+                be used as the label column.
+            generator (torch.Generator, optional): Optional random number generator for shuffling
+                the indices.
+            seed (int, optional): Seed for the random number generator to ensure reproducibility.
+        """
+        super().__init__(dataset, batch_size, drop_last)
+        if label_columns := set(dataset.column_names) & (set(valid_label_columns) | {"dataset_name"}):
+            dataset = dataset.remove_columns(label_columns)
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.drop_last = drop_last
+        self.generator = generator
+        self.seed = seed
+
+    def __iter__(self) -> Iterator[list[int]]:
+        """
+        Iterate over the remaining non-yielded indices. For each index, check if the sample values are already in the
+        batch. If not, add the sample values to the batch keep going until the batch is full. If the batch is full, yield
+        the batch indices and continue with the next batch.
+        """
+        if self.generator and self.seed:
+            self.generator.manual_seed(self.seed + self.epoch)
+        anchor_column = self.dataset.column_names[0]
+        positive_column = self.dataset.column_names[1]
+        negative_columns = [self.dataset.column_names[i] for i in range(2, len(self.dataset.column_names))]
+
+        remaining_indices = set(torch.randperm(len(self.dataset), generator=self.generator).tolist())
+
+        while remaining_indices:
+            batch_values = set()
+            batch_indices = []
+            for index in remaining_indices:
+                sample = self.dataset[index]
+                # Make sure that either the positive or the negatives ARE NOT in the seen positives or queries
+                if negative_columns:
+                    negatives = set([sample[negative_column] for negative_column in negative_columns])
+                    if negatives & batch_values:
+                        continue
+                elif sample[positive_column] in batch_values:
+                    continue
+                batch_indices.append(index)
+                if len(batch_indices) == self.batch_size:
+                    yield batch_indices
+                    break
+
+                batch_values.add(sample[anchor_column])
+                batch_values.add(sample[positive_column])
+            else:
+                # NOTE: some indices might still have been ignored here
+                if not self.drop_last:
+                    yield batch_indices
+
+            remaining_indices -= set(batch_indices)
+
+    def __len__(self) -> int:
+        if self.drop_last:
+            return len(self.dataset) // self.batch_size
+        else:
+            return (len(self.dataset) + self.batch_size - 1) // self.batch_size
+
+
 class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
     """
     Batch sampler that yields batches in a round-robin fashion from multiple batch samplers, until one is exhausted.
