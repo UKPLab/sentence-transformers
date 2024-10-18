@@ -61,7 +61,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install '.[train, onnx, openvino]'
+          python -m pip install '.[train, onnx, openvino, dev]'
 
       - name: Install model2vec
         run: python -m pip install model2vec
