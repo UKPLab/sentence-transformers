@@ -1718,10 +1718,10 @@ print(similarities)
 
                 # Try to initialize the module with a lot of kwargs, but only if the module supports them
                 # Otherwise we fall back to the load method
-                # try:
-                module = module_class(model_name_or_path, cache_dir=cache_folder, backend=self.backend, **kwargs)
-                # except TypeError:
-                #     module = module_class.load(model_name_or_path)
+                try:
+                    module = module_class(model_name_or_path, cache_dir=cache_folder, backend=self.backend, **kwargs)
+                except TypeError:
+                    module = module_class.load(model_name_or_path)
             else:
                 # Normalize does not require any files to be loaded
                 if module_class == Normalize:
