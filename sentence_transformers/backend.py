@@ -78,7 +78,9 @@ def export_optimized_onnx_model(
         or not isinstance(model[0], Transformer)
         or not isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
     ):
-        raise ValueError('The model must be a SentenceTransformer model loaded with `backend="onnx"`.')
+        raise ValueError(
+            'The model must be a Transformer-based SentenceTransformer model loaded with `backend="onnx"`.'
+        )
 
     ort_model: ORTModelForFeatureExtraction = model[0].auto_model
     optimizer = ORTOptimizer.from_pretrained(ort_model)
@@ -158,7 +160,9 @@ def export_dynamic_quantized_onnx_model(
         or not isinstance(model[0], Transformer)
         or not isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
     ):
-        raise ValueError('The model must be a SentenceTransformer model loaded with `backend="onnx"`.')
+        raise ValueError(
+            'The model must be a Transformer-based SentenceTransformer model loaded with `backend="onnx"`.'
+        )
 
     ort_model: ORTModelForFeatureExtraction = model[0].auto_model
     quantizer = ORTQuantizer.from_pretrained(ort_model)
