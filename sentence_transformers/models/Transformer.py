@@ -352,8 +352,8 @@ class Transformer(nn.Module):
 
         features.update({"token_embeddings": output_tokens, "attention_mask": features["attention_mask"]})
 
-        if self.auto_model.config.output_hidden_states:
-            all_layer_idx = 2
+        if self.auto_model.config.output_hidden_states and len(output_states) > 2:
+            all_layer_idx = 2  # I.e. after last_hidden_states and pooler_output
             if len(output_states) < 3:  # Some models only output last_hidden_states and all_hidden_states
                 all_layer_idx = 1
 
