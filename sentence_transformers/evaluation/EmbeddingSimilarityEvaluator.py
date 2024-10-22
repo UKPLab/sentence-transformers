@@ -71,6 +71,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         write_csv: bool = True,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] | None = None,
         truncate_dim: int | None = None,
+        samples_csv_filename: str = "results"
     ):
         """
         Constructs an evaluator based for the dataset.
@@ -97,6 +98,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.precision = precision
         self.truncate_dim = truncate_dim
+        self.samples_csv_filename = samples_csv_filename
 
         assert len(self.sentences1) == len(self.sentences2)
         assert len(self.sentences1) == len(self.scores)
@@ -174,6 +176,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                 precision=self.precision,
                 normalize_embeddings=bool(self.precision),
             )
+        
         # Binary and ubinary embeddings are packed, so we need to unpack them for the distance metrics
         if self.precision == "binary":
             embeddings1 = (embeddings1 + 128).astype(np.uint8)
@@ -209,6 +212,21 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             f"Euclidean-Distance:\tPearson: {eval_pearson_euclidean:.4f}\tSpearman: {eval_spearman_euclidean:.4f}"
         )
         logger.info(f"Dot-Product-Similarity:\tPearson: {eval_pearson_dot:.4f}\tSpearman: {eval_spearman_dot:.4f}")
+
+        # Print sentences with cosine similarity scores
+        print("\nSentences and their cosine similarity scores:\n")
+        # for sent1, sent2, score in zip(self.sentences1, self.sentences2, cosine_scores):
+        #     print(f"Sentence 1: {sent1}")
+        #     print(f"Sentence 2: {sent2}")
+        #     print(f"Cosine Similarity Score: {score:.4f}\n")
+        with open(self.samples_csv_filename, "w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["Sentence 1", "Sentence 2", "Cosine Score"])
+            for sent1, sent2, score in zip(self.sentences1, self.sentences2, cosine_scores):
+                writer.writerow([sent1, sent2, score])
+
+        # Print the directory where the CSV file is saved
+        print(f"CSV file saved in: {self.samples_csv_filename}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
@@ -256,6 +274,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         metrics = self.prefix_name_to_metrics(metrics, self.name)
         self.store_metrics_in_model_card_data(model, metrics)
         return metrics
+
 
     @property
     def description(self) -> str:
