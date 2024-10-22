@@ -38,6 +38,7 @@ from .fit_mixin import FitMixin
 from .models import Normalize, Pooling, Transformer
 from .quantization import quantize_embeddings
 from .util import (
+    ImageChannelDimension,
     batch_to_device,
     get_device_name,
     import_from_string,
@@ -402,6 +403,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[False] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        image_channel_dimension: str = ImageChannelDimension.LAST,
         **kwargs,
     ) -> Tensor: ...
 
@@ -419,6 +421,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[False] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        image_channel_dimension: str = ImageChannelDimension.LAST,
         **kwargs,
     ) -> np.ndarray: ...
 
@@ -436,6 +439,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[True] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        image_channel_dimension: str = ImageChannelDimension.LAST,
         **kwargs,
     ) -> Tensor: ...
 
@@ -453,6 +457,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: Literal[False] = ...,
         device: str = ...,
         normalize_embeddings: bool = ...,
+        image_channel_dimension: str = ImageChannelDimension.LAST,
         **kwargs,
     ) -> list[Tensor]: ...
 
@@ -469,6 +474,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         convert_to_tensor: bool = False,
         device: str = None,
         normalize_embeddings: bool = False,
+        image_channel_dimension: str = ImageChannelDimension.LAST,
         **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor:
         """
@@ -500,6 +506,8 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             device (str, optional): Which :class:`torch.device` to use for the computation. Defaults to None.
             normalize_embeddings (bool, optional): Whether to normalize returned vectors to have length 1. In that case,
                 the faster dot-product (util.dot_score) instead of cosine similarity can be used. Defaults to False.
+            image_channel_dimension (str, optional): Indicate the color channel of an image to be the first or the last element of its shape.
+                If your image is 'ImageChannelDimension.FIRST', the input is required.
 
         Returns:
             Union[List[Tensor], ndarray, Tensor]: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned.
@@ -531,6 +539,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             self.is_hpu_graph_enabled = True
 
         self.eval()
+        # Will be used in Image Tokenizer
+        self.image_channel_dimension = image_channel_dimension
+        
         if show_progress_bar is None:
             show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
 
@@ -1041,7 +1052,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
             Dict[str, Tensor]: A dictionary of tensors with the tokenized texts. Common keys are "input_ids",
                 "attention_mask", and "token_type_ids".
         """
-        return self._first_module().tokenize(texts)
+        return self._first_module().tokenize(texts, image_channel_dimension=self.image_channel_dimension)
 
     def get_sentence_features(self, *features) -> dict[Literal["sentence_embedding"], Tensor]:
         return self._first_module().get_sentence_features(*features)
