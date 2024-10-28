@@ -289,21 +289,30 @@ def save_or_push_to_hub_model(
     if backend == "onnx":
         file_name = f"model_{file_suffix}.onnx"
     elif backend == "openvino":
-        file_name = f"openvino_model.xml"
-        destination_file_name = Path(f"openvino_model_{file_suffix}.xml")
+        file_name = f"openvino_model_{file_suffix}.xml"
 
-    if push_to_hub:
-        with tempfile.TemporaryDirectory() as save_dir:
-            export_function(save_dir)
-            if backend == "onnx":
-                source = (Path(save_dir) / file_name).as_posix()
-                destination = Path(backend) / file_name
-            elif backend == "openvino":
-                source = (Path(save_dir) / backend / file_name).as_posix()
-                destination = Path(backend) / destination_file_name
-            else:
-                raise NotImplementedError(f"Unsupported backend type: {backend}")
+    with tempfile.TemporaryDirectory() as save_dir:
+        export_function(save_dir)
 
+        # OpenVINO models are saved in a nested directory
+        if backend == "openvino":
+            save_dir = Path(save_dir) / backend
+            # and we need to attach the file_suffix for both the .xml and .bin files
+            shutil.move(save_dir / "openvino_model.xml", save_dir / file_name)
+            shutil.move(save_dir / "openvino_model.bin", (save_dir / file_name).with_suffix(".bin"))
+            save_dir = save_dir.as_posix()
+
+        # Because we upload folders and save_dir now has unnecessary files (tokenizer.json, config.json, etc.),
+        # we move the main file to a nested directory
+        if backend == "onnx":
+            dst_dir = Path(save_dir) / backend
+            dst_dir.mkdir(parents=True, exist_ok=True)
+            source = Path(save_dir) / file_name
+            destination = dst_dir / file_name
+            shutil.move(source, destination)
+            save_dir = dst_dir.as_posix()
+
+        if push_to_hub:
             commit_description = ""
             if create_pr:
                 opt_config_string = repr(config).replace("(", "(\n\t").replace(", ", ",\n\t").replace(")", "\n)")
@@ -328,7 +337,7 @@ model = SentenceTransformer(
     "{model_name_or_path}",
     revision=f"refs/pr/{{pr_number}}",
     backend="{backend}",
-    model_kwargs={{"file_name": "{destination}"}},
+    model_kwargs={{"file_name": "{file_name}"}},
 )
 
 # Verify that everything works as expected
@@ -340,32 +349,27 @@ print(similarities)
 ```
 """
 
-            huggingface_hub.upload_file(
-                path_or_fileobj=source,
-                path_in_repo=destination.as_posix(),
+            huggingface_hub.upload_folder(
+                folder_path=save_dir,
+                path_in_repo=backend,
                 repo_id=model_name_or_path,
                 repo_type="model",
-                commit_message=f"Add exported {backend} model {destination.name!r}",
+                commit_message=f"Add exported {backend} model {file_name!r}",
                 commit_description=commit_description,
                 create_pr=create_pr,
             )
 
-    else:
-        with tempfile.TemporaryDirectory() as save_dir:
-            export_function(save_dir)
-
-            dst_dir = os.path.join(model_name_or_path, backend)
+        else:
+            dst_dir = Path(model_name_or_path) / backend
             # Create destination if it does not exist
-            os.makedirs(dst_dir, exist_ok=True)
+            dst_dir.mkdir(parents=True, exist_ok=True)
 
+            source = Path(save_dir) / file_name
+            destination = dst_dir / file_name
+            shutil.copy(source, destination)
+
+            # OpenVINO has a second file to save: the .bin file
             if backend == "openvino":
-                source = Path(save_dir) / backend / file_name
-                bin_file = source.with_suffix(".bin")
-                xml_destination = os.path.join(dst_dir, destination_file_name)
-                bin_destination = os.path.join(dst_dir, destination_file_name.with_suffix(".bin"))
-                shutil.copy(source, xml_destination)
-                shutil.copy(bin_file, bin_destination)
-            else:
-                source = os.path.join(save_dir, file_name)
-                destination = os.path.join(dst_dir, file_name)
-                shutil.copy(source, destination)
+                bin_source = (Path(save_dir) / file_name).with_suffix(".bin")
+                bin_destination = (Path(dst_dir) / file_name).with_suffix(".bin")
+                shutil.copy(bin_source, bin_destination)
