@@ -689,7 +689,7 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return input
 
     @property
-    def similarity_fn_name(self) -> str:
+    def similarity_fn_name(self) -> Literal["cosine", "dot", "euclidean", "manhattan"]:
         """Return the name of the similarity function used by :meth:`SentenceTransformer.similarity` and :meth:`SentenceTransformer.similarity_pairwise`.
 
         Returns:
@@ -706,7 +706,9 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return self._similarity_fn_name
 
     @similarity_fn_name.setter
-    def similarity_fn_name(self, value: str | SimilarityFunction) -> None:
+    def similarity_fn_name(
+        self, value: Literal["cosine", "dot", "euclidean", "manhattan"] | SimilarityFunction
+    ) -> None:
         if isinstance(value, SimilarityFunction):
             value = value.value
         self._similarity_fn_name = value
@@ -1615,7 +1617,7 @@ print(similarities)
                 )
 
             # Set score functions & prompts if not already overridden by the __init__ calls
-            if self.similarity_fn_name is None:
+            if self._similarity_fn_name is None:
                 self.similarity_fn_name = self._model_config.get("similarity_fn_name", None)
             if not self.prompts:
                 self.prompts = self._model_config.get("prompts", {})
