@@ -311,8 +311,14 @@ which saves the quantized model in a directory or model repository that you spec
 Post-Training Static Quantization expects:
 
 - ``model``: a Sentence Transformer model loaded with the OpenVINO backend.
-- ``quantization_config``: a quantization configuration from :class:`~optimum.intel.OVQuantizationConfig` instance.
+- ``quantization_config``: (Optional) The quantization configuration. This parameter accepts either:
+      ``None`` for the default 8-bit quantization, a dictionary representing quantization configurations, or
+      an :class:`~optimum.intel.OVQuantizationConfig` instance.
 - ``model_name_or_path``: a path to save the quantized model file, or the repository name if you want to push it to the Hugging Face Hub.
+- ``dataset_name``: (Optional) The name of the dataset to load for calibration.
+- ``dataset_config_name``: (Optional) The specific configuration of the dataset to load.
+- ``dataset_split``: (Optional) The split of the dataset to load (e.g., 'train', 'test').
+- ``column_name``: (Optional) The column name in the dataset to use for calibration.
 - ``push_to_hub``: (Optional) a boolean to push the quantized model to the Hugging Face Hub.
 - ``create_pr``: (Optional) a boolean to create a pull request when pushing to the Hugging Face Hub. Useful when you don't have write access to the repository.
 - ``file_suffix``: (Optional) a string to append to the model name when saving it. If not specified, ``"qint8_quantized"`` will be used.
@@ -324,14 +330,12 @@ See this example for quantizing a model to ``int8`` with :doc:`static quantizati
    Only quantize once::
 
       from sentence_transformers import SentenceTransformer, export_static_quantized_openvino_model
-      from optimum.intel import OVQuantizationConfig
 
       model = SentenceTransformer("all-MiniLM-L6-v2", backend="openvino")
-      quantization_config = OVQuantizationConfig()
       export_static_quantized_openvino_model(
           model,
-          quantization_config,
-          "sentence-transformers/all-MiniLM-L6-v2",
+          quantization_config=None,
+          model_name_or_path="sentence-transformers/all-MiniLM-L6-v2",
           push_to_hub=True,
           create_pr=True,
       )

@@ -195,8 +195,12 @@ def export_dynamic_quantized_onnx_model(
 
 def export_static_quantized_openvino_model(
     model: SentenceTransformer,
-    quantization_config: OVQuantizationConfig,
+    quantization_config: OVQuantizationConfig | dict | None,
     model_name_or_path: str,
+    dataset_name: str = None,
+    dataset_config_name: str = None,
+    dataset_split: str = None,
+    column_name: str = None,
     push_to_hub: bool = False,
     create_pr: bool = False,
     file_suffix: str = "qint8_quantized",
@@ -212,8 +216,13 @@ def export_static_quantized_openvino_model(
 
     Args:
         model (SentenceTransformer): The SentenceTransformer model to be quantized. Must be loaded with `backend="openvino"`.
-        quantization_config (OVQuantizationConfig): The quantization configuration.
+        quantization_config (OVQuantizationConfig | dict | None): The quantization configuration.
         model_name_or_path (str): The path or Hugging Face Hub repository name where the quantized model will be saved.
+        dataset_name(str, optional): The name of the dataset to load for calibration.
+            If not specified, the `glue` dataset will be used by default.
+        dataset_config_name (str, optional): The specific configuration of the dataset to load.
+        dataset_split (str, optional): The split of the dataset to load (e.g., 'train', 'test'). Defaults to None.
+        column_name (str, optional): The column name in the dataset to use for calibration. Defaults to None.
         push_to_hub (bool, optional): Whether to push the quantized model to the Hugging Face Hub. Defaults to False.
         create_pr (bool, optional): Whether to create a pull request when pushing to the Hugging Face Hub. Defaults to False.
         file_suffix (str, optional): The suffix to add to the quantized model file name. Defaults to `qint8_quantized`.
@@ -251,15 +260,26 @@ def export_static_quantized_openvino_model(
     ov_config = OVConfig(quantization_config=quantization_config)
     quantizer = OVQuantizer.from_pretrained(ov_model)
 
-    def preprocess_function(examples):
-        return model.tokenizer(examples["sentence"], padding="max_length", max_length=384, truncation=True)
+    if any(param is not None for param in [dataset_name, dataset_config_name, dataset_split, column_name]) and not all(
+        param is not None for param in [dataset_name, dataset_config_name, dataset_split, column_name]
+    ):
+        raise ValueError(
+            "Either specify all of `dataset_name`, `dataset_config_name`, `dataset_split`, and `column_name`, or leave them all unspecified."
+        )
 
+    def preprocess_function(examples):
+        return model.tokenizer(examples, padding="max_length", max_length=384, truncation=True)
+
+    dataset_name = dataset_name if dataset_name is not None else "glue"
+    dataset_config_name = dataset_config_name if dataset_config_name is not None else "sst2"
+    dataset_split = dataset_split if dataset_split is not None else "train"
+    column_name = column_name if column_name is not None else "sentence"
     calibration_dataset = quantizer.get_calibration_dataset(
-        dataset_name="glue",
-        dataset_config_name="sst2",
-        preprocess_function=preprocess_function,
-        num_samples=300,
-        dataset_split="train",
+        dataset_name=dataset_name,
+        dataset_config_name=dataset_config_name,
+        preprocess_function=lambda examples: preprocess_function(examples[column_name]),
+        num_samples=quantization_config.num_samples if quantization_config is not None else 300,
+        dataset_split=dataset_split,
     )
 
     save_or_push_to_hub_model(
