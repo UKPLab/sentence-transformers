@@ -138,7 +138,13 @@ See this example for exporting a model with :doc:`optimization level 3 <optimum:
       from sentence_transformers import SentenceTransformer, export_optimized_onnx_model
 
       model = SentenceTransformer("all-MiniLM-L6-v2", backend="onnx")
-      export_optimized_onnx_model(model, "O3", "all-MiniLM-L6-v2", push_to_hub=True, create_pr=True)
+      export_optimized_onnx_model(
+          model,
+          "O3",
+          "sentence-transformers/all-MiniLM-L6-v2",
+          push_to_hub=True,
+          create_pr=True,
+      )
 
    Before the pull request gets merged::
 
@@ -146,10 +152,10 @@ See this example for exporting a model with :doc:`optimization level 3 <optimum:
 
       pull_request_nr = 2 # TODO: Update this to the number of your pull request
       model = SentenceTransformer(
-         "all-MiniLM-L6-v2",
-         backend="onnx",
-         model_kwargs={"file_name": "onnx/model_O3.onnx"},
-         revision=f"refs/pr/{pull_request_nr}"
+          "all-MiniLM-L6-v2",
+          backend="onnx",
+          model_kwargs={"file_name": "onnx/model_O3.onnx"},
+          revision=f"refs/pr/{pull_request_nr}"
       )
    
    Once the pull request gets merged::
@@ -157,9 +163,9 @@ See this example for exporting a model with :doc:`optimization level 3 <optimum:
       from sentence_transformers import SentenceTransformer
 
       model = SentenceTransformer(
-         "all-MiniLM-L6-v2",
-         backend="onnx",
-         model_kwargs={"file_name": "onnx/model_O3.onnx"},
+          "all-MiniLM-L6-v2",
+          backend="onnx",
+          model_kwargs={"file_name": "onnx/model_O3.onnx"},
       )
 
 .. tab:: Local Model
@@ -176,9 +182,9 @@ See this example for exporting a model with :doc:`optimization level 3 <optimum:
       from sentence_transformers import SentenceTransformer
 
       model = SentenceTransformer(
-         "path/to/my/mpnet-legal-finetuned",
-         backend="onnx",
-         model_kwargs={"file_name": "onnx/model_O3.onnx"},
+          "path/to/my/mpnet-legal-finetuned",
+          backend="onnx",
+          model_kwargs={"file_name": "onnx/model_O3.onnx"},
       )
 
 Quantizing ONNX Models
@@ -204,7 +210,13 @@ See this example for quantizing a model to ``int8`` with :doc:`avx512_vnni <opti
       from sentence_transformers import SentenceTransformer, export_dynamic_quantized_onnx_model
 
       model = SentenceTransformer("all-MiniLM-L6-v2", backend="onnx")
-      export_dynamic_quantized_onnx_model(model, "avx512_vnni", "all-MiniLM-L6-v2", push_to_hub=True, create_pr=True)
+      export_dynamic_quantized_onnx_model(
+          model,
+          "avx512_vnni",
+          "sentence-transformers/all-MiniLM-L6-v2",
+          push_to_hub=True,
+          create_pr=True,
+      )
 
    Before the pull request gets merged::
 
@@ -212,10 +224,10 @@ See this example for quantizing a model to ``int8`` with :doc:`avx512_vnni <opti
 
       pull_request_nr = 2 # TODO: Update this to the number of your pull request
       model = SentenceTransformer(
-         "all-MiniLM-L6-v2",
-         backend="onnx",
-         model_kwargs={"file_name": "onnx/model_qint8_avx512_vnni.onnx"},
-         revision=f"refs/pr/{pull_request_nr}"
+          "all-MiniLM-L6-v2",
+          backend="onnx",
+          model_kwargs={"file_name": "onnx/model_qint8_avx512_vnni.onnx"},
+          revision=f"refs/pr/{pull_request_nr}",
       )
    
    Once the pull request gets merged::
@@ -223,9 +235,9 @@ See this example for quantizing a model to ``int8`` with :doc:`avx512_vnni <opti
       from sentence_transformers import SentenceTransformer
 
       model = SentenceTransformer(
-         "all-MiniLM-L6-v2",
-         backend="onnx",
-         model_kwargs={"file_name": "onnx/model_qint8_avx512_vnni.onnx"},
+          "all-MiniLM-L6-v2",
+          backend="onnx",
+          model_kwargs={"file_name": "onnx/model_qint8_avx512_vnni.onnx"},
       )
 
 .. tab:: Local Model
@@ -242,9 +254,9 @@ See this example for quantizing a model to ``int8`` with :doc:`avx512_vnni <opti
       from sentence_transformers import SentenceTransformer
 
       model = SentenceTransformer(
-         "path/to/my/mpnet-legal-finetuned",
-         backend="onnx",
-         model_kwargs={"file_name": "onnx/model_qint8_avx512_vnni.onnx"},
+          "path/to/my/mpnet-legal-finetuned",
+          backend="onnx",
+          model_kwargs={"file_name": "onnx/model_qint8_avx512_vnni.onnx"},
       )
 
 OpenVINO
@@ -291,7 +303,7 @@ To convert a model to OpenVINO format, you can use the following code:
       model.push_to_hub("intfloat/multilingual-e5-small", create_pr=True)
 
 Quantizing OpenVINO Models
-^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 OpenVINO models can be quantized to int8 precision using Optimum Intel to speed up inference.
 To do this, you can use the :func:`~sentence_transformers.backend.export_static_quantized_openvino_model` function,
@@ -316,7 +328,13 @@ See this example for quantizing a model to ``int8`` with :doc:`static quantizati
 
       model = SentenceTransformer("all-MiniLM-L6-v2", backend="openvino")
       quantization_config = OVQuantizationConfig()
-      export_static_quantized_openvino_model(model, quantization_config, "all-MiniLM-L6-v2", push_to_hub=True, create_pr=True)
+      export_static_quantized_openvino_model(
+          model,
+          quantization_config,
+          "sentence-transformers/all-MiniLM-L6-v2",
+          push_to_hub=True,
+          create_pr=True,
+      )
 
    Before the pull request gets merged::
 
@@ -324,10 +342,10 @@ See this example for quantizing a model to ``int8`` with :doc:`static quantizati
 
       pull_request_nr = 2 # TODO: Update this to the number of your pull request
       model = SentenceTransformer(
-         "all-MiniLM-L6-v2",
-         backend="openvino",
-         model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
-         revision=f"refs/pr/{pull_request_nr}"
+          "all-MiniLM-L6-v2",
+          backend="openvino",
+          model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
+          revision=f"refs/pr/{pull_request_nr}"
       )
 
    Once the pull request gets merged::
@@ -335,9 +353,9 @@ See this example for quantizing a model to ``int8`` with :doc:`static quantizati
       from sentence_transformers import SentenceTransformer
 
       model = SentenceTransformer(
-         "all-MiniLM-L6-v2",
-         backend="openvino",
-         model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
+          "all-MiniLM-L6-v2",
+          backend="openvino",
+          model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
       )
 
 .. tab:: Local Model
@@ -356,9 +374,9 @@ See this example for quantizing a model to ``int8`` with :doc:`static quantizati
       from sentence_transformers import SentenceTransformer
 
       model = SentenceTransformer(
-         "path/to/my/mpnet-legal-finetuned",
-         backend="openvino",
-         model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
+          "path/to/my/mpnet-legal-finetuned",
+          backend="openvino",
+          model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
       )
 
 Benchmarks
@@ -459,7 +477,7 @@ The following images show the benchmark results for the different backends on GP
                <code>openvino</code>: OpenVINO, via <code>backend="openvino"</code>.
             </li>
             <li>
-               <code>openvino-igpu</code>: OpenVINO, via <code>backend="openvino"</code> and <code>model_kwargs={"device": "GPU"})</code> to use the iGPU from my CPU.
+               <code>openvino-qint8</code>: OpenVINO quantized to int8 via <code>export_static_quantized_openvino_model(..., OVQuantizationConfig(), ...)</code> and <code>backend="openvino"</code>.
             </li>
          </ul>
       </li>
@@ -499,13 +517,13 @@ Based on the benchmarks, this flowchart should help you decide which backend to 
    A -->|CPU| C(Is a 0.4% accuracy loss acceptable?)
    B -->|yes| D[onnx-O4]
    B -->|no| F[float16]
-   C -->|yes| G[onnx-int8]
+   C -->|yes| G[openvino-qint8]
    C -->|no| H(Do you have an Intel CPU?)
    H -->|yes| I[openvino]
    H -->|no| J[onnx]
    click D "#optimizing-onnx-models"
    click F "#pytorch"
-   click G "#quantizing-onnx-models"
+   click G "#quantizing-openvino-models"
    click I "#openvino"
    click J "#onnx"
 
