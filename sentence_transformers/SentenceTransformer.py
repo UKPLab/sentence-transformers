@@ -689,18 +689,20 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return input
 
     @property
-    def similarity_fn_name(self) -> str | None:
+    def similarity_fn_name(self) -> str:
         """Return the name of the similarity function used by :meth:`SentenceTransformer.similarity` and :meth:`SentenceTransformer.similarity_pairwise`.
 
         Returns:
-            Optional[str]: The name of the similarity function. Can be None if not set, in which case any uses of
-            :meth:`SentenceTransformer.similarity` and :meth:`SentenceTransformer.similarity_pairwise` default to "cosine".
+            Optional[str]: The name of the similarity function. Can be None if not set, in which case it will
+                default to "cosine" when first called.
 
         Example:
             >>> model = SentenceTransformer("multi-qa-mpnet-base-dot-v1")
             >>> model.similarity_fn_name
             'dot'
         """
+        if self._similarity_fn_name is None:
+            self.similarity_fn_name = SimilarityFunction.COSINE
         return self._similarity_fn_name
 
     @similarity_fn_name.setter

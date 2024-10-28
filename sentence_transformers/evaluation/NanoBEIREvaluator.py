@@ -12,7 +12,7 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation.InformationRetrievalEvaluator import InformationRetrievalEvaluator
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 from sentence_transformers.similarity_functions import SimilarityFunction
-from sentence_transformers.util import cos_sim, dot_score, is_datasets_available
+from sentence_transformers.util import is_datasets_available
 
 if TYPE_CHECKING:
     from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -157,10 +157,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
         batch_size: int = 32,
         write_csv: bool = True,
         truncate_dim: int | None = None,
-        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = {
-            SimilarityFunction.COSINE.value: cos_sim,
-            SimilarityFunction.DOT_PRODUCT.value: dot_score,
-        },  # Score function, higher=more similar
+        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = None,
         main_score_function: str | SimilarityFunction | None = None,
         aggregate_fn: Callable[[list[float]], float] = np.mean,
         aggregate_key: str = "mean",
@@ -200,7 +197,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
         self.show_progress_bar = show_progress_bar
         self.write_csv = write_csv
         self.score_functions = score_functions
-        self.score_function_names = sorted(list(self.score_functions.keys()))
+        self.score_function_names = sorted(list(self.score_functions.keys())) if score_functions else []
         self.main_score_function = main_score_function
         self.truncate_dim = truncate_dim
         self.name = f"NanoBEIR_{aggregate_key}"
@@ -235,21 +232,24 @@ class NanoBEIREvaluator(SentenceEvaluator):
         self.csv_file: str = f"NanoBEIR_evaluation_{aggregate_key}_results.csv"
         self.csv_headers = ["epoch", "steps"]
 
-        for score_name in self.score_function_names:
-            for k in accuracy_at_k:
+        self._append_csv_headers(self.score_function_names)
+
+    def _append_csv_headers(self, score_function_names):
+        for score_name in score_function_names:
+            for k in self.accuracy_at_k:
                 self.csv_headers.append(f"{score_name}-Accuracy@{k}")
 
-            for k in precision_recall_at_k:
+            for k in self.precision_recall_at_k:
                 self.csv_headers.append(f"{score_name}-Precision@{k}")
                 self.csv_headers.append(f"{score_name}-Recall@{k}")
 
-            for k in mrr_at_k:
+            for k in self.mrr_at_k:
                 self.csv_headers.append(f"{score_name}-MRR@{k}")
 
-            for k in ndcg_at_k:
+            for k in self.ndcg_at_k:
                 self.csv_headers.append(f"{score_name}-NDCG@{k}")
 
-            for k in map_at_k:
+            for k in self.map_at_k:
                 self.csv_headers.append(f"{score_name}-MAP@{k}")
 
     def __call__(
@@ -267,6 +267,12 @@ class NanoBEIREvaluator(SentenceEvaluator):
         if self.truncate_dim is not None:
             out_txt += f" (truncated to {self.truncate_dim})"
         logger.info(f"NanoBEIR Evaluation of the model on {self.dataset_names} dataset{out_txt}:")
+
+        if self.score_functions is None:
+            self.score_functions = {model.similarity_fn_name: model.similarity}
+            self.score_function_names = [model.similarity_fn_name]
+            self._append_csv_headers(self.score_function_names)
+
         for evaluator in tqdm(self.evaluators, desc="Evaluating datasets", disable=not self.show_progress_bar):
             logger.info(f"Evaluating {evaluator.name}")
             evaluation = evaluator(model, output_path, epoch, steps)
@@ -283,7 +289,6 @@ class NanoBEIREvaluator(SentenceEvaluator):
         agg_results = {}
         for metric in per_metric_results:
             agg_results[metric] = self.aggregate_fn(per_metric_results[metric])
-            per_dataset_results[self.aggregate_key + "_" + metric] = agg_results[metric]
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
@@ -323,17 +328,13 @@ class NanoBEIREvaluator(SentenceEvaluator):
                     [(name, agg_results[f"{name}_ndcg@{max(self.ndcg_at_k)}"]) for name in self.score_function_names],
                     key=lambda x: x[1],
                 )[0]
-                self.primary_metric = f"{self.aggregate_key}_{score_function}_ndcg@{max(self.ndcg_at_k)}"
+                self.primary_metric = f"{score_function}_ndcg@{max(self.ndcg_at_k)}"
             else:
-                self.primary_metric = (
-                    f"{self.aggregate_key}_{self.main_score_function.value}_ndcg@{max(self.ndcg_at_k)}"
-                )
-
-        self.store_metrics_in_model_card_data(model, agg_results)
+                self.primary_metric = f"{self.main_score_function.value}_ndcg@{max(self.ndcg_at_k)}"
 
         avg_queries = np.mean([len(evaluator.queries) for evaluator in self.evaluators])
         avg_corpus = np.mean([len(evaluator.corpus) for evaluator in self.evaluators])
-        logger.info(f"\nAverage Queries: {avg_queries}")
+        logger.info(f"Average Queries: {avg_queries}")
         logger.info(f"Average Corpus: {avg_corpus}\n")
 
         for name in self.score_function_names:
@@ -350,6 +351,13 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
             for k in self.ndcg_at_k:
                 logger.info("NDCG@{}: {:.4f}".format(k, agg_results[f"{name}_ndcg@{k}"]))
+
+        # TODO: Ensure this primary_metric works as expected, also with bolding the right thing in the model card
+        agg_results = self.prefix_name_to_metrics(agg_results, self.name)
+        self.store_metrics_in_model_card_data(model, agg_results)
+
+        per_dataset_results.update(agg_results)
+
         return per_dataset_results
 
     def _get_human_readable_name(self, dataset_name: DatasetNameType) -> str:
@@ -400,13 +408,17 @@ class NanoBEIREvaluator(SentenceEvaluator):
     def _validate_prompts(self):
         error_msg = ""
         if self.query_prompts is not None:
-            if missing_query_prompts := [
+            if isinstance(self.query_prompts, str):
+                self.query_prompts = {dataset_name: self.query_prompts for dataset_name in self.dataset_names}
+            elif missing_query_prompts := [
                 dataset_name for dataset_name in self.dataset_names if dataset_name not in self.query_prompts
             ]:
                 error_msg += f"The following datasets are missing query prompts: {missing_query_prompts}\n"
 
         if self.corpus_prompts is not None:
-            if missing_corpus_prompts := [
+            if isinstance(self.corpus_prompts, str):
+                self.corpus_prompts = {dataset_name: self.corpus_prompts for dataset_name in self.dataset_names}
+            elif missing_corpus_prompts := [
                 dataset_name for dataset_name in self.dataset_names if dataset_name not in self.corpus_prompts
             ]:
                 error_msg += f"The following datasets are missing corpus prompts: {missing_corpus_prompts}\n"
