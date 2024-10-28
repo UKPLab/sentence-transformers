@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -15,8 +14,8 @@ if TYPE_CHECKING:
     from sentence_transformers.SentenceTransformer import SentenceTransformer
 
     try:
-        from optimum.onnxruntime.configuration import OptimizationConfig, QuantizationConfig
         from optimum.intel import OVQuantizationConfig
+        from optimum.onnxruntime.configuration import OptimizationConfig, QuantizationConfig
     except ImportError:
         pass
 
@@ -231,7 +230,7 @@ def export_static_quantized_openvino_model(
     from sentence_transformers.models.Transformer import Transformer
 
     try:
-        from optimum.intel import OVModelForFeatureExtraction, OVQuantizer, OVConfig
+        from optimum.intel import OVConfig, OVModelForFeatureExtraction, OVQuantizer
     except ImportError:
         raise ImportError(
             "Please install Optimum and OpenVINO to use this function. "
@@ -264,7 +263,9 @@ def export_static_quantized_openvino_model(
     )
 
     save_or_push_to_hub_model(
-        export_function=lambda save_dir: quantizer.quantize(calibration_dataset, save_directory=save_dir, ov_config=ov_config),
+        export_function=lambda save_dir: quantizer.quantize(
+            calibration_dataset, save_directory=save_dir, ov_config=ov_config
+        ),
         export_function_name="export_static_quantized_openvino_model",
         config=quantization_config,
         model_name_or_path=model_name_or_path,
