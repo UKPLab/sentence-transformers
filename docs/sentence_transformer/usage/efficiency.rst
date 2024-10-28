@@ -290,6 +290,77 @@ To convert a model to OpenVINO format, you can use the following code:
       model = SentenceTransformer("intfloat/multilingual-e5-small", backend="openvino")
       model.push_to_hub("intfloat/multilingual-e5-small", create_pr=True)
 
+Quantizing OpenVINO Models
+^^^^^^^^^^^^^^^^^^^^^^
+
+OpenVINO models can be quantized to int8 precision using Optimum Intel to speed up inference.
+To do this, you can use the :func:`~sentence_transformers.backend.export_static_quantized_openvino_model` function,
+which saves the quantized model in a directory or model repository that you specify.
+Post-Training Static Quantization expects:
+
+- ``model``: a Sentence Transformer model loaded with the OpenVINO backend.
+- ``quantization_config``: a quantization configuration from :class:`~optimum.intel.OVQuantizationConfig` instance.
+- ``model_name_or_path``: a path to save the quantized model file, or the repository name if you want to push it to the Hugging Face Hub.
+- ``push_to_hub``: (Optional) a boolean to push the quantized model to the Hugging Face Hub.
+- ``create_pr``: (Optional) a boolean to create a pull request when pushing to the Hugging Face Hub. Useful when you don't have write access to the repository.
+- ``file_suffix``: (Optional) a string to append to the model name when saving it. If not specified, ``"qint8_quantized"`` will be used.
+
+See this example for quantizing a model to ``int8`` with :doc:`static quantization <optimum-intel:openvino/optimization.mdx#static-quantization>`:
+
+.. tab:: Hugging Face Hub Model
+
+   Only quantize once::
+
+      from sentence_transformers import SentenceTransformer, export_static_quantized_openvino_model
+      from optimum.intel import OVQuantizationConfig
+
+      model = SentenceTransformer("all-MiniLM-L6-v2", backend="openvino")
+      quantization_config = OVQuantizationConfig()
+      export_static_quantized_openvino_model(model, quantization_config, "all-MiniLM-L6-v2", push_to_hub=True, create_pr=True)
+
+   Before the pull request gets merged::
+
+      from sentence_transformers import SentenceTransformer
+
+      pull_request_nr = 2 # TODO: Update this to the number of your pull request
+      model = SentenceTransformer(
+         "all-MiniLM-L6-v2",
+         backend="openvino",
+         model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
+         revision=f"refs/pr/{pull_request_nr}"
+      )
+
+   Once the pull request gets merged::
+
+      from sentence_transformers import SentenceTransformer
+
+      model = SentenceTransformer(
+         "all-MiniLM-L6-v2",
+         backend="openvino",
+         model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
+      )
+
+.. tab:: Local Model
+
+   Only quantize once::
+
+      from sentence_transformers import SentenceTransformer, export_static_quantized_openvino_model
+      from optimum.intel import OVQuantizationConfig
+
+      model = SentenceTransformer("path/to/my/mpnet-legal-finetuned", backend="openvino")
+      quantization_config = OVQuantizationConfig()
+      export_static_quantized_openvino_model(model, quantization_config, "path/to/my/mpnet-legal-finetuned")
+
+   After quantizing::
+
+      from sentence_transformers import SentenceTransformer
+
+      model = SentenceTransformer(
+         "path/to/my/mpnet-legal-finetuned",
+         backend="openvino",
+         model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
+      )
+
 Benchmarks
 ----------
 

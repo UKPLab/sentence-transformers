@@ -10,7 +10,7 @@
 ## Model Optimization
 ```eval_rst
 .. automodule:: sentence_transformers.backend
-   :members: export_optimized_onnx_model, export_dynamic_quantized_onnx_model
+   :members: export_optimized_onnx_model, export_dynamic_quantized_onnx_model, export_static_quantized_openvino_model
 ```
 
 ## Similarity Metrics
