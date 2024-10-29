@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Callable, Literal
 
 import huggingface_hub
 
+from sentence_transformers.util import disable_datasets_caching, is_datasets_available
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -197,10 +199,10 @@ def export_static_quantized_openvino_model(
     model: SentenceTransformer,
     quantization_config: OVQuantizationConfig | dict | None,
     model_name_or_path: str,
-    dataset_name: str = None,
-    dataset_config_name: str = None,
-    dataset_split: str = None,
-    column_name: str = None,
+    dataset_name: str | None = None,
+    dataset_config_name: str | None = None,
+    dataset_split: str | None = None,
+    column_name: str | None = None,
     push_to_hub: bool = False,
     create_pr: bool = False,
     file_suffix: str = "qint8_quantized",
@@ -219,7 +221,7 @@ def export_static_quantized_openvino_model(
         quantization_config (OVQuantizationConfig | dict | None): The quantization configuration.
         model_name_or_path (str): The path or Hugging Face Hub repository name where the quantized model will be saved.
         dataset_name(str, optional): The name of the dataset to load for calibration.
-            If not specified, the `glue` dataset will be used by default.
+            If not specified, the `sst2` subset of the `glue` dataset will be used by default.
         dataset_config_name (str, optional): The specific configuration of the dataset to load.
         dataset_split (str, optional): The split of the dataset to load (e.g., 'train', 'test'). Defaults to None.
         column_name (str, optional): The column name in the dataset to use for calibration. Defaults to None.
@@ -239,14 +241,16 @@ def export_static_quantized_openvino_model(
     from sentence_transformers.models.Transformer import Transformer
 
     try:
-        from datasets import disable_caching
-        from optimum.intel import OVConfig, OVModelForFeatureExtraction, OVQuantizer
+        from optimum.intel import OVConfig, OVModelForFeatureExtraction, OVQuantizationConfig, OVQuantizer
     except ImportError:
         raise ImportError(
             "Please install datasets, optimum-intel and openvino to use this function. "
             "You can install them with pip: `pip install datasets optimum[openvino]`"
         )
-    disable_caching()
+    if not is_datasets_available():
+        raise ImportError(
+            "Please install datasets to use this function. You can install it with pip: `pip install datasets`"
+        )
 
     if (
         not isinstance(model, SentenceTransformer)
@@ -257,6 +261,9 @@ def export_static_quantized_openvino_model(
         raise ValueError(
             'The model must be a Transformer-based SentenceTransformer model loaded with `backend="openvino"`.'
         )
+
+    if quantization_config is None:
+        quantization_config = OVQuantizationConfig()
 
     ov_model: OVModelForFeatureExtraction = model[0].auto_model
     ov_config = OVConfig(quantization_config=quantization_config)
@@ -276,13 +283,14 @@ def export_static_quantized_openvino_model(
     dataset_config_name = dataset_config_name if dataset_config_name is not None else "sst2"
     dataset_split = dataset_split if dataset_split is not None else "train"
     column_name = column_name if column_name is not None else "sentence"
-    calibration_dataset = quantizer.get_calibration_dataset(
-        dataset_name=dataset_name,
-        dataset_config_name=dataset_config_name,
-        preprocess_function=lambda examples: preprocess_function(examples[column_name]),
-        num_samples=quantization_config.num_samples if quantization_config is not None else 300,
-        dataset_split=dataset_split,
-    )
+    with disable_datasets_caching():
+        calibration_dataset = quantizer.get_calibration_dataset(
+            dataset_name=dataset_name,
+            dataset_config_name=dataset_config_name,
+            preprocess_function=lambda examples: preprocess_function(examples[column_name]),
+            num_samples=quantization_config.num_samples if quantization_config is not None else 300,
+            dataset_split=dataset_split,
+        )
 
     save_or_push_to_hub_model(
         export_function=lambda save_dir: quantizer.quantize(
