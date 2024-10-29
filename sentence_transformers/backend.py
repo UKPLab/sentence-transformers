@@ -239,12 +239,14 @@ def export_static_quantized_openvino_model(
     from sentence_transformers.models.Transformer import Transformer
 
     try:
+        from datasets import disable_caching
         from optimum.intel import OVConfig, OVModelForFeatureExtraction, OVQuantizer
     except ImportError:
         raise ImportError(
-            "Please install Optimum and OpenVINO to use this function. "
-            "You can install them with pip: `pip install optimum[openvino]`"
+            "Please install datasets, optimum-intel and openvino to use this function. "
+            "You can install them with pip: `pip install datasets optimum[openvino]`"
         )
+    disable_caching()
 
     if (
         not isinstance(model, SentenceTransformer)
