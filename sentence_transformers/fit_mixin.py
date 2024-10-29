@@ -231,6 +231,9 @@ class FitMixin:
             checkpoint_save_total_limit: Total number of checkpoints to
                 store
         """
+        if not is_datasets_available():
+            raise ImportError("Please install `datasets` to use this function: `pip install datasets`.")
+
         # Delayed import to counter the SentenceTransformers -> FitMixin -> SentenceTransformerTrainer -> SentenceTransformers circular import
         from sentence_transformers.trainer import SentenceTransformerTrainer
 
