@@ -4,7 +4,7 @@ import csv
 import logging
 import os
 from contextlib import nullcontext
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
@@ -42,18 +42,15 @@ class TripletEvaluator(SentenceEvaluator):
                 anchors=dataset[:1000]["anchor"],
                 positives=dataset[:1000]["positive"],
                 negatives=dataset[:1000]["negative"],
-                name="all-nli-dev",
+                name="all_nli_dev",
             )
             results = triplet_evaluator(model)
             '''
             TripletEvaluator: Evaluating the model on the all-nli-dev dataset:
-            Accuracy Cosine Distance:        95.60
-            Accuracy Dot Product:            4.40
-            Accuracy Manhattan Distance:     95.40
-            Accuracy Euclidean Distance:     95.60
+            Accuracy Cosine Distance:        95.60%
             '''
             print(triplet_evaluator.primary_metric)
-            # => "all-nli-dev_max_accuracy"
+            # => "all_nli_dev_cosine_accuracy"
             print(results[triplet_evaluator.primary_metric])
             # => 0.956
     """
@@ -69,6 +66,7 @@ class TripletEvaluator(SentenceEvaluator):
         show_progress_bar: bool = False,
         write_csv: bool = True,
         truncate_dim: int | None = None,
+        similarity_fn_names: list[Literal["cosine", "dot", "euclidean", "manhattan"]] | None = None,
     ):
         """
         Initializes a TripletEvaluator object.
@@ -86,6 +84,9 @@ class TripletEvaluator(SentenceEvaluator):
             write_csv (bool): Write results to a CSV file. Defaults to True.
             truncate_dim (int, optional): The dimension to truncate sentence embeddings to.
                 `None` uses the model's current truncation dimension. Defaults to None.
+            similarity_fn_names (List[str], optional): List of similarity function names to evaluate.
+                If not specified, evaluate using the ``similarity_fn_name`` .
+                Defaults to None.
         """
         super().__init__()
         self.anchors = anchors
@@ -98,6 +99,7 @@ class TripletEvaluator(SentenceEvaluator):
         assert len(self.anchors) == len(self.negatives)
 
         self.main_distance_function = SimilarityFunction(main_distance_function) if main_distance_function else None
+        self.similarity_fn_names = similarity_fn_names or []
 
         self.batch_size = batch_size
         if show_progress_bar is None:
@@ -107,8 +109,14 @@ class TripletEvaluator(SentenceEvaluator):
         self.show_progress_bar = show_progress_bar
 
         self.csv_file: str = "triplet_evaluation" + ("_" + name if name else "") + "_results.csv"
-        self.csv_headers = ["epoch", "steps", "accuracy_cosinus", "accuracy_manhattan", "accuracy_euclidean"]
+        self.csv_headers = ["epoch", "steps"]
         self.write_csv = write_csv
+
+        self._append_csv_headers(self.similarity_fn_names)
+
+    def _append_csv_headers(self, similarity_fn_names):
+        for fn_name in similarity_fn_names:
+            self.csv_headers.append(f"accuracy_{fn_name}")
 
     @classmethod
     def from_input_examples(cls, examples: list[InputExample], **kwargs):
@@ -137,14 +145,6 @@ class TripletEvaluator(SentenceEvaluator):
 
         logger.info(f"TripletEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
 
-        num_triplets = 0
-        (
-            num_correct_cos_triplets,
-            num_correct_dot_triplets,
-            num_correct_manhattan_triplets,
-            num_correct_euclidean_triplets,
-        ) = 0, 0, 0, 0
-
         with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
             embeddings_anchors = model.encode(
                 self.anchors,
@@ -165,46 +165,38 @@ class TripletEvaluator(SentenceEvaluator):
                 convert_to_numpy=True,
             )
 
-        # Cosine distance
-        pos_cos_distance = paired_cosine_distances(embeddings_anchors, embeddings_positives)
-        neg_cos_distances = paired_cosine_distances(embeddings_anchors, embeddings_negatives)
+        if not self.similarity_fn_names:
+            self.similarity_fn_names = [model.similarity_fn_name]
+            self._append_csv_headers(self.similarity_fn_names)
 
-        # Dot score
-        pos_dot_distance = np.sum(embeddings_anchors * embeddings_positives, axis=-1)
-        neg_dot_distances = np.sum(embeddings_anchors * embeddings_negatives, axis=-1)
+        similarity_functions = {
+            "cosine": lambda anchors, positives, negatives: (
+                paired_cosine_distances(anchors, positives),
+                paired_cosine_distances(anchors, negatives),
+            ),
+            "dot": lambda anchors, positives, negatives: (
+                np.sum(anchors * positives, axis=-1),
+                np.sum(anchors * negatives, axis=-1),
+            ),
+            "manhattan": lambda anchors, positives, negatives: (
+                paired_manhattan_distances(anchors, positives),
+                paired_manhattan_distances(anchors, negatives),
+            ),
+            "euclidean": lambda anchors, positives, negatives: (
+                paired_euclidean_distances(anchors, positives),
+                paired_euclidean_distances(anchors, negatives),
+            ),
+        }
 
-        # Manhattan
-        pos_manhattan_distance = paired_manhattan_distances(embeddings_anchors, embeddings_positives)
-        neg_manhattan_distances = paired_manhattan_distances(embeddings_anchors, embeddings_negatives)
-
-        # Euclidean
-        pos_euclidean_distance = paired_euclidean_distances(embeddings_anchors, embeddings_positives)
-        neg_euclidean_distances = paired_euclidean_distances(embeddings_anchors, embeddings_negatives)
-
-        for idx in range(len(pos_cos_distance)):
-            num_triplets += 1
-
-            if pos_cos_distance[idx] < neg_cos_distances[idx]:
-                num_correct_cos_triplets += 1
-
-            if pos_dot_distance[idx] < neg_dot_distances[idx]:
-                num_correct_dot_triplets += 1
-
-            if pos_manhattan_distance[idx] < neg_manhattan_distances[idx]:
-                num_correct_manhattan_triplets += 1
-
-            if pos_euclidean_distance[idx] < neg_euclidean_distances[idx]:
-                num_correct_euclidean_triplets += 1
-
-        accuracy_cos = num_correct_cos_triplets / num_triplets
-        accuracy_dot = num_correct_dot_triplets / num_triplets
-        accuracy_manhattan = num_correct_manhattan_triplets / num_triplets
-        accuracy_euclidean = num_correct_euclidean_triplets / num_triplets
-
-        logger.info(f"Accuracy Cosine Distance:   \t{accuracy_cos * 100:.2f}")
-        logger.info(f"Accuracy Dot Product:       \t{accuracy_dot * 100:.2f}")
-        logger.info(f"Accuracy Manhattan Distance:\t{accuracy_manhattan * 100:.2f}")
-        logger.info(f"Accuracy Euclidean Distance:\t{accuracy_euclidean * 100:.2f}\n")
+        metrics = {}
+        for fn_name in self.similarity_fn_names:
+            if fn_name in similarity_functions:
+                positive_scores, negative_scores = similarity_functions[fn_name](
+                    embeddings_anchors, embeddings_positives, embeddings_negatives
+                )
+                accuracy = np.mean(positive_scores < negative_scores)
+                metrics[f"{fn_name}_accuracy"] = accuracy
+                logger.info(f"Accuracy {fn_name.capitalize()} Distance:\t{accuracy:.2%}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
@@ -212,26 +204,29 @@ class TripletEvaluator(SentenceEvaluator):
                 with open(csv_path, newline="", mode="w", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow(self.csv_headers)
-                    writer.writerow([epoch, steps, accuracy_cos, accuracy_manhattan, accuracy_euclidean])
+                    writer.writerow([epoch, steps] + list(metrics.values()))
 
             else:
                 with open(csv_path, newline="", mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
-                    writer.writerow([epoch, steps, accuracy_cos, accuracy_manhattan, accuracy_euclidean])
+                    writer.writerow([epoch, steps] + list(metrics.values()))
 
-        self.primary_metric = {
-            SimilarityFunction.COSINE: "cosine_accuracy",
-            SimilarityFunction.DOT_PRODUCT: "dot_accuracy",
-            SimilarityFunction.EUCLIDEAN: "euclidean_accuracy",
-            SimilarityFunction.MANHATTAN: "manhattan_accuracy",
-        }.get(self.main_distance_function, "max_accuracy")
-        metrics = {
-            "cosine_accuracy": accuracy_cos,
-            "dot_accuracy": accuracy_dot,
-            "manhattan_accuracy": accuracy_manhattan,
-            "euclidean_accuracy": accuracy_euclidean,
-            "max_accuracy": max(accuracy_cos, accuracy_manhattan, accuracy_euclidean),
-        }
+        if len(self.similarity_fn_names) > 1:
+            metrics["max_accuracy"] = max(metrics.values())
+
+        if self.main_distance_function:
+            self.primary_metric = {
+                SimilarityFunction.COSINE: "cosine_accuracy",
+                SimilarityFunction.DOT_PRODUCT: "dot_accuracy",
+                SimilarityFunction.EUCLIDEAN: "euclidean_accuracy",
+                SimilarityFunction.MANHATTAN: "manhattan_accuracy",
+            }.get(self.main_distance_function)
+        else:
+            if len(self.similarity_fn_names) > 1:
+                self.primary_metric = "max_accuracy"
+            else:
+                self.primary_metric = f"{self.similarity_fn_names[0]}_accuracy"
+
         metrics = self.prefix_name_to_metrics(metrics, self.name)
         self.store_metrics_in_model_card_data(model, metrics)
         return metrics

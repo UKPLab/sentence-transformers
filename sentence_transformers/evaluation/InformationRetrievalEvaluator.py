@@ -13,7 +13,6 @@ from tqdm import trange
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 from sentence_transformers.similarity_functions import SimilarityFunction
-from sentence_transformers.util import cos_sim, dot_score
 
 if TYPE_CHECKING:
     from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -37,16 +36,19 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             from datasets import load_dataset
 
             # Load a model
-            model = SentenceTransformer('all-mpnet-base-v2')
+            model = SentenceTransformer('all-MiniLM-L6-v2')
 
-            # Load the Quora IR dataset (https://huggingface.co/datasets/BeIR/quora, https://huggingface.co/datasets/BeIR/quora-qrels)
-            corpus = load_dataset("BeIR/quora", "corpus", split="corpus")
-            queries = load_dataset("BeIR/quora", "queries", split="queries")
-            relevant_docs_data = load_dataset("BeIR/quora-qrels", split="validation")
+            # Load the Touche-2020 IR dataset (https://huggingface.co/datasets/BeIR/webis-touche2020, https://huggingface.co/datasets/BeIR/webis-touche2020-qrels)
+            corpus = load_dataset("BeIR/webis-touche2020", "corpus", split="corpus")
+            queries = load_dataset("BeIR/webis-touche2020", "queries", split="queries")
+            relevant_docs_data = load_dataset("BeIR/webis-touche2020-qrels", split="test")
 
-            # Shrink the corpus size heavily to only the relevant documents + 10,000 random documents
-            required_corpus_ids = list(map(str, relevant_docs_data["corpus-id"]))
-            required_corpus_ids += random.sample(corpus["_id"], k=10_000)
+            # For this dataset, we want to concatenate the title and texts for the corpus
+            corpus = corpus.map(lambda x: {'text': x['title'] + " " + x['text']}, remove_columns=['title'])
+
+            # Shrink the corpus size heavily to only the relevant documents + 30,000 random documents
+            required_corpus_ids = set(map(str, relevant_docs_data["corpus-id"]))
+            required_corpus_ids |= set(random.sample(corpus["_id"], k=30_000))
             corpus = corpus.filter(lambda x: x["_id"] in required_corpus_ids)
 
             # Convert the datasets to dictionaries
@@ -65,51 +67,35 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 queries=queries,
                 corpus=corpus,
                 relevant_docs=relevant_docs,
-                name="BeIR-quora-dev",
+                name="BeIR-touche2020-subset-test",
             )
             results = ir_evaluator(model)
             '''
-            Information Retrieval Evaluation of the model on the BeIR-quora-dev dataset:
-            Queries: 5000
-            Corpus: 17476
+            Information Retrieval Evaluation of the model on the BeIR-touche2020-test dataset:
+            Queries: 49
+            Corpus: 31923
 
             Score-Function: cosine
-            Accuracy@1: 96.26%
-            Accuracy@3: 99.38%
-            Accuracy@5: 99.74%
-            Accuracy@10: 99.94%
-            Precision@1: 96.26%
-            Precision@3: 43.01%
-            Precision@5: 27.66%
-            Precision@10: 14.58%
-            Recall@1: 82.93%
-            Recall@3: 96.28%
-            Recall@5: 98.38%
-            Recall@10: 99.55%
-            MRR@10: 0.9782
-            NDCG@10: 0.9807
-            MAP@100: 0.9732
-            Score-Function: dot
-            Accuracy@1: 96.26%
-            Accuracy@3: 99.38%
-            Accuracy@5: 99.74%
-            Accuracy@10: 99.94%
-            Precision@1: 96.26%
-            Precision@3: 43.01%
-            Precision@5: 27.66%
-            Precision@10: 14.58%
-            Recall@1: 82.93%
-            Recall@3: 96.28%
-            Recall@5: 98.38%
-            Recall@10: 99.55%
-            MRR@10: 0.9782
-            NDCG@10: 0.9807
-            MAP@100: 0.9732
+            Accuracy@1: 77.55%
+            Accuracy@3: 93.88%
+            Accuracy@5: 97.96%
+            Accuracy@10: 100.00%
+            Precision@1: 77.55%
+            Precision@3: 72.11%
+            Precision@5: 71.43%
+            Precision@10: 62.65%
+            Recall@1: 1.72%
+            Recall@3: 4.78%
+            Recall@5: 7.90%
+            Recall@10: 13.86%
+            MRR@10: 0.8580
+            NDCG@10: 0.6606
+            MAP@100: 0.2934
             '''
             print(ir_evaluator.primary_metric)
-            # => "BeIR-quora-dev_cosine_map@100"
+            # => "BeIR-touche2020-test_cosine_map@100"
             print(results[ir_evaluator.primary_metric])
-            # => 0.9732046108457585
+            # => 0.29335196224364596
     """
 
     def __init__(
@@ -128,10 +114,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         name: str = "",
         write_csv: bool = True,
         truncate_dim: int | None = None,
-        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = {
-            SimilarityFunction.COSINE.value: cos_sim,
-            SimilarityFunction.DOT_PRODUCT.value: dot_score,
-        },  # Score function, higher=more similar
+        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] | None = None,
         main_score_function: str | SimilarityFunction | None = None,
         query_prompt: str | None = None,
         query_prompt_name: str | None = None,
@@ -156,12 +139,12 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             name (str): A name for the evaluation. Defaults to "".
             write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
             truncate_dim (int, optional): The dimension to truncate the embeddings to. Defaults to None.
-            score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to {SimilarityFunction.COSINE.value: cos_sim, SimilarityFunction.DOT_PRODUCT.value: dot_score}.
+            score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to the ``similarity`` function from the ``model``.
             main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
-            query_prompt (str, optional): A prompt to use for the queries. Defaults to None.
-            query_prompt_name (str, optional): A name for the query prompt. Defaults to None.
-            corpus_prompt (str, optional): A prompt to use for the corpus. Defaults to None.
-            corpus_prompt_name (str, optional): A name for the corpus prompt. Defaults to None.
+            query_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
+            query_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
+            corpus_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
+            corpus_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
         """
         super().__init__()
         self.queries_ids = []
@@ -192,7 +175,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.name = name
         self.write_csv = write_csv
         self.score_functions = score_functions
-        self.score_function_names = sorted(list(self.score_functions.keys()))
+        self.score_function_names = sorted(list(self.score_functions.keys())) if score_functions else []
         self.main_score_function = SimilarityFunction(main_score_function) if main_score_function else None
         self.truncate_dim = truncate_dim
 
@@ -202,21 +185,24 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.csv_file: str = "Information-Retrieval_evaluation" + name + "_results.csv"
         self.csv_headers = ["epoch", "steps"]
 
-        for score_name in self.score_function_names:
-            for k in accuracy_at_k:
+        self._append_csv_headers(self.score_function_names)
+
+    def _append_csv_headers(self, score_function_names):
+        for score_name in score_function_names:
+            for k in self.accuracy_at_k:
                 self.csv_headers.append(f"{score_name}-Accuracy@{k}")
 
-            for k in precision_recall_at_k:
+            for k in self.precision_recall_at_k:
                 self.csv_headers.append(f"{score_name}-Precision@{k}")
                 self.csv_headers.append(f"{score_name}-Recall@{k}")
 
-            for k in mrr_at_k:
+            for k in self.mrr_at_k:
                 self.csv_headers.append(f"{score_name}-MRR@{k}")
 
-            for k in ndcg_at_k:
+            for k in self.ndcg_at_k:
                 self.csv_headers.append(f"{score_name}-NDCG@{k}")
 
-            for k in map_at_k:
+            for k in self.map_at_k:
                 self.csv_headers.append(f"{score_name}-MAP@{k}")
 
     def __call__(
@@ -233,6 +219,11 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             out_txt += f" (truncated to {self.truncate_dim})"
 
         logger.info(f"Information Retrieval Evaluation of the model on the {self.name} dataset{out_txt}:")
+
+        if self.score_functions is None:
+            self.score_functions = {model.similarity_fn_name: model.similarity}
+            self.score_function_names = [model.similarity_fn_name]
+            self._append_csv_headers(self.score_function_names)
 
         scores = self.compute_metrices(model, *args, **kwargs)
 
@@ -272,12 +263,12 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         if not self.primary_metric:
             if self.main_score_function is None:
                 score_function = max(
-                    [(name, scores[name]["map@k"][max(self.map_at_k)]) for name in self.score_function_names],
+                    [(name, scores[name]["ndcg@k"][max(self.ndcg_at_k)]) for name in self.score_function_names],
                     key=lambda x: x[1],
                 )[0]
-                self.primary_metric = f"{score_function}_map@{max(self.map_at_k)}"
+                self.primary_metric = f"{score_function}_ndcg@{max(self.ndcg_at_k)}"
             else:
-                self.primary_metric = f"{self.main_score_function.value}_map@{max(self.map_at_k)}"
+                self.primary_metric = f"{self.main_score_function.value}_ndcg@{max(self.ndcg_at_k)}"
 
         metrics = {
             f"{score_function}_{metric_name.replace('@k', '@' + str(k))}": value
@@ -290,7 +281,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         return metrics
 
     def compute_metrices(
-        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor = None
+        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor | None = None
     ) -> dict[str, float]:
         if corpus_model is None:
             corpus_model = model
@@ -309,8 +300,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 self.queries,
                 prompt_name=self.query_prompt_name,
                 prompt=self.query_prompt,
-                show_progress_bar=self.show_progress_bar,
                 batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
                 convert_to_tensor=True,
             )
 
@@ -333,8 +324,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                         self.corpus[corpus_start_idx:corpus_end_idx],
                         prompt_name=self.corpus_prompt_name,
                         prompt=self.corpus_prompt,
-                        show_progress_bar=False,
                         batch_size=self.batch_size,
+                        show_progress_bar=False,
                         convert_to_tensor=True,
                     )
             else:
@@ -356,10 +347,14 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                         pair_scores_top_k_idx[query_itr], pair_scores_top_k_values[query_itr]
                     ):
                         corpus_id = self.corpus_ids[corpus_start_idx + sub_corpus_id]
+                        # NOTE: TREC/BEIR/MTEB skips cases where the corpus_id is the same as the query_id, e.g.:
+                        # if corpus_id == self.queries_ids[query_itr]:
+                        #     continue
+                        # This is not done here, as this might be unexpected behaviour if the user just uses
+                        # sets of integers from 0 as query_ids and corpus_ids.
                         if len(queries_result_list[name][query_itr]) < max_k:
-                            heapq.heappush(
-                                queries_result_list[name][query_itr], (score, corpus_id)
-                            )  # heaqp tracks the quantity of the first element in the tuple
+                            # heaqp tracks the quantity of the first element in the tuple
+                            heapq.heappush(queries_result_list[name][query_itr], (score, corpus_id))
                         else:
                             heapq.heappushpop(queries_result_list[name][query_itr], (score, corpus_id))
 

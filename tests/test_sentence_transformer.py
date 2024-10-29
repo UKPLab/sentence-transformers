@@ -587,7 +587,7 @@ def test_similarity_score(stsb_bert_tiny_model_reused: SentenceTransformer, simi
 def test_similarity_score_save(stsb_bert_tiny_model: SentenceTransformer) -> None:
     model = stsb_bert_tiny_model
     embeddings = model.encode(["Sentence 1", "Sentence 2"])
-    assert model.similarity_fn_name is None
+    assert model.similarity_fn_name == "cosine"
     cosine_scores = model.similarity(embeddings, embeddings)
     # Using 'similarity' methods sets the default similarity function to 'cosine'
     assert model.similarity_fn_name == "cosine"
