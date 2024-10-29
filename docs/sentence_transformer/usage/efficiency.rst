@@ -315,7 +315,7 @@ Post-Training Static Quantization expects:
       ``None`` for the default 8-bit quantization, a dictionary representing quantization configurations, or
       an :class:`~optimum.intel.OVQuantizationConfig` instance.
 - ``model_name_or_path``: a path to save the quantized model file, or the repository name if you want to push it to the Hugging Face Hub.
-- ``dataset_name``: (Optional) The name of the dataset to load for calibration.
+- ``dataset_name``: (Optional) The name of the dataset to load for calibration. If not specified, defaults to ``sst2`` subset from the ``glue`` dataset.
 - ``dataset_config_name``: (Optional) The specific configuration of the dataset to load.
 - ``dataset_split``: (Optional) The split of the dataset to load (e.g., 'train', 'test').
 - ``column_name``: (Optional) The column name in the dataset to use for calibration.
