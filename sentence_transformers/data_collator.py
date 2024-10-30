@@ -121,13 +121,13 @@ class SentenceTransformerDataCollator:
             self._prompt_lengths = len(tokenized_prompt["input_ids"]) - 1
         for key, value in prompts.items():
             if isinstance(value, str):
-                tokenized_prompt = self.tokenize_fn(value)
+                tokenized_prompt = self.tokenize_fn([value])
                 self._prompt_lengths[key] = len(tokenized_prompt["input_ids"]) - 1
             elif isinstance(value, dict):
                 self._prompt_lengths[key] = {}
-                for k, v in value.items():
-                    tokenized_prompt = self.tokenize_fn(v)
-                    self._prompt_lengths[key][k] = len(tokenized_prompt["input_ids"]) - 1
+                for inner_key, inner_value in value.items():
+                    tokenized_prompt = self.tokenize_fn([inner_value])
+                    self._prompt_lengths[key][inner_key] = len(tokenized_prompt["input_ids"]) - 1
             else:
                 raise ValueError(f"Invalid prompts type: {type(value)}")
 
