@@ -100,7 +100,7 @@ class SentenceTransformerDataCollator:
 
     def set_prompts(self, prompts: dict[str, dict[str, str]] | dict[str, str] | str, pool_include_prompt: bool = True):
         """
-        Sets the prompts that will be added to the sentences and precomputes their lenghts if needed.
+        Sets the prompts that will be added to the sentences and precomputes their lengths if needed.
 
         The lengths are only added if the pooling layer will treat then specially (i.e., masking them).
         Otherwise, we will just add the prompts to the sentences as needed.
@@ -114,7 +114,7 @@ class SentenceTransformerDataCollator:
         """
         self.prompts = prompts
         if pool_include_prompt:
-            # prompts will not be masked. No need to compute the lenghts.
+            # prompts will not be masked. No need to compute the lengths.
             return
         if isinstance(prompts, str):
             tokenized_prompt = self.tokenize_fn([prompts])
