@@ -25,7 +25,6 @@ class SentenceTransformerDataCollator:
     tokenize_fn: Callable
     valid_label_columns: list[str] = field(default_factory=lambda: ["label", "score"])
     _warned_columns: set[tuple[str]] = field(default_factory=set, init=False, repr=False)
-    _columns_without_prompts: set[str] = field(default_factory=set, init=False, repr=False)
     prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None
     _prompt_lengths: dict[str, int] | dict[str, dict[str, int]] | int = field(
         default_factory=dict, init=False, repr=False
