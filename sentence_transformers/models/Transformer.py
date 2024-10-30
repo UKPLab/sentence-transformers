@@ -11,8 +11,8 @@ import huggingface_hub
 import torch
 from torch import nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Config
+from transformers.utils.import_utils import is_peft_available
 from transformers.utils.peft_utils import find_adapter_config_file
-from transformers.utils import is_peft_available
 
 logger = logging.getLogger(__name__)
 
