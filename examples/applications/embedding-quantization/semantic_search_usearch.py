@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.quantization import quantize_embeddings, semantic_search_usearch
 
 # 1. Load the quora corpus with questions
-dataset = load_dataset("quora", split="train").map(
+dataset = load_dataset("quora", split="train", trust_remote_code=True).map(
     lambda batch: {"text": [text for sample in batch["questions"] for text in sample["text"]]},
     batched=True,
     remove_columns=["questions", "is_duplicate"],
@@ -26,7 +26,7 @@ model = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
 # 4. Choose a target precision for the corpus embeddings
 corpus_precision = "binary"
 # Valid options are: "float32", "uint8", "int8", "ubinary", and "binary"
-# But usearch only supports "float32", "int8", and "binary"
+# But usearch only supports "float32", "int8", "binary" and "ubinary"
 
 # 5. Encode the corpus
 full_corpus_embeddings = model.encode(corpus, normalize_embeddings=True, show_progress_bar=True)

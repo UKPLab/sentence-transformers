@@ -689,22 +689,26 @@ class SentenceTransformer(nn.Sequential, FitMixin):
         return input
 
     @property
-    def similarity_fn_name(self) -> str | None:
+    def similarity_fn_name(self) -> Literal["cosine", "dot", "euclidean", "manhattan"]:
         """Return the name of the similarity function used by :meth:`SentenceTransformer.similarity` and :meth:`SentenceTransformer.similarity_pairwise`.
 
         Returns:
-            Optional[str]: The name of the similarity function. Can be None if not set, in which case any uses of
-            :meth:`SentenceTransformer.similarity` and :meth:`SentenceTransformer.similarity_pairwise` default to "cosine".
+            Optional[str]: The name of the similarity function. Can be None if not set, in which case it will
+                default to "cosine" when first called.
 
         Example:
             >>> model = SentenceTransformer("multi-qa-mpnet-base-dot-v1")
             >>> model.similarity_fn_name
             'dot'
         """
+        if self._similarity_fn_name is None:
+            self.similarity_fn_name = SimilarityFunction.COSINE
         return self._similarity_fn_name
 
     @similarity_fn_name.setter
-    def similarity_fn_name(self, value: str | SimilarityFunction) -> None:
+    def similarity_fn_name(
+        self, value: Literal["cosine", "dot", "euclidean", "manhattan"] | SimilarityFunction
+    ) -> None:
         if isinstance(value, SimilarityFunction):
             value = value.value
         self._similarity_fn_name = value
@@ -1613,7 +1617,7 @@ print(similarities)
                 )
 
             # Set score functions & prompts if not already overridden by the __init__ calls
-            if self.similarity_fn_name is None:
+            if self._similarity_fn_name is None:
                 self.similarity_fn_name = self._model_config.get("similarity_fn_name", None)
             if not self.prompts:
                 self.prompts = self._model_config.get("prompts", {})
@@ -1718,10 +1722,10 @@ print(similarities)
 
                 # Try to initialize the module with a lot of kwargs, but only if the module supports them
                 # Otherwise we fall back to the load method
-                # try:
-                module = module_class(model_name_or_path, cache_dir=cache_folder, backend=self.backend, **kwargs)
-                # except TypeError:
-                #     module = module_class.load(model_name_or_path)
+                try:
+                    module = module_class(model_name_or_path, cache_dir=cache_folder, backend=self.backend, **kwargs)
+                except TypeError:
+                    module = module_class.load(model_name_or_path)
             else:
                 # Normalize does not require any files to be loaded
                 if module_class == Normalize:

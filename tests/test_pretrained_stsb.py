@@ -36,12 +36,16 @@ def pretrained_model_score(
             if max_test_samples != -1 and len(test_samples) >= max_test_samples:
                 break
 
-    evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name="sts-test")
+    evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
+        test_samples,
+        name="sts-test",
+        similarity_fn_names=["cosine", "euclidean", "manhattan", "dot"],
+    )
 
     scores = model.evaluate(evaluator)
     score = scores[evaluator.primary_metric] * 100
     print(model_name, f"{score:.2f} vs. exp: {expected_score:.2f}")
-    assert score > expected_score or abs(score - expected_score) < 0.1
+    assert score > expected_score - 0.1
 
 
 pretrained_model_score = partial(pretrained_model_score, max_test_samples=100)
