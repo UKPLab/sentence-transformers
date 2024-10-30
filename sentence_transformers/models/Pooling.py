@@ -138,13 +138,7 @@ class Pooling(nn.Module):
             else torch.ones(token_embeddings.shape[:-1], device=token_embeddings.device, dtype=torch.int64)
         )
         if not self.include_prompt and "prompt_length" in features:
-            if isinstance(features["prompt_length"], Tensor):
-                seq_len = attention_mask.shape[1]
-                lens = features["prompt_length"]
-                mask_indices = torch.arange(0, seq_len).to(attention_mask.device)[None, :] <= lens[:, None]
-                attention_mask[mask_indices] = 0
-            else:
-                attention_mask[:, : features["prompt_length"]] = 0
+            attention_mask[:, : features["prompt_length"]] = 0
 
         ## Pooling strategy
         output_vectors = []
