@@ -17,6 +17,9 @@ if TYPE_CHECKING:
 
     try:
         from optimum.intel import OVQuantizationConfig
+    except ImportError:
+        pass
+    try:
         from optimum.onnxruntime.configuration import OptimizationConfig, QuantizationConfig
     except ImportError:
         pass
