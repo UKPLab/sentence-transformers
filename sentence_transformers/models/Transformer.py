@@ -260,7 +260,7 @@ class Transformer(nn.Module):
 
         file_name = model_args.get("file_name", target_file_name)
         subfolder = model_args.get("subfolder", None)
-        primary_full_path = Path(subfolder, file_name).as_posix() if subfolder else file_name
+        primary_full_path = Path(subfolder, file_name).as_posix() if subfolder else Path(file_name).as_posix()
         secondary_full_path = (
             Path(subfolder, self.backend, file_name).as_posix()
             if subfolder
