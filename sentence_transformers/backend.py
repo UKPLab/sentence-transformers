@@ -221,7 +221,7 @@ def export_static_quantized_openvino_model(
 
     Args:
         model (SentenceTransformer): The SentenceTransformer model to be quantized. Must be loaded with `backend="openvino"`.
-        quantization_config (OVQuantizationConfig | dict | None): The quantization configuration.
+        quantization_config (OVQuantizationConfig | dict | None): The quantization configuration. If None, default values are used.
         model_name_or_path (str): The path or Hugging Face Hub repository name where the quantized model will be saved.
         dataset_name(str, optional): The name of the dataset to load for calibration.
             If not specified, the `sst2` subset of the `glue` dataset will be used by default.
