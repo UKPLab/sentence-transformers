@@ -45,18 +45,17 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                 sentences1=eval_dataset["sentence1"],
                 sentences2=eval_dataset["sentence2"],
                 scores=eval_dataset["score"],
-                main_similarity=SimilarityFunction.COSINE,
-                name="sts-dev",
+                name="sts_dev",
             )
-            dev_evaluator(model)
+            results = dev_evaluator(model)
             '''
             EmbeddingSimilarityEvaluator: Evaluating the model on the sts-dev dataset:
-            Cosine-Similarity :       Pearson: 0.7874 Spearman: 0.8004
-            Manhattan-Distance:       Pearson: 0.7823 Spearman: 0.7827
-            Euclidean-Distance:       Pearson: 0.7824 Spearman: 0.7827
-            Dot-Product-Similarity:   Pearson: 0.7192 Spearman: 0.7126
+            Cosine-Similarity :  Pearson: 0.8806 Spearman: 0.8810
             '''
-            # => {'sts-dev_pearson_cosine': 0.880607226102985, 'sts-dev_spearman_cosine': 0.881019449484294, ...}
+            print(dev_evaluator.primary_metric)
+            # => "sts_dev_pearson_cosine"
+            print(results[dev_evaluator.primary_metric])
+            # => 0.881019449484294
     """
 
     def __init__(
@@ -66,6 +65,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         scores: list[float],
         batch_size: int = 16,
         main_similarity: str | SimilarityFunction | None = None,
+        similarity_fn_names: list[Literal["cosine", "euclidean", "manhattan", "dot"]] | None = None,
         name: str = "",
         show_progress_bar: bool = False,
         write_csv: bool = True,
@@ -82,6 +82,8 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             batch_size (int, optional): The batch size for processing the sentences. Defaults to 16.
             main_similarity (Optional[Union[str, SimilarityFunction]], optional): The main similarity function to use.
                 Can be a string (e.g. "cosine", "dot") or a SimilarityFunction object. Defaults to None.
+            similarity_fn_names (List[str], optional): List of similarity function names to use. If None, the
+                ``similarity_fn_name`` attribute of the model is used. Defaults to None.
             name (str, optional): The name of the evaluator. Defaults to "".
             show_progress_bar (bool, optional): Whether to show a progress bar during evaluation. Defaults to False.
             write_csv (bool, optional): Whether to write the evaluation results to a CSV file. Defaults to True.
@@ -102,6 +104,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         assert len(self.sentences1) == len(self.scores)
 
         self.main_similarity = SimilarityFunction(main_similarity) if main_similarity else None
+        self.similarity_fn_names = similarity_fn_names or []
         self.name = name
 
         self.batch_size = batch_size
@@ -120,15 +123,16 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         self.csv_headers = [
             "epoch",
             "steps",
-            "cosine_pearson",
-            "cosine_spearman",
-            "euclidean_pearson",
-            "euclidean_spearman",
-            "manhattan_pearson",
-            "manhattan_spearman",
-            "dot_pearson",
-            "dot_spearman",
         ]
+
+        self._append_csv_headers(self.similarity_fn_names)
+
+    def _append_csv_headers(self, similarity_fn_names: list[str]) -> None:
+        metrics = ["pearson", "spearman"]
+
+        for v in similarity_fn_names:
+            for m in metrics:
+                self.csv_headers.append(f"{v}_{m}")
 
     @classmethod
     def from_input_examples(cls, examples: list[InputExample], **kwargs):
@@ -184,31 +188,28 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
         labels = self.scores
 
-        cosine_scores = 1 - (paired_cosine_distances(embeddings1, embeddings2))
-        manhattan_distances = -paired_manhattan_distances(embeddings1, embeddings2)
-        euclidean_distances = -paired_euclidean_distances(embeddings1, embeddings2)
-        dot_products = [np.dot(emb1, emb2) for emb1, emb2 in zip(embeddings1, embeddings2)]
+        if not self.similarity_fn_names:
+            self.similarity_fn_names = [model.similarity_fn_name]
+            self._append_csv_headers(self.similarity_fn_names)
 
-        eval_pearson_cosine, _ = pearsonr(labels, cosine_scores)
-        eval_spearman_cosine, _ = spearmanr(labels, cosine_scores)
+        similarity_functions = {
+            "cosine": lambda x, y: 1 - paired_cosine_distances(x, y),
+            "manhattan": lambda x, y: -paired_manhattan_distances(x, y),
+            "euclidean": lambda x, y: -paired_euclidean_distances(x, y),
+            "dot": lambda x, y: [np.dot(emb1, emb2) for emb1, emb2 in zip(x, y)],
+        }
 
-        eval_pearson_manhattan, _ = pearsonr(labels, manhattan_distances)
-        eval_spearman_manhattan, _ = spearmanr(labels, manhattan_distances)
-
-        eval_pearson_euclidean, _ = pearsonr(labels, euclidean_distances)
-        eval_spearman_euclidean, _ = spearmanr(labels, euclidean_distances)
-
-        eval_pearson_dot, _ = pearsonr(labels, dot_products)
-        eval_spearman_dot, _ = spearmanr(labels, dot_products)
-
-        logger.info(f"Cosine-Similarity :\tPearson: {eval_pearson_cosine:.4f}\tSpearman: {eval_spearman_cosine:.4f}")
-        logger.info(
-            f"Manhattan-Distance:\tPearson: {eval_pearson_manhattan:.4f}\tSpearman: {eval_spearman_manhattan:.4f}"
-        )
-        logger.info(
-            f"Euclidean-Distance:\tPearson: {eval_pearson_euclidean:.4f}\tSpearman: {eval_spearman_euclidean:.4f}"
-        )
-        logger.info(f"Dot-Product-Similarity:\tPearson: {eval_pearson_dot:.4f}\tSpearman: {eval_spearman_dot:.4f}")
+        metrics = {}
+        for fn_name in self.similarity_fn_names:
+            if fn_name in similarity_functions:
+                scores = similarity_functions[fn_name](embeddings1, embeddings2)
+                eval_pearson, _ = pearsonr(labels, scores)
+                eval_spearman, _ = spearmanr(labels, scores)
+                metrics[f"pearson_{fn_name}"] = eval_pearson
+                metrics[f"spearman_{fn_name}"] = eval_spearman
+                logger.info(
+                    f"{fn_name.capitalize()}-Similarity :\tPearson: {eval_pearson:.4f}\tSpearman: {eval_spearman:.4f}"
+                )
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
@@ -222,37 +223,31 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                     [
                         epoch,
                         steps,
-                        eval_pearson_cosine,
-                        eval_spearman_cosine,
-                        eval_pearson_euclidean,
-                        eval_spearman_euclidean,
-                        eval_pearson_manhattan,
-                        eval_spearman_manhattan,
-                        eval_pearson_dot,
-                        eval_spearman_dot,
+                    ]
+                    + [
+                        metrics[f"{fn_name}_{m}"]
+                        for fn_name in self.similarity_fn_names
+                        for m in ["pearson", "spearman"]
                     ]
                 )
 
-        self.primary_metric = {
-            SimilarityFunction.COSINE: "spearman_cosine",
-            SimilarityFunction.EUCLIDEAN: "spearman_euclidean",
-            SimilarityFunction.MANHATTAN: "spearman_manhattan",
-            SimilarityFunction.DOT_PRODUCT: "spearman_dot",
-        }.get(self.main_similarity, "spearman_max")
-        metrics = {
-            "pearson_cosine": eval_pearson_cosine,
-            "spearman_cosine": eval_spearman_cosine,
-            "pearson_manhattan": eval_pearson_manhattan,
-            "spearman_manhattan": eval_spearman_manhattan,
-            "pearson_euclidean": eval_pearson_euclidean,
-            "spearman_euclidean": eval_spearman_euclidean,
-            "pearson_dot": eval_pearson_dot,
-            "spearman_dot": eval_spearman_dot,
-            "pearson_max": max(eval_pearson_cosine, eval_pearson_manhattan, eval_pearson_euclidean, eval_pearson_dot),
-            "spearman_max": max(
-                eval_spearman_cosine, eval_spearman_manhattan, eval_spearman_euclidean, eval_spearman_dot
-            ),
-        }
+        if len(self.similarity_fn_names) > 1:
+            metrics["pearson_max"] = max(metrics[f"pearson_{fn_name}"] for fn_name in self.similarity_fn_names)
+            metrics["spearman_max"] = max(metrics[f"spearman_{fn_name}"] for fn_name in self.similarity_fn_names)
+
+        if self.main_similarity:
+            self.primary_metric = {
+                SimilarityFunction.COSINE: "spearman_cosine",
+                SimilarityFunction.EUCLIDEAN: "spearman_euclidean",
+                SimilarityFunction.MANHATTAN: "spearman_manhattan",
+                SimilarityFunction.DOT_PRODUCT: "spearman_dot",
+            }.get(self.main_similarity)
+        else:
+            if len(self.similarity_fn_names) > 1:
+                self.primary_metric = "spearman_max"
+            else:
+                self.primary_metric = f"spearman_{self.similarity_fn_names[0]}"
+
         metrics = self.prefix_name_to_metrics(metrics, self.name)
         self.store_metrics_in_model_card_data(model, metrics)
         return metrics

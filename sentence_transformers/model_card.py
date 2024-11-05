@@ -27,7 +27,7 @@ from transformers.modelcard import make_markdown_table
 from transformers.trainer_callback import TrainerControl, TrainerState
 
 from sentence_transformers import __version__ as sentence_transformers_version
-from sentence_transformers.models import Transformer
+from sentence_transformers.models import StaticEmbedding, Transformer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sentence_transformers.util import fullname, is_accelerate_available, is_datasets_available
 
@@ -354,13 +354,12 @@ class SentenceTransformerModelCardData(CardData):
                 else:
                     if info.cardData and infer_languages and "language" in info.cardData:
                         dataset_language = info.cardData.get("language")
-                        if dataset_language is None:
-                            break
-                        if isinstance(dataset_language, str):
-                            dataset_language = [dataset_language]
-                        for language in dataset_language:
-                            if language not in self.language:
-                                self.language.append(language)
+                        if dataset_language is not None:
+                            if isinstance(dataset_language, str):
+                                dataset_language = [dataset_language]
+                            for language in dataset_language:
+                                if language not in self.language:
+                                    self.language.append(language)
 
                     # Track dataset IDs for the metadata
                     if info.id not in self.datasets:
@@ -423,10 +422,13 @@ class SentenceTransformerModelCardData(CardData):
             columns = [
                 column
                 for column, feature in dataset[dataset_name].features.items()
-                if isinstance(feature, Value) and feature.dtype == "string"
+                if isinstance(feature, Value) and feature.dtype in {"string", "large_string"}
             ]
             str_dataset = dataset[dataset_name].select_columns(columns)
             dataset_size = len(str_dataset)
+            if dataset_size == 0:
+                continue
+
             lengths = {}
             for idx, sample in enumerate(
                 str_dataset.select(random.sample(range(dataset_size), k=min(num_samples_to_check, dataset_size)))
@@ -657,6 +659,9 @@ class SentenceTransformerModelCardData(CardData):
                     # If the value is a long list, truncate it
                     if isinstance(value, list) and len(value) > 5:
                         value = str(value[:5])[:-1] + ", ...]"
+                    # If the value is a really long string, truncate it
+                    if isinstance(value, str) and len(value) > 1000:
+                        value = value[:1000] + "..."
                     # Avoid newlines in the table
                     value = str(value).replace("\n", "<br>")
                     columns[column] = f"<code>{value}</code>"
@@ -765,6 +770,9 @@ class SentenceTransformerModelCardData(CardData):
             for model_id in candidate_model_ids:
                 if self.set_base_model(model_id):
                     break
+        elif isinstance(self.model[0], StaticEmbedding):
+            if self.model[0].base_model:
+                self.set_base_model(self.model[0].base_model)
 
     def format_eval_metrics(self) -> dict[str, Any]:
         """Format the evaluation metrics for the model card.
@@ -816,7 +824,7 @@ class SentenceTransformerModelCardData(CardData):
                     "class_name": fullname(evaluator),
                     "description": description,
                     "dataset_name": dataset_name,
-                    "table": make_markdown_table(table_lines).replace("-:|", "--|"),
+                    "table_lines": table_lines,
                 }
             )
             eval_results.extend(
@@ -825,7 +833,7 @@ class SentenceTransformerModelCardData(CardData):
                         task_name=description,
                         task_type=description.lower().replace(" ", "-"),
                         dataset_type=dataset_name or "unknown",
-                        dataset_name=dataset_name.replace("_", " ").replace("-", " ") or "Unknown",
+                        dataset_name=dataset_name.replace("_", " ").replace("-", " ") if dataset_name else "Unknown",
                         metric_name=metric_key.replace("_", " ").title(),
                         metric_type=metric_key,
                         metric_value=metric_value,
@@ -836,8 +844,39 @@ class SentenceTransformerModelCardData(CardData):
             )
             all_metrics.update(metrics)
 
+        # Group eval_metrics together by class name and table_lines metrics
+        grouped_eval_metrics = []
+        for eval_metric in eval_metrics:
+            eval_metric_mapping = {line["Metric"]: line["Value"] for line in eval_metric["table_lines"]}
+            eval_metric_metrics = set(eval_metric_mapping)
+            for grouped_eval_metric in grouped_eval_metrics:
+                grouped_eval_metric_metrics = set(line["Metric"] for line in grouped_eval_metric["table_lines"])
+                if (
+                    eval_metric["class_name"] == grouped_eval_metric["class_name"]
+                    and eval_metric_metrics == grouped_eval_metric_metrics
+                    and eval_metric["dataset_name"] != grouped_eval_metric["dataset_name"]
+                ):
+                    # Add the evaluation results to the existing grouped evaluation metric
+                    for line in grouped_eval_metric["table_lines"]:
+                        if "Value" in line:
+                            line[grouped_eval_metric["dataset_name"]] = line.pop("Value")
+
+                        line[eval_metric["dataset_name"]] = eval_metric_mapping[line["Metric"]]
+
+                    if not isinstance(grouped_eval_metric["dataset_name"], list):
+                        grouped_eval_metric["dataset_name"] = [grouped_eval_metric["dataset_name"]]
+                    grouped_eval_metric["dataset_name"].append(eval_metric["dataset_name"])
+                    break
+            else:
+                grouped_eval_metrics.append(eval_metric)
+
+        for grouped_eval_metric in grouped_eval_metrics:
+            grouped_eval_metric["table"] = make_markdown_table(grouped_eval_metric.pop("table_lines")).replace(
+                "-:|", "--|"
+            )
+
         return {
-            "eval_metrics": eval_metrics,
+            "eval_metrics": grouped_eval_metrics,
             "metrics": list(all_metrics.keys()),
             "model-index": eval_results_to_model_index(self.model_name, eval_results),
         }

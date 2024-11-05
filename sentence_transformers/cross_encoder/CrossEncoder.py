@@ -532,7 +532,7 @@ class CrossEncoder(PushToHubMixin):
         """
         query_doc_pairs = [[query, doc] for doc in documents]
         scores = self.predict(
-            query_doc_pairs,
+            sentences=query_doc_pairs,
             batch_size=batch_size,
             show_progress_bar=show_progress_bar,
             num_workers=num_workers,
@@ -543,11 +543,10 @@ class CrossEncoder(PushToHubMixin):
         )
 
         results = []
-        for i in range(len(scores)):
+        for i, score in enumerate(scores):
+            results.append({"corpus_id": i, "score": score})
             if return_documents:
-                results.append({"corpus_id": i, "score": scores[i], "text": documents[i]})
-            else:
-                results.append({"corpus_id": i, "score": scores[i]})
+                results[-1].update({"text": documents[i]})
 
         results = sorted(results, key=lambda x: x["score"], reverse=True)
         return results[:top_k]

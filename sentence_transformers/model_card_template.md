@@ -22,7 +22,7 @@ This is a [sentence-transformers](https://www.SBERT.net) model{% if base_model %
     <!-- - **Base model:** [Unknown](https://huggingface.co/unknown) -->
 {%- endif %}
 - **Maximum Sequence Length:** {{ model_max_length }} tokens
-- **Output Dimensionality:** {{ output_dimensionality }} tokens
+- **Output Dimensionality:** {{ output_dimensionality }} dimensions
 - **Similarity Function:** {{ similarity_fn_name }}
 {% if train_datasets | selectattr("name") | list -%}
     - **Training Dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}:**
@@ -125,7 +125,18 @@ You can finetune this model on your own dataset.
 ### Metrics
 {% for metrics in eval_metrics %}
 #### {{ metrics.description }}
-{% if metrics.dataset_name %}* Dataset: `{{ metrics.dataset_name }}`{% endif %}
+{% if metrics.dataset_name %}
+* Dataset{% if metrics.dataset_name is not string and metrics.dataset_name | length > 1 %}s{% endif %}: {% if metrics.dataset_name is string -%}
+        `{{ metrics.dataset_name }}`
+    {%- else -%}
+        {%- for name in metrics.dataset_name -%}
+            `{{ name }}`
+            {%- if not loop.last -%}
+                {%- if loop.index == metrics.dataset_name | length - 1 %} and {% else -%}, {% endif -%}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endif %}
 * Evaluated with {% if metrics.class_name.startswith("sentence_transformers.") %}[<code>{{ metrics.class_name.split(".")[-1] }}</code>](https://sbert.net/docs/package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.{{ metrics.class_name.split(".")[-1] }}){% else %}<code>{{ metrics.class_name }}</code>{% endif %}
 
 {{ metrics.table }}
