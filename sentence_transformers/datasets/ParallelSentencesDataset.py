@@ -77,9 +77,11 @@ class ParallelSentencesDataset(Dataset):
         logger.info("Load " + filepath)
         parallel_sentences = []
 
-        with gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else open(
-            filepath, encoding="utf8"
-        ) as fIn:
+        with (
+            gzip.open(filepath, "rt", encoding="utf8")
+            if filepath.endswith(".gz")
+            else open(filepath, encoding="utf8") as fIn
+        ):
             count = 0
             for line in fIn:
                 sentences = line.strip().split("\t")

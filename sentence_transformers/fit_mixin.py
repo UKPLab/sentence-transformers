@@ -4,8 +4,9 @@ import json
 import logging
 import os
 import shutil
+from collections.abc import Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Iterable
+from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 import torch
