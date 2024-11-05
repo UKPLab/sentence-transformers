@@ -357,15 +357,6 @@ def test_trainer_prompts(
 
     model.tokenize = tokenize_tracker
 
-    # tracked_forward_keys = set()
-    # old_forward = model.forward
-
-    # def forward_tracker(features, *args, **kwargs):
-    #     tracked_forward_keys.update(set(features.keys()))
-    #     return old_forward(features, *args, **kwargs)
-
-    # model.forward = forward_tracker
-
     if train_dict:
         if streaming:
             train_dataset = IterableDatasetDict({"stsb-1": train_dataset_1, "stsb-2": train_dataset_2})
@@ -622,6 +613,3 @@ def test_trainer_prompts(
             expected.update({prompt for inner_dict in prompts.values() for prompt in inner_dict.values()})
 
     assert set(tracked_texts) == expected
-
-
-# TODO: Test that it doesn't break with other architectures, e.g. CLIP
