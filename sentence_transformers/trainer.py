@@ -209,7 +209,7 @@ class SentenceTransformerTrainer(Trainer):
             "args": args,
             "data_collator": data_collator,
             "train_dataset": train_dataset,
-            "eval_dataset": eval_dataset,
+            "eval_dataset": eval_dataset if eval_dataset is not None or evaluator is None else "dummy",
             "model_init": model_init,
             "compute_metrics": compute_metrics,
             "callbacks": callbacks,
@@ -222,6 +222,12 @@ class SentenceTransformerTrainer(Trainer):
         else:
             super_kwargs["tokenizer"] = tokenizer
         super().__init__(**super_kwargs)
+        # Transformers v4.46.0 introduced a ValueError if `eval_dataset` is None while eval_strategy is not "no",
+        # but in Sentence Transformers you can also evaluate without an eval_dataset via an evaluator, so we set
+        # it to "dummy" in that case to avoid the ValueError
+        if self.eval_dataset == "dummy":
+            self.eval_dataset = None
+
         # Every Sentence Transformer model can always return a loss, so we set this to True
         # to avoid having to specify it in the data collator or model's forward
         self.can_return_loss = True

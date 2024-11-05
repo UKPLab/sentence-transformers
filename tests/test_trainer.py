@@ -8,8 +8,10 @@ from pathlib import Path
 
 import pytest
 import torch
+from datasets.dataset_dict import DatasetDict
 
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sentence_transformers.util import is_datasets_available, is_training_available
 from tests.utils import SafeTemporaryDirectory
@@ -230,3 +232,47 @@ def test_trainer(
         original_embeddings = original_model.encode("The cat is on the mat.", convert_to_tensor=True)
         new_embeddings = model.encode("The cat is on the the mat.", convert_to_tensor=True)
         assert not torch.equal(original_embeddings, new_embeddings)
+
+
+@pytest.mark.parametrize("use_eval_dataset", [True, False])
+@pytest.mark.parametrize("use_evaluator", [True, False])
+def test_trainer_no_eval_dataset_with_eval_strategy(
+    stsb_bert_tiny_model: SentenceTransformer,
+    stsb_dataset_dict: DatasetDict,
+    use_eval_dataset: bool,
+    use_evaluator: bool,
+    tmp_path: Path,
+) -> None:
+    # Expect a crash when `args.eval_strategy` is not "no" but neither `eval_dataset` or `evaluator` is provided
+    # Otherwise, the trainer should be created without any issues
+    model = stsb_bert_tiny_model
+    train_dataset = stsb_dataset_dict["train"].select(range(10))
+    eval_dataset = stsb_dataset_dict["validation"].select(range(10))
+    evaluator = EmbeddingSimilarityEvaluator(
+        sentences1=eval_dataset["sentence1"],
+        sentences2=eval_dataset["sentence2"],
+        scores=[score / 5 for score in eval_dataset["score"]],
+        name="stsb-validation",
+    )
+    loss = losses.CosineSimilarityLoss(model=model)
+    args = SentenceTransformerTrainingArguments(output_dir=tmp_path, eval_strategy="steps")
+
+    kwargs = {}
+    if use_eval_dataset:
+        kwargs["eval_dataset"] = eval_dataset
+    if use_evaluator:
+        kwargs["evaluator"] = evaluator
+
+    if not use_eval_dataset and not use_evaluator:
+        context = pytest.raises(ValueError, match=".*`args.eval_strategy`.*")
+    else:
+        context = nullcontext()
+
+    with context:
+        SentenceTransformerTrainer(
+            model=model,
+            args=args,
+            train_dataset=train_dataset,
+            loss=loss,
+            **kwargs,
+        )
