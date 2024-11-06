@@ -38,9 +38,11 @@ class STSDataReader:
     def get_examples(self, filename, max_examples=0):
         """filename specified which data split to use (train.csv, dev.csv, test.csv)."""
         filepath = os.path.join(self.dataset_folder, filename)
-        with gzip.open(filepath, "rt", encoding="utf8") if filename.endswith(".gz") else open(
-            filepath, encoding="utf-8"
-        ) as fIn:
+        with (
+            gzip.open(filepath, "rt", encoding="utf8")
+            if filename.endswith(".gz")
+            else open(filepath, encoding="utf-8") as fIn
+        ):
             data = csv.reader(fIn, delimiter=self.delimiter, quoting=self.quoting)
             examples = []
             for id, row in enumerate(data):

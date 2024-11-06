@@ -81,8 +81,10 @@ class MSEEvaluator(SentenceEvaluator):
     ):
         super().__init__()
         self.truncate_dim = truncate_dim
-        with nullcontext() if self.truncate_dim is None else teacher_model.truncate_sentence_embeddings(
-            self.truncate_dim
+        with (
+            nullcontext()
+            if self.truncate_dim is None
+            else teacher_model.truncate_sentence_embeddings(self.truncate_dim)
         ):
             self.source_embeddings = teacher_model.encode(
                 source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True

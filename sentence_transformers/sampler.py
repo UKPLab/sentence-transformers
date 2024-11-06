@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Iterator
 from itertools import accumulate, cycle
-from typing import Any, Iterator
+from typing import Any
 
 import torch
 from torch.utils.data import BatchSampler, ConcatDataset, SubsetRandomSampler

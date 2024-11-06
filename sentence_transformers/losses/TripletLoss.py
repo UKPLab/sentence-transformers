@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from enum import Enum
-from typing import Any, Iterable
+from typing import Any
 
 import torch.nn.functional as F
 from torch import Tensor, nn

@@ -5,7 +5,7 @@ benchmark.
 
 import argparse
 import os
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Optional, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,7 +21,7 @@ from sentence_transformers.evaluation import (
 
 # Dimension plot
 def _grouped_barplot_ratios(
-    group_name_to_x_to_y: Dict[str, Dict[int, float]], ax: Optional[plt.Axes] = None
+    group_name_to_x_to_y: dict[str, dict[int, float]], ax: Optional[plt.Axes] = None
 ) -> plt.Axes:
     # To save a pandas dependency, do from scratch in matplotlib
     if ax is None:
@@ -72,9 +72,9 @@ def _grouped_barplot_ratios(
 
 
 def plot_across_dimensions(
-    model_name_to_dim_to_score: Dict[str, Dict[int, float]],
+    model_name_to_dim_to_score: dict[str, dict[int, float]],
     filename: str,
-    figsize: Tuple[float, float] = (7, 7),
+    figsize: tuple[float, float] = (7, 7),
     title: str = "STSB test score for various embedding dimensions (via truncation),\nwith and without Matryoshka loss",
 ) -> None:
     # Sort each by key
@@ -139,8 +139,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     plot_filename: str = args.plot_filename
-    model_names: List[str] = args.model_names
-    DIMENSIONS: List[int] = args.dimensions
+    model_names: list[str] = args.model_names
+    DIMENSIONS: list[int] = args.dimensions
 
     # Load STSb
     stsb_test = load_dataset("mteb/stsbenchmark-sts", split="test")
@@ -153,10 +153,10 @@ if __name__ == "__main__":
     )
 
     # Run test_evaluator
-    model_name_to_dim_to_score: Dict[str, Dict[int, float]] = {}
+    model_name_to_dim_to_score: dict[str, dict[int, float]] = {}
     for model_name in tqdm(model_names, desc="Evaluating models"):
         model = SentenceTransformer(model_name)
-        dim_to_score: Dict[int, float] = {}
+        dim_to_score: dict[int, float] = {}
         for dim in tqdm(DIMENSIONS, desc=f"Evaluating {model_name}"):
             output_path = os.path.join(model_name, f"dim-{dim}")
             os.makedirs(output_path)

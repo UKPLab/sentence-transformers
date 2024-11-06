@@ -317,8 +317,10 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
             # Encode chunk of corpus
             if corpus_embeddings is None:
-                with nullcontext() if self.truncate_dim is None else corpus_model.truncate_sentence_embeddings(
-                    self.truncate_dim
+                with (
+                    nullcontext()
+                    if self.truncate_dim is None
+                    else corpus_model.truncate_sentence_embeddings(self.truncate_dim)
                 ):
                     sub_corpus_embeddings = corpus_model.encode(
                         self.corpus[corpus_start_idx:corpus_end_idx],

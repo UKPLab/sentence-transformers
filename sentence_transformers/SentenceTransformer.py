@@ -13,10 +13,11 @@ import tempfile
 import traceback
 import warnings
 from collections import OrderedDict
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from multiprocessing import Queue
 from pathlib import Path
-from typing import Any, Callable, Iterable, Iterator, Literal, overload
+from typing import Any, Callable, Literal, overload
 
 import numpy as np
 import torch
