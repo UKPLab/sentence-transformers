@@ -84,8 +84,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
             from sentence_transformers import SentenceTransformer
             from sentence_transformers.evaluation import NanoBEIREvaluator
 
-            # Load a model
-            model = SentenceTransformer('all-mpnet-base-v2')
+            model = SentenceTransformer('intfloat/multilingual-e5-large-instruct')
 
             datasets = ["QuoraRetrieval", "MSMARCO"]
             query_prompts = {
@@ -95,54 +94,78 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
             evaluator = NanoBEIREvaluator(
                 dataset_names=datasets,
-                name="NanoBEIR",
                 query_prompts=query_prompts,
             )
 
             results = evaluator(model)
             '''
             NanoBEIR Evaluation of the model on ['QuoraRetrieval', 'MSMARCO'] dataset:
-            Evaluating NanoBeIRNanoQuoraRetrieval
-            Evaluating NanoBeIRNanoMSMARCO
+            Evaluating NanoQuoraRetrieval
+            Information Retrieval Evaluation of the model on the NanoQuoraRetrieval dataset:
+            Queries: 50
+            Corpus: 5046
 
+            Score-Function: cosine
+            Accuracy@1: 92.00%
+            Accuracy@3: 98.00%
+            Accuracy@5: 100.00%
+            Accuracy@10: 100.00%
+            Precision@1: 92.00%
+            Precision@3: 40.67%
+            Precision@5: 26.00%
+            Precision@10: 14.00%
+            Recall@1: 81.73%
+            Recall@3: 94.20%
+            Recall@5: 97.93%
+            Recall@10: 100.00%
+            MRR@10: 0.9540
+            NDCG@10: 0.9597
+            MAP@100: 0.9395
+
+            Evaluating NanoMSMARCO
+            Information Retrieval Evaluation of the model on the NanoMSMARCO dataset:
+            Queries: 50
+            Corpus: 5043
+
+            Score-Function: cosine
+            Accuracy@1: 40.00%
+            Accuracy@3: 74.00%
+            Accuracy@5: 78.00%
+            Accuracy@10: 88.00%
+            Precision@1: 40.00%
+            Precision@3: 24.67%
+            Precision@5: 15.60%
+            Precision@10: 8.80%
+            Recall@1: 40.00%
+            Recall@3: 74.00%
+            Recall@5: 78.00%
+            Recall@10: 88.00%
+            MRR@10: 0.5849
+            NDCG@10: 0.6572
+            MAP@100: 0.5892
             Average Queries: 50.0
             Average Corpus: 5044.5
 
             Aggregated for Score Function: cosine
-            Accuracy@1: 39.00%
-            Accuracy@3: 57.00%
-            Accuracy@5: 66.00%
-            Accuracy@10: 77.00%
-            Precision@1: 39.00%
-            Recall@1: 34.03%
-            Precision@3: 20.67%
-            Recall@3: 54.07%
-            Precision@5: 15.00%
-            Recall@5: 64.27%
-            Precision@10: 8.90%
-            Recall@10: 75.97%
-            MRR@10: 0.5004
-            NDCG@10: 0.5513
-            Aggregated for Score Function: dot
-            Accuracy@1: 39.00%
-            Accuracy@3: 57.00%
-            Accuracy@5: 66.00%
-            Accuracy@10: 77.00%
-            Precision@1: 39.00%
-            Recall@1: 34.03%
-            Precision@3: 20.67%
-            Recall@3: 54.07%
-            Precision@5: 15.00%
-            Recall@5: 64.27%
-            Precision@10: 8.90%
-            Recall@10: 75.97%
-            MRR@10: 0.5004
-            NDCG@10: 0.5513
+            Accuracy@1: 66.00%
+            Accuracy@3: 86.00%
+            Accuracy@5: 89.00%
+            Accuracy@10: 94.00%
+            Precision@1: 66.00%
+            Recall@1: 60.87%
+            Precision@3: 32.67%
+            Recall@3: 84.10%
+            Precision@5: 20.80%
+            Recall@5: 87.97%
+            Precision@10: 11.40%
+            Recall@10: 94.00%
+            MRR@10: 0.7694
+            NDCG@10: 0.8085
             '''
-            logger.info(evaluator.primary_metric)
-            # => "cosine_ndcg@10"
-            logger.info(results["mean"][evaluator.primary_metric])
-            # => 0.5512516989358924
+            print(evaluator.primary_metric)
+            # => "NanoBEIR_mean_cosine_ndcg@10"
+            print(results[evaluator.primary_metric])
+            # => 0.8084508771660436
     """
 
     def __init__(
