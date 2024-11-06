@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable
+from collections.abc import Iterable
 
 from torch import Tensor, nn
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, PreTrainedModel

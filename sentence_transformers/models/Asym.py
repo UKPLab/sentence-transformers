@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 from collections import OrderedDict
-from typing import List
 
 from torch import Tensor, nn
 
@@ -45,7 +44,7 @@ class Asym(nn.Sequential):
 
         ordered_dict = OrderedDict()
         for name, models in sub_modules.items():
-            if not isinstance(models, List):
+            if not isinstance(models, list):
                 models = [models]
 
             for idx, model in enumerate(models):

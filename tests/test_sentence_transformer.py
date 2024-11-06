@@ -10,7 +10,7 @@ import os
 import re
 from functools import partial
 from pathlib import Path
-from typing import Dict, List, Literal, cast
+from typing import Literal, cast
 
 import numpy as np
 import pytest
@@ -492,10 +492,10 @@ def test_encode_truncate(
         # Extract the sentence embeddings out of outputs
         if output_value is None:
             # We get the whole plate
-            if not isinstance(outputs, List):
+            if not isinstance(outputs, list):
                 embeddings = outputs["sentence_embedding"]
             else:
-                outputs = cast(List[Dict[str, torch.Tensor]], outputs)
+                outputs = cast(list[dict[str, torch.Tensor]], outputs)
                 embeddings = [out_features["sentence_embedding"] for out_features in outputs]
         else:
             embeddings = outputs

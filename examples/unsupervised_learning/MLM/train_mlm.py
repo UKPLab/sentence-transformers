@@ -48,9 +48,11 @@ print("Save checkpoints to:", output_dir)
 
 train_sentences = []
 train_path = sys.argv[2]
-with gzip.open(train_path, "rt", encoding="utf8") if train_path.endswith(".gz") else open(
-    train_path, encoding="utf8"
-) as fIn:
+with (
+    gzip.open(train_path, "rt", encoding="utf8")
+    if train_path.endswith(".gz")
+    else open(train_path, encoding="utf8") as fIn
+):
     for line in fIn:
         line = line.strip()
         if len(line) >= 10:
@@ -61,9 +63,11 @@ print("Train sentences:", len(train_sentences))
 dev_sentences = []
 if len(sys.argv) >= 4:
     dev_path = sys.argv[3]
-    with gzip.open(dev_path, "rt", encoding="utf8") if dev_path.endswith(".gz") else open(
-        dev_path, encoding="utf8"
-    ) as fIn:
+    with (
+        gzip.open(dev_path, "rt", encoding="utf8")
+        if dev_path.endswith(".gz")
+        else open(dev_path, encoding="utf8") as fIn
+    ):
         for line in fIn:
             line = line.strip()
             if len(line) >= 10:

@@ -28,7 +28,7 @@ Using Sentence Transformer models is elementary:
    
       pip install -U sentence-transformers
    
-   We recommend **Python 3.8+** and **PyTorch 1.11.0+**. See `installation <docs/installation.html>`_ for further installation options.
+   We recommend **Python 3.9+** and **PyTorch 1.11.0+**. See `installation <docs/installation.html>`_ for further installation options.
 
 .. code-block:: python
 

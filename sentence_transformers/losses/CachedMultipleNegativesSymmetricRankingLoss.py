@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
 from contextlib import nullcontext
 from functools import partial
-from typing import Any, Iterable, Iterator
+from typing import Any
 
 import torch
 import tqdm

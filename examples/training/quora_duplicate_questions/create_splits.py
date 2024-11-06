@@ -481,9 +481,11 @@ write_mining_files("test", test_ids, test_duplicates)
 
 
 ###### Classification dataset #####
-with open("quora-IR-dataset/classification/train_pairs.tsv", "w", encoding="utf8") as fOutTrain, open(
-    "quora-IR-dataset/classification/dev_pairs.tsv", "w", encoding="utf8"
-) as fOutDev, open("quora-IR-dataset/classification/test_pairs.tsv", "w", encoding="utf8") as fOutTest:
+with (
+    open("quora-IR-dataset/classification/train_pairs.tsv", "w", encoding="utf8") as fOutTrain,
+    open("quora-IR-dataset/classification/dev_pairs.tsv", "w", encoding="utf8") as fOutDev,
+    open("quora-IR-dataset/classification/test_pairs.tsv", "w", encoding="utf8") as fOutTest,
+):
     fOutTrain.write("\t".join(["qid1", "qid2", "question1", "question2", "is_duplicate"]) + "\n")
     fOutDev.write("\t".join(["qid1", "qid2", "question1", "question2", "is_duplicate"]) + "\n")
     fOutTest.write("\t".join(["qid1", "qid2", "question1", "question2", "is_duplicate"]) + "\n")
