@@ -90,7 +90,6 @@ def test_train_stsb_slow(
         train_objectives=[(train_dataloader, train_loss)],
         evaluator=None,
         epochs=1,
-        evaluation_steps=1000,
         warmup_steps=int(len(train_dataloader) * 0.1),
         use_amp=torch.cuda.is_available(),
     )
@@ -115,7 +114,6 @@ def test_train_stsb(
         train_objectives=[(train_dataloader, train_loss)],
         evaluator=None,
         epochs=1,
-        evaluation_steps=1000,
         warmup_steps=int(len(train_dataloader) * 0.1),
         use_amp=torch.cuda.is_available(),
     )
