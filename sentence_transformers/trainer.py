@@ -1033,6 +1033,7 @@ class SentenceTransformerTrainer(Trainer):
                 dataset_dict,
                 prompts=prompts,
                 include_prompt_lengths=include_prompt_lengths,
+                include_dataset_name=include_dataset_name,
             )
         return dataset_dict
 
@@ -1042,6 +1043,7 @@ class SentenceTransformerTrainer(Trainer):
         prompts: dict[str, str] | str | None = None,
         dataset_name: str | None = None,
         include_prompt_lengths: bool = False,
+        include_dataset_name: bool = False,
     ) -> DatasetDict | Dataset | None:
         # If we have DatasetDict, recurse
         if isinstance(dataset_dict, (IterableDatasetDict, DatasetDict)):
@@ -1051,8 +1053,9 @@ class SentenceTransformerTrainer(Trainer):
                 dataset_dict[dataset_name] = self.add_prompts_or_dataset_name_column(
                     dataset_dict=dataset,
                     prompts=nested_prompts,
-                    dataset_name=dataset_name,
+                    dataset_name=dataset_name if include_dataset_name else None,
                     include_prompt_lengths=include_prompt_lengths,
+                    include_dataset_name=include_dataset_name,
                 )
             return dataset_dict
 

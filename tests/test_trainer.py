@@ -480,13 +480,24 @@ def test_trainer_prompts(
         trainer.compute_loss = compute_loss_tracker
         trainer.train()
 
-    if prompts and not pool_include_prompt:
-        # In this one edge case, the prompts won't be used because the datasets aren't dictionaries, so the prompts
-        # are seen as column names & ignored as they don't exist.
-        if not (
+    # In this one edge case, the prompts won't be used because the datasets aren't dictionaries, so the prompts
+    # are seen as column names & ignored as they don't exist.
+    if (
+        prompts
+        and not pool_include_prompt
+        and not (
             prompts == {"stsb-1": "Prompt 1: ", "stsb-2": "Prompt 2: "} and (train_dict, eval_dict) == (False, False)
-        ):
-            assert "prompt_length" in tracked_forward_keys
+        )
+    ):
+        assert "prompt_length" in tracked_forward_keys
+    else:
+        assert "prompt_length" not in tracked_forward_keys
+
+    # We only need the dataset_name if the loss requires it
+    if loss_dict:
+        assert "dataset_name" in datacollator_keys
+    else:
+        assert "dataset_name" not in datacollator_keys
 
     if prompts is None:
         if (train_dict, eval_dict) == (False, False):
@@ -497,9 +508,6 @@ def test_trainer_prompts(
             expected = all_train_1 | all_eval
         elif (train_dict, eval_dict) == (True, True):
             expected = all_train | all_eval
-
-        if loss_dict:
-            assert "dataset_name" in datacollator_keys
 
     elif prompts == "Prompt: ":
         if (train_dict, eval_dict) == (False, False):
@@ -513,10 +521,6 @@ def test_trainer_prompts(
 
         if not pool_include_prompt:
             expected.add(prompts)
-
-        # We only need the dataset_name if the loss requires it
-        if loss_dict:
-            assert "dataset_name" in datacollator_keys
 
     elif prompts == {"stsb-1": "Prompt 1: ", "stsb-2": "Prompt 2: "}:
         # If we don't have dataset dictionaries, the prompts will be seen as column names
@@ -542,12 +546,10 @@ def test_trainer_prompts(
                 | {prompts["stsb-2"] + sample for sample in all_eval_2}
             )
 
-        if (train_dict, eval_dict) != (False, False):
-            if not pool_include_prompt:
-                expected.update(set(prompts.values()))
-
-            # We need the dataset_name because the prompts need it - except if the datasets aren't dictionaries
-            assert "dataset_name" in datacollator_keys
+        # We need to add the prompt to the expected set because we need to collect prompt lengths if
+        # not pool_include_prompt, except if the datasets aren't dictionaries
+        if (train_dict, eval_dict) != (False, False) and not pool_include_prompt:
+            expected.update(set(prompts.values()))
 
     elif prompts == {"sentence1": "Prompt 1: ", "sentence2": "Prompt 2: "}:
         if (train_dict, eval_dict) == (False, False):
@@ -589,10 +591,6 @@ def test_trainer_prompts(
 
         if not pool_include_prompt:
             expected.update(set(prompts.values()))
-
-        # We only need the dataset_name if the loss requires it, because the prompts don't need it
-        if loss_dict:
-            assert "dataset_name" in datacollator_keys
 
     elif prompts == {
         "stsb-1": {"sentence1": "Prompt 1: ", "sentence2": "Prompt 2: "},
