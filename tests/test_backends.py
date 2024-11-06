@@ -156,3 +156,38 @@ def test_openvino_backend() -> None:
         ), "OpenVINO saved model output differs from in-memory converted model"
         del local_openvino_model
         gc.collect()
+
+
+def test_export_false_subfolder() -> None:
+    model_id = "sentence-transformers-testing/stsb-bert-tiny-openvino"
+
+    def from_pretrained_decorator(method):
+        def decorator(*args, **kwargs):
+            assert not kwargs["export"]
+            assert kwargs["subfolder"] == "openvino"
+            assert kwargs["file_name"] == "openvino_model.xml"
+            return method(*args, **kwargs)
+
+        return decorator
+
+    OVModelForFeatureExtraction.from_pretrained = from_pretrained_decorator(
+        OVModelForFeatureExtraction.from_pretrained
+    )
+    SentenceTransformer(model_id, backend="openvino", model_kwargs={"export": False})
+
+
+def test_export_set_nested_filename() -> None:
+    model_id = "sentence-transformers-testing/stsb-bert-tiny-openvino"
+
+    def from_pretrained_decorator(method):
+        def decorator(*args, **kwargs):
+            assert kwargs["subfolder"] == "openvino"
+            assert kwargs["file_name"] == "openvino_model.xml"
+            return method(*args, **kwargs)
+
+        return decorator
+
+    OVModelForFeatureExtraction.from_pretrained = from_pretrained_decorator(
+        OVModelForFeatureExtraction.from_pretrained
+    )
+    SentenceTransformer(model_id, backend="openvino", model_kwargs={"file_name": "openvino/openvino_model.xml"})
