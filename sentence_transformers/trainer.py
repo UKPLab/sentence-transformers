@@ -84,19 +84,6 @@ class SentenceTransformerTrainer(Trainer):
             or a dictionary mapping dataset names to functions that return a loss class instance given a model.
             In practice, the latter two are primarily used for hyper-parameter optimization. Will default to
             :class:`~sentence_transformers.losses.CoSENTLoss` if no ``loss`` is provided.
-        prompts (Union[Dict[str, Dict[str, str]], Dict[str, str], str], *optional*):
-            The prompts to use for each column in the training, evaluation and test datasets. Four formats are accepted:
-
-            1. `str`: A single prompt to use for all columns in the datasets, regardless of whether the training/evaluation/test
-                datasets are :class:`datasets.Dataset` or a :class:`datasets.DatasetDict`.
-            2. `Dict[str, str]`: A dictionary mapping column names to prompts, regardless of whether the training/evaluation/test
-                datasets are :class:`datasets.Dataset` or a :class:`datasets.DatasetDict`.
-            3. `Dict[str, str]`: A dictionary mapping dataset names to prompts. This should only be used if your training/evaluation/test
-                datasets are a :class:`datasets.DatasetDict` or a dictionary of :class:`datasets.Dataset`.
-            4. `Dict[str, Dict[str, str]]`: A dictionary mapping dataset names to dictionaries mapping column names to
-                prompts. This should only be used if your training/evaluation/test datasets are a
-                :class:`datasets.DatasetDict` or a dictionary of :class:`datasets.Dataset`.
-
         evaluator (Union[:class:`~sentence_transformers.evaluation.SentenceEvaluator`,\
             List[:class:`~sentence_transformers.evaluation.SentenceEvaluator`]], *optional*):
             The evaluator instance for useful evaluation metrics during training. You can use an ``evaluator`` with
@@ -141,7 +128,6 @@ class SentenceTransformerTrainer(Trainer):
         | Callable[[SentenceTransformer], torch.nn.Module]
         | dict[str, Callable[[SentenceTransformer], torch.nn.Module]]
         | None = None,
-        prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None,
         evaluator: SentenceEvaluator | list[SentenceEvaluator] | None = None,
         data_collator: DataCollator | None = None,
         tokenizer: PreTrainedTokenizerBase | Callable | None = None,
@@ -248,7 +234,6 @@ class SentenceTransformerTrainer(Trainer):
         # to avoid having to specify it in the data collator or model's forward
         self.can_return_loss = True
 
-        self.prompts = prompts
         self._prompt_length_mapping = {}
 
         self.model: SentenceTransformer
@@ -285,11 +270,13 @@ class SentenceTransformerTrainer(Trainer):
         self.evaluator = evaluator
 
         if self.train_dataset is not None:
-            self.validate_column_names(self.train_dataset, dataset_name="train")
-            self.train_dataset = self.maybe_add_prompts_or_dataset_name_column(train_dataset)
+            self.train_dataset = self.maybe_add_prompts_or_dataset_name_column(
+                train_dataset, args.prompts, dataset_name="train"
+            )
         if self.eval_dataset is not None:
-            self.validate_column_names(self.eval_dataset, dataset_name="eval")
-            self.eval_dataset = self.maybe_add_prompts_or_dataset_name_column(eval_dataset)
+            self.eval_dataset = self.maybe_add_prompts_or_dataset_name_column(
+                eval_dataset, args.prompts, dataset_name="eval"
+            )
 
         # Add a callback responsible for automatically tracking data required for the automatic model card generation
         model_card_callback = ModelCardCallback(self, default_args_dict)
@@ -438,8 +425,9 @@ class SentenceTransformerTrainer(Trainer):
         metric_key_prefix: str = "eval",
     ) -> dict[str, float]:
         if eval_dataset:
-            self.validate_column_names(eval_dataset, dataset_name="eval")
-            eval_dataset = self.maybe_add_prompts_or_dataset_name_column(eval_dataset)
+            eval_dataset = self.maybe_add_prompts_or_dataset_name_column(
+                eval_dataset, self.args.prompts, dataset_name="eval"
+            )
         else:
             eval_dataset = self.eval_dataset
         return super().evaluate(eval_dataset, ignore_keys, metric_key_prefix)
@@ -995,7 +983,10 @@ class SentenceTransformerTrainer(Trainer):
         return batch
 
     def maybe_add_prompts_or_dataset_name_column(
-        self, dataset_dict: DatasetDict | Dataset | None
+        self,
+        dataset_dict: DatasetDict | Dataset | None,
+        prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None,
+        dataset_name: str | None = None,
     ) -> DatasetDict | Dataset | None:
         """
         Maybe add prompts or dataset names to the dataset. We add the dataset_name column to the dataset if:
@@ -1032,12 +1023,15 @@ class SentenceTransformerTrainer(Trainer):
         if hasattr(dataset_dict, "_sentence_transformers_preprocessed"):
             return dataset_dict
 
+        # Ensure that there's no "dataset_name"/"return_loss" columns in the unprocessed datasets
+        self.validate_column_names(dataset_dict, dataset_name=dataset_name)
+
         # Only add if 1) we have prompts or 2) we need the dataset name for the loss dictionary
-        if self.prompts or include_dataset_name:
+        if prompts or include_dataset_name:
             include_prompt_lengths = self._include_prompt_length()
             dataset_dict = self.add_prompts_or_dataset_name_column(
                 dataset_dict,
-                prompts=self.prompts,
+                prompts=prompts,
                 include_prompt_lengths=include_prompt_lengths,
             )
         return dataset_dict

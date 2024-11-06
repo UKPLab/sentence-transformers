@@ -450,6 +450,7 @@ def test_trainer_prompts(
     with tempfile.TemporaryDirectory() as temp_dir:
         args = SentenceTransformerTrainingArguments(
             output_dir=str(temp_dir),
+            prompts=prompts,
             max_steps=2,
             eval_steps=2,
             eval_strategy="steps",
@@ -464,7 +465,6 @@ def test_trainer_prompts(
                 train_dataset=train_dataset,
                 eval_dataset=eval_dataset,
                 loss=loss,
-                prompts=prompts,
             )
         if not isinstance(context, nullcontext):
             return
@@ -472,9 +472,9 @@ def test_trainer_prompts(
         datacollator_keys = set()
         old_compute_loss = trainer.compute_loss
 
-        def compute_loss_tracker(model, inputs, return_outputs=False):
+        def compute_loss_tracker(model, inputs, **kwargs):
             datacollator_keys.update(set(inputs.keys()))
-            loss = old_compute_loss(model, inputs, return_outputs)
+            loss = old_compute_loss(model, inputs, **kwargs)
             return loss
 
         trainer.compute_loss = compute_loss_tracker
