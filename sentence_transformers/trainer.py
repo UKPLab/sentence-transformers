@@ -866,8 +866,13 @@ class SentenceTransformerTrainer(Trainer):
 
         self.model.save_pretrained(output_dir, safe_serialization=self.args.save_safetensors)
 
-        if self.tokenizer is not None:
-            self.tokenizer.save_pretrained(output_dir)
+        # Transformers v4.46.0 changed the `tokenizer` attribute to a more general `processing_class` attribute
+        if parse_version(transformers_version) >= parse_version("4.46.0"):
+            if self.processing_class is not None:
+                self.processing_class.save_pretrained(output_dir)
+        else:
+            if self.tokenizer is not None:
+                self.tokenizer.save_pretrained(output_dir)
 
         # Good practice: save your training arguments together with the trained model
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
