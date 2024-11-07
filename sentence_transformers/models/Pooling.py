@@ -36,6 +36,10 @@ class Pooling(nn.Module):
             <https://arxiv.org/abs/2202.08904>`_ and `Text and Code
             Embeddings by Contrastive Pre-Training
             <https://arxiv.org/abs/2201.10005>`_.
+        include_prompt: If set to false, the prompt tokens are not
+            included in the pooling. This is useful for reproducing
+            work that does not include the prompt tokens in the pooling
+            like INSTRUCTOR, but otherwise not recommended.
     """
 
     POOLING_MODES = (
