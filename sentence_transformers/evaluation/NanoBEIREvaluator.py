@@ -88,8 +88,8 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
             datasets = ["QuoraRetrieval", "MSMARCO"]
             query_prompts = {
-                "QuoraRetrieval": "Instruct: Given a question, retrieve questions that are semantically equivalent to the given question\nQuery: ",
-                "MSMARCO": "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: "
+                "QuoraRetrieval": "Instruct: Given a question, retrieve questions that are semantically equivalent to the given question\\nQuery: ",
+                "MSMARCO": "Instruct: Given a web search query, retrieve relevant passages that answer the query\\nQuery: "
             }
 
             evaluator = NanoBEIREvaluator(
