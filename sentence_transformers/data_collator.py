@@ -49,14 +49,7 @@ class SentenceTransformerDataCollator:
         for column_name in column_names:
             # If the prompt length has been set, we should add it to the batch
             if column_name.endswith("_prompt_length") and column_name[: -len("_prompt_length")] in column_names:
-                # If we have an IterableDataset, then every sample in features has the prompt length set.
-                # Additionally, `accelerate` requires that we pass on the prompt length as a tensor so
-                # things can be "concatenated".
-                # If we just have a Dataset, then we only have one prompt length, and we can just add it as an int.
-                try:
-                    batch[column_name] = torch.tensor([row[column_name] for row in features], dtype=torch.int)
-                except KeyError:
-                    batch[column_name] = features[0][column_name]
+                batch[column_name] = torch.tensor([row[column_name] for row in features], dtype=torch.int)
                 continue
 
             values = [row[column_name] for row in features]

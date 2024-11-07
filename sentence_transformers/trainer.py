@@ -920,7 +920,6 @@ class SentenceTransformerTrainer(Trainer):
         prompt_lengths: dict[str, int] | int | None = None,
         dataset_name: str | None = None,
         transform: Callable[[dict[str, list[Any]]], dict[str, list[Any]]] = None,
-        mapping: bool = False,
         **kwargs,
     ) -> dict[str, list[Any]]:
         """A transform/map function that adds prompts or dataset names to the batch.
@@ -936,8 +935,6 @@ class SentenceTransformerTrainer(Trainer):
                 that use a different loss. Defaults to None.
             transform (Callable[[dict[str, list[Any]]], dict[str, list[Any]]], optional): An optional transform
                 function to apply on the batch before adding prompts, etc. Defaults to None.
-            mapping (bool, optional): Whether this is used as a `.map` on an IterableDataset. If False, this is
-                instead used as `.set_transform` on a Dataset. Defaults to False.
 
         Returns:
             dict[str, list[Any]]: The "just-in-time" transformed batch with prompts and/or dataset names added.
@@ -963,9 +960,7 @@ class SentenceTransformerTrainer(Trainer):
                     batch[column_name] = [prompts + value for value in column]
 
                     if prompt_lengths is not None:
-                        batch[f"{column_name}_prompt_length"] = (
-                            [prompt_lengths] * len(column) if mapping else [prompt_lengths]
-                        )
+                        batch[f"{column_name}_prompt_length"] = [prompt_lengths] * len(column)
 
         # ... or a column-specific prompt
         if isinstance(prompts, dict):
@@ -974,13 +969,11 @@ class SentenceTransformerTrainer(Trainer):
                     batch[column_name] = [prompt + value for value in batch[column_name]]
 
                     if prompt_lengths:
-                        batch[f"{column_name}_prompt_length"] = (
-                            [prompt_lengths[prompt]] * len(batch[column_name]) if mapping else [prompt_lengths[prompt]]
-                        )
+                        batch[f"{column_name}_prompt_length"] = [prompt_lengths[prompt]] * len(batch[column_name])
 
         # If we have multiple losses, then we need to add the dataset name to the batch
         if dataset_name:
-            batch["dataset_name"] = [dataset_name] * len(batch[first_column]) if mapping else [dataset_name]
+            batch["dataset_name"] = [dataset_name] * len(batch[first_column])
 
         return batch
 
@@ -1124,7 +1117,6 @@ class SentenceTransformerTrainer(Trainer):
                     prompts=prompts,
                     prompt_lengths=prompt_lengths,
                     dataset_name=dataset_name,
-                    mapping=True,
                 ),
                 batched=True,
                 features=features,
