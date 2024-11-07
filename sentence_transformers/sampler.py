@@ -167,7 +167,7 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
             seed (int, optional): Seed for the random number generator to ensure reproducibility.
         """
         super().__init__(dataset, batch_size, drop_last)
-        if label_columns := set(dataset.column_names) & (set(valid_label_columns) | {"dataset_name"}):
+        if label_columns := set(dataset.column_names) & set(valid_label_columns):
             dataset = dataset.remove_columns(label_columns)
         self.dataset = dataset
         self.batch_size = batch_size
@@ -189,7 +189,11 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
             batch_values = set()
             batch_indices = []
             for index in remaining_indices:
-                sample_values = set(self.dataset[index].values())
+                sample_values = {
+                    value
+                    for key, value in self.dataset[index].items()
+                    if not key.endswith("_prompt_length") and key != "dataset_name"
+                }
                 if sample_values & batch_values:
                     continue
 
