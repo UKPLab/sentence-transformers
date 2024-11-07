@@ -639,6 +639,8 @@ class SentenceTransformerTrainer(Trainer):
                     "drop_last": self.args.dataloader_drop_last,
                 }
             )
+            if self.args.batch_sampler != BatchSamplers.BATCH_SAMPLER:
+                logger.warning("When using an IterableDataset, you cannot specify a batch sampler.")
 
         elif isinstance(train_dataset, IterableDatasetDict):
             raise ValueError(
