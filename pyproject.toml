@@ -38,7 +38,7 @@ dependencies = [
     "scikit-learn",
     "scipy",
     "huggingface-hub>=0.20.0",
-    "Pillow",
+    "Pillow"
 ]
 
 [project.urls]
@@ -51,7 +51,7 @@ train = ["datasets", "accelerate>=0.20.3"]
 onnx = ["optimum[onnxruntime]>=1.23.1"]
 onnx-gpu = ["optimum[onnxruntime-gpu]>=1.23.1"]
 openvino = ["optimum-intel[openvino]>=1.20.0"]
-dev = ["datasets", "accelerate>=0.20.3", "pre-commit", "pytest", "pytest-cov"]
+dev = ["datasets", "accelerate>=0.20.3", "pre-commit", "pytest", "pytest-cov", "peft"]
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
