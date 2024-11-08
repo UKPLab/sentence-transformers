@@ -16,8 +16,8 @@ import numpy as np
 import pytest
 import torch
 from huggingface_hub import CommitInfo, HfApi, RepoUrl
-from peft import PeftModel
 from torch import nn
+from transformers.utils import is_peft_available
 
 from sentence_transformers import SentenceTransformer, util
 from sentence_transformers.models import (
@@ -417,8 +417,9 @@ def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert transformer_kwargs["model_args"]["attn_implementation"] == "eager"
 
 
+@pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test PEFT support.")
 def test_load_checkpoint_with_peft_and_lora() -> None:
-    from peft import LoraConfig, TaskType
+    from peft import LoraConfig, PeftModel, TaskType
 
     peft_config = LoraConfig(
         target_modules=["query", "key", "value"],
@@ -431,7 +432,7 @@ def test_load_checkpoint_with_peft_and_lora() -> None:
 
     with SafeTemporaryDirectory() as tmp_folder:
         model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-        model._modules["0"].auto_model.add_adapter(peft_config)
+        model.add_adapter(peft_config)
         model.save(tmp_folder)
         expecteds = model.encode(["Hello there!", "How are you?"], convert_to_tensor=True)
 
@@ -715,3 +716,68 @@ def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
     model = stsb_bert_tiny_model
     embeddings = model.encode([])
     assert embeddings.shape == (0,)
+
+
+@pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test adapter methods.")
+def test_multiple_adapters() -> None:
+    text = "Hello, World!"
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    vec_initial = model.encode(text)
+    from peft import LoraConfig, TaskType, get_model_status
+
+    # Adding a fresh adapter
+    peft_config = LoraConfig(
+        target_modules=["query", "key", "value"],
+        task_type=TaskType.FEATURE_EXTRACTION,
+        inference_mode=False,
+        r=8,
+        lora_alpha=32,
+        lora_dropout=0.1,
+        init_lora_weights=False,  # Random initialization to test the adapter
+    )
+    model.add_adapter(peft_config)
+
+    # Load an adapter from the hub
+    model.load_adapter("sentence-transformers-testing/stsb-bert-tiny-lora", "hub_adapter")
+
+    # Adding another one with a different name
+    peft_config = LoraConfig(
+        target_modules=["value"],
+        task_type=TaskType.FEATURE_EXTRACTION,
+        inference_mode=False,
+        r=2,
+        lora_alpha=16,
+        lora_dropout=0.1,
+        init_lora_weights=False,  # Random initialization to test the adapter
+    )
+    model.add_adapter(peft_config, "my_adapter")
+
+    # Check that peft recognizes the adapters while we compute vectors for later comparison
+    status = get_model_status(model)
+    assert status.available_adapters == ["default", "hub_adapter", "my_adapter"]
+    assert status.enabled
+    assert status.active_adapters == ["my_adapter"]
+    assert status.active_adapters == model.active_adapters()
+    vec_my_adapter = model.encode(text)
+
+    model.set_adapter("default")
+    status = get_model_status(model)
+    assert status.active_adapters == ["default"]
+    vec_default_adapter = model.encode(text)
+
+    model.disable_adapters()
+    status = get_model_status(model)
+    assert not status.enabled
+    vec_no_adapter = model.encode(text)
+
+    # Check that each vector is different
+    assert not np.allclose(vec_my_adapter, vec_default_adapter)
+    assert not np.allclose(vec_my_adapter, vec_no_adapter)
+    assert not np.allclose(vec_default_adapter, vec_no_adapter)
+    # Check that the vectors from the original model match
+    assert np.allclose(vec_initial, vec_no_adapter)
+
+    # Check that for non Transformer-based models we have an error
+    model = SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency")
+    with pytest.raises(ValueError, match="PEFT methods are only supported"):
+        model.add_adapter(peft_config)
