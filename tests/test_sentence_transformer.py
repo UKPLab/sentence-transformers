@@ -284,12 +284,12 @@ def test_load_with_revision() -> None:
     assert not torch.equal(main_embeddings, older_model.encode(test_sentence, convert_to_tensor=True))
 
 
-def test_load_local_without_normalize_directory() -> None:
-    tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-    tiny_model.add_module("Normalize", Normalize())
+def test_load_local_without_normalize_directory(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+    model.add_module("Normalize", Normalize())
     with SafeTemporaryDirectory() as tmp_folder:
         model_path = Path(tmp_folder) / "tiny_model_local"
-        tiny_model.save(str(model_path))
+        model.save(str(model_path))
 
         assert (model_path / "2_Normalize").exists()
         os.rmdir(model_path / "2_Normalize")
@@ -300,8 +300,8 @@ def test_load_local_without_normalize_directory() -> None:
         assert isinstance(fresh_tiny_model, SentenceTransformer)
 
 
-def test_prompts(caplog: pytest.LogCaptureFixture) -> None:
-    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+def test_prompts(stsb_bert_tiny_model: SentenceTransformer, caplog: pytest.LogCaptureFixture) -> None:
+    model = stsb_bert_tiny_model
     assert model.prompts == {}
     assert model.default_prompt_name is None
     texts = ["How to bake a chocolate cake", "Symptoms of the flu"]
@@ -469,13 +469,14 @@ def test_encode_quantization(
 @pytest.mark.parametrize("normalize_embeddings", [True, False])
 @pytest.mark.parametrize("output_value", ["sentence_embedding", None])
 def test_encode_truncate(
+    stsb_bert_tiny_model_reused: SentenceTransformer,
     sentences: str | list[str],
     convert_to_tensor: bool,
     convert_to_numpy: bool,
     normalize_embeddings: bool,
     output_value: Literal["sentence_embedding"] | None,
 ) -> None:
-    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    model = stsb_bert_tiny_model_reused
     embeddings_full_unnormalized: torch.Tensor = model.encode(
         sentences, convert_to_numpy=False, convert_to_tensor=True
     )  # These are raw embeddings which serve as the reference to test against

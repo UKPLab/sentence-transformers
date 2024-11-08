@@ -422,9 +422,7 @@ class SentenceTransformerModelCardData(CardData):
             columns = [
                 column
                 for column, feature in dataset[dataset_name].features.items()
-                if isinstance(feature, Value)
-                and (feature.dtype == "string" or feature.dtype == "large_string")
-                and column != "dataset_name"
+                if isinstance(feature, Value) and feature.dtype in {"string", "large_string"}
             ]
             str_dataset = dataset[dataset_name].select_columns(columns)
             dataset_size = len(str_dataset)
@@ -435,7 +433,11 @@ class SentenceTransformerModelCardData(CardData):
             for idx, sample in enumerate(
                 str_dataset.select(random.sample(range(dataset_size), k=min(num_samples_to_check, dataset_size)))
             ):
-                lengths[idx] = sum(len(value) for value in sample.values())
+                lengths[idx] = sum(
+                    len(value)
+                    for key, value in sample.items()
+                    if key != "dataset_name" and not key.endswith("_prompt_length")
+                )
 
             indices, _ = zip(*sorted(lengths.items(), key=lambda x: x[1]))
             target_indices, backup_indices = indices[:num_samples], list(indices[num_samples:][::-1])
@@ -443,10 +445,18 @@ class SentenceTransformerModelCardData(CardData):
             # We want 4 texts, so we take texts from the backup indices, short texts first
             for idx in target_indices:
                 # This is anywhere between 1 and n texts
-                sentences = list(str_dataset[idx].values())
+                sentences = [
+                    sentence
+                    for key, sentence in str_dataset[idx].items()
+                    if key != "dataset_name" and not key.endswith("_prompt_length")
+                ]
                 while len(sentences) < 4 and backup_indices:
                     backup_idx = backup_indices.pop()
-                    backup_sample = list(str_dataset[backup_idx].values())
+                    backup_sample = [
+                        sentence
+                        for key, sentence in str_dataset[backup_idx].items()
+                        if key != "dataset_name" and not key.endswith("_prompt_length")
+                    ]
                     if len(backup_sample) == 1:
                         # If there is only one text in the backup sample, we take it
                         sentences.extend(backup_sample)
@@ -604,9 +614,9 @@ class SentenceTransformerModelCardData(CardData):
                     dataset_info["stats"][column] = {
                         "dtype": "float",
                         "data": {
-                            "min": round(min(dataset[column]), 2),
-                            "mean": round(sum(dataset[column]) / len(dataset), 2),
-                            "max": round(max(dataset[column]), 2),
+                            "min": round(min(subsection), 2),
+                            "mean": round(sum(subsection) / len(subsection), 2),
+                            "max": round(max(subsection), 2),
                         },
                     }
                 elif isinstance(first, list):

@@ -142,7 +142,16 @@ class Pooling(nn.Module):
             else torch.ones(token_embeddings.shape[:-1], device=token_embeddings.device, dtype=torch.int64)
         )
         if not self.include_prompt and "prompt_length" in features:
-            attention_mask[:, : features["prompt_length"]] = 0
+            prompt_length = features["prompt_length"]
+            # prompt_length is either:
+            # * an int (in inference)
+            # * a tensor of shape (bs), all the same value (in training with an IterableDataset)
+            # * a tensor of shape (1) (in training with a Dataset)
+            # We turn all into an int
+            if isinstance(prompt_length, torch.Tensor):
+                prompt_length = prompt_length[0].item()
+
+            attention_mask[:, :prompt_length] = 0
 
         ## Pooling strategy
         output_vectors = []
