@@ -45,9 +45,9 @@ model_output_path = "output/train_tsdae{}-{}".format(output_name, datetime.now()
 
 ################# Read the train corpus  #################
 train_sentences = []
-with gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else open(
-    filepath, encoding="utf8"
-) as fIn:
+with (
+    gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else open(filepath, encoding="utf8") as fIn
+):
     for line in tqdm.tqdm(fIn, desc="Read file"):
         line = line.strip()
         if len(line) >= 10:

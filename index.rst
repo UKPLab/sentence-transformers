@@ -1,6 +1,10 @@
-.. tip::
+.. note::
 
-   Sentence Transformers v3.2 just released, introducing the ONNX and OpenVINO backends for Sentence Transformer models. Read `SentenceTransformer > Usage > Speeding up Inference <docs/sentence_transformer/usage/efficiency.html>`_ to learn more about the new backends and what they can mean for your inference speed.
+   Sentence Transformers v3.2 recently released, introducing the ONNX and OpenVINO backends for Sentence Transformer models. Read `SentenceTransformer > Usage > Speeding up Inference <docs/sentence_transformer/usage/efficiency.html>`_ to learn more about the new backends and what they can mean for your inference speed.
+
+.. note::
+
+   Sentence Transformers v3.3 just released, introducing training with Prompts. Read `SentenceTransformer > Training Examples > Training with Prompts <examples/training/prompts/README.html>`_ to learn more about how you can use them to train stronger models.
 
 SentenceTransformers Documentation
 ==================================
@@ -28,7 +32,7 @@ Using Sentence Transformer models is elementary:
    
       pip install -U sentence-transformers
    
-   We recommend **Python 3.8+** and **PyTorch 1.11.0+**. See `installation <docs/installation.html>`_ for further installation options.
+   We recommend **Python 3.9+** and **PyTorch 1.11.0+**. See `installation <docs/installation.html>`_ for further installation options.
 
 .. code-block:: python
 

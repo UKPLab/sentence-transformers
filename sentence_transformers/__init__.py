@@ -6,7 +6,11 @@ __MODEL_HUB_ORGANIZATION__ = "sentence-transformers"
 import importlib
 import os
 
-from sentence_transformers.backend import export_dynamic_quantized_onnx_model, export_optimized_onnx_model
+from sentence_transformers.backend import (
+    export_dynamic_quantized_onnx_model,
+    export_optimized_onnx_model,
+    export_static_quantized_openvino_model,
+)
 from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
 from sentence_transformers.datasets import ParallelSentencesDataset, SentencesDataset
 from sentence_transformers.LoggingHandler import LoggingHandler
@@ -37,4 +41,5 @@ __all__ = [
     "quantize_embeddings",
     "export_optimized_onnx_model",
     "export_dynamic_quantized_onnx_model",
+    "export_static_quantized_openvino_model",
 ]

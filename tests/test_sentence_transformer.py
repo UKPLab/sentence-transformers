@@ -10,12 +10,13 @@ import os
 import re
 from functools import partial
 from pathlib import Path
-from typing import Dict, List, Literal, cast
+from typing import Literal, cast
 
 import numpy as np
 import pytest
 import torch
 from huggingface_hub import CommitInfo, HfApi, RepoUrl
+from peft import PeftModel
 from torch import nn
 
 from sentence_transformers import SentenceTransformer, util
@@ -284,12 +285,12 @@ def test_load_with_revision() -> None:
     assert not torch.equal(main_embeddings, older_model.encode(test_sentence, convert_to_tensor=True))
 
 
-def test_load_local_without_normalize_directory() -> None:
-    tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-    tiny_model.add_module("Normalize", Normalize())
+def test_load_local_without_normalize_directory(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+    model.add_module("Normalize", Normalize())
     with SafeTemporaryDirectory() as tmp_folder:
         model_path = Path(tmp_folder) / "tiny_model_local"
-        tiny_model.save(str(model_path))
+        model.save(str(model_path))
 
         assert (model_path / "2_Normalize").exists()
         os.rmdir(model_path / "2_Normalize")
@@ -300,8 +301,8 @@ def test_load_local_without_normalize_directory() -> None:
         assert isinstance(fresh_tiny_model, SentenceTransformer)
 
 
-def test_prompts(caplog: pytest.LogCaptureFixture) -> None:
-    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+def test_prompts(stsb_bert_tiny_model: SentenceTransformer, caplog: pytest.LogCaptureFixture) -> None:
+    model = stsb_bert_tiny_model
     assert model.prompts == {}
     assert model.default_prompt_name is None
     texts = ["How to bake a chocolate cake", "Symptoms of the flu"]
@@ -416,6 +417,32 @@ def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert transformer_kwargs["model_args"]["attn_implementation"] == "eager"
 
 
+def test_load_checkpoint_with_peft_and_lora() -> None:
+    from peft import LoraConfig, TaskType
+
+    peft_config = LoraConfig(
+        target_modules=["query", "key", "value"],
+        task_type=TaskType.FEATURE_EXTRACTION,
+        inference_mode=False,
+        r=8,
+        lora_alpha=32,
+        lora_dropout=0.1,
+    )
+
+    with SafeTemporaryDirectory() as tmp_folder:
+        model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+        model._modules["0"].auto_model.add_adapter(peft_config)
+        model.save(tmp_folder)
+        expecteds = model.encode(["Hello there!", "How are you?"], convert_to_tensor=True)
+
+        loaded_peft_model = SentenceTransformer(tmp_folder)
+        actuals = loaded_peft_model.encode(["Hello there!", "How are you?"], convert_to_tensor=True)
+
+        assert isinstance(model._modules["0"].auto_model, nn.Module)
+        assert isinstance(loaded_peft_model._modules["0"].auto_model, PeftModel)
+        assert torch.equal(expecteds, actuals)
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
 def test_encode_fp16() -> None:
     tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
@@ -469,13 +496,14 @@ def test_encode_quantization(
 @pytest.mark.parametrize("normalize_embeddings", [True, False])
 @pytest.mark.parametrize("output_value", ["sentence_embedding", None])
 def test_encode_truncate(
+    stsb_bert_tiny_model_reused: SentenceTransformer,
     sentences: str | list[str],
     convert_to_tensor: bool,
     convert_to_numpy: bool,
     normalize_embeddings: bool,
     output_value: Literal["sentence_embedding"] | None,
 ) -> None:
-    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    model = stsb_bert_tiny_model_reused
     embeddings_full_unnormalized: torch.Tensor = model.encode(
         sentences, convert_to_numpy=False, convert_to_tensor=True
     )  # These are raw embeddings which serve as the reference to test against
@@ -492,10 +520,10 @@ def test_encode_truncate(
         # Extract the sentence embeddings out of outputs
         if output_value is None:
             # We get the whole plate
-            if not isinstance(outputs, List):
+            if not isinstance(outputs, list):
                 embeddings = outputs["sentence_embedding"]
             else:
-                outputs = cast(List[Dict[str, torch.Tensor]], outputs)
+                outputs = cast(list[dict[str, torch.Tensor]], outputs)
                 embeddings = [out_features["sentence_embedding"] for out_features in outputs]
         else:
             embeddings = outputs
@@ -587,7 +615,7 @@ def test_similarity_score(stsb_bert_tiny_model_reused: SentenceTransformer, simi
 def test_similarity_score_save(stsb_bert_tiny_model: SentenceTransformer) -> None:
     model = stsb_bert_tiny_model
     embeddings = model.encode(["Sentence 1", "Sentence 2"])
-    assert model.similarity_fn_name is None
+    assert model.similarity_fn_name == "cosine"
     cosine_scores = model.similarity(embeddings, embeddings)
     # Using 'similarity' methods sets the default similarity function to 'cosine'
     assert model.similarity_fn_name == "cosine"

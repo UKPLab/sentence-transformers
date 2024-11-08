@@ -46,11 +46,16 @@ class SentenceTransformerDataCollator:
                 column_names.remove(label_column)
                 break
 
-        # Extract the feature columns
         for column_name in column_names:
+            # If the prompt length has been set, we should add it to the batch
+            if column_name.endswith("_prompt_length") and column_name[: -len("_prompt_length")] in column_names:
+                batch[column_name] = torch.tensor([row[column_name] for row in features], dtype=torch.int)
+                continue
+
             tokenized = self.tokenize_fn([row[column_name] for row in features])
             for key, value in tokenized.items():
                 batch[f"{column_name}_{key}"] = value
+
         return batch
 
     def maybe_warn_about_column_order(self, column_names: list[str]) -> None:

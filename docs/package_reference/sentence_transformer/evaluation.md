@@ -16,6 +16,11 @@
 .. autoclass:: sentence_transformers.evaluation.InformationRetrievalEvaluator
 ```
 
+## NanoBEIREvaluator
+```eval_rst
+.. autoclass:: sentence_transformers.evaluation.NanoBEIREvaluator
+```
+
 ## MSEEvaluator
 ```eval_rst
 .. autoclass:: sentence_transformers.evaluation.MSEEvaluator

@@ -55,9 +55,9 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 ################# Read the train corpus  #################
 train_sentences = []
-with gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else open(
-    filepath, encoding="utf8"
-) as fIn:
+with (
+    gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else open(filepath, encoding="utf8") as fIn
+):
     for line in tqdm.tqdm(fIn, desc="Read file"):
         line = line.strip()
         if len(line) >= 10:

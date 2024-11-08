@@ -1475,3 +1475,21 @@ def is_training_available() -> bool:
     Transformers models, i.e. Huggingface datasets and Huggingface accelerate.
     """
     return is_accelerate_available() and is_datasets_available()
+
+
+@contextmanager
+def disable_datasets_caching():
+    """
+    A context manager that will disable caching in the datasets library.
+    """
+    from datasets import disable_caching, enable_caching, is_caching_enabled
+
+    is_originally_enabled = is_caching_enabled()
+
+    try:
+        if is_originally_enabled:
+            disable_caching()
+        yield
+    finally:
+        if is_originally_enabled:
+            enable_caching()

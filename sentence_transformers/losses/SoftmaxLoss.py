@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Iterable
+from collections.abc import Iterable
+from typing import Callable
 
 import torch
 import transformers

@@ -4,7 +4,7 @@ import collections
 import json
 import os
 import string
-from typing import Iterable
+from collections.abc import Iterable
 
 from .WordTokenizer import ENGLISH_STOP_WORDS, WordTokenizer
 

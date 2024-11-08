@@ -11,6 +11,8 @@ import huggingface_hub
 import torch
 from torch import nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, T5Config
+from transformers.utils.import_utils import is_peft_available
+from transformers.utils.peft_utils import find_adapter_config_file
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +74,7 @@ class Transformer(nn.Module):
         if config_args is None:
             config_args = {}
 
-        config = AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
+        config = self._load_config(model_name_or_path, cache_dir, backend, config_args)
         self._load_model(model_name_or_path, config, cache_dir, backend, **model_args)
 
         if max_seq_length is not None and "model_max_length" not in tokenizer_args:
@@ -97,6 +99,26 @@ class Transformer(nn.Module):
         if tokenizer_name_or_path is not None:
             self.auto_model.config.tokenizer_class = self.tokenizer.__class__.__name__
 
+    def _load_config(self, model_name_or_path: str, cache_dir: str | None, backend: str, config_args: dict[str, Any]):
+        """Loads the configuration of a model"""
+        if find_adapter_config_file(model_name_or_path) is not None:
+            if not is_peft_available():
+                raise Exception(
+                    "Loading a PEFT model requires installing the `peft` package. You can install it via `pip install peft`."
+                )
+            if backend != "torch":
+                # TODO: Consider following these steps automatically so we can load PEFT models with other backends
+                raise ValueError(
+                    "PEFT models can currently only be loaded with the `torch` backend. "
+                    'To use other backends, load the model with `backend="torch"`, call `model[0].auto_model.merge_and_unload()`, '
+                    "save that model with `model.save_pretrained()` and then load the model with the desired backend."
+                )
+            from peft import PeftConfig
+
+            return PeftConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
+
+        return AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
+
     def _load_model(self, model_name_or_path, config, cache_dir, backend, **model_args) -> None:
         """Loads the transformer model"""
         if backend == "torch":
@@ -108,12 +130,22 @@ class Transformer(nn.Module):
                 self.auto_model = AutoModel.from_pretrained(
                     model_name_or_path, config=config, cache_dir=cache_dir, **model_args
                 )
+            self._load_peft_model(model_name_or_path, config, cache_dir, **model_args)
         elif backend == "onnx":
             self._load_onnx_model(model_name_or_path, config, cache_dir, **model_args)
         elif backend == "openvino":
             self._load_openvino_model(model_name_or_path, config, cache_dir, **model_args)
         else:
             raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, or `openvino`.")
+
+    def _load_peft_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
+        if is_peft_available():
+            from peft import PeftConfig, PeftModel
+
+            if isinstance(config, PeftConfig):
+                self.auto_model = PeftModel.from_pretrained(
+                    self.auto_model, model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+                )
 
     def _load_openvino_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         if isinstance(config, T5Config) or isinstance(config, MT5Config):
@@ -155,7 +187,7 @@ class Transformer(nn.Module):
         else:
             model_args["ov_config"] = {}
 
-        # Either load an exported model, or export the model to ONNX
+        # Either load an exported model, or export the model to OpenVINO
         self.auto_model: OVModelForFeatureExtraction = OVModelForFeatureExtraction.from_pretrained(
             model_name_or_path,
             config=config,
@@ -254,12 +286,12 @@ class Transformer(nn.Module):
         """
 
         export = model_args.pop("export", None)
-        if export is not None:
+        if export:
             return export, model_args
 
         file_name = model_args.get("file_name", target_file_name)
         subfolder = model_args.get("subfolder", None)
-        primary_full_path = Path(subfolder, file_name).as_posix() if subfolder else file_name
+        primary_full_path = Path(subfolder, file_name).as_posix() if subfolder else Path(file_name).as_posix()
         secondary_full_path = (
             Path(subfolder, self.backend, file_name).as_posix()
             if subfolder
@@ -282,10 +314,10 @@ class Transformer(nn.Module):
         # First check if the expected file exists in the root of the model directory
         # If it doesn't, check if it exists in the backend subfolder.
         # If it does, set the subfolder to include the backend
-        export = primary_full_path not in model_file_names
-        if export and "subfolder" not in model_args:
-            export = secondary_full_path not in model_file_names
-            if not export:
+        model_found = primary_full_path in model_file_names
+        if not model_found and "subfolder" not in model_args:
+            model_found = secondary_full_path in model_file_names
+            if model_found:
                 if len(model_file_names) > 1 and "file_name" not in model_args:
                     logger.warning(
                         f"Multiple {backend_name} files found in {load_path.as_posix()!r}: {model_file_names}, defaulting to {secondary_full_path!r}. "
@@ -293,6 +325,8 @@ class Transformer(nn.Module):
                     )
                 model_args["subfolder"] = self.backend
                 model_args["file_name"] = file_name
+        if export is None:
+            export = not model_found
 
         # If the file_name contains subfolders, set it as the subfolder instead
         file_name_parts = Path(file_name).parts
@@ -304,6 +338,7 @@ class Transformer(nn.Module):
             logger.warning(
                 f"No {file_name!r} found in {load_path.as_posix()!r}. Exporting the model to {backend_name}."
             )
+
             if model_file_names:
                 logger.warning(
                     f"If you intended to load one of the {model_file_names} {backend_name} files, "
@@ -350,15 +385,31 @@ class Transformer(nn.Module):
         output_states = self.auto_model(**trans_features, **kwargs, return_dict=False)
         output_tokens = output_states[0]
 
-        features.update({"token_embeddings": output_tokens, "attention_mask": features["attention_mask"]})
+        # If the AutoModel is wrapped with a PeftModelForFeatureExtraction, then it may have added virtual tokens
+        # We need to extend the attention mask to include these virtual tokens, or the pooling will fail
+        if is_peft_available():
+            from peft import PeftModelForFeatureExtraction
 
-        if self.auto_model.config.output_hidden_states:
-            all_layer_idx = 2
+            if (
+                isinstance(self.auto_model, PeftModelForFeatureExtraction)
+                and self.auto_model.active_peft_config.is_prompt_learning
+            ):
+                batch_size = output_tokens.size(0)
+                attention_mask = features["attention_mask"]
+                prefix_attention_mask = torch.ones(
+                    batch_size, self.auto_model.active_peft_config.num_virtual_tokens, device=attention_mask.device
+                )
+                features["attention_mask"] = torch.cat((prefix_attention_mask, attention_mask), dim=1)
+
+        features["token_embeddings"] = output_tokens
+
+        if self.auto_model.config.output_hidden_states and len(output_states) > 2:
+            all_layer_idx = 2  # I.e. after last_hidden_states and pooler_output
             if len(output_states) < 3:  # Some models only output last_hidden_states and all_hidden_states
                 all_layer_idx = 1
 
             hidden_states = output_states[all_layer_idx]
-            features.update({"all_layer_embeddings": hidden_states})
+            features["all_layer_embeddings"] = hidden_states
 
         return features
 
