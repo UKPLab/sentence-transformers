@@ -13,7 +13,7 @@ def peft_wrapper(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         self.check_peft_compatible_model()
-        method = getattr(self._modules["0"].auto_model, func.__name__)
+        method = getattr(self[0].auto_model, func.__name__)
         return method(*args, **kwargs)
 
     return wrapper
@@ -31,22 +31,16 @@ class PeftAdapterMixin:
     """
 
     def has_peft_compatible_model(self) -> bool:
-        return isinstance(self._modules["0"], Transformer) and isinstance(
-            self._modules["0"].auto_model, PeftAdapterMixinTransformers
-        )
+        return isinstance(self[0], Transformer) and isinstance(self[0].auto_model, PeftAdapterMixinTransformers)
 
     def check_peft_compatible_model(self) -> None:
         if not self.has_peft_compatible_model():
             raise ValueError(
-                "PEFT methods are only supported for Transformers models that inherit from PeftAdapterMixin"
+                "PEFT methods are only supported for Sentence Transformer models that use the Transformer module."
             )
 
     @peft_wrapper
-    def load_adapter(
-        self,
-        *args,
-        **kwargs,
-    ) -> None:
+    def load_adapter(self, *args, **kwargs) -> None:
         """
         Load adapter weights from file or remote Hub folder." If you are not familiar with adapters and PEFT methods, we
         invite you to read more about them on PEFT official documentation: https://huggingface.co/docs/peft
