@@ -16,8 +16,8 @@ import numpy as np
 import pytest
 import torch
 from huggingface_hub import CommitInfo, HfApi, RepoUrl
-from peft import PeftModel
 from torch import nn
+from transformers.utils import is_peft_available
 
 from sentence_transformers import SentenceTransformer, util
 from sentence_transformers.models import (
@@ -417,8 +417,9 @@ def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert transformer_kwargs["model_args"]["attn_implementation"] == "eager"
 
 
+@pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test PEFT support.")
 def test_load_checkpoint_with_peft_and_lora() -> None:
-    from peft import LoraConfig, TaskType
+    from peft import LoraConfig, PeftModel, TaskType
 
     peft_config = LoraConfig(
         target_modules=["query", "key", "value"],
@@ -431,7 +432,7 @@ def test_load_checkpoint_with_peft_and_lora() -> None:
 
     with SafeTemporaryDirectory() as tmp_folder:
         model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-        model._modules["0"].auto_model.add_adapter(peft_config)
+        model.add_adapter(peft_config)
         model.save(tmp_folder)
         expecteds = model.encode(["Hello there!", "How are you?"], convert_to_tensor=True)
 
@@ -717,6 +718,7 @@ def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
     assert embeddings.shape == (0,)
 
 
+@pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test adapter methods.")
 def test_multiple_adapters() -> None:
     text = "Hello, World!"
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
@@ -736,8 +738,7 @@ def test_multiple_adapters() -> None:
     model.add_adapter(peft_config)
 
     # Load an adapter from the hub
-    # TODO: Upload the adapter to the hub to test the loading (confirmed to be working with manual testing)
-    # model.load_adapter("sentence-transformers-testing/stsb-bert-tiny-lora", "hub_adapter")
+    model.load_adapter("sentence-transformers-testing/stsb-bert-tiny-lora", "hub_adapter")
 
     # Adding another one with a different name
     peft_config = LoraConfig(
@@ -753,7 +754,7 @@ def test_multiple_adapters() -> None:
 
     # Check that peft recognizes the adapters while we compute vectors for later comparison
     status = get_model_status(model)
-    assert status.available_adapters == ["default", "my_adapter"]  # ["default", "my_adapter", "hub_adapter"]
+    assert status.available_adapters == ["default", "hub_adapter", "my_adapter"]
     assert status.enabled
     assert status.active_adapters == ["my_adapter"]
     assert status.active_adapters == model.active_adapters()
