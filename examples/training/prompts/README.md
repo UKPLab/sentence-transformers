@@ -44,14 +44,14 @@ In essence, using instructions or prompts allows for improved performance as lon
 ```eval_rst
 Since the v3.3.0 Sentence Transformers release, it's possible to finetune embedding models with prompts using the ``prompts`` argument in the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` class. There are 4 separate accepted formats for this argument:
 
-1. ``str``: A single prompt to use for all columns in the datasets, regardless of whether the training/evaluation/test datasets are dictionaries or not. For example::
+1. ``str``: A single prompt to use for all columns in all datasets. For example::
 
     args = SentenceTransformerTrainingArguments(
         ...,
         prompts="text: ",
         ...,
     )
-2. ``Dict[str, str]``: A dictionary mapping column names to prompts, regardless of whether the training/evaluation/test datasets are dictionaries or not. For example::
+2. ``Dict[str, str]``: A dictionary mapping column names to prompts, applied to all datasets. For example::
 
     args = SentenceTransformerTrainingArguments(
         ...,
@@ -61,7 +61,7 @@ Since the v3.3.0 Sentence Transformers release, it's possible to finetune embedd
         },
         ...,
     )
-3. ``Dict[str, str]``: A dictionary mapping dataset names to prompts. This should only be used if your training/evaluation/test datasets are a :class:`datasets.DatasetDict` or a dictionary of :class:`datasets.Dataset`. For example::
+3. ``Dict[str, str]``: A dictionary mapping dataset names to prompts. This should only be used if your training/evaluation/test datasets are a :class:`~datasets.DatasetDict` or a dictionary of :class:`~datasets.Dataset`. For example::
 
     args = SentenceTransformerTrainingArguments(
         ...,
@@ -71,7 +71,7 @@ Since the v3.3.0 Sentence Transformers release, it's possible to finetune embedd
         },
         ...,
     )
-4. ``Dict[str, Dict[str, str]]``: A dictionary mapping dataset names to dictionaries mapping column names to prompts. This should only be used if your training/evaluation/test datasets are a :class:`datasets.DatasetDict` or a dictionary of :class:`datasets.Dataset`. For example::
+4. ``Dict[str, Dict[str, str]]``: A dictionary mapping dataset names to dictionaries mapping column names to prompts. This should only be used if your training/evaluation/test datasets are a :class:`~datasets.DatasetDict` or a dictionary of :class:`~datasets.Dataset`. For example::
 
     args = SentenceTransformerTrainingArguments(
         ...,
@@ -88,7 +88,7 @@ Since the v3.3.0 Sentence Transformers release, it's possible to finetune embedd
         ...,
     )
 
-Additionally, some research papers (`INSTRUCTOR <https://arxiv.org/abs/2212.09741>`_, `NV-Embed <https://arxiv.org/pdf/2405.17428>`_) exclude the prompt from the mean pooling step, such that it's only used in the Transformer blocks. In Sentence Transformers, this can be configured with the ``include_prompt`` argument/attribute in the :class:`~sentence_transformers.models.Pooling` module or via the :meth:`SentenceTransformer.set_pooling_include_prompt <sentence_transformers.SentenceTransformer.set_pooling_include_prompt>` method. In my personal experience, models that include the prompt in the pooling tend to perform better.
+Additionally, some research papers (`INSTRUCTOR <https://arxiv.org/abs/2212.09741>`_, `NV-Embed <https://arxiv.org/pdf/2405.17428>`_) exclude the prompt from the mean pooling step, such that it's only used in the Transformer blocks. In Sentence Transformers, this can be configured with the ``include_prompt`` argument/attribute in the :class:`~sentence_transformers.models.Pooling` module or via the :meth:`SentenceTransformer.set_pooling_include_prompt() <sentence_transformers.SentenceTransformer.set_pooling_include_prompt>` method. In my personal experience, models that include the prompt in the pooling tend to perform better.
 ```
 
 ### Training Script
@@ -117,7 +117,12 @@ This script has two variables that affect 1) whether prompts are used and 2) whe
 
         <img src="https://huggingface.co/tomaarsen/mpnet-base-nq-prompts/resolve/main/mpnet_base_nq_nanobeir.png" alt="NanoBEIR results of mpnet-base-nq vs mpnet-base-nq-prompts" width="480"/>
 
-    Additionally, the model trained with prompts includes these prompts in the training dataset details in the automatically generated model card: `tomaarsen/mpnet-base-nq-prompts#natural-questions <https://huggingface.co/tomaarsen/mpnet-base-nq-prompts#natural-questions>`_. The final usage becomes::
+    Additionally, the model trained with prompts includes these prompts in the training dataset details in the automatically generated model card: `tomaarsen/mpnet-base-nq-prompts#natural-questions <https://huggingface.co/tomaarsen/mpnet-base-nq-prompts#natural-questions>`_.
+
+    .. important::
+        If you train with prompts, then it's heavily recommended to store prompts in the model configuration as a mapping of prompt names to prompt strings. You can do this by initializing the :class:`~sentence_transformers.SentenceTransformer` with a ``prompts`` dictionary before saving it, updating the ``model.prompts`` of a loaded model before saving it, and/or updating the `config_sentence_transformers.json <https://huggingface.co/tomaarsen/mpnet-base-nq-prompts/blob/main/config_sentence_transformers.json>`_ file of the saved model.
+
+    After adding the prompts in the model configuration, the final usage of the prompt-trained model becomes::
 
         from sentence_transformers import SentenceTransformer
 
@@ -148,7 +153,12 @@ This script has two variables that affect 1) whether prompts are used and 2) whe
 
         <img src="https://huggingface.co/tomaarsen/mpnet-base-nq-prompts/resolve/main/bert_base_nq_nanobeir.png" alt="NanoBEIR results" width="480"/>
 
-    Additionally, the model trained with prompts includes these prompts in the training dataset details in the automatically generated model card: `tomaarsen/bert-base-nq-prompts#natural-questions <https://huggingface.co/tomaarsen/bert-base-nq-prompts#natural-questions>`_. The final usage becomes::
+    Additionally, the model trained with prompts includes these prompts in the training dataset details in the automatically generated model card: `tomaarsen/bert-base-nq-prompts#natural-questions <https://huggingface.co/tomaarsen/bert-base-nq-prompts#natural-questions>`_.
+    
+    .. important::
+        If you train with prompts, then it's heavily recommended to store prompts in the model configuration as a mapping of prompt names to prompt strings. You can do this by initializing the :class:`~sentence_transformers.SentenceTransformer` with a ``prompts`` dictionary before saving it, updating the ``model.prompts`` of a loaded model before saving it, and/or updating the `config_sentence_transformers.json <https://huggingface.co/tomaarsen/mpnet-base-nq-prompts/blob/main/config_sentence_transformers.json>`_ file of the saved model.
+
+    After adding the prompts in the model configuration, the final usage of the prompt-trained model becomes::
     
         from sentence_transformers import SentenceTransformer
 
@@ -164,7 +174,4 @@ This script has two variables that affect 1) whether prompts are used and 2) whe
         similarity = model.similarity(query_embedding, document_embeddings)
         print(similarity)
         # => tensor([[0.3955, 0.8226, 0.5706]])
-
-.. important::
-    If you train with prompts, then it's heavily recommended to store prompts in the model configuration as a mapping of prompt names to prompt strings. You can do this by initializing the :class:`~sentence_transformers.SentenceTransformer` with a ``prompts`` dictionary before saving it, updating the ``model.prompts`` of a loaded model before saving it, and/or updating the `config_sentence_transformers.json <https://huggingface.co/tomaarsen/mpnet-base-nq-prompts/blob/main/config_sentence_transformers.json>`_ file of the saved model.
 ```
