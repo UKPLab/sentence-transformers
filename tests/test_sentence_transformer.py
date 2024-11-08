@@ -418,7 +418,7 @@ def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_load_checkpoint_with_peft_and_lora() -> None:
-    from peft import LoraConfig, TaskType, get_peft_model
+    from peft import LoraConfig, TaskType
 
     peft_config = LoraConfig(
         target_modules=["query", "key", "value"],
@@ -431,16 +431,16 @@ def test_load_checkpoint_with_peft_and_lora() -> None:
 
     with SafeTemporaryDirectory() as tmp_folder:
         model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-        model._modules["0"].auto_model = get_peft_model(model._modules["0"].auto_model, peft_config)
+        model._modules["0"].auto_model.add_adapter(peft_config)
         model.save(tmp_folder)
-        expecteds = model.encode(["Hello there!", "How are you?"])
+        expecteds = model.encode(["Hello there!", "How are you?"], convert_to_tensor=True)
 
         loaded_peft_model = SentenceTransformer(tmp_folder)
-        actuals = loaded_peft_model.encode(["Hello there!", "How are you?"])
+        actuals = loaded_peft_model.encode(["Hello there!", "How are you?"], convert_to_tensor=True)
 
         assert isinstance(model._modules["0"].auto_model, nn.Module)
         assert isinstance(loaded_peft_model._modules["0"].auto_model, PeftModel)
-        assert [expected.tolist() for expected in expecteds] == [actual.tolist() for actual in actuals]
+        assert torch.equal(expecteds, actuals)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
