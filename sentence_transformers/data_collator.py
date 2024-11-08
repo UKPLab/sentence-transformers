@@ -52,8 +52,7 @@ class SentenceTransformerDataCollator:
                 batch[column_name] = torch.tensor([row[column_name] for row in features], dtype=torch.int)
                 continue
 
-            values = [row[column_name] for row in features]
-            tokenized = self.tokenize_fn(values)
+            tokenized = self.tokenize_fn([row[column_name] for row in features])
             for key, value in tokenized.items():
                 batch[f"{column_name}_{key}"] = value
 
