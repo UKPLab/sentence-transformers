@@ -13,13 +13,15 @@ logging.basicConfig(
     format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
 )
 
+
 def encode_sentences(sentences):
     model = SentenceTransformer("all-MiniLM-L6-v2")
     return model.encode(sentences)
 
+
 if __name__ == "__main__":
     # Create a large list of sentences
-    sentences = [f"This is sentence {i}" for i in range(100000)]
+    sentences = [f"This is sentence {i}" for i in range(100_000)]
 
     # Split sentences into chunks for parallel processing
     num_chunks = cpu_count()
