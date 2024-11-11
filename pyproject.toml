@@ -1,6 +1,6 @@
 [project]
 name = "sentence-transformers"
-version = "3.3.0.dev0"
+version = "3.4.0.dev0"
 description = "State-of-the-Art Text Embeddings"
 license = { text = "Apache 2.0" }
 readme = "README.md"
