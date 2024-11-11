@@ -7,7 +7,7 @@ from contextlib import nullcontext
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
-from sklearn.metrics import average_precision_score
+from sklearn.metrics import average_precision_score, matthews_corrcoef
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
@@ -124,6 +124,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             "recall",
             "f1_threshold",
             "ap",
+            "mcc",
         ]
 
         for v in similarity_fn_names:
@@ -275,11 +276,15 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             f1, precision, recall, f1_threshold = self.find_best_f1_and_threshold(scores, labels, greater_is_better)
             ap = average_precision_score(labels, scores * (1 if greater_is_better else -1))
 
+            predicted_labels = (scores >= f1_threshold) if greater_is_better else (scores <= f1_threshold)
+            mcc = matthews_corrcoef(labels, predicted_labels)
+
             logger.info(f"Accuracy with {name}:           {acc * 100:.2f}\t(Threshold: {acc_threshold:.4f})")
             logger.info(f"F1 with {name}:                 {f1 * 100:.2f}\t(Threshold: {f1_threshold:.4f})")
             logger.info(f"Precision with {name}:          {precision * 100:.2f}")
             logger.info(f"Recall with {name}:             {recall * 100:.2f}")
             logger.info(f"Average Precision with {name}:  {ap * 100:.2f}\n")
+            logger.info(f"Matthews Correlation with {name}: {mcc:.4f}\n")
 
             output_scores[similarity_fn_name] = {
                 "accuracy": acc,
@@ -289,6 +294,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                 "precision": precision,
                 "recall": recall,
                 "ap": ap,
+                "mcc": mcc,
             }
 
         return output_scores
