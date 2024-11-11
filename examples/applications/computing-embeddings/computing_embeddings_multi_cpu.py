@@ -5,6 +5,7 @@ to show progress while encoding sentences using the SentenceTransformer model.
 
 import logging
 from multiprocessing import Pool, cpu_count
+
 from tqdm import tqdm
 
 from sentence_transformers import LoggingHandler, SentenceTransformer
