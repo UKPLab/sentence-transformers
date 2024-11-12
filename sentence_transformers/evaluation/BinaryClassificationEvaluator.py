@@ -70,6 +70,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             Precision with Cosine-Similarity:          65.81
             Recall with Cosine-Similarity:             87.89
             Average Precision with Cosine-Similarity:  76.03
+            Matthews correlation coefficient:          62.48
             '''
             print(binary_acc_evaluator.primary_metric)
             # => "quora_duplicates_dev_cosine_ap"
