@@ -15,7 +15,6 @@ from transformers import EvalPrediction, PreTrainedTokenizerBase, Trainer, Train
 from transformers import __version__ as transformers_version
 from transformers.data.data_collator import DataCollator
 from transformers.integrations import WandbCallback
-from transformers.integrations.peft import PeftAdapterMixin
 from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.trainer_utils import EvalLoopOutput
 
