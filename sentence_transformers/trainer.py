@@ -15,6 +15,7 @@ from transformers import EvalPrediction, PreTrainedTokenizerBase, Trainer, Train
 from transformers import __version__ as transformers_version
 from transformers.data.data_collator import DataCollator
 from transformers.integrations import WandbCallback
+from transformers.integrations.peft import PeftAdapterMixin
 from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.trainer_utils import EvalLoopOutput
 
@@ -496,6 +497,9 @@ class SentenceTransformerTrainer(Trainer):
         # Loading the best model is only supported for `transformers`-based models
         if not isinstance(self.model[0], Transformer):
             logger.info("Could not load best model, as the model is not a `transformers`-based model.")
+            return
+        elif isinstance(self.model[0], PeftAdapterMixin):
+            logger.info("Could not load best model, as the model is a `PeftAdapterMixin`-based model. Please wait for an update of the transformers library to enable this feature.")
             return
 
         try:
