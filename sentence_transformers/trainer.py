@@ -499,10 +499,11 @@ class SentenceTransformerTrainer(Trainer):
             return
         
         try:
-            self.model[0].auto_model.active_adapters()
+            if len(self.model[0].auto_model.active_adapters()):
+                logger.info("Could not load best model, as the model has at least one adapter set. Please wait for an update of the transformers library to enable this feature.")
+                return
         except ValueError:
-            logger.info("Could not load best model, as the model has at least one adapter set. Please wait for an update of the transformers library to enable this feature.")
-            return
+            pass
 
         try:
             if checkpoint := self.state.best_model_checkpoint:
