@@ -105,6 +105,7 @@ class Transformer(nn.Module):
             find_adapter_config_file(
                 model_name_or_path,
                 token=config_args.get("token"),
+                revision=config_args.get("revision"),
                 local_files_only=config_args.get("local_files_only"),
             )
             is not None
@@ -293,12 +294,12 @@ class Transformer(nn.Module):
         """
 
         export = model_args.pop("export", None)
-        if export:
+        if export is not None:
             return export, model_args
 
         file_name = model_args.get("file_name", target_file_name)
         subfolder = model_args.get("subfolder", None)
-        primary_full_path = Path(subfolder, file_name).as_posix() if subfolder else Path(file_name).as_posix()
+        primary_full_path = Path(subfolder, file_name).as_posix() if subfolder else file_name
         secondary_full_path = (
             Path(subfolder, self.backend, file_name).as_posix()
             if subfolder
@@ -321,10 +322,10 @@ class Transformer(nn.Module):
         # First check if the expected file exists in the root of the model directory
         # If it doesn't, check if it exists in the backend subfolder.
         # If it does, set the subfolder to include the backend
-        model_found = primary_full_path in model_file_names
-        if not model_found and "subfolder" not in model_args:
-            model_found = secondary_full_path in model_file_names
-            if model_found:
+        export = primary_full_path not in model_file_names
+        if export and "subfolder" not in model_args:
+            export = secondary_full_path not in model_file_names
+            if not export:
                 if len(model_file_names) > 1 and "file_name" not in model_args:
                     logger.warning(
                         f"Multiple {backend_name} files found in {load_path.as_posix()!r}: {model_file_names}, defaulting to {secondary_full_path!r}. "
@@ -332,8 +333,6 @@ class Transformer(nn.Module):
                     )
                 model_args["subfolder"] = self.backend
                 model_args["file_name"] = file_name
-        if export is None:
-            export = not model_found
 
         # If the file_name contains subfolders, set it as the subfolder instead
         file_name_parts = Path(file_name).parts
