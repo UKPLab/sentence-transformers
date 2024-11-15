@@ -101,7 +101,15 @@ class Transformer(nn.Module):
 
     def _load_config(self, model_name_or_path: str, cache_dir: str | None, backend: str, config_args: dict[str, Any]):
         """Loads the configuration of a model"""
-        if find_adapter_config_file(model_name_or_path) is not None:
+        if (
+            find_adapter_config_file(
+                model_name_or_path,
+                token=config_args.get("token"),
+                revision=config_args.get("revision"),
+                local_files_only=config_args.get("local_files_only", False),
+            )
+            is not None
+        ):
             if not is_peft_available():
                 raise Exception(
                     "Loading a PEFT model requires installing the `peft` package. You can install it via `pip install peft`."
