@@ -106,7 +106,7 @@ class Transformer(nn.Module):
                 model_name_or_path,
                 token=config_args.get("token"),
                 revision=config_args.get("revision"),
-                local_files_only=config_args.get("local_files_only"),
+                local_files_only=config_args.get("local_files_only", False),
             )
             is not None
         ):
