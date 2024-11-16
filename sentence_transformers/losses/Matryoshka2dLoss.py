@@ -4,8 +4,10 @@ from typing import Any
 
 from torch.nn import Module
 
-from sentence_transformers.losses import AdaptiveLayerLoss, MatryoshkaLoss
-from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers import SentenceTransformer
+
+from .AdaptiveLayerLoss import AdaptiveLayerLoss
+from .MatryoshkaLoss import MatryoshkaLoss
 
 
 class Matryoshka2dLoss(AdaptiveLayerLoss):
@@ -79,35 +81,37 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
         Requirements:
             1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`.
 
-        Relations:
-            - :class:`MatryoshkaLoss` is used in this loss, and it is responsible for the dimensionality reduction.
-            - :class:`AdaptiveLayerLoss` is used in this loss, and it is responsible for the layer reduction.
-
-        Input:
+        Inputs:
             +---------------------------------------+--------+
             | Texts                                 | Labels |
             +=======================================+========+
             | any                                   | any    |
             +---------------------------------------+--------+
 
+        Relations:
+            - :class:`MatryoshkaLoss` is used in this loss, and it is responsible for the dimensionality reduction.
+            - :class:`AdaptiveLayerLoss` is used in this loss, and it is responsible for the layer reduction.
+
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, losses, InputExample
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
                 model = SentenceTransformer("microsoft/mpnet-base")
-                train_examples = [
-                    InputExample(texts=['Anchor 1', 'Positive 1']),
-                    InputExample(texts=['Anchor 2', 'Positive 2']),
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
-                train_loss = losses.MultipleNegativesRankingLoss(model=model)
-                train_loss = losses.Matryoshka2dLoss(model, train_loss, [768, 512, 256, 128, 64])
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                train_dataset = Dataset.from_dict({
+                    "anchor": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to the office."],
+                })
+                loss = losses.MultipleNegativesRankingLoss(model)
+                loss = losses.Matryoshka2dLoss(model, loss, [768, 512, 256, 128, 64])
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
                 )
+                trainer.train()
         """
         matryoshka_loss = MatryoshkaLoss(
             model,

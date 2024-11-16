@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable
+from collections.abc import Iterable
 
 from torch import Tensor, nn
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.models import StaticEmbedding
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
 
         Args:
             model (SentenceTransformer): The SentenceTransformer model.
-            decoder_name_or_path (str, optional): Model name or path for initializing a decoder (compatible with Huggingface's Transformers). Defaults to None.
+            decoder_name_or_path (str, optional): Model name or path for initializing a decoder (compatible with Hugging Face's Transformers). Defaults to None.
             tie_encoder_decoder (bool): Whether to tie the trainable parameters of encoder and decoder. Defaults to True.
 
         References:
@@ -73,6 +74,12 @@ class DenoisingAutoEncoderLoss(nn.Module):
                 )
         """
         super().__init__()
+
+        if isinstance(model[0], StaticEmbedding):
+            raise ValueError(
+                "DenoisingAutoEncoderLoss is not compatible with a SentenceTransformer model based on a StaticEmbedding."
+            )
+
         self.encoder = model  # This will be the final model used during the inference time.
         self.tokenizer_encoder = model.tokenizer
 

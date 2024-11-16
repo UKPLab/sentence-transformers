@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
 from contextlib import nullcontext
 from functools import partial
-from typing import Any, Iterable, Iterator
+from typing import Any
 
 import torch
 import tqdm
@@ -10,6 +11,7 @@ from torch import Tensor, nn
 from torch.utils.checkpoint import get_device_states, set_device_states
 
 from sentence_transformers import SentenceTransformer, util
+from sentence_transformers.models import StaticEmbedding
 
 
 class RandContext:
@@ -104,19 +106,25 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             1. (anchor, positive) pairs or (anchor, positive, negative pairs)
             2. Should be used with large batch sizes for superior performance, but has slower training time than :class:`MultipleNegativesRankingLoss`
 
+        Inputs:
+            +-------------------------------------------------+--------+
+            | Texts                                           | Labels |
+            +=================================================+========+
+            | (anchor, positive) pairs                        | none   |
+            +-------------------------------------------------+--------+
+            | (anchor, positive, negative) triplets           | none   |
+            +-------------------------------------------------+--------+
+            | (anchor, positive, negative_1, ..., negative_n) | none   |
+            +-------------------------------------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that no in-batch negatives are duplicates of the anchor or positive samples.
+
         Relations:
             - Equivalent to :class:`MultipleNegativesRankingLoss`, but with caching that allows for much higher batch sizes
             (and thus better performance) without extra memory usage. This loss also trains roughly 2x to 2.4x slower than
             :class:`MultipleNegativesRankingLoss`.
-
-        Inputs:
-            +---------------------------------------+--------+
-            | Texts                                 | Labels |
-            +=======================================+========+
-            | (anchor, positive) pairs              | none   |
-            +---------------------------------------+--------+
-            | (anchor, positive, negative) triplets | none   |
-            +---------------------------------------+--------+
 
         Example:
             ::
@@ -139,6 +147,12 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
                 trainer.train()
         """
         super().__init__()
+        if isinstance(model[0], StaticEmbedding):
+            raise ValueError(
+                "CachedMultipleNegativesRankingLoss is not compatible with a SentenceTransformer model based on a StaticEmbedding. "
+                "Consider using MultipleNegativesRankingLoss instead."
+            )
+
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct

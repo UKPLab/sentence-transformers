@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Iterable
+from collections.abc import Iterable
+from typing import Callable
 
 import torch
+import transformers
+from packaging import version
 from torch import Tensor, nn
 
 from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -102,6 +105,13 @@ class SoftmaxLoss(nn.Module):
             num_vectors_concatenated * sentence_embedding_dimension, num_labels, device=model.device
         )
         self.loss_fct = loss_fct
+
+        if version.parse(transformers.__version__) < version.parse("4.43.0"):
+            logger.warning(
+                "SoftmaxLoss requires transformers >= 4.43.0 to work correctly. "
+                "Otherwise, the classifier layer that maps embeddings to the labels cannot be updated. "
+                "Consider updating transformers with `pip install transformers>=4.43.0`."
+            )
 
     def forward(
         self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor

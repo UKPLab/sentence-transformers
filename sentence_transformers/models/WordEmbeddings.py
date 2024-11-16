@@ -105,7 +105,9 @@ class WordEmbeddings(nn.Module):
         if os.path.exists(os.path.join(input_path, "model.safetensors")):
             weights = load_safetensors_file(os.path.join(input_path, "model.safetensors"))
         else:
-            weights = torch.load(os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"))
+            weights = torch.load(
+                os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
+            )
         embedding_weights = weights["emb_layer.weight"]
         model = WordEmbeddings(
             tokenizer=tokenizer, embedding_weights=embedding_weights, update_embeddings=config["update_embeddings"]
@@ -135,9 +137,11 @@ class WordEmbeddings(nn.Module):
         vocab = []
         embeddings = []
 
-        with gzip.open(embeddings_file_path, "rt", encoding="utf8") if embeddings_file_path.endswith(".gz") else open(
-            embeddings_file_path, encoding="utf8"
-        ) as fIn:
+        with (
+            gzip.open(embeddings_file_path, "rt", encoding="utf8")
+            if embeddings_file_path.endswith(".gz")
+            else open(embeddings_file_path, encoding="utf8") as fIn
+        ):
             iterator = tqdm(fIn, desc="Load Word Embeddings", unit="Embeddings")
             for line in iterator:
                 split = line.rstrip().split(item_separator)

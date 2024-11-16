@@ -36,6 +36,10 @@ class Pooling(nn.Module):
             <https://arxiv.org/abs/2202.08904>`_ and `Text and Code
             Embeddings by Contrastive Pre-Training
             <https://arxiv.org/abs/2201.10005>`_.
+        include_prompt: If set to false, the prompt tokens are not
+            included in the pooling. This is useful for reproducing
+            work that does not include the prompt tokens in the pooling
+            like INSTRUCTOR, but otherwise not recommended.
     """
 
     POOLING_MODES = (
@@ -57,7 +61,7 @@ class Pooling(nn.Module):
         pooling_mode_mean_sqrt_len_tokens: bool = False,
         pooling_mode_weightedmean_tokens: bool = False,
         pooling_mode_lasttoken: bool = False,
-        include_prompt=True,
+        include_prompt: bool = True,
     ) -> None:
         super().__init__()
 
@@ -132,9 +136,22 @@ class Pooling(nn.Module):
 
     def forward(self, features: dict[str, Tensor]) -> dict[str, Tensor]:
         token_embeddings = features["token_embeddings"]
-        attention_mask = features["attention_mask"]
+        attention_mask = (
+            features["attention_mask"]
+            if "attention_mask" in features
+            else torch.ones(token_embeddings.shape[:-1], device=token_embeddings.device, dtype=torch.int64)
+        )
         if not self.include_prompt and "prompt_length" in features:
-            attention_mask[:, : features["prompt_length"]] = 0
+            prompt_length = features["prompt_length"]
+            # prompt_length is either:
+            # * an int (in inference)
+            # * a tensor of shape (bs), all the same value (in training with an IterableDataset)
+            # * a tensor of shape (1) (in training with a Dataset)
+            # We turn all into an int
+            if isinstance(prompt_length, torch.Tensor):
+                prompt_length = prompt_length[0].item()
+
+            attention_mask[:, :prompt_length] = 0
 
         ## Pooling strategy
         output_vectors = []

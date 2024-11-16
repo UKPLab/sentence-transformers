@@ -4,8 +4,9 @@ import json
 import logging
 import os
 import shutil
+from collections.abc import Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Iterable
+from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 import torch
@@ -231,6 +232,9 @@ class FitMixin:
             checkpoint_save_total_limit: Total number of checkpoints to
                 store
         """
+        if not is_datasets_available():
+            raise ImportError("Please install `datasets` to use this function: `pip install datasets`.")
+
         # Delayed import to counter the SentenceTransformers -> FitMixin -> SentenceTransformerTrainer -> SentenceTransformers circular import
         from sentence_transformers.trainer import SentenceTransformerTrainer
 

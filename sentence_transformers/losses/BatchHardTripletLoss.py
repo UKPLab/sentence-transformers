@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 import torch
 from torch import Tensor, nn
@@ -101,6 +101,10 @@ class BatchHardTripletLoss(nn.Module):
             +==================+========+
             | single sentences | class  |
             +------------------+--------+
+
+        Recommendations:
+            - Use ``BatchSamplers.GROUP_BY_LABEL`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that each batch contains 2+ examples per label class.
 
         Relations:
             * :class:`BatchAllTripletLoss` uses all possible, valid triplets, rather than only the hardest positive and negative samples.

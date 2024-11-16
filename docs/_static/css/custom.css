@@ -41,6 +41,7 @@ dl.class > dt {
     border-color: rgb(55 65 81);
     background-color: #e3e3e3;
     color: #404040; /* Override the colors imposed by <a href> */
+    max-width: 18rem;
 }
 
 .components > .box:nth-child(1) > .header {

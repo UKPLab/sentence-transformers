@@ -7,18 +7,19 @@ from __future__ import annotations
 import csv
 import gzip
 import os
-import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import numpy as np
 import pytest
 import torch
+from pytest import FixtureRequest
 from torch.utils.data import DataLoader
 
 from sentence_transformers import CrossEncoder, util
 from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
 from sentence_transformers.readers import InputExample
+from tests.utils import SafeTemporaryDirectory
 
 
 @pytest.fixture()
@@ -133,7 +134,12 @@ def test_load_with_revision() -> None:
     assert not torch.equal(main_prob, older_model.predict(test_sentences, convert_to_tensor=True))
 
 
-def test_rank() -> None:
+@pytest.mark.parametrize(
+    argnames="return_documents",
+    argvalues=[True, False],
+    ids=["return-docs", "no-return-docs"],
+)
+def test_rank(return_documents: bool, request: FixtureRequest) -> None:
     model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
     # We want to compute the similarity between the query sentence
     query = "A man is eating pasta."
@@ -153,14 +159,17 @@ def test_rank() -> None:
     expected_ranking = [0, 1, 3, 6, 2, 5, 7, 4, 8]
 
     # 1. We rank all sentences in the corpus for the query
-    ranks = model.rank(query, corpus)
+    ranks = model.rank(query=query, documents=corpus, return_documents=return_documents)
+    if request.node.callspec.id == "return-docs":
+        assert {*corpus} == {rank.get("text") for rank in ranks}
+
     pred_ranking = [rank["corpus_id"] for rank in ranks]
     assert pred_ranking == expected_ranking
 
 
 @pytest.mark.parametrize("safe_serialization", [True, False, None])
 def test_safe_serialization(safe_serialization: bool) -> None:
-    with tempfile.TemporaryDirectory() as cache_folder:
+    with SafeTemporaryDirectory() as cache_folder:
         model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
         if safe_serialization:
             model.save(cache_folder, safe_serialization=safe_serialization)

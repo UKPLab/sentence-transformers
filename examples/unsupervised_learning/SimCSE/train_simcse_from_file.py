@@ -46,7 +46,7 @@ if len(sys.argv) >= 3:
 model_output_path = "output/train_simcse{}-{}".format(output_name, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 
-# Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
+# Use Hugging Face/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
 
 # Apply mean pooling to get one fixed sized sentence vector
@@ -55,9 +55,9 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 ################# Read the train corpus  #################
 train_samples = []
-with gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else open(
-    filepath, encoding="utf8"
-) as fIn:
+with (
+    gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else open(filepath, encoding="utf8") as fIn
+):
     for line in tqdm.tqdm(fIn, desc="Read file"):
         line = line.strip()
         if len(line) >= 10:

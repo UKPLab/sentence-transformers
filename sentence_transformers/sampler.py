@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Iterator
 from itertools import accumulate, cycle
-from typing import Any, Iterator
+from typing import Any
 
 import torch
 from torch.utils.data import BatchSampler, ConcatDataset, SubsetRandomSampler
@@ -32,23 +33,39 @@ class SetEpochMixin:
 
 
 class DefaultBatchSampler(SetEpochMixin, BatchSampler):
-    pass
+    """
+    This sampler is the default batch sampler used in the SentenceTransformer library.
+    It is equivalent to the PyTorch BatchSampler.
+
+    Args:
+        sampler (Sampler or Iterable): The sampler used for sampling elements from the dataset,
+            such as SubsetRandomSampler.
+        batch_size (int): Number of samples per batch.
+        drop_last (bool): If True, drop the last incomplete batch if the dataset size
+            is not divisible by the batch size.
+    """
 
 
 class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
     """
     This sampler groups samples by their labels and aims to create batches such that
     each batch contains samples where the labels are as homogeneous as possible.
-    This sampler is meant to be used alongside the `Batch...TripletLoss` classes, which
+    This sampler is meant to be used alongside the ``Batch...TripletLoss`` classes, which
     require that each batch contains at least 2 examples per label class.
+
+    Recommended for:
+        - :class:`~sentence_transformers.losses.BatchAllTripletLoss`
+        - :class:`~sentence_transformers.losses.BatchHardSoftMarginTripletLoss`
+        - :class:`~sentence_transformers.losses.BatchHardTripletLoss`
+        - :class:`~sentence_transformers.losses.BatchSemiHardTripletLoss`
 
     Args:
         dataset (Dataset): The dataset to sample from.
         batch_size (int): Number of samples per batch. Must be divisible by 2.
-        drop_last (bool): If True, drop the last incomplete batch, if the dataset size
+        drop_last (bool): If True, drop the last incomplete batch if the dataset size
             is not divisible by the batch size.
         valid_label_columns (List[str]): List of column names to check for labels.
-            The first column name found in the dataset will
+            The first column name from ``valid_label_columns`` found in the dataset will
             be used as the label column.
         generator (torch.Generator, optional): Optional random number generator for shuffling
             the indices.
@@ -123,8 +140,34 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
         generator: torch.Generator = None,
         seed: int = 0,
     ) -> None:
+        """
+        This sampler creates batches such that each batch contains samples where the values are unique,
+        even across columns. This is useful when losses consider other samples in a batch to be in-batch
+        negatives, and you want to ensure that the negatives are not duplicates of the anchor/positive sample.
+
+        Recommended for:
+            - :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`
+            - :class:`~sentence_transformers.losses.CachedMultipleNegativesRankingLoss`
+            - :class:`~sentence_transformers.losses.MultipleNegativesSymmetricRankingLoss`
+            - :class:`~sentence_transformers.losses.CachedMultipleNegativesSymmetricRankingLoss`
+            - :class:`~sentence_transformers.losses.MegaBatchMarginLoss`
+            - :class:`~sentence_transformers.losses.GISTEmbedLoss`
+            - :class:`~sentence_transformers.losses.CachedGISTEmbedLoss`
+
+        Args:
+            dataset (Dataset): The dataset to sample from.
+            batch_size (int): Number of samples per batch.
+            drop_last (bool): If True, drop the last incomplete batch if the dataset size
+                is not divisible by the batch size.
+            valid_label_columns (List[str]): List of column names to check for labels.
+                The first column name from ``valid_label_columns`` found in the dataset will
+                be used as the label column.
+            generator (torch.Generator, optional): Optional random number generator for shuffling
+                the indices.
+            seed (int, optional): Seed for the random number generator to ensure reproducibility.
+        """
         super().__init__(dataset, batch_size, drop_last)
-        if label_columns := set(dataset.column_names) & (set(valid_label_columns) | {"dataset_name"}):
+        if label_columns := set(dataset.column_names) & set(valid_label_columns):
             dataset = dataset.remove_columns(label_columns)
         self.dataset = dataset
         self.batch_size = batch_size
@@ -146,7 +189,11 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
             batch_values = set()
             batch_indices = []
             for index in remaining_indices:
-                sample_values = set(self.dataset[index].values())
+                sample_values = {
+                    value
+                    for key, value in self.dataset[index].items()
+                    if not key.endswith("_prompt_length") and key != "dataset_name"
+                }
                 if sample_values & batch_values:
                     continue
 
@@ -227,6 +274,16 @@ class ProportionalBatchSampler(SetEpochMixin, BatchSampler):
         generator: torch.Generator,
         seed: int,
     ) -> None:
+        """
+        Batch sampler that samples from each dataset in proportion to its size, until all are exhausted simultaneously.
+        With this sampler, all samples from each dataset are used and larger datasets are sampled from more frequently.
+
+        Args:
+            dataset (ConcatDataset): A concatenation of multiple datasets.
+            batch_samplers (List[BatchSampler]): A list of batch samplers, one for each dataset in the ConcatDataset.
+            generator (torch.Generator, optional): A generator for reproducible sampling. Defaults to None.
+            seed (int, optional): A seed for the generator. Defaults to None.
+        """
         super().__init__(dataset, batch_samplers[0].batch_size, batch_samplers[0].drop_last)
         self.dataset = dataset
         self.batch_samplers = batch_samplers
@@ -246,7 +303,10 @@ class ProportionalBatchSampler(SetEpochMixin, BatchSampler):
         batch_samplers = [iter(sampler) for sampler in self.batch_samplers]
         for dataset_idx in dataset_idx_sampler:
             sample_offset = sample_offsets[dataset_idx]
-            yield [idx + sample_offset for idx in next(batch_samplers[dataset_idx])]
+            try:
+                yield [idx + sample_offset for idx in next(batch_samplers[dataset_idx])]
+            except StopIteration:
+                continue
 
     def __len__(self) -> int:
         return sum([len(sampler) for sampler in self.batch_samplers])
