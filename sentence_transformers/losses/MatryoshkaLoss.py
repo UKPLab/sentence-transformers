@@ -63,8 +63,8 @@ def _backward_hook(
     """Customized from CachedMultipleNegativesRankingLoss."""
     assert loss_obj.cache is not None
     assert loss_obj.random_states is not None
-
-    default_forward = loss_obj.model.forward
+    original_forward = loss_obj.model.forward
+    decorated_forward = ForwardDecorator(original_forward)
     loss_obj.model.forward = decorated_forward
     with torch.enable_grad():
         for sentence_feature, grad, random_states in zip(sentence_features, loss_obj.cache, loss_obj.random_states):
@@ -79,7 +79,7 @@ def _backward_hook(
             ):
                 surrogate = torch.dot(reps_mb.flatten(), grad_mb.flatten()) * grad_output
                 surrogate.backward()
-    loss_obj.model.forward = default_forward
+    loss_obj.model.forward = original_forward
 
 
 class MatryoshkaLoss(nn.Module):
