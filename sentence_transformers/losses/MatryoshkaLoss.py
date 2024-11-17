@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import random
 import warnings
+import torch
 from collections.abc import Iterable
 from typing import Any
+from functools import partial
 
 import torch.nn.functional as F
 from torch import Tensor, nn
