@@ -61,7 +61,7 @@ class TripletEvaluator(SentenceEvaluator):
         positives: list[str],
         negatives: list[str],
         main_distance_function: str | SimilarityFunction | None = None,
-        triplet_margins: dict[str, float] | None = None,
+        triplet_margins: float | dict[str, float] | None = None,
         name: str = "",
         batch_size: int = 16,
         show_progress_bar: bool = False,
@@ -79,9 +79,10 @@ class TripletEvaluator(SentenceEvaluator):
             main_distance_function (Union[str, SimilarityFunction], optional):
                 The distance function to use. If not specified, use cosine similarity,
                 dot product, Euclidean, and Manhattan. Defaults to None.
-            triplet_margins (Dict[str, float], optional): Margins for various distance metrics.
-                Acceptable keys are 'cosine', 'dot', 'manhattan', and 'euclidean'. Each value
-                specifies the minimum margin by which the negative sample should be further from
+            triplet_margins (Union[float, Dict[str, float]], optional): Margins for various distance metrics.
+                If a float is provided, it will be used as the margin for all distance metrics.
+                If a dictionary is provided, the keys should be 'cosine', 'dot', 'manhattan', and 'euclidean'.
+                The value specifies the minimum margin by which the negative sample should be further from
                 the anchor than the positive sample. Defaults to None.
             name (str): Name for the output. Defaults to "".
             batch_size (int): Batch size used to compute embeddings. Defaults to 16.
@@ -107,7 +108,12 @@ class TripletEvaluator(SentenceEvaluator):
         self.similarity_fn_names = similarity_fn_names or []
 
         default_margins = {"cosine": 0, "dot": 0, "manhattan": 0, "euclidean": 0}
-        self.triplet_margins = default_margins if triplet_margins is None else {**default_margins, **triplet_margins}
+        if isinstance(triplet_margins, float):
+            self.triplet_margins = {k: triplet_margins for k in default_margins}
+        else:
+            self.triplet_margins = (
+                default_margins if triplet_margins is None else {**default_margins, **triplet_margins}
+            )
 
         assert set(self.triplet_margins.keys()) == set(
             default_margins.keys()
@@ -206,7 +212,7 @@ class TripletEvaluator(SentenceEvaluator):
                 positive_scores, negative_scores = similarity_functions[fn_name](
                     embeddings_anchors, embeddings_positives, embeddings_negatives
                 )
-                accuracy = np.mean(positive_scores < negative_scores)
+                accuracy = np.mean(positive_scores + self.triplet_margins[fn_name] < negative_scores)
                 metrics[f"{fn_name}_accuracy"] = accuracy
                 logger.info(f"Accuracy {fn_name.capitalize()} Distance:\t{accuracy:.2%}")
 
