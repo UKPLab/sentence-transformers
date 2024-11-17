@@ -265,7 +265,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         loss = sum(losses)
         return loss
 
-    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor, return_hook: bool = False) -> Tensor:
         # Step (1): A quick embedding step without gradients/computation graphs to get all the embeddings
         reps = []
         self.random_states = []  # Copy random states to guarantee exact reproduction of the embeddings during the second forward pass, i.e. step (3)
@@ -287,11 +287,13 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             loss = self.calculate_loss_and_cache_gradients(reps)
 
             # Step (3): A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain
-            loss.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self))
+            hook_handle = loss.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self))
         else:
             # If grad is not enabled (e.g. in evaluation), then we don't have to worry about the gradients or backward hook
             loss = self.calculate_loss(reps)
 
+        if torch.is_grad_enabled() and return_hook:
+            return loss, hook_handle
         return loss
 
     def get_config_dict(self) -> dict[str, Any]:
