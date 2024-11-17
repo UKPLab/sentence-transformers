@@ -58,9 +58,13 @@ def _backward_hook(
     grad_output: Tensor,
     sentence_features: Iterable[dict[str, Tensor]],
     loss_obj: CachedMultipleNegativesRankingLoss,
-    dim: int
+    dim: int,
+    loss_obj_cache, 
+    loss_obj_random_states
 ) -> None:
     """Customized from CachedMultipleNegativesRankingLoss."""
+    loss_obj.cache = loss_obj_cache
+    loss_obj.random_states = loss_obj_random_states
     assert loss_obj.cache is not None
     assert loss_obj.random_states is not None
     original_forward = loss_obj.model.forward
@@ -186,7 +190,7 @@ class MatryoshkaLoss(nn.Module):
                     loss_part, hook = self.loss(sentence_features, labels, return_hook=True)
                     # register our customized hook instead
                     hook.remove()
-                    loss_part.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self.loss, dim=dim))
+                    loss_part.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self.loss, dim=dim, loss_obj_cache=loss_obj.cache, loss_obj_random_states=loss_obj.random_states))
                 else:
                     loss_part = self.loss(sentence_features, labels)
                 loss += weight * loss_part
