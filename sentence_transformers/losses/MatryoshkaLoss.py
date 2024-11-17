@@ -52,6 +52,34 @@ class ForwardDecorator:
         return output
 
 
+def _backward_hook(
+    grad_output: Tensor,
+    sentence_features: Iterable[dict[str, Tensor]],
+    loss_obj: CachedMultipleNegativesRankingLoss,
+    decorated_forward: ForwardDecorator
+) -> None:
+    """Customized from CachedMultipleNegativesRankingLoss."""
+    assert loss_obj.cache is not None
+    assert loss_obj.random_states is not None
+
+    default_forward = loss_obj.model.forward
+    loss_obj.model.forward = decorated_forward
+    with torch.enable_grad():
+        for sentence_feature, grad, random_states in zip(sentence_features, loss_obj.cache, loss_obj.random_states):
+            for (reps_mb, _), grad_mb in zip(
+                loss_obj.embed_minibatch_iter(
+                    sentence_feature=sentence_feature,
+                    with_grad=True,
+                    copy_random_state=False,
+                    random_states=random_states,
+                ),
+                grad,
+            ):
+                surrogate = torch.dot(reps_mb.flatten(), grad_mb.flatten()) * grad_output
+                surrogate.backward()
+    loss_obj.model.forward = default_forward
+
+
 class MatryoshkaLoss(nn.Module):
     def __init__(
         self,
@@ -150,7 +178,15 @@ class MatryoshkaLoss(nn.Module):
                 dim = self.matryoshka_dims[idx]
                 weight = self.matryoshka_weights[idx]
                 decorated_forward.set_dim(dim)
-                loss += weight * self.loss(sentence_features, labels)
+
+                if torch.is_grad_enabled() and isinstance(self.loss, CachedMultipleNegativesRankingLoss):
+                    loss_part, hook = self.loss(sentence_features, labels, return_hook=True)
+                    # register our customized hook instead
+                    hook.remove()
+                    loss_part.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=loss_part, decorated_forward=decorated_forward))
+                else:
+                    loss_part = self.loss(sentence_features, labels)
+                loss += weight * loss_part
         finally:
             self.model.forward = original_forward
         return loss
