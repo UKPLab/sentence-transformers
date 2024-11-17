@@ -190,7 +190,7 @@ class MatryoshkaLoss(nn.Module):
                     loss_part, hook = self.loss(sentence_features, labels, return_hook=True)
                     # register our customized hook instead
                     hook.remove()
-                    loss_part.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self.loss, dim=dim, loss_obj_cache=loss_obj.cache, loss_obj_random_states=loss_obj.random_states))
+                    loss_part.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self.loss, dim=dim, loss_obj_cache=self.loss.cache, loss_obj_random_states=self.loss.random_states))
                 else:
                     loss_part = self.loss(sentence_features, labels)
                 loss += weight * loss_part
