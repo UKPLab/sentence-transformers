@@ -108,12 +108,12 @@ class TripletEvaluator(SentenceEvaluator):
         self.similarity_fn_names = similarity_fn_names or []
 
         default_margins = {"cosine": 0, "dot": 0, "manhattan": 0, "euclidean": 0}
-        if isinstance(triplet_margins, float):
-            self.triplet_margins = {k: triplet_margins for k in default_margins}
-        else:
+        if isinstance(triplet_margins, dict):
             self.triplet_margins = (
                 default_margins if triplet_margins is None else {**default_margins, **triplet_margins}
             )
+        else:
+            self.triplet_margins = {k: triplet_margins for k in default_margins}
 
         assert set(self.triplet_margins.keys()) == set(
             default_margins.keys()
