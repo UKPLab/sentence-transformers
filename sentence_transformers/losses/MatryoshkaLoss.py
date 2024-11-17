@@ -58,13 +58,14 @@ def _backward_hook(
     grad_output: Tensor,
     sentence_features: Iterable[dict[str, Tensor]],
     loss_obj: CachedMultipleNegativesRankingLoss,
-    decorated_forward: ForwardDecorator
+    dim: int
 ) -> None:
     """Customized from CachedMultipleNegativesRankingLoss."""
     assert loss_obj.cache is not None
     assert loss_obj.random_states is not None
     original_forward = loss_obj.model.forward
     decorated_forward = ForwardDecorator(original_forward)
+    decorated_forward.set_dim(dim)
     loss_obj.model.forward = decorated_forward
     with torch.enable_grad():
         for sentence_feature, grad, random_states in zip(sentence_features, loss_obj.cache, loss_obj.random_states):
@@ -185,7 +186,7 @@ class MatryoshkaLoss(nn.Module):
                     loss_part, hook = self.loss(sentence_features, labels, return_hook=True)
                     # register our customized hook instead
                     hook.remove()
-                    loss_part.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self.loss, decorated_forward=decorated_forward))
+                    loss_part.register_hook(partial(_backward_hook, sentence_features=sentence_features, loss_obj=self.loss, dim=dim))
                 else:
                     loss_part = self.loss(sentence_features, labels)
                 loss += weight * loss_part
