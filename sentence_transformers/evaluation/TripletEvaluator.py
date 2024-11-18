@@ -50,7 +50,7 @@ class TripletEvaluator(SentenceEvaluator):
             results = triplet_evaluator(model)
             '''
             TripletEvaluator: Evaluating the model on the all-nli-dev dataset:
-            Accuracy Cosine Distance:        95.60%
+            Accuracy Cosine Similarity:        95.60%
             '''
             print(triplet_evaluator.primary_metric)
             # => "all_nli_dev_cosine_accuracy"
@@ -63,7 +63,7 @@ class TripletEvaluator(SentenceEvaluator):
         anchors: list[str],
         positives: list[str],
         negatives: list[str],
-        main_distance_function: str | SimilarityFunction | None = None,
+        main_similarity_function: str | SimilarityFunction | None = None,
         margin: float | dict[str, float] | None = None,
         name: str = "",
         batch_size: int = 16,
@@ -79,11 +79,11 @@ class TripletEvaluator(SentenceEvaluator):
             anchors (List[str]): Sentences to check similarity to. (e.g. a query)
             positives (List[str]): List of positive sentences
             negatives (List[str]): List of negative sentences
-            main_distance_function (Union[str, SimilarityFunction], optional):
-                The distance function to use. If not specified, use cosine similarity,
-                dot product, Euclidean, and Manhattan. Defaults to None.
-            margin (Union[float, Dict[str, float]], optional): Margins for various distance metrics.
-                If a float is provided, it will be used as the margin for all distance metrics.
+            main_similarity_function (Union[str, SimilarityFunction], optional):
+                The similarity function to use. If not specified, use cosine similarity,
+                dot product, Euclidean, and Manhattan similarity. Defaults to None.
+            margin (Union[float, Dict[str, float]], optional): Margins for various similarity metrics.
+                If a float is provided, it will be used as the margin for all similarity metrics.
                 If a dictionary is provided, the keys should be 'cosine', 'dot', 'manhattan', and 'euclidean'.
                 The value specifies the minimum margin by which the negative sample should be further from
                 the anchor than the positive sample. Defaults to None.
@@ -94,7 +94,7 @@ class TripletEvaluator(SentenceEvaluator):
             truncate_dim (int, optional): The dimension to truncate sentence embeddings to.
                 `None` uses the model's current truncation dimension. Defaults to None.
             similarity_fn_names (List[str], optional): List of similarity function names to evaluate.
-                If not specified, evaluate using the ``main_distance_function``.
+                If not specified, evaluate using the ``model.similarity_fn_name``.
                 Defaults to None.
         """
         super().__init__()
@@ -107,7 +107,9 @@ class TripletEvaluator(SentenceEvaluator):
         assert len(self.anchors) == len(self.positives)
         assert len(self.anchors) == len(self.negatives)
 
-        self.main_distance_function = SimilarityFunction(main_distance_function) if main_distance_function else None
+        self.main_similarity_function = (
+            SimilarityFunction(main_similarity_function) if main_similarity_function else None
+        )
         self.similarity_fn_names = similarity_fn_names or []
 
         if margin is None:
@@ -219,7 +221,7 @@ class TripletEvaluator(SentenceEvaluator):
                 )
                 accuracy = (positive_scores > negative_scores + self.margin[fn_name]).float().mean().item()
                 metrics[f"{fn_name}_accuracy"] = accuracy
-                logger.info(f"Accuracy {fn_name.capitalize()} Distance:\t{accuracy:.2%}")
+                logger.info(f"Accuracy {fn_name.capitalize()} Similarity:\t{accuracy:.2%}")
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
@@ -237,13 +239,13 @@ class TripletEvaluator(SentenceEvaluator):
         if len(self.similarity_fn_names) > 1:
             metrics["max_accuracy"] = max(metrics.values())
 
-        if self.main_distance_function:
+        if self.main_similarity_function:
             self.primary_metric = {
                 SimilarityFunction.COSINE: "cosine_accuracy",
                 SimilarityFunction.DOT_PRODUCT: "dot_accuracy",
                 SimilarityFunction.EUCLIDEAN: "euclidean_accuracy",
                 SimilarityFunction.MANHATTAN: "manhattan_accuracy",
-            }.get(self.main_distance_function)
+            }.get(self.main_similarity_function)
         else:
             if len(self.similarity_fn_names) > 1:
                 self.primary_metric = "max_accuracy"
