@@ -326,20 +326,20 @@ class NanoBEIREvaluator(SentenceEvaluator):
             output_data = [epoch, steps]
             for name in self.score_function_names:
                 for k in self.accuracy_at_k:
-                    output_data.append(per_dataset_results[name]["accuracy@k"][k])
+                    output_data.append(agg_results[f"{name}_accuracy@{k}"])
 
                 for k in self.precision_recall_at_k:
-                    output_data.append(per_dataset_results[name]["precision@k"][k])
-                    output_data.append(per_dataset_results[name]["recall@k"][k])
+                    output_data.append(agg_results[f"{name}_precision@{k}"])
+                    output_data.append(agg_results[f"{name}_recall@{k}"])
 
                 for k in self.mrr_at_k:
-                    output_data.append(per_dataset_results[name]["mrr@k"][k])
+                    output_data.append(agg_results[f"{name}_mrr@{k}"])
 
                 for k in self.ndcg_at_k:
-                    output_data.append(per_dataset_results[name]["ndcg@k"][k])
+                    output_data.append(agg_results[f"{name}_ndcg@{k}"])
 
                 for k in self.map_at_k:
-                    output_data.append(per_dataset_results[name]["map@k"][k])
+                    output_data.append(agg_results[f"{name}_map@{k}"])
 
             fOut.write(",".join(map(str, output_data)))
             fOut.write("\n")

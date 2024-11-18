@@ -478,7 +478,13 @@ class SentenceTransformerTrainer(Trainer):
                 return output
 
         with nullcontext() if self.is_local_process_zero() else disable_logging(logging.INFO):
-            evaluator_metrics = self.evaluator(self.model)
+            output_path = self.args.output_dir
+            if output_path is not None:
+                output_path = os.path.join(output_path, "eval")
+                os.makedirs(output_path, exist_ok=True)
+            evaluator_metrics = self.evaluator(
+                self.model, output_path=output_path, epoch=self.state.epoch, steps=self.state.global_step
+            )
         if not isinstance(evaluator_metrics, dict):
             evaluator_metrics = {"evaluator": evaluator_metrics}
 
