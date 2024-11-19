@@ -150,7 +150,7 @@ class GISTEmbedLoss(nn.Module):
         # the loss.
         ap_sim[guided_ap_sim > guided_sim] = -torch.inf
         aa_sim[guided_aa_sim > guided_sim] = -torch.inf
-        pp_sim[guided_pp_sim > guided_sim] = -torch.inf
+        pp_sim[guided_pp_sim >= guided_sim] = -torch.inf
 
         scores = [ap_sim, aa_sim, pp_sim]
 
