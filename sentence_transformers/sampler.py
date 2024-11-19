@@ -187,7 +187,7 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
         # We create a dictionary to None because we need a data structure that:
         # 1. Allows for cheap removal of elements
         # 2. Preserves the order of elements, i.e. remains random
-        remaining_indices = {idx: None for idx in torch.randperm(len(self.dataset), generator=self.generator).tolist()}
+        remaining_indices = dict.fromkeys(torch.randperm(len(self.dataset), generator=self.generator).tolist())
         while remaining_indices:
             batch_values = set()
             batch_indices = []
