@@ -100,9 +100,14 @@ class EvaluatorCallback(TrainerCallback):
     The `.trainer` must be provided after the trainer has been created.
     """
 
-    def __init__(self, evaluator: SentenceEvaluator) -> None:
+    def __init__(self, evaluator: SentenceEvaluator, output_path: str | None = None) -> None:
         super().__init__()
         self.evaluator = evaluator
+        self.output_path = output_path
+        if self.output_path is not None:
+            self.output_path = os.path.join(self.output_path, "eval")
+            os.makedirs(self.output_path, exist_ok=True)
+
         self.metric_key_prefix = "eval"
         self.trainer = None
 
@@ -114,7 +119,9 @@ class EvaluatorCallback(TrainerCallback):
         model: SentenceTransformer,
         **kwargs,
     ) -> None:
-        evaluator_metrics = self.evaluator(model, epoch=state.epoch)
+        evaluator_metrics = self.evaluator(
+            model, output_path=self.output_path, epoch=state.epoch, steps=state.global_step
+        )
         if not isinstance(evaluator_metrics, dict):
             evaluator_metrics = {"evaluator": evaluator_metrics}
 
@@ -353,7 +360,7 @@ class FitMixin:
         # Create callbacks
         callbacks = []
         if evaluator is not None:
-            callbacks.append(EvaluatorCallback(evaluator))
+            callbacks.append(EvaluatorCallback(evaluator, output_path))
             if callback is not None:
                 callbacks.append(OriginalCallback(callback, evaluator))
 

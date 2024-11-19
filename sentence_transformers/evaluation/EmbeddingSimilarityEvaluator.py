@@ -225,9 +225,9 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                         steps,
                     ]
                     + [
-                        metrics[f"{fn_name}_{m}"]
+                        metrics[f"{metric}_{fn_name}"]
                         for fn_name in self.similarity_fn_names
-                        for m in ["pearson", "spearman"]
+                        for metric in ["pearson", "spearman"]
                     ]
                 )
 

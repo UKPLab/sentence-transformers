@@ -7,6 +7,7 @@ from __future__ import annotations
 import csv
 import gzip
 import os
+from pathlib import Path
 
 from torch.utils.data import DataLoader
 
@@ -19,7 +20,7 @@ from sentence_transformers import (
 )
 
 
-def test_LabelAccuracyEvaluator(paraphrase_distilroberta_base_v1_model: SentenceTransformer) -> None:
+def test_LabelAccuracyEvaluator(paraphrase_distilroberta_base_v1_model: SentenceTransformer, tmp_path: Path) -> None:
     """Tests that the LabelAccuracyEvaluator can be loaded correctly"""
     model = paraphrase_distilroberta_base_v1_model
     nli_dataset_path = "datasets/AllNLI.tsv.gz"
@@ -45,6 +46,6 @@ def test_LabelAccuracyEvaluator(paraphrase_distilroberta_base_v1_model: Sentence
 
     dev_dataloader = DataLoader(dev_samples, shuffle=False, batch_size=16)
     evaluator = evaluation.LabelAccuracyEvaluator(dev_dataloader, softmax_model=train_loss)
-    metrics = evaluator(model)
+    metrics = evaluator(model, output_path=str(tmp_path))
     assert "accuracy" in metrics
     assert metrics["accuracy"] > 0.2

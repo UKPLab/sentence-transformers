@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import Mock, PropertyMock
 
 import pytest
@@ -63,7 +64,7 @@ def test_data():
     return queries, corpus, relevant_docs
 
 
-def test_simple(test_data):
+def test_simple(test_data, tmp_path: Path):
     queries, corpus, relevant_docs = test_data
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
 
@@ -78,7 +79,7 @@ def test_simple(test_data):
         ndcg_at_k=[3],
         map_at_k=[5],
     )
-    results = ir_evaluator(model)
+    results = ir_evaluator(model, output_path=str(tmp_path))
     expected_keys = [
         "test_cosine_accuracy@1",
         "test_cosine_accuracy@3",
@@ -93,7 +94,7 @@ def test_simple(test_data):
     assert set(results.keys()) == set(expected_keys)
 
 
-def test_metrices(test_data, mock_model):
+def test_metrices(test_data, mock_model, tmp_path: Path):
     queries, corpus, relevant_docs = test_data
 
     ir_evaluator = InformationRetrievalEvaluator(
@@ -107,7 +108,7 @@ def test_metrices(test_data, mock_model):
         ndcg_at_k=[3],
         map_at_k=[5],
     )
-    results = ir_evaluator(mock_model)
+    results = ir_evaluator(mock_model, output_path=str(tmp_path))
     # We expect test_cosine_precision@3 to be 0.4, since 6 out of 15 (5 queries * 3) are True Positives
     # We expect test_cosine_recall@1 to be 0.9; the average of 4 times a recall of 1 and once a recall of 0.5
     expected_results = {
