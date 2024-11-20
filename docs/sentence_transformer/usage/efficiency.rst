@@ -18,11 +18,15 @@ Sentence Transformers supports 3 backends for computing embeddings, each with it
         </a>
         <a href="#openvino" class="box">
             <div class="header">OpenVINO</div>
-            Optimization of models, primarily for Intel Hardware.
+            Optimization of models, mainly for Intel Hardware.
         </a>
         <a href="#benchmarks" class="box">
             <div class="header">Benchmarks</div>
             Benchmarks for the different backends.
+        </a>
+        <a href="#user-interface" class="box">
+            <div class="header">User Interface</div>
+            GUI to export, optimize, and quantize models.
         </a>
     </div>
     <br>
@@ -74,6 +78,8 @@ If you're using a GPU, then you can use the following options to speed up your i
 ONNX
 ----
 
+.. include:: backend_export_sidebar.rst
+
 ONNX can be used to speed up inference by converting the model to ONNX format and using ONNX Runtime to run the model. To use the ONNX backend, you must install Sentence Transformers with the ``onnx`` or ``onnx-gpu`` extra for CPU or GPU acceleration, respectively:
 
 .. code-block:: bash
@@ -119,6 +125,8 @@ All keyword arguments passed via ``model_kwargs`` will be passed on to :meth:`OR
 
 Optimizing ONNX Models
 ^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: backend_export_sidebar.rst
 
 ONNX models can be optimized using Optimum, allowing for speedups on CPUs and GPUs alike. To do this, you can use the :func:`~sentence_transformers.backend.export_optimized_onnx_model` function, which saves the optimized in a directory or model repository that you specify. It expects:
 
@@ -189,6 +197,8 @@ See this example for exporting a model with :doc:`optimization level 3 <optimum:
 
 Quantizing ONNX Models
 ^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: backend_export_sidebar.rst
 
 ONNX models can be quantized to int8 precision using Optimum, allowing for faster inference on CPUs. To do this, you can use the :func:`~sentence_transformers.backend.export_dynamic_quantized_onnx_model` function, which saves the quantized in a directory or model repository that you specify. Dynamic quantization, unlike static quantization, does not require a calibration dataset. It expects:
 
@@ -262,6 +272,8 @@ See this example for quantizing a model to ``int8`` with :doc:`avx512_vnni <opti
 OpenVINO
 --------
 
+.. include:: backend_export_sidebar.rst
+
 OpenVINO allows for accelerated inference on CPUs by exporting the model to the OpenVINO format. To use the OpenVINO backend, you must install Sentence Transformers with the ``openvino`` extra:
 
 .. code-block:: bash
@@ -304,6 +316,8 @@ To convert a model to OpenVINO format, you can use the following code:
 
 Quantizing OpenVINO Models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: backend_export_sidebar.rst
 
 OpenVINO models can be quantized to int8 precision using Optimum Intel to speed up inference.
 To do this, you can use the :func:`~sentence_transformers.backend.export_static_quantized_openvino_model` function,
@@ -534,3 +548,10 @@ Based on the benchmarks, this flowchart should help you decide which backend to 
 .. note::
 
    Your milage may vary, and you should always test the different backends with your specific model and data to find the best one for your use case.
+
+User Interface
+^^^^^^^^^^^^^^
+
+This Hugging Face Space provides a user interface for exporting, optimizing, and quantizing models for either ONNX or OpenVINO:
+
+- `sentence-transformers/backend-export <https://huggingface.co/spaces/sentence-transformers/backend-export>`_
