@@ -229,64 +229,11 @@ class CachedGISTEmbedLoss(nn.Module):
 
     def calculate_loss_and_cache_gradients(self, reps: list[list[Tensor]], reps_guided: list[list[Tensor]]) -> Tensor:
         """Generalized function to calculate the cross-entropy loss and cache the gradients wrt. the embeddings."""
-        if len(reps) != len(reps_guided):
-            raise ValueError("reps and reps_guided must have the same length")
+        loss = self.calculate_loss(reps, reps_guided)
+        loss.backward()
+        loss = loss.detach().requires_grad_()
 
-        # Concatenate embeddings along the batch dimension
-        concatenated_reps = [torch.cat(rep, dim=0) for rep in reps]
-        concatenated_guided_reps = [torch.cat(rep_guide, dim=0) for rep_guide in reps_guided]
-
-        labels = torch.arange(concatenated_reps[0].size(0)).long().to(concatenated_reps[0].device)
-        batch_size = concatenated_reps[0].shape[0]
-
-        losses: list[torch.Tensor] = []
-        for b in tqdm.trange(
-            0,
-            batch_size,
-            self.mini_batch_size,
-            desc="Preparing caches",
-            disable=not self.show_progress_bar,
-        ):
-            e = b + self.mini_batch_size
-
-            # Compute guided similarity matrices for anchor-positive, anchor-anchor, and positive-positive samples
-            guided_ap_sim = self.sim_matrix(concatenated_guided_reps[0][b:e], concatenated_guided_reps[1])
-            guided_aa_sim = self.sim_matrix(concatenated_guided_reps[0][b:e], concatenated_guided_reps[0])
-            guided_pp_sim = self.sim_matrix(concatenated_guided_reps[1][b:e], concatenated_guided_reps[1])
-
-            # Define the anchor threshold for each similarity matrix
-            guided_sim = guided_ap_sim.diagonal(offset=b).view(-1, 1)
-
-            # Compute similarity scores for the current mini-batch
-            ap_sim = self.sim_matrix(concatenated_reps[0][b:e], concatenated_reps[1])  # anchor-positive similarity
-            aa_sim = self.sim_matrix(concatenated_reps[0][b:e], concatenated_reps[0])  # anchor-anchor similarity
-            pp_sim = self.sim_matrix(concatenated_reps[1][b:e], concatenated_reps[1])  # positive-positive similarity
-
-            # Apply thresholds based on guided model similarities
-            ap_sim[guided_ap_sim > guided_sim] = -torch.inf
-            aa_sim[guided_aa_sim > guided_sim] = -torch.inf
-            pp_sim[guided_pp_sim > guided_sim] = -torch.inf
-
-            # Concatenate the similarity matrices for anchor-positive, anchor-anchor, and positive-positive
-            scores = torch.cat([ap_sim, aa_sim, pp_sim], dim=1)
-
-            # If there are negatives (len(reps) > 2), process them
-            if len(concatenated_reps) > 2:
-                for i in range(2, len(concatenated_reps)):  # Start from 2 since first 2 are anchor-positive
-                    guided_neg_sim = self.sim_matrix(concatenated_guided_reps[0][b:e], concatenated_guided_reps[i])
-                    neg_sim = self.sim_matrix(concatenated_reps[0][b:e], concatenated_reps[i])
-                    neg_sim[guided_neg_sim > guided_sim] = -torch.inf
-                    scores = torch.cat([scores, neg_sim], dim=1)
-
-            # Normalize the scores and calculate the cross-entropy loss
-            scores = scores / self.temperature
-            loss_mbatch: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e]) * len(scores) / batch_size
-            loss_mbatch.backward()
-            losses.append(loss_mbatch.detach())
-
-        loss = sum(losses).requires_grad_()
-
-        self.cache = [[r.grad for r in rs] for rs in reps]  # Cache the gradients
+        self.cache = [[r.grad for r in rs] for rs in reps]
 
         return loss
 
