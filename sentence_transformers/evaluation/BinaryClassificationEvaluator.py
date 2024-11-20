@@ -280,11 +280,11 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             predicted_labels = (scores >= f1_threshold) if greater_is_better else (scores <= f1_threshold)
             mcc = matthews_corrcoef(labels, predicted_labels)
 
-            logger.info(f"Accuracy with {name}:           {acc * 100:.2f}\t(Threshold: {acc_threshold:.4f})")
-            logger.info(f"F1 with {name}:                 {f1 * 100:.2f}\t(Threshold: {f1_threshold:.4f})")
-            logger.info(f"Precision with {name}:          {precision * 100:.2f}")
-            logger.info(f"Recall with {name}:             {recall * 100:.2f}")
-            logger.info(f"Average Precision with {name}:  {ap * 100:.2f}")
+            logger.info(f"Accuracy with {name}:             {acc * 100:.2f}\t(Threshold: {acc_threshold:.4f})")
+            logger.info(f"F1 with {name}:                   {f1 * 100:.2f}\t(Threshold: {f1_threshold:.4f})")
+            logger.info(f"Precision with {name}:            {precision * 100:.2f}")
+            logger.info(f"Recall with {name}:               {recall * 100:.2f}")
+            logger.info(f"Average Precision with {name}:    {ap * 100:.2f}")
             logger.info(f"Matthews Correlation with {name}: {mcc * 100:.2f}\n")
 
             output_scores[similarity_fn_name] = {
