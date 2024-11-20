@@ -265,7 +265,7 @@ class CachedGISTEmbedLoss(nn.Module):
             # Apply thresholds based on guided model similarities
             ap_sim[guided_ap_sim > guided_sim] = -torch.inf
             aa_sim[guided_aa_sim > guided_sim] = -torch.inf
-            pp_sim[guided_pp_sim > guided_sim] = -torch.inf
+            pp_sim[guided_pp_sim >= guided_sim] = -torch.inf
 
             # Concatenate the similarity matrices for anchor-positive, anchor-anchor, and positive-positive
             scores = torch.cat([ap_sim, aa_sim, pp_sim], dim=1)
@@ -328,7 +328,7 @@ class CachedGISTEmbedLoss(nn.Module):
             # Apply thresholds based on guided model similarities
             ap_sim[guided_ap_sim > guided_sim] = -torch.inf
             aa_sim[guided_aa_sim > guided_sim] = -torch.inf
-            pp_sim[guided_pp_sim > guided_sim] = -torch.inf
+            pp_sim[guided_pp_sim >= guided_sim] = -torch.inf
 
             # Concatenate the similarity matrices for anchor-positive, anchor-anchor, and positive-positive
             scores = torch.cat([ap_sim, aa_sim, pp_sim], dim=1)
