@@ -285,7 +285,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             logger.info(f"Precision with {name}:          {precision * 100:.2f}")
             logger.info(f"Recall with {name}:             {recall * 100:.2f}")
             logger.info(f"Average Precision with {name}:  {ap * 100:.2f}")
-            logger.info(f"Matthews Correlation with {name}: {mcc:.4f}\n")
+            logger.info(f"Matthews Correlation with {name}: {mcc * 100:.2f}\n")
 
             output_scores[similarity_fn_name] = {
                 "accuracy": acc,
