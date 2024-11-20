@@ -64,13 +64,13 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             )
             results = binary_acc_evaluator(model)
             '''
-            Binary Accuracy Evaluation of the model on the quora-duplicates-dev dataset:
-            Accuracy with Cosine-Similarity:           81.60    (Threshold: 0.8352)
-            F1 with Cosine-Similarity:                 75.27    (Threshold: 0.7715)
-            Precision with Cosine-Similarity:          65.81
-            Recall with Cosine-Similarity:             87.89
-            Average Precision with Cosine-Similarity:  76.03
-            Matthews correlation coefficient:          62.48
+            Binary Accuracy Evaluation of the model on the quora_duplicates_dev dataset:
+            Accuracy with Cosine-Similarity:             81.60  (Threshold: 0.8352)
+            F1 with Cosine-Similarity:                   75.27  (Threshold: 0.7715)
+            Precision with Cosine-Similarity:            65.81
+            Recall with Cosine-Similarity:               87.89
+            Average Precision with Cosine-Similarity:    76.03
+            Matthews Correlation with Cosine-Similarity: 62.48
             '''
             print(binary_acc_evaluator.primary_metric)
             # => "quora_duplicates_dev_cosine_ap"
