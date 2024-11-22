@@ -132,13 +132,19 @@ class Transformer(nn.Module):
         if backend == "torch":
             if isinstance(config, T5Config):
                 self._load_t5_model(model_name_or_path, config, cache_dir, **model_args)
+                return
             elif isinstance(config, MT5Config):
                 self._load_mt5_model(model_name_or_path, config, cache_dir, **model_args)
-            else:
-                self.auto_model = AutoModel.from_pretrained(
-                    model_name_or_path, config=config, cache_dir=cache_dir, **model_args
-                )
-            self._load_peft_model(model_name_or_path, config, cache_dir, **model_args)
+                return
+            elif is_peft_available():
+                from peft import PeftConfig
+
+                if isinstance(config, PeftConfig):
+                    self._load_peft_model(model_name_or_path, config, cache_dir, **model_args)
+                    return
+            self.auto_model = AutoModel.from_pretrained(
+                model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+            )
         elif backend == "onnx":
             self._load_onnx_model(model_name_or_path, config, cache_dir, **model_args)
         elif backend == "openvino":
@@ -147,13 +153,14 @@ class Transformer(nn.Module):
             raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, or `openvino`.")
 
     def _load_peft_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
-        if is_peft_available():
-            from peft import PeftConfig, PeftModel
+        from peft import PeftModel
 
-            if isinstance(config, PeftConfig):
-                self.auto_model = PeftModel.from_pretrained(
-                    self.auto_model, model_name_or_path, config=config, cache_dir=cache_dir, **model_args
-                )
+        revision = model_args.pop("revision", None)
+        self.auto_model = AutoModel.from_pretrained(config.base_model_name_or_path, cache_dir=cache_dir, **model_args)
+        model_args["revision"] = revision
+        self.auto_model = PeftModel.from_pretrained(
+            self.auto_model, model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+        )
 
     def _load_openvino_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         if isinstance(config, T5Config) or isinstance(config, MT5Config):
