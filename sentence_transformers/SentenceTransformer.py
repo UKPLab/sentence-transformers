@@ -128,7 +128,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         model_card_data (:class:`~sentence_transformers.model_card.SentenceTransformerModelCardData`, optional): A model
             card data object that contains information about the model. This is used to generate a model card when saving
             the model. If not set, a default model card data object is created.
-        backend (str): The backend to use for inference. Can be one of "torch" (default), "onnx", or "openvino".
+        backend (str): The backend to use for inference. Can be one of "torch" (default), "onnx", "openvino", or "ipex".
             See https://sbert.net/docs/sentence_transformer/usage/efficiency.html for benchmarking information
             on the different backends.
 
@@ -177,7 +177,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         tokenizer_kwargs: dict[str, Any] | None = None,
         config_kwargs: dict[str, Any] | None = None,
         model_card_data: SentenceTransformerModelCardData | None = None,
-        backend: Literal["torch", "onnx", "openvino"] = "torch",
+        backend: Literal["torch", "onnx", "openvino", "ipex"] = "torch",
     ) -> None:
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
         self.prompts = prompts or {}
@@ -382,8 +382,8 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         # Pass the model to the model card data for later use in generating a model card upon saving this model
         self.model_card_data.register_model(self)
 
-    def get_backend(self) -> Literal["torch", "onnx", "openvino"]:
-        """Return the backend used for inference, which can be one of "torch", "onnx", or "openvino".
+    def get_backend(self) -> Literal["torch", "onnx", "openvino", "ipex"]:
+        """Return the backend used for inference, which can be one of "torch", "onnx", "openvino" or "ipex".
 
         Returns:
             str: The backend used for inference.
