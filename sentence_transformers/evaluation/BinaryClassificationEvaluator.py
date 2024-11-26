@@ -288,14 +288,14 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             logger.info(f"Matthews Correlation with {name}: {mcc * 100:.2f}\n")
 
             output_scores[similarity_fn_name] = {
-                "accuracy": acc,
-                "accuracy_threshold": acc_threshold,
-                "f1": f1,
-                "f1_threshold": f1_threshold,
-                "precision": precision,
-                "recall": recall,
-                "ap": ap,
-                "mcc": mcc,
+                "accuracy": float(acc),
+                "accuracy_threshold": float(acc_threshold),
+                "f1": float(f1),
+                "f1_threshold": float(f1_threshold),
+                "precision": float(precision),
+                "recall": float(recall),
+                "ap": float(ap),
+                "mcc": float(mcc),
             }
 
         return output_scores
