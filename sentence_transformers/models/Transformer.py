@@ -74,8 +74,8 @@ class Transformer(nn.Module):
         if config_args is None:
             config_args = {}
 
-        config = self._load_config(model_name_or_path, cache_dir, backend, config_args)
-        self._load_model(model_name_or_path, config, cache_dir, backend, **model_args)
+        config, is_peft_model = self._load_config(model_name_or_path, cache_dir, backend, config_args)
+        self._load_model(model_name_or_path, config, cache_dir, backend, is_peft_model, **model_args)
 
         if max_seq_length is not None and "model_max_length" not in tokenizer_args:
             tokenizer_args["model_max_length"] = max_seq_length
@@ -123,28 +123,32 @@ class Transformer(nn.Module):
                 )
             from peft import PeftConfig
 
-            return PeftConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
+            return PeftConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir), True
 
-        return AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir)
+        return AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir), False
 
-    def _load_model(self, model_name_or_path, config, cache_dir, backend, **model_args) -> None:
+    def _load_model(self, model_name_or_path, config, cache_dir, backend, is_peft_model, **model_args) -> None:
         """Loads the transformer model"""
         if backend == "torch":
+            # When loading a PEFT model, we need to load the base model first,
+            # but some model_args are only for the adapter
+            adapter_only_kwargs = {}
+            if is_peft_model:
+                for adapter_only_kwarg in ["revision"]:
+                    if adapter_only_kwarg in model_args:
+                        adapter_only_kwargs[adapter_only_kwarg] = model_args.pop(adapter_only_kwarg)
+
             if isinstance(config, T5Config):
                 self._load_t5_model(model_name_or_path, config, cache_dir, **model_args)
-                return
             elif isinstance(config, MT5Config):
                 self._load_mt5_model(model_name_or_path, config, cache_dir, **model_args)
-                return
-            elif is_peft_available():
-                from peft import PeftConfig
+            else:
+                self.auto_model = AutoModel.from_pretrained(
+                    model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+                )
 
-                if isinstance(config, PeftConfig):
-                    self._load_peft_model(model_name_or_path, config, cache_dir, **model_args)
-                    return
-            self.auto_model = AutoModel.from_pretrained(
-                model_name_or_path, config=config, cache_dir=cache_dir, **model_args
-            )
+            if is_peft_model:
+                self._load_peft_model(model_name_or_path, config, cache_dir, **model_args, **adapter_only_kwargs)
         elif backend == "onnx":
             self._load_onnx_model(model_name_or_path, config, cache_dir, **model_args)
         elif backend == "openvino":
@@ -155,9 +159,6 @@ class Transformer(nn.Module):
     def _load_peft_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
         from peft import PeftModel
 
-        revision = model_args.pop("revision", None)
-        self.auto_model = AutoModel.from_pretrained(config.base_model_name_or_path, cache_dir=cache_dir, **model_args)
-        model_args["revision"] = revision
         self.auto_model = PeftModel.from_pretrained(
             self.auto_model, model_name_or_path, config=config, cache_dir=cache_dir, **model_args
         )
