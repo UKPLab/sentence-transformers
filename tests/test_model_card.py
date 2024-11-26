@@ -106,3 +106,6 @@ def test_model_card_base(
 
     for substring in expected_substrings:
         assert substring in model_card
+
+    # We don't want to have two consecutive empty lines anywhere
+    assert "\n\n\n" not in model_card
