@@ -284,9 +284,10 @@ Here are the implemented Evaluators that come with Sentence Transformers:
 ========================================================================  ===========================================================================================================================
 Evaluator                                                                 Required Data
 ========================================================================  ===========================================================================================================================
-:class:`~sentence_transformers.evaluation.BinaryClassificationEvaluator`  Pairs with class labels
-:class:`~sentence_transformers.evaluation.EmbeddingSimilarityEvaluator`   Pairs with similarity scores
-:class:`~sentence_transformers.evaluation.InformationRetrievalEvaluator`  Queries (qid => question), Corpus (cid => document), and relevant documents (qid => set[cid])
+:class:`~sentence_transformers.evaluation.BinaryClassificationEvaluator`  Pairs with class labels.
+:class:`~sentence_transformers.evaluation.EmbeddingSimilarityEvaluator`   Pairs with similarity scores.
+:class:`~sentence_transformers.evaluation.InformationRetrievalEvaluator`  Queries (qid => question), Corpus (cid => document), and relevant documents (qid => set[cid]).
+:class:`~sentence_transformers.evaluation.NanoBEIREvaluator`              No data required.
 :class:`~sentence_transformers.evaluation.MSEEvaluator`                   Source sentences to embed with a teacher model and target sentences to embed with the student model. Can be the same texts.
 :class:`~sentence_transformers.evaluation.ParaphraseMiningEvaluator`      Mapping of IDs to sentences & pairs with IDs of duplicate sentences.
 :class:`~sentence_transformers.evaluation.RerankingEvaluator`             List of ``{'query': '...', 'positive': [...], 'negative': [...]}`` dictionaries.
@@ -360,6 +361,27 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
             main_distance_function=SimilarityFunction.COSINE,
             name="all-nli-dev",
         )
+        # You can run evaluation like so:
+        # dev_evaluator(model)
+
+.. tab:: NanoBEIREvaluator
+
+    .. raw:: html
+
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.NanoBEIREvaluator" title="sentence_transformers.evaluation.NanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.evaluation.NanoBEIREvaluator</span></code></a></li>
+            </ul>
+        </div>
+
+    ::
+
+        from sentence_transformers.evaluation import NanoBEIREvaluator
+
+        # Initialize the evaluator. Unlike most other evaluators, this one loads the relevant datasets
+        # directly from Hugging Face, so there's no mandatory arguments
+        dev_evaluator = NanoBEIREvaluator()
         # You can run evaluation like so:
         # dev_evaluator(model)
 
