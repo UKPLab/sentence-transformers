@@ -71,6 +71,7 @@ class TripletEvaluator(SentenceEvaluator):
         write_csv: bool = True,
         truncate_dim: int | None = None,
         similarity_fn_names: list[Literal["cosine", "dot", "euclidean", "manhattan"]] | None = None,
+        main_distance_function: str | SimilarityFunction | None = "deprecated",
     ):
         """
         Initializes a TripletEvaluator object.
@@ -106,6 +107,13 @@ class TripletEvaluator(SentenceEvaluator):
 
         assert len(self.anchors) == len(self.positives)
         assert len(self.anchors) == len(self.negatives)
+
+        if main_distance_function != "deprecated" and main_similarity_function is None:
+            main_similarity_function = main_distance_function
+            logger.warning(
+                "The 'main_distance_function' parameter is deprecated. Please use 'main_similarity_function' instead. "
+                "'main_distance_function' will be removed in a future release."
+            )
 
         self.main_similarity_function = (
             SimilarityFunction(main_similarity_function) if main_similarity_function else None
