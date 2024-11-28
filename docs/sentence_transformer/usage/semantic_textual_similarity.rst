@@ -41,7 +41,7 @@ For Semantic Textual Similarity (STS), we want to produce embeddings for all tex
         for idx_j, sentence2 in enumerate(sentences2):
             print(f" - {sentence2: <30}: {similarities[idx_i][idx_j]:.4f}")
 
-.. code-block:: txt
+.. code-block:: text
     :emphasize-lines: 3
 
     The new movie is awesome
@@ -57,7 +57,7 @@ For Semantic Textual Similarity (STS), we want to produce embeddings for all tex
     - The new movie is so great     : -0.0136
     - A woman watches TV            : -0.0327
 
-In this example, the :meth:`SentenceTransformer.similarity <sentence_transformers.SentenceTransformer.similarity>` method returns a 3x3 matrix with the respective cosine similarity scores for all possible pairs between *embeddings1* and *embeddings2*.
+In this example, the :meth:`SentenceTransformer.similarity <sentence_transformers.SentenceTransformer.similarity>` method returns a 3x3 matrix with the respective cosine similarity scores for all possible pairs between ``embeddings1`` and ``embeddings2``.
 
 Similarity Calculation
 ----------------------
@@ -129,4 +129,4 @@ Sentence Transformers implements two methods to calculate the similarity between
 
    Dot product on normalized embeddings is equivalent to cosine similarity, but "cosine" will re-normalize the embeddings again. As a result, the "dot" metric will be faster than "cosine".
 
-If you want find the highest scoring pairs in a long list of sentences, have a look at `Paraphrase Mining <../../examples/applications/paraphrase-mining/README.md>`_.
+If you want find the highest scoring pairs in a long list of sentences, have a look at `Paraphrase Mining <../../../examples/applications/paraphrase-mining/README.html>`_.

@@ -123,8 +123,8 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
         Relations:
             - Equivalent to :class:`MultipleNegativesRankingLoss`, but with caching that allows for much higher batch sizes
-            (and thus better performance) without extra memory usage. This loss also trains roughly 2x to 2.4x slower than
-            :class:`MultipleNegativesRankingLoss`.
+              (and thus better performance) without extra memory usage. This loss also trains roughly 2x to 2.4x slower than
+              :class:`MultipleNegativesRankingLoss`.
 
         Example:
             ::

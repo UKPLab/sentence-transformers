@@ -6,14 +6,14 @@ Models trained on this dataset can be used for mining duplicate questions, i.e.,
 
 ## Training
 
-```eval_rst
+```{eval-rst}
 Choosing the right loss function is crucial for finetuning useful models. For the given task, two loss functions are especially suitable: :class:`~sentence_transformers.losses.OnlineContrastiveLoss` and :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`.
 ```
 
 ### Contrastive Loss
 For the complete training example, see [training_OnlineContrastiveLoss.py](training_OnlineContrastiveLoss.py).
 
-```eval_rst
+```{eval-rst}
 The Quora Duplicates dataset has a `pair-class subset <https://huggingface.co/datasets/sentence-transformers/quora-duplicates/viewer/pair-class>`_ which consists of question pairs and labels: 1 for duplicate and 0 for different.
 
 As shown by our `Loss Overview <../../../docs/sentence_transformer/loss_overview.md>`_, this allows us to use :class:`~sentence_transformers.losses.ContrastiveLoss`. Similar pairs with label 1 are pulled together, so that they are close in vector space, while dissimilar pairs that are closer than a defined margin are pushed away in vector space.
@@ -38,7 +38,7 @@ train_loss = losses.OnlineContrastiveLoss(model=model, margin=0.5)
 ## MultipleNegativesRankingLoss
 For the complete example, see [training_MultipleNegativesRankingLoss.py](training_MultipleNegativesRankingLoss.py).
 
-```eval_rst
+```{eval-rst}
 :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` is especially suitable for Information Retrieval / Semantic Search. A nice advantage is that it only requires positive pairs, i.e., we only need examples of duplicate questions. See `NLI > MultipleNegativesRankingLoss <../nli/README.html#multiplenegativesrankingloss>`_ for more information on how the loss works.
 ```
 
@@ -70,7 +70,7 @@ train_dataset = concatenate_datasets([
 #     num_rows: 298526
 # })
 ```
-```eval_rst
+```{eval-rst}
 .. note::
     Increasing the batch sizes usually yields better results, as the  task gets harder. It is more difficult to identify the correct duplicate question out of a set of 100 questions than out of a set of only 10 questions. So it is advisable to set the training batch size as large as possible. I trained it with a batch size of 350 on 32 GB GPU memory.
 
@@ -79,7 +79,7 @@ train_dataset = concatenate_datasets([
 ```
 
 ### Multi-Task-Learning
-```eval_rst
+```{eval-rst}
 :class:`~sentence_transformers.losses.ContrastiveLoss` works well for pair classification, i.e., given two pairs, are these duplicates or not. It pushes negative pairs far away in vector space, so that the distinguishing between duplicate and non-duplicate pairs works good.
 
 :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` on the other sides mainly reduces the distance between positive pairs out of large set of possible candidates. However, the distance between  non-duplicate questions is not so large, so that this loss does not work that well for pair classification.

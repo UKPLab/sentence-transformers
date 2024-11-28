@@ -21,7 +21,7 @@ Cross-Encoders require text pairs as inputs and output a score 0...1 (if the Sig
 ## MS MARCO
 [MS MARCO Passage Retrieval](https://github.com/microsoft/MSMARCO-Passage-Ranking) is a large dataset with real user queries from Bing search engine with annotated relevant text passages.
 
-```eval_rst
+```{eval-rst}
 .. note::
     You can initialize these models with ``default_activation_function=torch.nn.Sigmoid()`` to force the model to return scores between 0 and 1. Otherwise, the raw value can reasonably range between -10 and 10.
 ```
@@ -64,7 +64,7 @@ These models have been trained on the [Quora duplicate questions dataset](https:
 - [cross-encoder/quora-roberta-base](https://huggingface.co/cross-encoder/quora-roberta-base) - Average Precision dev set: 87.80
 - [cross-encoder/quora-roberta-large](https://huggingface.co/cross-encoder/quora-roberta-large) - Average Precision dev set: 87.91
 
-```eval_rst
+```{eval-rst}
 .. note::
     The model don't work for question similarity. The question *How to learn Java* and *How to learn Python* will get a low score, as these questions are not duplicates. For question similarity, the respective bi-encoder trained on the Quora dataset yields much more meaningful results.
 ```

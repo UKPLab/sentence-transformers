@@ -30,7 +30,7 @@ Smaller models are faster, but show a (slightly) worse performance when evaluate
 
 ## Dimensionality Reduction
 
-```eval_rst
+```{eval-rst}
 .. warning::
     Since writing this, `Embedding Quantization <../../applications/embedding-quantization/README.html>`_ has been introduced as the go-to approach for shrinking embedding sizes. Following `Thakur et al. <https://arxiv.org/abs/2205.11498>`_, We recommend that approach over PCA.
 ```
@@ -50,7 +50,7 @@ For models that are run on **CPUs**, this can yield 40% smaller models and a fas
 
 For an example, see [model_quantization.py](model_quantization.py)
 
-```eval_rst
+```{eval-rst}
 .. note::
     The quantization support of Sentence Transformers is still being improved.
 ```

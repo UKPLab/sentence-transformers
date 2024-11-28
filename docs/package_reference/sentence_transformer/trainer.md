@@ -3,7 +3,7 @@
 
 ## SentenceTransformerTrainer
 
-```eval_rst
+```{eval-rst}
 .. autoclass:: sentence_transformers.trainer.SentenceTransformerTrainer
     :members:
     :inherited-members:
