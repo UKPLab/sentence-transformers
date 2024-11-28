@@ -20,13 +20,8 @@ import inspect
 import os
 import posixpath
 
-# from recommonmark.transform import AutoStructify
 from sphinx.application import Sphinx
 from sphinx.writers.html5 import HTML5Translator
-
-# HTML5Translator.visit_download_reference
-
-# StandaloneHTMLBuilder.download_support = False
 
 # -- Project information -----------------------------------------------------
 
@@ -43,7 +38,6 @@ author = "Nils Reimers, Tom Aarsen"
 extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
-    # "recommonmark",
     "myst_parser",
     "sphinx_markdown_tables",
     "sphinx_copybutton",
