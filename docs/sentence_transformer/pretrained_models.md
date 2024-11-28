@@ -141,7 +141,7 @@ These models find semantically similar sentences within one language or across l
 Bitext mining describes the process of finding translated sentence pairs in two languages. If this is your use-case, the following model gives the best performance:
 - **[LaBSE](https://huggingface.co/sentence-transformers/LaBSE)** - [LaBSE](https://arxiv.org/abs/2007.01852) Model. Supports 109 languages. Works well for finding translation pairs in multiple languages. As detailed  [here](https://arxiv.org/abs/2004.09813), LaBSE works less well for assessing the similarity of sentence pairs that are not translations of each other.
 
-Extending a model to new languages is easy by following [Training Examples > Multilingual Models](../../examples/training/multilingual/README.html).
+Extending a model to new languages is easy by following [Training Examples > Multilingual Models](../../examples/training/multilingual/README.md).
 
 ## Image & Text-Models
 The following models can embed images and text into a joint vector space. See [Usage > Image Search](../../examples/applications/image-search/README.md) for more details how to use for text2image-search, image2image-search, image clustering, and zero-shot image classification.

@@ -6,7 +6,7 @@
    **Quickstart:** Find `curated datasets <https://huggingface.co/collections/sentence-transformers/embedding-model-datasets-6644d7a3673a511914aa7552>`_ or `community datasets <https://huggingface.co/datasets?other=sentence-transformers>`_, choose a loss function via this `loss overview <loss_overview.html>`_, and `verify <training_overview.html#dataset-format>`_ that it works with your dataset.
 ```
 
-It is important that your dataset format matches your loss function (or that you choose a loss function that matches your dataset format). See [Training Overview > Dataset Format](./training_overview.html#dataset-format) to learn how to verify whether a dataset format works with a loss function.
+It is important that your dataset format matches your loss function (or that you choose a loss function that matches your dataset format). See [Training Overview > Dataset Format](./training_overview.md#dataset-format) to learn how to verify whether a dataset format works with a loss function.
 
 In practice, most dataset configurations will take one of four forms:
 

@@ -28,7 +28,7 @@ Lastly, the third figure shows the expected speedup ratio for GPU & CPU devices 
 
 ## Training
 
-Training with Adaptive Layer support is quite elementary: rather than applying some loss function on only the last layer, we also apply that same loss function on the pooled embeddings from previous layers. Additionally, we employ a KL-divergence loss that aims to make the embeddings of the non-last layers match that of the last layer. This can be seen as a fascinating approach of [knowledge distillation](../distillation/README.html#knowledge-distillation), but with the last layer as the teacher model and the prior layers as the student models.
+Training with Adaptive Layer support is quite elementary: rather than applying some loss function on only the last layer, we also apply that same loss function on the pooled embeddings from previous layers. Additionally, we employ a KL-divergence loss that aims to make the embeddings of the non-last layers match that of the last layer. This can be seen as a fascinating approach of [knowledge distillation](../distillation/README.md#knowledge-distillation), but with the last layer as the teacher model and the prior layers as the student models.
 
 For example, with the 12-layer [microsoft/mpnet-base](https://huggingface.co/microsoft/mpnet-base), it will now be trained such that the model produces meaningful embeddings after each of the 12 layers.
 
@@ -45,7 +45,7 @@ loss = AdaptiveLayerLoss(model=model, loss=base_loss)
 
 Note that training with `AdaptiveLayerLoss` is not notably slower than without using it.
 
-Additionally, this can be combined with the `MatryoshkaLoss` such that the resulting model can be reduced both in the number of layers, but also in the size of the output dimensions. See also the [Matryoshka Embeddings](../matryoshka/README.html) for more information on reducing output dimensions. In Sentence Transformers, the combination of these two losses is called `Matryoshka2dLoss`, and a shorthand is provided for simpler training.
+Additionally, this can be combined with the `MatryoshkaLoss` such that the resulting model can be reduced both in the number of layers, but also in the size of the output dimensions. See also the [Matryoshka Embeddings](../matryoshka/README.md) for more information on reducing output dimensions. In Sentence Transformers, the combination of these two losses is called `Matryoshka2dLoss`, and a shorthand is provided for simpler training.
 
 ```python
 from sentence_transformers import SentenceTransformer

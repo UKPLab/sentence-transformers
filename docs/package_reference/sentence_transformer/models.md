@@ -1,5 +1,5 @@
 # Models
-`sentence_transformers.models` defines different building blocks, that can be used to create SentenceTransformer networks from scratch. For more details, see [Training Overview](../../sentence_transformer/training_overview.html).
+`sentence_transformers.models` defines different building blocks, that can be used to create SentenceTransformer networks from scratch. For more details, see [Training Overview](../../sentence_transformer/training_overview.md).
 
 ## Main Classes
 ```{eval-rst}

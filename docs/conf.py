@@ -18,9 +18,15 @@ import datetime
 import importlib
 import inspect
 import os
+import posixpath
 
 # from recommonmark.transform import AutoStructify
-from sphinx.domains import Domain
+from sphinx.application import Sphinx
+from sphinx.writers.html5 import HTML5Translator
+
+# HTML5Translator.visit_download_reference
+
+# StandaloneHTMLBuilder.download_support = False
 
 # -- Project information -----------------------------------------------------
 
@@ -74,10 +80,7 @@ intersphinx_mapping = {
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-# 1.3.0 is okay, only logo/link different
-# 3.0.2 is okay too
 html_theme = "sphinx_rtd_theme"
-# html_theme_path = ["_themes"]
 
 html_theme_options = {
     "logo_only": True,
@@ -111,6 +114,9 @@ html_logo = "img/logo.png"
 html_favicon = "img/favicon.ico"
 
 autoclass_content = "both"
+
+# Required to get rid of some myst.xref_missing warnings
+myst_heading_anchors = 3
 
 
 # https://github.com/readthedocs/sphinx-autoapi/issues/202#issuecomment-907582382
@@ -150,21 +156,28 @@ def linkcode_resolve(domain, info):
     return f"https://github.com/UKPLab/sentence-transformers/blob/master/{file}#L{start}-L{end}"
 
 
-class GithubURLDomain(Domain):
-    """
-    Resolve .py links to their respective Github URL
-    """
+def visit_download_reference(self, node):
+    root = "https://github.com/UKPLab/sentence-transformers/tree/master"
+    atts = {"class": "reference download", "download": ""}
 
-    name = "githuburl"
-    ROOT = "https://github.com/UKPLab/sentence-transformers/tree/master"
+    if not self.builder.download_support:
+        self.context.append("")
+    elif "refuri" in node:
+        atts["class"] += " external"
+        atts["href"] = node["refuri"]
+        self.body.append(self.starttag(node, "a", "", **atts))
+        self.context.append("</a>")
+    elif "reftarget" in node and "refdoc" in node:
+        atts["class"] += " external"
+        atts["href"] = posixpath.join(root, os.path.dirname(node["refdoc"]), node["reftarget"])
+        self.body.append(self.starttag(node, "a", "", **atts))
+        self.context.append("</a>")
+    else:
+        self.context.append("")
 
-    def resolve_any_xref(self, env, fromdocname, builder, target, node, contnode):
-        if (target.endswith(".py") or target.endswith(".ipynb")) and not target.startswith("http"):
-            from_folder = os.path.dirname(fromdocname)
-            contnode["refuri"] = "/".join([self.ROOT, from_folder, target])
-            return [("githuburl:any", contnode)]
-        return []
+
+HTML5Translator.visit_download_reference = visit_download_reference
 
 
-def setup(app):
-    app.add_domain(GithubURLDomain)
+def setup(app: Sphinx):
+    pass

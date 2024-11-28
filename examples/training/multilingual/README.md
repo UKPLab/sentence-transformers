@@ -100,7 +100,7 @@ test_emb_similarity = EmbeddingSimilarityEvaluator(
 Where `sentences1` and `sentences2` are lists of sentences and score is numeric value indicating the semantic similarity between `sentences1[i]` and `sentences2[i]`.
 
 ## Available Pre-trained Models
-For a list of available models, see [Pretrained Models](../../../docs/sentence_transformer/pretrained_models.html#multilingual-models).
+For a list of available models, see [Pretrained Models](../../../docs/sentence_transformer/pretrained_models.md#multilingual-models).
 
 ## Usage
 You can use the models in the following way:

@@ -5,7 +5,7 @@ This page shows how to **train** Sentence Transformer models on this dataset so 
 
 If you are interested in how to use these models, see [Application - Retrieve & Re-Rank](../../applications/retrieve_rerank/README.md).
 
-There are **pre-trained models** available, which you can directly use without the need of training your own models. For more information, see: [Pretrained Models > MSMARCO Passage Models](../../../docs/sentence_transformer/pretrained_models.html#msmarco-passage-models).
+There are **pre-trained models** available, which you can directly use without the need of training your own models. For more information, see: [Pretrained Models > MSMARCO Passage Models](../../../docs/sentence_transformer/pretrained_models.md#msmarco-passage-models).
 
 ## Bi-Encoder
 
