@@ -93,14 +93,9 @@ for seed in range(seed_count):
         name="sts-dev",
     )
 
-    # Configure the training. We skip evaluation in this example
-    warmup_steps = math.ceil(len(train_dataset) * num_epochs * 0.1)  # 10% of train data for warm-up
-
     # Stopping and Evaluating after 30% of training data (less than 1 epoch)
     # We find from (Dodge et al.) that 20-30% is often ideal for convergence of random seed
     steps_per_epoch = math.ceil(len(train_dataset) * stop_after)
-
-    logging.info(f"Warmup-steps: {warmup_steps}")
 
     logging.info(f"Early-stopping: {int(stop_after * 100)}% of the training-data")
 
@@ -112,15 +107,16 @@ for seed in range(seed_count):
         num_train_epochs=num_epochs,
         per_device_train_batch_size=train_batch_size,
         per_device_eval_batch_size=train_batch_size,
-        warmup_steps=warmup_steps,
+        warmup_ratio=0.1,
+        max_steps=steps_per_epoch,
         fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
         bf16=False,  # Set to True if you have a GPU that supports BF16
         # Optional tracking/debugging parameters:
         evaluation_strategy="steps",
-        eval_steps=stop_after,
+        eval_steps=1000,
         save_strategy="steps",
-        save_steps=stop_after,
-        logging_steps=stop_after,
+        save_steps=1000,
+        logging_steps=1000,
         run_name="sts",  # Will be used in W&B if `wandb` is installed
     )
 
