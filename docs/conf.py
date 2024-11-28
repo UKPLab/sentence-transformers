@@ -18,9 +18,10 @@ import datetime
 import importlib
 import inspect
 import os
+import posixpath
 
-from recommonmark.transform import AutoStructify
-from sphinx.domains import Domain
+from sphinx.application import Sphinx
+from sphinx.writers.html5 import HTML5Translator
 
 # -- Project information -----------------------------------------------------
 
@@ -37,7 +38,7 @@ author = "Nils Reimers, Tom Aarsen"
 extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
-    "recommonmark",
+    "myst_parser",
     "sphinx_markdown_tables",
     "sphinx_copybutton",
     "sphinx.ext.intersphinx",
@@ -50,19 +51,13 @@ extensions = [
 templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
+# directories to include when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = [
-    "_build",
-    "Thumbs.db",
-    ".DS_Store",
-    "nr_examples",
-    "archived",
-    "dist",
-    "build",
-    "output",
-    "models",
-    "model_card_template.md",
+include_patterns = [
+    "docs/**",
+    "sentence_transformers/**/.py",
+    "examples/**",
+    "index.rst",
 ]
 
 intersphinx_mapping = {
@@ -80,18 +75,18 @@ intersphinx_mapping = {
 # a list of builtin themes.
 #
 html_theme = "sphinx_rtd_theme"
-html_theme_path = ["_themes"]
 
 html_theme_options = {
     "logo_only": True,
     "canonical_url": "https://www.sbert.net",
     "collapse_navigation": False,
+    "navigation_depth": 3,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+html_static_path = ["_static", "img/hf-logo.svg"]
 
 html_css_files = [
     "css/custom.css",
@@ -113,6 +108,9 @@ html_logo = "img/logo.png"
 html_favicon = "img/favicon.ico"
 
 autoclass_content = "both"
+
+# Required to get rid of some myst.xref_missing warnings
+myst_heading_anchors = 3
 
 
 # https://github.com/readthedocs/sphinx-autoapi/issues/202#issuecomment-907582382
@@ -152,30 +150,28 @@ def linkcode_resolve(domain, info):
     return f"https://github.com/UKPLab/sentence-transformers/blob/master/{file}#L{start}-L{end}"
 
 
-class GithubURLDomain(Domain):
-    """
-    Resolve .py links to their respective Github URL
-    """
+def visit_download_reference(self, node):
+    root = "https://github.com/UKPLab/sentence-transformers/tree/master"
+    atts = {"class": "reference download", "download": ""}
 
-    name = "githuburl"
-    ROOT = "https://github.com/UKPLab/sentence-transformers/tree/master"
+    if not self.builder.download_support:
+        self.context.append("")
+    elif "refuri" in node:
+        atts["class"] += " external"
+        atts["href"] = node["refuri"]
+        self.body.append(self.starttag(node, "a", "", **atts))
+        self.context.append("</a>")
+    elif "reftarget" in node and "refdoc" in node:
+        atts["class"] += " external"
+        atts["href"] = posixpath.join(root, os.path.dirname(node["refdoc"]), node["reftarget"])
+        self.body.append(self.starttag(node, "a", "", **atts))
+        self.context.append("</a>")
+    else:
+        self.context.append("")
 
-    def resolve_any_xref(self, env, fromdocname, builder, target, node, contnode):
-        if (target.endswith(".py") or target.endswith(".ipynb")) and not target.startswith("http"):
-            from_folder = os.path.dirname(fromdocname)
-            contnode["refuri"] = "/".join([self.ROOT, from_folder, target])
-            return [("githuburl:any", contnode)]
-        return []
+
+HTML5Translator.visit_download_reference = visit_download_reference
 
 
-def setup(app):
-    app.add_domain(GithubURLDomain)
-    app.add_config_value(
-        "recommonmark_config",
-        {
-            #'url_resolver': lambda url: github_doc_root + url,
-            "auto_toc_tree_section": "Contents",
-        },
-        True,
-    )
-    app.add_transform(AutoStructify)
+def setup(app: Sphinx):
+    pass

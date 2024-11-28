@@ -43,7 +43,7 @@ class OnlineContrastiveLoss(nn.Module):
 
         Relations:
             - :class:`ContrastiveLoss` is similar, but does not use hard positive and hard negative pairs.
-            :class:`OnlineContrastiveLoss` often yields better results.
+              :class:`OnlineContrastiveLoss` often yields better results.
 
         Example:
             ::

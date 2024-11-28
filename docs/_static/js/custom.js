@@ -1,13 +1,18 @@
 function addGithubButton() {
     const div = `
         <div class="github-repo">
-            <a class="github-button"
-                href="https://github.com/UKPLab/sentence-transformers" data-size="large" data-show-count="true" aria-label="Star UKPLab/sentence-transformers on GitHub" title="sentence-transformers on GitHub">
-                Star
-            </a>
+            <div style="display: flex; justify-content: center;">
+                <div id="hf-button">
+                    <a href="https://huggingface.co/models?library=sentence-transformers" target="_blank" title="See all Sentence Transformer models"><img src="https://sbert.net/_static/hf-logo.svg" style="margin: 0px 10px 0px -10px; padding: 0px; height: 28px; width: 28px;"></a>
+                </div>
+                <a class="github-button"
+                    href="https://github.com/UKPLab/sentence-transformers" data-size="large" data-show-count="true" aria-label="Star UKPLab/sentence-transformers on GitHub" title="sentence-transformers on GitHub">
+                    Star
+                </a>
+            </div>
         </div>
     `;
-    document.getElementById("github-button").innerHTML = div;
+    document.getElementsByClassName("logo")[0].parentElement.insertAdjacentHTML("afterend", div);
 }
 
 

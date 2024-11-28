@@ -42,7 +42,7 @@ Training Sentence Transformer models involves between 3 to 5 components:
 <p></p>
 
 ## Dataset
-```eval_rst
+```{eval-rst}
 The :class:`SentenceTransformerTrainer` trains and evaluates using :class:`datasets.Dataset` (one dataset) or :class:`datasets.DatasetDict` instances (multiple datasets, see also `Multi-dataset training <#multi-dataset-training>`_). 
 
 .. tab:: Data on 🤗 Hugging Face Hub
@@ -144,7 +144,7 @@ The :class:`SentenceTransformerTrainer` trains and evaluates using :class:`datas
 
 ### Dataset Format
 
-```eval_rst
+```{eval-rst}
 It is important that your dataset format matches your loss function (or that you choose a loss function that matches your dataset format). Verifying whether a dataset format works with a loss function involves two steps:
 
 1. If your loss function requires a *Label* according to the `Loss Overview <loss_overview.html>`_ table, then your dataset must have a **column named "label" or "score"**. This column is automatically taken as the label.
@@ -165,7 +165,7 @@ Loss functions quantify how well a model performs for a given batch of data, all
 
 Sadly, there is no single loss function that works best for all use-cases. Instead, which loss function to use greatly depends on your available data and on your target task. See [Dataset Format](#dataset-format) to learn what datasets are valid for which loss functions. Additionally, the [Loss Overview](loss_overview) will be your best friend to learn about the options.
 
-```eval_rst
+```{eval-rst}
 Most loss functions can be initialized with just the :class:`SentenceTransformer` that you're training, alongside some optional parameters, e.g.:
 
 .. sidebar:: Documentation
@@ -199,7 +199,7 @@ Most loss functions can be initialized with just the :class:`SentenceTransformer
 
 ## Training Arguments
 
-```eval_rst
+```{eval-rst}
 The :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` class can be used to specify parameters for influencing training performance as well as defining the tracking/debugging parameters. Although it is optional, it is heavily recommended to experiment with the various useful arguments.
 ```
 
@@ -247,7 +247,7 @@ The following are tables with some of the most useful training arguments.
 </div>
 <br>
 
-```eval_rst
+```{eval-rst}
 Here is an example of how :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` can be initialized:
 ```
 
@@ -280,7 +280,7 @@ args = SentenceTransformerTrainingArguments(
 You can provide the [`SentenceTransformerTrainer`](https://sbert.net/docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer) with an `eval_dataset` to get the evaluation loss during training, but it may be useful to get more concrete metrics during training, too. For this, you can use evaluators to assess the model's performance with useful metrics before, during, or after training. You can use both an `eval_dataset` and an evaluator, one or the other, or neither. They evaluate based on the `eval_strategy` and `eval_steps` [Training Arguments](#training-arguments).
 
 Here are the implemented Evaluators that come with Sentence Transformers:
-```eval_rst
+```{eval-rst}
 ========================================================================  ===========================================================================================================================
 Evaluator                                                                 Required Data
 ========================================================================  ===========================================================================================================================
@@ -392,7 +392,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
 
 ## Trainer
 
-```eval_rst
+```{eval-rst}
 The :class:`~sentence_transformers.SentenceTransformerTrainer` is where all previous components come together. We only have to specify the trainer with the model, training arguments (optional), training dataset, evaluation dataset (optional), loss function, evaluator (optional) and we can start training. Let's have a look at a script where all of these components come together:
 
 .. sidebar:: Documentation
@@ -503,7 +503,7 @@ The :class:`~sentence_transformers.SentenceTransformerTrainer` is where all prev
 
 ### Callbacks
 
-```eval_rst
+```{eval-rst}
 This Sentence Transformers trainer integrates support for various :class:`transformers.TrainerCallback` subclasses, such as:
 
 - :class:`~transformers.integrations.WandbCallback` to automatically log training metrics to W&B if ``wandb`` is installed
@@ -517,7 +517,7 @@ documentation for more information on the integrated callbacks and how to write 
 ```
 
 ## Multi-Dataset Training
-```eval_rst
+```{eval-rst}
 The top performing models are trained using many datasets at once. Normally, this is rather tricky, as each dataset has a different format. However, :class:`SentenceTransformerTrainer` can train with multiple datasets without having to convert each dataset to the same format. It can even apply different loss functions to each of the datasets. The steps to train with multiple datasets are:
 
 - Use a dictionary of :class:`~datasets.Dataset` instances (or a :class:`~datasets.DatasetDict`) as the ``train_dataset`` and ``eval_dataset``.
@@ -549,6 +549,7 @@ Training on multiple datasets looks like this:
 
     - `Quora Duplicate Questions > Multi-task learning <https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/quora_duplicate_questions/training_multi-task-learning.py>`_
     - `AllNLI + STSb > Multi-task learning <https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/other/training_multi-task.py>`_
+
 ::
 
     from datasets import load_dataset
@@ -639,7 +640,7 @@ Training on multiple datasets looks like this:
 ```
 
 ## Deprecated Training 
-```eval_rst
+```{eval-rst}
 Prior to the Sentence Transformers v3.0 release, models would be trained with the :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>` method and a :class:`~torch.utils.data.DataLoader` of :class:`~sentence_transformers.readers.InputExample`, which looked something like this::
 
     from sentence_transformers import SentenceTransformer, InputExample, losses
