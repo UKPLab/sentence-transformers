@@ -224,6 +224,7 @@ The following are tables with some of the most useful training arguments.
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.optim"><code>optim</code></a>
         <a href="../package_reference/sentence_transformer/training_args.html#sentence_transformers.training_args.SentenceTransformerTrainingArguments"><code>batch_sampler</code></a>
         <a href="../package_reference/sentence_transformer/training_args.html#sentence_transformers.training_args.SentenceTransformerTrainingArguments"><code>multi_dataset_batch_sampler</code></a>
+        <a href="../package_reference/sentence_transformer/training_args.html#sentence_transformers.training_args.SentenceTransformerTrainingArguments"><code>prompts</code></a>
     </div>
 </div>
 <br>
