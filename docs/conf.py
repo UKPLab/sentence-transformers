@@ -19,7 +19,7 @@ import importlib
 import inspect
 import os
 
-from recommonmark.transform import AutoStructify
+# from recommonmark.transform import AutoStructify
 from sphinx.domains import Domain
 
 # -- Project information -----------------------------------------------------
@@ -37,7 +37,8 @@ author = "Nils Reimers, Tom Aarsen"
 extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
-    "recommonmark",
+    # "recommonmark",
+    "myst_parser",
     "sphinx_markdown_tables",
     "sphinx_copybutton",
     "sphinx.ext.intersphinx",
@@ -50,19 +51,13 @@ extensions = [
 templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
+# directories to include when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = [
-    "_build",
-    "Thumbs.db",
-    ".DS_Store",
-    "nr_examples",
-    "archived",
-    "dist",
-    "build",
-    "output",
-    "models",
-    "model_card_template.md",
+include_patterns = [
+    "docs/**",
+    "sentence_transformers/**/.py",
+    "examples/**",
+    "index.rst",
 ]
 
 intersphinx_mapping = {
@@ -79,19 +74,22 @@ intersphinx_mapping = {
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
+# 1.3.0 is okay, only logo/link different
+# 3.0.2 is okay too
 html_theme = "sphinx_rtd_theme"
-html_theme_path = ["_themes"]
+# html_theme_path = ["_themes"]
 
 html_theme_options = {
     "logo_only": True,
     "canonical_url": "https://www.sbert.net",
     "collapse_navigation": False,
+    "navigation_depth": 3,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+html_static_path = ["_static", "img/hf-logo.svg"]
 
 html_css_files = [
     "css/custom.css",
@@ -170,12 +168,3 @@ class GithubURLDomain(Domain):
 
 def setup(app):
     app.add_domain(GithubURLDomain)
-    app.add_config_value(
-        "recommonmark_config",
-        {
-            #'url_resolver': lambda url: github_doc_root + url,
-            "auto_toc_tree_section": "Contents",
-        },
-        True,
-    )
-    app.add_transform(AutoStructify)

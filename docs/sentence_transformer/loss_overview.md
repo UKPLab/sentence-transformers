@@ -2,7 +2,7 @@
 
 Loss functions play a critical role in the performance of your fine-tuned model. Sadly, there is no "one size fits all" loss function. Ideally, this table should help narrow down your choice of loss function(s) by matching them to your data formats.
 
-```eval_rst
+```{eval-rst}
 .. note:: 
 
     You can often convert one training data format into another, allowing more loss functions to be viable for your scenario. For example, ``(sentence_A, sentence_B) pairs`` with ``class`` labels can be converted into ``(anchor, positive, negative) triplets`` by sampling sentences with the same or different classes.
@@ -49,7 +49,7 @@ In practice, not all loss functions get used equally often. The most common scen
 
 ## Custom Loss Functions
 
-```eval_rst
+```{eval-rst}
 Advanced users can create and train with their own loss functions. Custom loss functions only have a few requirements:
 
 - They must be a subclass of :class:`torch.nn.Module`.

@@ -23,7 +23,7 @@ It is critical **that you choose the right model** for your type of task.
 For small corpora (up to about 1 million entries), we can perform semantic search with a manual implementation by computing the embeddings for the corpus as well as for our query, and then calculating the [semantic textual similarity](../../../docs/sentence_transformer/usage/semantic_textual_similarity.rst) using [<code>SentenceTransformer.similarity</code>](../../../docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer.similarity).
 For a simple example, see [semantic_search.py](semantic_search.py):
 
-```eval_rst
+```{eval-rst}
 
 .. sidebar:: Output
 
@@ -63,7 +63,7 @@ Instead of implementing semantic search by yourself, you can use the [<code>util
 
 The function accepts the following parameters:
 
-```eval_rst
+```{eval-rst}
 .. autofunction:: sentence_transformers.util.semantic_search
 ```
 

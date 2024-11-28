@@ -21,7 +21,7 @@ This scripts downloads the parallel sentences corpus, a corpus with transcripts 
 
 ## Datasets
 
-```eval_rst
+```{eval-rst}
 As training data we require parallel sentences, i.e., sentences translated in various languages. In particular, we will use :class:`~datasets.Dataset` instances with ``"english"`` and ``"non_english"`` columns. We have prepared a large collection of such datasets in our `Parallel Sentences dataset collection <https://huggingface.co/collections/sentence-transformers/parallel-sentences-datasets-6644d644123d31ba5b1c8785>`_.
 ```
 

@@ -1,6 +1,6 @@
 # Paraphrase Data
 
-```eval_rst
+```{eval-rst}
 In our paper `Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation <https://arxiv.org/abs/2004.09813>`_, we showed that paraphrase data together with :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` is a powerful combination to learn sentence embeddings models. Read `NLI > MultipleNegativesRankingLoss <../nli/README.html#multiplenegativesrankingloss>`_ for more information on this loss function.
 ```
 

@@ -6,7 +6,7 @@ We provide various pre-trained Sentence Transformers models via our Sentence Tra
 
 Each of these models can be easily downloaded and used like so:
 
-```eval_rst
+```{eval-rst}
 .. sidebar:: Original Models
 
     For the original models from the `Sentence Transformers Hugging Face organization <https://huggingface.co/models?library=sentence-transformers&author=sentence-transformers>`_, it is not necessary to include the model author or organization prefix. For example, this snippet loads `sentence-transformers/all-mpnet-base-v2 <https://huggingface.co/sentence-transformers/all-mpnet-base-v2>`_.
@@ -25,7 +25,7 @@ embeddings = model.encode([
 similarities = model.similarity(embeddings, embeddings)
 ```
 
-```eval_rst
+```{eval-rst}
 .. note::
     Consider using the `Massive Textual Embedding Benchmark leaderboard <https://huggingface.co/spaces/mteb/leaderboard>`_ as an inspiration of strong Sentence Transformer models. Be wary:
 
@@ -52,7 +52,7 @@ The **all-*** models were trained on all available training data (more than 1 bi
 
 The following models have been specifically trained for **Semantic Search**: Given a question / search query, these models are able to find relevant text passages. For more details, see [Usage > Semantic Search](../../examples/applications/semantic-search/README.md).
 
-```eval_rst
+```{eval-rst}
 .. sidebar:: Documentation
 
    #. `multi-qa-mpnet-base-cos-v1 <https://huggingface.co/sentence-transformers/multi-qa-mpnet-base-cos-v1>`_
