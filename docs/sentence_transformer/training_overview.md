@@ -527,6 +527,7 @@ Training on multiple datasets looks like this:
 
     - `Quora Duplicate Questions > Multi-task learning <https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/quora_duplicate_questions/training_multi-task-learning.py>`_
     - `AllNLI + STSb > Multi-task learning <https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/other/training_multi-task.py>`_
+
 ::
 
     from datasets import load_dataset
