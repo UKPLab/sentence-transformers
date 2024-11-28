@@ -5,7 +5,7 @@ This page shows how to **train** Sentence Transformer models on this dataset so 
 
 If you are interested in how to use these models, see [Application - Retrieve & Re-Rank](../../applications/retrieve_rerank/README.md).
 
-There are **pre-trained models** available, which you can directly use without the need of training your own models. For more information, see: [Pretrained Models > MSMARCO Passage Models](../../../docs/sentence_transformer/pretrained_models.html#msmarco-passage-models).
+There are **pre-trained models** available, which you can directly use without the need of training your own models. For more information, see: [Pretrained Models > MSMARCO Passage Models](../../../docs/sentence_transformer/pretrained_models.md#msmarco-passage-models).
 
 ## Bi-Encoder
 
@@ -18,7 +18,7 @@ This page describes two strategies to **train an bi-encoder** on the MS MARCO da
 ### MultipleNegativesRankingLoss
 **Training code: [train_bi-encoder_mnrl.py](train_bi-encoder_mnrl.py)**
 
-```eval_rst
+```{eval-rst}
 When we use :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, we provide triplets: ``(query, positive_passage, negative_passage)`` where ``positive_passage`` is the relevant passage to the query and ``negative_passage`` is a non-relevant passage to the query. We compute the embeddings for all queries, positive passages, and negative passages in the corpus and then optimize the following objective: The ``(query, positive_passage)` pair must be close in the vector space, while ``(query, negative_passage)`` should be distant in vector space.
 
 To further improve the training, we use **in-batch negatives**: 
@@ -32,7 +32,7 @@ One way to **improve training** is to choose really good negatives, also know as
 
 We find these hard negatives in the following way: We use existing retrieval systems (e.g. lexical search and other bi-encoder retrieval systems), and for each query we find the most relevant passages. We then use a powerful [cross-encoder/ms-marco-MiniLM-L-6-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2) [Cross-Encoder](../../applications/cross-encoder/README.md) to score the found `(query, passage)` pairs. We provide scores for 160 million such pairs in our [MS MARCO Mined Triplet dataset collection](https://huggingface.co/collections/sentence-transformers/ms-marco-mined-triplets-6644d6f1ff58c5103fe65f23).
 
-```eval_rst
+```{eval-rst}
 For :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, we must ensure that in the triplet ``(query, positive_passage, negative_passage)`` that the ``negative_passage`` is indeed not relevant for the query. The MS MARCO dataset is sadly **highly redundant**, and even though that there is on average only one passage marked as relevant for a query, it actually contains many passages that humans would consider as relevant. We must ensure that these passages are **not passed as negatives**: We do this by ensuring a certain threshold in the CrossEncoder scores between the relevant passages and the mined hard negative. By default, we set a threshold of 3: If the ``(query, positive_passage)`` gets a score of 9 from the CrossEncoder, than we will only consider negatives with a score below 6 from the CrossEncoder. This threshold ensures that we actually use negatives in our triplets.
 ```
 
@@ -52,7 +52,7 @@ print(train_dataset[0])
 ### MarginMSE
 **Training code: [train_bi-encoder_margin-mse.py](train_bi-encoder_margin-mse.py)**
 
-```eval_rst
+```{eval-rst}
 :class:`~sentence_transformers.losses.MarginMSELoss` is based on the paper of `Hofstätter et al <https://arxiv.org/abs/2010.02666>`_. Like when training with :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, we can use triplets: ``(query, passage1, passage2)``. However, in contrast to :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, `passage1` and `passage2` do not have to be strictly positive/negative, both can be relevant or not relevant for a given query.  
 
 We then compute the `Cross-Encoder <../../applications/cross-encoder/README.html>`_ score for ``(query, passage1)`` and ``(query, passage2)``. We provide scores for 160 million such pairs in our `msmarco-hard-negatives dataset <https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives>`_. We then compute the distance: ``CE_distance = CEScore(query, passage1) - CEScore(query, passage2)``.

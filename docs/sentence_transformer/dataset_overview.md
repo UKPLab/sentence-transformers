@@ -1,12 +1,12 @@
 # Dataset Overview
 
-```eval_rst
+```{eval-rst}
 .. hint::
 
    **Quickstart:** Find `curated datasets <https://huggingface.co/collections/sentence-transformers/embedding-model-datasets-6644d7a3673a511914aa7552>`_ or `community datasets <https://huggingface.co/datasets?other=sentence-transformers>`_, choose a loss function via this `loss overview <loss_overview.html>`_, and `verify <training_overview.html#dataset-format>`_ that it works with your dataset.
 ```
 
-It is important that your dataset format matches your loss function (or that you choose a loss function that matches your dataset format). See [Training Overview > Dataset Format](./training_overview.html#dataset-format) to learn how to verify whether a dataset format works with a loss function.
+It is important that your dataset format matches your loss function (or that you choose a loss function that matches your dataset format). See [Training Overview > Dataset Format](./training_overview.md#dataset-format) to learn how to verify whether a dataset format works with a loss function.
 
 In practice, most dataset configurations will take one of four forms:
 
@@ -21,7 +21,7 @@ In practice, most dataset configurations will take one of four forms:
 
 Note that it is often simple to transform a dataset from one format to another, such that it works with your loss function of choice.
 
-```eval_rst
+```{eval-rst}
 
 .. tip::
 
@@ -33,7 +33,7 @@ Note that it is often simple to transform a dataset from one format to another, 
 
 ## Datasets on the Hugging Face Hub
 
-```eval_rst
+```{eval-rst}
 The `Datasets library <https://huggingface.co/docs/datasets/index>`_ (``pip install datasets``) allows you to load datasets from the Hugging Face Hub with the :func:`~datasets.load_dataset` function::
 
    from datasets import load_dataset
@@ -58,7 +58,7 @@ The `Datasets library <https://huggingface.co/docs/datasets/index>`_ (``pip inst
 
 For more information on how to manipulate your dataset see the [Datasets Documentation](https://huggingface.co/docs/datasets/access).
 
-```eval_rst
+```{eval-rst}
 .. tip::
    
    It's common for Hugging Face Datasets to contain extraneous columns, e.g. sample_id, metadata, source, type, etc. You can use :meth:`Dataset.remove_columns <datasets.Dataset.remove_columns>` to remove these columns, as they will be used as inputs otherwise. You can also use :meth:`Dataset.select_columns <datasets.Dataset.select_columns>` to keep only the desired columns.
@@ -123,7 +123,7 @@ These are some of the popular pre-existing datasets tagged as ``sentence-transfo
 | [Parallel Sentences: WikiMatrix](https://huggingface.co/datasets/sentence-transformers/parallel-sentences-wikimatrix)                                                  | (English, Non-English) pairs across numerous languages                                                    |
 | [Parallel Sentences: WikiTitles](https://huggingface.co/datasets/sentence-transformers/parallel-sentences-wikititles)                                                  | (English, Non-English) pairs across numerous languages                                                    |
 
-```eval_rst
+```{eval-rst}
 
 .. note::
 

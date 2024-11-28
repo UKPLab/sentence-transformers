@@ -1,7 +1,7 @@
 # SentenceTransformer
 
 ## SentenceTransformer
-```eval_rst
+```{eval-rst}
 .. autoclass:: sentence_transformers.SentenceTransformer
    :members:
    :inherited-members: fit, old_fit
@@ -9,12 +9,12 @@
 ```
 
 ## SentenceTransformerModelCardData
-```eval_rst
+```{eval-rst}
 .. autoclass:: sentence_transformers.model_card.SentenceTransformerModelCardData
 ```
 
 ## SimilarityFunction
-```eval_rst
+```{eval-rst}
 .. autoclass:: sentence_transformers.SimilarityFunction
    :members:
 ```

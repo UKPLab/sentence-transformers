@@ -65,7 +65,7 @@ class BatchSemiHardTripletLoss(nn.Module):
             * :class:`BatchHardTripletLoss` uses only the hardest positive and negative samples, rather than only semi hard positive and negatives.
             * :class:`BatchAllTripletLoss` uses all possible, valid triplets, rather than only semi hard positive and negatives.
             * :class:`BatchHardSoftMarginTripletLoss` uses only the hardest positive and negative samples, rather than only semi hard positive and negatives.
-            Also, it does not require setting a margin.
+              Also, it does not require setting a margin.
 
         Example:
             ::

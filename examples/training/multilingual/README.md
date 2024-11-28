@@ -21,7 +21,7 @@ This scripts downloads the parallel sentences corpus, a corpus with transcripts 
 
 ## Datasets
 
-```eval_rst
+```{eval-rst}
 As training data we require parallel sentences, i.e., sentences translated in various languages. In particular, we will use :class:`~datasets.Dataset` instances with ``"english"`` and ``"non_english"`` columns. We have prepared a large collection of such datasets in our `Parallel Sentences dataset collection <https://huggingface.co/collections/sentence-transformers/parallel-sentences-datasets-6644d644123d31ba5b1c8785>`_.
 ```
 
@@ -100,7 +100,7 @@ test_emb_similarity = EmbeddingSimilarityEvaluator(
 Where `sentences1` and `sentences2` are lists of sentences and score is numeric value indicating the semantic similarity between `sentences1[i]` and `sentences2[i]`.
 
 ## Available Pre-trained Models
-For a list of available models, see [Pretrained Models](../../../docs/sentence_transformer/pretrained_models.html#multilingual-models).
+For a list of available models, see [Pretrained Models](../../../docs/sentence_transformer/pretrained_models.md#multilingual-models).
 
 ## Usage
 You can use the models in the following way:

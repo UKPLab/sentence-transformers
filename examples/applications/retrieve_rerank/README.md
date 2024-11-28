@@ -57,8 +57,8 @@ query_embedding = model.encode(query)
 For more details how to compare the embeddings, see [semantic search](../semantic-search/README.md).
 
 We provide pre-trained models based on:
-- **MS MARCO:** 500k real user queries from Bing search engine. See [MS MARCO models](../../../docs/pretrained-models/msmarco-v3.html) 
+- **MS MARCO:** 500k real user queries from Bing search engine. See [MS MARCO models](../../../docs/pretrained-models/msmarco-v3.md) 
 
 ## Pre-trained Cross-Encoders (Re-Ranker)
 
-For pre-trained Cross Encoder models, see: [MS MARCO Cross-Encoders](../../../docs/pretrained-models/ce-msmarco.html)
+For pre-trained Cross Encoder models, see: [MS MARCO Cross-Encoders](../../../docs/pretrained-models/ce-msmarco.md)
