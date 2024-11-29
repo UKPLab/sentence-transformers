@@ -192,3 +192,34 @@ def test_bfloat16() -> None:
 
     ranking = model.rank("Hello there!", ["Hello, World!", "Heya!"])
     assert isinstance(ranking, list)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test moving devices effectively.")
+def test_device_assignment():
+    # check for the cpu device
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", device="cpu")
+    assert model.device=="cpu"
+    del model
+
+    # check for the cuda device
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", device="cuda")
+    assert model.device == "cuda"
+
+    del model
+    torch.cuda.empty_cache()
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test moving devices effectively.")
+def test_device_switching():
+    # test assignment using .to
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", device="cpu")
+    model.to("cuda")
+    assert model.device == "cuda"
+    assert model.model.device == "cuda"
+
+    # test assignment using device setter
+    model.device = "cpu"
+    assert model.device == "cpu"
+    assert model.model.device == "cpu"
+
+    del model
+    torch.cuda.empty_cache()

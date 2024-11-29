@@ -123,8 +123,8 @@ class CrossEncoder(PushToHubMixin):
         if device is None:
             device = get_device_name()
             logger.info(f"Use pytorch device: {device}")
-
-        self._target_device = torch.device(device)
+        self.device = device
+        self.model.to(self.device)
 
         if default_activation_function is not None:
             self.default_activation_function = default_activation_function
@@ -154,11 +154,11 @@ class CrossEncoder(PushToHubMixin):
             *texts, padding=True, truncation="longest_first", return_tensors="pt", max_length=self.max_length
         )
         labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(
-            self._target_device
+            self.device
         )
 
         for name in tokenized:
-            tokenized[name] = tokenized[name].to(self._target_device)
+            tokenized[name] = tokenized[name].to(self.device)
 
         return tokenized, labels
 
@@ -174,7 +174,7 @@ class CrossEncoder(PushToHubMixin):
         )
 
         for name in tokenized:
-            tokenized[name] = tokenized[name].to(self._target_device)
+            tokenized[name] = tokenized[name].to(self.device)
 
         return tokenized
 
@@ -232,7 +232,6 @@ class CrossEncoder(PushToHubMixin):
                 scaler = torch.npu.amp.GradScaler()
             else:
                 scaler = torch.cuda.amp.GradScaler()
-        self.model.to(self._target_device)
 
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
@@ -272,7 +271,7 @@ class CrossEncoder(PushToHubMixin):
                 train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
             ):
                 if use_amp:
-                    with torch.autocast(device_type=self._target_device.type):
+                    with torch.autocast(device_type=self.device.type):
                         model_predictions = self.model(**features, return_dict=True)
                         logits = activation_fct(model_predictions.logits)
                         if self.config.num_labels == 1:
@@ -438,7 +437,6 @@ class CrossEncoder(PushToHubMixin):
 
         pred_scores = []
         self.model.eval()
-        self.model.to(self._target_device)
         with torch.no_grad():
             for features in iterator:
                 model_predictions = self.model(**features, return_dict=True)
@@ -604,3 +602,16 @@ class CrossEncoder(PushToHubMixin):
             tags=tags,
             **kwargs,
         )
+
+    def to(self, device: int | str | torch.device | None = None) -> None:
+        self.model.to(device)
+        self.device = device
+
+    @property
+    def device(self) -> torch.device:
+        return self.device
+
+    @device.setter
+    def device(self, device: int | str | torch.device | None = None) -> None:
+        self.model.to(device)
+        self.device = device
