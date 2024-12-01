@@ -223,6 +223,13 @@ class SentenceTransformerTrainer(Trainer):
             super_kwargs["processing_class"] = tokenizer
         else:
             super_kwargs["tokenizer"] = tokenizer
+        # Ensure `eval_dataset` and `evaluator` are not both None. If neither is provided, raise a ValueError unless `eval_strategy` is "no".
+        if eval_dataset is None and evaluator is None:
+            if args.eval_strategy != "no":
+                raise ValueError(
+                    "Either `eval_dataset` or `evaluator` must be provided for evaluation, "
+                    "or set `eval_strategy='no'` to skip evaluation."
+                )
         super().__init__(**super_kwargs)
         # Transformers v4.46.0 introduced a ValueError if `eval_dataset` is None while eval_strategy is not "no",
         # but in Sentence Transformers you can also evaluate without an eval_dataset via an evaluator, so we set
