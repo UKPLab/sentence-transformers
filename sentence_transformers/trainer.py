@@ -228,7 +228,7 @@ class SentenceTransformerTrainer(Trainer):
             if args.eval_strategy != "no":
                 raise ValueError(
                     "Either `eval_dataset` or `evaluator` must be provided for evaluation, "
-                    "or set `eval_strategy='no'` to skip evaluation."
+                    "or set `args.eval_strategy='no'` to skip evaluation."
                 )
         super().__init__(**super_kwargs)
         # Transformers v4.46.0 introduced a ValueError if `eval_dataset` is None while eval_strategy is not "no",
