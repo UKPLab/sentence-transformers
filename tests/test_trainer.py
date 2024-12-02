@@ -648,7 +648,7 @@ def test_trainer_no_eval_dataset_with_eval_strategy(
         context = pytest.raises(
             ValueError,
             match=(
-                "You have set `args.eval_strategy` to IntervalStrategy.STEPS, but you didn't provide an "
+                "You have set `args.eval_strategy` to (IntervalStrategy.STEPS|steps), but you didn't provide an "
                 "`eval_dataset` or an `evaluator`. Either provide an `eval_dataset` or an `evaluator` "
                 "to `SentenceTransformerTrainer`, or set `args.eval_strategy='no'` to skip evaluation."
             ),
