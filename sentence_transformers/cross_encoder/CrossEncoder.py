@@ -603,7 +603,7 @@ class CrossEncoder(PushToHubMixin):
         )
 
     def to(self, device: int | str | torch.device | None = None) -> None:
-        self.model.to(device)
+        return self.model.to(device)
 
     @property
     def device(self) -> torch.device:
