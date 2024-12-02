@@ -214,3 +214,13 @@ def test_device_switching():
 
     del model
     torch.cuda.empty_cache()
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test moving devices effectively.")
+def test_target_device_backwards_compat():
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", device="cpu")
+    assert model.device.type == "cpu"
+
+    assert model._target_device.type == "cpu"
+    model._target_device = "cuda"
+    assert model.device.type == "cuda"
