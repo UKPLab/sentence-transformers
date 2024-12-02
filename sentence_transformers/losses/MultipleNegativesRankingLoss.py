@@ -106,9 +106,8 @@ class MultipleNegativesRankingLoss(nn.Module):
 
         # For every anchor, we compute the similarity to all other candidates (positives and negatives),
         # also from other anchors. This gives us a lot of in-batch negatives.
-        scores = (
-            self.similarity_fct(anchors, candidates) * self.scale
-        )  # (batch_size, batch_size * (1 + num_negatives))
+        scores = self.similarity_fct(anchors, candidates) * self.scale
+        # (batch_size, batch_size * (1 + num_negatives))
 
         # anchor[i] should be most similar to candidates[i], as that is the paired positive,
         # so the label for anchor[i] is i
