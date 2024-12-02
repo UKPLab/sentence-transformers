@@ -195,19 +195,10 @@ def test_bfloat16() -> None:
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test moving devices effectively.")
-def test_device_assignment():
-    # check for the cpu device
-    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", device="cpu")
-
-    assert model.device.type == "cpu"
-    del model
-
-    # check for the cuda device
-    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", device="cuda")
-    assert model.device.type == "cuda"
-
-    del model
-    torch.cuda.empty_cache()
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_device_assignment(device):
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", device=device)
+    assert model.device.type == device
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test moving devices effectively.")
