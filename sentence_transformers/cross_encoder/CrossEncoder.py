@@ -606,5 +606,16 @@ class CrossEncoder(PushToHubMixin):
         return self.model.to(device)
 
     @property
+    def _target_device(self) -> torch.device:
+        logger.warning(
+            "`CrossEncoder._target_device` has been removed, please use `CrossEncoder.device` instead.",
+        )
+        return self.device
+
+    @_target_device.setter
+    def _target_device(self, device: int | str | torch.device | None = None) -> None:
+        self.to(device)
+
+    @property
     def device(self) -> torch.device:
         return self.model.device
