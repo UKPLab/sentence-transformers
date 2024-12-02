@@ -233,7 +233,7 @@ class SentenceTransformerTrainer(Trainer):
         if eval_dataset is None and evaluator is None and args.eval_strategy != "no":
             raise ValueError(
                 f"You have set `args.eval_strategy` to {args.eval_strategy}, but you didn't provide an `eval_dataset` or an `evaluator`. "
-                "Either provide an `eval_dataset` or an `evaluator` for to `SentenceTransformerTrainer`, "
+                "Either provide an `eval_dataset` or an `evaluator` to `SentenceTransformerTrainer`, "
                 "or set `args.eval_strategy='no'` to skip evaluation."
             )
 
