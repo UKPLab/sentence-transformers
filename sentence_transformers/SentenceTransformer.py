@@ -1187,7 +1187,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             # For other cases, we want to add the class name:
             elif not class_ref.startswith("sentence_transformers."):
                 class_ref = f"{class_ref}.{type(module).__name__}"
-            modules_config.append({"idx": idx, "name": name, "path": os.path.basename(model_path), "type": class_ref})
+
+            module_config = {"idx": idx, "name": name, "path": os.path.basename(model_path), "type": class_ref}
+            if self.module_kwargs and name in self.module_kwargs and (module_kwargs := self.module_kwargs[name]):
+                module_config["kwargs"] = module_kwargs
+            modules_config.append(module_config)
 
         with open(os.path.join(path, "modules.json"), "w") as fOut:
             json.dump(modules_config, fOut, indent=2)
