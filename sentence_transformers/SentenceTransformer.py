@@ -1559,8 +1559,8 @@ print(similarities)
                     revision=revision,
                     code_revision=code_revision,
                 )
-            except OSError:
-                # Ignore the error if the file does not exist, and fall back to the default import
+            except (OSError, ValueError):
+                # Ignore the error if 1) the file does not exist, or 2) the class_ref is not correctly formatted/found
                 pass
 
         return import_from_string(class_ref)
