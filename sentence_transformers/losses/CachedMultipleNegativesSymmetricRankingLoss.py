@@ -182,15 +182,14 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
 
     def calculate_loss_and_cache_gradients(self, reps: list[list[Tensor]]) -> Tensor:
         """Calculate the symmetric loss and cache gradients."""
-        loss = self.calculate_loss(reps)
-        loss.backward()
+        loss = self.calculate_loss(reps, with_backward=True)
         loss = loss.detach().requires_grad_()
 
         self.cache = [[r.grad for r in rs] for rs in reps]  # e.g. 3 * bsz/mbsz * (mbsz, hdim)
 
         return loss
 
-    def calculate_loss(self, reps: list[list[Tensor]]) -> Tensor:
+    def calculate_loss(self, reps: list[list[Tensor]], with_backward: bool = False) -> Tensor:
         """Calculate the symmetric loss without caching gradients (for evaluation)."""
         embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
         embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
@@ -214,6 +213,9 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             backward_loss: torch.Tensor = self.cross_entropy_loss(positive_scores.t(), labels[: len(positive_scores)])
 
             loss_mbatch = (forward_loss + backward_loss) / 2
+            if with_backward:
+                loss_mbatch.backward()
+                loss_mbatch = loss_mbatch.detach()
             losses.append(loss_mbatch)
 
         loss = sum(losses) / len(losses)

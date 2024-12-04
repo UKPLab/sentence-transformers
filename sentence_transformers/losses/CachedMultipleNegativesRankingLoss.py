@@ -213,15 +213,14 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
     def calculate_loss_and_cache_gradients(self, reps: list[list[Tensor]]) -> Tensor:
         """Calculate the cross-entropy loss and cache the gradients wrt. the embeddings."""
-        loss = self.calculate_loss(reps)
-        loss.backward()
+        loss = self.calculate_loss(reps, with_backward=True)
         loss = loss.detach().requires_grad_()
 
         self.cache = [[r.grad for r in rs] for rs in reps]  # e.g. 3 * bsz/mbsz * (mbsz, hdim)
 
         return loss
 
-    def calculate_loss(self, reps: list[list[Tensor]]) -> Tensor:
+    def calculate_loss(self, reps: list[list[Tensor]], with_backward: bool = False) -> Tensor:
         """Calculate the cross-entropy loss. No need to cache the gradients."""
         embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
         embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
@@ -241,6 +240,9 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             e = b + self.mini_batch_size
             scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
             loss_mbatch: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e]) * len(scores) / batch_size
+            if with_backward:
+                loss_mbatch.backward()
+                loss_mbatch = loss_mbatch.detach()
             losses.append(loss_mbatch)
 
         loss = sum(losses)
