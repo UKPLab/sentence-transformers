@@ -41,7 +41,7 @@ In essence, using instructions or prompts allows for improved performance as lon
 
 ## How do we train with Prompts?
 
-```eval_rst
+```{eval-rst}
 Since the v3.3.0 Sentence Transformers release, it's possible to finetune embedding models with prompts using the ``prompts`` argument in the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` class. There are 4 separate accepted formats for this argument:
 
 1. ``str``: A single prompt to use for all columns in all datasets. For example::
@@ -93,7 +93,7 @@ Additionally, some research papers (`INSTRUCTOR <https://arxiv.org/abs/2212.0974
 
 ### Training Script
 
-```eval_rst
+```{eval-rst}
 See the following script as an example of how to train with prompts in practice:
 
 * `training_nq_prompts.py <https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/prompts/training_nq_prompts.py>`_: This script finetunes `mpnet-base <https://huggingface.co/microsoft/mpnet-base>`_ on 100k query-answer pairs from the `natural-questions <https://huggingface.co/datasets/sentence-transformers/natural-questions>`_ dataset using the :class:`~sentence_transformers.losses.CachedMultipleNegativesRankingLoss` loss. The model is evaluated during training using the :class:`~sentence_transformers.evaluation.NanoBEIREvaluator`.

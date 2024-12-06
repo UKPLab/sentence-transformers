@@ -11,23 +11,25 @@ The idea behind semantic search is to embed all entries in your corpus, whether 
 A **critical distinction** for your setup is *symmetric* vs. *asymmetric semantic search*:
 - For **symmetric semantic search** your query and the entries in your corpus are of about the same length and have the same amount of content. An example would be searching for similar questions: Your query could for example be *"How to learn Python online?"* and you want to find an entry like *"How to learn Python on the web?"*. For symmetric tasks, you could potentially flip the query and the entries in your corpus. 
     - Related training example: [Quora Duplicate Questions](../../training/quora_duplicate_questions/README.md).
-    - Suitable models: [Pre-Trained Sentence Embedding Models](../../../docs/sentence_transformer/pretrained_models#sentence-embedding-models)
+    - Suitable models: [Pre-Trained Sentence Embedding Models](../../../docs/sentence_transformer/pretrained_models.md)
 - For **asymmetric semantic search**, you usually have a **short query** (like a question or some keywords) and you want to find a longer paragraph answering the query. An example would be a query like *"What is Python"* and you want to find the paragraph *"Python is an interpreted, high-level and general-purpose programming language. Python's design philosophy ..."*. For asymmetric tasks, flipping the query and the entries in your corpus usually does not make sense.
-    - Related training example: [MS MARCO](../../training/ms_marco/README.html)
-    - Suitable models: [Pre-Trained MS MARCO Models](../../../docs/pretrained-models/msmarco-v3.md)
+    - Related training example: [MS MARCO](../../training/ms_marco/README.md)
+    - Suitable models: [Pre-Trained MS MARCO Models](../../../docs/pretrained-models/msmarco-v5.md)
 
 It is critical **that you choose the right model** for your type of task.
 
 ## Manual Implementation
 
-For small corpora (up to about 1 million entries), we can perform semantic search with a manual implementation by computing the embeddings for the corpus as well as for our query, and then calculating the [semantic textual similarity](../../../docs/sentence_transformer/usage/semantic_textual_similarity.rst) using [<code>SentenceTransformer.similarity</code>](../../../docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer.similarity).
+```{eval-rst}
+For small corpora (up to about 1 million entries), we can perform semantic search with a manual implementation by computing the embeddings for the corpus as well as for our query, and then calculating the `semantic textual similarity <../../../docs/sentence_transformer/usage/semantic_textual_similarity.html>`_ using :func:`SentenceTransformer.similarity <sentence_transformers.SentenceTransformer.similarity>`.
+```
 For a simple example, see [semantic_search.py](semantic_search.py):
 
-```eval_rst
+```{eval-rst}
 
 .. sidebar:: Output
 
-   .. code-block:: txt
+   .. code-block:: text
 
         Query: A man is eating pasta.
         Top 5 most similar sentences in corpus:
@@ -59,25 +61,30 @@ For a simple example, see [semantic_search.py](semantic_search.py):
 
 ## Optimized Implementation
 
-Instead of implementing semantic search by yourself, you can use the [<code>util.semantic_search</code>](../../../docs/package_reference/util.html#sentence_transformers.util.semantic_search) function.
+```{eval-rst}
+Instead of implementing semantic search by yourself, you can use the :func:`util.semantic_search <sentence_transformers.util.semantic_search>` function.
+```
 
 The function accepts the following parameters:
 
-```eval_rst
+```{eval-rst}
 .. autofunction:: sentence_transformers.util.semantic_search
 ```
 
 By default, up to 100 queries are processed in parallel. Further, the corpus is chunked into set of up to 500k entries. You can increase ``query_chunk_size`` and ``corpus_chunk_size``, which leads to increased speed for large corpora, but also increases the memory requirement.
 
 ## Speed Optimization
-To get the optimal speed for the [<code>util.semantic_search</code>](../../../docs/package_reference/util.html#sentence_transformers.util.semantic_search) method, it is advisable to have the `query_embeddings` as well as the `corpus_embeddings` on the same GPU-device. This significantly boost the performance. Further, we can normalize the corpus embeddings so that each corpus embeddings is of length 1. In that case, we can use dot-product for computing scores.
-```python
-corpus_embeddings = corpus_embeddings.to("cuda")
-corpus_embeddings = util.normalize_embeddings(corpus_embeddings)
+```{eval-rst}
+To get the optimal speed for the :func:`util.semantic_search <sentence_transformers.util.semantic_search>` method, it is advisable to have the ``query_embeddings`` as well as the ``corpus_embeddings`` on the same GPU-device. This significantly boost the performance. Further, we can normalize the corpus embeddings so that each corpus embeddings is of length 1. In that case, we can use dot-product for computing scores.
 
-query_embeddings = query_embeddings.to("cuda")
-query_embeddings = util.normalize_embeddings(query_embeddings)
-hits = util.semantic_search(query_embeddings, corpus_embeddings, score_function=util.dot_score)
+.. code-block:: python
+
+    corpus_embeddings = corpus_embeddings.to("cuda")
+    corpus_embeddings = util.normalize_embeddings(corpus_embeddings)
+
+    query_embeddings = query_embeddings.to("cuda")
+    query_embeddings = util.normalize_embeddings(query_embeddings)
+    hits = util.semantic_search(query_embeddings, corpus_embeddings, score_function=util.dot_score)
 ```
 
 ## Elasticsearch
@@ -87,7 +94,9 @@ For further details, see [semantic_search_quora_elasticsearch.py](semantic_searc
 
 
 ## Approximate Nearest Neighbor
-Searching a large corpus with millions of embeddings can be time-consuming if exact nearest neighbor search is used (like it is used by [<code>util.semantic_search</code>](../../../docs/package_reference/util.html#sentence_transformers.util.semantic_search)).
+```{eval-rst}
+Searching a large corpus with millions of embeddings can be time-consuming if exact nearest neighbor search is used (like it is used by :func:`util.semantic_search <sentence_transformers.util.semantic_search>`).
+```
 
 In that case, Approximate Nearest Neighbor (ANN) can be helpful. Here, the data is partitioned into smaller fractions of similar embeddings. This index can be searched efficiently and the embeddings with the highest similarity (the nearest neighbors) can be retrieved within milliseconds, even if you have millions of vectors. However, the results are not necessarily exact. It is possible that some vectors with high similarity will be missed.
 
@@ -112,7 +121,7 @@ For further details, see [Retrieve & Re-rank](../retrieve_rerank/README.md).
 We list a handful of common use cases:
 
 ### Similar Questions Retrieval
-[semantic_search_quora_pytorch.py](semantic_search_quora_pytorch.py) [ [Colab version](https://colab.research.google.com/drive/12cn5Oo0v3HfQQ8Tv6-ukgxXSmT3zl35A?usp=sharing) ] shows an example based on the [Quora duplicate questions](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs) dataset. The user can enter a question, and the code retrieves the most similar questions from the dataset using the [<code>util.semantic_search</code>](../../../docs/package_reference/util.html#sentence_transformers.util.semantic_search) method. As model, we use [distilbert-multilingual-nli-stsb-quora-ranking](https://huggingface.co/sentence-transformers/distilbert-multilingual-nli-stsb-quora-ranking), which was trained to identify similar questions and supports 50+ languages. Hence, the user can input the question in any of the 50+ languages. This is a **symmetric search task**, as the search queries have the same length and content as the questions in the corpus.
+[semantic_search_quora_pytorch.py](semantic_search_quora_pytorch.py) [ [Colab version](https://colab.research.google.com/drive/12cn5Oo0v3HfQQ8Tv6-ukgxXSmT3zl35A?usp=sharing) ] shows an example based on the [Quora duplicate questions](https://www.quora.com/q/quoradata/First-Quora-Dataset-Release-Question-Pairs) dataset. The user can enter a question, and the code retrieves the most similar questions from the dataset using `util.semantic_search`. As model, we use [distilbert-multilingual-nli-stsb-quora-ranking](https://huggingface.co/sentence-transformers/distilbert-multilingual-nli-stsb-quora-ranking), which was trained to identify similar questions and supports 50+ languages. Hence, the user can input the question in any of the 50+ languages. This is a **symmetric search task**, as the search queries have the same length and content as the questions in the corpus.
 
 ### Similar Publication Retrieval
 [semantic_search_publications.py](semantic_search_publications.py) [ [Colab version](https://colab.research.google.com/drive/12hfBveGHRsxhPIUMmJYrll2lFU4fOX06?usp=sharing) ] shows an example how to find similar scientific publications. As corpus, we use all publications that have been presented at the EMNLP 2016 - 2018 conferences. As search query, we input the title and abstract of more recent publications and find related publications from our copurs. We use the [SPECTER](https://huggingface.co/sentence-transformers/allenai-specter) model. This is a **symmetric search task**, as the paper in the corpus consists of title & abstract and we search for title & abstract.

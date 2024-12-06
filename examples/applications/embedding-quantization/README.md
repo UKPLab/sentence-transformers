@@ -20,7 +20,7 @@ Quantizing an embedding with a dimensionality of 1024 to binary would result in 
 
 As a result, in practice quantizing a `float32` embedding with a dimensionality of 1024 yields an `int8` or `uint8` embedding with a dimensionality of 128. See two approaches of how you can produce quantized embeddings using Sentence Transformers below:
 
-```eval_rst
+```{eval-rst}
 .. sidebar:: References
 
    #. `mixedbread-ai/mxbai-embed-large-v1 <https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1>`_
@@ -89,7 +89,7 @@ Computing int8 quantization buckets based on 2 embeddings. int8 quantization is 
 
 See how you can produce scalar quantized embeddings using Sentence Transformers below:
 
-```eval_rst
+```{eval-rst}
 .. sidebar:: References
 
    #. `mixedbread-ai/mxbai-embed-large-v1 <https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1>`_

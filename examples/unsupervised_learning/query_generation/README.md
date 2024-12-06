@@ -1,9 +1,9 @@
 # GenQ
 
-In our paper [BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663) we presented a method to adapt a model for [asymmetric semantic search](../../applications/semantic-search/) without for a corpus without labeled training data.
+In our paper [BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models](https://arxiv.org/abs/2104.08663) we presented a method to adapt a model for [asymmetric semantic search](../../applications/semantic-search/README.md) without for a corpus without labeled training data.
 
 ## Background
-In [asymmetric semantic search](../../applications/semantic-search/), the user provides a (short) query like some keywords or a question. We then want to retrieve a longer text passage that provides the answer.
+In [asymmetric semantic search](../../applications/semantic-search/README.md), the user provides a (short) query like some keywords or a question. We then want to retrieve a longer text passage that provides the answer.
 
 For example:
 ```
@@ -11,7 +11,7 @@ query: What is Python?
 passage to retrieve: Python is an interpreted, high-level and general-purpose programming language. Python's design philosophy emphasizes code readability with its notable use of significant whitespace. Its language constructs and object-oriented approach aim to help programmers write clear, logical code for small and large-scale projects.
 ```
 
-We showed how to train such models if sufficient training data (query & relevant passage) is available here: [Training MS MARCO dataset](../../training/ms_marco) 
+We showed how to train such models if sufficient training data (query & relevant passage) is available here: [Training MS MARCO dataset](../../training/ms_marco/README.md) 
 
 In this tutorial, we show to train such models if  **no training data is available**, i.e., if you don't have thousands of labeled query & relevant passage pairs.
 

@@ -1,14 +1,14 @@
 # CrossEncoder
 
 ## CrossEncoder
-For an introduction to Cross-Encoders, see [Cross-Encoders](../../examples/applications/cross-encoder/README.md).
-```eval_rst
+For an introduction to Cross-Encoders, see [Cross-Encoders](../../cross_encoder/usage/usage.rst).
+```{eval-rst}
 .. autoclass:: sentence_transformers.cross_encoder.CrossEncoder
    :members:
 ```
 
 ## Training Inputs
 
-```eval_rst
+```{eval-rst}
 .. autoclass:: sentence_transformers.readers.InputExample
 ```

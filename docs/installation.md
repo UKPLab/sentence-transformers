@@ -12,7 +12,7 @@ Note that you can mix and match the various extras, e.g. ``pip install -U "sente
 
 ## Install with pip
 
-```eval_rst
+```{eval-rst}
 
 .. tab:: Default
 
@@ -68,7 +68,7 @@ Note that you can mix and match the various extras, e.g. ``pip install -U "sente
 
 ## Install with Conda
 
-```eval_rst
+```{eval-rst}
 
 .. tab:: Default
 
@@ -126,7 +126,7 @@ Note that you can mix and match the various extras, e.g. ``pip install -U "sente
 
 You can install ``sentence-transformers`` directly from source to take advantage of the bleeding edge `master` branch rather than the latest stable release:
 
-```eval_rst
+```{eval-rst}
 
 .. tab:: Default
 

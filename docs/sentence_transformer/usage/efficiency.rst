@@ -337,7 +337,7 @@ Post-Training Static Quantization expects:
 - ``create_pr``: (Optional) a boolean to create a pull request when pushing to the Hugging Face Hub. Useful when you don't have write access to the repository.
 - ``file_suffix``: (Optional) a string to append to the model name when saving it. If not specified, ``"qint8_quantized"`` will be used.
 
-See this example for quantizing a model to ``int8`` with :doc:`static quantization <optimum-intel:openvino/optimization.mdx#static-quantization>`:
+See this example for quantizing a model to ``int8`` with `static quantization <https://huggingface.co/docs/optimum/main/en/intel/openvino/optimization#static-quantization>`_:
 
 .. tab:: Hugging Face Hub Model
 

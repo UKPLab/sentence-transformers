@@ -781,3 +781,12 @@ def test_multiple_adapters() -> None:
     model = SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency")
     with pytest.raises(ValueError, match="PEFT methods are only supported"):
         model.add_adapter(peft_config)
+
+
+@pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test loading PEFT models.")
+def test_load_adapter_with_revision():
+    model = SentenceTransformer(
+        "sentence-transformers-testing/stsb-bert-tiny-lora", revision="3b4f75bcb3dec36a7e05da8c44ee2f7f1d023b1a"
+    )
+    embeddings = model.encode("Hello, World!")
+    assert embeddings.shape == (128,)

@@ -2,9 +2,9 @@
 
 This page contains a collection of unsupervised learning methods to learn sentence embeddings. The methods have in common that they **do not require labeled training data**. Instead, they can learn semantically meaningful sentence embeddings just from the text itself.
 
-```eval_rst
+```{eval-rst}
 .. note::
-    Unsupervised learning approaches are still an activate research area and in many cases the models perform rather poorly compared to models that are using training pairs as provided in our `training data collection <https://huggingface.co/collections/sentence-transformers/embedding-model-datasets-6644d7a3673a511914aa7552>`_. A better approach is `Domain Adaptation <../domain_adaptation/README.md>`_ where you combine unsupervised learning on your target domain with existent labeled data. This should give the best performance on your specific corpus.
+    Unsupervised learning approaches are still an activate research area and in many cases the models perform rather poorly compared to models that are using training pairs as provided in our `training data collection <https://huggingface.co/collections/sentence-transformers/embedding-model-datasets-6644d7a3673a511914aa7552>`_. A better approach is `Domain Adaptation <../domain_adaptation/README.html>`_ where you combine unsupervised learning on your target domain with existent labeled data. This should give the best performance on your specific corpus.
 ```
 
 ## TSDAE
