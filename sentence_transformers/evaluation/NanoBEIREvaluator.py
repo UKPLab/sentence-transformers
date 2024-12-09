@@ -420,7 +420,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
         )
 
     def _validate_dataset_names(self):
-        if self.dataset_names == []:
+        if len(self.dataset_names) == 0:
             raise ValueError("dataset_names cannot be empty. Use None to evaluate on all datasets.")
         if missing_datasets := [
             dataset_name for dataset_name in self.dataset_names if dataset_name.lower() not in dataset_name_to_id
