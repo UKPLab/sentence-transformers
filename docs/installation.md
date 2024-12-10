@@ -4,6 +4,7 @@ We recommend **Python 3.9+**, **[PyTorch 1.11.0+](https://pytorch.org/get-starte
 * **Default:** This allows for loading, saving, and inference (i.e., getting embeddings) of models.
 * **ONNX:** This allows for loading, saving, inference, optimizing, and quantizing of models using the ONNX backend.
 * **OpenVINO:** This allows for loading, saving, and inference of models using the OpenVINO backend.
+* **IPEX:** This allows for loading, saving, and inference of models using the IPEX backend.
 * **Default and Training**: Like **Default**, plus training.
 * **Development**: All of the above plus some dependencies for developing Sentence Transformers, see [Editable Install](#editable-install).
 
@@ -36,6 +37,12 @@ Note that you can mix and match the various extras, e.g. ``pip install -U "sente
     ::
 
         pip install -U "sentence-transformers[openvino]"
+
+.. tab:: IPEX
+
+    ::
+
+        pip install -U "sentence-transformers[ipex]"
 
 .. tab:: Default and Training
 
@@ -86,6 +93,12 @@ Note that you can mix and match the various extras, e.g. ``pip install -U "sente
     ::
 
         pip install -U "sentence-transformers[openvino]"
+
+.. tab:: IPEX
+
+    ::
+
+        pip install -U "sentence-transformers[ipex]"
 
 .. tab:: Default and Training
 
@@ -138,6 +151,12 @@ You can install ``sentence-transformers`` directly from source to take advantage
     ::
 
         pip install -U "sentence-transformers[openvino] @ git+https://github.com/UKPLab/sentence-transformers.git"
+
+.. tab:: IPEX
+
+    ::
+
+        pip install -U "sentence-transformers[ipex] @ git+https://github.com/UKPLab/sentence-transformers.git"
 
 .. tab:: Default and Training
 
