@@ -20,11 +20,11 @@ from pathlib import Path
 from typing import Any, Callable, Literal, overload
 
 import numpy as np
+import numpy.typing as npt
 import torch
 import torch.multiprocessing as mp
 import transformers
 from huggingface_hub import HfApi
-from numpy import ndarray
 from torch import Tensor, device, nn
 from tqdm.autonotebook import trange
 from transformers import is_torch_npu_available
@@ -723,14 +723,15 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
     def similarity(self, embeddings1: Tensor, embeddings2: Tensor) -> Tensor: ...
 
     @overload
-    def similarity(self, embeddings1: ndarray, embeddings2: ndarray) -> Tensor: ...
+    def similarity(self, embeddings1: npt.NDArray[np.float32], embeddings2: npt.NDArray[np.float32]) -> Tensor: ...
 
     @property
-    def similarity(self) -> Callable[[Tensor | ndarray, Tensor | ndarray], Tensor]:
+    def similarity(self) -> Callable[[Tensor | npt.NDArray[np.float32], Tensor | npt.NDArray[np.float32]], Tensor]:
         """
         Compute the similarity between two collections of embeddings. The output will be a matrix with the similarity
         scores between all embeddings from the first parameter and all embeddings from the second parameter. This
         differs from `similarity_pairwise` which computes the similarity between each pair of embeddings.
+        This method supports only embeddings with fp32 precision and does not accommodate quantized embeddings.
 
         Args:
             embeddings1 (Union[Tensor, ndarray]): [num_embeddings_1, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
@@ -772,13 +773,18 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
     def similarity_pairwise(self, embeddings1: Tensor, embeddings2: Tensor) -> Tensor: ...
 
     @overload
-    def similarity_pairwise(self, embeddings1: ndarray, embeddings2: ndarray) -> Tensor: ...
+    def similarity_pairwise(
+        self, embeddings1: npt.NDArray[np.float32], embeddings2: npt.NDArray[np.float32]
+    ) -> Tensor: ...
 
     @property
-    def similarity_pairwise(self) -> Callable[[Tensor | ndarray, Tensor | ndarray], Tensor]:
+    def similarity_pairwise(
+        self,
+    ) -> Callable[[Tensor | npt.NDArray[np.float32], Tensor | npt.NDArray[np.float32]], Tensor]:
         """
         Compute the similarity between two collections of embeddings. The output will be a vector with the similarity
         scores between each pair of embeddings.
+        This method supports only embeddings with fp32 precision and does not accommodate quantized embeddings.
 
         Args:
             embeddings1 (Union[Tensor, ndarray]): [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
