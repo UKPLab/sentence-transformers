@@ -426,7 +426,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
             dataset_name for dataset_name in self.dataset_names if dataset_name.lower() not in dataset_name_to_id
         ]:
             raise ValueError(
-                f"Dataset(s) {missing_datasets} not found in the NanoBEIR collection."
+                f"Dataset(s) {missing_datasets} not found in the NanoBEIR collection. "
                 f"Valid dataset names are: {list(dataset_name_to_id.keys())}"
             )
 
