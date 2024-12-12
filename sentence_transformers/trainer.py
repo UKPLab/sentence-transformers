@@ -206,6 +206,10 @@ class SentenceTransformerTrainer(Trainer):
             train_dataset = DatasetDict(train_dataset)
         if isinstance(eval_dataset, dict) and not isinstance(eval_dataset, DatasetDict):
             eval_dataset = DatasetDict(eval_dataset)
+
+        # Transformers v4.46.0 introduced a ValueError if `eval_dataset` is None while eval_strategy is not "no",
+        # but in Sentence Transformers you can also evaluate without an eval_dataset via an evaluator, so we set
+        # it to "dummy" in that case to avoid the ValueError
         super_kwargs = {
             "model": None if self.model_init else model,
             "args": args,
@@ -223,10 +227,18 @@ class SentenceTransformerTrainer(Trainer):
             super_kwargs["processing_class"] = tokenizer
         else:
             super_kwargs["tokenizer"] = tokenizer
+
+        # super.__init__() will still raise a ValueError if `eval_dataset` is None, `evaluator` is None,
+        # while eval_strategy is not "no", so let's get ahead of it with a more useful ST-specific error message
+        if eval_dataset is None and evaluator is None and args.eval_strategy != "no":
+            raise ValueError(
+                f"You have set `args.eval_strategy` to {args.eval_strategy}, but you didn't provide an `eval_dataset` or an `evaluator`. "
+                "Either provide an `eval_dataset` or an `evaluator` to `SentenceTransformerTrainer`, "
+                "or set `args.eval_strategy='no'` to skip evaluation."
+            )
+
         super().__init__(**super_kwargs)
-        # Transformers v4.46.0 introduced a ValueError if `eval_dataset` is None while eval_strategy is not "no",
-        # but in Sentence Transformers you can also evaluate without an eval_dataset via an evaluator, so we set
-        # it to "dummy" in that case to avoid the ValueError
+        # If the eval_dataset is "dummy", then we set it back to None
         if self.eval_dataset == "dummy":
             self.eval_dataset = None
 

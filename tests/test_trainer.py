@@ -645,7 +645,14 @@ def test_trainer_no_eval_dataset_with_eval_strategy(
         kwargs["evaluator"] = evaluator
 
     if not use_eval_dataset and not use_evaluator:
-        context = pytest.raises(ValueError, match=".*`args.eval_strategy`.*")
+        context = pytest.raises(
+            ValueError,
+            match=(
+                "You have set `args.eval_strategy` to (IntervalStrategy.STEPS|steps), but you didn't provide an "
+                "`eval_dataset` or an `evaluator`. Either provide an `eval_dataset` or an `evaluator` "
+                "to `SentenceTransformerTrainer`, or set `args.eval_strategy='no'` to skip evaluation."
+            ),
+        )
     else:
         context = nullcontext()
 
