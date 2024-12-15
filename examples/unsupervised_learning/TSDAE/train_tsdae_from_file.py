@@ -4,9 +4,9 @@ from nltk import word_tokenize
 from nltk.tokenize.treebank import TreebankWordDetokenizer
 
 from sentence_transformers import (
-SentenceTransformer,
-SentenceTransformerTrainer,
-SentenceTransformerTrainingArguments,
+    SentenceTransformer,
+    SentenceTransformerTrainer,
+    SentenceTransformerTrainingArguments,
 )
 from sentence_transformers.losses import DenoisingAutoEncoderLoss
 
@@ -23,6 +23,7 @@ test_dataset = dataset["test"].select_columns(["anchor"])
 # Now we have 3 datasets, each with one column of text (called "anchor", but the name doesn't matter)
 # Now we need to convert the dataset into 2 columns: (damaged_sentence, original_sentence), see https://sbert.net/docs/sentence_transformer/loss_overview.html
 
+
 def noise_fn(text, del_ratio=0.6):
     words = word_tokenize(text)
     n = len(words)
@@ -37,6 +38,7 @@ def noise_fn(text, del_ratio=0.6):
         "damaged": words_processed,
         "original": text,
     }
+
 
 train_dataset = train_dataset.map(noise_fn, input_columns="anchor", remove_columns="anchor")
 eval_dataset = eval_dataset.map(noise_fn, input_columns="anchor", remove_columns="anchor")
