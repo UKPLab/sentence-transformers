@@ -190,7 +190,9 @@ class Transformer(nn.Module):
         elif backend == "ipex":
             self._load_ipex_model(model_name_or_path, config, cache_dir, **model_args)
         else:
-            raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, `openvino`, or `ipex`.")
+            raise ValueError(
+                f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, `openvino`, or `ipex`."
+            )
 
     def _load_peft_model(self, model_name_or_path: str, config: PeftConfig, cache_dir: str, **model_args) -> None:
         from peft import PeftModel

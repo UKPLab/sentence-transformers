@@ -26,11 +26,7 @@ from sentence_transformers import SentenceTransformer
 ## Testing exporting:
 @pytest.mark.parametrize(
     ["backend", "expected_auto_model_class"],
-    [
-        ("onnx", ORTModelForFeatureExtraction),
-        ("openvino", OVModelForFeatureExtraction),
-        ("ipex", IPEXModel)
-    ],
+    [("onnx", ORTModelForFeatureExtraction), ("openvino", OVModelForFeatureExtraction), ("ipex", IPEXModel)],
 )
 @pytest.mark.parametrize(
     "model_kwargs", [{}, {"file_name": "wrong_file_name"}]
