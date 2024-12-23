@@ -261,5 +261,5 @@ class TripletEvaluator(SentenceEvaluator):
                 self.primary_metric = f"{self.similarity_fn_names[0]}_accuracy"
 
         metrics = self.prefix_name_to_metrics(metrics, self.name)
-        self.store_metrics_in_model_card_data(model, metrics)
+        self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
