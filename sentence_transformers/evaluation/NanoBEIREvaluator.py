@@ -377,7 +377,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
         # TODO: Ensure this primary_metric works as expected, also with bolding the right thing in the model card
         agg_results = self.prefix_name_to_metrics(agg_results, self.name)
-        self.store_metrics_in_model_card_data(model, agg_results)
+        self.store_metrics_in_model_card_data(model, agg_results, epoch, steps)
 
         per_dataset_results.update(agg_results)
 

@@ -62,8 +62,10 @@ class SentenceEvaluator:
             self.primary_metric = name + "_" + self.primary_metric
         return metrics
 
-    def store_metrics_in_model_card_data(self, model: SentenceTransformer, metrics: dict[str, Any]) -> None:
-        model.model_card_data.set_evaluation_metrics(self, metrics)
+    def store_metrics_in_model_card_data(
+        self, model: SentenceTransformer, metrics: dict[str, Any], epoch: int = 0, step: int = 0
+    ) -> None:
+        model.model_card_data.set_evaluation_metrics(self, metrics, epoch, step)
 
     @property
     def description(self) -> str:

@@ -1256,7 +1256,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         # If we loaded a Sentence Transformer model from the Hub, and no training was done, then
         # we don't generate a new model card, but reuse the old one instead.
-        if self._model_card_text and self.model_card_data.trainer is None:
+        if self._model_card_text and "generated_from_trainer" not in self.model_card_data.tags:
             model_card = self._model_card_text
             if self.model_card_data.model_id:
                 # If the original model card was saved without a model_id, we replace the model_id with the new model_id

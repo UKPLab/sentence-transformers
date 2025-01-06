@@ -307,9 +307,9 @@ class SentenceTransformerTrainer(Trainer):
             This method can be overriden by subclassing the trainer to remove/customize this callback in custom uses cases
         """
 
-        model_card_callback = ModelCardCallback(self, default_args_dict)
+        model_card_callback = ModelCardCallback(default_args_dict)
         self.add_callback(model_card_callback)
-        model_card_callback.on_init_end(self.args, self.state, self.control, self.model)
+        model_card_callback.on_init_end(self.args, self.state, self.control, self.model, trainer=self)
 
     def call_model_init(self, trial=None) -> SentenceTransformer:
         model = super().call_model_init(trial=trial)
