@@ -11,8 +11,6 @@ import numpy as np
 from sentence_transformers import util
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 
-from collections import defaultdict
-
 class DebiasedMultipleNegativesRankingLoss(nn.Module):
     def __init__(self, model: SentenceTransformer, scale: float = 1.0, similarity_fct=util.cos_sim, tau_plus: float = 0.1) -> None:
         """
