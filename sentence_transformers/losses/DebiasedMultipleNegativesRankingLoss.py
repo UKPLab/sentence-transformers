@@ -6,12 +6,15 @@ from typing import Any
 import torch
 from torch import Tensor, nn
 
+import numpy as np
+
 from sentence_transformers import util
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 
+from collections import defaultdict
 
 class DebiasedMultipleNegativesRankingLoss(nn.Module):
-    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim, tau_plus: float = 0.01) -> None:
+    def __init__(self, model: SentenceTransformer, scale: float = 1.0, similarity_fct=util.cos_sim, tau_plus: float = 0.1) -> None:
         """
         This loss is a debiased version of the `MultipleNegativesRankingLoss` loss that addresses the inherent sampling bias in the negative examples.
 
@@ -110,23 +113,19 @@ class DebiasedMultipleNegativesRankingLoss(nn.Module):
 
         # Compute the mask to remove the similarity of the anchor to the positive candidate.
         batch_size = scores.size(0)
-        mask = torch.ones_like(scores, dtype=torch.bool) # (batch_size, batch_size * (1 + num_negatives))
+        mask = torch.zeros_like(scores, dtype=torch.bool) # (batch_size, batch_size * (1 + num_negatives))
         positive_indices = torch.arange(0, batch_size, device=scores.device)
-        mask[positive_indices, positive_indices] = False
+        mask[positive_indices, positive_indices] = True
 
         # Get the similarity of the anchor to the negative candidates.
         neg_exp = torch.exp(scores.masked_fill(mask, float("-inf"))).sum(dim=-1)  # (batch_size,)
         # Get the similarity of the anchor to the positive candidate.
         pos_exp = torch.exp(torch.gather(scores, -1, positive_indices.unsqueeze(1)).squeeze())
-        # (batch_size,)
 
         # Compute the g estimator with the exponential of the similarities.
         N_neg = scores.size(1) - 1  # Number of negatives
         g = torch.clamp((1 / (1 - self.tau_plus)) * ((neg_exp / N_neg) - (self.tau_plus * pos_exp)),
-                        min=torch.exp(-torch.tensor(self.scale)))
-        # (batch_size,)
-
-        # Compute the final debiased loss.
+                        min=np.exp(-self.scale))
         loss = - torch.log(pos_exp / (pos_exp + N_neg * g)).mean()
 
         return loss
