@@ -36,7 +36,7 @@ def test_nanobeir_evaluator_with_invalid_dataset():
     with pytest.raises(
         ValueError,
         match=re.escape(
-            r"Dataset(s) ['invalidDataset'] not found in the NanoBEIR collection."
+            r"Dataset(s) ['invalidDataset'] not found in the NanoBEIR collection. "
             r"Valid dataset names are: ['climatefever', 'dbpedia', 'fever', 'fiqa2018', 'hotpotqa', 'msmarco', 'nfcorpus', 'nq', 'quoraretrieval', 'scidocs', 'arguana', 'scifact', 'touche2020']"
         ),
     ):
