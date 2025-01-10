@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import NanoBEIREvaluator
 
@@ -11,7 +9,7 @@ def test_nanobeir_evaluator():
     datasets = ["QuoraRetrieval", "MSMARCO"]
     query_prompts = {
         "QuoraRetrieval": "Instruct: Given a question, retrieve questions that are semantically equivalent to the given question\\nQuery: ",
-        "MSMARCO": "Instruct: Given a web search query, retrieve relevant passages that answer the query\\nQuery: "
+        "MSMARCO": "Instruct: Given a web search query, retrieve relevant passages that answer the query\\nQuery: ",
     }
 
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
@@ -25,6 +23,7 @@ def test_nanobeir_evaluator():
 
     assert len(results) > 0
     assert all(isinstance(results[metric], float) for metric in results)
+
 
 # def test_nanobeir_evaluator_with_invalid_dataset():
 #     """Test that NanoBEIREvaluator raises an error for invalid dataset names."""
