@@ -527,6 +527,11 @@ class CrossEncoder(PushToHubMixin):
                 'score': -5.082967,
                 'text': "The 'Harry Potter' series, which consists of seven fantasy novels written by British author J.K. Rowling, is among the most popular and critically acclaimed books of the modern era."}]
         """
+        if self.config.num_labels != 1:
+            raise ValueError(
+                "CrossEncoder.rank() only works for models with num_labels=1. "
+                "Consider using CrossEncoder.predict() with input pairs instead."
+            )
         query_doc_pairs = [[query, doc] for doc in documents]
         scores = self.predict(
             sentences=query_doc_pairs,

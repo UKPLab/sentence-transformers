@@ -20,11 +20,11 @@ from pathlib import Path
 from typing import Any, Callable, Literal, overload
 
 import numpy as np
+import numpy.typing as npt
 import torch
 import torch.multiprocessing as mp
 import transformers
 from huggingface_hub import HfApi
-from numpy import ndarray
 from torch import Tensor, device, nn
 from tqdm.autonotebook import trange
 from transformers import is_torch_npu_available
@@ -723,14 +723,15 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
     def similarity(self, embeddings1: Tensor, embeddings2: Tensor) -> Tensor: ...
 
     @overload
-    def similarity(self, embeddings1: ndarray, embeddings2: ndarray) -> Tensor: ...
+    def similarity(self, embeddings1: npt.NDArray[np.float32], embeddings2: npt.NDArray[np.float32]) -> Tensor: ...
 
     @property
-    def similarity(self) -> Callable[[Tensor | ndarray, Tensor | ndarray], Tensor]:
+    def similarity(self) -> Callable[[Tensor | npt.NDArray[np.float32], Tensor | npt.NDArray[np.float32]], Tensor]:
         """
         Compute the similarity between two collections of embeddings. The output will be a matrix with the similarity
         scores between all embeddings from the first parameter and all embeddings from the second parameter. This
         differs from `similarity_pairwise` which computes the similarity between each pair of embeddings.
+        This method supports only embeddings with fp32 precision and does not accommodate quantized embeddings.
 
         Args:
             embeddings1 (Union[Tensor, ndarray]): [num_embeddings_1, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
@@ -772,13 +773,18 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
     def similarity_pairwise(self, embeddings1: Tensor, embeddings2: Tensor) -> Tensor: ...
 
     @overload
-    def similarity_pairwise(self, embeddings1: ndarray, embeddings2: ndarray) -> Tensor: ...
+    def similarity_pairwise(
+        self, embeddings1: npt.NDArray[np.float32], embeddings2: npt.NDArray[np.float32]
+    ) -> Tensor: ...
 
     @property
-    def similarity_pairwise(self) -> Callable[[Tensor | ndarray, Tensor | ndarray], Tensor]:
+    def similarity_pairwise(
+        self,
+    ) -> Callable[[Tensor | npt.NDArray[np.float32], Tensor | npt.NDArray[np.float32]], Tensor]:
         """
         Compute the similarity between two collections of embeddings. The output will be a vector with the similarity
         scores between each pair of embeddings.
+        This method supports only embeddings with fp32 precision and does not accommodate quantized embeddings.
 
         Args:
             embeddings1 (Union[Tensor, ndarray]): [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
@@ -1187,7 +1193,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             # For other cases, we want to add the class name:
             elif not class_ref.startswith("sentence_transformers."):
                 class_ref = f"{class_ref}.{type(module).__name__}"
-            modules_config.append({"idx": idx, "name": name, "path": os.path.basename(model_path), "type": class_ref})
+
+            module_config = {"idx": idx, "name": name, "path": os.path.basename(model_path), "type": class_ref}
+            if self.module_kwargs and name in self.module_kwargs and (module_kwargs := self.module_kwargs[name]):
+                module_config["kwargs"] = module_kwargs
+            modules_config.append(module_config)
 
         with open(os.path.join(path, "modules.json"), "w") as fOut:
             json.dump(modules_config, fOut, indent=2)
@@ -1246,7 +1256,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         # If we loaded a Sentence Transformer model from the Hub, and no training was done, then
         # we don't generate a new model card, but reuse the old one instead.
-        if self._model_card_text and self.model_card_data.trainer is None:
+        if self._model_card_text and "generated_from_trainer" not in self.model_card_data.tags:
             model_card = self._model_card_text
             if self.model_card_data.model_id:
                 # If the original model card was saved without a model_id, we replace the model_id with the new model_id
@@ -1550,7 +1560,7 @@ print(similarities)
         if class_ref.startswith("sentence_transformers."):
             return import_from_string(class_ref)
 
-        if trust_remote_code:
+        if trust_remote_code or os.path.exists(model_name_or_path):
             code_revision = model_kwargs.pop("code_revision", None) if model_kwargs else None
             try:
                 return get_class_from_dynamic_module(

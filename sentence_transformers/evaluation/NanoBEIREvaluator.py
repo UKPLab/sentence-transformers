@@ -377,7 +377,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
         # TODO: Ensure this primary_metric works as expected, also with bolding the right thing in the model card
         agg_results = self.prefix_name_to_metrics(agg_results, self.name)
-        self.store_metrics_in_model_card_data(model, agg_results)
+        self.store_metrics_in_model_card_data(model, agg_results, epoch, steps)
 
         per_dataset_results.update(agg_results)
 
@@ -426,7 +426,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
             dataset_name for dataset_name in self.dataset_names if dataset_name.lower() not in dataset_name_to_id
         ]:
             raise ValueError(
-                f"Dataset(s) {missing_datasets} not found in the NanoBEIR collection."
+                f"Dataset(s) {missing_datasets} not found in the NanoBEIR collection. "
                 f"Valid dataset names are: {list(dataset_name_to_id.keys())}"
             )
 
