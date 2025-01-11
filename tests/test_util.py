@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 import sklearn
 import torch
 
 from sentence_transformers import SentenceTransformer, util
-from sentence_transformers.util import community_detection 
+from sentence_transformers.util import community_detection
 
-import pytest
 
 def test_normalize_embeddings() -> None:
     """Tests the correct computation of util.normalize_embeddings"""
