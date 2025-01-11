@@ -98,6 +98,7 @@ class SentenceTransformerTrainer(Trainer):
         optimizers (`Tuple[:class:`torch.optim.Optimizer`, :class:`torch.optim.lr_scheduler.LambdaLR`]`, *optional*, defaults to `(None, None)`):
             A tuple containing the optimizer and the scheduler to use. Will default to an instance of :class:`torch.optim.AdamW`
             on your model and a scheduler given by :func:`transformers.get_linear_schedule_with_warmup` controlled by `args`.
+        batch_sampler: (:class:`~sentence_transformers.sampler.DefaultBatchSampler`, *optional*): A custom batch sampler to use for training.
 
     Important attributes:
 
@@ -136,6 +137,7 @@ class SentenceTransformerTrainer(Trainer):
         callbacks: list[TrainerCallback] | None = None,
         optimizers: tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
         preprocess_logits_for_metrics: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None = None,
+        batch_sampler: DefaultBatchSampler | None = None,
     ) -> None:
         if not is_training_available():
             raise RuntimeError(
@@ -290,6 +292,9 @@ class SentenceTransformerTrainer(Trainer):
                 eval_dataset, args.prompts, dataset_name="eval"
             )
         self.add_model_card_callback(default_args_dict)
+
+        # internal - use `self.get_batch_sampler` to get the batch sampler
+        self._batch_sampler = batch_sampler
 
     def add_model_card_callback(self, default_args_dict: dict[str, Any]) -> None:
         """
@@ -574,9 +579,13 @@ class SentenceTransformerTrainer(Trainer):
                 the indices.
         """
         if isinstance(dataset, IterableDataset):
-            if self.args.batch_sampler != BatchSamplers.BATCH_SAMPLER:
+            if self.args.batch_sampler != BatchSamplers.BATCH_SAMPLER and self._batch_sampler is not None:
                 logger.warning("When using an IterableDataset, you cannot specify a batch sampler.")
             return None
+
+        # If a batch sampler has been explicitly set, we return that
+        if self._batch_sampler:
+            return self._batch_sampler
 
         if self.args.batch_sampler == BatchSamplers.NO_DUPLICATES:
             return NoDuplicatesBatchSampler(
