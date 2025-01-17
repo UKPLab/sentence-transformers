@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from typing import Optional, Union
 
 from transformers import TrainingArguments as TransformersTrainingArguments
 from transformers.training_args import ParallelMode
@@ -170,11 +171,18 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
             for valid options. Defaults to ``MultiDatasetBatchSamplers.PROPORTIONAL``.
     """
 
-    prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None
-    batch_sampler: BatchSamplers | str = field(
+    prompts: Optional[str] = field(  # noqa: UP007
+        default=None,
+        metadata={
+            "help": "The prompts to use for each column in the datasets. "
+            "Either 1) a single string prompt, 2) a mapping of column names to prompts, 3) a mapping of dataset names "
+            "to prompts, or 4) a mapping of dataset names to a mapping of column names to prompts."
+        },
+    )
+    batch_sampler: Union[BatchSamplers, str] = field(  # noqa: UP007
         default=BatchSamplers.BATCH_SAMPLER, metadata={"help": "The batch sampler to use."}
     )
-    multi_dataset_batch_sampler: MultiDatasetBatchSamplers | str = field(
+    multi_dataset_batch_sampler: Union[MultiDatasetBatchSamplers, str] = field(  # noqa: UP007
         default=MultiDatasetBatchSamplers.PROPORTIONAL, metadata={"help": "The multi-dataset batch sampler to use."}
     )
 
