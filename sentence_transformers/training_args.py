@@ -170,7 +170,14 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
             for valid options. Defaults to ``MultiDatasetBatchSamplers.PROPORTIONAL``.
     """
 
-    prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None
+    prompts: str | None = field(
+        default=None,
+        metadata={
+            "help": "The prompts to use for each column in the datasets. "
+            "Either 1) a single string prompt, 2) a mapping of column names to prompts, 3) a mapping of dataset names "
+            "to prompts, or 4) a mapping of dataset names to a mapping of column names to prompts."
+        },
+    )
     batch_sampler: BatchSamplers | str = field(
         default=BatchSamplers.BATCH_SAMPLER, metadata={"help": "The batch sampler to use."}
     )
