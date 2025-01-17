@@ -151,7 +151,7 @@ class RerankingEvaluator(SentenceEvaluator):
             f"ndcg@{self.at_k}": mean_ndcg,
         }
         metrics = self.prefix_name_to_metrics(metrics, self.name)
-        self.store_metrics_in_model_card_data(model, metrics)
+        self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
 
     def compute_metrices(self, model):

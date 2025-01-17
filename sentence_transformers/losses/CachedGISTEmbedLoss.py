@@ -229,15 +229,16 @@ class CachedGISTEmbedLoss(nn.Module):
 
     def calculate_loss_and_cache_gradients(self, reps: list[list[Tensor]], reps_guided: list[list[Tensor]]) -> Tensor:
         """Generalized function to calculate the cross-entropy loss and cache the gradients wrt. the embeddings."""
-        loss = self.calculate_loss(reps, reps_guided)
-        loss.backward()
+        loss = self.calculate_loss(reps, reps_guided, with_backward=True)
         loss = loss.detach().requires_grad_()
 
         self.cache = [[r.grad for r in rs] for rs in reps]
 
         return loss
 
-    def calculate_loss(self, reps: list[list[Tensor]], reps_guided: list[list[Tensor]]) -> Tensor:
+    def calculate_loss(
+        self, reps: list[list[Tensor]], reps_guided: list[list[Tensor]], with_backward: bool = False
+    ) -> Tensor:
         """Generalized function to calculate the cross-entropy loss without caching gradients."""
         if len(reps) != len(reps_guided):
             raise ValueError("reps and reps_guided must have the same length")
@@ -291,6 +292,9 @@ class CachedGISTEmbedLoss(nn.Module):
             # Normalize the scores and calculate the cross-entropy loss
             scores = scores / self.temperature
             loss_mbatch: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e]) * len(scores) / batch_size
+            if with_backward:
+                loss_mbatch.backward()
+                loss_mbatch = loss_mbatch.detach()
             losses.append(loss_mbatch)
 
         loss = sum(losses)

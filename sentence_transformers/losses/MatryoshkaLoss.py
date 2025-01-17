@@ -4,6 +4,7 @@ import random
 from collections.abc import Iterable
 from typing import Any
 
+import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
@@ -81,7 +82,7 @@ class CachedLossDecorator:
         self.matryoshka_weights = matryoshka_weights
         self.n_dims_per_step = n_dims_per_step
 
-    def __call__(self, reps: list[list[Tensor]], *args) -> Tensor:
+    def __call__(self, reps: list[list[Tensor]], *args, **kwargs) -> Tensor:
         dim_indices = range(len(self.matryoshka_dims))
         if self.n_dims_per_step > 0 and self.n_dims_per_step < len(dim_indices):
             dim_indices = random.sample(dim_indices, self.n_dims_per_step)
@@ -91,9 +92,21 @@ class CachedLossDecorator:
             dim = self.matryoshka_dims[idx]
             weight = self.matryoshka_weights[idx]
 
-            truncated = [[shrink(r, dim) for r in rs] for rs in reps]
-            loss += weight * self.fn(truncated, *args)
-
+            truncated = [[shrink(r, dim) for r in minibatch] for minibatch in reps]
+            compute_gradients = torch.is_grad_enabled()
+            # we need to detach the truncated embeddings,
+            # otherwise the first backward pass of the underlying function will clear the computation graph of the embedding truncation
+            if compute_gradients:
+                matryoshka_reps = [[r.detach().requires_grad_() for r in minibatch] for minibatch in truncated]
+            else:
+                matryoshka_reps = truncated
+            loss += weight * self.fn(matryoshka_reps, *args, **kwargs)
+            # After computing the gradients in minibatches, we need to continue the backward pass through the truncation calculation
+            # the gradients must be multipied with the weights because otherwise the matryoshka weights are not considered in the backward pass
+            if compute_gradients:
+                for t_minibatch, d_minibatch in zip(truncated, matryoshka_reps):
+                    for t, d in zip(t_minibatch, d_minibatch):
+                        t.backward(weight * d.grad)
         return loss
 
 

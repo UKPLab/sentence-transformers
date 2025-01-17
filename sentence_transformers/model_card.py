@@ -32,7 +32,7 @@ from sentence_transformers.training_args import SentenceTransformerTrainingArgum
 from sentence_transformers.util import fullname, is_accelerate_available, is_datasets_available
 
 if is_datasets_available():
-    from datasets import Dataset, DatasetDict, IterableDataset, Value
+    from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, Value
 
 logger = logging.getLogger(__name__)
 
@@ -43,21 +43,9 @@ if TYPE_CHECKING:
 
 
 class ModelCardCallback(TrainerCallback):
-    def __init__(self, trainer: SentenceTransformerTrainer, default_args_dict: dict[str, Any]) -> None:
+    def __init__(self, default_args_dict: dict[str, Any]) -> None:
         super().__init__()
-        self.trainer = trainer
         self.default_args_dict = default_args_dict
-
-        callbacks = [
-            callback
-            for callback in self.trainer.callback_handler.callbacks
-            if isinstance(callback, CodeCarbonCallback)
-        ]
-        if callbacks:
-            trainer.model.model_card_data.code_carbon_callback = callbacks[0]
-
-        trainer.model.model_card_data.trainer = trainer
-        trainer.model.model_card_data.add_tags("generated_from_trainer")
 
     def on_init_end(
         self,
@@ -65,25 +53,35 @@ class ModelCardCallback(TrainerCallback):
         state: TrainerState,
         control: TrainerControl,
         model: SentenceTransformer,
+        trainer: SentenceTransformerTrainer,
         **kwargs,
     ) -> None:
         from sentence_transformers.losses import AdaptiveLayerLoss, Matryoshka2dLoss, MatryoshkaLoss
 
+        model.model_card_data.add_tags("generated_from_trainer")
+
+        # Try to set the code carbon callback if it exists
+        callbacks = [
+            callback for callback in trainer.callback_handler.callbacks if isinstance(callback, CodeCarbonCallback)
+        ]
+        if callbacks:
+            model.model_card_data.code_carbon_callback = callbacks[0]
+
         # Try to infer the dataset "name", "id" and "revision" from the dataset cache files
-        if self.trainer.train_dataset:
+        if trainer.train_dataset:
             model.model_card_data.train_datasets = model.model_card_data.extract_dataset_metadata(
-                self.trainer.train_dataset, model.model_card_data.train_datasets, "train"
+                trainer.train_dataset, model.model_card_data.train_datasets, trainer.loss, "train"
             )
 
-        if self.trainer.eval_dataset:
+        if trainer.eval_dataset:
             model.model_card_data.eval_datasets = model.model_card_data.extract_dataset_metadata(
-                self.trainer.eval_dataset, model.model_card_data.eval_datasets, "eval"
+                trainer.eval_dataset, model.model_card_data.eval_datasets, trainer.loss, "eval"
             )
 
-        if isinstance(self.trainer.loss, dict):
-            losses = list(self.trainer.loss.values())
+        if isinstance(trainer.loss, dict):
+            losses = list(trainer.loss.values())
         else:
-            losses = [self.trainer.loss]
+            losses = [trainer.loss]
         # Some losses are known to use other losses internally, e.g. MatryoshkaLoss, AdaptiveLayerLoss and Matryoshka2dLoss
         # So, verify for `loss` attributes in the losses
         loss_idx = 0
@@ -99,6 +97,10 @@ class ModelCardCallback(TrainerCallback):
 
         model.model_card_data.set_losses(losses)
 
+        # Extract some meaningful examples from the evaluation or training dataset to showcase the performance
+        if not model.model_card_data.widget and (dataset := trainer.eval_dataset or trainer.train_dataset):
+            model.model_card_data.set_widget_examples(dataset)
+
     def on_train_begin(
         self,
         args: SentenceTransformerTrainingArguments,
@@ -107,7 +109,6 @@ class ModelCardCallback(TrainerCallback):
         model: SentenceTransformer,
         **kwargs,
     ) -> None:
-        # model.model_card_data.hyperparameters = extract_hyperparameters_from_trainer(self.trainer)
         ignore_keys = {
             "output_dir",
             "logging_dir",
@@ -304,7 +305,6 @@ class SentenceTransformerModelCardData(CardData):
     code_carbon_callback: CodeCarbonCallback | None = field(default=None, init=False)
     citations: dict[str, str] = field(default_factory=dict, init=False)
     best_model_step: int | None = field(default=None, init=False)
-    trainer: SentenceTransformerTrainer | None = field(default=None, init=False, repr=False)
     datasets: list[str] = field(default_factory=list, init=False, repr=False)
 
     # Utility fields
@@ -335,7 +335,9 @@ class SentenceTransformerModelCardData(CardData):
             )
             self.model_id = None
 
-    def validate_datasets(self, dataset_list, infer_languages: bool = True) -> None:
+    def validate_datasets(
+        self, dataset_list: list[dict[str, Any]], infer_languages: bool = True
+    ) -> list[dict[str, Any]]:
         output_dataset_list = []
         for dataset in dataset_list:
             if "name" not in dataset:
@@ -403,7 +405,7 @@ class SentenceTransformerModelCardData(CardData):
         self.best_model_step = step
 
     def set_widget_examples(self, dataset: Dataset | DatasetDict) -> None:
-        if isinstance(dataset, IterableDataset):
+        if isinstance(dataset, (IterableDataset, IterableDatasetDict)):
             # We can't set widget examples from an IterableDataset without losing data
             return
 
@@ -417,6 +419,10 @@ class SentenceTransformerModelCardData(CardData):
         for dataset_name, num_samples in tqdm(
             dataset_names.items(), desc="Computing widget examples", unit="example", leave=False
         ):
+            if isinstance(dataset[dataset_name], IterableDataset):
+                # We can't set widget examples from an IterableDataset without losing data
+                continue
+
             # Sample 1000 examples from the dataset, sort them by length, and pick the shortest examples as the core
             # examples for the widget
             columns = [
@@ -472,7 +478,9 @@ class SentenceTransformerModelCardData(CardData):
                 )
                 self.predict_example = sentences[:3]
 
-    def set_evaluation_metrics(self, evaluator: SentenceEvaluator, metrics: dict[str, Any]) -> None:
+    def set_evaluation_metrics(
+        self, evaluator: SentenceEvaluator, metrics: dict[str, Any], epoch: int = 0, step: int = 0
+    ) -> None:
         from sentence_transformers.evaluation import SequentialEvaluator
 
         self.eval_results_dict[evaluator] = copy(metrics)
@@ -484,12 +492,6 @@ class SentenceTransformerModelCardData(CardData):
             elif isinstance(primary_metrics, str):
                 primary_metrics = [primary_metrics]
 
-            if self.trainer is None:
-                step = 0
-                epoch = 0
-            else:
-                step = self.trainer.state.global_step
-                epoch = self.trainer.state.epoch
             training_log_metrics = {key: value for key, value in metrics.items() if key in primary_metrics}
 
             if self.training_logs and self.training_logs[-1]["Step"] == step:
@@ -681,8 +683,12 @@ class SentenceTransformerModelCardData(CardData):
         return dataset_info
 
     def extract_dataset_metadata(
-        self, dataset: Dataset | DatasetDict, dataset_metadata, dataset_type: Literal["train", "eval"]
-    ) -> dict[str, Any]:
+        self,
+        dataset: Dataset | DatasetDict,
+        dataset_metadata: list[dict[str, Any]],
+        loss: nn.Module | dict[str, nn.Module],
+        dataset_type: Literal["train", "eval"],
+    ) -> list[dict[str, Any]]:
         if dataset:
             if dataset_metadata and (
                 (isinstance(dataset, DatasetDict) and len(dataset_metadata) != len(dataset))
@@ -702,14 +708,14 @@ class SentenceTransformerModelCardData(CardData):
                     self.compute_dataset_metrics(
                         dataset_value,
                         dataset_info,
-                        self.trainer.loss[dataset_name] if isinstance(self.trainer.loss, dict) else self.trainer.loss,
+                        loss[dataset_name] if isinstance(loss, dict) else loss,
                     )
                     for dataset_name, dataset_value, dataset_info in zip(
                         dataset.keys(), dataset.values(), dataset_metadata
                     )
                 ]
             else:
-                dataset_metadata = [self.compute_dataset_metrics(dataset, dataset_metadata[0], self.trainer.loss)]
+                dataset_metadata = [self.compute_dataset_metrics(dataset, dataset_metadata[0], loss)]
 
         # Try to get the number of training samples
         if dataset_type == "train":
@@ -939,14 +945,6 @@ class SentenceTransformerModelCardData(CardData):
         return results
 
     def to_dict(self) -> dict[str, Any]:
-        # Extract some meaningful examples from the evaluation or training dataset to showcase the performance
-        if (
-            not self.widget
-            and self.trainer is not None
-            and (dataset := self.trainer.eval_dataset or self.trainer.train_dataset)
-        ):
-            self.set_widget_examples(dataset)
-
         # Try to set the base model
         if self.first_save and not self.base_model:
             try:
