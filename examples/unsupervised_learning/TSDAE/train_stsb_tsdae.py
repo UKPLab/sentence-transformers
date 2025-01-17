@@ -1,19 +1,19 @@
-import csv
-import gzip
 import logging
-import os
+import random
+import traceback
 from datetime import datetime
 
-from torch.utils.data import DataLoader
+from datasets import load_dataset
 
-from sentence_transformers import InputExample, LoggingHandler, SentenceTransformer, datasets, losses, models, util
+from sentence_transformers import SentenceTransformer, models
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+from sentence_transformers.losses import DenoisingAutoEncoderLoss
+from sentence_transformers.similarity_functions import SimilarityFunction
+from sentence_transformers.trainer import SentenceTransformerTrainer
+from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 
-#### Just some code to print debug information to stdout
-logging.basicConfig(
-    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
-)
-#### /print debug information to stdout
+# Set the log level to INFO to get more information
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 # Training parameters
 model_name = "bert-base-uncased"
@@ -21,90 +21,131 @@ train_batch_size = 8
 num_epochs = 1
 max_seq_length = 75
 
-# Save path to store our model
-model_save_path = "output/training_stsb_tsdae-{}-{}-{}".format(
-    model_name, train_batch_size, datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-)
+output_dir = f"output/training_stsb_tsdae-{model_name.replace('/', '-')}-{train_batch_size}-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
 
-# Check if dataset exists. If not, download and extract  it
-sts_dataset_path = "data/stsbenchmark.tsv.gz"
-
-if not os.path.exists(sts_dataset_path):
-    util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
-
-# Defining our sentence transformer model
+# 1. Defining our sentence transformer model
 word_embedding_model = models.Transformer(model_name, max_seq_length=max_seq_length)
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), "cls")
 model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+# or to load a pre-trained SentenceTransformer model OR use mean pooling
+# model = SentenceTransformer(model_name)
+# model.max_seq_length = max_seq_length
+
+# 2. We use 1 Million sentences from Wikipedia to train our model:
+# https://huggingface.co/datasets/princeton-nlp/datasets-for-simcse
+dataset = load_dataset("princeton-nlp/datasets-for-simcse", split="train")
 
 
-# We use 1 Million sentences from Wikipedia to train our model
-wikipedia_dataset_path = "data/wiki1m_for_simcse.txt"
-if not os.path.exists(wikipedia_dataset_path):
-    util.http_get(
-        "https://huggingface.co/datasets/princeton-nlp/datasets-for-simcse/resolve/main/wiki1m_for_simcse.txt",
-        wikipedia_dataset_path,
-    )
+def noise_fn(text, del_ratio=0.6):
+    from nltk import word_tokenize
+    from nltk.tokenize.treebank import TreebankWordDetokenizer
 
-# train_samples is a list of InputExample objects where we pass the same sentence twice to texts, i.e. texts=[sent, sent]
-train_sentences = []
-with open(wikipedia_dataset_path, encoding="utf8") as fIn:
-    for line in fIn:
-        line = line.strip()
-        if len(line) >= 10:
-            train_sentences.append(line)
+    words = word_tokenize(text)
+    n = len(words)
+    if n == 0:
+        return text
 
-# Read STSbenchmark dataset and use it as development set
-logging.info("Read STSbenchmark dev dataset")
-dev_samples = []
-test_samples = []
-with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        score = float(row["score"]) / 5.0  # Normalize score to range 0 ... 1
+    kept_words = [word for word in words if random.random() < del_ratio]
+    # Guarantee that at least one word remains
+    if len(kept_words) == 0:
+        return {"noisy": random.choice(words)}
 
-        if row["split"] == "dev":
-            dev_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
-        elif row["split"] == "test":
-            test_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
+    noisy_text = TreebankWordDetokenizer().detokenize(kept_words)
+    return {"noisy": noisy_text}
 
-dev_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
-    dev_samples, batch_size=train_batch_size, name="sts-dev"
+
+# TSDAE requires a dataset with 2 columns: a text column and a noisified text column
+# Here we are using a function to delete some words, but you can use any other method to noisify your text
+dataset = dataset.map(noise_fn, input_columns="text")
+dataset = dataset.train_test_split(test_size=10000)
+train_dataset = dataset["train"]
+eval_dataset = dataset["test"]
+print(train_dataset)
+print(train_dataset[0])
+"""
+Dataset({
+    features: ['text', 'noisy'],
+    num_rows: 990000
+})
+{
+    'text': 'Oseltamivir is considered to be the primary antiviral drug used to combat avian influenza, commonly known as the bird flu.',
+    'noisy': 'to be the primary antiviral drug used combat influenza commonly as the bird flu.',
+}
+"""
+
+# 3. Define our training loss: https://sbert.net/docs/package_reference/sentence_transformer/losses.html#denoisingautoencoderLoss
+# Note that this will likely result in warnings as we're loading 'model_name' as a decoder, but it likely won't
+# have weights for that yet. This is fine, as we'll be training it from scratch.
+train_loss = DenoisingAutoEncoderLoss(model, decoder_name_or_path=model_name, tie_encoder_decoder=True)
+
+# 4. Define an evaluator for use during training. This is useful to keep track of alongside the evaluation loss.
+stsb_eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
+dev_evaluator = EmbeddingSimilarityEvaluator(
+    sentences1=stsb_eval_dataset["sentence1"],
+    sentences2=stsb_eval_dataset["sentence2"],
+    scores=stsb_eval_dataset["score"],
+    main_similarity=SimilarityFunction.COSINE,
+    name="sts-dev",
 )
-test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
-    test_samples, batch_size=train_batch_size, name="sts-test"
-)
-
-# We train our model using the MultipleNegativesRankingLoss
-train_dataset = datasets.DenoisingAutoEncoderDataset(train_sentences)
-train_dataloader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=True, drop_last=True)
-train_loss = losses.DenoisingAutoEncoderLoss(model, decoder_name_or_path=model_name, tie_encoder_decoder=True)
-
-
-evaluation_steps = 1000
-logging.info(f"Training sentences: {len(train_sentences)}")
-logging.info("Performance before training")
+logging.info("Evaluation before training:")
 dev_evaluator(model)
 
-# Train the model
-model.fit(
-    train_objectives=[(train_dataloader, train_loss)],
-    evaluator=dev_evaluator,
-    epochs=num_epochs,
-    evaluation_steps=evaluation_steps,
-    output_path=model_save_path,
-    weight_decay=0,
-    warmup_steps=100,
-    optimizer_params={"lr": 3e-5},
-    use_amp=True,  # Set to True, if your GPU supports FP16 cores
+# 5. Define the training arguments
+args = SentenceTransformerTrainingArguments(
+    # Required parameter:
+    output_dir=output_dir,
+    # Optional training parameters:
+    learning_rate=3e-5,
+    num_train_epochs=1,
+    per_device_train_batch_size=train_batch_size,
+    per_device_eval_batch_size=train_batch_size,
+    warmup_ratio=0.1,
+    fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
+    bf16=False,  # Set to True if you have a GPU that supports BF16
+    # Optional tracking/debugging parameters:
+    eval_strategy="steps",
+    eval_steps=10000,
+    save_strategy="steps",
+    save_steps=10000,
+    save_total_limit=2,
+    logging_steps=1000,
+    run_name="tsdae",  # Will be used in W&B if `wandb` is installed
 )
 
-##############################################################################
-#
-# Load the stored model and evaluate its performance on STS benchmark dataset
-#
-##############################################################################
+# 6. Create the trainer & start training
+trainer = SentenceTransformerTrainer(
+    model=model,
+    args=args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    loss=train_loss,
+    evaluator=dev_evaluator,
+)
+trainer.train()
 
+# 7. Evaluate the model performance on the STS Benchmark test dataset
+test_dataset = load_dataset("sentence-transformers/stsb", split="test")
+test_evaluator = EmbeddingSimilarityEvaluator(
+    sentences1=test_dataset["sentence1"],
+    sentences2=test_dataset["sentence2"],
+    scores=test_dataset["score"],
+    main_similarity=SimilarityFunction.COSINE,
+    name="sts-test",
+)
+test_evaluator(model)
 
-model = SentenceTransformer(model_save_path)
-test_evaluator(model, output_path=model_save_path)
+# 8. Save the trained & evaluated model locally
+final_output_dir = f"{output_dir}/final"
+model.save(final_output_dir)
+
+# 9. (Optional) save the model to the Hugging Face Hub!
+# It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+try:
+    model.push_to_hub(f"{model_name}-tsdae")
+except Exception:
+    logging.error(
+        f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
+        f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({final_output_dir!r})` "
+        f"and saving it using `model.push_to_hub('{model_name}-tsdae')`."
+    )
