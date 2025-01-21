@@ -2,41 +2,99 @@ from __future__ import annotations
 
 import pytest
 import torch
+from datasets import Dataset
+from torch import nn
 
-from sentence_transformers import InputExample, SentenceTransformer
-from sentence_transformers.losses import ContrastiveLoss
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.losses import (
+    CachedGISTEmbedLoss,
+    CachedMultipleNegativesRankingLoss,
+    GISTEmbedLoss,
+    MultipleNegativesRankingLoss,
+    TripletLoss,
+)
+from sentence_transformers.util import batch_to_device
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+
+@pytest.fixture(scope="module")
+def guide_model():
+    return SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
 
 
-example_pairs = [
-    InputExample(texts=['This is a positive example', 'This is a similar positive example'], label=1.0),
-    InputExample(texts=['This is a positive example', 'This is a negative example'], label=0.0),
-]
+def get_anchor_positive_negative_triplet():
+    return {
+        "losses": [
+            (MultipleNegativesRankingLoss, {}),
+            (CachedMultipleNegativesRankingLoss, {}),
+            (TripletLoss, {}),
+            (CachedGISTEmbedLoss, {"guide": "GUIDE_MODEL_PLACEHOLDER"}),
+            (GISTEmbedLoss, {"guide": "GUIDE_MODEL_PLACEHOLDER"}),
+        ],
+        "correct": Dataset.from_dict(
+            {
+                "anchor": ["It's very sunny outside", "I love playing soccer", "I am a student"],
+                "positive": ["The sun is out today", "I like playing soccer", "I am studying at university"],
+                "negative": ["Data science is fun", "Cacti are beautiful", "Speakers are loud"],
+            }
+        ),
+        "incorrect": Dataset.from_dict(
+            {
+                "anchor": ["It's very sunny outside", "I love playing soccer", "I am a student"],
+                "positive": ["Data science is fun", "Cacti are beautiful", "Speakers are loud"],
+                "negative": ["The sun is out today", "I like playing soccer", "I am studying at university"],
+            }
+        ),
+    }
 
 
-loss_test_cases = [
-    (ContrastiveLoss, {"model": model}, example_pairs, 0.03),
-]
+def get_loss_test_cases():
+    anchor_positive_negative_triplet = get_anchor_positive_negative_triplet()
+    return [
+        (
+            loss_class,
+            loss_args,
+            anchor_positive_negative_triplet["correct"],
+            anchor_positive_negative_triplet["incorrect"],
+        )
+        for loss_class, loss_args in anchor_positive_negative_triplet["losses"]
+    ]
 
-@pytest.mark.parametrize("loss_class, loss_args, examples, expected_loss", loss_test_cases)
-def test_loss_function(loss_class, loss_args, examples, expected_loss):
-    loss_fn = loss_class(**loss_args)
 
-    device = next(model.parameters()).device
+def prepare_features_labels_from_dataset(model: SentenceTransformer, dataset: Dataset):
+    device = model.device
+    features = [
+        batch_to_device(model.tokenize(dataset[column]), device)
+        for column in dataset.column_names
+        if column not in ["label", "score"]
+    ]
+    labels = None
+    if "label" in dataset.column_names:
+        labels = torch.tensor(dataset["label"]).to(device)
+    elif "score" in dataset.column_names:
+        labels = torch.tensor(dataset["score"]).to(device)
+    return features, labels
 
-    features_1 = model.tokenize([example.texts[0] for example in examples])
-    features_2 = model.tokenize([example.texts[1] for example in examples])
 
-    features_1 = {k: v.to(device) for k, v in features_1.items()}
-    features_2 = {k: v.to(device) for k, v in features_2.items()}
+def get_and_assert_loss_from_dataset(model: SentenceTransformer, loss_fn: nn.Module, dataset: Dataset):
+    features, labels = prepare_features_labels_from_dataset(model, dataset)
+    loss = loss_fn.forward(features, labels)
+    assert isinstance(loss, torch.Tensor), f"Loss should be a torch.Tensor, but got {type(loss)}"
+    assert loss.item() > 0, "Loss should be positive"
+    assert loss.shape == (), "Loss should be a scalar"
+    assert loss.requires_grad, "Loss should require gradients"
+    return loss
 
-    labels = torch.tensor([example.label for example in examples]).to(device)
 
-    loss_value = loss_fn.forward([features_1, features_2], labels)
+@pytest.mark.parametrize("loss_class, loss_args, correct, incorrect", get_loss_test_cases())
+def test_loss_function(
+    stsb_bert_tiny_model_reused: SentenceTransformer, guide_model, loss_class, loss_args, correct, incorrect
+):
+    if "guide" in loss_args and loss_args["guide"] == "GUIDE_MODEL_PLACEHOLDER":
+        loss_args["guide"] = guide_model
 
-    assert isinstance(loss_value, torch.Tensor)
-    assert loss_value.item() >= 0
+    model = stsb_bert_tiny_model_reused
+    loss_fn = loss_class(model, **loss_args)
+    correct_loss = get_and_assert_loss_from_dataset(model, loss_fn, correct)
+    incorrect_loss = get_and_assert_loss_from_dataset(model, loss_fn, incorrect)
 
-    if expected_loss is not None:
-        assert abs(loss_value.item() - expected_loss) <= 1e-1
+    assert correct_loss < incorrect_loss, "Loss should be lower for correct data than for incorrect data"
