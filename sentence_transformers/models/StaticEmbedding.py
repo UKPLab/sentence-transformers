@@ -127,7 +127,11 @@ class StaticEmbedding(nn.Module):
             weights = torch.load(
                 os.path.join(load_dir, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
             )
-        weights = weights["embedding.weight"]
+        try:
+            weights = weights["embedding.weight"]
+        except KeyError:
+            # For compatibility with model2vec models, which are saved with just an "embeddings" key
+            weights = weights["embeddings"]
         return StaticEmbedding(tokenizer, embedding_weights=weights)
 
     @classmethod
