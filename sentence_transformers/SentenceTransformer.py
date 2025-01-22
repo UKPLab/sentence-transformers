@@ -671,9 +671,9 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         elif convert_to_numpy:
             if not isinstance(all_embeddings, np.ndarray):
                 if all_embeddings and all_embeddings[0].dtype == torch.bfloat16:
-                    all_embeddings = np.asarray([emb.float().numpy() for emb in all_embeddings])
+                    all_embeddings = np.asarray([emb.float().cpu().numpy() for emb in all_embeddings])
                 else:
-                    all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
+                    all_embeddings = np.asarray([emb.cpu().numpy() for emb in all_embeddings])
         elif isinstance(all_embeddings, np.ndarray):
             all_embeddings = [torch.from_numpy(embedding) for embedding in all_embeddings]
 
