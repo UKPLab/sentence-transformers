@@ -438,6 +438,8 @@ class SentenceTransformerTrainer(Trainer):
                 prefix = column[: -len("input_ids")]
             elif column.endswith("_sentence_embedding"):
                 prefix = column[: -len("sentence_embedding")]
+            elif column.endswith("_omics_embedding"):
+                prefix = column[: -len("omics_embedding")]
             elif column.endswith("_pixel_values"):
                 prefix = column[: -len("pixel_values")]
             else:
