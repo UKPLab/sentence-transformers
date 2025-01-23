@@ -79,7 +79,8 @@ class Matryoshka2dLoss(AdaptiveLayerLoss):
             - `Adaptive Layers <../../examples/training/adaptive_layer/README.html>`_
 
         Requirements:
-            1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`.
+            1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`,
+               :class:`CachedMultipleNegativesSymmetricRankingLoss`, or :class:`CachedGISTEmbedLoss`.
 
         Inputs:
             +---------------------------------------+--------+
