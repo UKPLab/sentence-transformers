@@ -12,6 +12,9 @@ from torch.nn import functional as F
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.losses.CachedGISTEmbedLoss import CachedGISTEmbedLoss
 from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
+from sentence_transformers.losses.CachedMultipleNegativesSymmetricRankingLoss import (
+    CachedMultipleNegativesSymmetricRankingLoss,
+)
 from sentence_transformers.models import Transformer
 
 
@@ -149,7 +152,8 @@ class AdaptiveLayerLoss(nn.Module):
             - `Adaptive Layers <../../examples/training/adaptive_layer/README.html>`_
 
         Requirements:
-            1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss` or :class:`CachedGISTEmbedLoss`.
+            1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`,
+               :class:`CachedMultipleNegativesSymmetricRankingLoss`, or :class:`CachedGISTEmbedLoss`.
 
         Inputs:
             +---------------------------------------+--------+
@@ -192,10 +196,11 @@ class AdaptiveLayerLoss(nn.Module):
         self.kl_div_weight = kl_div_weight
         self.kl_temperature = kl_temperature
         assert isinstance(self.model[0], Transformer)
-        if isinstance(loss, CachedMultipleNegativesRankingLoss):
-            warnings.warn("MatryoshkaLoss is not compatible with CachedMultipleNegativesRankingLoss.", stacklevel=2)
-        if isinstance(loss, CachedGISTEmbedLoss):
-            warnings.warn("MatryoshkaLoss is not compatible with CachedGISTEmbedLoss.", stacklevel=2)
+        if isinstance(
+            loss,
+            (CachedMultipleNegativesRankingLoss, CachedMultipleNegativesSymmetricRankingLoss, CachedGISTEmbedLoss),
+        ):
+            warnings.warn(f"MatryoshkaLoss is not compatible with {loss.__class__.__name__}.", stacklevel=2)
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Decorate the forward function of the transformer to cache the embeddings of all layers
