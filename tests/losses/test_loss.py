@@ -11,6 +11,7 @@ from sentence_transformers.losses import (
     CachedMultipleNegativesRankingLoss,
     CachedMultipleNegativesSymmetricRankingLoss,
     GISTEmbedLoss,
+    MegaBatchMarginLoss,
     MultipleNegativesRankingLoss,
     SoftmaxLoss,
     TripletLoss,
@@ -38,6 +39,24 @@ def get_anchor_positive_negative_triplet():
             (CachedGISTEmbedLoss, {"guide": "GUIDE_MODEL_PLACEHOLDER"}),
             (GISTEmbedLoss, {"guide": "GUIDE_MODEL_PLACEHOLDER"}),
             (SoftmaxLoss, {"num_labels": 3}),
+            (
+                MegaBatchMarginLoss,
+                {
+                    "positive_margin": 0.8,
+                    "negative_margin": 0.3,
+                    "use_mini_batched_version": True,
+                    "mini_batch_size": 2,
+                },
+            ),
+            (
+                MegaBatchMarginLoss,
+                {
+                    "positive_margin": 0.8,
+                    "negative_margin": 0.3,
+                    "use_mini_batched_version": False,
+                    "mini_batch_size": 2,
+                },
+            ),
         ],
         "correct": Dataset.from_dict(
             {
@@ -96,7 +115,7 @@ def get_loss_test_cases():
     return test_cases
 
 
-def prepare_features_labels_from_dataset(model: SentenceTransformer, dataset: Dataset):
+def prepare_features_labels_from_dataset(model: SentenceTransformer, loss_fn: nn.Module, dataset: Dataset):
     device = model.device
     if "sentence1" in dataset.column_names and "sentence2" in dataset.column_names:
         # Handle SoftmaxLoss case
@@ -104,11 +123,11 @@ def prepare_features_labels_from_dataset(model: SentenceTransformer, dataset: Da
         labels = torch.tensor(dataset["label"]).to(device)
     else:
         # Handle other losses
-        features = [
-            batch_to_device(model.tokenize(dataset[column]), device)
-            for column in dataset.column_names
-            if column not in ["label", "score"]
-        ]
+        columns = [col for col in dataset.column_names if col not in ["label", "score"]]
+        if isinstance(loss_fn, MegaBatchMarginLoss):
+            # For MegaBatchMarginLoss, only use anchor and positive
+            columns = ["anchor", "positive"]
+        features = [batch_to_device(model.tokenize(dataset[column]), device) for column in columns]
         labels = None
         if "label" in dataset.column_names:
             labels = torch.tensor(dataset["label"]).to(device)
@@ -118,7 +137,8 @@ def prepare_features_labels_from_dataset(model: SentenceTransformer, dataset: Da
 
 
 def get_and_assert_loss_from_dataset(model: SentenceTransformer, loss_fn: nn.Module, dataset: Dataset):
-    features, labels = prepare_features_labels_from_dataset(model, dataset)
+    features, labels = prepare_features_labels_from_dataset(model, loss_fn, dataset)
+
     loss = loss_fn.forward(features, labels)
     assert isinstance(loss, torch.Tensor), f"Loss should be a torch.Tensor, but got {type(loss)}"
     assert loss.item() > 0, "Loss should be positive"
