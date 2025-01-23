@@ -120,6 +120,7 @@ class Transformer(nn.Module):
         if (
             find_adapter_config_file(
                 model_name_or_path,
+                cache_dir=cache_dir,
                 token=config_args.get("token"),
                 revision=config_args.get("revision"),
                 local_files_only=config_args.get("local_files_only", False),
