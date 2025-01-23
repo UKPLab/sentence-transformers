@@ -65,6 +65,7 @@ intersphinx_mapping = {
     "transformers": ("https://huggingface.co/docs/transformers/main/en/", None),
     "huggingface_hub": ("https://huggingface.co/docs/huggingface_hub/main/en/", None),
     "optimum": ("https://huggingface.co/docs/optimum/main/en/", None),
+    "peft": ("https://huggingface.co/docs/peft/main/en/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
 }
 

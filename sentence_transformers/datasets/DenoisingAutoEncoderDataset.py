@@ -1,3 +1,14 @@
+"""
+This file contains deprecated code that can only be used with the old `model.fit`-style Sentence Transformers v2.X training.
+It exists for backwards compatibility with the `model.old_fit` method, but will be removed in a future version.
+
+Nowadays, with Sentence Transformers v3+, it is recommended to use the `SentenceTransformerTrainer` class to train models.
+See https://www.sbert.net/docs/sentence_transformer/training_overview.html for more information.
+
+See this script for more details on how to use the new training API:
+https://github.com/UKPLab/sentence-transformers/blob/master/examples/unsupervised_learning/TSDAE/train_stsb_tsdae.py
+"""
+
 from __future__ import annotations
 
 import numpy as np

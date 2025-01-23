@@ -42,7 +42,7 @@ class StaticEmbedding(nn.Module):
             from tokenizers import Tokenizer
 
             # Pre-distilled embeddings:
-            static_embedding = StaticEmbedding.from_model2vec("minishlab/M2V_base_output")
+            static_embedding = StaticEmbedding.from_model2vec("minishlab/potion-base-8M")
             # or distill your own embeddings:
             static_embedding = StaticEmbedding.from_distillation("BAAI/bge-base-en-v1.5", device="cuda")
             # or start with randomized embeddings:
@@ -51,9 +51,11 @@ class StaticEmbedding(nn.Module):
 
             model = SentenceTransformer(modules=[static_embedding])
 
-            embeddings = model.encode(["What are Pandas?", "The giant panda (Ailuropoda melanoleuca; Chinese: 大熊猫; pinyin: dàxióngmāo), also known as the panda bear or simply the panda, is a bear native to south central China."])
+            embeddings = model.encode(["What are Pandas?", "The giant panda, also known as the panda bear or simply the panda, is a bear native to south central China."])
             similarity = model.similarity(embeddings[0], embeddings[1])
-            # tensor([[0.9177]]) (If you use the distilled bge-base)
+            # tensor([[0.8093]]) (If you use potion-base-8M)
+            # tensor([[0.6234]]) (If you use the distillation method)
+            # tensor([[-0.0693]]) (For example, if you use randomized embeddings)
 
         Raises:
             ValueError: If the tokenizer is not a fast tokenizer.
