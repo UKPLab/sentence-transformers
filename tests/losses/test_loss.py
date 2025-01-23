@@ -22,6 +22,11 @@ def guide_model():
     return SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
 
 
+@pytest.fixture(scope="module")
+def model():
+    return SentenceTransformer("sentence-transformers-testing/all-nli-bert-tiny-dense")
+
+
 def get_anchor_positive_negative_triplet():
     return {
         "losses": [
@@ -121,13 +126,10 @@ def get_and_assert_loss_from_dataset(model: SentenceTransformer, loss_fn: nn.Mod
 
 
 @pytest.mark.parametrize("loss_class, loss_args, correct, incorrect", get_loss_test_cases())
-def test_loss_function(
-    stsb_bert_tiny_model_reused: SentenceTransformer, guide_model, loss_class, loss_args, correct, incorrect
-):
+def test_loss_function(model, guide_model, loss_class, loss_args, correct, incorrect):
     if "guide" in loss_args and loss_args["guide"] == "GUIDE_MODEL_PLACEHOLDER":
         loss_args["guide"] = guide_model
 
-    model = stsb_bert_tiny_model_reused
     if loss_class == SoftmaxLoss:
         loss_args["sentence_embedding_dimension"] = model.get_sentence_embedding_dimension()
     loss_fn = loss_class(model, **loss_args)
