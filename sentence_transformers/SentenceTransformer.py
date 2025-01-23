@@ -539,12 +539,6 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         if convert_to_tensor:
             convert_to_numpy = False
 
-        # NOTE: Results in issue #3185, where the output is always a torch.Tensor,
-        # even when output_value is set to "token_embeddings"
-        # if output_value != "sentence_embedding":
-        #     convert_to_tensor = False
-        #     convert_to_numpy = False
-
         input_was_string = False
         if isinstance(sentences, str) or not hasattr(
             sentences, "__len__"
