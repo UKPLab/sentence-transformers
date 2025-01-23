@@ -9,6 +9,7 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.losses import (
     CachedGISTEmbedLoss,
     CachedMultipleNegativesRankingLoss,
+    CachedMultipleNegativesSymmetricRankingLoss,
     GISTEmbedLoss,
     MultipleNegativesRankingLoss,
     SoftmaxLoss,
@@ -32,6 +33,7 @@ def get_anchor_positive_negative_triplet():
         "losses": [
             (MultipleNegativesRankingLoss, {}),
             (CachedMultipleNegativesRankingLoss, {}),
+            (CachedMultipleNegativesSymmetricRankingLoss, {}),
             (TripletLoss, {}),
             (CachedGISTEmbedLoss, {"guide": "GUIDE_MODEL_PLACEHOLDER"}),
             (GISTEmbedLoss, {"guide": "GUIDE_MODEL_PLACEHOLDER"}),
