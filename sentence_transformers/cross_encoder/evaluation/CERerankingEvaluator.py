@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import logging
 import os
+from typing import Literal
 
 import numpy as np
 from sklearn.metrics import ndcg_score
@@ -21,9 +22,22 @@ class CERerankingEvaluator:
         samples (List[Dict, str, Union[str, List[str]]): Must be a list and each element is of the form:
             {'query': '', 'positive': [], 'negative': []}. Query is the search query, positive is a list
             of positive (relevant) documents, negative is a list of negative (irrelevant) documents.
+        at_k (int): The evaluation is done at k. Default is 10.
+        name (str): Name of the dataset. Used for logging and saving the results to a CSV file.
+        write_csv (bool): Whether to write the results to a CSV file. Default is True.
+        mrr_at_k (int): Deprecated. Use `at_k` instead.
+        return_metric (str): Either 'mrr' or 'ndcg'. Determines which metric is returned by the __call__ method.
     """
 
-    def __init__(self, samples, at_k: int = 10, name: str = "", write_csv: bool = True, mrr_at_k: int | None = None):
+    def __init__(
+        self,
+        samples,
+        at_k: int = 10,
+        name: str = "",
+        write_csv: bool = True,
+        mrr_at_k: int | None = None,
+        return_metric: Literal["mrr", "ndcg"] = "mrr",
+    ):
         self.samples = samples
         self.name = name
         if mrr_at_k is not None:
@@ -43,6 +57,7 @@ class CERerankingEvaluator:
             f"NDCG@{self.at_k}",
         ]
         self.write_csv = write_csv
+        self.return_metric = return_metric
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
@@ -106,4 +121,7 @@ class CERerankingEvaluator:
 
                 writer.writerow([epoch, steps, mean_mrr, mean_ndcg])
 
-        return mean_mrr
+        if self.return_metric == "mrr":
+            return mean_mrr
+        else:
+            return mean_ndcg
