@@ -526,6 +526,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 print(embeddings.shape)
                 # (3, 768)
         """
+        kwargs["normalize_embeddings"] = normalize_embeddings
         if self.device.type == "hpu" and not self.is_hpu_graph_enabled:
             import habana_frameworks.torch as ht
 
