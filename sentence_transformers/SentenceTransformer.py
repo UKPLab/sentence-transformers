@@ -685,6 +685,8 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             return super().forward(input)
 
         for module_name, module in self.named_children():
+            if not kwargs.get("normalize_embeddings", False) and isinstance(module, Normalize):
+                return input
             module_kwarg_keys = self.module_kwargs.get(module_name, [])
             module_kwargs = {key: value for key, value in kwargs.items() if key in module_kwarg_keys}
             input = module(input, **module_kwargs)
