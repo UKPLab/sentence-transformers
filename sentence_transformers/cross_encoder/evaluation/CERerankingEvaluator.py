@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import logging
 import os
-from typing import Literal
 
 import numpy as np
 from sklearn.metrics import ndcg_score
@@ -26,7 +25,6 @@ class CERerankingEvaluator:
         name (str): Name of the dataset. Used for logging and saving the results to a CSV file.
         write_csv (bool): Whether to write the results to a CSV file. Default is True.
         mrr_at_k (int): Deprecated. Use `at_k` instead.
-        return_metric (str): Either 'mrr' or 'ndcg'. Determines which metric is returned by the __call__ method.
     """
 
     def __init__(
@@ -36,7 +34,6 @@ class CERerankingEvaluator:
         name: str = "",
         write_csv: bool = True,
         mrr_at_k: int | None = None,
-        return_metric: Literal["mrr", "ndcg"] = "mrr",
     ):
         self.samples = samples
         self.name = name
@@ -57,7 +54,6 @@ class CERerankingEvaluator:
             f"NDCG@{self.at_k}",
         ]
         self.write_csv = write_csv
-        self.return_metric = return_metric
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
@@ -121,7 +117,4 @@ class CERerankingEvaluator:
 
                 writer.writerow([epoch, steps, mean_mrr, mean_ndcg])
 
-        if self.return_metric == "mrr":
-            return mean_mrr
-        else:
-            return mean_ndcg
+        return mean_mrr
