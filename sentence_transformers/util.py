@@ -1399,7 +1399,7 @@ def load_dir_path(
     download_kwargs = {
         "repo_id": model_name_or_path,
         "revision": revision,
-        "allow_patterns": f"{directory}/**",
+        "allow_patterns": f"{directory}/**" if directory not in ["", "."] else None,
         "library_name": "sentence-transformers",
         "token": token,
         "cache_dir": cache_folder,

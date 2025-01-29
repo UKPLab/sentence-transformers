@@ -19,7 +19,7 @@ class StaticEmbedding(nn.Module):
     def __init__(
         self,
         tokenizer: Tokenizer | PreTrainedTokenizerFast,
-        embedding_weights: np.array | torch.Tensor | None = None,
+        embedding_weights: np.ndarray | torch.Tensor | None = None,
         embedding_dim: int | None = None,
         **kwargs,
     ) -> None:
@@ -30,7 +30,7 @@ class StaticEmbedding(nn.Module):
         Args:
             tokenizer (Tokenizer | PreTrainedTokenizerFast): The tokenizer to be used. Must be a fast tokenizer
                 from ``transformers`` or ``tokenizers``.
-            embedding_weights (np.array | torch.Tensor | None, optional): Pre-trained embedding weights.
+            embedding_weights (np.ndarray | torch.Tensor | None, optional): Pre-trained embedding weights.
                 Defaults to None.
             embedding_dim (int | None, optional): Dimension of the embeddings. Required if embedding_weights
                 is not provided. Defaults to None.
@@ -127,7 +127,11 @@ class StaticEmbedding(nn.Module):
             weights = torch.load(
                 os.path.join(load_dir, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
             )
-        weights = weights["embedding.weight"]
+        try:
+            weights = weights["embedding.weight"]
+        except KeyError:
+            # For compatibility with model2vec models, which are saved with just an "embeddings" key
+            weights = weights["embeddings"]
         return StaticEmbedding(tokenizer, embedding_weights=weights)
 
     @classmethod
