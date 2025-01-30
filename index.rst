@@ -1,10 +1,10 @@
-.. note::
+.. tip::
 
-   Sentence Transformers v3.2 recently released, introducing the ONNX and OpenVINO backends for Sentence Transformer models. Read `SentenceTransformer > Usage > Speeding up Inference <docs/sentence_transformer/usage/efficiency.html>`_ to learn more about the new backends and what they can mean for your inference speed.
+   You can now use ONNX and OpenVINO backends for Sentence Transformer models. Read `SentenceTransformer > Usage > Speeding up Inference <docs/sentence_transformer/usage/efficiency.html>`_ to learn more about the new backends and what they can mean for your inference speed.
 
-.. note::
+.. tip::
 
-   Sentence Transformers v3.3 just released, introducing training with Prompts. Read `SentenceTransformer > Training Examples > Training with Prompts <examples/training/prompts/README.html>`_ to learn more about how you can use them to train stronger models.
+   Sentence Transformers v3.4 just released, introducing documentation for training with PEFT. Read `SentenceTransformer > Training Examples > Training with PEFT Adapters <examples/training/peft/README.html>`_ to learn more about how you can use train embedding models without finetuning all model parameters.
 
 SentenceTransformers Documentation
 ==================================

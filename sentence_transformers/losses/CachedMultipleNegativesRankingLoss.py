@@ -137,7 +137,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
                     "anchor": ["It's nice weather outside today.", "He drove to work."],
                     "positive": ["It's so sunny.", "He took the car to the office."],
                 })
-                loss = losses.CachedGISTEmbedLoss(model, mini_batch_size=64)
+                loss = losses.CachedMultipleNegativesRankingLoss(model, mini_batch_size=64)
 
                 trainer = SentenceTransformerTrainer(
                     model=model,
