@@ -218,6 +218,7 @@ class MatryoshkaLoss(nn.Module):
             dim_indices = range(len(self.matryoshka_dims))
             if self.n_dims_per_step > 0 and self.n_dims_per_step < len(dim_indices):
                 dim_indices = random.sample(dim_indices, self.n_dims_per_step)
+                dim_indices.sort()
 
             loss = 0.0
             for idx in dim_indices:
