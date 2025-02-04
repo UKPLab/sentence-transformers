@@ -1,12 +1,13 @@
 # Pretrained Models
 
+```{eval-rst}
 We provide various pre-trained Sentence Transformers models via our Sentence Transformers Hugging Face organization. Additionally, over 6,000 community Sentence Transformers models have been publicly released on the Hugging Face Hub. All models can be found here:
-* **Original models**: [Sentence Transformers Hugging Face organization](https://huggingface.co/models?library=sentence-transformers&author=sentence-transformers).
-* **Community models**: [All Sentence Transformer models on Hugging Face](https://huggingface.co/models?library=sentence-transformers).
+
+* **Original models**: `Sentence Transformers Hugging Face organization <https://huggingface.co/models?library=sentence-transformers&author=sentence-transformers>`_.
+* **Community models**: `All Sentence Transformer models on Hugging Face <https://huggingface.co/models?library=sentence-transformers>`_.
 
 Each of these models can be easily downloaded and used like so:
 
-```{eval-rst}
 .. sidebar:: Original Models
 
     For the original models from the `Sentence Transformers Hugging Face organization <https://huggingface.co/models?library=sentence-transformers&author=sentence-transformers>`_, it is not necessary to include the model author or organization prefix. For example, this snippet loads `sentence-transformers/all-mpnet-base-v2 <https://huggingface.co/sentence-transformers/all-mpnet-base-v2>`_.
