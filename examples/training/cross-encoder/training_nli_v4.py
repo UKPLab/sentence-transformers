@@ -74,7 +74,7 @@ args = CrossEncoderTrainingArguments(
     run_name="ce-nli-v1",  # Will be used in W&B if `wandb` is installed
 )
 
-# # 6. Create the trainer & start training
+# 6. Create the trainer & start training
 trainer = CrossEncoderTrainer(
     model=model,
     args=args,

@@ -5,7 +5,6 @@ from torch import Tensor, nn
 from sentence_transformers.cross_encoder import CrossEncoder
 
 
-# TODO: Bad name, don't 1-1 copy the name from PyTorch
 class BinaryCrossEntropyLoss(nn.Module):
     def __init__(self, model: CrossEncoder, pos_weight: Tensor | None = None, **kwargs) -> None:
         super().__init__()
