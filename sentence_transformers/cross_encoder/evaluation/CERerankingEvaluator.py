@@ -35,7 +35,7 @@ class CERerankingEvaluator(SentenceEvaluator):
         negatives_are_ranked (bool, optional): Whether the negative documents are already ranked. If True, the negative
             documents are assumed to be all documents, including the positive ones. If True, evaluate both the reranked
             and the original ranking, and log the results side by side. Defaults to False.
-        name (str, optional): Name of the evaluator. Defaults to "".
+        name (str, optional): Name of the evaluator, used for logging, saving in a CSV, and the model card. Defaults to "".
         batch_size (int, optional): Batch size to compute sentence embeddings. Defaults to 64.
         show_progress_bar (bool, optional): Show progress bar when computing embeddings. Defaults to False.
         write_csv (bool, optional): Write results to CSV file. Defaults to True.
