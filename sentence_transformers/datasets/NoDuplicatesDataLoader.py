@@ -36,7 +36,7 @@ class NoDuplicatesDataLoader:
 
                 valid_example = True
                 for text in example.texts:
-                    if isinstance(text, dict):
+                    if not isinstance(text, str):
                         text = str(text)
                     if text.strip().lower() in texts_in_batch:
                         valid_example = False
@@ -45,7 +45,7 @@ class NoDuplicatesDataLoader:
                 if valid_example:
                     batch.append(example)
                     for text in example.texts:
-                        if isinstance(text, dict):
+                        if not isinstance(text, str):
                             text = str(text)
                         texts_in_batch.add(text.strip().lower())
 
