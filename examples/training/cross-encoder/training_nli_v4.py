@@ -46,9 +46,11 @@ test_dataset = test_dataset.map(lambda x: {"label": mapping[x["label"]]})
 # 3. Define our training loss:
 loss = CrossEntropyLoss(model)
 
-# During training, we use CESoftmaxAccuracyEvaluator and CEF1Evaluator to measure the performance on the dev set
+# During training, we use CEClassificationEvaluator to measure the performance on the dev set
 dev_cls_evaluator = CEClassificationEvaluator(
-    list(zip(eval_dataset["premise"], eval_dataset["hypothesis"])), eval_dataset["label"], name="AllNLI-dev"
+    list(zip(eval_dataset["premise"], eval_dataset["hypothesis"])),
+    eval_dataset["label"],
+    name="AllNLI-dev",
 )
 dev_cls_evaluator(model)
 
@@ -87,7 +89,9 @@ trainer.train()
 
 # 7. Evaluate the final model on test dataset
 test_cls_evaluator = CEClassificationEvaluator(
-    list(zip(test_dataset["premise"], test_dataset["hypothesis"])), test_dataset["label"], name="AllNLI-test"
+    list(zip(test_dataset["premise"], test_dataset["hypothesis"])),
+    test_dataset["label"],
+    name="AllNLI-test",
 )
 test_cls_evaluator(model)
 
