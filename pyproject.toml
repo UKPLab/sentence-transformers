@@ -38,7 +38,8 @@ dependencies = [
     "scikit-learn",
     "scipy",
     "huggingface-hub>=0.20.0",
-    "Pillow"
+    "Pillow",
+    "typing_extensions>=4.5.0",
 ]
 
 [project.urls]

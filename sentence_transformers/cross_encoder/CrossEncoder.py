@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import traceback
 from functools import wraps
 from typing import Callable, Literal, overload
 
@@ -11,10 +12,17 @@ from torch import Tensor, nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm, trange
-from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, is_torch_npu_available
+from transformers import (
+    AutoConfig,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    PretrainedConfig,
+    is_torch_npu_available,
+)
 from transformers.tokenization_utils_base import BatchEncoding
 from transformers.utils import PushToHubMixin
 
+from sentence_transformers.cross_encoder.model_card import CrossEncoderModelCardData, generate_model_card
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 from sentence_transformers.readers import InputExample
 from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -23,7 +31,7 @@ from sentence_transformers.util import fullname, get_device_name, import_from_st
 logger = logging.getLogger(__name__)
 
 
-class CrossEncoder(PushToHubMixin):
+class CrossEncoder(PushToHubMixin, nn.Module):
     """
     A CrossEncoder takes exactly two sentences / texts as input and either predicts
     a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
@@ -72,14 +80,18 @@ class CrossEncoder(PushToHubMixin):
         local_files_only: bool = False,
         default_activation_function=None,
         classifier_dropout: float = None,
+        model_card_data: CrossEncoderModelCardData | None = None,
     ) -> None:
+        super().__init__()
         if tokenizer_args is None:
             tokenizer_args = {}
         if automodel_args is None:
             automodel_args = {}
         if config_args is None:
             config_args = {}
-        self.config = AutoConfig.from_pretrained(
+        self.model_card_data = model_card_data or CrossEncoderModelCardData()
+        self.trust_remote_code = trust_remote_code
+        self.config: PretrainedConfig = AutoConfig.from_pretrained(
             model_name,
             trust_remote_code=trust_remote_code,
             revision=revision,
@@ -87,7 +99,7 @@ class CrossEncoder(PushToHubMixin):
             cache_dir=cache_dir,
             **config_args,
         )
-        classifier_trained = True
+        classifier_trained = False  # TODO: This is 'breaking'
         if self.config.architectures is not None:
             classifier_trained = any(
                 [arch.endswith("ForSequenceClassification") for arch in self.config.architectures]
@@ -110,15 +122,21 @@ class CrossEncoder(PushToHubMixin):
             cache_dir=cache_dir,
             **automodel_args,
         )
+        if max_length is not None and "model_max_length" not in tokenizer_args:
+            tokenizer_args["model_max_length"] = max_length
+        if hasattr(self.config, "max_position_embeddings") and "model_max_length" not in tokenizer_args:
+            tokenizer_args["model_max_length"] = self.config.max_position_embeddings
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name,
             revision=revision,
             local_files_only=local_files_only,
             trust_remote_code=trust_remote_code,
             cache_dir=cache_dir,
+            # model_max_length=max_length, # TODO: Does this work well?
             **tokenizer_args,
         )
-        self.max_length = max_length
+        # self.max_length = max_length
+        # self.max_length
 
         if device is None:
             device = get_device_name()
@@ -139,6 +157,18 @@ class CrossEncoder(PushToHubMixin):
         else:
             self.default_activation_function = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
 
+        # Pass the model to the model card data for later use in generating a model card upon saving this model
+        self.model_card_data.register_model(self)
+        self.model_card_data.set_base_model(model_name, revision=revision)
+
+    @property
+    def num_labels(self) -> int:
+        return self.config.num_labels
+
+    @property
+    def max_length(self) -> int:
+        return self.tokenizer.model_max_length
+
     def smart_batching_collate(self, batch: list[InputExample]) -> tuple[BatchEncoding, Tensor]:
         texts = [[] for _ in range(len(batch[0].texts))]
         labels = []
@@ -150,8 +180,12 @@ class CrossEncoder(PushToHubMixin):
             labels.append(example.label)
 
         tokenized = self.tokenizer(
-            *texts, padding=True, truncation="longest_first", return_tensors="pt", max_length=self.max_length
+            *texts,
+            padding=True,
+            truncation="longest_first",
+            return_tensors="pt",  # , max_length=self.max_length
         )
+        assert self.max_length is None or tokenized["input_ids"].shape[0] <= self.max_length
         labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(
             self.model.device
         )
@@ -169,8 +203,12 @@ class CrossEncoder(PushToHubMixin):
                 texts[idx].append(text.strip())
 
         tokenized = self.tokenizer(
-            *texts, padding=True, truncation="longest_first", return_tensors="pt", max_length=self.max_length
+            *texts,
+            padding=True,
+            truncation="longest_first",
+            return_tensors="pt",  # , max_length=self.max_length
         )
+        assert self.max_length is None or tokenized["input_ids"].shape[0] <= self.max_length
 
         for name in tokenized:
             tokenized[name] = tokenized[name].to(self.model.device)
@@ -312,6 +350,9 @@ class CrossEncoder(PushToHubMixin):
 
             if evaluator is not None:
                 self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+
+    def forward(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
 
     @overload
     def predict(
@@ -559,6 +600,9 @@ class CrossEncoder(PushToHubMixin):
             score = evaluator(self, output_path=output_path, epoch=epoch, steps=steps)
             if callback is not None:
                 callback(score, epoch, steps)
+            # TODO: Remove this
+            if isinstance(score, dict):
+                score = score[list(score.keys())[0]]
             if score > self.best_score:
                 self.best_score = score
                 if save_best_model:
@@ -574,12 +618,50 @@ class CrossEncoder(PushToHubMixin):
         logger.info(f"Save model to {path}")
         self.model.save_pretrained(path, safe_serialization=safe_serialization, **kwargs)
         self.tokenizer.save_pretrained(path, **kwargs)
+        self._create_model_card(path)
 
     def save_pretrained(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
         """
         Saves the model and tokenizer to path; identical to `save`
         """
         return self.save(path, safe_serialization=safe_serialization, **kwargs)
+
+    def _create_model_card(self, path: str) -> None:
+        """
+        Create an automatic model and stores it in the specified path. If no training was done and the loaded model
+        was a CrossEncoder model already, then its model card is reused.
+
+        Args:
+            path (str): The path where the model card will be stored.
+
+        Returns:
+            None
+        """
+        """
+        # If we loaded a model from the Hub, and no training was done, then
+        # we don't generate a new model card, but reuse the old one instead.
+        if self._model_card_text and "generated_from_trainer" not in self.model_card_data.tags:
+            model_card = self._model_card_text
+            if self.model_card_data.model_id:
+                # If the original model card was saved without a model_id, we replace the model_id with the new model_id
+                model_card = model_card.replace(
+                    'model = SentenceTransformer("sentence_transformers_model_id"',
+                    f'model = SentenceTransformer("{self.model_card_data.model_id}"',
+                )
+        else:
+        """
+        try:
+            model_card = generate_model_card(self)
+        except Exception:
+            logger.error(
+                f"Error while generating model card:\n{traceback.format_exc()}"
+                "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with this traceback.\n"
+                "Skipping model card creation."
+            )
+            return
+
+        with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
+            fOut.write(model_card)
 
     @wraps(PushToHubMixin.push_to_hub)
     def push_to_hub(
@@ -598,6 +680,7 @@ class CrossEncoder(PushToHubMixin):
             tags = []
         if "cross-encoder" not in tags:
             tags.insert(0, "cross-encoder")
+        self.model_card_data.set_model_id(repo_id)
         return super().push_to_hub(
             repo_id=repo_id,
             safe_serialization=safe_serialization,

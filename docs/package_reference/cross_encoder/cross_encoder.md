@@ -7,8 +7,7 @@ For an introduction to Cross-Encoders, see [Cross-Encoders](../../cross_encoder/
    :members:
 ```
 
-## Training Inputs
-
+## CrossEncoderModelCardData
 ```{eval-rst}
-.. autoclass:: sentence_transformers.readers.InputExample
+.. autoclass:: sentence_transformers.cross_encoder.model_card.CrossEncoderModelCardData
 ```

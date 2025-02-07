@@ -57,7 +57,14 @@ class SentenceEvaluator:
     def prefix_name_to_metrics(self, metrics: dict[str, float], name: str) -> dict[str, float]:
         if not name:
             return metrics
-        metrics = {name + "_" + key: float(value) for key, value in metrics.items()}
+
+        def maybe_to_float(value: Any) -> Any:
+            try:
+                return float(value)
+            except ValueError:
+                return value
+
+        metrics = {name + "_" + key: maybe_to_float(value) for key, value in metrics.items()}
         if hasattr(self, "primary_metric") and not self.primary_metric.startswith(name + "_"):
             self.primary_metric = name + "_" + self.primary_metric
         return metrics
@@ -72,10 +79,15 @@ class SentenceEvaluator:
         """
         Returns a human-readable description of the evaluator: BinaryClassificationEvaluator -> Binary Classification
 
-        1. Remove "Evaluator" from the class name
-        2. Add a space before every capital letter
+        1. Replace "CE" prefix with "CrossEncoder"
+        2. Remove "Evaluator" from the class name
+        3. Add a space before every capital letter
         """
         class_name = self.__class__.__name__
+
+        if class_name.startswith("CE"):
+            class_name = "CrossEncoder" + class_name[2:]
+
         try:
             index = class_name.index("Evaluator")
             class_name = class_name[:index]
