@@ -51,7 +51,8 @@ def evaluate_stsb_test(
 ) -> None:
     model = distilroberta_base_ce_model
     evaluator = CECorrelationEvaluator.from_input_examples(test_samples[:num_test_samples], name="sts-test")
-    score = evaluator(model) * 100
+    scores = evaluator(model)
+    score = scores[evaluator.primary_metric] * 100
     print(f"STS-Test Performance: {score:.2f} vs. exp: {expected_score:.2f}")
     assert score > expected_score or abs(score - expected_score) < 0.1
 
