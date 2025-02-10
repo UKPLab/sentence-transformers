@@ -54,7 +54,6 @@ dev_cls_evaluator = CEClassificationEvaluator(
 )
 dev_cls_evaluator(model)
 
-
 # 5. Define the training arguments
 args = CrossEncoderTrainingArguments(
     # Required parameter:
