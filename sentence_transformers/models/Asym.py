@@ -19,17 +19,53 @@ class Asym(nn.Sequential):
 
         Note, that when you call encode(), that only inputs of the same type can be encoded. Mixed-Types cannot be encoded.
 
-        Example::
-            word_embedding_model = models.Transformer(model_name)
-            pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
-            asym_model = models.Asym({'query': [models.Dense(word_embedding_model.get_word_embedding_dimension(), 128)], 'doc': [models.Dense(word_embedding_model.get_word_embedding_dimension(), 128)]})
-            model = SentenceTransformer(modules=[word_embedding_model, pooling_model, asym_model])
+        Example:
+            ::
 
-            model.encode([{'query': 'Q1'}, {'query': 'Q2'}]
-            model.encode([{'doc': 'Doc1'}, {'doc': 'Doc2'}]
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-            #You can train it with InputExample like this. Note, that the order must always be the same:
-            train_example = InputExample(texts=[{'query': 'Train query'}, {'doc': 'Document'}], label=1)
+                # Load a SentenceTransformer model (pretrained or not), and add an Asym module
+                model = SentenceTransformer("microsoft/mpnet-base")
+                dim = model.get_sentence_embedding_dimension()
+                asym_model = models.Asym({
+                    'query': [models.Dense(dim, dim)],
+                    'doc': [models.Dense(dim, dim)]
+                })
+                model.add_module("asym", asym_model)
+
+                train_dataset = Dataset.from_dict({
+                    "query": ["is toprol xl the same as metoprolol?", "are eyes always the same size?"],
+                    "answer": ["Metoprolol succinate is also known by the brand name Toprol XL.", "The eyes are always the same size from birth to death."],
+                })
+
+                # This mapper turns normal texts into a dictionary mapping Asym keys to the text
+                def mapper(sample):
+                    return {
+                        "question": {"query": sample["question"]},
+                        "answer": {"doc": sample["answer"]},
+                    }
+
+                train_dataset = train_dataset.map(mapper)
+                loss = losses.MultipleNegativesRankingLoss(model)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
+
+                # For inference, you can pass dictionaries with the Asym keys:
+                model.encode([
+                    {'query': 'how long do you have to wait to apply for cerb?'},
+                    {'query': '<3 what does this symbol mean?'},
+                    {'doc': 'The definition of <3 is "Love".'}]
+                )
+
+        Note:
+            These models are not necessarily stronger than non-asymmetric models. Rudimentary experiments indicate
+            that non-Asym models perform better in most cases.
 
         Args:
             sub_modules: Dict in the format str -> List[models]. The

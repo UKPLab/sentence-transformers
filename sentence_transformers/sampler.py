@@ -193,7 +193,7 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
             batch_indices = []
             for index in remaining_indices:
                 sample_values = {
-                    value
+                    str(value)
                     for key, value in self.dataset[index].items()
                     if not key.endswith("_prompt_length") and key != "dataset_name"
                 }
