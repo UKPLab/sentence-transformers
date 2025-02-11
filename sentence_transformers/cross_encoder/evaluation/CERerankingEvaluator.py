@@ -21,9 +21,20 @@ class CERerankingEvaluator:
         samples (List[Dict, str, Union[str, List[str]]): Must be a list and each element is of the form:
             {'query': '', 'positive': [], 'negative': []}. Query is the search query, positive is a list
             of positive (relevant) documents, negative is a list of negative (irrelevant) documents.
+        at_k (int): The evaluation is done at k. Default is 10.
+        name (str): Name of the dataset. Used for logging and saving the results to a CSV file.
+        write_csv (bool): Whether to write the results to a CSV file. Default is True.
+        mrr_at_k (int): Deprecated. Use `at_k` instead.
     """
 
-    def __init__(self, samples, at_k: int = 10, name: str = "", write_csv: bool = True, mrr_at_k: int | None = None):
+    def __init__(
+        self,
+        samples,
+        at_k: int = 10,
+        name: str = "",
+        write_csv: bool = True,
+        mrr_at_k: int | None = None,
+    ):
         self.samples = samples
         self.name = name
         if mrr_at_k is not None:
