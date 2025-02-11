@@ -8,30 +8,26 @@ from typing import Callable, Literal, overload
 
 import numpy as np
 import torch
-from torch import Tensor, nn
-from torch.optim import Optimizer
+from torch import nn
 from torch.utils.data import DataLoader
-from tqdm.autonotebook import tqdm, trange
+from tqdm.autonotebook import tqdm
 from transformers import (
     AutoConfig,
     AutoModelForSequenceClassification,
     AutoTokenizer,
     PretrainedConfig,
-    is_torch_npu_available,
+    PreTrainedModel,
 )
-from transformers.tokenization_utils_base import BatchEncoding
 from transformers.utils import PushToHubMixin
 
+from sentence_transformers.cross_encoder.fit_mixin import FitMixin
 from sentence_transformers.cross_encoder.model_card import CrossEncoderModelCardData, generate_model_card
-from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
-from sentence_transformers.readers import InputExample
-from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.util import fullname, get_device_name, import_from_string
 
 logger = logging.getLogger(__name__)
 
 
-class CrossEncoder(PushToHubMixin, nn.Module):
+class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
     """
     A CrossEncoder takes exactly two sentences / texts as input and either predicts
     a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
@@ -113,7 +109,7 @@ class CrossEncoder(PushToHubMixin, nn.Module):
 
         if num_labels is not None:
             self.config.num_labels = num_labels
-        self.model = AutoModelForSequenceClassification.from_pretrained(
+        self.model: PreTrainedModel = AutoModelForSequenceClassification.from_pretrained(
             model_name,
             config=self.config,
             revision=revision,
@@ -132,11 +128,8 @@ class CrossEncoder(PushToHubMixin, nn.Module):
             local_files_only=local_files_only,
             trust_remote_code=trust_remote_code,
             cache_dir=cache_dir,
-            # model_max_length=max_length, # TODO: Does this work well?
             **tokenizer_args,
         )
-        # self.max_length = max_length
-        # self.max_length
 
         if device is None:
             device = get_device_name()
@@ -168,188 +161,6 @@ class CrossEncoder(PushToHubMixin, nn.Module):
     @property
     def max_length(self) -> int:
         return self.tokenizer.model_max_length
-
-    def smart_batching_collate(self, batch: list[InputExample]) -> tuple[BatchEncoding, Tensor]:
-        texts = [[] for _ in range(len(batch[0].texts))]
-        labels = []
-
-        for example in batch:
-            for idx, text in enumerate(example.texts):
-                texts[idx].append(text.strip())
-
-            labels.append(example.label)
-
-        tokenized = self.tokenizer(
-            *texts,
-            padding=True,
-            truncation="longest_first",
-            return_tensors="pt",  # , max_length=self.max_length
-        )
-        assert self.max_length is None or tokenized["input_ids"].shape[0] <= self.max_length
-        labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(
-            self.model.device
-        )
-
-        for name in tokenized:
-            tokenized[name] = tokenized[name].to(self.model.device)
-
-        return tokenized, labels
-
-    def smart_batching_collate_text_only(self, batch: list[InputExample]) -> BatchEncoding:
-        texts = [[] for _ in range(len(batch[0]))]
-
-        for example in batch:
-            for idx, text in enumerate(example):
-                texts[idx].append(text.strip())
-
-        tokenized = self.tokenizer(
-            *texts,
-            padding=True,
-            truncation="longest_first",
-            return_tensors="pt",  # , max_length=self.max_length
-        )
-        assert self.max_length is None or tokenized["input_ids"].shape[0] <= self.max_length
-
-        for name in tokenized:
-            tokenized[name] = tokenized[name].to(self.model.device)
-
-        return tokenized
-
-    def fit(
-        self,
-        train_dataloader: DataLoader,
-        evaluator: SentenceEvaluator = None,
-        epochs: int = 1,
-        loss_fct=None,
-        activation_fct=nn.Identity(),
-        scheduler: str = "WarmupLinear",
-        warmup_steps: int = 10000,
-        optimizer_class: type[Optimizer] = torch.optim.AdamW,
-        optimizer_params: dict[str, object] = {"lr": 2e-5},
-        weight_decay: float = 0.01,
-        evaluation_steps: int = 0,
-        output_path: str = None,
-        save_best_model: bool = True,
-        max_grad_norm: float = 1,
-        use_amp: bool = False,
-        callback: Callable[[float, int, int], None] = None,
-        show_progress_bar: bool = True,
-    ) -> None:
-        """
-        Train the model with the given training objective
-        Each training objective is sampled in turn for one batch.
-        We sample only as many batches from each objective as there are in the smallest one
-        to make sure of equal training with each dataset.
-
-        Args:
-            train_dataloader (DataLoader): DataLoader with training InputExamples
-            evaluator (SentenceEvaluator, optional): An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc. Defaults to None.
-            epochs (int, optional): Number of epochs for training. Defaults to 1.
-            loss_fct: Which loss function to use for training. If None, will use nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss(). Defaults to None.
-            activation_fct: Activation function applied on top of logits output of model.
-            scheduler (str, optional): Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts. Defaults to "WarmupLinear".
-            warmup_steps (int, optional): Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero. Defaults to 10000.
-            optimizer_class (Type[Optimizer], optional): Optimizer. Defaults to torch.optim.AdamW.
-            optimizer_params (Dict[str, object], optional): Optimizer parameters. Defaults to {"lr": 2e-5}.
-            weight_decay (float, optional): Weight decay for model parameters. Defaults to 0.01.
-            evaluation_steps (int, optional): If > 0, evaluate the model using evaluator after each number of training steps. Defaults to 0.
-            output_path (str, optional): Storage path for the model and evaluation files. Defaults to None.
-            save_best_model (bool, optional): If true, the best model (according to evaluator) is stored at output_path. Defaults to True.
-            max_grad_norm (float, optional): Used for gradient normalization. Defaults to 1.
-            use_amp (bool, optional): Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0. Defaults to False.
-            callback (Callable[[float, int, int], None], optional): Callback function that is invoked after each evaluation.
-                It must accept the following three parameters in this order:
-                `score`, `epoch`, `steps`. Defaults to None.
-            show_progress_bar (bool, optional): If True, output a tqdm progress bar. Defaults to True.
-        """
-        train_dataloader.collate_fn = self.smart_batching_collate
-
-        if use_amp:
-            if is_torch_npu_available():
-                scaler = torch.npu.amp.GradScaler()
-            else:
-                scaler = torch.cuda.amp.GradScaler()
-
-        if output_path is not None:
-            os.makedirs(output_path, exist_ok=True)
-
-        self.best_score = -9999999
-        num_train_steps = int(len(train_dataloader) * epochs)
-
-        # Prepare optimizers
-        param_optimizer = list(self.model.named_parameters())
-
-        no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
-        optimizer_grouped_parameters = [
-            {
-                "params": [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)],
-                "weight_decay": weight_decay,
-            },
-            {"params": [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], "weight_decay": 0.0},
-        ]
-
-        optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
-
-        if isinstance(scheduler, str):
-            scheduler = SentenceTransformer._get_scheduler(
-                optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps
-            )
-
-        if loss_fct is None:
-            loss_fct = nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
-
-        skip_scheduler = False
-        for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
-            training_steps = 0
-            self.model.zero_grad()
-            self.model.train()
-
-            for features, labels in tqdm(
-                train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
-            ):
-                if use_amp:
-                    with torch.autocast(device_type=self.model.device.type):
-                        model_predictions = self.model(**features, return_dict=True)
-                        logits = activation_fct(model_predictions.logits)
-                        if self.config.num_labels == 1:
-                            logits = logits.view(-1)
-                        loss_value = loss_fct(logits, labels)
-
-                    scale_before_step = scaler.get_scale()
-                    scaler.scale(loss_value).backward()
-                    scaler.unscale_(optimizer)
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
-                    scaler.step(optimizer)
-                    scaler.update()
-
-                    skip_scheduler = scaler.get_scale() != scale_before_step
-                else:
-                    model_predictions = self.model(**features, return_dict=True)
-                    logits = activation_fct(model_predictions.logits)
-                    if self.config.num_labels == 1:
-                        logits = logits.view(-1)
-                    loss_value = loss_fct(logits, labels)
-                    loss_value.backward()
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
-                    optimizer.step()
-
-                optimizer.zero_grad()
-
-                if not skip_scheduler:
-                    scheduler.step()
-
-                training_steps += 1
-
-                if evaluator is not None and evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(
-                        evaluator, output_path, save_best_model, epoch, training_steps, callback
-                    )
-
-                    self.model.zero_grad()
-                    self.model.train()
-
-            if evaluator is not None:
-                self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
     def forward(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -594,20 +405,6 @@ class CrossEncoder(PushToHubMixin, nn.Module):
         results = sorted(results, key=lambda x: x["score"], reverse=True)
         return results[:top_k]
 
-    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback) -> None:
-        """Runs evaluation during the training"""
-        if evaluator is not None:
-            score = evaluator(self, output_path=output_path, epoch=epoch, steps=steps)
-            if callback is not None:
-                callback(score, epoch, steps)
-            # TODO: Remove this
-            if isinstance(score, dict):
-                score = score[list(score.keys())[0]]
-            if score > self.best_score:
-                self.best_score = score
-                if save_best_model:
-                    self.save(output_path)
-
     def save(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
         """
         Saves the model and tokenizer to path; identical to `save_pretrained`
@@ -637,6 +434,7 @@ class CrossEncoder(PushToHubMixin, nn.Module):
         Returns:
             None
         """
+        # TODO: Introduce this:
         """
         # If we loaded a model from the Hub, and no training was done, then
         # we don't generate a new model card, but reuse the old one instead.

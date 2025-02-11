@@ -7,10 +7,11 @@ from sentence_transformers.cross_encoder import CrossEncoder
 
 # TODO: Consider the naming of this class
 class CrossEntropyLoss(nn.Module):
-    def __init__(self, model: CrossEncoder) -> None:
+    def __init__(self, model: CrossEncoder, activation_fct: nn.Module = nn.Identity(), **kwargs) -> None:
         super().__init__()
         self.model = model
-        self.ce_loss = nn.CrossEntropyLoss()
+        self.activation_fct = activation_fct
+        self.ce_loss = nn.CrossEntropyLoss(**kwargs)
 
     def forward(self, inputs: list[list[str]], labels: Tensor) -> Tensor:
         if len(inputs) != 2:
@@ -27,5 +28,6 @@ class CrossEntropyLoss(nn.Module):
         )
         tokens.to(self.model.device)
         logits = self.model(**tokens)[0]
+        logits = self.activation_fct(logits)
         loss = self.ce_loss(logits, labels)
         return loss

@@ -172,7 +172,7 @@ class CEClassificationEvaluator(SentenceEvaluator):
                 if not output_file_exists:
                     writer.writerow(self.csv_headers)
 
-                writer.writerow([epoch, steps, acc, acc_threshold, f1, f1_threshold, precision, recall, ap])
+                writer.writerow([epoch, steps, *metrics.values()])
 
         metrics = self.prefix_name_to_metrics(metrics, self.name)
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)

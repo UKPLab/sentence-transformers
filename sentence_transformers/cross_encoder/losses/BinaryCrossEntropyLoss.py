@@ -6,9 +6,16 @@ from sentence_transformers.cross_encoder import CrossEncoder
 
 
 class BinaryCrossEntropyLoss(nn.Module):
-    def __init__(self, model: CrossEncoder, pos_weight: Tensor | None = None, **kwargs) -> None:
+    def __init__(
+        self,
+        model: CrossEncoder,
+        activation_fct: nn.Module = nn.Identity(),
+        pos_weight: Tensor | None = None,
+        **kwargs,
+    ) -> None:
         super().__init__()
         self.model = model
+        self.activation_fct = activation_fct
         self.bce_with_logits_loss = nn.BCEWithLogitsLoss(pos_weight=pos_weight, **kwargs)
 
         if self.model.num_labels != 1:
@@ -32,5 +39,6 @@ class BinaryCrossEntropyLoss(nn.Module):
         )
         tokens.to(self.model.device)
         logits = self.model(**tokens)[0].view(-1)
+        logits = self.activation_fct(logits)
         loss = self.bce_with_logits_loss(logits, labels.float())
         return loss

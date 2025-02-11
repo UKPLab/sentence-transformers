@@ -160,7 +160,7 @@ class OriginalCallback(TrainerCallback):
 
 
 class FitMixin:
-    """Mixin class for injecting the `fit` method into Sentence Transformers"""
+    """Mixin class for injecting the `fit` and `old_fit` methods into SentenceTransformer models"""
 
     def fit(
         self,
@@ -205,7 +205,7 @@ class FitMixin:
             evaluator: An evaluator (sentence_transformers.evaluation)
                 evaluates the model performance during training on held-
                 out dev data. It is used to determine the best model
-                that is saved to disc.
+                that is saved to disk.
             epochs: Number of epochs for training
             steps_per_epoch: Number of training steps per epoch. If set
                 to None (default), one epoch is equal the DataLoader
@@ -327,7 +327,6 @@ class FitMixin:
                 eval_strategy_key: "steps" if evaluation_steps is not None and evaluation_steps > 0 else "no",
             },
             eval_steps=evaluation_steps,
-            # load_best_model_at_end=save_best_model, # <- TODO: Look into a good solution for save_best_model
             max_grad_norm=max_grad_norm,
             fp16=use_amp,
             disable_tqdm=not show_progress_bar,
