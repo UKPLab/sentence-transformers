@@ -327,7 +327,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                         prompt_name=self.corpus_prompt_name,
                         prompt=self.corpus_prompt,
                         batch_size=self.batch_size,
-                        show_progress_bar=False,
+                        show_progress_bar=self.show_progress_bar,
                         convert_to_tensor=True,
                     )
             else:
