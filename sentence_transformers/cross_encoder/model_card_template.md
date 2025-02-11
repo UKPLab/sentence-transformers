@@ -165,7 +165,7 @@ You can finetune this model on your own dataset.
 {% endif %}* Columns: {% if dataset['columns'] | length == 1 %}{{ dataset['columns'][0] }}{% elif dataset['columns'] | length == 2 %}{{ dataset['columns'][0] }} and {{ dataset['columns'][1] }}{% else %}{{ dataset['columns'][:-1] | join(', ') }}, and {{ dataset['columns'][-1] }}{% endif %}
 {% if dataset['stats_table'] %}* Approximate statistics based on the first {{ [dataset['size'], 1000] | min }} samples:
 {{ dataset['stats_table'] }}{% endif %}{% if dataset['examples_table'] %}* Samples:
-{{ dataset['examples_table'] }}{% endif %}* Loss: {% if dataset["loss"]["fullname"].startswith("sentence_transformers.") %}[<code>{{ dataset["loss"]["fullname"].split(".")[-1] }}</code>](https://sbert.net/docs/package_reference/sentence_transformer/losses.html#{{ dataset["loss"]["fullname"].split(".")[-1].lower() }}){% else %}<code>{{ dataset["loss"]["fullname"] }}</code>{% endif %}{% if "config_code" in dataset["loss"] %} with these parameters:
+{{ dataset['examples_table'] }}{% endif %}* Loss: {% if dataset["loss"]["fullname"].startswith("sentence_transformers.") %}[<code>{{ dataset["loss"]["fullname"].split(".")[-1] }}</code>](https://sbert.net/docs/package_reference/cross_encoder/losses.html#{{ dataset["loss"]["fullname"].split(".")[-1].lower() }}){% else %}<code>{{ dataset["loss"]["fullname"] }}</code>{% endif %}{% if "config_code" in dataset["loss"] %} with these parameters:
 {{ dataset["loss"]["config_code"] }}{% endif %}
 {% if dataset_list | length > 3 %}</details>
 {% endif %}{% endfor %}{% endif %}{% endfor -%}
