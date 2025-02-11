@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 import os
+import tempfile
 import traceback
-from functools import wraps
 from typing import Callable, Literal, overload
 
 import numpy as np
 import torch
+from huggingface_hub import HfApi
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm
@@ -461,32 +462,54 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
             fOut.write(model_card)
 
-    @wraps(PushToHubMixin.push_to_hub)
     def push_to_hub(
         self,
         repo_id: str,
         *,
-        commit_message: str | None = None,
+        token: str | None = None,
         private: bool | None = None,
         safe_serialization: bool = True,
+        commit_message: str | None = None,
+        exist_ok: bool = False,
+        revision: str | None = None,
+        create_pr: bool = False,
         tags: list[str] | None = None,
-        **kwargs,
     ) -> str:
-        if isinstance(tags, str):
-            tags = [tags]
-        elif tags is None:
-            tags = []
-        if "cross-encoder" not in tags:
-            tags.insert(0, "cross-encoder")
-        self.model_card_data.set_model_id(repo_id)
-        return super().push_to_hub(
+        api = HfApi(token=token)
+        repo_url = api.create_repo(
             repo_id=repo_id,
-            safe_serialization=safe_serialization,
-            commit_message=commit_message,
             private=private,
-            tags=tags,
-            **kwargs,
+            repo_type=None,
+            exist_ok=exist_ok or create_pr,
         )
+        repo_id = repo_url.repo_id  # Update the repo_id in case the old repo_id didn't contain a user or organization
+        self.model_card_data.set_model_id(repo_id)
+        if tags is not None:
+            self.model_card_data.add_tags(tags)
+
+        if revision is not None:
+            api.create_branch(repo_id=repo_id, branch=revision, exist_ok=True)
+
+        if commit_message is None:
+            commit_message = "Add new CrossEncoder model"
+        commit_description = ""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            self.save_pretrained(
+                tmp_dir,
+                safe_serialization=safe_serialization,
+            )
+            folder_url = api.upload_folder(
+                repo_id=repo_id,
+                folder_path=tmp_dir,
+                commit_message=commit_message,
+                commit_description=commit_description,
+                revision=revision,
+                create_pr=create_pr,
+            )
+
+        if create_pr:
+            return folder_url.pr_url
+        return folder_url.commit_url
 
     def to(self, device: int | str | torch.device | None = None) -> None:
         return self.model.to(device)
