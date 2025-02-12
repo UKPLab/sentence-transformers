@@ -250,7 +250,10 @@ class NanoBEIREvaluator(SentenceEvaluator):
             "main_score_function": main_score_function,
         }
 
-        self.evaluators = [self._load_dataset(name, **ir_evaluator_kwargs) for name in self.dataset_names]
+        self.evaluators = [
+            self._load_dataset(name, **ir_evaluator_kwargs)
+            for name in tqdm(self.dataset_names, desc="Loading NanoBEIR datasets", leave=False)
+        ]
 
         self.csv_file: str = f"NanoBEIR_evaluation_{aggregate_key}_results.csv"
         self.csv_headers = ["epoch", "steps"]

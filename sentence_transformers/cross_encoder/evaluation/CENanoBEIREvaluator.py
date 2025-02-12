@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Callable, Literal
 import numpy as np
 from tqdm import tqdm
 
-from sentence_transformers.cross_encoder.evaluation import CERerankingEvaluator
+from sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator import CERerankingEvaluator
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 from sentence_transformers.util import is_datasets_available
 
@@ -102,8 +102,12 @@ class CENanoBEIREvaluator(SentenceEvaluator):
             "write_csv": self.write_csv,
         }
 
-        self.evaluators = [self._load_dataset(name, **reranking_kwargs) for name in self.dataset_names]
+        self.evaluators = [
+            self._load_dataset(name, **reranking_kwargs)
+            for name in tqdm(self.dataset_names, desc="Loading NanoBEIR datasets", leave=False)
+        ]
 
+        # TODO: This is not used
         self.csv_file: str = f"NanoBEIR_evaluation_{aggregate_key}_results.csv"
         self.csv_headers = ["epoch", "steps"]
 

@@ -103,7 +103,7 @@ class CERerankingEvaluator(SentenceEvaluator):
         self.negatives_are_ranked = negatives_are_ranked
         self.name = name
         self.batch_size = batch_size
-        self.show_progress_bar = show_progress_bar
+        self.show_progress_bar = show_progress_bar  # TODO: This is not used
 
         if isinstance(self.samples, dict):
             self.samples = list(self.samples.values())
@@ -184,8 +184,6 @@ class CERerankingEvaluator(SentenceEvaluator):
             f"mrr@{self.at_k}": mean_mrr,
             f"ndcg@{self.at_k}": mean_ndcg,
         }
-        # metrics = self.prefix_name_to_metrics(metrics, self.name)
-        # self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
 
         logger.info(
             f"Queries:\t{num_queries} \t Positives: Min {np.min(num_positives):.1f}, Mean {np.mean(num_positives):.1f}, Max {np.max(num_positives):.1f} \t Negatives: Min {np.min(num_negatives):.1f}, Mean {np.mean(num_negatives):.1f}, Max {np.max(num_negatives):.1f}"
