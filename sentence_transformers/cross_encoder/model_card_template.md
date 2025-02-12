@@ -22,6 +22,7 @@ This is a [Cross Encoder](https://www.sbert.net/docs/cross_encoder/usage/usage.h
     <!-- - **Base model:** [Unknown](https://huggingface.co/unknown) -->
 {%- endif %}
 - **Maximum Sequence Length:** {{ model_max_length }} tokens
+- **Number of Output Labels:** {{ model_num_labels }} label{{ "s" if model_num_labels > 1 else "" }}
 {% if train_datasets | selectattr("name") | list -%}
     - **Training Dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}:**
     {%- for dataset in (train_datasets | selectattr("name")) %}
@@ -73,7 +74,7 @@ from sentence_transformers import CrossEncoder
 
 # Download from the {{ hf_emoji }} Hub
 model = CrossEncoder("{{ model_id | default('sentence_transformers_model_id', true) }}")
-# Get scores for pairs...
+# Get scores for pairs of texts
 pairs = [
 {%- for text in (predict_example or [["How many calories in an egg", "There are on average between 55 and 80 calories in an egg depending on its size."], ["How many calories in an egg", "Egg whites are very low in calories, have no fat, no cholesterol, and are loaded with protein."], ["How many calories in an egg", "Most of the calories in an egg come from the yellow yolk in the center."]]) %}
     {{ "%r" | format(text) }},
@@ -81,9 +82,9 @@ pairs = [
 ]
 scores = model.predict(pairs)
 print(scores.shape)
-# [{{ (predict_example or ["dummy", "dummy", "dummy"]) | length }}]
+# ({{ (predict_example or ["dummy", "dummy", "dummy"]) | length }},{{ (" %" | format(model_num_labels)) if model_num_labels > 1 else "" }}){% if model_num_labels > 1 %}
 
-# ... or rank different texts based on similarity to a single text
+# Or rank different texts based on similarity to a single text
 ranks = model.rank(
     {{ "%r" | format(predict_example[0][0] if predict_example else "How many calories in an egg") }},
     [
@@ -92,7 +93,7 @@ ranks = model.rank(
 {%- endfor %}
     ]
 )
-# [{'corpus_id': ..., 'score': ...}, {'corpus_id': ..., 'score': ...}, ...]
+# [{'corpus_id': ..., 'score': ...}, {'corpus_id': ..., 'score': ...}, ...]{% endif %}
 ```
 
 <!--

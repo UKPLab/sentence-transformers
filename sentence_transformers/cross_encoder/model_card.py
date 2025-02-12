@@ -77,6 +77,8 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
     predict_example: list[list[str]] | None = field(default=None, init=False)
 
     # Computed once, always unchanged
+    # TODO: text-ranking would be nice; but we don't have a widget for that yet
+    # Note also that this only applies for models with num_labels=1
     pipeline_tag: str = field(default="text-classification", init=False)
 
     # Passed via `register_model` only
@@ -114,6 +116,7 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
     def get_model_specific_metadata(self) -> dict[str, Any]:
         return {
             "model_max_length": self.model.max_length,
+            "model_num_labels": self.model.num_labels,
         }
 
 

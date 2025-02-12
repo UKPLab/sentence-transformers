@@ -242,6 +242,12 @@ def get_versions() -> dict[str, Any]:
     return versions
 
 
+def format_log(value: float | int | str) -> Any:
+    if isinstance(value, float):
+        return round(value, 4)
+    return value
+
+
 @dataclass
 class SentenceTransformerModelCardData(CardData):
     """A dataclass storing data used in the model card.
@@ -825,15 +831,12 @@ class SentenceTransformerModelCardData(CardData):
 
             metrics = {key: try_to_pure_python(value) for key, value in metrics.items()}
 
-            def format(value: Any) -> Any:
-                if isinstance(value, float):
-                    return round(value, 4)
-                return value
-
             table_lines = [
                 {
                     "Metric": f"**{metric_key}**" if metric_key == primary_metric else metric_key,
-                    "Value": f"**{format(metric_value)}**" if metric_key == primary_metric else format(metric_value),
+                    "Value": f"**{format_log(metric_value)}**"
+                    if metric_key == primary_metric
+                    else format_log(metric_value),
                 }
                 for metric_key, metric_value in metrics.items()
             ]
@@ -928,7 +931,7 @@ class SentenceTransformerModelCardData(CardData):
         sorted_eval_lines_keys = sorted(eval_lines_keys, key=sort_metrics)
         training_logs = [
             {
-                key: f"**{round(line[key], 4) if key in line else '-'}**"
+                key: f"**{format_log(line[key]) if key in line else '-'}**"
                 if line["Step"] == self.best_model_step
                 else line.get(key, "-")
                 for key in sorted_eval_lines_keys
