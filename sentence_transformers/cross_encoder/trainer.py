@@ -310,3 +310,22 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
 
         loaded_model = CrossEncoder(checkpoint_path, trust_remote_code=self.model.trust_remote_code)
         self.model.load_state_dict(loaded_model.state_dict())
+
+    def _load_best_model(self) -> None:
+        try:
+            if checkpoint := self.state.best_model_checkpoint:
+                step = checkpoint.rsplit("-", 1)[-1]
+                self.model.model_card_data.set_best_model_step(int(step))
+        except Exception:
+            pass
+
+        # Override the model with the `transformers`-based auto_model, and restore the original CrossEncoder
+        # model with the loaded `transformers` model
+        full_model = self.model
+        self.model = self.model.model
+        try:
+            return super(SentenceTransformerTrainer, self)._load_best_model()
+        finally:
+            loaded_auto_model = self.model
+            self.model = full_model
+            self.model.model = loaded_auto_model

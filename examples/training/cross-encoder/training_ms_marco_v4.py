@@ -17,14 +17,14 @@ from sentence_transformers.training_args import BatchSamplers
 
 
 def main():
-    model_name = "distilroberta-base"
-    loss_name = "cmnrl"
-    # loss_name = "bce"
+    model_name = "answerdotai/ModernBERT-base"
+    # loss_name = "cmnrl"
+    loss_name = "bce"
 
     # Set the log level to INFO to get more information
     logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
-    train_batch_size = 64
+    train_batch_size = 32
     num_epochs = 1
 
     # 1. Define our CrossEncoder model
@@ -88,7 +88,7 @@ def main():
         loss = BinaryCrossEntropyLoss(model)
 
     # 4. Define the evaluator. We use the CENanoBEIREvaluator, which is a light-weight evaluator for English reranking
-    evaluator = CENanoBEIREvaluator()
+    evaluator = CENanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=train_batch_size)
     evaluator(model)
 
     # 5. Define the training arguments
@@ -105,14 +105,17 @@ def main():
         warmup_ratio=0.1,
         fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
         bf16=True,  # Set to True if you have a GPU that supports BF16
-        batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
+        # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
+        batch_sampler=BatchSamplers.NO_DUPLICATES if loss_name == "cmnrl" else BatchSamplers.BATCH_SAMPLER,
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_NanoBEIR_mean_ndcg@10",
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
-        eval_steps=20000,
+        eval_steps=400 if loss_name == "cmnrl" else 40_000,
         save_strategy="steps",
-        save_steps=20000,
+        save_steps=400 if loss_name == "cmnrl" else 40_000,
         save_total_limit=2,
-        logging_steps=2000,
+        logging_steps=100 if loss_name == "cmnrl" else 10_000,
         logging_first_step=True,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
         seed=12,

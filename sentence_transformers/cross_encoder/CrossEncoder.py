@@ -137,6 +137,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             logger.info(f"Use pytorch device: {device}")
         self.model.to(device)
 
+        # TODO: Figure out how best to apply the activation function. In forward?
         if default_activation_function is not None:
             self.default_activation_function = default_activation_function
             try:
@@ -267,6 +268,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             sentences = [sentences]
             input_was_string = True
 
+        # TODO: Refactor this to avoid using a DataLoader or self.smart_batching_collate_text_only
         inp_dataloader = DataLoader(
             sentences,
             batch_size=batch_size,
