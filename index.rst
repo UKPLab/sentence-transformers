@@ -153,6 +153,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    docs/cross_encoder/usage/usage
    docs/cross_encoder/pretrained_models
    docs/cross_encoder/training_overview
+   docs/cross_encoder/loss_overview
    docs/cross_encoder/training/examples
 
 .. toctree::

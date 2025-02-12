@@ -250,7 +250,10 @@ class NanoBEIREvaluator(SentenceEvaluator):
             "main_score_function": main_score_function,
         }
 
-        self.evaluators = [self._load_dataset(name, **ir_evaluator_kwargs) for name in self.dataset_names]
+        self.evaluators = [
+            self._load_dataset(name, **ir_evaluator_kwargs)
+            for name in tqdm(self.dataset_names, desc="Loading NanoBEIR datasets", leave=False)
+        ]
 
         self.csv_file: str = f"NanoBEIR_evaluation_{aggregate_key}_results.csv"
         self.csv_headers = ["epoch", "steps"]
@@ -391,7 +394,9 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
     def _load_dataset(self, dataset_name: DatasetNameType, **ir_evaluator_kwargs) -> InformationRetrievalEvaluator:
         if not is_datasets_available():
-            raise ValueError("datasets is not available. Please install it to use the NanoBEIREvaluator.")
+            raise ValueError(
+                "datasets is not available. Please install it to use the NanoBEIREvaluator via `pip install datasets`."
+            )
         from datasets import load_dataset
 
         dataset_path = dataset_name_to_id[dataset_name.lower()]
