@@ -82,7 +82,7 @@ pairs = [
 ]
 scores = model.predict(pairs)
 print(scores.shape)
-# ({{ (predict_example or ["dummy", "dummy", "dummy"]) | length }},{{ (" %" | format(model_num_labels)) if model_num_labels > 1 else "" }}){% if model_num_labels > 1 %}
+# ({{ (predict_example or ["dummy", "dummy", "dummy"]) | length }},{{ (" %d" | format(model_num_labels)) if model_num_labels > 1 else "" }}){% if model_num_labels == 1 %}
 
 # Or rank different texts based on similarity to a single text
 ranks = model.rank(
