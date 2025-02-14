@@ -3,6 +3,7 @@ from __future__ import annotations
 from torch import Tensor, nn
 
 from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.util import fullname
 
 
 class BinaryCrossEntropyLoss(nn.Module):
@@ -42,3 +43,9 @@ class BinaryCrossEntropyLoss(nn.Module):
         logits = self.activation_fct(logits)
         loss = self.bce_with_logits_loss(logits, labels.float())
         return loss
+
+    def get_config_dict(self):
+        return {
+            "activation_fct": fullname(self.activation_fct),
+            "pos_weight": self.bce_with_logits_loss.pos_weight.item(),
+        }
