@@ -17,6 +17,7 @@ class BinaryCrossEntropyLoss(nn.Module):
         super().__init__()
         self.model = model
         self.activation_fct = activation_fct
+        self.pos_weight = pos_weight
         self.bce_with_logits_loss = nn.BCEWithLogitsLoss(pos_weight=pos_weight, **kwargs)
 
         if self.model.num_labels != 1:
@@ -47,5 +48,5 @@ class BinaryCrossEntropyLoss(nn.Module):
     def get_config_dict(self):
         return {
             "activation_fct": fullname(self.activation_fct),
-            "pos_weight": self.bce_with_logits_loss.pos_weight.item(),
+            "pos_weight": self.pos_weight if self.pos_weight is None else self.pos_weight.item(),
         }

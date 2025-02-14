@@ -176,3 +176,6 @@ class CachedMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
             loss = self.calculate_loss(logits, batch_size)
 
         return loss
+
+    def get_config_dict(self):
+        return {**super().get_config_dict(), "mini_batch_size": self.mini_batch_size}

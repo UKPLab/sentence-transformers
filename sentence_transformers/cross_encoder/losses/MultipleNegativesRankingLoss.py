@@ -6,6 +6,7 @@ import torch
 from torch import Tensor, nn
 
 from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.util import fullname
 
 
 class MultipleNegativesRankingLoss(nn.Module):
@@ -101,4 +102,8 @@ class MultipleNegativesRankingLoss(nn.Module):
         return self.calculate_loss(scores, batch_size)
 
     def get_config_dict(self) -> dict[str, float]:
-        return {"scale": self.scale, "num_negatives": self.num_negatives}
+        return {
+            "scale": self.scale,
+            "num_negatives": self.num_negatives,
+            "activation_fct": fullname(self.activation_fct),
+        }
