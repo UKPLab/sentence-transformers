@@ -3,9 +3,9 @@ from __future__ import annotations
 from torch import Tensor, nn
 
 from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.util import fullname
 
 
-# TODO: This loss hasn't been tested yet
 class MSELoss(nn.Module):
     def __init__(self, model: CrossEncoder, **kwargs) -> None:
         super().__init__()
@@ -35,3 +35,8 @@ class MSELoss(nn.Module):
         logits = self.model(**tokens)[0].view(-1)
         loss = self.loss_fct(logits, labels.float())
         return loss
+
+    def get_config_dict(self):
+        return {
+            "activation_fct": fullname(self.activation_fct),
+        }

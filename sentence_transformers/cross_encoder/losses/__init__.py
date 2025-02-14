@@ -3,6 +3,7 @@ from __future__ import annotations
 from .BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
 from .CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
 from .CrossEntropyLoss import CrossEntropyLoss
+from .MarginMSELoss import MarginMSELoss
 from .MSELoss import MSELoss
 from .MultipleNegativesRankingLoss import MultipleNegativesRankingLoss
 
@@ -11,5 +12,6 @@ __all__ = [
     "CrossEntropyLoss",
     "MultipleNegativesRankingLoss",
     "CachedMultipleNegativesRankingLoss",
+    "MarginMSELoss",
     "MSELoss",
 ]

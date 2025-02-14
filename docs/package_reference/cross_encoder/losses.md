@@ -27,3 +27,8 @@ Sadly, there is no "one size fits all" loss function. Which loss function is sui
 ```{eval-rst}
 .. autoclass:: sentence_transformers.cross_encoder.losses.MSELoss
 ```
+
+## MarginMSELoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.cross_encoder.losses.MarginMSELoss
+```
