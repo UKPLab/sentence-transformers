@@ -87,7 +87,7 @@ class GISTEmbedLoss(nn.Module):
                 "Both the training model and the guiding model must be based on the `transformers` architecture."
             )
         self.must_retokenize = (
-            model.tokenizer.vocab != guide.tokenizer.vocab or guide.max_seq_length < model.max_seq_length
+            model.tokenizer.get_vocab() != guide.tokenizer.get_vocab() or guide.max_seq_length < model.max_seq_length
         )
         if self.must_retokenize:
             self.tokenizer = self.model.tokenizer
