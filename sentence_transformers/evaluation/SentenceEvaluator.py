@@ -9,21 +9,18 @@ if TYPE_CHECKING:
 
 class SentenceEvaluator:
     """
-    Base class for all evaluators
+    Base class for all evaluators. Notably, this class introduces the ``greater_is_better`` and ``primary_metric``
+    attributes. The former is a boolean indicating whether a higher evaluation score is better, which is used
+    for choosing the best checkpoint if ``load_best_model_at_end`` is set to ``True`` in the training arguments.
+
+    The latter is a string indicating the primary metric for the evaluator. This has to be defined whenever
+    the evaluator returns a dictionary of metrics, and the primary metric is the key pointing to the primary
+    metric, i.e. the one that is used for model selection and/or logging.
 
     Extend this class and implement __call__ for custom evaluators.
     """
 
     def __init__(self):
-        """
-        Base class for all evaluators. Notably, this class introduces the ``greater_is_better`` and ``primary_metric``
-        attributes. The former is a boolean indicating whether a higher evaluation score is better, which is used
-        for choosing the best checkpoint if ``load_best_model_at_end`` is set to ``True`` in the training arguments.
-
-        The latter is a string indicating the primary metric for the evaluator. This has to be defined whenever
-        the evaluator returns a dictionary of metrics, and the primary metric is the key pointing to the primary
-        metric, i.e. the one that is used for model selection and/or logging.
-        """
         self.greater_is_better = True
         self.primary_metric = None
 

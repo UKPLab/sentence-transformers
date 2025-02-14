@@ -24,6 +24,19 @@ class TranslationEvaluator(SentenceEvaluator):
     and assuming that fr_i is the translation of en_i.
     Checks if vec(en_i) has the highest similarity to vec(fr_i). Computes the accuracy in both directions
 
+    The labels need to indicate the similarity between the sentences.
+
+    Args:
+        source_sentences (List[str]): List of sentences in the source language.
+        target_sentences (List[str]): List of sentences in the target language.
+        show_progress_bar (bool): Whether to show a progress bar when computing embeddings. Defaults to False.
+        batch_size (int): The batch size to compute sentence embeddings. Defaults to 16.
+        name (str): The name of the evaluator. Defaults to an empty string.
+        print_wrong_matches (bool): Whether to print incorrect matches. Defaults to False.
+        write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
+        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. If None, the model's
+            current truncation dimension will be used. Defaults to None.
+
     Example:
         ::
 
@@ -66,22 +79,6 @@ class TranslationEvaluator(SentenceEvaluator):
         write_csv: bool = True,
         truncate_dim: int | None = None,
     ):
-        """
-        Constructs an evaluator based for the dataset
-
-        The labels need to indicate the similarity between the sentences.
-
-        Args:
-            source_sentences (List[str]): List of sentences in the source language.
-            target_sentences (List[str]): List of sentences in the target language.
-            show_progress_bar (bool): Whether to show a progress bar when computing embeddings. Defaults to False.
-            batch_size (int): The batch size to compute sentence embeddings. Defaults to 16.
-            name (str): The name of the evaluator. Defaults to an empty string.
-            print_wrong_matches (bool): Whether to print incorrect matches. Defaults to False.
-            write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
-            truncate_dim (int, optional): The dimension to truncate sentence embeddings to. If None, the model's
-                current truncation dimension will be used. Defaults to None.
-        """
         super().__init__()
         self.source_sentences = source_sentences
         self.target_sentences = target_sentences
