@@ -150,7 +150,7 @@ It is important that your dataset format matches your loss function (or that you
 1. If your loss function requires a *Label* according to the `Loss Overview <loss_overview.html>`_ table, then your dataset must have a **column named "label" or "score"**. This column is automatically taken as the label.
 2. All columns not named "label" or "score" are considered *Inputs* according to the `Loss Overview <loss_overview.html>`_ table. The number of remaining columns must match the number of valid inputs for your chosen loss. The names of these columns are **irrelevant**, only the **order matters**. 
 
-For example, given a dataset with columns ``["text1", "text2", "label"]`` where the "label" column has float similarity score, we can use it with :class:`~sentence_transformers.losses.CoSENTLoss`, :class:`~sentence_transformers.losses.AnglELoss`, and :class:`~sentence_transformers.losses.CosineSimilarityLoss` because it:
+For example, given a dataset with columns ``["text1", "text2", "label"]`` where the "label" column has float similarity score between 0 and 1, we can use it with :class:`~sentence_transformers.losses.CoSENTLoss`, :class:`~sentence_transformers.losses.AnglELoss`, and :class:`~sentence_transformers.losses.CosineSimilarityLoss` because it:
 
 1. has a "label" column as is required for these loss functions.
 2. has 2 non-label columns, exactly the amount required by these loss functions.
@@ -166,7 +166,7 @@ Loss functions quantify how well a model performs for a given batch of data, all
 Sadly, there is no single loss function that works best for all use-cases. Instead, which loss function to use greatly depends on your available data and on your target task. See [Dataset Format](#dataset-format) to learn what datasets are valid for which loss functions. Additionally, the [Loss Overview](loss_overview) will be your best friend to learn about the options.
 
 ```{eval-rst}
-Most loss functions can be initialized with just the :class:`SentenceTransformer` that you're training, alongside some optional parameters, e.g.:
+Most loss functions can be initialized with just the :class:`~sentence_transformers.SentenceTransformer` that you're training, alongside some optional parameters, e.g.:
 
 .. sidebar:: Documentation
 
@@ -203,8 +203,6 @@ Most loss functions can be initialized with just the :class:`SentenceTransformer
 The :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` class can be used to specify parameters for influencing training performance as well as defining the tracking/debugging parameters. Although it is optional, it is heavily recommended to experiment with the various useful arguments.
 ```
 
-The following are tables with some of the most useful training arguments.
-
 <div class="training-arguments">
     <div class="header">Key Training Arguments for improving training performance</div>
     <div class="table">
@@ -238,6 +236,7 @@ The following are tables with some of the most useful training arguments.
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.save_total_limit"><code>save_total_limit</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.load_best_model_at_end"><code>load_best_model_at_end</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.report_to"><code>report_to</code></a>
+        <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.run_name"><code>run_name</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.log_level"><code>log_level</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.logging_steps"><code>logging_steps</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.push_to_hub"><code>push_to_hub</code></a>
@@ -278,7 +277,7 @@ args = SentenceTransformerTrainingArguments(
 
 ## Evaluator
 
-You can provide the [`SentenceTransformerTrainer`](https://sbert.net/docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer) with an `eval_dataset` to get the evaluation loss during training, but it may be useful to get more concrete metrics during training, too. For this, you can use evaluators to assess the model's performance with useful metrics before, during, or after training. You can use both an `eval_dataset` and an evaluator, one or the other, or neither. They evaluate based on the `eval_strategy` and `eval_steps` [Training Arguments](#training-arguments).
+You can provide the [`SentenceTransformerTrainer`](https://sbert.net/docs/package_reference/sentence_transformer/trainer.html#sentence_transformers.trainer.SentenceTransformerTrainer) with an `eval_dataset` to get the evaluation loss during training, but it may be useful to get more concrete metrics during training, too. For this, you can use evaluators to assess the model's performance with useful metrics before, during, or after training. You can use both an `eval_dataset` and an evaluator, one or the other, or neither. They evaluate based on the `eval_strategy` and `eval_steps` [Training Arguments](#training-arguments).
 
 Here are the implemented Evaluators that come with Sentence Transformers:
 ```{eval-rst}
@@ -330,7 +329,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
             name="sts-dev",
         )
         # You can run evaluation like so:
-        # dev_evaluator(model)
+        # results = dev_evaluator(model)
 
 .. tab:: TripletEvaluator with AllNLI
 
@@ -363,7 +362,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
             name="all-nli-dev",
         )
         # You can run evaluation like so:
-        # dev_evaluator(model)
+        # results = dev_evaluator(model)
 
 .. tab:: NanoBEIREvaluator
 
@@ -384,7 +383,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         # directly from Hugging Face, so there's no mandatory arguments
         dev_evaluator = NanoBEIREvaluator()
         # You can run evaluation like so:
-        # dev_evaluator(model)
+        # results = dev_evaluator(model)
 
 .. warning::
 
@@ -394,7 +393,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
 ## Trainer
 
 ```{eval-rst}
-The :class:`~sentence_transformers.SentenceTransformerTrainer` is where all previous components come together. We only have to specify the trainer with the model, training arguments (optional), training dataset, evaluation dataset (optional), loss function, evaluator (optional) and we can start training. Let's have a look at a script where all of these components come together:
+The :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` is where all previous components come together. We only have to specify the trainer with the model, training arguments (optional), training dataset, evaluation dataset (optional), loss function, evaluator (optional) and we can start training. Let's have a look at a script where all of these components come together:
 
 .. sidebar:: Documentation
 
