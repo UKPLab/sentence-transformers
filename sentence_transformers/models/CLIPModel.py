@@ -9,7 +9,7 @@ from torch import nn
 class CLIPModel(nn.Module):
     save_in_root: bool = True
 
-    def __init__(self, model_name: str = "openai/clip-vit-base-patch32", processor_name=None) -> None:
+    def __init__(self, model_name: str = "openai/clip-vit-base-patch32", processor_name=None, max_seq_length: int | None = None) -> None:
         super().__init__()
 
         if processor_name is None:
@@ -17,6 +17,7 @@ class CLIPModel(nn.Module):
 
         self.model = transformers.CLIPModel.from_pretrained(model_name)
         self.processor = transformers.CLIPProcessor.from_pretrained(processor_name)
+        self.max_seq_length = max_seq_length or self.processor.tokenizer.model_max_length
 
     def __repr__(self) -> str:
         return "CLIPModel()"
@@ -68,7 +69,13 @@ class CLIPModel(nn.Module):
 
         encoding = {}
         if len(texts_values):
-            encoding = self.processor.tokenizer(texts_values, return_tensors="pt", padding=padding)
+            encoding = self.processor.tokenizer(
+                texts_values,
+                truncation="longest_first",
+                return_tensors="pt",
+                padding=padding,
+                max_length=self.max_seq_length,
+            )
 
         if len(images):
             image_features = self.processor.image_processor(images, return_tensors="pt")
