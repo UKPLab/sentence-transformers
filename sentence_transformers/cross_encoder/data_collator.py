@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import field
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 import torch
@@ -8,6 +8,7 @@ import torch
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 
 
+@dataclass
 class CrossEncoderDataCollator(SentenceTransformerDataCollator):
     """Collator for a CrossEncoder model.
     This encodes the text columns to {column}_input_ids and {column}_attention_mask columns.
@@ -21,7 +22,7 @@ class CrossEncoderDataCollator(SentenceTransformerDataCollator):
     """
 
     tokenize_fn: Callable
-    valid_label_columns: list[str] = field(default_factory=lambda: ["label", "score"])
+    valid_label_columns: list[str] = field(default_factory=lambda: ["label", "labels", "score", "scores"])
     _warned_columns: set[tuple[str]] = field(default_factory=set, init=False, repr=False)
 
     def __call__(self, features: list[dict[str, Any]]) -> dict[str, torch.Tensor]:
