@@ -292,7 +292,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             if not os.path.exists(model_name_or_path):
                 # Not a path, load from hub
                 if "\\" in model_name_or_path or model_name_or_path.count("/") > 1:
-                    raise ValueError(f"Path {model_name_or_path} not found")
+                    raise FileNotFoundError(f"Path {model_name_or_path} not found")
 
                 if "/" not in model_name_or_path and model_name_or_path.lower() not in basic_transformer_models:
                     # A model from sentence-transformers
