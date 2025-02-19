@@ -48,11 +48,13 @@ class ListNetLoss(nn.Module):
         model: CrossEncoder,
         eps: float = 1e-10,
         pad_value: int = -1,
+        activation_fct: nn.Module | None = nn.Sigmoid(),
     ) -> None:
         super().__init__()
         self.model = model
         self.eps = eps
         self.pad_value = pad_value
+        self.activation_fct = activation_fct
 
         if self.model.num_labels != 1:
             raise ValueError(
@@ -104,6 +106,9 @@ class ListNetLoss(nn.Module):
         # Place logits back in their original positions
         full_logits[batch_indices, doc_indices] = logits
 
+        if self.activation_fct is not None:
+            full_logits = self.activation_fct(full_logits)
+
         # Set padded positions in labels to -inf for consistent softmax
         labels = labels.to(self.model.device)
         labels[~mask] = float("-inf")
@@ -124,7 +129,11 @@ class ListNetLoss(nn.Module):
         Returns:
             Dictionary containing the configuration parameters
         """
-        return {"eps": self.eps, "pad_value": self.pad_value}
+        return {
+            "eps": self.eps,
+            "pad_value": self.pad_value,
+            "activation_fct": self.activation_fct,
+        }
 
     @property
     def citation(self) -> str:
