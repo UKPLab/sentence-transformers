@@ -15,7 +15,7 @@ from sentence_transformers.cross_encoder.training_args import (
 
 
 def main():
-    model_name = "answerdotai/ModernBERT-base"
+    model_name = "microsoft/MiniLM-L12-H384-uncased"
 
     # Set the log level to INFO to get more information
     logging.basicConfig(
@@ -25,8 +25,9 @@ def main():
     )
     # The batch size is lower because we have to process multiple documents per query
     # This means that the batch size is effectively multiplied by the number of max_docs
-    train_batch_size = 3
-    num_epochs = 1
+    train_batch_size = 6
+    eval_batch_size = 16
+    num_epochs = 3
     max_docs = 10
     pad_value = -1
     loss_name = "listnet"
@@ -93,7 +94,7 @@ def main():
     loss = ListNetLoss(model, pad_value=pad_value)
 
     # 4. Define the evaluator. We use the CENanoBEIREvaluator, which is a light-weight evaluator for English reranking
-    evaluator = CENanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=train_batch_size)
+    evaluator = CENanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=eval_batch_size)
     evaluator(model)
 
     # 5. Define the training arguments
@@ -105,7 +106,7 @@ def main():
         # Optional training parameters:
         num_train_epochs=num_epochs,
         per_device_train_batch_size=train_batch_size,
-        per_device_eval_batch_size=train_batch_size,
+        per_device_eval_batch_size=eval_batch_size,
         learning_rate=2e-5,
         warmup_ratio=0.1,
         fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
