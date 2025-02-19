@@ -718,6 +718,35 @@ def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
     assert embeddings.shape == (0,)
 
 
+@pytest.mark.parametrize(
+    ["convert_to_tensor", "convert_to_numpy", "expected_type"],
+    [
+        (True, False, torch.Tensor),
+        (False, False, torch.Tensor),
+        (None, False, torch.Tensor),
+        (True, True, torch.Tensor),
+        (False, True, np.ndarray),
+        (None, True, np.ndarray),
+        (True, None, torch.Tensor),
+        (False, None, np.ndarray),
+        (None, None, np.ndarray),
+    ],
+)
+def test_encode_token_embeddings_type(
+    stsb_bert_tiny_model_reused: SentenceTransformer, convert_to_tensor: bool, convert_to_numpy: bool, expected_type
+) -> None:
+    model = stsb_bert_tiny_model_reused
+
+    encode_kwargs = {}
+    if convert_to_tensor is not None:
+        encode_kwargs["convert_to_tensor"] = convert_to_tensor
+    if convert_to_numpy is not None:
+        encode_kwargs["convert_to_numpy"] = convert_to_numpy
+    embeddings = model.encode("Hello, World!", output_value="token_embeddings", **encode_kwargs)
+    assert isinstance(embeddings, expected_type)
+    assert embeddings.shape == (6, 128)
+
+
 @pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test adapter methods.")
 def test_multiple_adapters() -> None:
     text = "Hello, World!"
