@@ -94,8 +94,8 @@ class SentenceTransformerTrainer(Trainer):
             A list of callbacks to customize the training loop. Will add those to the list of default callbacks
             detailed in [here](callback).
         extra_feature_keys (List[str], *optional*):
-            If you have a custom processor that adds extra features to the dataset, similar to "pixel_values" in CLIP, you can 
-            specify strings which are used as a prefix of these features here. They are used in the `collect_features` method.
+            If you have a custom processor that adds extra features to the dataset, similar to "pixel_values" in CLIP,
+            you can specify strings which are used as a prefix of these features here. These keys are used in the `collect_features` method.
 
             If you want to remove one of the default callbacks used, use the [`Trainer.remove_callback`] method.
         optimizers (`Tuple[:class:`torch.optim.Optimizer`, :class:`torch.optim.lr_scheduler.LambdaLR`]`, *optional*, defaults to `(None, None)`):
@@ -443,33 +443,31 @@ class SentenceTransformerTrainer(Trainer):
         features = []
         extra_suffixes = {key: "_" + key for key in self.extra_feature_keys}
         for column in inputs:
-                prefix = None  # Reset prefix for each column
-                
-                # First, check extra feature keys
-                # add "_" infront of every key
-                for key, suffix in extra_suffixes.items():
-                    if column.endswith(suffix):
-                        prefix = column[: -len(key)]
-                        break  # Stop checking once we find a match
+            prefix = None  # Reset prefix for each column
 
-                # If no match found, check predefined suffixes
-                if prefix is None:
-                    if column.endswith("_input_ids"):
-                        prefix = column[: -len("input_ids")]
-                    elif column.endswith("_sentence_embedding"):
-                        prefix = column[: -len("sentence_embedding")]
-                    elif column.endswith("_pixel_values"):
-                        prefix = column[: -len("pixel_values")]
+            # First, check extra feature keys
+            # add "_" infront of every key
+            for key, suffix in extra_suffixes.items():
+                if column.endswith(suffix):
+                    prefix = column[: -len(key)]
+                    break  # Stop checking once we find a match
 
-                # Skip columns with no matching suffix
-                if prefix is None:
-                    continue
-                
-                # Collect all features that start with the detected prefix
-                feature_dict = {
-                    key[len(prefix):]: value for key, value in inputs.items() if key.startswith(prefix)
-                }
-                features.append(feature_dict)
+            # If no match found, check predefined suffixes
+            if prefix is None:
+                if column.endswith("_input_ids"):
+                    prefix = column[: -len("input_ids")]
+                elif column.endswith("_sentence_embedding"):
+                    prefix = column[: -len("sentence_embedding")]
+                elif column.endswith("_pixel_values"):
+                    prefix = column[: -len("pixel_values")]
+
+            # Skip columns with no matching suffix
+            if prefix is None:
+                continue
+
+            # Collect all features that start with the detected prefix
+            feature_dict = {key[len(prefix) :]: value for key, value in inputs.items() if key.startswith(prefix)}
+            features.append(feature_dict)
 
         labels = inputs.get("label", None)
         return features, labels
