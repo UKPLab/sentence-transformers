@@ -27,6 +27,28 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
     Given a set of queries and a large corpus set. It will retrieve for each query the top-k most similar document. It measures
     Mean Reciprocal Rank (MRR), Recall@k, and Normalized Discounted Cumulative Gain (NDCG)
 
+    Args:
+        queries (Dict[str, str]): A dictionary mapping query IDs to queries.
+        corpus (Dict[str, str]): A dictionary mapping document IDs to documents.
+        relevant_docs (Dict[str, Set[str]]): A dictionary mapping query IDs to a set of relevant document IDs.
+        corpus_chunk_size (int): The size of each chunk of the corpus. Defaults to 50000.
+        mrr_at_k (List[int]): A list of integers representing the values of k for MRR calculation. Defaults to [10].
+        ndcg_at_k (List[int]): A list of integers representing the values of k for NDCG calculation. Defaults to [10].
+        accuracy_at_k (List[int]): A list of integers representing the values of k for accuracy calculation. Defaults to [1, 3, 5, 10].
+        precision_recall_at_k (List[int]): A list of integers representing the values of k for precision and recall calculation. Defaults to [1, 3, 5, 10].
+        map_at_k (List[int]): A list of integers representing the values of k for MAP calculation. Defaults to [100].
+        show_progress_bar (bool): Whether to show a progress bar during evaluation. Defaults to False.
+        batch_size (int): The batch size for evaluation. Defaults to 32.
+        name (str): A name for the evaluation. Defaults to "".
+        write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
+        truncate_dim (int, optional): The dimension to truncate the embeddings to. Defaults to None.
+        score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to the ``similarity`` function from the ``model``.
+        main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
+        query_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
+        query_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
+        corpus_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
+        corpus_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
+
     Example:
         ::
 
@@ -121,31 +143,6 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         corpus_prompt: str | None = None,
         corpus_prompt_name: str | None = None,
     ) -> None:
-        """
-        Initializes the InformationRetrievalEvaluator.
-
-        Args:
-            queries (Dict[str, str]): A dictionary mapping query IDs to queries.
-            corpus (Dict[str, str]): A dictionary mapping document IDs to documents.
-            relevant_docs (Dict[str, Set[str]]): A dictionary mapping query IDs to a set of relevant document IDs.
-            corpus_chunk_size (int): The size of each chunk of the corpus. Defaults to 50000.
-            mrr_at_k (List[int]): A list of integers representing the values of k for MRR calculation. Defaults to [10].
-            ndcg_at_k (List[int]): A list of integers representing the values of k for NDCG calculation. Defaults to [10].
-            accuracy_at_k (List[int]): A list of integers representing the values of k for accuracy calculation. Defaults to [1, 3, 5, 10].
-            precision_recall_at_k (List[int]): A list of integers representing the values of k for precision and recall calculation. Defaults to [1, 3, 5, 10].
-            map_at_k (List[int]): A list of integers representing the values of k for MAP calculation. Defaults to [100].
-            show_progress_bar (bool): Whether to show a progress bar during evaluation. Defaults to False.
-            batch_size (int): The batch size for evaluation. Defaults to 32.
-            name (str): A name for the evaluation. Defaults to "".
-            write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
-            truncate_dim (int, optional): The dimension to truncate the embeddings to. Defaults to None.
-            score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to the ``similarity`` function from the ``model``.
-            main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
-            query_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
-            query_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
-            corpus_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
-            corpus_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
-        """
         super().__init__()
         self.queries_ids = []
         for qid in queries:

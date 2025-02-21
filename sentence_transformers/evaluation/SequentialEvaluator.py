@@ -15,25 +15,22 @@ class SequentialEvaluator(SentenceEvaluator):
     the data is passed sequentially to all sub-evaluators.
 
     All scores are passed to 'main_score_function', which derives one final score value
+
+    Args:
+        evaluators (Iterable[SentenceEvaluator]): A collection of SentenceEvaluator objects.
+        main_score_function (function, optional): A function that takes a list of scores and returns the main score.
+            Defaults to selecting the last score in the list.
+
+    Example:
+        ::
+
+            evaluator1 = BinaryClassificationEvaluator(...)
+            evaluator2 = InformationRetrievalEvaluator(...)
+            evaluator3 = MSEEvaluator(...)
+            seq_evaluator = SequentialEvaluator([evaluator1, evaluator2, evaluator3])
     """
 
     def __init__(self, evaluators: Iterable[SentenceEvaluator], main_score_function=lambda scores: scores[-1]):
-        """
-        Initializes a SequentialEvaluator object.
-
-        Args:
-            evaluators (Iterable[SentenceEvaluator]): A collection of SentenceEvaluator objects.
-            main_score_function (function, optional): A function that takes a list of scores and returns the main score.
-                Defaults to selecting the last score in the list.
-
-        Example:
-            ::
-
-                evaluator1 = BinaryClassificationEvaluator(...)
-                evaluator2 = InformationRetrievalEvaluator(...)
-                evaluator3 = MSEEvaluator(...)
-                seq_evaluator = SequentialEvaluator([evaluator1, evaluator2, evaluator3])
-        """
         super().__init__()
         self.evaluators = evaluators
         self.main_score_function = main_score_function

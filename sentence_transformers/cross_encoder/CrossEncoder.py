@@ -2,28 +2,33 @@ from __future__ import annotations
 
 import logging
 import os
-from functools import wraps
+import tempfile
+import traceback
 from typing import Callable, Literal, overload
 
 import numpy as np
 import torch
-from torch import Tensor, nn
-from torch.optim import Optimizer
+from huggingface_hub import HfApi
+from torch import nn
 from torch.utils.data import DataLoader
-from tqdm.autonotebook import tqdm, trange
-from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, is_torch_npu_available
-from transformers.tokenization_utils_base import BatchEncoding
+from tqdm.autonotebook import tqdm
+from transformers import (
+    AutoConfig,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    PretrainedConfig,
+    PreTrainedModel,
+)
 from transformers.utils import PushToHubMixin
 
-from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
-from sentence_transformers.readers import InputExample
-from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers.cross_encoder.fit_mixin import FitMixin
+from sentence_transformers.cross_encoder.model_card import CrossEncoderModelCardData, generate_model_card
 from sentence_transformers.util import fullname, get_device_name, import_from_string
 
 logger = logging.getLogger(__name__)
 
 
-class CrossEncoder(PushToHubMixin):
+class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
     """
     A CrossEncoder takes exactly two sentences / texts as input and either predicts
     a score or label for this sentence pair. It can for example predict the similarity of the sentence pair
@@ -72,14 +77,18 @@ class CrossEncoder(PushToHubMixin):
         local_files_only: bool = False,
         default_activation_function=None,
         classifier_dropout: float = None,
+        model_card_data: CrossEncoderModelCardData | None = None,
     ) -> None:
+        super().__init__()
         if tokenizer_args is None:
             tokenizer_args = {}
         if automodel_args is None:
             automodel_args = {}
         if config_args is None:
             config_args = {}
-        self.config = AutoConfig.from_pretrained(
+        self.model_card_data = model_card_data or CrossEncoderModelCardData()
+        self.trust_remote_code = trust_remote_code
+        self.config: PretrainedConfig = AutoConfig.from_pretrained(
             model_name,
             trust_remote_code=trust_remote_code,
             revision=revision,
@@ -87,7 +96,7 @@ class CrossEncoder(PushToHubMixin):
             cache_dir=cache_dir,
             **config_args,
         )
-        classifier_trained = True
+        classifier_trained = False  # TODO: This is 'breaking'
         if self.config.architectures is not None:
             classifier_trained = any(
                 [arch.endswith("ForSequenceClassification") for arch in self.config.architectures]
@@ -101,7 +110,7 @@ class CrossEncoder(PushToHubMixin):
 
         if num_labels is not None:
             self.config.num_labels = num_labels
-        self.model = AutoModelForSequenceClassification.from_pretrained(
+        self.model: PreTrainedModel = AutoModelForSequenceClassification.from_pretrained(
             model_name,
             config=self.config,
             revision=revision,
@@ -110,6 +119,10 @@ class CrossEncoder(PushToHubMixin):
             cache_dir=cache_dir,
             **automodel_args,
         )
+        if max_length is not None and "model_max_length" not in tokenizer_args:
+            tokenizer_args["model_max_length"] = max_length
+        if hasattr(self.config, "max_position_embeddings") and "model_max_length" not in tokenizer_args:
+            tokenizer_args["model_max_length"] = self.config.max_position_embeddings
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name,
             revision=revision,
@@ -118,13 +131,13 @@ class CrossEncoder(PushToHubMixin):
             cache_dir=cache_dir,
             **tokenizer_args,
         )
-        self.max_length = max_length
 
         if device is None:
             device = get_device_name()
             logger.info(f"Use pytorch device: {device}")
         self.model.to(device)
 
+        # TODO: Figure out how best to apply the activation function. In forward?
         if default_activation_function is not None:
             self.default_activation_function = default_activation_function
             try:
@@ -139,179 +152,20 @@ class CrossEncoder(PushToHubMixin):
         else:
             self.default_activation_function = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
 
-    def smart_batching_collate(self, batch: list[InputExample]) -> tuple[BatchEncoding, Tensor]:
-        texts = [[] for _ in range(len(batch[0].texts))]
-        labels = []
+        # Pass the model to the model card data for later use in generating a model card upon saving this model
+        self.model_card_data.register_model(self)
+        self.model_card_data.set_base_model(model_name, revision=revision)
 
-        for example in batch:
-            for idx, text in enumerate(example.texts):
-                texts[idx].append(text.strip())
+    @property
+    def num_labels(self) -> int:
+        return self.config.num_labels
 
-            labels.append(example.label)
+    @property
+    def max_length(self) -> int:
+        return self.tokenizer.model_max_length
 
-        tokenized = self.tokenizer(
-            *texts, padding=True, truncation="longest_first", return_tensors="pt", max_length=self.max_length
-        )
-        labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(
-            self.model.device
-        )
-
-        for name in tokenized:
-            tokenized[name] = tokenized[name].to(self.model.device)
-
-        return tokenized, labels
-
-    def smart_batching_collate_text_only(self, batch: list[InputExample]) -> BatchEncoding:
-        texts = [[] for _ in range(len(batch[0]))]
-
-        for example in batch:
-            for idx, text in enumerate(example):
-                texts[idx].append(text.strip())
-
-        tokenized = self.tokenizer(
-            *texts, padding=True, truncation="longest_first", return_tensors="pt", max_length=self.max_length
-        )
-
-        for name in tokenized:
-            tokenized[name] = tokenized[name].to(self.model.device)
-
-        return tokenized
-
-    def fit(
-        self,
-        train_dataloader: DataLoader,
-        evaluator: SentenceEvaluator = None,
-        epochs: int = 1,
-        loss_fct=None,
-        activation_fct=nn.Identity(),
-        scheduler: str = "WarmupLinear",
-        warmup_steps: int = 10000,
-        optimizer_class: type[Optimizer] = torch.optim.AdamW,
-        optimizer_params: dict[str, object] = {"lr": 2e-5},
-        weight_decay: float = 0.01,
-        evaluation_steps: int = 0,
-        output_path: str = None,
-        save_best_model: bool = True,
-        max_grad_norm: float = 1,
-        use_amp: bool = False,
-        callback: Callable[[float, int, int], None] = None,
-        show_progress_bar: bool = True,
-    ) -> None:
-        """
-        Train the model with the given training objective
-        Each training objective is sampled in turn for one batch.
-        We sample only as many batches from each objective as there are in the smallest one
-        to make sure of equal training with each dataset.
-
-        Args:
-            train_dataloader (DataLoader): DataLoader with training InputExamples
-            evaluator (SentenceEvaluator, optional): An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc. Defaults to None.
-            epochs (int, optional): Number of epochs for training. Defaults to 1.
-            loss_fct: Which loss function to use for training. If None, will use nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss(). Defaults to None.
-            activation_fct: Activation function applied on top of logits output of model.
-            scheduler (str, optional): Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts. Defaults to "WarmupLinear".
-            warmup_steps (int, optional): Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero. Defaults to 10000.
-            optimizer_class (Type[Optimizer], optional): Optimizer. Defaults to torch.optim.AdamW.
-            optimizer_params (Dict[str, object], optional): Optimizer parameters. Defaults to {"lr": 2e-5}.
-            weight_decay (float, optional): Weight decay for model parameters. Defaults to 0.01.
-            evaluation_steps (int, optional): If > 0, evaluate the model using evaluator after each number of training steps. Defaults to 0.
-            output_path (str, optional): Storage path for the model and evaluation files. Defaults to None.
-            save_best_model (bool, optional): If true, the best model (according to evaluator) is stored at output_path. Defaults to True.
-            max_grad_norm (float, optional): Used for gradient normalization. Defaults to 1.
-            use_amp (bool, optional): Use Automatic Mixed Precision (AMP). Only for Pytorch >= 1.6.0. Defaults to False.
-            callback (Callable[[float, int, int], None], optional): Callback function that is invoked after each evaluation.
-                It must accept the following three parameters in this order:
-                `score`, `epoch`, `steps`. Defaults to None.
-            show_progress_bar (bool, optional): If True, output a tqdm progress bar. Defaults to True.
-        """
-        train_dataloader.collate_fn = self.smart_batching_collate
-
-        if use_amp:
-            if is_torch_npu_available():
-                scaler = torch.npu.amp.GradScaler()
-            else:
-                scaler = torch.cuda.amp.GradScaler()
-
-        if output_path is not None:
-            os.makedirs(output_path, exist_ok=True)
-
-        self.best_score = -9999999
-        num_train_steps = int(len(train_dataloader) * epochs)
-
-        # Prepare optimizers
-        param_optimizer = list(self.model.named_parameters())
-
-        no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
-        optimizer_grouped_parameters = [
-            {
-                "params": [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)],
-                "weight_decay": weight_decay,
-            },
-            {"params": [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], "weight_decay": 0.0},
-        ]
-
-        optimizer = optimizer_class(optimizer_grouped_parameters, **optimizer_params)
-
-        if isinstance(scheduler, str):
-            scheduler = SentenceTransformer._get_scheduler(
-                optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps
-            )
-
-        if loss_fct is None:
-            loss_fct = nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
-
-        skip_scheduler = False
-        for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
-            training_steps = 0
-            self.model.zero_grad()
-            self.model.train()
-
-            for features, labels in tqdm(
-                train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
-            ):
-                if use_amp:
-                    with torch.autocast(device_type=self.model.device.type):
-                        model_predictions = self.model(**features, return_dict=True)
-                        logits = activation_fct(model_predictions.logits)
-                        if self.config.num_labels == 1:
-                            logits = logits.view(-1)
-                        loss_value = loss_fct(logits, labels)
-
-                    scale_before_step = scaler.get_scale()
-                    scaler.scale(loss_value).backward()
-                    scaler.unscale_(optimizer)
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
-                    scaler.step(optimizer)
-                    scaler.update()
-
-                    skip_scheduler = scaler.get_scale() != scale_before_step
-                else:
-                    model_predictions = self.model(**features, return_dict=True)
-                    logits = activation_fct(model_predictions.logits)
-                    if self.config.num_labels == 1:
-                        logits = logits.view(-1)
-                    loss_value = loss_fct(logits, labels)
-                    loss_value.backward()
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
-                    optimizer.step()
-
-                optimizer.zero_grad()
-
-                if not skip_scheduler:
-                    scheduler.step()
-
-                training_steps += 1
-
-                if evaluator is not None and evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(
-                        evaluator, output_path, save_best_model, epoch, training_steps, callback
-                    )
-
-                    self.model.zero_grad()
-                    self.model.train()
-
-            if evaluator is not None:
-                self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+    def forward(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
 
     @overload
     def predict(
@@ -414,6 +268,7 @@ class CrossEncoder(PushToHubMixin):
             sentences = [sentences]
             input_was_string = True
 
+        # TODO: Refactor this to avoid using a DataLoader or self.smart_batching_collate_text_only
         inp_dataloader = DataLoader(
             sentences,
             batch_size=batch_size,
@@ -553,17 +408,6 @@ class CrossEncoder(PushToHubMixin):
         results = sorted(results, key=lambda x: x["score"], reverse=True)
         return results[:top_k]
 
-    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback) -> None:
-        """Runs evaluation during the training"""
-        if evaluator is not None:
-            score = evaluator(self, output_path=output_path, epoch=epoch, steps=steps)
-            if callback is not None:
-                callback(score, epoch, steps)
-            if score > self.best_score:
-                self.best_score = score
-                if save_best_model:
-                    self.save(output_path)
-
     def save(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
         """
         Saves the model and tokenizer to path; identical to `save_pretrained`
@@ -574,6 +418,7 @@ class CrossEncoder(PushToHubMixin):
         logger.info(f"Save model to {path}")
         self.model.save_pretrained(path, safe_serialization=safe_serialization, **kwargs)
         self.tokenizer.save_pretrained(path, **kwargs)
+        self._create_model_card(path)
 
     def save_pretrained(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
         """
@@ -581,31 +426,92 @@ class CrossEncoder(PushToHubMixin):
         """
         return self.save(path, safe_serialization=safe_serialization, **kwargs)
 
-    @wraps(PushToHubMixin.push_to_hub)
+    def _create_model_card(self, path: str) -> None:
+        """
+        Create an automatic model and stores it in the specified path. If no training was done and the loaded model
+        was a CrossEncoder model already, then its model card is reused.
+
+        Args:
+            path (str): The path where the model card will be stored.
+
+        Returns:
+            None
+        """
+        # TODO: Introduce this:
+        """
+        # If we loaded a model from the Hub, and no training was done, then
+        # we don't generate a new model card, but reuse the old one instead.
+        if self._model_card_text and "generated_from_trainer" not in self.model_card_data.tags:
+            model_card = self._model_card_text
+            if self.model_card_data.model_id:
+                # If the original model card was saved without a model_id, we replace the model_id with the new model_id
+                model_card = model_card.replace(
+                    'model = SentenceTransformer("sentence_transformers_model_id"',
+                    f'model = SentenceTransformer("{self.model_card_data.model_id}"',
+                )
+        else:
+        """
+        try:
+            model_card = generate_model_card(self)
+        except Exception:
+            logger.error(
+                f"Error while generating model card:\n{traceback.format_exc()}"
+                "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with this traceback.\n"
+                "Skipping model card creation."
+            )
+            return
+
+        with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
+            fOut.write(model_card)
+
     def push_to_hub(
         self,
         repo_id: str,
         *,
-        commit_message: str | None = None,
+        token: str | None = None,
         private: bool | None = None,
         safe_serialization: bool = True,
+        commit_message: str | None = None,
+        exist_ok: bool = False,
+        revision: str | None = None,
+        create_pr: bool = False,
         tags: list[str] | None = None,
-        **kwargs,
     ) -> str:
-        if isinstance(tags, str):
-            tags = [tags]
-        elif tags is None:
-            tags = []
-        if "cross-encoder" not in tags:
-            tags.insert(0, "cross-encoder")
-        return super().push_to_hub(
+        api = HfApi(token=token)
+        repo_url = api.create_repo(
             repo_id=repo_id,
-            safe_serialization=safe_serialization,
-            commit_message=commit_message,
             private=private,
-            tags=tags,
-            **kwargs,
+            repo_type=None,
+            exist_ok=exist_ok or create_pr,
         )
+        repo_id = repo_url.repo_id  # Update the repo_id in case the old repo_id didn't contain a user or organization
+        self.model_card_data.set_model_id(repo_id)
+        if tags is not None:
+            self.model_card_data.add_tags(tags)
+
+        if revision is not None:
+            api.create_branch(repo_id=repo_id, branch=revision, exist_ok=True)
+
+        if commit_message is None:
+            commit_message = "Add new CrossEncoder model"
+        commit_description = ""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            self.save_pretrained(
+                tmp_dir,
+                safe_serialization=safe_serialization,
+            )
+            folder_url = api.upload_folder(
+                repo_id=repo_id,
+                folder_path=tmp_dir,
+                commit_message=commit_message,
+                commit_description=commit_description,
+                revision=revision,
+                create_pr=create_pr,
+            )
+
+        if create_pr:
+            return folder_url.pr_url
+        return folder_url.commit_url
 
     def to(self, device: int | str | torch.device | None = None) -> None:
         return self.model.to(device)
