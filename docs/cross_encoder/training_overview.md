@@ -103,10 +103,6 @@ The :class:`CrossEncoderTrainer` trains and evaluates using :class:`datasets.Dat
 
 .. tab:: Local Data that requires pre-processing
 
-    .. sidebar:: Documentation
-
-        - :meth:`datasets.Dataset.from_dict`
-
     If you have local data that requires some extra pre-processing, my recommendation is to initialize your dataset using :meth:`datasets.Dataset.from_dict` and a dictionary of lists, like so:
 
     .. raw:: html
@@ -155,6 +151,97 @@ Be sure to re-order your dataset columns with :meth:`Dataset.select_columns <dat
 
 Additionally, if your dataset has extraneous columns (e.g. sample_id, metadata, source, type), you should remove these with :meth:`Dataset.remove_columns <datasets.Dataset.remove_columns>` as they will be used as inputs otherwise. You can also use :meth:`Dataset.select_columns <datasets.Dataset.select_columns>` to keep only the desired columns.
 ```
+
+### Hard Negatives Mining
+
+The success of training CrossEncoder models often depends on the quality of the *negatives*, i.e. the passages for which the query-negative score should be low. Negatives can be divided into two types:
+
+* **Soft negatives**: passages that are completely unrelated.
+* **Hard negatives**: passages that seem like they might be relevant for the query, but are not.
+
+A concise example is:
+* **Query**: Where was Apple founded?
+* **Soft Negative**: The Cache River Bridge is a Parker pony truss that spans the Cache River between Walnut Ridge and Paragould, Arkansas.
+* **Hard Negative**: The Fuji apple is an apple cultivar developed in the late 1930s, and brought to market in 1962.
+
+```{eval-rst}
+The strongest CrossEncoder models are generally trained to recognize hard negatives, and so it's valuable to be able to "mine" hard negatives. Sentence Transformers supports a strong :func:`~sentence_transformers.util.mine_hard_negatives` function that can assist, given a dataset of query-answer pairs:
+
+.. sidebar:: Documentation
+
+    * `sentence-transformers/gooaq <https://huggingface.co/datasets/sentence-transformers/gooaq>`_
+    * `sentence-transformers/static-retrieval-mrl-en-v1 <https://huggingface.co/sentence-transformers/static-retrieval-mrl-en-v1>`_
+    * :class:`~sentence_transformers.SentenceTransformer`
+    * :func:`~sentence_transformers.util.mine_hard_negatives`
+
+::
+
+    from datasets import load_dataset
+    from sentence_transformers import SentenceTransformer
+    from sentence_transformers.util import mine_hard_negatives
+
+    # Load the GooAQ dataset: https://huggingface.co/datasets/sentence-transformers/gooaq
+    train_dataset = load_dataset("sentence-transformers/gooaq", split=f"train").select(range(100_000))
+    print(train_dataset)
+
+    # Mine hard negatives using a very efficient embedding model
+    embedding_model = SentenceTransformer("sentence-transformers/static-retrieval-mrl-en-v1", device="cpu")
+    hard_train_dataset = mine_hard_negatives(
+        train_dataset,
+        embedding_model,
+        num_negatives=5,  # How many negatives per question-answer pair
+        range_min=10,  # Skip the x most similar samples
+        range_max=100,  # Consider only the x most similar samples
+        max_score=0.8,  # Only consider samples with a similarity score of at most x
+        margin=0.1,  # Similarity between query and negative samples should be x lower than query-positive similarity
+        sampling_strategy="top",  # Randomly sample negatives from the range
+        batch_size=4096,  # Use a batch size of 4096 for the embedding model
+        output_format="labeled-pair",  # The output format is (query, passage, label), as required by BinaryCrossEntropyLoss
+        use_faiss=True,  # Using FAISS is recommended to keep memory usage low (pip install faiss-gpu or pip install faiss-cpu)
+    )
+    print(hard_train_dataset)
+    print(hard_train_dataset[1])
+
+```
+
+<details><summary>Click to see the outputs of this script.</summary>
+
+```
+Dataset({
+    features: ['question', 'answer'],
+    num_rows: 100000
+})
+
+Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 22/22 [00:01<00:00, 13.74it/s]
+Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 25/25 [00:00<00:00, 36.49it/s]
+Querying FAISS index: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 7/7 [00:19<00:00,  2.80s/it]
+Metric       Positive       Negative     Difference
+Count         100,000        436,925
+Mean           0.5882         0.4040         0.2157
+Median         0.5989         0.4024         0.1836
+Std            0.1425         0.0905         0.1013
+Min           -0.0514         0.1405         0.1014
+25%            0.4993         0.3377         0.1352
+50%            0.5989         0.4024         0.1836
+75%            0.6888         0.4681         0.2699
+Max            0.9748         0.7486         0.7545
+Skipped 2420871 potential negatives (23.97%) due to the margin of 0.1.
+Skipped 43 potential negatives (0.00%) due to the maximum score of 0.8.
+Could not find enough negatives for 63075 samples (12.62%). Consider adjusting the range_max, range_min, margin and max_score parameters if you'd like to find more valid negatives.
+Dataset({
+    features: ['question', 'answer', 'label'],
+    num_rows: 536925
+})
+
+{
+    'question': 'how to transfer bookmarks from one laptop to another?',
+    'answer': 'Using an External Drive Just about any external drive, including a USB thumb drive, or an SD card can be used to transfer your files from one laptop to another. Connect the drive to your old laptop; drag your files to the drive, then disconnect it and transfer the drive contents onto your new laptop.',
+    'label': 0
+}
+```
+
+</details>
+<br>
 
 ## Loss Function
 Loss functions quantify how well a model performs for a given batch of data, allowing an optimizer to update the model weights to produce more favourable (i.e., lower) loss values. This is the core of the training process.
@@ -279,14 +366,147 @@ Evaluator                                                                       
 :class:`~sentence_transformers.cross_encoder.evaluation.CEClassificationEvaluator`      Pairs with class labels (binary or multiclass).
 :class:`~sentence_transformers.cross_encoder.evaluation.CECorrelationEvaluator`         Pairs with similarity scores.
 :class:`~sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator`            No data required.
-:class:`~sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator`           List of ``{'query': '...', 'positive': [...], 'negative': [...]}`` dictionaries.
+:class:`~sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator`           List of ``{'query': '...', 'positive': [...], 'negative': [...]}`` dictionaries. Negatives can be mined with :func:`~sentence_transformers.util.mine_hard_negatives`.
 ======================================================================================  ===========================================================================================================================
 
 Additionally, :class:`~sentence_transformers.evaluation.SequentialEvaluator` should be used to combine multiple evaluators into one Evaluator that can be passed to the :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer`.
 
 Sometimes you don't have the required evaluation data to prepare one of these evaluators on your own, but you still want to track how well the model performs on some common benchmarks. In that case, you can use these evaluators with data from Hugging Face.
 
-.. tab:: EmbeddingSimilarityEvaluator with STSb
+.. tab:: CENanoBEIREvaluator
+
+    .. raw:: html
+
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2">cross-encoder/ms-marco-MiniLM-L-6-v2</a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.CENanoBEIREvaluator" title="sentence_transformers.evaluation.CENanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.evaluation.CENanoBEIREvaluator</span></code></a></li>
+            </ul>
+        </div>
+
+    ::
+
+        from sentence_transformers import CrossEncoder
+        from sentence_transformers.cross_encoder.evaluation import CENanoBEIREvaluator
+
+        # Load a model
+        model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+        # Initialize the evaluator. Unlike most other evaluators, this one loads the relevant datasets
+        # directly from Hugging Face, so there's no mandatory arguments
+        dev_evaluator = CENanoBEIREvaluator()
+        # You can run evaluation like so:
+        # results = dev_evaluator(model)
+
+.. tab:: CERerankingEvaluator with GooAQ mined negatives
+
+    Preparing data for :class:`~sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator` can be difficult as you need negatives in addition to your query-positive data.
+
+    The :func:`~sentence_transformers.util.mine_hard_negatives` function has a convenient ``disqualify_positives`` parameter, which can be set to ``True`` to also mine for the positive texts. When supplied as ``documents`` (which have to be 1) ranked and 2) contain positives) to :class:`~sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator`, the evaluator will not just evaluate the reranking performance of the CrossEncoder, but also the original rankings by the embedding model used for mining.
+
+    For example::
+
+        CERerankingEvaluator: Evaluating the model on the gooaq-dev dataset:
+        Queries:  1000     Positives: Min 1.0, Mean 1.0, Max 1.0   Negatives: Min 49.0, Mean 49.1, Max 50.0
+                  Base  -> Reranked
+        MAP:      53.28 -> 67.28
+        MRR@10:   52.40 -> 66.65
+        NDCG@10:  59.12 -> 71.35
+
+    Note that by default, if you are using :class:`~sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator` with ``documents``, the evaluator will rerank with *all* positives, even if they are not in the documents. This is useful for getting a stronger signal out of your evaluator, but does give a slightly unrealistic performance. After all, the maximum performance is now 100, whereas normally its bounded by whether the first-stage retriever actually retrieved the positives.
+
+    You can enable the realistic behaviour by setting ``always_rerank_positives=False`` when initializing :class:`~sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator`. Repeating the same script with this realistic two-stage performance results in::
+
+        CERerankingEvaluator: Evaluating the model on the gooaq-dev dataset:
+        Queries:  1000     Positives: Min 1.0, Mean 1.0, Max 1.0   Negatives: Min 49.0, Mean 49.1, Max 50.0
+                  Base  -> Reranked
+        MAP:      53.28 -> 66.12
+        MRR@10:   52.40 -> 65.61
+        NDCG@10:  59.12 -> 70.10
+
+    .. raw:: html
+
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2">cross-encoder/ms-marco-MiniLM-L-6-v2</a></li>
+                <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/gooaq">sentence-transformers/gooaq</a></li>
+                <li><a class="reference internal" href="../package_reference/util.html#sentence_transformers.util.mine_hard_negatives" title="sentence_transformers.util.mine_hard_negatives"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.util.mine_hard_negatives</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator" title="sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator</span></code></a></li>
+            </ul>
+        </div>
+
+    ::
+
+        from datasets import load_dataset
+        from sentence_transformers import SentenceTransformer
+        from sentence_transformers.cross_encoder import CrossEncoder
+        from sentence_transformers.cross_encoder.evaluation import CERerankingEvaluator
+        from sentence_transformers.util import mine_hard_negatives
+
+        # Load a model
+        model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+        # Load the GooAQ dataset: https://huggingface.co/datasets/sentence-transformers/gooaq
+        full_dataset = load_dataset("sentence-transformers/gooaq", split=f"train").select(range(100_000))
+        dataset_dict = full_dataset.train_test_split(test_size=1_000, seed=12)
+        train_dataset = dataset_dict["train"]
+        eval_dataset = dataset_dict["test"]
+        print(eval_dataset)
+        """
+        Dataset({
+            features: ['question', 'answer'],
+            num_rows: 1000
+        })
+        """
+
+        # Mine hard negatives using a very efficient embedding model
+        embedding_model = SentenceTransformer("sentence-transformers/static-retrieval-mrl-en-v1", device="cpu")
+        hard_eval_dataset = mine_hard_negatives(
+            eval_dataset,
+            embedding_model,
+            corpus=full_dataset["answer"],  # Use the full dataset as the corpus
+            num_negatives=50,  # How many negatives per question-answer pair
+            batch_size=4096,  # Use a batch size of 4096 for the embedding model
+            output_format="n-tuple",  # The output format is (query, positive, negative1, negative2, ...) for the evaluator
+            disqualify_positives=False,  # Key: Include the positive answer in the list of negatives
+            use_faiss=True,  # Using FAISS is recommended to keep memory usage low (pip install faiss-gpu or pip install faiss-cpu)
+        )
+        print(hard_eval_dataset)
+        """
+        Dataset({
+            features: ['question', 'answer', 'negative_1', 'negative_2', 'negative_3', 'negative_4', 'negative_5', 'negative_6', 'negative_7', 'negative_8', 'negative_9', 'negative_10', 'negative_11', 'negative_12', 'negative_13', 'negative_14', 'negative_15', 'negative_16', 'negative_17', 'negative_18', 'negative_19', 'negative_20', 'negative_21', 'negative_22', 'negative_23', 'negative_24', 'negative_25', 'negative_26', 'negative_27', 'negative_28', 'negative_29', 'negative_30', 'negative_31', 'negative_32', 'negative_33', 'negative_34', 'negative_35', 'negative_36', 'negative_37', 'negative_38', 'negative_39', 'negative_40', 'negative_41', 'negative_42', 'negative_43', 'negative_44', 'negative_45', 'negative_46', 'negative_47', 'negative_48', 'negative_49', 'negative_50'],
+            num_rows: 1000
+        })
+        """
+
+        reranking_evaluator = CERerankingEvaluator(
+            samples=[
+                {
+                    "query": sample["question"],
+                    "positive": [sample["answer"]],
+                    "documents": [sample[column_name] for column_name in hard_eval_dataset.column_names[2:]],
+                }
+                for sample in hard_eval_dataset
+            ],
+            batch_size=32,
+            name="gooaq-dev",
+        )
+        # You can run evaluation like so
+        results = reranking_evaluator(model)
+        """
+        CERerankingEvaluator: Evaluating the model on the gooaq-dev dataset:
+        Queries:  1000     Positives: Min 1.0, Mean 1.0, Max 1.0   Negatives: Min 49.0, Mean 49.1, Max 50.0
+                  Base  -> Reranked
+        MAP:      53.28 -> 67.28
+        MRR@10:   52.40 -> 66.65
+        NDCG@10:  59.12 -> 71.35
+        """
+        # {'gooaq-dev_map': 0.6728370126462222, 'gooaq-dev_mrr@10': 0.6665190476190477, 'gooaq-dev_ndcg@10': 0.7135068904582963, 'gooaq-dev_base_map': 0.5327714512001362, 'gooaq-dev_base_mrr@10': 0.5239674603174603, 'gooaq-dev_base_ndcg@10': 0.5912299141913905}
+
+
+.. tab:: CECorrelationEvaluator with STSb
 
     .. raw:: html
 
@@ -360,31 +580,6 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         # You can run evaluation like so:
         # results = cls_evaluator(model)
 
-.. tab:: CENanoBEIREvaluator
-
-    .. raw:: html
-
-        <div class="sidebar">
-            <p class="sidebar-title">Documentation</p>
-            <ul class="simple">
-                <li><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.CENanoBEIREvaluator" title="sentence_transformers.evaluation.CENanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.evaluation.CENanoBEIREvaluator</span></code></a></li>
-            </ul>
-        </div>
-
-    ::
-
-        from sentence_transformers import CrossEncoder
-        from sentence_transformers.cross_encoder.evaluation import CENanoBEIREvaluator
-
-        # Load a model
-        model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-
-        # Initialize the evaluator. Unlike most other evaluators, this one loads the relevant datasets
-        # directly from Hugging Face, so there's no mandatory arguments
-        dev_evaluator = CENanoBEIREvaluator()
-        # You can run evaluation like so:
-        # results = dev_evaluator(model)
-
 .. warning::
 
     When using `Distributed Training <training/distributed.html>`_, the evaluator only runs on the first device, unlike the training and evaluation datasets, which are shared across all devices. 
@@ -395,116 +590,344 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
 ```{eval-rst}
 The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is where all previous components come together. We only have to specify the trainer with the model, training arguments (optional), training dataset, evaluation dataset (optional), loss function, evaluator (optional) and we can start training. Let's have a look at a script where all of these components come together:
 
-.. sidebar:: Documentation
+.. tab:: Simple Example
 
-    #. :class:`~sentence_transformers.cross_encoder.CrossEncoderTrainer`
-    #. :class:`~sentence_transformers.cross_encoder.model_card.CrossEncoderTrainerModelCardData`
-    #. :func:`~datasets.load_dataset`
-    #. :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`
-    #. :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`
-    #. :class:`~sentence_transformers.evaluation.TripletEvaluator`
-    #. :class:`~sentence_transformers.trainer.SentenceTransformerTrainer`
-    #. :class:`SentenceTransformer.save_pretrained <sentence_transformers.SentenceTransformer.save_pretrained>`
-    #. :class:`SentenceTransformer.push_to_hub <sentence_transformers.SentenceTransformer.push_to_hub>`
+    .. raw:: html
 
-    - `Training Examples <training/examples>`_
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ol class="arabic simple">
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/cross_encoder.html#sentence_transformers.cross_encoder.CrossEncoder" title="sentence_transformers.cross_encoder.CrossEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoder</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/cross_encoder.html#sentence_transformers.cross_encoder.model_card.CrossEncoderModelCardData" title="sentence_transformers.cross_encoder.model_card.CrossEncoderModelCardData"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderModelCardData</span></code></a></p></li>
+                <li><p><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/package_reference/loading_methods#datasets.load_dataset" title="(in datasets vmain)"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_dataset()</span></code></a></p></li>
+                <li><p><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/gooaq">sentence-transformers/gooaq</a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/losses.html#sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss" title="sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">CachedMultipleNegativesRankingLoss</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator" title="sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">CENanoBEIREvaluator</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/training_args.html#sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments" title="sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderTrainingArguments</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/trainer.html#sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer" title="sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderTrainer</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/trainer.html#sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer.train" title="sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer.train"><code class="xref py py-meth docutils literal notranslate"><span class="pre">CrossEncoderTrainer.train()</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/cross_encoder.html#sentence_transformers.cross_encoder.CrossEncoder.save_pretrained" title="sentence_transformers.cross_encoder.CrossEncoder.save_pretrained"><code class="xref py py-meth docutils literal notranslate"><span class="pre">CrossEncoder.save_pretrained()</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/cross_encoder.html#sentence_transformers.cross_encoder.CrossEncoder.push_to_hub" title="sentence_transformers.cross_encoder.CrossEncoder.push_to_hub"><code class="xref py py-meth docutils literal notranslate"><span class="pre">CrossEncoder.push_to_hub()</span></code></a></p></li>
+            </ol>
+        </div>
 
-::
+    ::
 
-    from datasets import load_dataset
-    from sentence_transformers import (
-        SentenceTransformer,
-        SentenceTransformerTrainer,
-        SentenceTransformerTrainingArguments,
-        SentenceTransformerModelCardData,
-    )
-    from sentence_transformers.losses import MultipleNegativesRankingLoss
-    from sentence_transformers.training_args import BatchSamplers
-    from sentence_transformers.evaluation import TripletEvaluator
+        import logging
+        import traceback
 
-    # 1. Load a model to finetune with 2. (Optional) model card data
-    model = SentenceTransformer(
-        "microsoft/mpnet-base",
-        model_card_data=SentenceTransformerModelCardData(
-            language="en",
-            license="apache-2.0",
-            model_name="MPNet base trained on AllNLI triplets",
+        from datasets import load_dataset
+
+        from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderModelCardData
+        from sentence_transformers.cross_encoder.evaluation import CENanoBEIREvaluator
+        from sentence_transformers.cross_encoder.losses import CachedMultipleNegativesRankingLoss
+        from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
+        from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
+
+        # Set the log level to INFO to get more information
+        logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
+
+        model_name = "microsoft/MiniLM-L12-H384-uncased"
+        train_batch_size = 64
+        num_epochs = 1
+        num_rand_negatives = 5  # How many random negatives should be used for each question-answer pair
+
+        # 1a. Load a model to finetune with 1b. (Optional) model card data
+        model = CrossEncoder(
+            model_name,
+            model_card_data=CrossEncoderModelCardData(
+                language="en",
+                license="apache-2.0",
+                model_name="MiniLM-L12-H384 trained on GooAQ",
+            ),
         )
-    )
+        print("Model max length:", model.max_length)
+        print("Model num labels:", model.num_labels)
 
-    # 3. Load a dataset to finetune on
-    dataset = load_dataset("sentence-transformers/all-nli", "triplet")
-    train_dataset = dataset["train"].select(range(100_000))
-    eval_dataset = dataset["dev"]
-    test_dataset = dataset["test"]
+        # 2. Load the GooAQ dataset: https://huggingface.co/datasets/sentence-transformers/gooaq
+        logging.info("Read the gooaq training dataset")
+        full_dataset = load_dataset("sentence-transformers/gooaq", split="train").select(range(100_000))
+        dataset_dict = full_dataset.train_test_split(test_size=1_000, seed=12)
+        train_dataset = dataset_dict["train"]
+        eval_dataset = dataset_dict["test"]
+        logging.info(train_dataset)
+        logging.info(eval_dataset)
 
-    # 4. Define a loss function
-    loss = MultipleNegativesRankingLoss(model)
+        # 3. Define our training loss.
+        loss = CachedMultipleNegativesRankingLoss(
+            model=model,
+            num_negatives=num_rand_negatives,
+            mini_batch_size=32,  # Informs the memory usage
+        )
 
-    # 5. (Optional) Specify training arguments
-    args = SentenceTransformerTrainingArguments(
-        # Required parameter:
-        output_dir="models/mpnet-base-all-nli-triplet",
-        # Optional training parameters:
-        num_train_epochs=1,
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=16,
-        learning_rate=2e-5,
-        warmup_ratio=0.1,
-        fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
-        bf16=False,  # Set to True if you have a GPU that supports BF16
-        batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
-        # Optional tracking/debugging parameters:
-        eval_strategy="steps",
-        eval_steps=100,
-        save_strategy="steps",
-        save_steps=100,
-        save_total_limit=2,
-        logging_steps=100,
-        run_name="mpnet-base-all-nli-triplet",  # Will be used in W&B if `wandb` is installed
-    )
+        # 4. Use CENanoBEIREvaluator, a light-weight evaluator for English reranking
+        evaluator = CENanoBEIREvaluator(
+            dataset_names=["msmarco", "nfcorpus", "nq"],
+            batch_size=train_batch_size,
+        )
+        evaluator(model)
 
-    # 6. (Optional) Create an evaluator & evaluate the base model
-    dev_evaluator = TripletEvaluator(
-        anchors=eval_dataset["anchor"],
-        positives=eval_dataset["positive"],
-        negatives=eval_dataset["negative"],
-        name="all-nli-dev",
-    )
-    dev_evaluator(model)
+        # 5. Define the training arguments
+        short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+        run_name = f"reranker-{short_model_name}-gooaq-cmnrl"
+        args = CrossEncoderTrainingArguments(
+            # Required parameter:
+            output_dir=f"models/{run_name}",
+            # Optional training parameters:
+            num_train_epochs=num_epochs,
+            per_device_train_batch_size=train_batch_size,
+            per_device_eval_batch_size=train_batch_size,
+            learning_rate=2e-5,
+            warmup_ratio=0.1,
+            fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
+            bf16=True,  # Set to True if you have a GPU that supports BF16
+            # Optional tracking/debugging parameters:
+            eval_strategy="steps",
+            eval_steps=100,
+            save_strategy="steps",
+            save_steps=100,
+            save_total_limit=2,
+            logging_steps=50,
+            logging_first_step=True,
+            run_name=run_name,  # Will be used in W&B if `wandb` is installed
+            seed=12,
+        )
 
-    # 7. Create a trainer & train
-    trainer = SentenceTransformerTrainer(
-        model=model,
-        args=args,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-        loss=loss,
-        evaluator=dev_evaluator,
-    )
-    trainer.train()
+        # 6. Create the trainer & start training
+        trainer = CrossEncoderTrainer(
+            model=model,
+            args=args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            loss=loss,
+            evaluator=evaluator,
+        )
+        trainer.train()
 
-    # (Optional) Evaluate the trained model on the test set
-    test_evaluator = TripletEvaluator(
-        anchors=test_dataset["anchor"],
-        positives=test_dataset["positive"],
-        negatives=test_dataset["negative"],
-        name="all-nli-test",
-    )
-    test_evaluator(model)
+        # 7. Evaluate the final model, useful to include these in the model card
+        evaluator(model)
 
-    # 8. Save the trained model
-    model.save_pretrained("models/mpnet-base-all-nli-triplet/final")
-    
-    # 9. (Optional) Push it to the Hugging Face Hub
-    model.push_to_hub("mpnet-base-all-nli-triplet")
+        # 8. Save the final model
+        final_output_dir = f"models/{run_name}/final"
+        model.save_pretrained(final_output_dir)
+
+        # 9. (Optional) save the model to the Hugging Face Hub!
+        # It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+        try:
+            model.push_to_hub(run_name)
+        except Exception:
+            logging.error(
+                f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
+                f"`huggingface-cli login`, followed by loading the model using `model = CrossEncoder({final_output_dir!r})` "
+                f"and saving it using `model.push_to_hub('{run_name}')`."
+            )
+
+
+.. tab:: Extensive Example
+
+    .. raw:: html
+
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ol class="arabic simple">
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/cross_encoder.html#sentence_transformers.cross_encoder.CrossEncoder" title="sentence_transformers.cross_encoder.CrossEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoder</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/cross_encoder.html#sentence_transformers.cross_encoder.model_card.CrossEncoderModelCardData" title="sentence_transformers.cross_encoder.model_card.CrossEncoderModelCardData"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderModelCardData</span></code></a></p></li>
+                <li><p><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/package_reference/loading_methods#datasets.load_dataset" title="(in datasets vmain)"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_dataset()</span></code></a></p></li>
+                <li><p><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/gooaq">sentence-transformers/gooaq</a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer" title="sentence_transformers.SentenceTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SentenceTransformer</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/util.html#sentence_transformers.util.mine_hard_negatives" title="sentence_transformers.util.mine_hard_negatives"><code class="xref py py-class docutils literal notranslate"><span class="pre">mine_hard_negatives</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/losses.html#sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss" title="sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinaryCrossEntropyLoss</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator" title="sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">CENanoBEIREvaluator</span></code></a></p></li>
+                <li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">CERerankingEvaluators</span></code></p></li>
+                <li><p><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.SequentialEvaluator" title="sentence_transformers.evaluation.SequentialEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SequentialEvaluator</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/training_args.html#sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments" title="sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderTrainingArguments</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/trainer.html#sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer" title="sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderTrainer</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/trainer.html#sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer.train" title="sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer.train"><code class="xref py py-meth docutils literal notranslate"><span class="pre">CrossEncoderTrainer.train()</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/cross_encoder.html#sentence_transformers.cross_encoder.CrossEncoder.save_pretrained" title="sentence_transformers.cross_encoder.CrossEncoder.save_pretrained"><code class="xref py py-meth docutils literal notranslate"><span class="pre">CrossEncoder.save_pretrained()</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/cross_encoder.html#sentence_transformers.cross_encoder.CrossEncoder.push_to_hub" title="sentence_transformers.cross_encoder.CrossEncoder.push_to_hub"><code class="xref py py-meth docutils literal notranslate"><span class="pre">CrossEncoder.push_to_hub()</span></code></a></p></li>
+            </ol>
+        </div>
+
+    ::
+
+        import logging
+        import traceback
+
+        import torch
+        from datasets import load_dataset
+
+        from sentence_transformers import SentenceTransformer
+        from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderModelCardData
+        from sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator import CENanoBEIREvaluator
+        from sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator import CERerankingEvaluator
+        from sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
+        from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
+        from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
+        from sentence_transformers.evaluation.SequentialEvaluator import SequentialEvaluator
+        from sentence_transformers.util import mine_hard_negatives
+
+
+        def main():
+            model_name = "answerdotai/ModernBERT-base"
+
+            # Set the log level to INFO to get more information
+            logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
+
+            train_batch_size = 64
+            num_epochs = 1
+            num_hard_negatives = 5  # How many hard negatives should be mined for each question-answer pair
+
+            # 1a. Load a model to finetune with 1b. (Optional) model card data
+            model = CrossEncoder(
+                model_name,
+                model_card_data=CrossEncoderModelCardData(
+                    language="en",
+                    license="apache-2.0",
+                    model_name="ModernBERT-base trained on GooAQ",
+                ),
+            )
+            print("Model max length:", model.max_length)
+            print("Model num labels:", model.num_labels)
+
+            # 2a. Load the GooAQ dataset: https://huggingface.co/datasets/sentence-transformers/gooaq
+            logging.info("Read the gooaq training dataset")
+            full_dataset = load_dataset("sentence-transformers/gooaq", split="train").select(range(100_000))
+            dataset_dict = full_dataset.train_test_split(test_size=1_000, seed=12)
+            train_dataset = dataset_dict["train"]
+            eval_dataset = dataset_dict["test"]
+            logging.info(train_dataset)
+            logging.info(eval_dataset)
+
+            # 2b. Modify our training dataset to include hard negatives using a very efficient embedding model
+            embedding_model = SentenceTransformer("sentence-transformers/static-retrieval-mrl-en-v1", device="cpu")
+            hard_train_dataset = mine_hard_negatives(
+                train_dataset,
+                embedding_model,
+                num_negatives=num_hard_negatives,  # How many negatives per question-answer pair
+                margin=0,  # Similarity between query and negative samples should be x lower than query-positive similarity
+                range_min=0,  # Skip the x most similar samples
+                range_max=100,  # Consider only the x most similar samples
+                sampling_strategy="top",  # Randomly sample negatives from the range
+                batch_size=4096,  # Use a batch size of 4096 for the embedding model
+                output_format="labeled-pair",  # The output format is (query, passage, label), as required by BinaryCrossEntropyLoss
+                use_faiss=True,
+            )
+            logging.info(hard_train_dataset)
+
+            # 2c. (Optionally) Save the hard training dataset to disk
+            # hard_train_dataset.save_to_disk("gooaq-hard-train")
+            # Load again with:
+            # hard_train_dataset = load_from_disk("gooaq-hard-train")
+
+            # 3. Define our training loss.
+            # pos_weight is recommended to be set as the ratio between positives to negatives, a.k.a. `num_hard_negatives`
+            loss = BinaryCrossEntropyLoss(model=model, pos_weight=torch.tensor(num_hard_negatives))
+
+            # 4a. Define evaluators. We use the CENanoBEIREvaluator, which is a light-weight evaluator for English reranking
+            nano_beir_evaluator = CENanoBEIREvaluator(
+                dataset_names=["msmarco", "nfcorpus", "nq"],
+                batch_size=train_batch_size,
+            )
+
+            # 4b. Define a reranking evaluator by mining hard negatives given query-answer pairs
+            # We include the positive answer in the list of negatives, so the evaluator can use the performance of the
+            # embedding model as a baseline.
+            hard_eval_dataset = mine_hard_negatives(
+                eval_dataset,
+                embedding_model,
+                corpus=full_dataset["answer"],  # Use the full dataset as the corpus
+                num_negatives=30,  # How many documents to rerank
+                batch_size=4096,
+                disqualify_positives=False,
+                output_format="n-tuple",
+                use_faiss=True,
+            )
+            logging.info(hard_eval_dataset)
+            reranking_evaluator = CERerankingEvaluator(
+                samples=[
+                    {
+                        "query": sample["question"],
+                        "positive": [sample["answer"]],
+                        "documents": [sample[column_name] for column_name in hard_eval_dataset.column_names[2:]],
+                    }
+                    for sample in hard_eval_dataset
+                ],
+                batch_size=train_batch_size,
+                name="gooaq-dev",
+            )
+
+            # 4c. Combine the evaluators & run the base model on them
+            evaluator = SequentialEvaluator([reranking_evaluator, nano_beir_evaluator])
+            evaluator(model)
+
+            # 5. Define the training arguments
+            short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+            run_name = f"reranker-{short_model_name}-gooaq-bce"
+            args = CrossEncoderTrainingArguments(
+                # Required parameter:
+                output_dir=f"models/{run_name}",
+                # Optional training parameters:
+                num_train_epochs=num_epochs,
+                per_device_train_batch_size=train_batch_size,
+                per_device_eval_batch_size=train_batch_size,
+                learning_rate=2e-5,
+                warmup_ratio=0.1,
+                fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
+                bf16=True,  # Set to True if you have a GPU that supports BF16
+                dataloader_num_workers=4,
+                load_best_model_at_end=True,
+                metric_for_best_model="eval_gooaq-dev_ndcg@10",
+                # Optional tracking/debugging parameters:
+                eval_strategy="steps",
+                eval_steps=1000,
+                save_strategy="steps",
+                save_steps=1000,
+                save_total_limit=2,
+                logging_steps=200,
+                logging_first_step=True,
+                run_name=run_name,  # Will be used in W&B if `wandb` is installed
+                seed=12,
+            )
+
+            # 6. Create the trainer & start training
+            trainer = CrossEncoderTrainer(
+                model=model,
+                args=args,
+                train_dataset=hard_train_dataset,
+                loss=loss,
+                evaluator=evaluator,
+            )
+            trainer.train()
+
+            # 7. Evaluate the final model, useful to include these in the model card
+            evaluator(model)
+
+            # 8. Save the final model
+            final_output_dir = f"models/{run_name}/final"
+            model.save_pretrained(final_output_dir)
+
+            # 9. (Optional) save the model to the Hugging Face Hub!
+            # It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+            try:
+                model.push_to_hub(run_name)
+            except Exception:
+                logging.error(
+                    f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
+                    f"`huggingface-cli login`, followed by loading the model using `model = CrossEncoder({final_output_dir!r})` "
+                    f"and saving it using `model.push_to_hub('{run_name}')`."
+                )
+
+
+        if __name__ == "__main__":
+            main()
+
 
 ```
 
 ### Callbacks
 
 ```{eval-rst}
-This Sentence Transformers trainer integrates support for various :class:`transformers.TrainerCallback` subclasses, such as:
+This CrossEncoder trainer integrates support for various :class:`transformers.TrainerCallback` subclasses, such as:
 
 - :class:`~transformers.integrations.WandbCallback` to automatically log training metrics to W&B if ``wandb`` is installed
 - :class:`~transformers.integrations.TensorBoardCallback` to log training metrics to TensorBoard if ``tensorboard`` is accessible.
@@ -518,152 +941,46 @@ documentation for more information on the integrated callbacks and how to write 
 
 ## Multi-Dataset Training
 ```{eval-rst}
-The top performing models are trained using many datasets at once. Normally, this is rather tricky, as each dataset has a different format. However, :class:`SentenceTransformerTrainer` can train with multiple datasets without having to convert each dataset to the same format. It can even apply different loss functions to each of the datasets. The steps to train with multiple datasets are:
+The top performing models are trained using many datasets at once. Normally, this is rather tricky, as each dataset has a different format. However, :class:`sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` can train with multiple datasets without having to convert each dataset to the same format. It can even apply different loss functions to each of the datasets. The steps to train with multiple datasets are:
 
 - Use a dictionary of :class:`~datasets.Dataset` instances (or a :class:`~datasets.DatasetDict`) as the ``train_dataset`` and ``eval_dataset``.
 - (Optional) Use a dictionary of loss functions mapping dataset names to losses. Only required if you wish to use different loss function for different datasets.
 
-Each training/evaluation batch will only contain samples from one of the datasets. The order in which batches are samples from the multiple datasets is defined by the :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers` enum, which can be passed to the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` via ``multi_dataset_batch_sampler``. Valid options are:
+Each training/evaluation batch will only contain samples from one of the datasets. The order in which batches are samples from the multiple datasets is defined by the :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers` enum, which can be passed to the :class:`~sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments` via ``multi_dataset_batch_sampler``. Valid options are:
 
 - ``MultiDatasetBatchSamplers.ROUND_ROBIN``: Round-robin sampling from each dataset until one is exhausted. With this strategy, it’s likely that not all samples from each dataset are used, but each dataset is sampled from equally.
 - ``MultiDatasetBatchSamplers.PROPORTIONAL`` (default): Sample from each dataset in proportion to its size. With this strategy, all samples from each dataset are used and larger datasets are sampled from more frequently.
 
 This multi-task training has been shown to be very effective, e.g. `Huang et al. <https://arxiv.org/pdf/2405.06932>`_ employed :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, :class:`~sentence_transformers.losses.CoSENTLoss`, and a variation on :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` without in-batch negatives and only hard negatives to reach state-of-the-art performance on Chinese. They even applied :class:`~sentence_transformers.losses.MatryoshkaLoss` to allow the model to produce `Matryoshka Embeddings <../../examples/training/matryoshka/README.html>`_.
-
-Training on multiple datasets looks like this:
-
-.. sidebar:: Documentation
-
-    - :func:`datasets.load_dataset`
-    - :class:`~sentence_transformers.SentenceTransformer`
-    - :class:`~sentence_transformers.trainer.SentenceTransformerTrainer`
-    - :class:`~sentence_transformers.losses.CoSENTLoss`
-    - :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`
-    - :class:`~sentence_transformers.losses.SoftmaxLoss`
-    - `sentence-transformers/all-nli <https://huggingface.co/datasets/sentence-transformers/all-nli>`_
-    - `sentence-transformers/stsb <https://huggingface.co/datasets/sentence-transformers/stsb>`_
-    - `sentence-transformers/quora-duplicates <https://huggingface.co/datasets/sentence-transformers/quora-duplicates>`_
-    - `sentence-transformers/natural-questions <https://huggingface.co/datasets/sentence-transformers/natural-questions>`_
-
-    **Training Examples:**
-
-    - `Quora Duplicate Questions > Multi-task learning <https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/quora_duplicate_questions/training_multi-task-learning.py>`_
-    - `AllNLI + STSb > Multi-task learning <https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/other/training_multi-task.py>`_
-
-::
-
-    from datasets import load_dataset
-    from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
-    from sentence_transformers.losses import CoSENTLoss, MultipleNegativesRankingLoss, SoftmaxLoss
-
-    # 1. Load a model to finetune
-    model = SentenceTransformer("bert-base-uncased")
-
-    # 2. Load several Datasets to train with
-    # (anchor, positive)
-    all_nli_pair_train = load_dataset("sentence-transformers/all-nli", "pair", split="train[:10000]")
-    # (premise, hypothesis) + label
-    all_nli_pair_class_train = load_dataset("sentence-transformers/all-nli", "pair-class", split="train[:10000]")
-    # (sentence1, sentence2) + score
-    all_nli_pair_score_train = load_dataset("sentence-transformers/all-nli", "pair-score", split="train[:10000]")
-    # (anchor, positive, negative)
-    all_nli_triplet_train = load_dataset("sentence-transformers/all-nli", "triplet", split="train[:10000]")
-    # (sentence1, sentence2) + score
-    stsb_pair_score_train = load_dataset("sentence-transformers/stsb", split="train[:10000]")
-    # (anchor, positive)
-    quora_pair_train = load_dataset("sentence-transformers/quora-duplicates", "pair", split="train[:10000]")
-    # (query, answer)
-    natural_questions_train = load_dataset("sentence-transformers/natural-questions", split="train[:10000]")
-
-    # We can combine all datasets into a dictionary with dataset names to datasets
-    train_dataset = {
-        "all-nli-pair": all_nli_pair_train,
-        "all-nli-pair-class": all_nli_pair_class_train,
-        "all-nli-pair-score": all_nli_pair_score_train,
-        "all-nli-triplet": all_nli_triplet_train,
-        "stsb": stsb_pair_score_train,
-        "quora": quora_pair_train,
-        "natural-questions": natural_questions_train,
-    }
-
-    # 3. Load several Datasets to evaluate with
-    # (anchor, positive, negative)
-    all_nli_triplet_dev = load_dataset("sentence-transformers/all-nli", "triplet", split="dev")
-    # (sentence1, sentence2, score)
-    stsb_pair_score_dev = load_dataset("sentence-transformers/stsb", split="validation")
-    # (anchor, positive)
-    quora_pair_dev = load_dataset("sentence-transformers/quora-duplicates", "pair", split="train[10000:11000]")
-    # (query, answer)
-    natural_questions_dev = load_dataset("sentence-transformers/natural-questions", split="train[10000:11000]")
-
-    # We can use a dictionary for the evaluation dataset too, but we don't have to. We could also just use
-    # no evaluation dataset, or one dataset.
-    eval_dataset = {
-        "all-nli-triplet": all_nli_triplet_dev,
-        "stsb": stsb_pair_score_dev,
-        "quora": quora_pair_dev,
-        "natural-questions": natural_questions_dev,
-    }
-
-    # 4. Load several loss functions to train with
-    # (anchor, positive), (anchor, positive, negative)
-    mnrl_loss = MultipleNegativesRankingLoss(model)
-    # (sentence_A, sentence_B) + class
-    softmax_loss = SoftmaxLoss(model, model.get_sentence_embedding_dimension(), 3)
-    # (sentence_A, sentence_B) + score
-    cosent_loss = CoSENTLoss(model)
-
-    # Create a mapping with dataset names to loss functions, so the trainer knows which loss to apply where.
-    # Note that you can also just use one loss if all of your training/evaluation datasets use the same loss
-    losses = {
-        "all-nli-pair": mnrl_loss,
-        "all-nli-pair-class": softmax_loss,
-        "all-nli-pair-score": cosent_loss,
-        "all-nli-triplet": mnrl_loss,
-        "stsb": cosent_loss,
-        "quora": mnrl_loss,
-        "natural-questions": mnrl_loss,
-    }
-
-    # 5. Define a simple trainer, although it's recommended to use one with args & evaluators
-    trainer = SentenceTransformerTrainer(
-        model=model,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-        loss=losses,
-    )
-    trainer.train()
-
-    # 6. save the trained model and optionally push it to the Hugging Face Hub
-    model.save_pretrained("bert-base-all-nli-stsb-quora-nq")
-    model.push_to_hub("bert-base-all-nli-stsb-quora-nq")
 ```
 
 ## Deprecated Training 
 ```{eval-rst}
-Prior to the Sentence Transformers v3.0 release, models would be trained with the :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>` method and a :class:`~torch.utils.data.DataLoader` of :class:`~sentence_transformers.readers.InputExample`, which looked something like this::
+Prior to the Sentence Transformers v4.0 release, models would be trained with the :meth:`CrossEncoder.fit() <sentence_transformers.cross_encoder.CrossEncoder.fit>` method and a :class:`~torch.utils.data.DataLoader` of :class:`~sentence_transformers.readers.InputExample`, which looked something like this::
 
-    from sentence_transformers import SentenceTransformer, InputExample, losses
+    from sentence_transformers import CrossEncoder, InputExample
     from torch.utils.data import DataLoader
 
     # Define the model. Either from scratch of by loading a pre-trained model
-    model = SentenceTransformer("distilbert/distilbert-base-uncased")
+    model = CrossEncoder("distilbert/distilbert-base-uncased")
 
     # Define your train examples. You need more than just two examples...
     train_examples = [
-        InputExample(texts=["My first sentence", "My second sentence"], label=0.8),
-        InputExample(texts=["Another pair", "Unrelated sentence"], label=0.3),
+        InputExample(texts=["What are pandas?", "The giant panda ..."], label=1),
+        InputExample(texts=["What's a panda?", "Mount Vesuvius is a ..."], label=0),
     ]
 
     # Define your train dataset, the dataloader and the train loss
     train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
-    train_loss = losses.CosineSimilarityLoss(model)
 
     # Tune the model
-    model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_steps=100)
+    model.fit(train_dataloader=train_dataloader, epochs=1, warmup_steps=100)
 
-Since the v3.0 release, using :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>` is still possible, but it will initialize a :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` behind the scenes. It is recommended to use the Trainer directly, as you will have more control via the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`, but existing training scripts relying on :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>` should still work.
+Since the v4.0 release, using :meth:`CrossEncoder.fit() <sentence_transformers.cross_encoder.CrossEncoder.fit>` is still possible, but it will initialize a :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` behind the scenes. It is recommended to use the Trainer directly, as you will have more control via the :class:`~sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments`, but existing training scripts relying on :meth:`CrossEncoder.fit() <sentence_transformers.cross_encoder.CrossEncoder.fit>` should still work.
 
-In case there are issues with the updated :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>`, you can also get exactly the old behaviour by calling :meth:`SentenceTransformer.old_fit <sentence_transformers.SentenceTransformer.old_fit>` instead, but this method will be deprecated fully in the future.
+In case there are issues with the updated :meth:`CrossEncoder.fit() <sentence_transformers.cross_encoder.CrossEncoder.fit>`, you can also get exactly the old behaviour by calling :meth:`CrossEncoder.old_fit() <sentence_transformers.cross_encoder.CrossEncoder.old_fit>` instead, but this method is planned to be deprecated fully in the future.
 
 ```
+
+## Comparisons with SentenceTransformer Training
+TODO

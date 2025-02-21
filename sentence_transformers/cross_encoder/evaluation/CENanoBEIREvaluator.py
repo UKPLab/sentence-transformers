@@ -70,6 +70,7 @@ class CENanoBEIREvaluator(SentenceEvaluator):
         dataset_names: list[DatasetNameType] | None = None,
         rerank_k: int = 100,
         at_k: int = 10,
+        always_rerank_positives: bool = True,
         show_progress_bar: bool = False,
         batch_size: int = 32,
         write_csv: bool = True,
@@ -84,19 +85,20 @@ class CENanoBEIREvaluator(SentenceEvaluator):
         self.dataset_names = dataset_names
         self.rerank_k = rerank_k
         self.at_k = at_k
+        self.always_rerank_positives = always_rerank_positives
         self.show_progress_bar = show_progress_bar
         self.batch_size = batch_size
         self.write_csv = write_csv
         self.aggregate_fn = aggregate_fn
         self.aggregate_key = aggregate_key
 
-        self.name = f"NanoBEIR_{self.aggregate_key}"
+        self.name = f"NanoBEIR_R{rerank_k:d}_{self.aggregate_key}"  # TODO: Determine a final name format
 
         self._validate_dataset_names()
 
         reranking_kwargs = {
             "at_k": self.at_k,
-            "negatives_are_ranked": True,
+            "always_rerank_positives": self.always_rerank_positives,
             "show_progress_bar": self.show_progress_bar,
             "batch_size": self.batch_size,
             "write_csv": self.write_csv,
@@ -112,6 +114,8 @@ class CENanoBEIREvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps"]
 
         self.primary_metric = "ndcg@10"  # TODO: Move this elsewhere, set it dynamically, etc.
+
+        # TODO: Save evaluator settings in the model card for easier reproducibility/more clarity
 
     def __call__(
         self, model: CrossEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
@@ -185,12 +189,12 @@ class CENanoBEIREvaluator(SentenceEvaluator):
 
         def mapper(sample, corpus_mapping: dict[str, str], query_mapping: dict[str, str], rerank_k: int):
             query = query_mapping[sample["query-id"]]
-            positives = [corpus_mapping[positive] for positive in sample["positive-corpus-ids"]]
-            negatives = [corpus_mapping[negative] for negative in sample["bm25-ranked-ids"][:rerank_k]]
+            positives = [corpus_mapping[positive_id] for positive_id in sample["positive-corpus-ids"]]
+            documents = [corpus_mapping[document_id] for document_id in sample["bm25-ranked-ids"][:rerank_k]]
             return {
                 "query": query,
                 "positive": positives,
-                "negative": negatives,
+                "documents": documents,
             }
 
         relevance = relevance.map(

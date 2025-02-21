@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from sklearn.metrics import average_precision_score, ndcg_score
+from tqdm import tqdm
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 
@@ -23,22 +24,35 @@ class CERerankingEvaluator(SentenceEvaluator):
     Given a query and a list of documents, it computes the score [query, doc_i] for all possible
     documents and sorts them in decreasing order. Then, MRR@10, NDCG@10 and MAP are computed to measure the quality of the ranking.
 
-    TODO: Mention that 100 is max because all positives are included.
-    TODO: Clarify what happens with negatives_are_ranked
+    The evaluator expects a list of samples. Each sample is a dictionary with the mandatory "query" and "positive" keys,
+    and either a "negative" or a "documents" key. The "query" is the search query, the "positive" is a list of relevant
+    documents, and the "negative" is a list of irrelevant documents. Alternatively, the "documents" key can be used to
+    provide a list of all documents, including the positive ones. In this case, the evaluator will assume that the list
+    is already ranked by similarity, with the most similar documents first, and will report both the reranking performance
+    as well as the performance before reranking. This can be useful to measure the improvement of the reranking on
+    top of a first-stage retrieval (e.g. a SentenceTransformer model).
+
+    Note that the maximum score is 1.0 by default, because all positive documents are included in the ranking. This
+    can be toggled off by using samples with ``documents`` instead of ``negative``, i.e. ranked lists of all documents
+    including the positive ones, together with ``always_rerank_positives=False``. ``always_rerank_positives=False`` only
+    works when using ``documents`` instead of ``negative``.
 
     Args:
         samples (list): A list of dictionaries, where each dictionary represents a sample and has the following keys:
-            - 'query': The search query.
-            - 'positive': A list of positive (relevant) documents.
-            - 'negative': A list of negative (irrelevant) documents.
+            - 'query' (mandatory): The search query.
+            - 'positive' (mandatory): A list of positive (relevant) documents.
+            - 'negative' (optional): A list of negative (irrelevant) documents. Mutually exclusive with 'documents'.
+            - 'documents' (optional): A list of all documents, including the positive ones. This list is assumed to be
+                ranked by similarity, with the most similar documents first. Mutually exclusive with 'negative'.
         at_k (int, optional): Only consider the top k most similar documents to each query for the evaluation. Defaults to 10.
-        negatives_are_ranked (bool, optional): Whether the negative documents are already ranked. If True, the negative
-            documents are assumed to be all documents, including the positive ones. If True, evaluate both the reranked
-            and the original ranking, and log the results side by side. Defaults to False.
+        always_rerank_positives (bool): If True, always evaluate with all positives included. If False, only include
+            the positives that are already in the documents list. Always set to True if your `samples` contain `negative`
+            instead of `documents`. When using `documents`, setting this to True will result in a more useful evaluation
+            signal, but setting it to False will result in a more realistic evaluation. Defaults to True.
         name (str, optional): Name of the evaluator, used for logging, saving in a CSV, and the model card. Defaults to "".
-        batch_size (int, optional): Batch size to compute sentence embeddings. Defaults to 64.
-        show_progress_bar (bool, optional): Show progress bar when computing embeddings. Defaults to False.
-        write_csv (bool, optional): Write results to CSV file. Defaults to True.
+        batch_size (int): Batch size to compute sentence embeddings. Defaults to 64.
+        show_progress_bar (bool): Show progress bar when computing embeddings. Defaults to False.
+        write_csv (bool): Write results to CSV file. Defaults to True.
         mrr_at_k (Optional[int], optional): Deprecated parameter. Please use `at_k` instead. Defaults to None.
 
     Example:
@@ -58,7 +72,9 @@ class CERerankingEvaluator(SentenceEvaluator):
                 {
                     "query": sample["query"],
                     "positive": [text for is_selected, text in zip(sample["passages"]["is_selected"], sample["passages"]["passage_text"]) if is_selected],
-                    "negative": [text for is_selected, text in zip(sample["passages"]["is_selected"], sample["passages"]["passage_text"]) if not is_selected],
+                    "documents": sample["passages"]["passage_text"],
+                    # or
+                    # "negative": [text for is_selected, text in zip(sample["passages"]["is_selected"], sample["passages"]["passage_text"]) if not is_selected],
                 }
                 for sample in eval_dataset
             ]
@@ -67,26 +83,28 @@ class CERerankingEvaluator(SentenceEvaluator):
             reranking_evaluator = CERerankingEvaluator(
                 samples=samples,
                 name="ms-marco-dev",
+                show_progress_bar=True,
             )
             results = reranking_evaluator(model)
             '''
             CERerankingEvaluator: Evaluating the model on the ms-marco-dev dataset:
-            Queries: 9706      Positives: Min 1.0, Mean 1.1, Max 5.0   Negatives: Min 1.0, Mean 7.1, Max 9.0
-            MAP: 64.46
-            MRR@10: 65.18
-            NDCG@10: 73.51
+            Queries:  10047    Positives: Min 0.0, Mean 1.1, Max 5.0   Negatives: Min 1.0, Mean 7.1, Max 10.0
+                      Base  -> Reranked
+            MAP:      34.03 -> 62.36
+            MRR@10:   34.67 -> 62.96
+            NDCG@10:  49.05 -> 71.05
             '''
             print(reranking_evaluator.primary_metric)
             # => ms-marco-dev_ndcg@10
             print(results[reranking_evaluator.primary_metric])
-            # => 0.735088966736088
+            # => 0.7104656857184184
     """
 
     def __init__(
         self,
         samples: list[dict[str, str | list[str]]],
         at_k: int = 10,
-        negatives_are_ranked: bool = False,
+        always_rerank_positives: bool = True,  # TODO: This is also confusing, perhaps setting=""
         name: str = "",
         batch_size: int = 64,
         show_progress_bar: bool = False,
@@ -100,10 +118,11 @@ class CERerankingEvaluator(SentenceEvaluator):
             self.at_k = mrr_at_k
         else:
             self.at_k = at_k
-        self.negatives_are_ranked = negatives_are_ranked
+        self.always_rerank_positives = always_rerank_positives
+
         self.name = name
         self.batch_size = batch_size
-        self.show_progress_bar = show_progress_bar  # TODO: This is not used
+        self.show_progress_bar = show_progress_bar
 
         if isinstance(self.samples, dict):
             self.samples = list(self.samples.values())
@@ -139,36 +158,66 @@ class CERerankingEvaluator(SentenceEvaluator):
         num_queries = 0
         num_positives = []
         num_negatives = []
-        for instance in self.samples:
-            query = instance["query"]
-            positive = list(instance["positive"])
-            negative = list(instance["negative"])
+        for instance in tqdm(self.samples, desc="Evaluating samples", disable=not self.show_progress_bar, leave=False):
+            if "query" not in instance:
+                raise ValueError("CERerankingEvaluator requires a 'query' key in each sample.")
+            if "positive" not in instance:
+                raise ValueError("CERerankingEvaluator requires a 'positive' key in each sample.")
+            if ("negative" in instance and "documents" in instance) or (
+                "negative" not in instance and "documents" not in instance
+            ):
+                raise ValueError(
+                    "CERerankingEvaluator requires exactly one of 'negative' and 'documents' in each sample."
+                )
 
-            if self.negatives_are_ranked:
-                # This means that 'negative' is all documents, including the positive ones
-                base_is_relevant = [int(sample in positive) for sample in negative]
-                # If not all positives are in negative, we need to add them at the end
-                base_is_relevant += [1] * (len(positive) - sum(base_is_relevant))
-                base_pred_scores = np.array(range(len(base_is_relevant), 0, -1))
-                base_mrr, base_ndcg, base_ap = self.compute_metrics(base_is_relevant, base_pred_scores)
+            query = instance["query"]
+            positive = instance["positive"]
+            if isinstance(positive, str):
+                positive = [positive]
+
+            negative = instance.get("negative", None)
+            documents = instance.get("documents", None)
+
+            if documents:
+                base_is_relevant = [int(sample in positive) for sample in documents]
+                if sum(base_is_relevant) == 0:
+                    base_mrr, base_ndcg, base_ap = 0, 0, 0
+                else:
+                    # If not all positives are in documents, we need to add them at the end
+                    base_is_relevant += [1] * (len(positive) - sum(base_is_relevant))
+                    base_pred_scores = np.array(range(len(base_is_relevant), 0, -1))
+                    base_mrr, base_ndcg, base_ap = self.compute_metrics(base_is_relevant, base_pred_scores)
                 base_mrr_scores.append(base_mrr)
                 base_ndcg_scores.append(base_ndcg)
                 base_ap_scores.append(base_ap)
 
-                negative = [sample for sample in negative if sample not in positive]
-
-            docs = positive + negative
-            is_relevant = [1] * len(positive) + [0] * len(negative)
-
-            if len(positive) == 0 or len(negative) == 0:
-                continue
+                if self.always_rerank_positives:
+                    docs = positive + [doc for doc in documents if doc not in positive]
+                    is_relevant = [1] * len(positive) + [0] * (len(docs) - len(positive))
+                else:
+                    docs = documents
+                    is_relevant = [int(sample in positive) for sample in documents]
+            else:
+                docs = positive + negative
+                is_relevant = [1] * len(positive) + [0] * len(negative)
 
             num_queries += 1
+
             num_positives.append(len(positive))
-            num_negatives.append(len(negative))
+            num_negatives.append(len(is_relevant) - sum(is_relevant))
+
+            if sum(is_relevant) == 0:
+                all_mrr_scores.append(0)
+                all_ndcg_scores.append(0)
+                all_ap_scores.append(0)
+                continue
 
             model_input = [[query, doc] for doc in docs]
             pred_scores = model.predict(model_input, convert_to_numpy=True, show_progress_bar=False)
+
+            # Add the ignored positives at the end
+            if num_ignored_positives := len(is_relevant) - len(pred_scores):
+                pred_scores = np.concatenate([pred_scores, np.zeros(num_ignored_positives)])
 
             mrr, ndcg, ap = self.compute_metrics(is_relevant, pred_scores)
 
@@ -188,7 +237,7 @@ class CERerankingEvaluator(SentenceEvaluator):
         logger.info(
             f"Queries:\t{num_queries} \t Positives: Min {np.min(num_positives):.1f}, Mean {np.mean(num_positives):.1f}, Max {np.max(num_positives):.1f} \t Negatives: Min {np.min(num_negatives):.1f}, Mean {np.mean(num_negatives):.1f}, Max {np.max(num_negatives):.1f}"
         )
-        if self.negatives_are_ranked:
+        if documents:
             mean_base_mrr = np.mean(base_mrr_scores)
             mean_base_ndcg = np.mean(base_ndcg_scores)
             mean_base_ap = np.mean(base_ap_scores)

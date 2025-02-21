@@ -109,10 +109,6 @@ The :class:`SentenceTransformerTrainer` trains and evaluates using :class:`datas
 
 .. tab:: Local Data that requires pre-processing
 
-    .. sidebar:: Documentation
-
-        - :meth:`datasets.Dataset.from_dict`
-
     If you have local data that requires some extra pre-processing, my recommendation is to initialize your dataset using :meth:`datasets.Dataset.from_dict` and a dictionary of lists, like so:
 
     .. raw:: html
@@ -518,7 +514,7 @@ documentation for more information on the integrated callbacks and how to write 
 
 ## Multi-Dataset Training
 ```{eval-rst}
-The top performing models are trained using many datasets at once. Normally, this is rather tricky, as each dataset has a different format. However, :class:`SentenceTransformerTrainer` can train with multiple datasets without having to convert each dataset to the same format. It can even apply different loss functions to each of the datasets. The steps to train with multiple datasets are:
+The top performing models are trained using many datasets at once. Normally, this is rather tricky, as each dataset has a different format. However, :class:`sentence_transformers.trainer.SentenceTransformerTrainer` can train with multiple datasets without having to convert each dataset to the same format. It can even apply different loss functions to each of the datasets. The steps to train with multiple datasets are:
 
 - Use a dictionary of :class:`~datasets.Dataset` instances (or a :class:`~datasets.DatasetDict`) as the ``train_dataset`` and ``eval_dataset``.
 - (Optional) Use a dictionary of loss functions mapping dataset names to losses. Only required if you wish to use different loss function for different datasets.
@@ -641,7 +637,7 @@ Training on multiple datasets looks like this:
 
 ## Deprecated Training 
 ```{eval-rst}
-Prior to the Sentence Transformers v3.0 release, models would be trained with the :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>` method and a :class:`~torch.utils.data.DataLoader` of :class:`~sentence_transformers.readers.InputExample`, which looked something like this::
+Prior to the Sentence Transformers v3.0 release, models would be trained with the :meth:`SentenceTransformer.fit() <sentence_transformers.SentenceTransformer.fit>` method and a :class:`~torch.utils.data.DataLoader` of :class:`~sentence_transformers.readers.InputExample`, which looked something like this::
 
     from sentence_transformers import SentenceTransformer, InputExample, losses
     from torch.utils.data import DataLoader
@@ -662,9 +658,9 @@ Prior to the Sentence Transformers v3.0 release, models would be trained with th
     # Tune the model
     model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_steps=100)
 
-Since the v3.0 release, using :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>` is still possible, but it will initialize a :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` behind the scenes. It is recommended to use the Trainer directly, as you will have more control via the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`, but existing training scripts relying on :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>` should still work.
+Since the v3.0 release, using :meth:`SentenceTransformer.fit() <sentence_transformers.SentenceTransformer.fit>` is still possible, but it will initialize a :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` behind the scenes. It is recommended to use the Trainer directly, as you will have more control via the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`, but existing training scripts relying on :meth:`SentenceTransformer.fit() <sentence_transformers.SentenceTransformer.fit>` should still work.
 
-In case there are issues with the updated :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>`, you can also get exactly the old behaviour by calling :meth:`SentenceTransformer.old_fit <sentence_transformers.SentenceTransformer.old_fit>` instead, but this method will be deprecated fully in the future.
+In case there are issues with the updated :meth:`SentenceTransformer.fit() <sentence_transformers.SentenceTransformer.fit>`, you can also get exactly the old behaviour by calling :meth:`SentenceTransformer.old_fit() <sentence_transformers.SentenceTransformer.old_fit>` instead, but this method is planned to be deprecated fully in the future.
 
 ```
 
