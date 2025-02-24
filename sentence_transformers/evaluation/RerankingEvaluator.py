@@ -41,11 +41,51 @@ class RerankingEvaluator(SentenceEvaluator):
         use_batched_encoding (bool, optional): Whether or not to encode queries and documents in batches for greater speed, or 1-by-1 to save memory. Defaults to True.
         truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the model's current truncation dimension. Defaults to None.
         mrr_at_k (Optional[int], optional): Deprecated parameter. Please use `at_k` instead. Defaults to None.
+
+    Example:
+        ::
+
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers.evaluation import RerankingEvaluator
+            from datasets import load_dataset
+
+            # Load a model
+            model = SentenceTransformer("all-MiniLM-L6-v2")
+
+            # Load a dataset with queries, positives, and negatives
+            eval_dataset = load_dataset("microsoft/ms_marco", "v1.1", split="validation")
+
+            samples = [
+                {
+                    "query": sample["query"],
+                    "positive": [text for is_selected, text in zip(sample["passages"]["is_selected"], sample["passages"]["passage_text"]) if is_selected],
+                    "negative": [text for is_selected, text in zip(sample["passages"]["is_selected"], sample["passages"]["passage_text"]) if not is_selected],
+                }
+                for sample in eval_dataset
+            ]
+
+            # Initialize the evaluator
+            reranking_evaluator = RerankingEvaluator(
+                samples=samples,
+                name="ms-marco-dev",
+            )
+            results = reranking_evaluator(model)
+            '''
+            RerankingEvaluator: Evaluating the model on the ms-marco-dev dataset:
+            Queries: 9706      Positives: Min 1.0, Mean 1.1, Max 5.0   Negatives: Min 1.0, Mean 7.1, Max 9.0
+            MAP: 56.07
+            MRR@10: 56.70
+            NDCG@10: 67.08
+            '''
+            print(reranking_evaluator.primary_metric)
+            # => ms-marco-dev_ndcg@10
+            print(results[reranking_evaluator.primary_metric])
+            # => 0.6708042171399308
     """
 
     def __init__(
         self,
-        samples,
+        samples: list[dict[str, str | list[str]]],
         at_k: int = 10,
         name: str = "",
         write_csv: bool = True,
@@ -89,7 +129,7 @@ class RerankingEvaluator(SentenceEvaluator):
             f"NDCG@{self.at_k}",
         ]
         self.write_csv = write_csv
-        self.primary_metric = "map"
+        self.primary_metric = f"ndcg@{self.at_k}"  # TODO: Is this the best default metric to use?
 
     def __call__(
         self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
