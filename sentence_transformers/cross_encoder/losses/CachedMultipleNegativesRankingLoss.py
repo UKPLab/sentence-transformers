@@ -64,8 +64,8 @@ class CachedMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
         self,
         model: CrossEncoder,
         num_negatives: int | None = 4,
-        scale: float = 20.0,
-        activation_fct: nn.Module | None = nn.Tanh(),
+        scale: float = 10.0,
+        activation_fct: nn.Module | None = nn.Sigmoid(),
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
     ) -> None:

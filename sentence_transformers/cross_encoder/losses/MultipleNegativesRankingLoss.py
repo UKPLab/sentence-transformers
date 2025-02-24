@@ -14,8 +14,8 @@ class MultipleNegativesRankingLoss(nn.Module):
         self,
         model: CrossEncoder,
         num_negatives: int | None = 4,
-        scale: int = 20.0,
-        activation_fct: nn.Module | None = nn.Tanh(),
+        scale: int = 10.0,
+        activation_fct: nn.Module | None = nn.Sigmoid(),
     ) -> None:
         super().__init__()
         self.model = model
