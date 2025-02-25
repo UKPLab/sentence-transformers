@@ -88,11 +88,11 @@ class CERerankingEvaluator(SentenceEvaluator):
             results = reranking_evaluator(model)
             '''
             CERerankingEvaluator: Evaluating the model on the ms-marco-dev dataset:
-            Queries:  10047    Positives: Min 0.0, Mean 1.1, Max 5.0   Negatives: Min 1.0, Mean 7.1, Max 10.0
-                      Base  -> Reranked
-            MAP:      34.03 -> 62.36
-            MRR@10:   34.67 -> 62.96
-            NDCG@10:  49.05 -> 71.05
+            Queries: 10047    Positives: Min 0.0, Mean 1.1, Max 5.0   Negatives: Min 1.0, Mean 7.1, Max 10.0
+                     Base  -> Reranked
+            MAP:     34.03 -> 62.36
+            MRR@10:  34.67 -> 62.96
+            NDCG@10: 49.05 -> 71.05
             '''
             print(reranking_evaluator.primary_metric)
             # => ms-marco-dev_ndcg@10
@@ -235,7 +235,9 @@ class CERerankingEvaluator(SentenceEvaluator):
         }
 
         logger.info(
-            f"Queries:\t{num_queries} \t Positives: Min {np.min(num_positives):.1f}, Mean {np.mean(num_positives):.1f}, Max {np.max(num_positives):.1f} \t Negatives: Min {np.min(num_negatives):.1f}, Mean {np.mean(num_negatives):.1f}, Max {np.max(num_negatives):.1f}"
+            f"Queries: {num_queries}\t"
+            f"Positives: Min {np.min(num_positives):.1f}, Mean {np.mean(num_positives):.1f}, Max {np.max(num_positives):.1f}\t"
+            f"Negatives: Min {np.min(num_negatives):.1f}, Mean {np.mean(num_negatives):.1f}, Max {np.max(num_negatives):.1f}"
         )
         if documents:
             mean_base_mrr = np.mean(base_mrr_scores)
@@ -246,10 +248,10 @@ class CERerankingEvaluator(SentenceEvaluator):
                 f"base_mrr@{self.at_k}": mean_base_mrr,
                 f"base_ndcg@{self.at_k}": mean_base_ndcg,
             }
-            logger.info("\t\tBase  -> Reranked")
-            logger.info(f"MAP:\t{mean_base_ap * 100:.2f} -> {mean_ap * 100:.2f}")
-            logger.info(f"MRR@{self.at_k}:\t{mean_base_mrr * 100:.2f} -> {mean_mrr * 100:.2f}")
-            logger.info(f"NDCG@{self.at_k}:\t{mean_base_ndcg * 100:.2f} -> {mean_ndcg * 100:.2f}")
+            logger.info(f"{' ' * len(str(self.at_k))}       Base  -> Reranked")
+            logger.info(f"MAP:{' ' * len(str(self.at_k))}   {mean_base_ap * 100:.2f} -> {mean_ap * 100:.2f}")
+            logger.info(f"MRR@{self.at_k}:  {mean_base_mrr * 100:.2f} -> {mean_mrr * 100:.2f}")
+            logger.info(f"NDCG@{self.at_k}: {mean_base_ndcg * 100:.2f} -> {mean_ndcg * 100:.2f}")
 
             model_card_metrics = {
                 "map": f"{mean_ap:.4f} ({mean_ap - mean_base_ap:+.4f})",
@@ -262,9 +264,9 @@ class CERerankingEvaluator(SentenceEvaluator):
             metrics.update(base_metrics)
             metrics = self.prefix_name_to_metrics(metrics, self.name)
         else:
-            logger.info(f"MAP:\t{mean_ap * 100:.2f}")
-            logger.info(f"MRR@{self.at_k}:\t{mean_mrr * 100:.2f}")
-            logger.info(f"NDCG@{self.at_k}:\t{mean_ndcg * 100:.2f}")
+            logger.info(f"MAP:{' ' * len(str(self.at_k))}   {mean_ap * 100:.2f}")
+            logger.info(f"MRR@{self.at_k}:  {mean_mrr * 100:.2f}")
+            logger.info(f"NDCG@{self.at_k}: {mean_ndcg * 100:.2f}")
 
             metrics = self.prefix_name_to_metrics(metrics, self.name)
             self.store_metrics_in_model_card_data(model, metrics, epoch, steps)

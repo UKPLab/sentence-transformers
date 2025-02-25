@@ -71,14 +71,15 @@ dataset_name_to_human_readable = {
 
 class NanoBEIREvaluator(SentenceEvaluator):
     """
-    This class evaluates the performance of a SentenceTransformer Model on the NanoBEIR collection of datasets.
+    This class evaluates the performance of a SentenceTransformer Model on the NanoBEIR collection of Information Retrieval datasets.
 
-    The collection is a set of datasets based on the BEIR collection, but with a significantly smaller size, so it can be used for quickly evaluating the retrieval performance of a model before commiting to a full evaluation.
-    The datasets are available on HuggingFace at https://huggingface.co/collections/zeta-alpha-ai/nanobeir-66e1a0af21dfd93e620cd9f6
-    The Evaluator will return the same metrics as the InformationRetrievalEvaluator (i.e., MRR, nDCG, Recall@k), for each dataset and on average.
+    The collection is a set of datasets based on the BEIR collection, but with a significantly smaller size, so it can
+    be used for quickly evaluating the retrieval performance of a model before commiting to a full evaluation.
+    The datasets are available on Hugging Face in the `NanoBEIR collection <https://huggingface.co/collections/zeta-alpha-ai/nanobeir-66e1a0af21dfd93e620cd9f6>`_.
+    This evaluator will return the same metrics as the InformationRetrievalEvaluator (i.e., MRR, nDCG, Recall@k), for each dataset and on average.
 
     Args:
-        dataset_names (List[str]): The names of the datasets to evaluate on.
+        dataset_names (List[str]): The names of the datasets to evaluate on. Defaults to all datasets.
         mrr_at_k (List[int]): A list of integers representing the values of k for MRR calculation. Defaults to [10].
         ndcg_at_k (List[int]): A list of integers representing the values of k for NDCG calculation. Defaults to [10].
         accuracy_at_k (List[int]): A list of integers representing the values of k for accuracy calculation. Defaults to [1, 3, 5, 10].

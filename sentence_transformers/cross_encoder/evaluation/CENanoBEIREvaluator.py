@@ -32,19 +32,19 @@ DatasetNameType = Literal[
 ]
 
 dataset_name_to_id = {
-    "climatefever": "tomaarsen/NanoClimateFEVER-bm25",
-    "dbpedia": "tomaarsen/NanoDBPedia-bm25",
-    "fever": "tomaarsen/NanoFEVER-bm25",
-    "fiqa2018": "tomaarsen/NanoFiQA2018-bm25",
-    "hotpotqa": "tomaarsen/NanoHotpotQA-bm25",
-    "msmarco": "tomaarsen/NanoMSMARCO-bm25",
-    "nfcorpus": "tomaarsen/NanoNFCorpus-bm25",
-    "nq": "tomaarsen/NanoNQ-bm25",
-    "quoraretrieval": "tomaarsen/NanoQuoraRetrieval-bm25",
-    "scidocs": "tomaarsen/NanoSCIDOCS-bm25",
-    "arguana": "tomaarsen/NanoArguAna-bm25",
-    "scifact": "tomaarsen/NanoSciFact-bm25",
-    "touche2020": "tomaarsen/NanoTouche2020-bm25",
+    "climatefever": "sentence-transformers/NanoClimateFEVER-bm25",
+    "dbpedia": "sentence-transformers/NanoDBPedia-bm25",
+    "fever": "sentence-transformers/NanoFEVER-bm25",
+    "fiqa2018": "sentence-transformers/NanoFiQA2018-bm25",
+    "hotpotqa": "sentence-transformers/NanoHotpotQA-bm25",
+    "msmarco": "sentence-transformers/NanoMSMARCO-bm25",
+    "nfcorpus": "sentence-transformers/NanoNFCorpus-bm25",
+    "nq": "sentence-transformers/NanoNQ-bm25",
+    "quoraretrieval": "sentence-transformers/NanoQuoraRetrieval-bm25",
+    "scidocs": "sentence-transformers/NanoSCIDOCS-bm25",
+    "arguana": "sentence-transformers/NanoArguAna-bm25",
+    "scifact": "sentence-transformers/NanoSciFact-bm25",
+    "touche2020": "sentence-transformers/NanoTouche2020-bm25",
 }
 
 dataset_name_to_human_readable = {
@@ -65,23 +65,105 @@ dataset_name_to_human_readable = {
 
 
 class CENanoBEIREvaluator(SentenceEvaluator):
+    """
+    This class evaluates a CrossEncoder model on the NanoBEIR collection of Information Retrieval datasets.
+
+    The collection is a set of datasets based on the BEIR collection, but with a significantly smaller size, so it can
+    be used for quickly evaluating the retrieval performance of a model before commiting to a full evaluation.
+    The datasets are available on Hugging Face in the `NanoBEIR with BM25 collection <https://huggingface.co/collections/sentence-transformers/nanobeir-with-bm25-rankings-67bdcbc629f007c15bf358d8>`_.
+    This evaluator will return the same metrics as the CERerankingEvaluator (i.e., MRR@k, nDCG@k, MAP), for each dataset and on average.
+
+    Rather than reranking all documents for each query, the evaluator will only rerank the ``rerank_k`` documents from
+    a BM25 ranking. When your logging is set to INFO, the evaluator will print the MAP, MRR@k, and nDCG@k for each dataset
+    and the average over all datasets.
+
+    Note that the maximum score is 1.0 by default, because all positive documents are included in the ranking. This
+    can be toggled off by setting ``always_rerank_positives=False``, at which point the maximum score will be bound by
+    the number of positive documents that BM25 ranks in the top ``rerank_k`` documents.
+
+    Args:
+        dataset_names (List[str]): The names of the datasets to evaluate on. If not specified, use all datasets except arguana and touche2020.
+        rerank_k (int): The number of documents to rerank from the BM25 ranking. Defaults to 100.
+        at_k (int, optional): Only consider the top k most similar documents to each query for the evaluation. Defaults to 10.
+        always_rerank_positives (bool): If True, always evaluate with all positives included. If False, only include
+            the positives that are already in the documents list. Always set to True if your `samples` contain `negative`
+            instead of `documents`. When using `documents`, setting this to True will result in a more useful evaluation
+            signal, but setting it to False will result in a more realistic evaluation. Defaults to True.
+        batch_size (int): Batch size to compute sentence embeddings. Defaults to 64.
+        show_progress_bar (bool): Show progress bar when computing embeddings. Defaults to False.
+        write_csv (bool): Write results to CSV file. Defaults to True.
+        aggregate_fn (Callable[[list[float]], float]): The function to aggregate the scores. Defaults to np.mean.
+        aggregate_key (str): The key to use for the aggregated score. Defaults to "mean".
+
+    Example:
+        ::
+
+            from sentence_transformers.cross_encoder import CrossEncoder
+            from sentence_transformers.cross_encoder.evaluation import CENanoBEIREvaluator
+            import logging
+
+            logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
+
+            # Load a model
+            model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+            # Load & run the evaluator
+            dataset_names = ["msmarco", "nfcorpus", "nq"]
+            evaluator = CENanoBEIREvaluator(dataset_names)
+            results = evaluator(model)
+            '''
+            NanoBEIR Evaluation of the model on ['msmarco', 'nfcorpus', 'nq'] dataset:
+            Evaluating NanoMSMARCO
+            CERerankingEvaluator: Evaluating the model on the NanoMSMARCO dataset:
+                    Base  -> Reranked
+            MAP:     48.96 -> 60.35
+            MRR@10:  47.75 -> 59.63
+            NDCG@10: 54.04 -> 66.86
+
+            Evaluating NanoNFCorpus
+            CERerankingEvaluator: Evaluating the model on the NanoNFCorpus dataset:
+            Queries: 50   Positives: Min 1.0, Mean 50.4, Max 463.0        Negatives: Min 54.0, Mean 92.8, Max 100.0
+                    Base  -> Reranked
+            MAP:     26.10 -> 34.61
+            MRR@10:  49.98 -> 58.85
+            NDCG@10: 32.50 -> 39.30
+
+            Evaluating NanoNQ
+            CERerankingEvaluator: Evaluating the model on the NanoNQ dataset:
+            Queries: 50   Positives: Min 1.0, Mean 1.1, Max 2.0   Negatives: Min 98.0, Mean 99.0, Max 100.0
+                    Base  -> Reranked
+            MAP:     41.96 -> 70.98
+            MRR@10:  42.67 -> 73.55
+            NDCG@10: 50.06 -> 75.99
+
+            CENanoBEIREvaluator: Aggregated Results:
+                    Base  -> Reranked
+            MAP:     39.01 -> 55.31
+            MRR@10:  46.80 -> 64.01
+            NDCG@10: 45.54 -> 60.72
+            '''
+            print(evaluator.primary_metric)
+            # NanoBEIR_R100_mean_ndcg@10
+            print(results[evaluator.primary_metric])
+            # 0.60716840988382
+    """
+
     def __init__(
         self,
         dataset_names: list[DatasetNameType] | None = None,
         rerank_k: int = 100,
         at_k: int = 10,
         always_rerank_positives: bool = True,
-        show_progress_bar: bool = False,
         batch_size: int = 32,
+        show_progress_bar: bool = False,
         write_csv: bool = True,
         aggregate_fn: Callable[[list[float]], float] = np.mean,
         aggregate_key: str = "mean",
     ):
         super().__init__()
         if dataset_names is None:
-            dataset_names = list(
-                dataset_name_to_id.keys()
-            )  # TODO: Consider removing arguana and touche2020 from the default
+            # We exclude arguana and touche2020 because their Argument Retrieval meaningfully task differs from the others
+            dataset_names = [key for key in dataset_name_to_id if key not in ["arguana", "touche2020"]]
         self.dataset_names = dataset_names
         self.rerank_k = rerank_k
         self.at_k = at_k
@@ -147,13 +229,15 @@ class CENanoBEIREvaluator(SentenceEvaluator):
             agg_results[metric] = self.aggregate_fn(per_metric_results[metric])
 
         logger.info("CENanoBEIREvaluator: Aggregated Results:")
-        logger.info("\t\tBase  -> Reranked")
-        logger.info(f"MAP:\t{agg_results['base_map'] * 100:.2f} -> {agg_results['map'] * 100:.2f}")
+        logger.info(f"{' ' * len(str(self.at_k))}       Base  -> Reranked")
         logger.info(
-            f"MRR@{self.at_k}:\t{agg_results[f'base_mrr@{self.at_k}'] * 100:.2f} -> {agg_results[f'mrr@{self.at_k}'] * 100:.2f}"
+            f"MAP:{' ' * len(str(self.at_k))}   {agg_results['base_map'] * 100:.2f} -> {agg_results['map'] * 100:.2f}"
         )
         logger.info(
-            f"NDCG@{self.at_k}:\t{agg_results[f'base_ndcg@{self.at_k}'] * 100:.2f} -> {agg_results[f'ndcg@{self.at_k}'] * 100:.2f}"
+            f"MRR@{self.at_k}:  {agg_results[f'base_mrr@{self.at_k}'] * 100:.2f} -> {agg_results[f'mrr@{self.at_k}'] * 100:.2f}"
+        )
+        logger.info(
+            f"NDCG@{self.at_k}: {agg_results[f'base_ndcg@{self.at_k}'] * 100:.2f} -> {agg_results[f'ndcg@{self.at_k}'] * 100:.2f}"
         )
 
         model_card_metrics = {
