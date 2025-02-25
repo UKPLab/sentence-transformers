@@ -11,7 +11,12 @@ from sentence_transformers.backend import (
     export_optimized_onnx_model,
     export_static_quantized_openvino_model,
 )
-from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
+from sentence_transformers.cross_encoder import (
+    CrossEncoder,
+    CrossEncoderModelCardData,
+    CrossEncoderTrainer,
+    CrossEncoderTrainingArguments,
+)
 from sentence_transformers.datasets import ParallelSentencesDataset, SentencesDataset
 from sentence_transformers.LoggingHandler import LoggingHandler
 from sentence_transformers.model_card import SentenceTransformerModelCardData
@@ -35,6 +40,9 @@ __all__ = [
     "SimilarityFunction",
     "InputExample",
     "CrossEncoder",
+    "CrossEncoderTrainer",
+    "CrossEncoderTrainingArguments",
+    "CrossEncoderModelCardData",
     "SentenceTransformerTrainer",
     "SentenceTransformerTrainingArguments",
     "SentenceTransformerModelCardData",
