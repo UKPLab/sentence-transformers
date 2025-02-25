@@ -5,7 +5,7 @@ from collections.abc import Generator
 import torch
 from torch import Tensor, nn
 
-from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
 from sentence_transformers.util import fullname
 
 
@@ -17,6 +17,78 @@ class MultipleNegativesRankingLoss(nn.Module):
         scale: int = 10.0,
         activation_fct: nn.Module | None = nn.Sigmoid(),
     ) -> None:
+        """
+        Given a list of (anchor, positive) pairs or (anchor, positive, negative) triplets, this loss optimizes the following:
+
+        * Given an anchor (e.g. a question), assign the highest similarity to the corresponding positive (i.e. answer)
+          out of every single positive and negative (e.g. all answers) in the batch.
+
+        If you provide the optional negatives, they will all be used as extra options from which the model must pick the
+        correct positive. Within reason, the harder this "picking" is, the stronger the model will become. Because of
+        this, a higher batch size results in more in-batch negatives, which then increases performance (to a point).
+
+        This loss function works great to train embeddings for retrieval setups where you have positive pairs
+        (e.g. (query, answer)) as it will sample in each batch ``n-1`` negative docs randomly.
+
+        This loss is also known as InfoNCE loss, SimCSE loss, Cross-Entropy Loss with in-batch negatives, or simply
+        in-batch negatives loss.
+
+        Args:
+            model (:class:`~sentence_transformers.cross_encoder.CrossEncoder`): A CrossEncoder model to be trained.
+            num_negatives (int, optional): Number of in-batch negatives to sample for each anchor. Defaults to 4.
+            scale (int, optional): Output of similarity function is multiplied by scale value. Defaults to 10.0.
+            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Sigmoid`.
+
+        .. note::
+
+            The current default values are subject to change in the future. Experimentation is encouraged.
+
+        References:
+            - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
+
+        Requirements:
+            1. Your model must be initialized with `num_labels = 1` (a.k.a. the default) to predict one class.
+
+        Inputs:
+            +-------------------------------------------------+--------+-------------------------------+
+            | Texts                                           | Labels | Number of Model Output Labels |
+            +=================================================+========+===============================+
+            | (anchor, positive) pairs                        | none   | 1                             |
+            +-------------------------------------------------+--------+-------------------------------+
+            | (anchor, positive, negative) triplets           | none   | 1                             |
+            +-------------------------------------------------+--------+-------------------------------+
+            | (anchor, positive, negative_1, ..., negative_n) | none   | 1                             |
+            +-------------------------------------------------+--------+-------------------------------+
+
+        Recommendations:
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that no in-batch negatives are duplicates of the anchor or positive samples.
+
+        Relations:
+            - :class:`CachedMultipleNegativesRankingLoss` is equivalent to this loss, but it uses caching that allows for
+              much higher batch sizes (and thus better performance) without extra memory usage. However, it is slightly
+              slower.
+
+        Example:
+            ::
+
+                from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderTrainer, losses
+                from datasets import Dataset
+
+                model = CrossEncoder("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "query": ["What are pandas?", "What is the capital of France?"],
+                    "answer": ["Pandas are a kind of bear.", "The capital of France is Paris."],
+                })
+                loss = losses.MultipleNegativesRankingLoss(model)
+
+                trainer = CrossEncoderTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
+        """
         super().__init__()
         self.model = model
         self.num_negatives = num_negatives
@@ -24,6 +96,12 @@ class MultipleNegativesRankingLoss(nn.Module):
         self.activation_fct = activation_fct
 
         self.cross_entropy_loss = nn.CrossEntropyLoss()
+
+        if not isinstance(self.model, CrossEncoder):
+            raise ValueError(
+                f"{self.__class__.__name__} expects a model of type CrossEncoder, "
+                f"but got a model of type {type(self.model)}."
+            )
 
         if self.model.num_labels != 1:
             raise ValueError(
@@ -55,14 +133,14 @@ class MultipleNegativesRankingLoss(nn.Module):
         # Given N anchors, we want to select num_negatives negatives for each anchor
         candidates_flattened = [candidate for sublist in candidates for candidate in sublist]
 
-        if self.num_negatives is not None:
+        if self.num_negatives is not None and self.num_negatives < num_candidates:
             # Create a mask for each anchor to each candidate index, where the matching positive
             # and hard negatives are masked out. From the remaining options, we randomly select
             # num_negatives indices.
             mask = ~torch.eye(batch_size, dtype=torch.bool).repeat(1, num_candidates)
             negative_indices = torch.multinomial(mask.float(), self.num_negatives)
         else:
-            # If num_negatives is None, we select all negatives
+            # If num_negatives is None or larger than the number of candidates, we select all negatives
             negative_indices = torch.arange(len(candidates[0])).repeat(len(candidates), 1)
 
         for negative_indices_row in negative_indices.T:
