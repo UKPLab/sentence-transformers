@@ -6,8 +6,10 @@ from datasets import load_dataset
 
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderModelCardData
-from sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator import CENanoBEIREvaluator
-from sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator import CERerankingEvaluator
+from sentence_transformers.cross_encoder.evaluation import (
+    CrossEncoderNanoBEIREvaluator,
+    CrossEncoderRerankingEvaluator,
+)
 from sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
 from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
 from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
@@ -71,8 +73,8 @@ def main():
     # pos_weight is recommended to be set as the ratio between positives to negatives, a.k.a. `num_hard_negatives`
     loss = BinaryCrossEntropyLoss(model=model, pos_weight=torch.tensor(num_hard_negatives))
 
-    # 4a. Define evaluators. We use the CENanoBEIREvaluator, which is a light-weight evaluator for English reranking
-    nano_beir_evaluator = CENanoBEIREvaluator(
+    # 4a. Define evaluators. We use the CrossEncoderNanoBEIREvaluator, which is a light-weight evaluator for English reranking
+    nano_beir_evaluator = CrossEncoderNanoBEIREvaluator(
         dataset_names=["msmarco", "nfcorpus", "nq"],
         batch_size=train_batch_size,
     )
@@ -91,7 +93,7 @@ def main():
         use_faiss=True,
     )
     logging.info(hard_eval_dataset)
-    reranking_evaluator = CERerankingEvaluator(
+    reranking_evaluator = CrossEncoderRerankingEvaluator(
         samples=[
             {
                 "query": sample["question"],

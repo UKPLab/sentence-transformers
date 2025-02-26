@@ -4,7 +4,7 @@ import traceback
 from datasets import load_dataset, load_from_disk
 
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator import CENanoBEIREvaluator
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
 from sentence_transformers.cross_encoder.losses.MSELoss import MSELoss
 from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
 from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
@@ -63,8 +63,8 @@ def main():
     # 3. Define our training loss
     loss = MSELoss(model)
 
-    # 4. Define the evaluator. We use the CENanoBEIREvaluator, which is a light-weight evaluator for English reranking
-    evaluator = CENanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=train_batch_size)
+    # 4. Define the evaluator. We use the CrossEncoderNanoBEIREvaluator, which is a light-weight evaluator for English reranking
+    evaluator = CrossEncoderNanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=train_batch_size)
     evaluator(model)
 
     # 5. Define the training arguments

@@ -4,7 +4,7 @@ import traceback
 from datasets import load_dataset
 
 from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderModelCardData
-from sentence_transformers.cross_encoder.evaluation import CENanoBEIREvaluator
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
 from sentence_transformers.cross_encoder.losses import CachedMultipleNegativesRankingLoss
 from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
 from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
@@ -45,8 +45,8 @@ loss = CachedMultipleNegativesRankingLoss(
     mini_batch_size=32,  # Informs the memory usage
 )
 
-# 4. Use CENanoBEIREvaluator, a light-weight evaluator for English reranking
-evaluator = CENanoBEIREvaluator(
+# 4. Use CrossEncoderNanoBEIREvaluator, a light-weight evaluator for English reranking
+evaluator = CrossEncoderNanoBEIREvaluator(
     dataset_names=["msmarco", "nfcorpus", "nq"],
     batch_size=train_batch_size,
 )

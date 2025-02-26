@@ -17,7 +17,7 @@ from pytest import FixtureRequest
 from torch.utils.data import DataLoader
 
 from sentence_transformers import CrossEncoder, util
-from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
 from sentence_transformers.readers import InputExample
 from tests.utils import SafeTemporaryDirectory
 
@@ -50,7 +50,7 @@ def evaluate_stsb_test(
     num_test_samples: int = -1,
 ) -> None:
     model = distilroberta_base_ce_model
-    evaluator = CECorrelationEvaluator.from_input_examples(test_samples[:num_test_samples], name="sts-test")
+    evaluator = CrossEncoderCorrelationEvaluator.from_input_examples(test_samples[:num_test_samples], name="sts-test")
     scores = evaluator(model)
     score = scores[evaluator.primary_metric] * 100
     print(f"STS-Test Performance: {score:.2f} vs. exp: {expected_score:.2f}")

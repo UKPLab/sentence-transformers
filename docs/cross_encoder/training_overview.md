@@ -360,20 +360,20 @@ You can provide the [`CrossEncoderTrainer`](https://sbert.net/docs/package_refer
 
 Here are the implemented Evaluators that come with Sentence Transformers:
 ```{eval-rst}
-======================================================================================  ===========================================================================================================================
-Evaluator                                                                               Required Data
-======================================================================================  ===========================================================================================================================
-:class:`~sentence_transformers.cross_encoder.evaluation.CEClassificationEvaluator`      Pairs with class labels (binary or multiclass).
-:class:`~sentence_transformers.cross_encoder.evaluation.CECorrelationEvaluator`         Pairs with similarity scores.
-:class:`~sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator`            No data required.
-:class:`~sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator`           List of ``{'query': '...', 'positive': [...], 'negative': [...]}`` dictionaries. Negatives can be mined with :func:`~sentence_transformers.util.mine_hard_negatives`.
-======================================================================================  ===========================================================================================================================
+=============================================================================================  ========================================================================================================================================================================
+Evaluator                                                                                      Required Data
+=============================================================================================  ========================================================================================================================================================================
+:class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderClassificationEvaluator`   Pairs with class labels (binary or multiclass).
+:class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderCorrelationEvaluator`      Pairs with similarity scores.
+:class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator`         No data required.
+:class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator`        List of ``{'query': '...', 'positive': [...], 'negative': [...]}`` dictionaries. Negatives can be mined with :func:`~sentence_transformers.util.mine_hard_negatives`.
+=============================================================================================  ========================================================================================================================================================================
 
 Additionally, :class:`~sentence_transformers.evaluation.SequentialEvaluator` should be used to combine multiple evaluators into one Evaluator that can be passed to the :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer`.
 
 Sometimes you don't have the required evaluation data to prepare one of these evaluators on your own, but you still want to track how well the model performs on some common benchmarks. In that case, you can use these evaluators with data from Hugging Face.
 
-.. tab:: CENanoBEIREvaluator
+.. tab:: CrossEncoderNanoBEIREvaluator
 
     .. raw:: html
 
@@ -381,44 +381,44 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
             <p class="sidebar-title">Documentation</p>
             <ul class="simple">
                 <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2">cross-encoder/ms-marco-MiniLM-L-6-v2</a></li>
-                <li><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.CENanoBEIREvaluator" title="sentence_transformers.evaluation.CENanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.evaluation.CENanoBEIREvaluator</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.CrossEncoderNanoBEIREvaluator" title="sentence_transformers.evaluation.CrossEncoderNanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.evaluation.CrossEncoderNanoBEIREvaluator</span></code></a></li>
             </ul>
         </div>
 
     ::
 
         from sentence_transformers import CrossEncoder
-        from sentence_transformers.cross_encoder.evaluation import CENanoBEIREvaluator
+        from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
 
         # Load a model
         model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
         # Initialize the evaluator. Unlike most other evaluators, this one loads the relevant datasets
         # directly from Hugging Face, so there's no mandatory arguments
-        dev_evaluator = CENanoBEIREvaluator()
+        dev_evaluator = CrossEncoderNanoBEIREvaluator()
         # You can run evaluation like so:
         # results = dev_evaluator(model)
 
-.. tab:: CERerankingEvaluator with GooAQ mined negatives
+.. tab:: CrossEncoderRerankingEvaluator with GooAQ mined negatives
 
-    Preparing data for :class:`~sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator` can be difficult as you need negatives in addition to your query-positive data.
+    Preparing data for :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator` can be difficult as you need negatives in addition to your query-positive data.
 
-    The :func:`~sentence_transformers.util.mine_hard_negatives` function has a convenient ``disqualify_positives`` parameter, which can be set to ``True`` to also mine for the positive texts. When supplied as ``documents`` (which have to be 1) ranked and 2) contain positives) to :class:`~sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator`, the evaluator will not just evaluate the reranking performance of the CrossEncoder, but also the original rankings by the embedding model used for mining.
+    The :func:`~sentence_transformers.util.mine_hard_negatives` function has a convenient ``disqualify_positives`` parameter, which can be set to ``True`` to also mine for the positive texts. When supplied as ``documents`` (which have to be 1) ranked and 2) contain positives) to :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator`, the evaluator will not just evaluate the reranking performance of the CrossEncoder, but also the original rankings by the embedding model used for mining.
 
     For example::
 
-        CERerankingEvaluator: Evaluating the model on the gooaq-dev dataset:
+        CrossEncoderRerankingEvaluator: Evaluating the model on the gooaq-dev dataset:
         Queries:  1000     Positives: Min 1.0, Mean 1.0, Max 1.0   Negatives: Min 49.0, Mean 49.1, Max 50.0
                   Base  -> Reranked
         MAP:      53.28 -> 67.28
         MRR@10:   52.40 -> 66.65
         NDCG@10:  59.12 -> 71.35
 
-    Note that by default, if you are using :class:`~sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator` with ``documents``, the evaluator will rerank with *all* positives, even if they are not in the documents. This is useful for getting a stronger signal out of your evaluator, but does give a slightly unrealistic performance. After all, the maximum performance is now 100, whereas normally its bounded by whether the first-stage retriever actually retrieved the positives.
+    Note that by default, if you are using :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator` with ``documents``, the evaluator will rerank with *all* positives, even if they are not in the documents. This is useful for getting a stronger signal out of your evaluator, but does give a slightly unrealistic performance. After all, the maximum performance is now 100, whereas normally its bounded by whether the first-stage retriever actually retrieved the positives.
 
-    You can enable the realistic behaviour by setting ``always_rerank_positives=False`` when initializing :class:`~sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator`. Repeating the same script with this realistic two-stage performance results in::
+    You can enable the realistic behaviour by setting ``always_rerank_positives=False`` when initializing :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator`. Repeating the same script with this realistic two-stage performance results in::
 
-        CERerankingEvaluator: Evaluating the model on the gooaq-dev dataset:
+        CrossEncoderRerankingEvaluator: Evaluating the model on the gooaq-dev dataset:
         Queries:  1000     Positives: Min 1.0, Mean 1.0, Max 1.0   Negatives: Min 49.0, Mean 49.1, Max 50.0
                   Base  -> Reranked
         MAP:      53.28 -> 66.12
@@ -433,7 +433,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
                 <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2">cross-encoder/ms-marco-MiniLM-L-6-v2</a></li>
                 <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/gooaq">sentence-transformers/gooaq</a></li>
                 <li><a class="reference internal" href="../package_reference/util.html#sentence_transformers.util.mine_hard_negatives" title="sentence_transformers.util.mine_hard_negatives"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.util.mine_hard_negatives</span></code></a></li>
-                <li><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator" title="sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator" title="sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator</span></code></a></li>
             </ul>
         </div>
 
@@ -442,7 +442,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         from datasets import load_dataset
         from sentence_transformers import SentenceTransformer
         from sentence_transformers.cross_encoder import CrossEncoder
-        from sentence_transformers.cross_encoder.evaluation import CERerankingEvaluator
+        from sentence_transformers.cross_encoder.evaluation import CrossEncoderRerankingEvaluator
         from sentence_transformers.util import mine_hard_negatives
 
         # Load a model
@@ -481,7 +481,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         })
         """
 
-        reranking_evaluator = CERerankingEvaluator(
+        reranking_evaluator = CrossEncoderRerankingEvaluator(
             samples=[
                 {
                     "query": sample["question"],
@@ -496,7 +496,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         # You can run evaluation like so
         results = reranking_evaluator(model)
         """
-        CERerankingEvaluator: Evaluating the model on the gooaq-dev dataset:
+        CrossEncoderRerankingEvaluator: Evaluating the model on the gooaq-dev dataset:
         Queries:  1000     Positives: Min 1.0, Mean 1.0, Max 1.0   Negatives: Min 49.0, Mean 49.1, Max 50.0
                   Base  -> Reranked
         MAP:      53.28 -> 67.28
@@ -506,7 +506,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         # {'gooaq-dev_map': 0.6728370126462222, 'gooaq-dev_mrr@10': 0.6665190476190477, 'gooaq-dev_ndcg@10': 0.7135068904582963, 'gooaq-dev_base_map': 0.5327714512001362, 'gooaq-dev_base_mrr@10': 0.5239674603174603, 'gooaq-dev_base_ndcg@10': 0.5912299141913905}
 
 
-.. tab:: CECorrelationEvaluator with STSb
+.. tab:: CrossEncoderCorrelationEvaluator with STSb
 
     .. raw:: html
 
@@ -515,7 +515,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
             <ul class="simple">
                 <li><a class="reference external" href="https://huggingface.co/cross-encoder/stsb-TinyBERT-L-4">cross-encoder/stsb-TinyBERT-L-4</a></li>
                 <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/stsb">sentence-transformers/stsb</a></li>
-                <li><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CECorrelationEvaluator" title="sentence_transformers.cross_encoder.evaluation.CECorrelationEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.cross_encoder.evaluation.CECorrelationEvaluator</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CrossEncoderCorrelationEvaluator" title="sentence_transformers.cross_encoder.evaluation.CrossEncoderCorrelationEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.cross_encoder.evaluation.CrossEncoderCorrelationEvaluator</span></code></a></li>
             </ul>
         </div>
 
@@ -523,7 +523,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
 
         from datasets import load_dataset
         from sentence_transformers import CrossEncoder
-        from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
+        from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
 
         # Load a model
         model = CrossEncoder("cross-encoder/stsb-TinyBERT-L-4")
@@ -532,7 +532,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
 
         # Initialize the evaluator
-        dev_evaluator = CECorrelationEvaluator(
+        dev_evaluator = CrossEncoderCorrelationEvaluator(
             sentence_pairs=pairs,
             scores=eval_dataset["score"],
             name="sts_dev",
@@ -540,7 +540,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         # You can run evaluation like so:
         # results = dev_evaluator(model)
 
-.. tab:: CEClassificationEvaluator with AllNLI
+.. tab:: CrossEncoderClassificationEvaluator with AllNLI
 
     .. raw:: html
 
@@ -572,7 +572,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         labels = [label_mapping[label] for label in eval_dataset["label"]]
 
         # Initialize the evaluator
-        cls_evaluator = CEClassificationEvaluator(
+        cls_evaluator = CrossEncoderClassificationEvaluator(
             sentence_pairs=pairs,
             labels=labels,
             name="all-nli-dev",
@@ -602,7 +602,7 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
                 <li><p><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/package_reference/loading_methods#datasets.load_dataset" title="(in datasets vmain)"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_dataset()</span></code></a></p></li>
                 <li><p><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/gooaq">sentence-transformers/gooaq</a></p></li>
                 <li><p><a class="reference internal" href="../package_reference/cross_encoder/losses.html#sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss" title="sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">CachedMultipleNegativesRankingLoss</span></code></a></p></li>
-                <li><p><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator" title="sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">CENanoBEIREvaluator</span></code></a></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator" title="sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderNanoBEIREvaluator</span></code></a></p></li>
                 <li><p><a class="reference internal" href="../package_reference/cross_encoder/training_args.html#sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments" title="sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderTrainingArguments</span></code></a></p></li>
                 <li><p><a class="reference internal" href="../package_reference/cross_encoder/trainer.html#sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer" title="sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderTrainer</span></code></a></p></li>
                 <li><p><a class="reference internal" href="../package_reference/cross_encoder/trainer.html#sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer.train" title="sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer.train"><code class="xref py py-meth docutils literal notranslate"><span class="pre">CrossEncoderTrainer.train()</span></code></a></p></li>
@@ -619,7 +619,7 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
         from datasets import load_dataset
 
         from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderModelCardData
-        from sentence_transformers.cross_encoder.evaluation import CENanoBEIREvaluator
+        from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
         from sentence_transformers.cross_encoder.losses import CachedMultipleNegativesRankingLoss
         from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
         from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
@@ -660,8 +660,8 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
             mini_batch_size=32,  # Informs the memory usage
         )
 
-        # 4. Use CENanoBEIREvaluator, a light-weight evaluator for English reranking
-        evaluator = CENanoBEIREvaluator(
+        # 4. Use CrossEncoderNanoBEIREvaluator, a light-weight evaluator for English reranking
+        evaluator = CrossEncoderNanoBEIREvaluator(
             dataset_names=["msmarco", "nfcorpus", "nq"],
             batch_size=train_batch_size,
         )
@@ -737,8 +737,8 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
                 <li><p><a class="reference internal" href="../package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer" title="sentence_transformers.SentenceTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SentenceTransformer</span></code></a></p></li>
                 <li><p><a class="reference internal" href="../package_reference/util.html#sentence_transformers.util.mine_hard_negatives" title="sentence_transformers.util.mine_hard_negatives"><code class="xref py py-class docutils literal notranslate"><span class="pre">mine_hard_negatives</span></code></a></p></li>
                 <li><p><a class="reference internal" href="../package_reference/cross_encoder/losses.html#sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss" title="sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinaryCrossEntropyLoss</span></code></a></p></li>
-                <li><p><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator" title="sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">CENanoBEIREvaluator</span></code></a></p></li>
-                <li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">CERerankingEvaluators</span></code></p></li>
+                <li><p><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator" title="sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderNanoBEIREvaluator</span></code></a></p></li>
+                <li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderRerankingEvaluators</span></code></p></li>
                 <li><p><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.SequentialEvaluator" title="sentence_transformers.evaluation.SequentialEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SequentialEvaluator</span></code></a></p></li>
                 <li><p><a class="reference internal" href="../package_reference/cross_encoder/training_args.html#sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments" title="sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderTrainingArguments</span></code></a></p></li>
                 <li><p><a class="reference internal" href="../package_reference/cross_encoder/trainer.html#sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer" title="sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">CrossEncoderTrainer</span></code></a></p></li>
@@ -758,8 +758,8 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
 
         from sentence_transformers import SentenceTransformer
         from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderModelCardData
-        from sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator import CENanoBEIREvaluator
-        from sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator import CERerankingEvaluator
+        from sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator import CrossEncoderNanoBEIREvaluator
+        from sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator import CrossEncoderRerankingEvaluator
         from sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
         from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
         from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
@@ -823,8 +823,8 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
             # pos_weight is recommended to be set as the ratio between positives to negatives, a.k.a. `num_hard_negatives`
             loss = BinaryCrossEntropyLoss(model=model, pos_weight=torch.tensor(num_hard_negatives))
 
-            # 4a. Define evaluators. We use the CENanoBEIREvaluator, which is a light-weight evaluator for English reranking
-            nano_beir_evaluator = CENanoBEIREvaluator(
+            # 4a. Define evaluators. We use the CrossEncoderNanoBEIREvaluator, which is a light-weight evaluator for English reranking
+            nano_beir_evaluator = CrossEncoderNanoBEIREvaluator(
                 dataset_names=["msmarco", "nfcorpus", "nq"],
                 batch_size=train_batch_size,
             )
@@ -843,7 +843,7 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
                 use_faiss=True,
             )
             logging.info(hard_eval_dataset)
-            reranking_evaluator = CERerankingEvaluator(
+            reranking_evaluator = CrossEncoderRerankingEvaluator(
                 samples=[
                     {
                         "query": sample["question"],

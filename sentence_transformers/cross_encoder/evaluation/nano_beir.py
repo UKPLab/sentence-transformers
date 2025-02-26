@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Callable, Literal
 import numpy as np
 from tqdm import tqdm
 
-from sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator import CERerankingEvaluator
+from sentence_transformers.cross_encoder.evaluation.reranking import CrossEncoderRerankingEvaluator
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 from sentence_transformers.util import is_datasets_available
 
@@ -64,14 +64,14 @@ dataset_name_to_human_readable = {
 }
 
 
-class CENanoBEIREvaluator(SentenceEvaluator):
+class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
     """
     This class evaluates a CrossEncoder model on the NanoBEIR collection of Information Retrieval datasets.
 
     The collection is a set of datasets based on the BEIR collection, but with a significantly smaller size, so it can
     be used for quickly evaluating the retrieval performance of a model before commiting to a full evaluation.
     The datasets are available on Hugging Face in the `NanoBEIR with BM25 collection <https://huggingface.co/collections/sentence-transformers/nanobeir-with-bm25-rankings-67bdcbc629f007c15bf358d8>`_.
-    This evaluator will return the same metrics as the CERerankingEvaluator (i.e., MRR@k, nDCG@k, MAP), for each dataset and on average.
+    This evaluator will return the same metrics as the CrossEncoderRerankingEvaluator (i.e., MRR@k, nDCG@k, MAP), for each dataset and on average.
 
     Rather than reranking all documents for each query, the evaluator will only rerank the ``rerank_k`` documents from
     a BM25 ranking. When your logging is set to INFO, the evaluator will print the MAP, MRR@k, and nDCG@k for each dataset
@@ -99,7 +99,7 @@ class CENanoBEIREvaluator(SentenceEvaluator):
         ::
 
             from sentence_transformers.cross_encoder import CrossEncoder
-            from sentence_transformers.cross_encoder.evaluation import CENanoBEIREvaluator
+            from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
             import logging
 
             logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -109,19 +109,19 @@ class CENanoBEIREvaluator(SentenceEvaluator):
 
             # Load & run the evaluator
             dataset_names = ["msmarco", "nfcorpus", "nq"]
-            evaluator = CENanoBEIREvaluator(dataset_names)
+            evaluator = CrossEncoderNanoBEIREvaluator(dataset_names)
             results = evaluator(model)
             '''
             NanoBEIR Evaluation of the model on ['msmarco', 'nfcorpus', 'nq'] dataset:
             Evaluating NanoMSMARCO
-            CERerankingEvaluator: Evaluating the model on the NanoMSMARCO dataset:
+            CrossEncoderRerankingEvaluator: Evaluating the model on the NanoMSMARCO dataset:
                     Base  -> Reranked
             MAP:     48.96 -> 60.35
             MRR@10:  47.75 -> 59.63
             NDCG@10: 54.04 -> 66.86
 
             Evaluating NanoNFCorpus
-            CERerankingEvaluator: Evaluating the model on the NanoNFCorpus dataset:
+            CrossEncoderRerankingEvaluator: Evaluating the model on the NanoNFCorpus dataset:
             Queries: 50   Positives: Min 1.0, Mean 50.4, Max 463.0        Negatives: Min 54.0, Mean 92.8, Max 100.0
                     Base  -> Reranked
             MAP:     26.10 -> 34.61
@@ -129,14 +129,14 @@ class CENanoBEIREvaluator(SentenceEvaluator):
             NDCG@10: 32.50 -> 39.30
 
             Evaluating NanoNQ
-            CERerankingEvaluator: Evaluating the model on the NanoNQ dataset:
+            CrossEncoderRerankingEvaluator: Evaluating the model on the NanoNQ dataset:
             Queries: 50   Positives: Min 1.0, Mean 1.1, Max 2.0   Negatives: Min 98.0, Mean 99.0, Max 100.0
                     Base  -> Reranked
             MAP:     41.96 -> 70.98
             MRR@10:  42.67 -> 73.55
             NDCG@10: 50.06 -> 75.99
 
-            CENanoBEIREvaluator: Aggregated Results:
+            CrossEncoderNanoBEIREvaluator: Aggregated Results:
                     Base  -> Reranked
             MAP:     39.01 -> 55.31
             MRR@10:  46.80 -> 64.01
@@ -228,7 +228,7 @@ class CENanoBEIREvaluator(SentenceEvaluator):
         for metric in per_metric_results:
             agg_results[metric] = self.aggregate_fn(per_metric_results[metric])
 
-        logger.info("CENanoBEIREvaluator: Aggregated Results:")
+        logger.info("CrossEncoderNanoBEIREvaluator: Aggregated Results:")
         logger.info(f"{' ' * len(str(self.at_k))}       Base  -> Reranked")
         logger.info(
             f"MAP:{' ' * len(str(self.at_k))}   {agg_results['base_map'] * 100:.2f} -> {agg_results['map'] * 100:.2f}"
@@ -257,10 +257,10 @@ class CENanoBEIREvaluator(SentenceEvaluator):
         human_readable_name = f"Nano{dataset_name_to_human_readable[dataset_name.lower()]}"
         return human_readable_name
 
-    def _load_dataset(self, dataset_name: DatasetNameType, **ir_evaluator_kwargs) -> CERerankingEvaluator:
+    def _load_dataset(self, dataset_name: DatasetNameType, **ir_evaluator_kwargs) -> CrossEncoderRerankingEvaluator:
         if not is_datasets_available():
             raise ValueError(
-                "datasets is not available. Please install it to use the CENanoBEIREvaluator via `pip install datasets`."
+                "datasets is not available. Please install it to use the CrossEncoderNanoBEIREvaluator via `pip install datasets`."
             )
         from datasets import load_dataset
 
@@ -287,7 +287,7 @@ class CENanoBEIREvaluator(SentenceEvaluator):
         )
 
         human_readable_name = self._get_human_readable_name(dataset_name)
-        return CERerankingEvaluator(
+        return CrossEncoderRerankingEvaluator(
             samples=list(relevance),
             name=human_readable_name,
             **ir_evaluator_kwargs,

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class CERerankingEvaluator(SentenceEvaluator):
+class CrossEncoderRerankingEvaluator(SentenceEvaluator):
     """
     This class evaluates a CrossEncoder model for the task of re-ranking.
 
@@ -59,7 +59,7 @@ class CERerankingEvaluator(SentenceEvaluator):
         ::
 
             from sentence_transformers import CrossEncoder
-            from sentence_transformers.cross_encoder.evaluation import CERerankingEvaluator
+            from sentence_transformers.cross_encoder.evaluation import CrossEncoderRerankingEvaluator
             from datasets import load_dataset
 
             # Load a model
@@ -80,14 +80,14 @@ class CERerankingEvaluator(SentenceEvaluator):
             ]
 
             # Initialize the evaluator
-            reranking_evaluator = CERerankingEvaluator(
+            reranking_evaluator = CrossEncoderRerankingEvaluator(
                 samples=samples,
                 name="ms-marco-dev",
                 show_progress_bar=True,
             )
             results = reranking_evaluator(model)
             '''
-            CERerankingEvaluator: Evaluating the model on the ms-marco-dev dataset:
+            CrossEncoderRerankingEvaluator: Evaluating the model on the ms-marco-dev dataset:
             Queries: 10047    Positives: Min 0.0, Mean 1.1, Max 5.0   Negatives: Min 1.0, Mean 7.1, Max 10.0
                      Base  -> Reranked
             MAP:     34.03 -> 62.36
@@ -127,7 +127,7 @@ class CERerankingEvaluator(SentenceEvaluator):
         if isinstance(self.samples, dict):
             self.samples = list(self.samples.values())
 
-        self.csv_file = "CERerankingEvaluator" + ("_" + name if name else "") + f"_results_@{self.at_k}.csv"
+        self.csv_file = "CrossEncoderRerankingEvaluator" + ("_" + name if name else "") + f"_results_@{self.at_k}.csv"
         self.csv_headers = [
             "epoch",
             "steps",
@@ -147,7 +147,7 @@ class CERerankingEvaluator(SentenceEvaluator):
         else:
             out_txt = ""
 
-        logger.info(f"CERerankingEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
+        logger.info(f"CrossEncoderRerankingEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
 
         base_mrr_scores = []
         base_ndcg_scores = []
@@ -160,14 +160,14 @@ class CERerankingEvaluator(SentenceEvaluator):
         num_negatives = []
         for instance in tqdm(self.samples, desc="Evaluating samples", disable=not self.show_progress_bar, leave=False):
             if "query" not in instance:
-                raise ValueError("CERerankingEvaluator requires a 'query' key in each sample.")
+                raise ValueError("CrossEncoderRerankingEvaluator requires a 'query' key in each sample.")
             if "positive" not in instance:
-                raise ValueError("CERerankingEvaluator requires a 'positive' key in each sample.")
+                raise ValueError("CrossEncoderRerankingEvaluator requires a 'positive' key in each sample.")
             if ("negative" in instance and "documents" in instance) or (
                 "negative" not in instance and "documents" not in instance
             ):
                 raise ValueError(
-                    "CERerankingEvaluator requires exactly one of 'negative' and 'documents' in each sample."
+                    "CrossEncoderRerankingEvaluator requires exactly one of 'negative' and 'documents' in each sample."
                 )
 
             query = instance["query"]

@@ -15,7 +15,7 @@ from datetime import datetime
 from datasets import load_dataset
 
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
 from sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
 from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
 from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
@@ -41,8 +41,8 @@ logging.info(train_dataset)
 # 3. Define our training loss, we use one that accepts pairs with a binary label
 loss = BinaryCrossEntropyLoss(model)
 
-# 4. Before and during training, we use CEClassificationEvaluator to measure the performance on the dev set
-eval_evaluator = CECorrelationEvaluator(
+# 4. Before and during training, we use CrossEncoderClassificationEvaluator to measure the performance on the dev set
+eval_evaluator = CrossEncoderCorrelationEvaluator(
     sentence_pairs=list(zip(eval_dataset["sentence1"], eval_dataset["sentence2"])),
     scores=eval_dataset["score"],
     name="stsb-validation",
@@ -84,7 +84,7 @@ trainer = CrossEncoderTrainer(
 trainer.train()
 
 # 7. Evaluate the final model on test dataset
-test_evaluator = CECorrelationEvaluator(
+test_evaluator = CrossEncoderCorrelationEvaluator(
     sentence_pairs=list(zip(test_dataset["sentence1"], test_dataset["sentence2"])),
     scores=test_dataset["score"],
     name="stsb-test",
