@@ -11,6 +11,13 @@ from torch.utils.data import DataLoader
 from sentence_transformers import CrossEncoder, util
 from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
 from sentence_transformers.readers import InputExample
+from sentence_transformers.util import is_training_available
+
+if not is_training_available():
+    pytest.skip(
+        reason='Sentence Transformers was not installed with the `["train"]` extra.',
+        allow_module_level=True,
+    )
 
 
 @pytest.fixture()

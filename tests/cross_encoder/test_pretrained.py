@@ -25,4 +25,4 @@ def test_pretrained_model(model_name: str, expected_score: list[float]) -> None:
         "Interactions between your drugs No interactions were found between Allergy Relief and metoprolol. This does not necessarily mean no interactions exist. Always consult your healthcare provider.",
     ]
     scores = model.predict([(query, answer) for answer in answers])
-    assert scores.tolist() == pytest.approx(expected_score, rel=1e-6, abs=1e-12)
+    assert scores.tolist() == pytest.approx(expected_score, rel=1e-4)

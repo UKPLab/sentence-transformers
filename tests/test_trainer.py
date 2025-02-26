@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 import torch
-from datasets.dataset_dict import DatasetDict
 
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator

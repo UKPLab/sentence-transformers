@@ -4,10 +4,18 @@ import random
 
 import pytest
 import torch
-from datasets import Dataset
 from torch.utils.data import ConcatDataset
 
 from sentence_transformers.sampler import NoDuplicatesBatchSampler, ProportionalBatchSampler
+from sentence_transformers.util import is_datasets_available
+
+if is_datasets_available():
+    from datasets import Dataset
+else:
+    pytest.skip(
+        reason='Sentence Transformers was not installed with the `["train"]` extra.',
+        allow_module_level=True,
+    )
 
 
 @pytest.fixture

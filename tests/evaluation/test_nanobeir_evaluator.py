@@ -6,6 +6,13 @@ import pytest
 
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import NanoBEIREvaluator
+from sentence_transformers.util import is_datasets_available
+
+if not is_datasets_available():
+    pytest.skip(
+        reason="Datasets are not installed. Please install `datasets` with `pip install datasets`",
+        allow_module_level=True,
+    )
 
 
 def test_nanobeir_evaluator():
