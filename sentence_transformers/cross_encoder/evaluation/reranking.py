@@ -279,7 +279,7 @@ class CrossEncoderRerankingEvaluator(SentenceEvaluator):
                 if not output_file_exists:
                     writer.writerow(self.csv_headers)
 
-                writer.writerow([epoch, steps, mean_mrr, mean_ndcg])
+                writer.writerow([epoch, steps, mean_ap, mean_mrr, mean_ndcg])
 
         return metrics
 

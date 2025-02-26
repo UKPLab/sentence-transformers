@@ -10,8 +10,7 @@ import numpy as np
 import torch
 from huggingface_hub import HfApi
 from torch import nn
-from torch.utils.data import DataLoader
-from tqdm.autonotebook import tqdm
+from tqdm.autonotebook import trange
 from transformers import (
     AutoConfig,
     AutoModelForSequenceClassification,
@@ -23,7 +22,7 @@ from transformers.utils import PushToHubMixin
 
 from sentence_transformers.cross_encoder.fit_mixin import FitMixin
 from sentence_transformers.cross_encoder.model_card import CrossEncoderModelCardData, generate_model_card
-from sentence_transformers.util import fullname, get_device_name, import_from_string
+from sentence_transformers.util import fullname, get_device_name, import_from_string, load_file_path
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +61,8 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         classifier_dropout (float, optional): The dropout ratio for the classification head. Defaults to None.
     """
 
+    # TODO: Introduce Token?
+    # TODO: cache_dir, automodel_args, tokenizer_args, config_args clash with SentenceTransformer argument names
     def __init__(
         self,
         model_name: str,
@@ -88,6 +89,8 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             config_args = {}
         self.model_card_data = model_card_data or CrossEncoderModelCardData()
         self.trust_remote_code = trust_remote_code
+        self._model_card_text = None
+
         self.config: PretrainedConfig = AutoConfig.from_pretrained(
             model_name,
             trust_remote_code=trust_remote_code,
@@ -131,6 +134,22 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             cache_dir=cache_dir,
             **tokenizer_args,
         )
+
+        # Check if a readme exists
+        model_card_path = load_file_path(
+            model_name,
+            "README.md",
+            token=automodel_args.get("token", None),
+            cache_folder=cache_dir,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
+        if model_card_path is not None:
+            try:
+                with open(model_card_path, encoding="utf8") as fIn:
+                    self._model_card_text = fIn.read()
+            except Exception:
+                pass
 
         if device is None:
             device = get_device_name()
@@ -219,12 +238,13 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         convert_to_tensor: Literal[False] = ...,
     ) -> list[torch.Tensor]: ...
 
+    @torch.no_grad()
     def predict(
         self,
         sentences: list[tuple[str, str]] | list[list[str]] | tuple[str, str] | list[str],
         batch_size: int = 32,
         show_progress_bar: bool | None = None,
-        num_workers: int = 0,
+        num_workers: int = 0,  # TODO: Remove this
         activation_fct: Callable | None = None,
         apply_softmax: bool | None = False,
         convert_to_numpy: bool = True,
@@ -242,16 +262,19 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             activation_fct (callable, optional): Activation function applied on the logits output of the CrossEncoder.
                 If None, nn.Sigmoid() will be used if num_labels=1, else nn.Identity. Defaults to None.
             convert_to_numpy (bool, optional): Convert the output to a numpy matrix. Defaults to True.
-            apply_softmax (bool, optional): If there are more than 2 dimensions and apply_softmax=True,
-                applies softmax on the logits output. Defaults to False.
-            convert_to_tensor (bool, optional): Convert the output to a tensor. Defaults to False.
+            apply_softmax (bool, optional): If set to True and `model.num_labels > 1`, applies softmax on the logits
+                output such that for each sample, the scores of each class sum to 1. Defaults to False.
+            convert_to_numpy (bool, optional): Whether the output should be a list of numpy vectors. If False, output
+                a list of PyTorch tensors. Defaults to True.
+            convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
+                Defaults to False.
 
         Returns:
-            Union[List[float], np.ndarray, torch.Tensor]: Predictions for the passed sentence pairs.
-            The return type depends on the `convert_to_numpy` and `convert_to_tensor` parameters.
-            If `convert_to_tensor` is True, the output will be a torch.Tensor.
-            If `convert_to_numpy` is True, the output will be a numpy.ndarray.
-            Otherwise, the output will be a list of float values.
+            Union[List[torch.Tensor], np.ndarray, torch.Tensor]: Predictions for the passed sentence pairs.
+            The return type depends on the ``convert_to_numpy`` and ``convert_to_tensor`` parameters.
+            If ``convert_to_tensor`` is True, the output will be a :class:`torch.Tensor`.
+            If ``convert_to_numpy`` is True, the output will be a :class:`numpy.ndarray`.
+            Otherwise, the output will be a list of :class:`torch.Tensor` values.
 
         Examples:
             ::
@@ -263,42 +286,36 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 model.predict(sentences)
                 # => array([0.6912767, 0.4303499], dtype=float32)
         """
-        input_was_string = False
-        if isinstance(sentences[0], str):  # Cast an individual sentence to a list with length 1
+        input_was_singular = False
+        if isinstance(sentences[0], str):  # Cast an individual pair to a list with length 1
             sentences = [sentences]
-            input_was_string = True
-
-        # TODO: Refactor this to avoid using a DataLoader or self.smart_batching_collate_text_only
-        inp_dataloader = DataLoader(
-            sentences,
-            batch_size=batch_size,
-            collate_fn=self.smart_batching_collate_text_only,
-            num_workers=num_workers,
-            shuffle=False,
-        )
+            input_was_singular = True
 
         if show_progress_bar is None:
             show_progress_bar = (
                 logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG
             )
 
-        iterator = inp_dataloader
-        if show_progress_bar:
-            iterator = tqdm(inp_dataloader, desc="Batches")
-
         if activation_fct is None:
             activation_fct = self.default_activation_function
 
         pred_scores = []
         self.model.eval()
-        with torch.no_grad():
-            for features in iterator:
-                model_predictions = self.model(**features, return_dict=True)
-                logits = activation_fct(model_predictions.logits)
+        for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
+            batch = sentences[start_index : start_index + batch_size]
+            features = self.tokenizer(
+                batch,
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+            )
+            features.to(self.model.device)
+            model_predictions = self.model(**features, return_dict=True)
+            logits = activation_fct(model_predictions.logits)
 
-                if apply_softmax and len(logits[0]) > 1:
-                    logits = torch.nn.functional.softmax(logits, dim=1)
-                pred_scores.extend(logits)
+            if apply_softmax and logits.ndim > 1:
+                logits = torch.nn.functional.softmax(logits, dim=1)
+            pred_scores.extend(logits)
 
         if self.config.num_labels == 1:
             pred_scores = [score[0] for score in pred_scores]
@@ -308,7 +325,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         elif convert_to_numpy:
             pred_scores = np.asarray([score.cpu().detach().float().numpy() for score in pred_scores])
 
-        if input_was_string:
+        if input_was_singular:
             pred_scores = pred_scores[0]
 
         return pred_scores
@@ -382,7 +399,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 'score': -5.082967,
                 'text': "The 'Harry Potter' series, which consists of seven fantasy novels written by British author J.K. Rowling, is among the most popular and critically acclaimed books of the modern era."}]
         """
-        if self.config.num_labels != 1:
+        if self.num_labels != 1:
             raise ValueError(
                 "CrossEncoder.rank() only works for models with num_labels=1. "
                 "Consider using CrossEncoder.predict() with input pairs instead."
@@ -437,8 +454,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         Returns:
             None
         """
-        # TODO: Introduce this:
-        """
         # If we loaded a model from the Hub, and no training was done, then
         # we don't generate a new model card, but reuse the old one instead.
         if self._model_card_text and "generated_from_trainer" not in self.model_card_data.tags:
@@ -446,20 +461,19 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             if self.model_card_data.model_id:
                 # If the original model card was saved without a model_id, we replace the model_id with the new model_id
                 model_card = model_card.replace(
-                    'model = SentenceTransformer("sentence_transformers_model_id"',
-                    f'model = SentenceTransformer("{self.model_card_data.model_id}"',
+                    'model = CrossEncoder("cross_encoder_model_id"',
+                    f'model = CrossEncoder("{self.model_card_data.model_id}"',
                 )
         else:
-        """
-        try:
-            model_card = generate_model_card(self)
-        except Exception:
-            logger.error(
-                f"Error while generating model card:\n{traceback.format_exc()}"
-                "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with this traceback.\n"
-                "Skipping model card creation."
-            )
-            return
+            try:
+                model_card = generate_model_card(self)
+            except Exception:
+                logger.error(
+                    f"Error while generating model card:\n{traceback.format_exc()}"
+                    "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with this traceback.\n"
+                    "Skipping model card creation."
+                )
+                return
 
         with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
             fOut.write(model_card)

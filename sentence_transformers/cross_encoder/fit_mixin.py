@@ -403,7 +403,7 @@ class FitMixin:
         tokenized = self.tokenizer(
             *texts,
             padding=True,
-            truncation="longest_first",
+            truncation=True,
             return_tensors="pt",
         )
         assert self.max_length is None or tokenized["input_ids"].shape[0] <= self.max_length

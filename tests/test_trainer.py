@@ -182,7 +182,7 @@ def test_model_card_reuse(stsb_bert_tiny_model: SentenceTransformer):
         model_path = Path(tmp_folder) / "tiny_model_local"
         stsb_bert_tiny_model.save(str(model_path))
 
-        with open(model_path / "README.md") as f:
+        with open(model_path / "README.md", encoding="utf8") as f:
             model_card_text = f.read()
         assert model_card_text == stsb_bert_tiny_model._model_card_text
 
@@ -193,7 +193,7 @@ def test_model_card_reuse(stsb_bert_tiny_model: SentenceTransformer):
         model_path = Path(tmp_folder) / "tiny_model_local"
         stsb_bert_tiny_model.save(str(model_path))
 
-        with open(model_path / "README.md") as f:
+        with open(model_path / "README.md", encoding="utf8") as f:
             model_card_text = f.read()
         assert model_card_text != stsb_bert_tiny_model._model_card_text
 

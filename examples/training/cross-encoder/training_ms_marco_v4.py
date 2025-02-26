@@ -108,7 +108,7 @@ def main():
         # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
         batch_sampler=BatchSamplers.NO_DUPLICATES if loss_name == "cmnrl" else BatchSamplers.BATCH_SAMPLER,
         load_best_model_at_end=True,
-        metric_for_best_model="eval_NanoBEIR_mean_ndcg@10",
+        metric_for_best_model="eval_NanoBEIR_R100_mean_ndcg@10",
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
         eval_steps=400 if loss_name == "cmnrl" else 40_000,

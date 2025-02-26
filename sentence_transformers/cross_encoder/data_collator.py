@@ -51,9 +51,6 @@ class CrossEncoderDataCollator(SentenceTransformerDataCollator):
                 batch[column_name] = torch.tensor([row[column_name] for row in features], dtype=torch.int)
                 continue
 
-            # tokenized = self.tokenize_fn([row[column_name] for row in features])
-            # for key, value in tokenized.items():
-            #     batch[f"{column_name}_{key}"] = value
             batch[column_name] = [row[column_name] for row in features]
 
         return batch
