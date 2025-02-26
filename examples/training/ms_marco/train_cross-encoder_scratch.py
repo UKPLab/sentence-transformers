@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader
 
 from sentence_transformers import InputExample, LoggingHandler, util
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation import CERerankingEvaluator
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderRerankingEvaluator
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(
@@ -166,7 +166,7 @@ train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batc
 
 # We add an evaluator, which evaluates the performance during training
 # It performs a classification task and measures scores like F1 (finding relevant passages) and Average Precision
-evaluator = CERerankingEvaluator(dev_samples, name="train-eval")
+evaluator = CrossEncoderRerankingEvaluator(dev_samples, name="train-eval")
 
 # Configure the training
 warmup_steps = 5000

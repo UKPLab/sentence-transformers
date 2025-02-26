@@ -1,10 +1,19 @@
 from __future__ import annotations
 
 import pytest
-from datasets import Dataset, DatasetDict
 
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
 from sentence_transformers.model_card import generate_model_card
+from sentence_transformers.util import is_datasets_available, is_training_available
+
+if is_datasets_available():
+    from datasets import Dataset, DatasetDict
+
+if not is_training_available():
+    pytest.skip(
+        reason='Sentence Transformers was not installed with the `["train"]` extra.',
+        allow_module_level=True,
+    )
 
 
 @pytest.fixture(scope="session")
