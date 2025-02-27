@@ -8,48 +8,70 @@ from sentence_transformers.util import fullname
 
 
 class ListNetLoss(nn.Module):
-    """
-    ListNet loss for learning to rank. This loss function implements the ListNet ranking algorithm
-    which uses a list-wise approach to learn ranking models. It minimizes the cross entropy
-    between the predicted ranking distribution and the ground truth ranking distribution.
-    The implementation is optimized to handle padded documents efficiently by only processing
-    valid documents during model inference.
-
-    Args:
-        model (CrossEncoder): CrossEncoder model to be trained
-        eps (float): Small constant to prevent numerical instability in log.
-        pad_value (int): Value used for padding in variable-length document lists.
-            Documents with this value will be excluded from model inference for efficiency.
-        activation_fct (nn.Module, optional): Activation function to apply to the logits before computing the loss. Default: nn.Identity()
-
-    References:
-        - Learning to Rank: From Pairwise Approach to Listwise Approach: https://www.microsoft.com/en-us/research/publication/learning-to-rank-from-pairwise-approach-to-listwise-approach/
-        - `Training Examples > Learning to Rank <../../../examples/training/cross-encoder/training_ms_marco_ListNetLoss_v4.py>`_
-
-    Requirements:
-        1. Query with multiple documents (listwise approach)
-        2. Documents must have relevance scores/labels. Both binary and continuous labels are supported.
-        3. Variable-length document lists are handled through padding (pad_value)
-        4. Padded documents are automatically excluded from model inference for efficiency
-
-    Inputs:
-        +----------------------------------------+--------------------------------+
-        | Texts                                   | Labels                         |
-        +========================================+================================+
-        | (query, [doc1, doc2, ..., docN])       | [score1, score2, ..., scoreN]  |
-        +----------------------------------------+--------------------------------+
-        Note: Documents with label=pad_value are efficiently skipped during processing
-
-    Relations:
-        - /
-    """
-
     def __init__(
         self,
         model: CrossEncoder,
-        pad_value: int = -1,
         activation_fct: nn.Module | None = nn.Identity(),
+        pad_value: int = -1,
     ) -> None:
+        """
+        ListNet loss for learning to rank. This loss function implements the ListNet ranking algorithm
+        which uses a list-wise approach to learn ranking models. It minimizes the cross entropy
+        between the predicted ranking distribution and the ground truth ranking distribution.
+        The implementation is optimized to handle padded documents efficiently by only processing
+        valid documents during model inference.
+
+        Args:
+            model (CrossEncoder): CrossEncoder model to be trained
+            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Identity`.
+            pad_value (int): Value used for padding in variable-length document lists.
+                Documents with this value will be excluded from model inference for efficiency.
+
+        References:
+            - Learning to Rank: From Pairwise Approach to Listwise Approach: https://www.microsoft.com/en-us/research/publication/learning-to-rank-from-pairwise-approach-to-listwise-approach/
+            - `Training Examples > Learning to Rank <../../../examples/training/cross-encoder/training_ms_marco_ListNetLoss_v4.py>`_
+
+        Requirements:
+            1. Query with multiple documents (listwise approach)
+            2. Documents must have relevance scores/labels. Both binary and continuous labels are supported.
+            3. Variable-length document lists are handled through padding (pad_value)
+            4. Padded documents are automatically excluded from model inference for efficiency
+
+        Inputs:
+            +----------------------------------------+--------------------------------+-------------------------------+
+            | Texts                                  | Labels                         | Number of Model Output Labels |
+            +========================================+================================+===============================+
+            | (query, [doc1, doc2, ..., docN])       | [score1, score2, ..., scoreN]  | 1                             |
+            +----------------------------------------+--------------------------------+-------------------------------+
+
+        .. note::
+
+            Documents with ``label=pad_value`` are efficiently skipped during processing.
+
+        Example:
+            ::
+
+                from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderTrainer, losses
+                from datasets import Dataset
+
+                model = CrossEncoder("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "query": ["What are pandas?", "What is the capital of France?"],
+                    "docs": [
+                        ["Pandas are a kind of bear.", "Pandas are kind of like fish."],
+                        ["The capital of France is Paris.", "Paris is the capital of France."],
+                    ],
+                    "labels": [[1, 0], [1, 1]],
+                })
+                loss = losses.ListNetLoss(model)
+
+                trainer = CrossEncoderTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
+        """
         super().__init__()
         self.model = model
         self.pad_value = pad_value
