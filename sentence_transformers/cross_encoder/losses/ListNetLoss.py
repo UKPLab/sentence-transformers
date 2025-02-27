@@ -20,6 +20,7 @@ class ListNetLoss(nn.Module):
         eps (float): Small constant to prevent numerical instability in log.
         pad_value (int): Value used for padding in variable-length document lists.
             Documents with this value will be excluded from model inference for efficiency.
+        activation_fct (nn.Module, optional): Activation function to apply to the logits before computing the loss. Default: nn.Identity()
 
     References:
         - Learning to Rank: From Pairwise Approach to Listwise Approach: https://www.microsoft.com/en-us/research/publication/learning-to-rank-from-pairwise-approach-to-listwise-approach/
@@ -48,7 +49,7 @@ class ListNetLoss(nn.Module):
         model: CrossEncoder,
         eps: float = 1e-10,
         pad_value: int = -1,
-        activation_fct: nn.Module | None = nn.Sigmoid(),
+        activation_fct: nn.Module | None = nn.Identity(),
     ) -> None:
         super().__init__()
         self.model = model
