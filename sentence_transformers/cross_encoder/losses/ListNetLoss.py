@@ -100,14 +100,13 @@ class ListNetLoss(nn.Module):
         tokens = tokens.to(self.model.device)
 
         logits = self.model(**tokens)[0].view(-1)
+        logits = self.activation_fct(logits)
 
-        # Create output tensor filled with -inf (for softmax)
-        full_logits = torch.full((batch_size, max_docs), float("-inf"), device=self.model.device)
+        # Create output tensor filled with 0 (padded logits will be ignored via labels)
+        full_logits = torch.full((batch_size, max_docs), -1e16, device=self.model.device)
 
         # Place logits back in their original positions
         full_logits[batch_indices, doc_indices] = logits
-
-        full_logits = self.activation_fct(full_logits)
 
         # Set padded positions in labels to -inf for consistent softmax
         labels = labels.to(self.model.device)
