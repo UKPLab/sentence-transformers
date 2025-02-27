@@ -201,6 +201,25 @@ trainer = SentenceTransformerTrainer(
     loss=train_loss,
     evaluator=dev_evaluator,
 )
+
+# Converting float32 values to float before saving state
+def patched_save_to_json(self, json_path):
+    def convert_floats(obj):
+        if isinstance(obj, dict):
+            return {k: convert_floats(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_floats(v) for v in obj]
+        elif isinstance(obj, np.float32):  # Convert np.float32 to Python float
+            return float(obj)
+        return obj
+
+    json_string = json.dumps(convert_floats(dataclasses.asdict(self)), indent=2, sort_keys=True) + "\n"
+    with open(json_path, "w", encoding="utf-8") as f:
+        f.write(json_string)
+
+# Patch TrainerState to use our fixed method
+transformers.trainer_callback.TrainerState.save_to_json = patched_save_to_json
+
 trainer.train()
 
 # Evaluate the model performance on the STS Benchmark test dataset
