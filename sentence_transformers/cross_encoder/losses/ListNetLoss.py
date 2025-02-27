@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
 from torch import Tensor, nn
 
 from sentence_transformers.cross_encoder import CrossEncoder
@@ -56,6 +55,7 @@ class ListNetLoss(nn.Module):
         self.eps = eps
         self.pad_value = pad_value
         self.activation_fct = activation_fct or nn.Identity()
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
 
         if self.model.num_labels != 1:
             raise ValueError(
@@ -113,14 +113,10 @@ class ListNetLoss(nn.Module):
         labels = labels.to(self.model.device)
         labels[~mask] = float("-inf")
 
-        # Compute probability distributions through softmax
-        P = F.softmax(labels, dim=1)
-        Q = F.softmax(full_logits, dim=1)
+        # Compute cross entropy loss between distributions
+        loss = self.cross_entropy_loss(full_logits, labels.softmax(dim=1))
 
-        # Calculate cross entropy between distributions
-        loss = -torch.sum(P * torch.log(Q + self.eps), dim=1)
-
-        return loss.mean()
+        return loss
 
     def get_config_dict(self) -> dict[str, float]:
         """
