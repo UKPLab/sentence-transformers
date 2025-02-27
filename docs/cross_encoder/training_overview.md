@@ -137,8 +137,8 @@ The :class:`CrossEncoderTrainer` trains and evaluates using :class:`datasets.Dat
 ```{eval-rst}
 It is important that your dataset format matches your loss function (or that you choose a loss function that matches your dataset format and model). Verifying whether a dataset format and model work with a loss function involves three steps:
 
-1. All columns not named "label" or "score" are considered *Inputs* according to the `Loss Overview <loss_overview.html>`_ table. The number of remaining columns must match the number of valid inputs for your chosen loss. The names of these columns are **irrelevant**, only the **order matters**. 
-2. If your loss function requires a *Label* according to the `Loss Overview <loss_overview.html>`_ table, then your dataset must have a **column named "label" or "score"**. This column is automatically taken as the label.
+1. All columns not named "label", "labels", "score", or "scores" are considered *Inputs* according to the `Loss Overview <loss_overview.html>`_ table. The number of remaining columns must match the number of valid inputs for your chosen loss. The names of these columns are **irrelevant**, only the **order matters**. 
+2. If your loss function requires a *Label* according to the `Loss Overview <loss_overview.html>`_ table, then your dataset must have a **column named "label", "labels", "score", or "scores"**. This column is automatically taken as the label.
 3. The number of model output labels matches what is required for the loss according to `Loss Overview <loss_overview.html>`_ table.
 
 For example, given a dataset with columns ``["text1", "text2", "label"]`` where the "label" column has float similarity score ranging from 0 to 1 and a model outputting 1 label, we can use it with :class:`~sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss` because:
