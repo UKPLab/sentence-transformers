@@ -23,7 +23,7 @@ from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.util import is_datasets_available, is_training_available
 
 if is_datasets_available():
-    from datasets import Dataset, DatasetDict, IterableDataset, Value
+    from datasets import Dataset, DatasetDict, IterableDataset
 
 logger = logging.getLogger(__name__)
 
@@ -102,8 +102,8 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
         self,
         model: CrossEncoder | None = None,
         args: CrossEncoderTrainingArguments = None,
-        train_dataset: Dataset | DatasetDict | IterableDataset | dict[str, Dataset] | None = None,
-        eval_dataset: Dataset | DatasetDict | IterableDataset | dict[str, Dataset] | None = None,
+        train_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
+        eval_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
         loss: nn.Module
         | dict[str, nn.Module]
         | Callable[[CrossEncoder], torch.nn.Module]
@@ -171,18 +171,16 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
             )
 
         for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
-            if isinstance(dataset, IterableDataset) and dataset.column_names is None:
-                sample = next(iter(dataset))
-                naive_type_mapping = {str: "string", int: "int64", float: "float32", bool: "bool"}
-                example_features = {
-                    key: Value(naive_type_mapping.get(type(value), "null")) for key, value in sample.items()
-                }
+            if isinstance(dataset, IterableDataset) or (
+                isinstance(dataset, dict) and any(isinstance(d, IterableDataset) for d in dataset.values())
+            ):
+                # In short: `accelerate` will concatenate batches from the IterableDataset, expecting every
+                # key-value pair after the data collator to only contain torch.Tensor values. However,
+                # the CrossEncoderDataCollator returns a dictionary with string values (expecting the tokenization
+                # to be done in the loss function). This will raise an error in `accelerate`.
                 raise ValueError(
-                    f"The provided `{dataset_name}_dataset` must have Features. Specify them with e.g.:\n"
-                    f"{dataset_name}_dataset = {dataset_name}_dataset.cast(Features({example_features}))\n"
-                    "or by providing the Features to the IterableDataset initialization method. See the Datasets "
-                    "documentation for more information on dataset Features: "
-                    "https://huggingface.co/docs/datasets/en/about_dataset_features"
+                    f"CrossEncoderTrainer does not support an IterableDataset for the `{dataset_name}_dataset`. "
+                    "Please convert the dataset to a `Dataset` or `DatasetDict` before passing it to the trainer."
                 )
 
         if isinstance(train_dataset, dict) and not isinstance(train_dataset, DatasetDict):
@@ -329,3 +327,13 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
             loaded_auto_model = self.model
             self.model = full_model
             self.model.model = loaded_auto_model
+
+    def _include_prompt_length(self) -> bool:
+        """
+        Return whether the prompt length should be passed to the model's forward method.
+
+        This is never the case for CrossEncoder models, as the prompt length is not used in the forward method,
+        unlike with Sentence Transformers models, where it may be relevant to mask out the prompt tokens in the
+        embedding pooling step.
+        """
+        return False

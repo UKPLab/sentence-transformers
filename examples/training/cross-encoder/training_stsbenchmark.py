@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 
 from sentence_transformers import InputExample, LoggingHandler, util
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(
@@ -71,7 +71,7 @@ train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batc
 
 
 # We add an evaluator, which evaluates the performance during training
-evaluator = CECorrelationEvaluator.from_input_examples(dev_samples, name="sts-dev")
+evaluator = CrossEncoderCorrelationEvaluator.from_input_examples(dev_samples, name="sts-dev")
 
 
 # Configure the training
@@ -92,5 +92,5 @@ model.fit(
 ##### Load model and eval on test set
 model = CrossEncoder(model_save_path)
 
-evaluator = CECorrelationEvaluator.from_input_examples(test_samples, name="sts-test")
+evaluator = CrossEncoderCorrelationEvaluator.from_input_examples(test_samples, name="sts-test")
 evaluator(model)

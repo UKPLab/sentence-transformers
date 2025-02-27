@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 import pytest
-from datasets import Dataset
 from torch.utils.data import BatchSampler, ConcatDataset, SequentialSampler
 
 from sentence_transformers.sampler import RoundRobinBatchSampler
+from sentence_transformers.util import is_datasets_available
+
+if is_datasets_available():
+    from datasets import Dataset
+else:
+    pytest.skip(
+        reason='Sentence Transformers was not installed with the `["train"]` extra.',
+        allow_module_level=True,
+    )
 
 DATASET_LENGTH = 25
 

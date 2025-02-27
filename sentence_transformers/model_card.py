@@ -594,7 +594,8 @@ class SentenceTransformerModelCardData(CardData):
         if not dataset:
             return {}
 
-        if "size" not in dataset_info and isinstance(dataset, Dataset):
+        if isinstance(dataset, Dataset):
+            # Size might already be defined, but `len(dataset)` is more reliable
             dataset_info["size"] = len(dataset)
         dataset_info["columns"] = [f"<code>{column}</code>" for column in dataset.column_names]
         dataset_info["stats"] = {}

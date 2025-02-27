@@ -39,7 +39,7 @@ from torch.utils.data import DataLoader
 
 from sentence_transformers import SentenceTransformer, losses
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import InputExample
 from sentence_transformers.similarity_functions import SimilarityFunction
@@ -105,7 +105,7 @@ gold_samples = [
 train_dataloader = DataLoader(gold_samples, shuffle=True, batch_size=batch_size)
 
 # We add an evaluator, which evaluates the performance during training
-evaluator = CECorrelationEvaluator(
+evaluator = CrossEncoderCorrelationEvaluator(
     sentence_pairs=[[data["sentence1"], data["sentence2"]] for data in eval_dataset],
     scores=[data["score"] for data in eval_dataset],
     name="sts-dev",

@@ -3,9 +3,17 @@ from __future__ import annotations
 from collections import Counter
 
 import pytest
-from datasets import Dataset
 
 from sentence_transformers.sampler import GroupByLabelBatchSampler
+from sentence_transformers.util import is_datasets_available
+
+if is_datasets_available():
+    from datasets import Dataset
+else:
+    pytest.skip(
+        reason='Sentence Transformers was not installed with the `["train"]` extra.',
+        allow_module_level=True,
+    )
 
 
 @pytest.fixture

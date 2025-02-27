@@ -15,7 +15,7 @@ from datetime import datetime
 from datasets import load_dataset
 
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation import CEClassificationEvaluator
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderClassificationEvaluator
 from sentence_transformers.cross_encoder.losses.CrossEntropyLoss import CrossEntropyLoss
 from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
 from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
@@ -43,8 +43,8 @@ logging.info(train_dataset)
 # 3. Define our training loss:
 loss = CrossEntropyLoss(model)
 
-# 4. Before and during training, we use CEClassificationEvaluator to measure the performance on the dev set
-dev_cls_evaluator = CEClassificationEvaluator(
+# 4. Before and during training, we use CrossEncoderClassificationEvaluator to measure the performance on the dev set
+dev_cls_evaluator = CrossEncoderClassificationEvaluator(
     sentence_pairs=list(zip(eval_dataset["premise"], eval_dataset["hypothesis"])),
     labels=eval_dataset["label"],
     name="AllNLI-dev",
@@ -86,7 +86,7 @@ trainer = CrossEncoderTrainer(
 trainer.train()
 
 # 7. Evaluate the final model on test dataset
-test_cls_evaluator = CEClassificationEvaluator(
+test_cls_evaluator = CrossEncoderClassificationEvaluator(
     list(zip(test_dataset["premise"], test_dataset["hypothesis"])),
     test_dataset["label"],
     name="AllNLI-test",

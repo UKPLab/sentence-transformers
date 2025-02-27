@@ -531,12 +531,14 @@ def mine_hard_negatives(
     margin: float | None = None,
     num_negatives: int = 3,
     sampling_strategy: Literal["random", "top"] = "top",
-    as_triplets: bool = True,
+    output_format: Literal["triplet", "labeled-pair", "n-tuple"] = "triplet",
     batch_size: int = 32,
     faiss_batch_size: int = 16384,
     use_faiss: bool = False,
     use_multi_process: list[str] | bool = False,
+    disqualify_positives: bool = True,  # TODO: disqualify_positives=False is a confusing double-negative
     verbose: bool = True,
+    as_triplets: bool | None = None,
 ) -> Dataset:
     """
     Add hard negatives to a dataset of (anchor, positive) pairs to create (anchor, positive, negative) triplets or
@@ -639,18 +641,29 @@ def mine_hard_negatives(
         margin (float, optional): Margin for hard negative mining. Defaults to None.
         num_negatives (int): Number of negatives to sample. Defaults to 3.
         sampling_strategy (Literal["random", "top"]): Sampling strategy for negatives: "top" or "random". Defaults to "top".
-        as_triplets (bool): If True, returns up to `num_negatives` (anchor, positive, negative) triplets for each input sample.
-            If False, returns 1 (anchor, positive, negative_1, ..., negative_n) tuple for each input sample. Defaults to True.
+        output_format (Literal["triplet", "labeled-pair", "n-tuple"]): Output format for the `datasets.Dataset`. Options are:
+
+            - "triplet": (anchor, positive, negative) triplets, i.e. 3 columns
+            - "labeled-pair": (anchor, passage, label) text tuples with a label of 0 for negative and 1 for positive, i.e. 3 columns.
+            - "n-tuple": (anchor, positive, negative_1, ..., negative_n) tuples, i.e. 2 + num_negatives columns.
+
+            Defaults to "triplet".
         batch_size (int): Batch size for encoding the dataset. Defaults to 32.
         faiss_batch_size (int): Batch size for FAISS top-k search. Defaults to 16384.
         use_faiss (bool): Whether to use FAISS for similarity search. May be recommended for large datasets. Defaults to False.
         use_multi_process (bool | List[str], optional): Whether to use multi-GPU/CPU processing. If True, uses all GPUs if CUDA
             is available, and 4 CPU processes if it's not available. You can also pass a list of PyTorch devices like
             ["cuda:0", "cuda:1", ...] or ["cpu", "cpu", "cpu", "cpu"].
+        disqualify_positives (bool): Whether to exclude the positives from the negative candidates.
+            Setting this to False is primarily useful for creating Reranking evaluation datasets for CrossEncoder models,
+            where it can be useful to get a full ranking (including the positives) from a first-stage retrieval model.
+            Defaults to True.
         verbose (bool): Whether to print statistics and logging. Defaults to True.
+        as_triplets (bool, optional): Deprecated. Use `output_format` instead. Defaults to None.
 
     Returns:
-        Dataset: A dataset containing (anchor, positive, negative) triplets or (anchor, positive, negative_1, ..., negative_n) tuples.
+        Dataset: A dataset containing (anchor, positive, negative) triplets, (anchor, passage, label) text tuples with
+        a label, or (anchor, positive, negative_1, ..., negative_n) tuples.
     """
     if not is_datasets_available():
         raise ImportError("Please install `datasets` to use this function: `pip install datasets`.")
@@ -668,6 +681,31 @@ def mine_hard_negatives(
 
     if not anchor_column_name and not positive_column_name and len(columns) != 2:
         raise ValueError("Dataset must contain exactly two columns.")
+
+    if as_triplets is not None:
+        output_format = "triplet" if as_triplets else "n-tuple"
+        logger.warning(
+            "The `as_triplets` parameter is deprecated. Use the `output_format` parameter instead. "
+            f"Setting `output_format` to `{output_format}`."
+        )
+
+    if not disqualify_positives:
+        if (
+            range_min != 0
+            or range_max is not None
+            or max_score is not None
+            or margin is not None
+            or sampling_strategy != "top"
+        ):
+            logger.warning(
+                "When using `disqualify_positives=False`, updating `range_min`, `range_max`, `max_score`, `margin`, or "
+                "`sampling_strategy` from the default values may still discard the positive values."
+            )
+        if output_format != "n-tuple":
+            logger.warning(
+                'When using `disqualify_positives=False`, `output_format` will be set to `"n-tuple"` to ensure that the ranking order is preserved.'
+            )
+            output_format = "n-tuple"
 
     # To avoid re-embedding the same query multiple times, we keep a counter of the number of positives per query
     positives_per_query = list(
@@ -824,12 +862,15 @@ def mine_hard_negatives(
             convert_to_tensor=True,
         )
 
-    # for each query, create a mask that is True for the positives and False for the negatives in the indices
-    positive_mask = torch.stack([torch.isin(indices[q_idx], positive_indices[q_idx]) for q_idx in range(n_queries)])
+    if disqualify_positives:
+        # for each query, create a mask that is True for the positives and False for the negatives in the indices
+        positive_mask = torch.stack(
+            [torch.isin(indices[q_idx], positive_indices[q_idx]) for q_idx in range(n_queries)]
+        )
 
-    # Scores is a [num_queries, range_max] tensor, where we set the values to -inf to disqualify the corresponding
-    # positive candidates
-    scores[positive_mask] = -float("inf")
+        # Scores is a [num_queries, range_max] tensor, where we set the values to -inf to disqualify the corresponding
+        # positive candidates
+        scores[positive_mask] = -float("inf")
 
     num_candidates = scores.numel()
 
@@ -908,7 +949,7 @@ def mine_hard_negatives(
     indices = torch.cat([indices[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
     negative_scores = torch.cat([negative_scores[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
 
-    if as_triplets:
+    if output_format == "triplet":
         # If calling as triples and there are multiple positives per query, we will explode the dataset into triplets.
         indices_to_keep = negative_scores != -float("inf")
         anchor_indices = torch.empty_like(indices)
@@ -931,25 +972,49 @@ def mine_hard_negatives(
         anchor_indices = anchor_indices[indices_to_keep]
         positive_indices = pos_indices[indices_to_keep]
 
-        triplets_data = {
+        dataset_data = {
             anchor_column_name: [],
             positive_column_name: [],
             "negative": [],
         }
 
-        for anchor_idx, negative_idx, positive_idx in zip(anchor_indices, indices, positive_indices):
-            triplets_data[anchor_column_name].append(queries[anchor_idx])
-            triplets_data[positive_column_name].append(corpus[positive_idx])
-            triplets_data["negative"].append(corpus[negative_idx])
+        for anchor_idx, positive_idx, negative_idx in zip(anchor_indices, positive_indices, indices):
+            dataset_data[anchor_column_name].append(queries[anchor_idx])
+            dataset_data[positive_column_name].append(corpus[positive_idx])
+            dataset_data["negative"].append(corpus[negative_idx])
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
 
-    else:
+    elif output_format == "labeled-pair":
+        indices_to_keep = negative_scores != -float("inf")
+
+        dataset_data = {
+            anchor_column_name: [],
+            positive_column_name: [],  # Note, this is not strictly positives
+            "label": [],
+        }
+
+        for query_idx in range(n_queries):
+            for positive_idx in positive_indices[query_idx]:
+                dataset_data[anchor_column_name].append(queries[query_idx])
+                dataset_data[positive_column_name].append(corpus[positive_idx])
+                dataset_data["label"].append(1)
+            for negative_idx, negative_score in zip(indices[query_idx], negative_scores[query_idx]):
+                if negative_score == -float("inf"):
+                    continue
+                dataset_data[anchor_column_name].append(queries[query_idx])
+                dataset_data[positive_column_name].append(corpus[negative_idx])
+                dataset_data["label"].append(0)
+
+        negative_scores = negative_scores[indices_to_keep]
+        difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
+
+    elif output_format == "n-tuple":
         # Keep only indices where num_negative negatives were found
         indices_to_keep = (negative_scores != -float("inf")).all(dim=1)
         negative_scores = negative_scores[indices_to_keep]
         indices = indices[indices_to_keep]
 
-        triplets_data = {
+        dataset_data = {
             anchor_column_name: [all_queries[idx] for idx, keep in enumerate(indices_to_keep) if keep],
             positive_column_name: [positives[idx] for idx, keep in enumerate(indices_to_keep) if keep],
             **{
@@ -960,9 +1025,9 @@ def mine_hard_negatives(
         negative_scores = negative_scores.flatten()
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep].flatten() - negative_scores
 
-    if len(triplets_data) == 0:
+    if len(dataset_data) == 0:
         raise ValueError("No triplets could be generated. Please check the parameters and dataset.")
-    triplets_dataset = Dataset.from_dict(triplets_data)
+    output_dataset = Dataset.from_dict(dataset_data)
 
     # Report some statistics
     if verbose:
@@ -1027,7 +1092,7 @@ def mine_hard_negatives(
                 f" Consider adjusting the {considerations} parameter{'s' if len(solutions) > 1 else ''} if you'd like to find more valid negatives."
             )
 
-    return triplets_dataset
+    return output_dataset
 
 
 def http_get(url: str, path: str) -> None:

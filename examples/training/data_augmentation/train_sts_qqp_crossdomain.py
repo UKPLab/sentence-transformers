@@ -31,7 +31,7 @@ from torch.utils.data import DataLoader
 
 from sentence_transformers import LoggingHandler, SentenceTransformer, losses, models, util
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
 from sentence_transformers.evaluation import BinaryClassificationEvaluator
 from sentence_transformers.readers import InputExample
 
@@ -136,7 +136,7 @@ train_dataloader = DataLoader(gold_samples, shuffle=True, batch_size=batch_size)
 
 
 # We add an evaluator, which evaluates the performance during training
-evaluator = CECorrelationEvaluator.from_input_examples(dev_samples, name="sts-dev")
+evaluator = CrossEncoderCorrelationEvaluator.from_input_examples(dev_samples, name="sts-dev")
 
 # Configure the training
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up

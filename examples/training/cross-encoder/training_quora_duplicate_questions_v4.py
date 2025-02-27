@@ -16,7 +16,7 @@ from datetime import datetime
 from datasets import load_dataset
 
 from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderTrainingArguments
-from sentence_transformers.cross_encoder.evaluation import CEClassificationEvaluator
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderClassificationEvaluator
 from sentence_transformers.cross_encoder.losses import BinaryCrossEntropyLoss
 from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
 
@@ -45,8 +45,8 @@ logging.info(test_dataset)
 # 3. Define our training loss, we use one that accepts pairs with a binary label
 loss = BinaryCrossEntropyLoss(model)
 
-# 4. Before and during training, we use CEClassificationEvaluator to measure the performance on the dev set
-dev_cls_evaluator = CEClassificationEvaluator(
+# 4. Before and during training, we use CrossEncoderClassificationEvaluator to measure the performance on the dev set
+dev_cls_evaluator = CrossEncoderClassificationEvaluator(
     sentence_pairs=list(zip(eval_dataset["sentence1"], eval_dataset["sentence2"])),
     labels=eval_dataset["label"],
     name="quora-duplicates-dev",
@@ -88,7 +88,7 @@ trainer = CrossEncoderTrainer(
 trainer.train()
 
 # 7. Evaluate the final model on test dataset
-test_cls_evaluator = CEClassificationEvaluator(
+test_cls_evaluator = CrossEncoderClassificationEvaluator(
     sentence_pairs=list(zip(eval_dataset["sentence1"], eval_dataset["sentence2"])),
     labels=eval_dataset["label"],
     name="quora-duplicates-test",

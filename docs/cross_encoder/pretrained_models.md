@@ -2,12 +2,16 @@
 
 We have released various pre-trained Cross Encoder models via our [Cross Encoder Hugging Face organization](https://huggingface.co/models?author=cross-encoder). Additionally, numerous community CrossEncoder models have been publicly released on the Hugging Face Hub.
 
+* **Original models**: [Cross Encoder Hugging Face organization](https://huggingface.co/models?library=sentence-transformers&author=cross-encoder).
+* **Community models**: All Cross Encoder models on Hugging Face. TODO
+
 Each of these models can be easily downloaded and used like so:
 
 ```python
 from sentence_transformers import CrossEncoder
 import torch
 
+# Load https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2
 model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", default_activation_function=torch.nn.Sigmoid())
 scores = model.predict([
     ("How many people live in Berlin?", "Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers."),
