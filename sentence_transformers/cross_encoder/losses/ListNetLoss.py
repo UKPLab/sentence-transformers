@@ -89,7 +89,7 @@ class ListNetLoss(nn.Module):
 
         if not pairs:
             # Handle edge case where all documents are padded
-            return torch.tensor(0.0, device=self.model.device)
+            return torch.tensor(0.0, device=self.model.device, requires_grad=True)
 
         tokens = self.model.tokenizer(
             pairs,
