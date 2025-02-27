@@ -113,7 +113,7 @@ def main():
         bf16=True,  # Set to True if you have a GPU that supports BF16
         # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
         load_best_model_at_end=True,
-        metric_for_best_model="eval_NanoBEIR_mean_ndcg@10",
+        metric_for_best_model="eval_NanoBEIR_R100_mean_ndcg@10",
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
         eval_steps=4_000,
