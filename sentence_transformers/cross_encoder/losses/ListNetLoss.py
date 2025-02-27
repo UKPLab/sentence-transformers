@@ -46,13 +46,11 @@ class ListNetLoss(nn.Module):
     def __init__(
         self,
         model: CrossEncoder,
-        eps: float = 1e-10,
         pad_value: int = -1,
         activation_fct: nn.Module | None = nn.Sigmoid(),
     ) -> None:
         super().__init__()
         self.model = model
-        self.eps = eps
         self.pad_value = pad_value
         self.activation_fct = activation_fct or nn.Identity()
         self.cross_entropy_loss = nn.CrossEntropyLoss()
@@ -125,7 +123,6 @@ class ListNetLoss(nn.Module):
             Dictionary containing the configuration parameters
         """
         return {
-            "eps": self.eps,
             "pad_value": self.pad_value,
             "activation_fct": fullname(self.activation_fct),
         }
