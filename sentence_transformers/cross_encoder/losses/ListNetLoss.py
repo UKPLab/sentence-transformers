@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 
 from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.util import fullname
 
 
 class ListNetLoss(nn.Module):
@@ -131,7 +132,7 @@ class ListNetLoss(nn.Module):
         return {
             "eps": self.eps,
             "pad_value": self.pad_value,
-            "activation_fct": self.activation_fct,
+            "activation_fct": fullname(self.activation_fct),
         }
 
     @property
