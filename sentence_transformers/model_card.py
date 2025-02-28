@@ -253,6 +253,7 @@ class SentenceTransformerModelCardData(CardData):
             e.g. "semantic textual similarity, semantic search, paraphrase mining, text classification, clustering, and more".
         tags (`Optional[List[str]]`): A list of tags for the model,
             e.g. ["sentence-transformers", "sentence-similarity", "feature-extraction"].
+        model_card_template_path (`Path`): The path to the model card template. Default is the model_card_template.md from Sentence Transformers.
 
     .. tip::
 
@@ -290,6 +291,7 @@ class SentenceTransformerModelCardData(CardData):
             "feature-extraction",
         ]
     )
+    model_card_template_path: Path = field(default=Path(__file__).parent / "model_card_template.md")
     generate_widget_examples: Literal["deprecated"] = "deprecated"
 
     # Automatically filled by `ModelCardCallback` and the Trainer directly
@@ -1015,7 +1017,8 @@ class SentenceTransformerModelCardData(CardData):
         ).strip()
 
 
-def generate_model_card(model: SentenceTransformer) -> str:
-    template_path = Path(__file__).parent / "model_card_template.md"
+def generate_model_card(model: SentenceTransformer, template_path: Path | None = None) -> str:
+    if not template_path:
+        template_path = Path(__file__).parent / "model_card_template.md"
     model_card = ModelCard.from_template(card_data=model.model_card_data, template_path=template_path, hf_emoji="🤗")
     return model_card.content

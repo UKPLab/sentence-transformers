@@ -1266,7 +1266,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 )
         else:
             try:
-                model_card = generate_model_card(self)
+                model_card = generate_model_card(self, self.model_card_data.model_card_template_path)
             except Exception:
                 logger.error(
                     f"Error while generating model card:\n{traceback.format_exc()}"
