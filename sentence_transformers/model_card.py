@@ -853,6 +853,18 @@ class SentenceTransformerModelCardData(CardData):
                     "table_lines": table_lines,
                 }
             )
+
+            def try_to_float(metric_value):
+                try:
+                    return float(metric_value)
+                except Exception:
+                    pass
+
+                if isinstance(metric_value, str) and " " in metric_value:
+                    return try_to_float(metric_value.split()[0])
+
+                return None
+
             eval_results.extend(
                 [
                     EvalResult(
@@ -862,10 +874,10 @@ class SentenceTransformerModelCardData(CardData):
                         dataset_name=dataset_name.replace("_", " ").replace("-", " ") if dataset_name else "Unknown",
                         metric_name=metric_key.replace("_", " ").title(),
                         metric_type=metric_key,
-                        metric_value=metric_value,
+                        metric_value=metric_value_float,
                     )
                     for metric_key, metric_value in metrics.items()
-                    if isinstance(metric_value, (int, float))
+                    if (metric_value_float := try_to_float(metric_value)) is not None
                 ]
             )
             all_metrics.update(metrics)
