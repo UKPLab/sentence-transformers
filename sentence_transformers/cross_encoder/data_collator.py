@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -35,14 +36,15 @@ class CrossEncoderDataCollator(SentenceTransformerDataCollator):
             column_names.remove("dataset_name")
             batch["dataset_name"] = features[0]["dataset_name"]
 
-        # TODO:
-        # if tuple(column_names) not in self._warned_columns:
-        #     self.maybe_warn_about_column_order(column_names)
-
         # Extract the label column if it exists
         for label_column in self.valid_label_columns:
             if label_column in column_names:
-                batch["label"] = torch.tensor([row[label_column] for row in features])
+                # If the label column is a list/tuple/collection, we create a list of tensors
+                if isinstance(features[0][label_column], Collection):
+                    batch["label"] = [torch.tensor(row[label_column]) for row in features]
+                else:
+                    # Otherwise, if it's e.g. single values, we create a tensor
+                    batch["label"] = torch.tensor([row[label_column] for row in features])
                 column_names.remove(label_column)
                 break
 

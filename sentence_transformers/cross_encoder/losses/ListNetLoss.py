@@ -12,7 +12,7 @@ class ListNetLoss(nn.Module):
         self,
         model: CrossEncoder,
         activation_fct: nn.Module | None = nn.Identity(),
-        pad_value: int = -1,
+        mini_batch_size: int | None = None,
     ) -> None:
         """
         ListNet loss for learning to rank. This loss function implements the ListNet ranking algorithm
@@ -21,11 +21,22 @@ class ListNetLoss(nn.Module):
         The implementation is optimized to handle padded documents efficiently by only processing
         valid documents during model inference.
 
+        .. note::
+
+            The number of documents per query can vary between samples with the ``ListNetLoss``.
+
         Args:
             model (CrossEncoder): CrossEncoder model to be trained
-            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Identity`.
-            pad_value (int): Value used for padding in variable-length document lists.
-                Documents with this value will be excluded from model inference for efficiency.
+            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the
+                loss. Defaults to :class:`~torch.nn.Identity`.
+            mini_batch_size (int, optional): Number of samples to process in each forward pass. This has a significant
+                impact on the memory consumption and speed of the training process. Three cases are possible:
+
+                - If ``mini_batch_size`` is None, the ``mini_batch_size`` is set to the batch size.
+                - If ``mini_batch_size`` is greater than 0, the batch is split into mini-batches of size ``mini_batch_size``.
+                - If ``mini_batch_size`` is <= 0, the entire batch is processed at once.
+
+                Defaults to None.
 
         References:
             - Learning to Rank: From Pairwise Approach to Listwise Approach: https://www.microsoft.com/en-us/research/publication/learning-to-rank-from-pairwise-approach-to-listwise-approach/
@@ -34,8 +45,6 @@ class ListNetLoss(nn.Module):
         Requirements:
             1. Query with multiple documents (listwise approach)
             2. Documents must have relevance scores/labels. Both binary and continuous labels are supported.
-            3. Variable-length document lists are handled through padding (pad_value)
-            4. Padded documents are automatically excluded from model inference for efficiency
 
         Inputs:
             +----------------------------------------+--------------------------------+-------------------------------+
@@ -43,10 +52,6 @@ class ListNetLoss(nn.Module):
             +========================================+================================+===============================+
             | (query, [doc1, doc2, ..., docN])       | [score1, score2, ..., scoreN]  | 1                             |
             +----------------------------------------+--------------------------------+-------------------------------+
-
-        .. note::
-
-            Documents with ``label=pad_value`` are efficiently skipped during processing.
 
         Example:
             ::
@@ -59,9 +64,9 @@ class ListNetLoss(nn.Module):
                     "query": ["What are pandas?", "What is the capital of France?"],
                     "docs": [
                         ["Pandas are a kind of bear.", "Pandas are kind of like fish."],
-                        ["The capital of France is Paris.", "Paris is the capital of France."],
+                        ["The capital of France is Paris.", "Paris is the capital of France.", "Paris is quite large."],
                     ],
-                    "labels": [[1, 0], [1, 1]],
+                    "labels": [[1, 0], [1, 1, 0]],
                 })
                 loss = losses.ListNetLoss(model)
 
@@ -74,8 +79,8 @@ class ListNetLoss(nn.Module):
         """
         super().__init__()
         self.model = model
-        self.pad_value = pad_value
         self.activation_fct = activation_fct or nn.Identity()
+        self.mini_batch_size = mini_batch_size
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
         if self.model.num_labels != 1:
@@ -84,7 +89,7 @@ class ListNetLoss(nn.Module):
                 f"but got a model with {self.model.num_labels} output labels."
             )
 
-    def forward(self, inputs: list[list[str], list[list[str]]], labels: Tensor) -> Tensor:
+    def forward(self, inputs: list[list[str], list[list[str]]], labels: list[Tensor]) -> Tensor:
         """
         Compute ListNet loss for a batch of queries and their documents.
 
@@ -95,46 +100,69 @@ class ListNetLoss(nn.Module):
         Returns:
             Tensor: Mean ListNet loss over the batch
         """
+        if isinstance(labels, Tensor):
+            raise ValueError(
+                "ListNetLoss expects a list of labels for each sample, but got a single value for each sample."
+            )
+
+        if len(inputs) != 2:
+            raise ValueError(
+                f"ListNetLoss expects two inputs (queries, documents_list), but got {len(inputs)} inputs."
+            )
+
         queries, docs_list = inputs
-        labels = labels.float()
-        batch_size, max_docs = labels.size()
+        docs_per_query = [len(docs) for docs in docs_list]
+        max_docs = max(docs_per_query)
+        batch_size = len(queries)
 
-        mask = labels != self.pad_value  # shape: (batch_size, max_docs)
+        if docs_per_query != [len(labels) for labels in labels]:
+            raise ValueError(
+                f"Number of documents per query in inputs ({docs_per_query}) does not match number of labels per query ({[len(labels) for labels in labels]})."
+            )
 
-        batch_indices, doc_indices = torch.where(mask)
-
-        pairs = [
-            (queries[batch_index], docs_list[batch_index][doc_index])
-            for batch_index, doc_index in zip(batch_indices.tolist(), doc_indices.tolist())
-        ]
+        pairs = [(query, document) for query, docs in zip(queries, docs_list) for document in docs]
 
         if not pairs:
-            # Handle edge case where all documents are padded
+            # Handle edge case where there are no documents
             return torch.tensor(0.0, device=self.model.device, requires_grad=True)
 
-        tokens = self.model.tokenizer(
-            pairs,
-            padding=True,
-            truncation=True,
-            return_tensors="pt",
-        )
-        tokens = tokens.to(self.model.device)
+        mini_batch_size = self.mini_batch_size or batch_size
+        if mini_batch_size <= 0:
+            mini_batch_size = len(pairs)
 
-        logits = self.model(**tokens)[0].view(-1)
+        logits_list = []
+        for i in range(0, len(pairs), mini_batch_size):
+            mini_batch_pairs = pairs[i : i + mini_batch_size]
+
+            tokens = self.model.tokenizer(
+                mini_batch_pairs,
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+            )
+            tokens = tokens.to(self.model.device)
+
+            logits = self.model(**tokens)[0].view(-1)
+            logits_list.append(logits)
+
+        logits = torch.cat(logits_list, dim=0)
         logits = self.activation_fct(logits)
 
         # Create output tensor filled with 0 (padded logits will be ignored via labels)
-        full_logits = torch.full((batch_size, max_docs), -1e16, device=self.model.device)
+        logits_matrix = torch.full((batch_size, max_docs), -1e16, device=self.model.device)
 
-        # Place logits back in their original positions
-        full_logits[batch_indices, doc_indices] = logits
+        # Place logits in the desired positions in the logit matrix
+        doc_indices = torch.cat([torch.arange(len(docs)) for docs in docs_list], dim=0)
+        batch_indices = torch.repeat_interleave(torch.arange(batch_size), torch.tensor(docs_per_query))
+        logits_matrix[batch_indices, doc_indices] = logits
 
-        # Set padded positions in labels to -inf for consistent softmax
-        labels = labels.to(self.model.device)
-        labels[~mask] = float("-inf")
+        # Idem for labels, but fill with -inf to 0 out padded logits in the loss
+        labels_matrix = torch.full_like(logits_matrix, float("-inf"))
+        labels_matrix[batch_indices, doc_indices] = torch.cat(labels, dim=0).float()
+        labels_matrix = labels_matrix.to(self.model.device)
 
         # Compute cross entropy loss between distributions
-        loss = self.cross_entropy_loss(full_logits, labels.softmax(dim=1))
+        loss = self.cross_entropy_loss(logits_matrix, labels_matrix.softmax(dim=1))
 
         return loss
 
@@ -146,7 +174,6 @@ class ListNetLoss(nn.Module):
             Dictionary containing the configuration parameters
         """
         return {
-            "pad_value": self.pad_value,
             "activation_fct": fullname(self.activation_fct),
         }
 
