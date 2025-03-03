@@ -65,6 +65,7 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
     """
 
     # Potentially provided by the user
+    task_name: str = field(default=None)
     tags: list[str] | None = field(
         default_factory=lambda: [
             "sentence-transformers",
@@ -112,6 +113,14 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
         self.predict_example = [
             [query, response] for query, response in zip(dataset[:5][query_column], dataset[:5][response_column])
         ]
+
+    def register_model(self, model) -> None:
+        super().register_model(model)
+
+        if self.task_name is None:
+            self.task_name = (
+                "text reranking and semantic search" if model.num_labels == 1 else "text pair classification"
+            )
 
     def get_model_specific_metadata(self) -> dict[str, Any]:
         return {
