@@ -15,7 +15,7 @@ from transformers.integrations import WandbCallback
 
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.data_collator import CrossEncoderDataCollator
-from sentence_transformers.cross_encoder.losses import BinaryCrossEntropyLoss
+from sentence_transformers.cross_encoder.losses import BinaryCrossEntropyLoss, CrossEntropyLoss
 from sentence_transformers.cross_encoder.model_card import CrossEncoderModelCardCallback
 from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
@@ -238,8 +238,12 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
             os.environ.setdefault("WANDB_PROJECT", "sentence-transformers")
 
         if loss is None:
-            logger.info("No `loss` passed, using `losses.BinaryCrossEntropyLoss` as a default option.")
-            loss = BinaryCrossEntropyLoss(self.model)
+            if self.model.num_labels == 1:
+                logger.info("No `loss` passed, using `losses.BinaryCrossEntropyLoss` as a default option.")
+                loss = BinaryCrossEntropyLoss(self.model)
+            else:
+                logger.info("No `loss` passed, using `losses.CrossEntropyLoss` as a default option.")
+                loss = CrossEntropyLoss(self.model)
 
         if isinstance(loss, dict):
             self.loss = {dataset_name: self.prepare_loss(loss_fn, model) for dataset_name, loss_fn in loss.items()}
