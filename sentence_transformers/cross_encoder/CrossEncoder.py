@@ -22,6 +22,7 @@ from transformers.utils import PushToHubMixin
 
 from sentence_transformers.cross_encoder.fit_mixin import FitMixin
 from sentence_transformers.cross_encoder.model_card import CrossEncoderModelCardData, generate_model_card
+from sentence_transformers.cross_encoder.util import cross_encoder_init_args_decorator
 from sentence_transformers.util import fullname, get_device_name, import_from_string, load_file_path
 
 logger = logging.getLogger(__name__)
@@ -36,68 +37,101 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
     It does not yield a sentence embedding and does not work for individual sentences.
 
     Args:
-        model_name (str): A model name from Hugging Face Hub that can be loaded with AutoModel, or a path to a local
+        model_name_or_path (str): A model name from Hugging Face Hub that can be loaded with AutoModel, or a path to a local
             model. We provide several pre-trained CrossEncoder models that can be used for common tasks.
         num_labels (int, optional): Number of labels of the classifier. If 1, the CrossEncoder is a regression model that
             outputs a continuous score 0...1. If > 1, it output several scores that can be soft-maxed to get
             probability scores for the different classes. Defaults to None.
         max_length (int, optional): Max length for input sequences. Longer sequences will be truncated. If None, max
             length of the model will be used. Defaults to None.
-        device (str, optional): Device that should be used for the model. If None, it will use CUDA if available.
-            Defaults to None.
-        automodel_args (Dict, optional): Arguments passed to AutoModelForSequenceClassification. Defaults to None.
-        tokenizer_args (Dict, optional): Arguments passed to AutoTokenizer. Defaults to None.
-        config_args (Dict, optional): Arguments passed to AutoConfig. Defaults to None.
-        cache_dir (`str`, `Path`, optional): Path to the folder where cached files are stored.
+        device (str, optional): Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
+            can be used.
+        cache_folder (`str`, `Path`, optional): Path to the folder where cached files are stored.
         trust_remote_code (bool, optional): Whether or not to allow for custom models defined on the Hub in their own modeling files.
             This option should only be set to True for repositories you trust and in which you have read the code, as it
             will execute code present on the Hub on your local machine. Defaults to False.
-        revision (Optional[str], optional): The specific model version to use. It can be a branch name, a tag name, or a commit id,
+        revision (str, optional): The specific model version to use. It can be a branch name, a tag name, or a commit id,
             for a stored model on Hugging Face. Defaults to None.
-        local_files_only (bool, optional): If `True`, avoid downloading the model. Defaults to False.
+        local_files_only (bool, optional): Whether or not to only look at local files (i.e., do not try to download the model).
+        token (bool or str, optional): Hugging Face authentication token to download private models.
         default_activation_function (Callable, optional): Callable (like nn.Sigmoid) about the default activation function that
             should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
             else nn.Identity(). Defaults to None.
-        classifier_dropout (float, optional): The dropout ratio for the classification head. Defaults to None.
+        model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers model.
+            Particularly useful options are:
+
+            - ``torch_dtype``: Override the default `torch.dtype` and load the model under a specific `dtype`.
+              The different options are:
+
+                    1. ``torch.float16``, ``torch.bfloat16`` or ``torch.float``: load in a specified
+                    ``dtype``, ignoring the model's ``config.torch_dtype`` if one exists. If not specified - the model will
+                    get loaded in ``torch.float`` (fp32).
+
+                    2. ``"auto"`` - A ``torch_dtype`` entry in the ``config.json`` file of the model will be
+                    attempted to be used. If this entry isn't found then next check the ``dtype`` of the first weight in
+                    the checkpoint that's of a floating point type and use that as ``dtype``. This will load the model
+                    using the ``dtype`` it was saved in at the end of the training. It can't be used as an indicator of how
+                    the model was trained. Since it could be trained in one of half precision dtypes, but saved in fp32.
+            - ``attn_implementation``: The attention implementation to use in the model (if relevant). Can be any of
+              `"eager"` (manual implementation of the attention), `"sdpa"` (using `F.scaled_dot_product_attention
+              <https://pytorch.org/docs/master/generated/torch.nn.functional.scaled_dot_product_attention.html>`_),
+              or `"flash_attention_2"` (using `Dao-AILab/flash-attention <https://github.com/Dao-AILab/flash-attention>`_).
+              By default, if available, SDPA will be used for torch>=2.1.1. The default is otherwise the manual `"eager"`
+              implementation.
+
+            See the `AutoModelForSequenceClassification.from_pretrained
+            <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoModelForSequenceClassification.from_pretrained>`_
+            documentation for more details.
+        tokenizer_kwargs (Dict[str, Any], optional): Additional tokenizer configuration parameters to be passed to the Hugging Face Transformers tokenizer.
+            See the `AutoTokenizer.from_pretrained
+            <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoTokenizer.from_pretrained>`_
+            documentation for more details.
+        config_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers config.
+            See the `AutoConfig.from_pretrained
+            <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoConfig.from_pretrained>`_
+            documentation for more details. For example, you can set ``classifier_dropout`` via this parameter.
+        model_card_data (:class:`~sentence_transformers.model_card.SentenceTransformerModelCardData`, optional): A model
+            card data object that contains information about the model. This is used to generate a model card when saving
+            the model. If not set, a default model card data object is created.
     """
 
-    # TODO: Introduce Token?
-    # TODO: cache_dir, automodel_args, tokenizer_args, config_args clash with SentenceTransformer argument names
+    @cross_encoder_init_args_decorator
     def __init__(
         self,
-        model_name: str,
+        model_name_or_path: str,
         num_labels: int = None,
         max_length: int = None,
         device: str | None = None,
-        automodel_args: dict = None,
-        tokenizer_args: dict = None,
-        config_args: dict = None,
-        cache_dir: str = None,
+        cache_folder: str = None,
         trust_remote_code: bool = False,
         revision: str | None = None,
         local_files_only: bool = False,
+        token: bool | str | None = None,
         default_activation_function=None,
-        classifier_dropout: float = None,
+        model_kwargs: dict = None,
+        tokenizer_kwargs: dict = None,
+        config_kwargs: dict = None,
         model_card_data: CrossEncoderModelCardData | None = None,
     ) -> None:
         super().__init__()
-        if tokenizer_args is None:
-            tokenizer_args = {}
-        if automodel_args is None:
-            automodel_args = {}
-        if config_args is None:
-            config_args = {}
+        if tokenizer_kwargs is None:
+            tokenizer_kwargs = {}
+        if model_kwargs is None:
+            model_kwargs = {}
+        if config_kwargs is None:
+            config_kwargs = {}
         self.model_card_data = model_card_data or CrossEncoderModelCardData()
         self.trust_remote_code = trust_remote_code
         self._model_card_text = None
 
         self.config: PretrainedConfig = AutoConfig.from_pretrained(
-            model_name,
+            model_name_or_path,
+            cache_dir=cache_folder,
             trust_remote_code=trust_remote_code,
             revision=revision,
             local_files_only=local_files_only,
-            cache_dir=cache_dir,
-            **config_args,
+            token=token,
+            **config_kwargs,
         )
         classifier_trained = False  # TODO: This is 'breaking'
         if self.config.architectures is not None:
@@ -105,42 +139,43 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 [arch.endswith("ForSequenceClassification") for arch in self.config.architectures]
             )
 
-        if classifier_dropout is not None:
-            self.config.classifier_dropout = classifier_dropout
-
         if num_labels is None and not classifier_trained:
             num_labels = 1
 
         if num_labels is not None:
             self.config.num_labels = num_labels
         self.model: PreTrainedModel = AutoModelForSequenceClassification.from_pretrained(
-            model_name,
+            model_name_or_path,
             config=self.config,
-            revision=revision,
+            cache_dir=cache_folder,
             trust_remote_code=trust_remote_code,
+            revision=revision,
             local_files_only=local_files_only,
-            cache_dir=cache_dir,
-            **automodel_args,
+            token=token,
+            **model_kwargs,
         )
-        if max_length is not None and "model_max_length" not in tokenizer_args:
-            tokenizer_args["model_max_length"] = max_length
-        if hasattr(self.config, "max_position_embeddings") and "model_max_length" not in tokenizer_args:
-            tokenizer_args["model_max_length"] = self.config.max_position_embeddings
+        if "model_max_length" not in tokenizer_kwargs:
+            if max_length is not None:
+                tokenizer_kwargs["model_max_length"] = max_length
+            elif hasattr(self.config, "max_position_embeddings"):
+                tokenizer_kwargs["model_max_length"] = self.config.max_position_embeddings
+
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name,
+            model_name_or_path,
+            cache_dir=cache_folder,
+            trust_remote_code=trust_remote_code,
             revision=revision,
             local_files_only=local_files_only,
-            trust_remote_code=trust_remote_code,
-            cache_dir=cache_dir,
-            **tokenizer_args,
+            token=token,
+            **tokenizer_kwargs,
         )
 
         # Check if a readme exists
         model_card_path = load_file_path(
-            model_name,
+            model_name_or_path,
             "README.md",
-            token=automodel_args.get("token", None),
-            cache_folder=cache_dir,
+            token=model_kwargs.get("token", None),
+            cache_folder=cache_folder,
             revision=revision,
             local_files_only=local_files_only,
         )
@@ -173,7 +208,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
 
         # Pass the model to the model card data for later use in generating a model card upon saving this model
         self.model_card_data.register_model(self)
-        self.model_card_data.set_base_model(model_name, revision=revision)
+        self.model_card_data.set_base_model(model_name_or_path, revision=revision)
 
     @property
     def num_labels(self) -> int:

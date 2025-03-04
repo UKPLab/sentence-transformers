@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from huggingface_hub import CommitInfo, HfApi, RepoUrl
 from pytest import FixtureRequest
 
 from sentence_transformers import CrossEncoder
+from sentence_transformers.cross_encoder.util import cross_encoder_init_args_decorator
 from tests.utils import SafeTemporaryDirectory
 
 
@@ -296,3 +298,121 @@ def test_push_to_hub(
     mock_upload_folder_kwargs.clear()
     assert "test-push-to-hub-tag-2" in model.model_card_data.tags
     assert "test-push-to-hub-tag-3" in model.model_card_data.tags
+
+
+@pytest.mark.parametrize(
+    ["in_args", "in_kwargs", "out_args", "out_kwargs"],
+    [
+        [
+            tuple(),
+            {"model_name": "cross-encoder-testing/reranker-bert-tiny-gooaq-bce", "classifier_dropout": 0.1234},
+            tuple(),
+            {
+                "model_name_or_path": "cross-encoder-testing/reranker-bert-tiny-gooaq-bce",
+                "config_kwargs": {"classifier_dropout": 0.1234},
+            },
+        ],
+        [
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {"classifier_dropout": 0.1234},
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {"config_kwargs": {"classifier_dropout": 0.1234}},
+        ],
+        [
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {
+                "automodel_args": {"foo": "bar"},
+                "tokenizer_args": {"foo": "baz"},
+            },
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {
+                "model_kwargs": {"foo": "bar"},
+                "tokenizer_kwargs": {"foo": "baz"},
+            },
+        ],
+        [
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {
+                "config_args": {"foo": "bar"},
+                "cache_dir": "local_tmp",
+            },
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {
+                "config_kwargs": {"foo": "bar"},
+                "cache_folder": "local_tmp",
+            },
+        ],
+        [
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {
+                "automodel_args": {"foo": "bar"},
+                "model_kwargs": {"faa": "baz"},
+            },
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {
+                "model_kwargs": {"faa": "baz"},
+            },
+        ],
+        [tuple(), {}, tuple(), {}],
+        [
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {},
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {},
+        ],
+        [
+            tuple(),
+            {
+                "model_name": "cross-encoder-testing/reranker-bert-tiny-gooaq-bce",
+                "automodel_args": {"foo": "bar"},
+                "tokenizer_args": {"foo": "baz"},
+                "config_args": {"foo": "bar"},
+                "cache_dir": "local_tmp",
+            },
+            tuple(),
+            {
+                "model_name_or_path": "cross-encoder-testing/reranker-bert-tiny-gooaq-bce",
+                "model_kwargs": {"foo": "bar"},
+                "tokenizer_kwargs": {"foo": "baz"},
+                "config_kwargs": {"foo": "bar"},
+                "cache_folder": "local_tmp",
+            },
+        ],
+    ],
+)
+def test_init_args_decorator(monkeypatch: pytest.MonkeyPatch, in_args, in_kwargs: dict, out_args, out_kwargs: dict):
+    decorated_out_args = None
+    decorated_out_kwargs = None
+
+    @cross_encoder_init_args_decorator
+    def mock_init(self, *args, **kwargs):
+        nonlocal decorated_out_args
+        nonlocal decorated_out_kwargs
+        decorated_out_args = args
+        decorated_out_kwargs = kwargs
+        return None
+
+    monkeypatch.setattr(CrossEncoder, "__init__", mock_init)
+
+    CrossEncoder(*in_args, **in_kwargs)
+    assert decorated_out_args == out_args
+    assert decorated_out_kwargs == out_kwargs
+
+
+def test_logger_warning(caplog):
+    model_name = "cross-encoder-testing/reranker-bert-tiny-gooaq-bce"
+    with caplog.at_level(logging.WARNING):
+        CrossEncoder(model_name, classifier_dropout=0.1234)
+        assert "`classifier_dropout` argument is deprecated" in caplog.text
+
+    with caplog.at_level(logging.WARNING):
+        CrossEncoder(model_name, automodel_args={"torch_dtype": torch.float32})
+        assert "`automodel_args` argument was renamed and is now deprecated" in caplog.text
+
+    with caplog.at_level(logging.WARNING):
+        CrossEncoder(model_name, tokenizer_args={"model_max_length": 8192})
+        assert "`tokenizer_args` argument was renamed and is now deprecated" in caplog.text
+
+    with caplog.at_level(logging.WARNING):
+        CrossEncoder(model_name, config_args={"classifier_dropout": 0.2})
+        assert "`config_args` argument was renamed and is now deprecated" in caplog.text
