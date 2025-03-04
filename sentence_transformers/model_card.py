@@ -572,6 +572,9 @@ class SentenceTransformerModelCardData(CardData):
 
         return [dataset_output]
 
+    def tokenize(self, text: str | list[str]) -> dict[str, Any]:
+        return self.model.tokenize(text)
+
     def compute_dataset_metrics(
         self,
         dataset: Dataset | IterableDataset | None,
@@ -604,11 +607,7 @@ class SentenceTransformerModelCardData(CardData):
                 subsection = dataset[:1000][column]
                 first = subsection[0]
                 if isinstance(first, str):
-                    # TODO: This is quite messy:
-                    try:
-                        tokenized = self.model.tokenize(subsection)
-                    except AttributeError:
-                        tokenized = self.model.tokenizer(subsection)
+                    tokenized = self.tokenize(subsection)
                     if isinstance(tokenized, dict) and "attention_mask" in tokenized:
                         lengths = tokenized["attention_mask"].sum(dim=1).tolist()
                         suffix = "tokens"

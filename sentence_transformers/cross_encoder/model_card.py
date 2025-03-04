@@ -122,6 +122,9 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
                 "text reranking and semantic search" if model.num_labels == 1 else "text pair classification"
             )
 
+    def tokenize(self, text: str | list[str]) -> dict[str, Any]:
+        return self.model.tokenizer(text)
+
     def get_model_specific_metadata(self) -> dict[str, Any]:
         return {
             "model_max_length": self.model.max_length,
