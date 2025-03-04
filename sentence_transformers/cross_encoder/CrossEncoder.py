@@ -192,7 +192,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         sentences: tuple[str, str] | list[str],
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        num_workers: int = ...,
         activation_fct: Callable | None = ...,
         apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[False] = ...,
@@ -205,7 +204,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         sentences: list[tuple[str, str]] | list[list[str]] | tuple[str, str] | list[str],
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        num_workers: int = ...,
         activation_fct: Callable | None = ...,
         apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[True] = True,
@@ -218,7 +216,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         sentences: list[tuple[str, str]] | list[list[str]] | tuple[str, str] | list[str],
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        num_workers: int = ...,
         activation_fct: Callable | None = ...,
         apply_softmax: bool | None = ...,
         convert_to_numpy: bool = ...,
@@ -231,7 +228,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         sentences: list[tuple[str, str]] | list[list[str]],
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        num_workers: int = ...,
         activation_fct: Callable | None = ...,
         apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[False] = ...,
@@ -244,11 +240,11 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         sentences: list[tuple[str, str]] | list[list[str]] | tuple[str, str] | list[str],
         batch_size: int = 32,
         show_progress_bar: bool | None = None,
-        num_workers: int = 0,  # TODO: Remove this
         activation_fct: Callable | None = None,
         apply_softmax: bool | None = False,
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
+        **kwargs,
     ) -> list[torch.Tensor] | np.ndarray | torch.Tensor:
         """
         Performs predictions with the CrossEncoder on the given sentence pairs.
@@ -258,7 +254,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 or one sentence pair (Sent1, Sent2).
             batch_size (int, optional): Batch size for encoding. Defaults to 32.
             show_progress_bar (bool, optional): Output progress bar. Defaults to None.
-            num_workers (int, optional): Number of workers for tokenization. Defaults to 0.
             activation_fct (callable, optional): Activation function applied on the logits output of the CrossEncoder.
                 If None, nn.Sigmoid() will be used if num_labels=1, else nn.Identity. Defaults to None.
             convert_to_numpy (bool, optional): Convert the output to a numpy matrix. Defaults to True.
@@ -286,6 +281,9 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 model.predict(sentences)
                 # => array([0.6912767, 0.4303499], dtype=float32)
         """
+        if "num_workers" in kwargs:
+            logger.warning("The `num_workers` parameter has been deprecated and no longer has any effect.")
+
         input_was_singular = False
         if isinstance(sentences[0], str):  # Cast an individual pair to a list with length 1
             sentences = [sentences]
@@ -338,11 +336,11 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         return_documents: bool = False,
         batch_size: int = 32,
         show_progress_bar: bool = None,
-        num_workers: int = 0,
         activation_fct=None,
         apply_softmax=False,
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
+        **kwargs,
     ) -> list[dict[Literal["corpus_id", "score", "text"], int | float | str]]:
         """
         Performs ranking with the CrossEncoder on the given query and documents. Returns a sorted list with the document indices and scores.
@@ -354,7 +352,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             return_documents (bool, optional): If True, also returns the documents. If False, only returns the indices and scores. Defaults to False.
             batch_size (int, optional): Batch size for encoding. Defaults to 32.
             show_progress_bar (bool, optional): Output progress bar. Defaults to None.
-            num_workers (int, optional): Number of workers for tokenization. Defaults to 0.
             activation_fct ([type], optional): Activation function applied on the logits output of the CrossEncoder. If None, nn.Sigmoid() will be used if num_labels=1, else nn.Identity. Defaults to None.
             convert_to_numpy (bool, optional): Convert the output to a numpy matrix. Defaults to True.
             apply_softmax (bool, optional): If there are more than 2 dimensions and apply_softmax=True, applies softmax on the logits output. Defaults to False.
@@ -409,11 +406,11 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             sentences=query_doc_pairs,
             batch_size=batch_size,
             show_progress_bar=show_progress_bar,
-            num_workers=num_workers,
             activation_fct=activation_fct,
             apply_softmax=apply_softmax,
             convert_to_numpy=convert_to_numpy,
             convert_to_tensor=convert_to_tensor,
+            **kwargs,
         )
 
         results = []
