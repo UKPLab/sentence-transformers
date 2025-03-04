@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import re
 from pathlib import Path
@@ -11,7 +12,11 @@ from huggingface_hub import CommitInfo, HfApi, RepoUrl
 from pytest import FixtureRequest
 
 from sentence_transformers import CrossEncoder
-from sentence_transformers.cross_encoder.util import cross_encoder_init_args_decorator
+from sentence_transformers.cross_encoder.util import (
+    cross_encoder_init_args_decorator,
+    cross_encoder_predict_rank_args_decorator,
+)
+from sentence_transformers.util import fullname
 from tests.utils import SafeTemporaryDirectory
 
 
@@ -353,6 +358,16 @@ def test_push_to_hub(
                 "model_kwargs": {"faa": "baz"},
             },
         ],
+        [
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {
+                "default_activation_function": "torch.nn.Sigmoid",
+            },
+            ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
+            {
+                "activation_fn": "torch.nn.Sigmoid",
+            },
+        ],
         [tuple(), {}, tuple(), {}],
         [
             ("cross-encoder-testing/reranker-bert-tiny-gooaq-bce",),
@@ -380,7 +395,9 @@ def test_push_to_hub(
         ],
     ],
 )
-def test_init_args_decorator(monkeypatch: pytest.MonkeyPatch, in_args, in_kwargs: dict, out_args, out_kwargs: dict):
+def test_init_args_decorator(
+    monkeypatch: pytest.MonkeyPatch, in_args: tuple, in_kwargs: dict, out_args: tuple, out_kwargs: dict
+):
     decorated_out_args = None
     decorated_out_kwargs = None
 
@@ -396,6 +413,54 @@ def test_init_args_decorator(monkeypatch: pytest.MonkeyPatch, in_args, in_kwargs
 
     CrossEncoder(*in_args, **in_kwargs)
     assert decorated_out_args == out_args
+    assert decorated_out_kwargs == out_kwargs
+
+
+@pytest.mark.parametrize(
+    ["in_kwargs", "out_kwargs"],
+    [
+        [
+            {
+                "num_workers": 2,
+            },
+            {},
+        ],
+        [
+            {  # You have to pass instances normally, but this is easier for testing
+                "activation_fct": torch.nn.Sigmoid,
+            },
+            {
+                "activation_fn": torch.nn.Sigmoid,
+            },
+        ],
+        [
+            {
+                "activation_fct": torch.nn.Identity,
+                "activation_fn": torch.nn.Sigmoid,
+            },
+            {
+                "activation_fn": torch.nn.Sigmoid,
+            },
+        ],
+    ],
+)
+def test_predict_rank_args_decorator(
+    reranker_bert_tiny_model: CrossEncoder, monkeypatch: pytest.MonkeyPatch, caplog, in_kwargs: dict, out_kwargs: dict
+):
+    model = reranker_bert_tiny_model
+    decorated_out_kwargs = None
+
+    @cross_encoder_predict_rank_args_decorator
+    def mock_predict(self, *args, **kwargs):
+        nonlocal decorated_out_kwargs
+        decorated_out_kwargs = kwargs
+        return None
+
+    monkeypatch.setattr(CrossEncoder, "predict", mock_predict)
+
+    with caplog.at_level(logging.WARNING):
+        model.predict([["Hello there!", "Hello, World!"]], **in_kwargs)
+        assert caplog.text != ""
     assert decorated_out_kwargs == out_kwargs
 
 
@@ -416,3 +481,111 @@ def test_logger_warning(caplog):
     with caplog.at_level(logging.WARNING):
         CrossEncoder(model_name, config_args={"classifier_dropout": 0.2})
         assert "`config_args` argument was renamed and is now deprecated" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ["num_labels", "activation_fn", "saved_activation_fn"],
+    [
+        [
+            1,
+            torch.nn.Sigmoid(),
+            "torch.nn.modules.activation.Sigmoid",
+        ],
+        [
+            1,
+            torch.nn.Identity(),
+            "torch.nn.modules.linear.Identity",
+        ],
+        [
+            1,
+            torch.nn.Tanh(),
+            "torch.nn.modules.activation.Tanh",
+        ],
+        [
+            1,
+            torch.nn.Softmax(),
+            "torch.nn.modules.activation.Softmax",
+        ],
+        [
+            1,
+            None,
+            "torch.nn.modules.activation.Sigmoid",
+        ],
+        [
+            3,
+            None,
+            "torch.nn.modules.linear.Identity",
+        ],
+    ],
+)
+def test_load_activation_fn_from_kwargs(num_labels: int, activation_fn: str, saved_activation_fn: str, tmp_path: Path):
+    model = CrossEncoder("prajjwal1/bert-tiny", num_labels=num_labels, activation_fn=activation_fn)
+    assert fullname(model.activation_fn) == saved_activation_fn
+
+    model.save_pretrained(tmp_path)
+    with open(tmp_path / "config.json") as f:
+        config = json.load(f)
+    assert config["sentence_transformers"]["activation_fn"] == saved_activation_fn
+    assert "sbert_ce_default_activation_function" not in config
+
+    loaded_model = CrossEncoder(tmp_path)
+    assert fullname(loaded_model.activation_fn) == saved_activation_fn
+
+    # Setting the activation function via a prediction updates the instance, but not the config
+    loaded_model.predict([["Hello there!", "Hello, World!"]], activation_fn=torch.nn.Identity())
+    assert fullname(loaded_model.activation_fn) == "torch.nn.modules.linear.Identity"
+    assert loaded_model.config.sentence_transformers["activation_fn"] == saved_activation_fn
+
+
+@pytest.mark.parametrize(
+    "tanh_model_name",
+    [
+        "cross-encoder-testing/reranker-bert-tiny-gooaq-bce-tanh-v3",
+        "cross-encoder-testing/reranker-bert-tiny-gooaq-bce-tanh-v4",
+    ],
+)
+def test_load_activation_fn_from_config(tanh_model_name: str, tmp_path):
+    saved_activation_fn = "torch.nn.modules.activation.Tanh"
+
+    model = CrossEncoder(tanh_model_name)
+    assert fullname(model.activation_fn) == saved_activation_fn
+
+    model.save_pretrained(tmp_path)
+    with open(tmp_path / "config.json") as f:
+        config = json.load(f)
+    assert config["sentence_transformers"]["activation_fn"] == saved_activation_fn
+    assert "sbert_ce_default_activation_function" not in config
+
+    loaded_model = CrossEncoder(tmp_path)
+    assert fullname(loaded_model.activation_fn) == saved_activation_fn
+
+
+def test_load_activation_fn_from_config_custom(reranker_bert_tiny_model: CrossEncoder, tmp_path: Path, caplog):
+    model = reranker_bert_tiny_model
+
+    model.save_pretrained(tmp_path)
+    with open(tmp_path / "config.json") as f:
+        config = json.load(f)
+    config["sentence_transformers"]["activation_fn"] = "sentence_transformers.custom.activations.CustomActivation"
+    with open(tmp_path / "config.json", "w") as f:
+        json.dump(config, f)
+
+    with caplog.at_level(logging.WARNING):
+        CrossEncoder(tmp_path)
+        assert (
+            "Activation function path 'sentence_transformers.custom.activations.CustomActivation' is not trusted, using default activation function instead."
+            in caplog.text
+        )
+
+    # If we use trust_remote_code, it'll try to load the custom activation function, which doesn't exist
+    with pytest.raises(ImportError):
+        model = CrossEncoder(tmp_path, trust_remote_code=True)
+
+
+def test_default_activation_fn(reranker_bert_tiny_model: CrossEncoder):
+    model = reranker_bert_tiny_model
+    assert fullname(model.activation_fn) == "torch.nn.modules.activation.Sigmoid"
+    with pytest.warns(
+        DeprecationWarning, match="The `default_activation_function` property was renamed and is now deprecated.*"
+    ):
+        assert fullname(model.default_activation_function) == "torch.nn.modules.activation.Sigmoid"

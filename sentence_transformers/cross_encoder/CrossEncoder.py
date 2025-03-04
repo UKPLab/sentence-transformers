@@ -19,10 +19,14 @@ from transformers import (
     PreTrainedModel,
 )
 from transformers.utils import PushToHubMixin
+from typing_extensions import deprecated
 
 from sentence_transformers.cross_encoder.fit_mixin import FitMixin
 from sentence_transformers.cross_encoder.model_card import CrossEncoderModelCardData, generate_model_card
-from sentence_transformers.cross_encoder.util import cross_encoder_init_args_decorator
+from sentence_transformers.cross_encoder.util import (
+    cross_encoder_init_args_decorator,
+    cross_encoder_predict_rank_args_decorator,
+)
 from sentence_transformers.util import fullname, get_device_name, import_from_string, load_file_path
 
 logger = logging.getLogger(__name__)
@@ -44,6 +48,9 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             probability scores for the different classes. Defaults to None.
         max_length (int, optional): Max length for input sequences. Longer sequences will be truncated. If None, max
             length of the model will be used. Defaults to None.
+        activation_fn (Callable, optional): Callable (like nn.Sigmoid) about the default activation function that
+            should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
+            else nn.Identity(). Defaults to None.
         device (str, optional): Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
             can be used.
         cache_folder (`str`, `Path`, optional): Path to the folder where cached files are stored.
@@ -54,9 +61,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             for a stored model on Hugging Face. Defaults to None.
         local_files_only (bool, optional): Whether or not to only look at local files (i.e., do not try to download the model).
         token (bool or str, optional): Hugging Face authentication token to download private models.
-        default_activation_function (Callable, optional): Callable (like nn.Sigmoid) about the default activation function that
-            should be used on-top of model.predict(). If None. nn.Sigmoid() will be used if num_labels=1,
-            else nn.Identity(). Defaults to None.
         model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers model.
             Particularly useful options are:
 
@@ -101,13 +105,13 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         model_name_or_path: str,
         num_labels: int = None,
         max_length: int = None,
+        activation_fn: Callable | None = None,
         device: str | None = None,
         cache_folder: str = None,
         trust_remote_code: bool = False,
         revision: str | None = None,
         local_files_only: bool = False,
         token: bool | str | None = None,
-        default_activation_function=None,
         model_kwargs: dict = None,
         tokenizer_kwargs: dict = None,
         config_kwargs: dict = None,
@@ -124,7 +128,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         self.trust_remote_code = trust_remote_code
         self._model_card_text = None
 
-        self.config: PretrainedConfig = AutoConfig.from_pretrained(
+        config: PretrainedConfig = AutoConfig.from_pretrained(
             model_name_or_path,
             cache_dir=cache_folder,
             trust_remote_code=trust_remote_code,
@@ -134,19 +138,17 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             **config_kwargs,
         )
         classifier_trained = False  # TODO: This is 'breaking'
-        if self.config.architectures is not None:
-            classifier_trained = any(
-                [arch.endswith("ForSequenceClassification") for arch in self.config.architectures]
-            )
+        if config.architectures is not None:
+            classifier_trained = any([arch.endswith("ForSequenceClassification") for arch in config.architectures])
 
         if num_labels is None and not classifier_trained:
             num_labels = 1
 
         if num_labels is not None:
-            self.config.num_labels = num_labels
+            config.num_labels = num_labels
         self.model: PreTrainedModel = AutoModelForSequenceClassification.from_pretrained(
             model_name_or_path,
-            config=self.config,
+            config=config,
             cache_dir=cache_folder,
             trust_remote_code=trust_remote_code,
             revision=revision,
@@ -186,29 +188,60 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             except Exception:
                 pass
 
+        self.set_activation_fn(activation_fn)
+
         if device is None:
             device = get_device_name()
             logger.info(f"Use pytorch device: {device}")
         self.model.to(device)
 
-        # TODO: Figure out how best to apply the activation function. In forward?
-        if default_activation_function is not None:
-            self.default_activation_function = default_activation_function
+        # Pass the model to the model card data for later use in generating a model card upon saving this model
+        self.model_card_data.register_model(self)
+        self.model_card_data.set_base_model(model_name_or_path, revision=revision)
+
+    def set_activation_fn(self, activation_fn: Callable | None, set_default: bool = True) -> None:
+        if activation_fn is not None:
+            self.activation_fn = activation_fn
+        else:
+            self.activation_fn = self.get_default_activation_fn()
+
+        if set_default:
             try:
-                self.config.sbert_ce_default_activation_function = fullname(self.default_activation_function)
+                if not hasattr(self.config, "sentence_transformers"):
+                    self.config.sentence_transformers = {}
+                self.config.sentence_transformers["activation_fn"] = fullname(self.activation_fn)
             except Exception as e:
-                logger.warning(f"Was not able to update config about the default_activation_function: {str(e)}")
+                logger.warning(f"Was not able to update config about the default activation_fn: {str(e)}")
+
+    def get_default_activation_fn(self) -> Callable:
+        activation_fn_path = None
+        if hasattr(self.config, "sentence_transformers") and "activation_fn" in self.config.sentence_transformers:
+            activation_fn_path = self.config.sentence_transformers["activation_fn"]
+
+        # Backwards compatibility with <v4.0: we stored the activation_fn under 'sbert_ce_default_activation_function'
         elif (
             hasattr(self.config, "sbert_ce_default_activation_function")
             and self.config.sbert_ce_default_activation_function is not None
         ):
-            self.default_activation_function = import_from_string(self.config.sbert_ce_default_activation_function)()
-        else:
-            self.default_activation_function = nn.Sigmoid() if self.config.num_labels == 1 else nn.Identity()
+            activation_fn_path = self.config.sbert_ce_default_activation_function
+            del self.config.sbert_ce_default_activation_function
 
-        # Pass the model to the model card data for later use in generating a model card upon saving this model
-        self.model_card_data.register_model(self)
-        self.model_card_data.set_base_model(model_name_or_path, revision=revision)
+        if activation_fn_path is not None:
+            if self.trust_remote_code or activation_fn_path.startswith("torch."):
+                return import_from_string(activation_fn_path)()
+            logger.warning(
+                f"Activation function path '{activation_fn_path}' is not trusted, using default activation function instead. "
+                "Please load the CrossEncoder with `trust_remote_code=True` to allow loading custom activation "
+                "functions via the configuration."
+            )
+
+        if self.config.num_labels == 1:
+            return nn.Sigmoid()
+        return nn.Identity()
+
+    @property
+    def config(self) -> PretrainedConfig:
+        return self.model.config
 
     @property
     def num_labels(self) -> int:
@@ -217,6 +250,14 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
     @property
     def max_length(self) -> int:
         return self.tokenizer.model_max_length
+
+    @property
+    @deprecated(
+        "The `default_activation_function` property was renamed and is now deprecated. "
+        "Please use `activation_fn` instead."
+    )
+    def default_activation_function(self) -> Callable:
+        return self.activation_fn
 
     def forward(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -227,7 +268,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         sentences: tuple[str, str] | list[str],
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        activation_fct: Callable | None = ...,
+        activation_fn: Callable | None = ...,
         apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[False] = ...,
         convert_to_tensor: Literal[False] = ...,
@@ -239,7 +280,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         sentences: list[tuple[str, str]] | list[list[str]] | tuple[str, str] | list[str],
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        activation_fct: Callable | None = ...,
+        activation_fn: Callable | None = ...,
         apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[True] = True,
         convert_to_tensor: Literal[False] = False,
@@ -251,7 +292,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         sentences: list[tuple[str, str]] | list[list[str]] | tuple[str, str] | list[str],
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        activation_fct: Callable | None = ...,
+        activation_fn: Callable | None = ...,
         apply_softmax: bool | None = ...,
         convert_to_numpy: bool = ...,
         convert_to_tensor: Literal[True] = ...,
@@ -263,23 +304,23 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         sentences: list[tuple[str, str]] | list[list[str]],
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        activation_fct: Callable | None = ...,
+        activation_fn: Callable | None = ...,
         apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[False] = ...,
         convert_to_tensor: Literal[False] = ...,
     ) -> list[torch.Tensor]: ...
 
-    @torch.no_grad()
+    @torch.inference_mode()
+    @cross_encoder_predict_rank_args_decorator
     def predict(
         self,
         sentences: list[tuple[str, str]] | list[list[str]] | tuple[str, str] | list[str],
         batch_size: int = 32,
         show_progress_bar: bool | None = None,
-        activation_fct: Callable | None = None,
+        activation_fn: Callable | None = None,
         apply_softmax: bool | None = False,
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-        **kwargs,
     ) -> list[torch.Tensor] | np.ndarray | torch.Tensor:
         """
         Performs predictions with the CrossEncoder on the given sentence pairs.
@@ -289,8 +330,9 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 or one sentence pair (Sent1, Sent2).
             batch_size (int, optional): Batch size for encoding. Defaults to 32.
             show_progress_bar (bool, optional): Output progress bar. Defaults to None.
-            activation_fct (callable, optional): Activation function applied on the logits output of the CrossEncoder.
-                If None, nn.Sigmoid() will be used if num_labels=1, else nn.Identity. Defaults to None.
+            activation_fn (callable, optional): Activation function applied on the logits output of the CrossEncoder.
+                If None, the ``model.activation_fn`` will be used, which defaults to :class:`torch.nn.Sigmoid` if num_labels=1, else
+                :class:`torch.nn.Identity`. Defaults to None.
             convert_to_numpy (bool, optional): Convert the output to a numpy matrix. Defaults to True.
             apply_softmax (bool, optional): If set to True and `model.num_labels > 1`, applies softmax on the logits
                 output such that for each sample, the scores of each class sum to 1. Defaults to False.
@@ -316,9 +358,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 model.predict(sentences)
                 # => array([0.6912767, 0.4303499], dtype=float32)
         """
-        if "num_workers" in kwargs:
-            logger.warning("The `num_workers` parameter has been deprecated and no longer has any effect.")
-
         input_was_singular = False
         if isinstance(sentences[0], str):  # Cast an individual pair to a list with length 1
             sentences = [sentences]
@@ -329,8 +368,8 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG
             )
 
-        if activation_fct is None:
-            activation_fct = self.default_activation_function
+        if activation_fn is not None:
+            self.set_activation_fn(activation_fn, set_default=False)
 
         pred_scores = []
         self.model.eval()
@@ -344,7 +383,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             )
             features.to(self.model.device)
             model_predictions = self.model(**features, return_dict=True)
-            logits = activation_fct(model_predictions.logits)
+            logits = self.activation_fn(model_predictions.logits)
 
             if apply_softmax and logits.ndim > 1:
                 logits = torch.nn.functional.softmax(logits, dim=1)
@@ -363,6 +402,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
 
         return pred_scores
 
+    @cross_encoder_predict_rank_args_decorator
     def rank(
         self,
         query: str,
@@ -371,11 +411,10 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         return_documents: bool = False,
         batch_size: int = 32,
         show_progress_bar: bool = None,
-        activation_fct=None,
+        activation_fn: Callable | None = None,
         apply_softmax=False,
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-        **kwargs,
     ) -> list[dict[Literal["corpus_id", "score", "text"], int | float | str]]:
         """
         Performs ranking with the CrossEncoder on the given query and documents. Returns a sorted list with the document indices and scores.
@@ -387,7 +426,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             return_documents (bool, optional): If True, also returns the documents. If False, only returns the indices and scores. Defaults to False.
             batch_size (int, optional): Batch size for encoding. Defaults to 32.
             show_progress_bar (bool, optional): Output progress bar. Defaults to None.
-            activation_fct ([type], optional): Activation function applied on the logits output of the CrossEncoder. If None, nn.Sigmoid() will be used if num_labels=1, else nn.Identity. Defaults to None.
+            activation_fn ([type], optional): Activation function applied on the logits output of the CrossEncoder. If None, nn.Sigmoid() will be used if num_labels=1, else nn.Identity. Defaults to None.
             convert_to_numpy (bool, optional): Convert the output to a numpy matrix. Defaults to True.
             apply_softmax (bool, optional): If there are more than 2 dimensions and apply_softmax=True, applies softmax on the logits output. Defaults to False.
             convert_to_tensor (bool, optional): Convert the output to a tensor. Defaults to False.
@@ -441,11 +480,10 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             sentences=query_doc_pairs,
             batch_size=batch_size,
             show_progress_bar=show_progress_bar,
-            activation_fct=activation_fct,
+            activation_fn=activation_fn,
             apply_softmax=apply_softmax,
             convert_to_numpy=convert_to_numpy,
             convert_to_tensor=convert_to_tensor,
-            **kwargs,
         )
 
         results = []
