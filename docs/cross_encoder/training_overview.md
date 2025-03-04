@@ -403,7 +403,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
 
     Preparing data for :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator` can be difficult as you need negatives in addition to your query-positive data.
 
-    The :func:`~sentence_transformers.util.mine_hard_negatives` function has a convenient ``disqualify_positives`` parameter, which can be set to ``True`` to also mine for the positive texts. When supplied as ``documents`` (which have to be 1) ranked and 2) contain positives) to :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator`, the evaluator will not just evaluate the reranking performance of the CrossEncoder, but also the original rankings by the embedding model used for mining.
+    The :func:`~sentence_transformers.util.mine_hard_negatives` function has a convenient ``include_positives`` parameter, which can be set to ``True`` to also mine for the positive texts. When supplied as ``documents`` (which have to be 1. ranked and 2. contain positives) to :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator`, the evaluator will not just evaluate the reranking performance of the CrossEncoder, but also the original rankings by the embedding model used for mining.
 
     For example::
 
@@ -470,7 +470,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
             num_negatives=50,  # How many negatives per question-answer pair
             batch_size=4096,  # Use a batch size of 4096 for the embedding model
             output_format="n-tuple",  # The output format is (query, positive, negative1, negative2, ...) for the evaluator
-            disqualify_positives=False,  # Key: Include the positive answer in the list of negatives
+            include_positives=True,  # Key: Include the positive answer in the list of negatives
             use_faiss=True,  # Using FAISS is recommended to keep memory usage low (pip install faiss-gpu or pip install faiss-cpu)
         )
         print(hard_eval_dataset)
@@ -838,7 +838,7 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
                 corpus=full_dataset["answer"],  # Use the full dataset as the corpus
                 num_negatives=30,  # How many documents to rerank
                 batch_size=4096,
-                disqualify_positives=False,
+                include_positives=True,
                 output_format="n-tuple",
                 use_faiss=True,
             )

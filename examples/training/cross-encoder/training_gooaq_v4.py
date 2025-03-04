@@ -88,7 +88,7 @@ def main():
         corpus=full_dataset["answer"],  # Use the full dataset as the corpus
         num_negatives=30,  # How many documents to rerank
         batch_size=4096,
-        disqualify_positives=False,
+        include_positives=True,
         output_format="n-tuple",
         use_faiss=True,
     )

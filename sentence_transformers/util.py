@@ -531,12 +531,12 @@ def mine_hard_negatives(
     margin: float | None = None,
     num_negatives: int = 3,
     sampling_strategy: Literal["random", "top"] = "top",
+    include_positives: bool = False,
     output_format: Literal["triplet", "labeled-pair", "n-tuple"] = "triplet",
     batch_size: int = 32,
     faiss_batch_size: int = 16384,
     use_faiss: bool = False,
     use_multi_process: list[str] | bool = False,
-    disqualify_positives: bool = True,  # TODO: disqualify_positives=False is a confusing double-negative
     verbose: bool = True,
     as_triplets: bool | None = None,
 ) -> Dataset:
@@ -641,6 +641,10 @@ def mine_hard_negatives(
         margin (float, optional): Margin for hard negative mining. Defaults to None.
         num_negatives (int): Number of negatives to sample. Defaults to 3.
         sampling_strategy (Literal["random", "top"]): Sampling strategy for negatives: "top" or "random". Defaults to "top".
+        include_positives (bool): Whether to include the positives in the negative candidates.
+            Setting this to True is primarily useful for creating Reranking evaluation datasets for CrossEncoder models,
+            where it can be useful to get a full ranking (including the positives) from a first-stage retrieval model.
+            Defaults to False.
         output_format (Literal["triplet", "labeled-pair", "n-tuple"]): Output format for the `datasets.Dataset`. Options are:
 
             - "triplet": (anchor, positive, negative) triplets, i.e. 3 columns
@@ -654,10 +658,6 @@ def mine_hard_negatives(
         use_multi_process (bool | List[str], optional): Whether to use multi-GPU/CPU processing. If True, uses all GPUs if CUDA
             is available, and 4 CPU processes if it's not available. You can also pass a list of PyTorch devices like
             ["cuda:0", "cuda:1", ...] or ["cpu", "cpu", "cpu", "cpu"].
-        disqualify_positives (bool): Whether to exclude the positives from the negative candidates.
-            Setting this to False is primarily useful for creating Reranking evaluation datasets for CrossEncoder models,
-            where it can be useful to get a full ranking (including the positives) from a first-stage retrieval model.
-            Defaults to True.
         verbose (bool): Whether to print statistics and logging. Defaults to True.
         as_triplets (bool, optional): Deprecated. Use `output_format` instead. Defaults to None.
 
@@ -689,7 +689,7 @@ def mine_hard_negatives(
             f"Setting `output_format` to `{output_format}`."
         )
 
-    if not disqualify_positives:
+    if include_positives:
         if (
             range_min != 0
             or range_max is not None
@@ -698,12 +698,12 @@ def mine_hard_negatives(
             or sampling_strategy != "top"
         ):
             logger.warning(
-                "When using `disqualify_positives=False`, updating `range_min`, `range_max`, `max_score`, `margin`, or "
+                "When using `include_positives=True`, updating `range_min`, `range_max`, `max_score`, `margin`, or "
                 "`sampling_strategy` from the default values may still discard the positive values."
             )
         if output_format != "n-tuple":
             logger.warning(
-                'When using `disqualify_positives=False`, `output_format` will be set to `"n-tuple"` to ensure that the ranking order is preserved.'
+                'When using `include_positives=True`, `output_format` will be set to `"n-tuple"` to ensure that the ranking order is preserved.'
             )
             output_format = "n-tuple"
 
@@ -862,7 +862,7 @@ def mine_hard_negatives(
             convert_to_tensor=True,
         )
 
-    if disqualify_positives:
+    if not include_positives:
         # for each query, create a mask that is True for the positives and False for the negatives in the indices
         positive_mask = torch.stack(
             [torch.isin(indices[q_idx], positive_indices[q_idx]) for q_idx in range(n_queries)]
