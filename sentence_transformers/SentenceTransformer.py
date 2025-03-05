@@ -529,8 +529,9 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         if self.device.type == "hpu" and not self.is_hpu_graph_enabled:
             import habana_frameworks.torch as ht
 
-            ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
-            self.is_hpu_graph_enabled = True
+            if hasattr(ht, "hpu") and hasattr(ht.hpu, "wrap_in_hpu_graph"):
+                ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
+                self.is_hpu_graph_enabled = True
 
         self.eval()
         if show_progress_bar is None:
