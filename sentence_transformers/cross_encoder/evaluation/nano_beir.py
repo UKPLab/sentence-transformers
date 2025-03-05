@@ -81,6 +81,19 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
     can be toggled off by setting ``always_rerank_positives=False``, at which point the maximum score will be bound by
     the number of positive documents that BM25 ranks in the top ``rerank_k`` documents.
 
+    .. note::
+        This evaluator outputs its results using keys in the format ``NanoBEIR_R{rerank_k}_{aggregate_key}_{metric}``,
+        where ``metric`` is one of ``map``, ``mrr@{at_k}``, or ``ndcg@{at_k}``, and ``rerank_k``, ``aggregate_key`` and
+        ``at_k`` are the parameters of the evaluator. The primary metric is ``ndcg@{at_k}``. By default, the name of
+        the primary metric is ``NanoBEIR_R100_mean_ndcg@10``.
+
+        For the results of each dataset, the keys are in the format ``Nano{dataset_name}_R{rerank_k}_{metric}``,
+        for example ``NanoMSMARCO_R100_mrr@10``.
+
+        These can be used as ``metric_for_best_model`` alongside ``load_best_model_at_end=True`` in the
+        :class:`~sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments` to automatically load the
+        best model based on a specific metric of interest.
+
     Args:
         dataset_names (List[str]): The names of the datasets to evaluate on. If not specified, use all datasets except arguana and touche2020.
         rerank_k (int): The number of documents to rerank from the BM25 ranking. Defaults to 100.
@@ -115,7 +128,7 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
             NanoBEIR Evaluation of the model on ['msmarco', 'nfcorpus', 'nq'] dataset:
             Evaluating NanoMSMARCO
             CrossEncoderRerankingEvaluator: Evaluating the model on the NanoMSMARCO dataset:
-                    Base  -> Reranked
+                     Base  -> Reranked
             MAP:     48.96 -> 60.35
             MRR@10:  47.75 -> 59.63
             NDCG@10: 54.04 -> 66.86
@@ -123,7 +136,7 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
             Evaluating NanoNFCorpus
             CrossEncoderRerankingEvaluator: Evaluating the model on the NanoNFCorpus dataset:
             Queries: 50   Positives: Min 1.0, Mean 50.4, Max 463.0        Negatives: Min 54.0, Mean 92.8, Max 100.0
-                    Base  -> Reranked
+                     Base  -> Reranked
             MAP:     26.10 -> 34.61
             MRR@10:  49.98 -> 58.85
             NDCG@10: 32.50 -> 39.30
@@ -131,13 +144,13 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
             Evaluating NanoNQ
             CrossEncoderRerankingEvaluator: Evaluating the model on the NanoNQ dataset:
             Queries: 50   Positives: Min 1.0, Mean 1.1, Max 2.0   Negatives: Min 98.0, Mean 99.0, Max 100.0
-                    Base  -> Reranked
+                     Base  -> Reranked
             MAP:     41.96 -> 70.98
             MRR@10:  42.67 -> 73.55
             NDCG@10: 50.06 -> 75.99
 
             CrossEncoderNanoBEIREvaluator: Aggregated Results:
-                    Base  -> Reranked
+                     Base  -> Reranked
             MAP:     39.01 -> 55.31
             MRR@10:  46.80 -> 64.01
             NDCG@10: 45.54 -> 60.72
@@ -217,10 +230,10 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
             logger.info(f"Evaluating {evaluator.name}")
             evaluation = evaluator(model, output_path, epoch, steps)
             for k in evaluation:
-                dataset, metric = k.split("_", maxsplit=1)
+                dataset, _rerank_k, metric = k.split("_", maxsplit=2)
                 if metric not in per_metric_results:
                     per_metric_results[metric] = []
-                per_dataset_results[dataset + "_" + metric] = evaluation[k]
+                per_dataset_results[f"{dataset}_R{self.rerank_k}_{metric}"] = evaluation[k]
                 per_metric_results[metric].append(evaluation[k])
             logger.info("")
 
@@ -254,7 +267,7 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
         return per_dataset_results
 
     def _get_human_readable_name(self, dataset_name: DatasetNameType) -> str:
-        human_readable_name = f"Nano{dataset_name_to_human_readable[dataset_name.lower()]}"
+        human_readable_name = f"Nano{dataset_name_to_human_readable[dataset_name.lower()]}_R{self.rerank_k}"
         return human_readable_name
 
     def _load_dataset(self, dataset_name: DatasetNameType, **ir_evaluator_kwargs) -> CrossEncoderRerankingEvaluator:
