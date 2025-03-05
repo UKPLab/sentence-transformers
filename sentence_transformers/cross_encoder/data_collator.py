@@ -34,10 +34,6 @@ class CrossEncoderDataCollator(SentenceTransformerDataCollator):
             column_names.remove("dataset_name")
             batch["dataset_name"] = features[0]["dataset_name"]
 
-        # TODO:
-        # if tuple(column_names) not in self._warned_columns:
-        #     self.maybe_warn_about_column_order(column_names)
-
         # Extract the label column if it exists
         for label_column in self.valid_label_columns:
             if label_column in column_names:
