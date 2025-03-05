@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import TYPE_CHECKING, Callable, Literal
 
 import numpy as np
@@ -204,10 +205,8 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
             for name in tqdm(self.dataset_names, desc="Loading NanoBEIR datasets", leave=False)
         ]
 
-        # TODO: This is not used
         self.csv_file: str = f"NanoBEIR_evaluation_{aggregate_key}_results.csv"
-        self.csv_headers = ["epoch", "steps"]
-
+        self.csv_headers = ["epoch", "steps", "MAP", f"MRR@{self.at_k}", f"NDCG@{self.at_k}"]
         self.primary_metric = "ndcg@10"  # TODO: Move this elsewhere, set it dynamically, etc.
 
         # TODO: Save evaluator settings in the model card for easier reproducibility/more clarity
@@ -240,6 +239,28 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
         agg_results = {}
         for metric in per_metric_results:
             agg_results[metric] = self.aggregate_fn(per_metric_results[metric])
+
+        if output_path is not None and self.write_csv:
+            csv_path = os.path.join(output_path, self.csv_file)
+            if not os.path.isfile(csv_path):
+                fOut = open(csv_path, mode="w", encoding="utf-8")
+                fOut.write(",".join(self.csv_headers))
+                fOut.write("\n")
+
+            else:
+                fOut = open(csv_path, mode="a", encoding="utf-8")
+
+            output_data = [
+                epoch,
+                steps,
+                agg_results["map"],
+                agg_results[f"mrr@{self.at_k}"],
+                agg_results[f"ndcg@{self.at_k}"],
+            ]
+
+            fOut.write(",".join(map(str, output_data)))
+            fOut.write("\n")
+            fOut.close()
 
         logger.info("CrossEncoderNanoBEIREvaluator: Aggregated Results:")
         logger.info(f"{' ' * len(str(self.at_k))}       Base  -> Reranked")
