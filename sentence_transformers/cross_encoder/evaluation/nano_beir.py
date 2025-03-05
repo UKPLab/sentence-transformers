@@ -188,7 +188,7 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
         self.aggregate_fn = aggregate_fn
         self.aggregate_key = aggregate_key
 
-        self.name = f"NanoBEIR_R{rerank_k:d}_{self.aggregate_key}"  # TODO: Determine a final name format
+        self.name = f"NanoBEIR_R{rerank_k:d}_{self.aggregate_key}"
 
         self._validate_dataset_names()
 
@@ -207,8 +207,8 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
 
         self.csv_file: str = f"NanoBEIR_evaluation_{aggregate_key}_results.csv"
         self.csv_headers = ["epoch", "steps", "MAP", f"MRR@{self.at_k}", f"NDCG@{self.at_k}"]
-        self.primary_metric = "ndcg@10"  # TODO: Move this elsewhere, set it dynamically, etc.
 
+        self.primary_metric = f"ndcg@{self.at_k}"
         # TODO: Save evaluator settings in the model card for easier reproducibility/more clarity
 
     def __call__(

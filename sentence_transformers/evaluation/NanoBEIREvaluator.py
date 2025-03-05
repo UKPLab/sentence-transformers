@@ -375,7 +375,6 @@ class NanoBEIREvaluator(SentenceEvaluator):
             for k in self.ndcg_at_k:
                 logger.info("NDCG@{}: {:.4f}".format(k, agg_results[f"{name}_ndcg@{k}"]))
 
-        # TODO: Ensure this primary_metric works as expected, also with bolding the right thing in the model card
         agg_results = self.prefix_name_to_metrics(agg_results, self.name)
         self.store_metrics_in_model_card_data(model, agg_results, epoch, steps)
 
