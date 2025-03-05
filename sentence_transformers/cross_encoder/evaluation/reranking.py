@@ -130,7 +130,7 @@ class CrossEncoderRerankingEvaluator(SentenceEvaluator):
         self.csv_file = "CrossEncoderRerankingEvaluator" + ("_" + name if name else "") + f"_results_@{self.at_k}.csv"
         self.csv_headers = ["epoch", "steps", "MAP", f"MRR@{self.at_k}", f"NDCG@{self.at_k}"]
         self.write_csv = write_csv
-        self.primary_metric = f"ndcg@{self.at_k}"  # TODO: Is this the best default metric to use?
+        self.primary_metric = f"ndcg@{self.at_k}"
 
     def __call__(self, model: CrossEncoder, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         if epoch != -1:
