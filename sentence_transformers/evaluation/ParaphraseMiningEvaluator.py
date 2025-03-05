@@ -267,3 +267,13 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
                         nodes_visited.add(connected_subgraph_nodes[i])
                         nodes_visited.add(connected_subgraph_nodes[j])
         return graph
+
+    def get_config_dict(self):
+        config_dict = {
+            "add_transitive_closure": self.add_transitive_closure,
+            "max_pairs": self.max_pairs,
+            "top_k": self.top_k,
+        }
+        if self.truncate_dim is not None:
+            config_dict["truncate_dim"] = self.truncate_dim
+        return config_dict

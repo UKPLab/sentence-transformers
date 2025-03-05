@@ -343,3 +343,9 @@ class RerankingEvaluator(SentenceEvaluator):
         mean_ndcg = np.mean(all_ndcg_scores)
 
         return {"map": mean_ap, "mrr": mean_mrr, "ndcg": mean_ndcg}
+
+    def get_config_dict(self):
+        config_dict = {"at_k": self.at_k}
+        if self.truncate_dim is not None:
+            config_dict["truncate_dim"] = self.truncate_dim
+        return config_dict

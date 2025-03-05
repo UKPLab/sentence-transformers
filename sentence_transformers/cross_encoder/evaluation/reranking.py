@@ -289,3 +289,9 @@ class CrossEncoderRerankingEvaluator(SentenceEvaluator):
         ndcg = ndcg_score([y_true], [y_pred], k=self.at_k)
         ap = average_precision_score(y_true, y_pred)
         return mrr, ndcg, ap
+
+    def get_config_dict(self):
+        return {
+            "at_k": self.at_k,
+            "always_rerank_positives": self.always_rerank_positives,
+        }

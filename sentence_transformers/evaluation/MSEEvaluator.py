@@ -144,3 +144,9 @@ class MSEEvaluator(SentenceEvaluator):
     @property
     def description(self) -> str:
         return "Knowledge Distillation"
+
+    def get_config_dict(self):
+        config_dict = {}
+        if self.truncate_dim is not None:
+            config_dict["truncate_dim"] = self.truncate_dim
+        return config_dict

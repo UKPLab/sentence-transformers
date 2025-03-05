@@ -362,3 +362,9 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                     threshold = (rows[i][0] + rows[i + 1][0]) / 2
 
         return best_f1, best_precision, best_recall, threshold
+
+    def get_config_dict(self):
+        config_dict = {}
+        if self.truncate_dim is not None:
+            config_dict["truncate_dim"] = self.truncate_dim
+        return config_dict

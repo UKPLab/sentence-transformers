@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import numpy as np
 from torch import Tensor
@@ -451,3 +451,11 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
         if error_msg:
             raise ValueError(error_msg.strip())
+
+    def get_config_dict(self) -> dict[str, Any]:
+        config_dict = {"dataset_names": self.dataset_names}
+        config_dict_candidate_keys = ["truncate_dim", "query_prompts", "corpus_prompts"]
+        for key in config_dict_candidate_keys:
+            if getattr(self, key) is not None:
+                config_dict[key] = getattr(self, key)
+        return config_dict

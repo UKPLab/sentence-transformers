@@ -209,7 +209,6 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "MAP", f"MRR@{self.at_k}", f"NDCG@{self.at_k}"]
 
         self.primary_metric = f"ndcg@{self.at_k}"
-        # TODO: Save evaluator settings in the model card for easier reproducibility/more clarity
 
     def __call__(
         self, model: CrossEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
@@ -337,3 +336,11 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
                 f"Dataset(s) {missing_datasets} not found in the NanoBEIR collection. "
                 f"Valid dataset names are: {list(dataset_name_to_id.keys())}"
             )
+
+    def get_config_dict(self):
+        return {
+            "dataset_names": self.dataset_names,
+            "rerank_k": self.rerank_k,
+            "at_k": self.at_k,
+            "always_rerank_positives": self.always_rerank_positives,
+        }

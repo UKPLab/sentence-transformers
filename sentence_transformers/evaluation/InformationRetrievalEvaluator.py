@@ -495,3 +495,17 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         for i in range(min(len(relevances), k)):
             dcg += relevances[i] / np.log2(i + 2)  # +2 as we start our idx at 0
         return dcg
+
+    def get_config_dict(self):
+        config_dict = {}
+        config_dict_candidate_keys = [
+            "truncate_dim",
+            "query_prompt",
+            "query_prompt_name",
+            "corpus_prompt",
+            "corpus_prompt_name",
+        ]
+        for key in config_dict_candidate_keys:
+            if getattr(self, key) is not None:
+                config_dict[key] = getattr(self, key)
+        return config_dict
