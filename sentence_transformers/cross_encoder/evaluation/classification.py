@@ -118,12 +118,11 @@ class CrossEncoderClassificationEvaluator(SentenceEvaluator):
             )
             ap = average_precision_score(self.labels, pred_scores)
 
-            # TODO: Look at the format of the logs, match with other evaluators
-            logger.info(f"Accuracy:           {acc * 100:.2f}\t(Threshold: {acc_threshold:.4f})")
-            logger.info(f"F1:                 {f1 * 100:.2f}\t(Threshold: {f1_threshold:.4f})")
-            logger.info(f"Precision:          {precision * 100:.2f}")
-            logger.info(f"Recall:             {recall * 100:.2f}")
-            logger.info(f"Average Precision:  {ap * 100:.2f}")
+            logger.info(f"Accuracy:          {acc * 100:.2f}\t(Threshold: {acc_threshold:.4f})")
+            logger.info(f"F1:                {f1 * 100:.2f}\t(Threshold: {f1_threshold:.4f})")
+            logger.info(f"Precision:         {precision * 100:.2f}")
+            logger.info(f"Recall:            {recall * 100:.2f}")
+            logger.info(f"Average Precision: {ap * 100:.2f}")
 
             metrics = {
                 "accuracy": acc,
