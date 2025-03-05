@@ -129,7 +129,7 @@ class RerankingEvaluator(SentenceEvaluator):
             f"NDCG@{self.at_k}",
         ]
         self.write_csv = write_csv
-        self.primary_metric = f"ndcg@{self.at_k}"  # TODO: Is this the best default metric to use?
+        self.primary_metric = f"ndcg@{self.at_k}"
 
     def __call__(
         self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
