@@ -148,6 +148,12 @@ class GISTEmbedLoss(nn.Module):
         # more similar to the query than the assigned positive as deemed by the guide model.
         # For these samples, we mask them with -inf to basically ignore their contribution to
         # the loss.
+        mask = (ap_sim == 1.0)
+        ap_sim[mask] = -torch.inf
+        aa_sim[mask] = -torch.inf
+        pp_sim[mask] = -torch.inf
+
+        # 기존 마스킹 로직 유지
         ap_sim[guided_ap_sim > guided_sim] = -torch.inf
         aa_sim[guided_aa_sim > guided_sim] = -torch.inf
         pp_sim[guided_pp_sim > guided_sim] = -torch.inf
@@ -158,8 +164,12 @@ class GISTEmbedLoss(nn.Module):
         if negative is not None:
             an_sim = self.sim_matrix(anchor, negative)
             guided_an_sim = self.sim_matrix(anchor_guide, negative_guide)
-            an_sim[guided_an_sim > guided_sim] = -torch.inf
+            
+            # 중복된 음성 샘플을 제외
+            mask = (an_sim == 1.0)
+            an_sim[mask] = -torch.inf
 
+            an_sim[guided_an_sim > guided_sim] = -torch.inf
             scores.append(an_sim)
 
         scores = torch.cat(scores, dim=1) / self.temperature
