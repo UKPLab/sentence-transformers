@@ -25,18 +25,18 @@ def main():
     print("Model max length:", model.max_length)
     print("Model num labels:", model.num_labels)
 
-    # 2. Load the MS MARCO dataset: https://huggingface.co/datasets/tomaarsen/ms-marco-shuffled
+    # 2. Load the MS MARCO dataset: https://huggingface.co/datasets/sentence-transformers/msmarco
     logging.info("Read train dataset")
     try:
         train_dataset = load_from_disk("ms-marco-mse-train")
         eval_dataset = load_from_disk("ms-marco-mse-eval")
     except FileNotFoundError:
         logging.info("The dataset has not been fully stored as texts on disk yet. We will do this now.")
-        corpus = load_dataset("tomaarsen/ms-marco-shuffled", "corpus", split="train")
+        corpus = load_dataset("sentence-transformers/msmarco", "corpus", split="train")
         corpus = dict(zip(corpus["passage_id"], corpus["passage"]))
-        queries = load_dataset("tomaarsen/ms-marco-shuffled", "queries", split="train")
+        queries = load_dataset("sentence-transformers/msmarco", "queries", split="train")
         queries = dict(zip(queries["query_id"], queries["query"]))
-        dataset = load_dataset("tomaarsen/ms-marco-shuffled", "bert-ensemble-mse", split="train")
+        dataset = load_dataset("sentence-transformers/msmarco", "bert-ensemble-mse", split="train")
         dataset = dataset.select(range(dataset_size))
 
         def id_to_text_map(batch):
