@@ -27,8 +27,8 @@ As baseline we show the results for lexical search with BM25 using Elasticsearch
 | Approach       | NDCG@10 (TREC DL 19 Reranking) | MRR@10 (MS Marco Dev) |  Queries (GPU / CPU) | Docs (GPU / CPU)
 | ------------- |:-------------: | :---: | :---: | :---: |
 | **Models tuned for cosine-similarity** | |
-| msmarco-MiniLM-L-6-v3 | 67.46 | 32.27 | 18,000 / 750 | 2,800 / 180
-| msmarco-MiniLM-L-12-v3 | 65.14 | 32.75 | 11,000 / 400 | 1,500 / 90
+| msmarco-MiniLM-L6-v3 | 67.46 | 32.27 | 18,000 / 750 | 2,800 / 180
+| msmarco-MiniLM-L12-v3 | 65.14 | 32.75 | 11,000 / 400 | 1,500 / 90
 | msmarco-distilbert-base-v3| 69.02 | 33.13 | 7,000 / 350 | 1,100 / 70
 | msmarco-distilbert-base-v4 | **70.24** | **33.79**| 7,000 / 350 | 1,100 / 70
 | msmarco-roberta-base-v3 | 69.08 | 33.01 | 4,000 / 170 | 540 / 30

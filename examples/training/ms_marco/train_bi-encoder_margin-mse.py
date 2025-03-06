@@ -124,12 +124,12 @@ with open(queries_filepath, encoding="utf8") as fIn:
 
 
 # Load a dict (qid, pid) -> ce_score that maps query-ids (qid) and paragraph-ids (pid)
-# to the CrossEncoder score computed by the cross-encoder/ms-marco-MiniLM-L-6-v2 model
-ce_scores_file = os.path.join(data_folder, "cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz")
+# to the CrossEncoder score computed by the cross-encoder/ms-marco-MiniLM-L6-v2 model
+ce_scores_file = os.path.join(data_folder, "cross-encoder-ms-marco-MiniLM-L6-v2-scores.pkl.gz")
 if not os.path.exists(ce_scores_file):
     logging.info("Download cross-encoder scores file")
     util.http_get(
-        "https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives/resolve/main/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz",
+        "https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives/resolve/main/cross-encoder-ms-marco-MiniLM-L6-v2-scores.pkl.gz",
         ce_scores_file,
     )
 

@@ -8,8 +8,8 @@ from sentence_transformers.cross_encoder import CrossEncoder
 @pytest.mark.parametrize(
     "model_name, expected_score",
     [
-        ("cross-encoder/ms-marco-MiniLM-L-6-v2", [8.12545108795166, -3.045016050338745, -3.1524128913879395]),
-        ("cross-encoder/ms-marco-TinyBERT-L-2-v2", [8.142767906188965, 1.2057735919952393, -2.7283530235290527]),
+        ("cross-encoder/ms-marco-MiniLM-L6-v2", [8.12545108795166, -3.045016050338745, -3.1524128913879395]),
+        ("cross-encoder/ms-marco-TinyBERT-L2-v2", [8.142767906188965, 1.2057735919952393, -2.7283530235290527]),
         ("cross-encoder/stsb-distilroberta-base", [0.4977430999279022, 0.255491703748703, 0.28261035680770874]),
         ("mixedbread-ai/mxbai-rerank-xsmall-v1", [0.9224735498428345, 0.04793589934706688, 0.03315146267414093]),
     ],

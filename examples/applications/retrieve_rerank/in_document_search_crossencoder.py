@@ -7,7 +7,7 @@ or longer passages, like full paragraphs.
 
 The CrossEncoder takes the search query and scores every passage how relevant the passage is for the given score. The five passages with the highest score are  then returned.
 
-As CrossEncoder, we use cross-encoder/ms-marco-TinyBERT-L-2, a BERT model with only 2 layers trained on the MS MARCO dataset. This is an extremely quick model able to score up to 9000 passages per second (on a V100 GPU). You can also use a larger model, which gives better results but is also slower.
+As CrossEncoder, we use cross-encoder/ms-marco-TinyBERT-L2, a BERT model with only 2 layers trained on the MS MARCO dataset. This is an extremely quick model able to score up to 9000 passages per second (on a V100 GPU). You can also use a larger model, which gives better results but is also slower.
 
 Note: As we score the [query, passage]-pair for every new query, this search method
 becomes at some point in-efficient if the document gets too large.
@@ -64,7 +64,7 @@ print("Passages: ", len(passages))
 
 
 ## Load our cross-encoder. Use fast tokenizer to speed up the tokenization
-model = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L-2")
+model = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2")
 
 ## Some queries we want to search for in the document
 queries = [

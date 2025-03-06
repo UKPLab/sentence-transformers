@@ -11,8 +11,8 @@ Each of these models can be easily downloaded and used like so:
 from sentence_transformers import CrossEncoder
 import torch
 
-# Load https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2
-model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", default_activation_function=torch.nn.Sigmoid())
+# Load https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2
+model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2", default_activation_function=torch.nn.Sigmoid())
 scores = model.predict([
     ("How many people live in Berlin?", "Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers."),
     ("How many people live in Berlin?", "Berlin is well known for its museums."),
@@ -30,11 +30,11 @@ Cross-Encoders require text pairs as inputs and output a score 0...1 (if the Sig
     You can initialize these models with ``default_activation_function=torch.nn.Sigmoid()`` to force the model to return scores between 0 and 1. Otherwise, the raw value can reasonably range between -10 and 10.
 ```
 
-- [cross-encoder/ms-marco-TinyBERT-L-2-v2](https://huggingface.co/cross-encoder/ms-marco-TinyBERT-L-2) - MRR@10 on MS Marco Dev Set: 32.56
-- [cross-encoder/ms-marco-MiniLM-L-2-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-2-v2) - MRR@10 on MS Marco Dev Set: 34.85
-- [cross-encoder/ms-marco-MiniLM-L-4-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-4-v2) - MRR@10 on MS Marco Dev Set: 37.70
-- [cross-encoder/ms-marco-MiniLM-L-6-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2) - MRR@10 on MS Marco Dev Set: 39.01
-- [cross-encoder/ms-marco-MiniLM-L-12-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-12-v2) - MRR@10 on MS Marco Dev Set: 39.02
+- [cross-encoder/ms-marco-TinyBERT-L2-v2](https://huggingface.co/cross-encoder/ms-marco-TinyBERT-L2) - MRR@10 on MS Marco Dev Set: 32.56
+- [cross-encoder/ms-marco-MiniLM-L2-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L2-v2) - MRR@10 on MS Marco Dev Set: 34.85
+- [cross-encoder/ms-marco-MiniLM-L4-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L4-v2) - MRR@10 on MS Marco Dev Set: 37.70
+- [cross-encoder/ms-marco-MiniLM-L6-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2) - MRR@10 on MS Marco Dev Set: 39.01
+- [cross-encoder/ms-marco-MiniLM-L12-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L12-v2) - MRR@10 on MS Marco Dev Set: 39.02
 
 For details on the usage, see [Retrieve & Re-Rank](../../examples/applications/retrieve_rerank/README.md) or [MS MARCO Cross-Encoders](../pretrained-models/ce-msmarco.md).
 
@@ -56,7 +56,7 @@ scores = model.predict([("It's a wonderful day outside.", "It's so sunny today!"
 ```
 
 They return a score  0...1 indicating the semantic similarity of the given sentence pair.
-- [cross-encoder/stsb-TinyBERT-L-4](https://huggingface.co/cross-encoder/stsb-TinyBERT-L-4) - STSbenchmark test performance: 85.50
+- [cross-encoder/stsb-TinyBERT-L4](https://huggingface.co/cross-encoder/stsb-TinyBERT-L4) - STSbenchmark test performance: 85.50
 - [cross-encoder/stsb-distilroberta-base](https://huggingface.co/cross-encoder/stsb-distilroberta-base) - STSbenchmark test performance: 87.92
 - [cross-encoder/stsb-roberta-base](https://huggingface.co/cross-encoder/stsb-roberta-base) - STSbenchmark test performance: 90.17
 - [cross-encoder/stsb-roberta-large](https://huggingface.co/cross-encoder/stsb-roberta-large) - STSbenchmark test performance: 91.47 

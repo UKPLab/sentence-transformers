@@ -380,7 +380,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         <div class="sidebar">
             <p class="sidebar-title">Documentation</p>
             <ul class="simple">
-                <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2">cross-encoder/ms-marco-MiniLM-L-6-v2</a></li>
+                <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2">cross-encoder/ms-marco-MiniLM-L6-v2</a></li>
                 <li><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.CrossEncoderNanoBEIREvaluator" title="sentence_transformers.evaluation.CrossEncoderNanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.evaluation.CrossEncoderNanoBEIREvaluator</span></code></a></li>
             </ul>
         </div>
@@ -391,7 +391,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
 
         # Load a model
-        model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
 
         # Initialize the evaluator. Unlike most other evaluators, this one loads the relevant datasets
         # directly from Hugging Face, so there's no mandatory arguments
@@ -430,7 +430,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         <div class="sidebar">
             <p class="sidebar-title">Documentation</p>
             <ul class="simple">
-                <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2">cross-encoder/ms-marco-MiniLM-L-6-v2</a></li>
+                <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2">cross-encoder/ms-marco-MiniLM-L6-v2</a></li>
                 <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/gooaq">sentence-transformers/gooaq</a></li>
                 <li><a class="reference internal" href="../package_reference/util.html#sentence_transformers.util.mine_hard_negatives" title="sentence_transformers.util.mine_hard_negatives"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.util.mine_hard_negatives</span></code></a></li>
                 <li><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator" title="sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator</span></code></a></li>
@@ -446,7 +446,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         from sentence_transformers.util import mine_hard_negatives
 
         # Load a model
-        model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
 
         # Load the GooAQ dataset: https://huggingface.co/datasets/sentence-transformers/gooaq
         full_dataset = load_dataset("sentence-transformers/gooaq", split=f"train").select(range(100_000))
@@ -513,7 +513,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         <div class="sidebar">
             <p class="sidebar-title">Documentation</p>
             <ul class="simple">
-                <li><a class="reference external" href="https://huggingface.co/cross-encoder/stsb-TinyBERT-L-4">cross-encoder/stsb-TinyBERT-L-4</a></li>
+                <li><a class="reference external" href="https://huggingface.co/cross-encoder/stsb-TinyBERT-L4">cross-encoder/stsb-TinyBERT-L4</a></li>
                 <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/stsb">sentence-transformers/stsb</a></li>
                 <li><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CrossEncoderCorrelationEvaluator" title="sentence_transformers.cross_encoder.evaluation.CrossEncoderCorrelationEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.cross_encoder.evaluation.CrossEncoderCorrelationEvaluator</span></code></a></li>
             </ul>
@@ -526,7 +526,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
 
         # Load a model
-        model = CrossEncoder("cross-encoder/stsb-TinyBERT-L-4")
+        model = CrossEncoder("cross-encoder/stsb-TinyBERT-L4")
 
         # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
         eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
