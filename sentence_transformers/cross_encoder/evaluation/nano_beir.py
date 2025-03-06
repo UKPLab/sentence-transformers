@@ -100,8 +100,8 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
         rerank_k (int): The number of documents to rerank from the BM25 ranking. Defaults to 100.
         at_k (int, optional): Only consider the top k most similar documents to each query for the evaluation. Defaults to 10.
         always_rerank_positives (bool): If True, always evaluate with all positives included. If False, only include
-            the positives that are already in the documents list. Always set to True if your `samples` contain `negative`
-            instead of `documents`. When using `documents`, setting this to True will result in a more useful evaluation
+            the positives that are already in the documents list. Always set to True if your ``samples`` contain ``negative``
+            instead of ``documents``. When using ``documents``, setting this to True will result in a more useful evaluation
             signal, but setting it to False will result in a more realistic evaluation. Defaults to True.
         batch_size (int): Batch size to compute sentence embeddings. Defaults to 64.
         show_progress_bar (bool): Show progress bar when computing embeddings. Defaults to False.
