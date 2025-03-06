@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import numpy as np
 from torch import Tensor
@@ -71,14 +71,15 @@ dataset_name_to_human_readable = {
 
 class NanoBEIREvaluator(SentenceEvaluator):
     """
-    This class evaluates the performance of a SentenceTransformer Model on the NanoBEIR collection of datasets.
+    This class evaluates the performance of a SentenceTransformer Model on the NanoBEIR collection of Information Retrieval datasets.
 
-    The collection is a set of datasets based on the BEIR collection, but with a significantly smaller size, so it can be used for quickly evaluating the retrieval performance of a model before commiting to a full evaluation.
-    The datasets are available on HuggingFace at https://huggingface.co/collections/zeta-alpha-ai/nanobeir-66e1a0af21dfd93e620cd9f6
-    The Evaluator will return the same metrics as the InformationRetrievalEvaluator (i.e., MRR, nDCG, Recall@k), for each dataset and on average.
+    The collection is a set of datasets based on the BEIR collection, but with a significantly smaller size, so it can
+    be used for quickly evaluating the retrieval performance of a model before commiting to a full evaluation.
+    The datasets are available on Hugging Face in the `NanoBEIR collection <https://huggingface.co/collections/zeta-alpha-ai/nanobeir-66e1a0af21dfd93e620cd9f6>`_.
+    This evaluator will return the same metrics as the InformationRetrievalEvaluator (i.e., MRR, nDCG, Recall@k), for each dataset and on average.
 
     Args:
-        dataset_names (List[str]): The names of the datasets to evaluate on.
+        dataset_names (List[str]): The names of the datasets to evaluate on. Defaults to all datasets.
         mrr_at_k (List[int]): A list of integers representing the values of k for MRR calculation. Defaults to [10].
         ndcg_at_k (List[int]): A list of integers representing the values of k for NDCG calculation. Defaults to [10].
         accuracy_at_k (List[int]): A list of integers representing the values of k for accuracy calculation. Defaults to [1, 3, 5, 10].
@@ -374,7 +375,6 @@ class NanoBEIREvaluator(SentenceEvaluator):
             for k in self.ndcg_at_k:
                 logger.info("NDCG@{}: {:.4f}".format(k, agg_results[f"{name}_ndcg@{k}"]))
 
-        # TODO: Ensure this primary_metric works as expected, also with bolding the right thing in the model card
         agg_results = self.prefix_name_to_metrics(agg_results, self.name)
         self.store_metrics_in_model_card_data(model, agg_results, epoch, steps)
 
@@ -451,3 +451,11 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
         if error_msg:
             raise ValueError(error_msg.strip())
+
+    def get_config_dict(self) -> dict[str, Any]:
+        config_dict = {"dataset_names": self.dataset_names}
+        config_dict_candidate_keys = ["truncate_dim", "query_prompts", "corpus_prompts"]
+        for key in config_dict_candidate_keys:
+            if getattr(self, key) is not None:
+                config_dict[key] = getattr(self, key)
+        return config_dict

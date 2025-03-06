@@ -572,6 +572,9 @@ class SentenceTransformerModelCardData(CardData):
 
         return [dataset_output]
 
+    def tokenize(self, text: str | list[str]) -> dict[str, Any]:
+        return self.model.tokenize(text)
+
     def compute_dataset_metrics(
         self,
         dataset: Dataset | IterableDataset | None,
@@ -594,7 +597,8 @@ class SentenceTransformerModelCardData(CardData):
         if not dataset:
             return {}
 
-        if "size" not in dataset_info and isinstance(dataset, Dataset):
+        if isinstance(dataset, Dataset):
+            # Size might already be defined, but `len(dataset)` is more reliable
             dataset_info["size"] = len(dataset)
         dataset_info["columns"] = [f"<code>{column}</code>" for column in dataset.column_names]
         dataset_info["stats"] = {}
@@ -603,11 +607,7 @@ class SentenceTransformerModelCardData(CardData):
                 subsection = dataset[:1000][column]
                 first = subsection[0]
                 if isinstance(first, str):
-                    # TODO: This is quite messy:
-                    try:
-                        tokenized = self.model.tokenize(subsection)
-                    except AttributeError:
-                        tokenized = self.model.tokenizer(subsection)
+                    tokenized = self.tokenize(subsection)
                     if isinstance(tokenized, dict) and "attention_mask" in tokenized:
                         lengths = tokenized["attention_mask"].sum(dim=1).tolist()
                         suffix = "tokens"
@@ -844,14 +844,35 @@ class SentenceTransformerModelCardData(CardData):
             # E.g. "Binary Classification" or "Semantic Similarity"
             description = evaluator.description
             dataset_name = getattr(evaluator, "name", None)
+            config_code = ""
+            if hasattr(evaluator, "get_config_dict") and (config := evaluator.get_config_dict()):
+                try:
+                    str_config = json.dumps(config, indent=4)
+                except TypeError:
+                    str_config = str(config)
+                config_code = indent(f"```json\n{str_config}\n```", "  ")
+
             eval_metrics.append(
                 {
                     "class_name": fullname(evaluator),
                     "description": description,
                     "dataset_name": dataset_name,
                     "table_lines": table_lines,
+                    "config_code": config_code,
                 }
             )
+
+            def try_to_float(metric_value):
+                try:
+                    return float(metric_value)
+                except Exception:
+                    pass
+
+                if isinstance(metric_value, str) and " " in metric_value:
+                    return try_to_float(metric_value.split()[0])
+
+                return None
+
             eval_results.extend(
                 [
                     EvalResult(
@@ -861,10 +882,10 @@ class SentenceTransformerModelCardData(CardData):
                         dataset_name=dataset_name.replace("_", " ").replace("-", " ") if dataset_name else "Unknown",
                         metric_name=metric_key.replace("_", " ").title(),
                         metric_type=metric_key,
-                        metric_value=metric_value,
+                        metric_value=metric_value_float,
                     )
                     for metric_key, metric_value in metrics.items()
-                    if isinstance(metric_value, (int, float))
+                    if (metric_value_float := try_to_float(metric_value)) is not None
                 ]
             )
             all_metrics.update(metrics)
@@ -880,6 +901,7 @@ class SentenceTransformerModelCardData(CardData):
                     eval_metric["class_name"] == grouped_eval_metric["class_name"]
                     and eval_metric_metrics == grouped_eval_metric_metrics
                     and eval_metric["dataset_name"] != grouped_eval_metric["dataset_name"]
+                    and eval_metric["config_code"] == grouped_eval_metric["config_code"]
                 ):
                     # Add the evaluation results to the existing grouped evaluation metric
                     for line in grouped_eval_metric["table_lines"]:

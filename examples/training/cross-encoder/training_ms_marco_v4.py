@@ -6,7 +6,7 @@ from datasets import load_dataset
 from torch import nn
 
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation.CENanoBEIREvaluator import CENanoBEIREvaluator
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
 from sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
 from sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss import (
     CachedMultipleNegativesRankingLoss,
@@ -87,8 +87,8 @@ def main():
     else:
         loss = BinaryCrossEntropyLoss(model)
 
-    # 4. Define the evaluator. We use the CENanoBEIREvaluator, which is a light-weight evaluator for English reranking
-    evaluator = CENanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=train_batch_size)
+    # 4. Define the evaluator. We use the CrossEncoderNanoBEIREvaluator, which is a light-weight evaluator for English reranking
+    evaluator = CrossEncoderNanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=train_batch_size)
     evaluator(model)
 
     # 5. Define the training arguments
@@ -108,7 +108,7 @@ def main():
         # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
         batch_sampler=BatchSamplers.NO_DUPLICATES if loss_name == "cmnrl" else BatchSamplers.BATCH_SAMPLER,
         load_best_model_at_end=True,
-        metric_for_best_model="eval_NanoBEIR_mean_ndcg@10",
+        metric_for_best_model="eval_NanoBEIR_R100_mean_ndcg@10",
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
         eval_steps=400 if loss_name == "cmnrl" else 40_000,

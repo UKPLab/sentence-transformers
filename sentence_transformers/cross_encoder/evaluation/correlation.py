@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class CECorrelationEvaluator(SentenceEvaluator):
+class CrossEncoderCorrelationEvaluator(SentenceEvaluator):
     """
     This evaluator can be used with the CrossEncoder class. Given sentence pairs and continuous scores,
     it compute the pearson & spearman correlation between the predicted score for the sentence pair
@@ -35,7 +35,7 @@ class CECorrelationEvaluator(SentenceEvaluator):
 
             from datasets import load_dataset
             from sentence_transformers import CrossEncoder
-            from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
+            from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
 
             # Load a model
             model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
@@ -45,14 +45,14 @@ class CECorrelationEvaluator(SentenceEvaluator):
             pairs = list(zip(eval_dataset["sentence1"], eval_dataset["sentence2"]))
 
             # Initialize the evaluator
-            dev_evaluator = CECorrelationEvaluator(
+            dev_evaluator = CrossEncoderCorrelationEvaluator(
                 sentence_pairs=pairs,
                 scores=eval_dataset["score"],
                 name="sts_dev",
             )
             results = dev_evaluator(model)
             '''
-            CECorrelationEvaluator: Evaluating the model on sts_dev dataset:
+            CrossEncoderCorrelationEvaluator: Evaluating the model on sts_dev dataset:
             Correlation: Pearson: 0.8503 Spearman: 0.8486
             '''
             print(dev_evaluator.primary_metric)
@@ -79,7 +79,7 @@ class CECorrelationEvaluator(SentenceEvaluator):
         self.show_progress_bar = show_progress_bar
         self.write_csv = write_csv
 
-        self.csv_file = "CECorrelationEvaluator" + ("_" + name if name else "") + "_results.csv"
+        self.csv_file = "CrossEncoderCorrelationEvaluator" + ("_" + name if name else "") + "_results.csv"
         self.csv_headers = ["epoch", "steps", "Pearson_Correlation", "Spearman_Correlation"]
         self.primary_metric = "spearman"
 
@@ -102,7 +102,7 @@ class CECorrelationEvaluator(SentenceEvaluator):
         else:
             out_txt = ""
 
-        logger.info(f"CECorrelationEvaluator: Evaluating the model on {self.name} dataset{out_txt}:")
+        logger.info(f"CrossEncoderCorrelationEvaluator: Evaluating the model on {self.name} dataset{out_txt}:")
         pred_scores = model.predict(self.sentence_pairs, convert_to_numpy=True, show_progress_bar=False)
 
         eval_pearson, _ = pearsonr(self.scores, pred_scores)

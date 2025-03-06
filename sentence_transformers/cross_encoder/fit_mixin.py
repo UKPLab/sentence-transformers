@@ -15,8 +15,6 @@ from tqdm.autonotebook import tqdm, trange
 from transformers import TrainerCallback, TrainerControl, TrainerState, is_torch_npu_available
 from transformers.tokenization_utils_base import BatchEncoding
 
-from sentence_transformers.cross_encoder.losses import CrossEntropyLoss
-from sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
 from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
 from sentence_transformers.datasets.NoDuplicatesDataLoader import NoDuplicatesDataLoader
 from sentence_transformers.datasets.SentenceLabelDataset import SentenceLabelDataset
@@ -253,6 +251,8 @@ class FitMixin:
             raise ImportError("Please install `datasets` to use this function: `pip install datasets`.")
 
         # Delayed import to counter the CrossEncoder -> FitMixin -> CrossEncoderTrainer -> CrossEncoder circular import
+        from sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
+        from sentence_transformers.cross_encoder.losses.CrossEntropyLoss import CrossEntropyLoss
         from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
 
         # Clear the dataloaders from collate functions as we just want raw InputExamples
@@ -403,7 +403,7 @@ class FitMixin:
         tokenized = self.tokenizer(
             *texts,
             padding=True,
-            truncation="longest_first",
+            truncation=True,
             return_tensors="pt",
         )
         assert self.max_length is None or tokenized["input_ids"].shape[0] <= self.max_length

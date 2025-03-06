@@ -9,7 +9,7 @@ import tqdm
 from torch import Tensor, nn
 from torch.utils.checkpoint import get_device_states, set_device_states
 
-from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
 from sentence_transformers.cross_encoder.losses.MultipleNegativesRankingLoss import MultipleNegativesRankingLoss
 
 
@@ -64,11 +64,101 @@ class CachedMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
         self,
         model: CrossEncoder,
         num_negatives: int | None = 4,
-        scale: float = 20.0,
-        activation_fct: nn.Module | None = nn.Tanh(),
+        scale: float = 10.0,
+        activation_fct: nn.Module | None = nn.Sigmoid(),
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
     ) -> None:
+        """
+        Boosted version of :class:`~sentence_transformers.cross_encoder.losses.MultipleNegativesRankingLoss` that
+        caches the gradients of the logits wrt. the loss. This allows for much higher batch sizes without extra
+        memory usage. However, it is slightly slower.
+
+        In detail:
+
+            (1) It first does a quick prediction step without gradients/computation graphs to get all the logits;
+            (2) Calculate the loss, backward up to the logits and cache the gradients wrt. to the logits;
+            (3) A 2nd prediction step with gradients/computation graphs and connect the cached gradients into the backward chain.
+
+        Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in
+        mini-batches and requires a lot memory when the batch size is large. The gradient caching will sacrifice around
+        20% computation time according to the paper.
+
+        Given a list of (anchor, positive) pairs or (anchor, positive, negative) triplets, this loss optimizes the following:
+
+        * Given an anchor (e.g. a question), assign the highest similarity to the corresponding positive (i.e. answer)
+          out of every single positive and negative (e.g. all answers) in the batch.
+
+        If you provide the optional negatives, they will all be used as extra options from which the model must pick the
+        correct positive. Within reason, the harder this "picking" is, the stronger the model will become. Because of
+        this, a higher batch size results in more in-batch negatives, which then increases performance (to a point).
+
+        This loss function works great to train embeddings for retrieval setups where you have positive pairs
+        (e.g. (query, answer)) as it will sample in each batch ``n-1`` negative docs randomly.
+
+        This loss is also known as InfoNCE loss with GradCache.
+
+        Args:
+            model (:class:`~sentence_transformers.cross_encoder.CrossEncoder`): A CrossEncoder model to be trained.
+            num_negatives (int, optional): Number of in-batch negatives to sample for each anchor. Defaults to 4.
+            scale (int, optional): Output of similarity function is multiplied by scale value. Defaults to 10.0.
+            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Sigmoid`.
+            mini_batch_size (int, optional): Mini-batch size for the forward pass. This informs the memory usage. Defaults to 32.
+            show_progress_bar (bool, optional): Whether to show a progress bar during the forward pass. Defaults to False.
+
+        .. note::
+
+            The current default values are subject to change in the future. Experimentation is encouraged.
+
+        References:
+            - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
+            - Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup: https://arxiv.org/pdf/2101.06983.pdf
+
+        Requirements:
+            1. Your model must be initialized with `num_labels = 1` (a.k.a. the default) to predict one class.
+            2. Should be used with large `per_device_train_batch_size` and low `mini_batch_size` for superior performance,
+               but slower training time than :class:`MultipleNegativesRankingLoss`.
+
+        Inputs:
+            +-------------------------------------------------+--------+-------------------------------+
+            | Texts                                           | Labels | Number of Model Output Labels |
+            +=================================================+========+===============================+
+            | (anchor, positive) pairs                        | none   | 1                             |
+            +-------------------------------------------------+--------+-------------------------------+
+            | (anchor, positive, negative) triplets           | none   | 1                             |
+            +-------------------------------------------------+--------+-------------------------------+
+            | (anchor, positive, negative_1, ..., negative_n) | none   | 1                             |
+            +-------------------------------------------------+--------+-------------------------------+
+
+        Recommendations:
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that no in-batch negatives are duplicates of the anchor or positive samples.
+
+        Relations:
+            - Equivalent to :class:`~sentence_transformers.cross_encoder.losses.MultipleNegativesRankingLoss`, but with
+              caching that allows for much higher batch sizes (and thus better performance) without extra memory usage.
+              This loss also trains slower than :class:`~sentence_transformers.cross_encoder.losses.MultipleNegativesRankingLoss`.
+
+        Example:
+            ::
+
+                from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderTrainer, losses
+                from datasets import Dataset
+
+                model = CrossEncoder("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "query": ["What are pandas?", "What is the capital of France?"],
+                    "answer": ["Pandas are a kind of bear.", "The capital of France is Paris."],
+                })
+                loss = losses.CachedMultipleNegativesRankingLoss(model, mini_batch_size=32)
+
+                trainer = CrossEncoderTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
+        """
         super().__init__(model, num_negatives, scale, activation_fct)
         self.mini_batch_size = mini_batch_size
         self.show_progress_bar = show_progress_bar
@@ -76,6 +166,12 @@ class CachedMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
         self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.cache: list[list[Tensor]] | None = None
         self.random_states: list[list[RandContext]] | None = None
+
+        if not isinstance(self.model, CrossEncoder):
+            raise ValueError(
+                f"{self.__class__.__name__} expects a model of type CrossEncoder, "
+                f"but got a model of type {type(self.model)}."
+            )
 
         if self.model.num_labels != 1:
             raise ValueError(

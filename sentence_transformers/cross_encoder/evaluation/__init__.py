@@ -1,22 +1,43 @@
 from __future__ import annotations
 
-# TODO: Consider renaming all evaluators to CrossEncoder..., e.g. CrossEncoderNanoBEIREvaluator, CrossEncoderClassificationEvaluator, etc.
-from .CEBinaryAccuracyEvaluator import CEBinaryAccuracyEvaluator
-from .CEBinaryClassificationEvaluator import CEBinaryClassificationEvaluator
-from .CEClassificationEvaluator import CEClassificationEvaluator
-from .CECorrelationEvaluator import CECorrelationEvaluator
-from .CEF1Evaluator import CEF1Evaluator
-from .CENanoBEIREvaluator import CENanoBEIREvaluator
-from .CERerankingEvaluator import CERerankingEvaluator
-from .CESoftmaxAccuracyEvaluator import CESoftmaxAccuracyEvaluator
+import sys
+
+from .classification import CrossEncoderClassificationEvaluator
+from .correlation import CrossEncoderCorrelationEvaluator
+from .deprecated import (
+    CEBinaryAccuracyEvaluator,
+    CEBinaryClassificationEvaluator,
+    CECorrelationEvaluator,
+    CEF1Evaluator,
+    CERerankingEvaluator,
+    CESoftmaxAccuracyEvaluator,
+)
+from .nano_beir import CrossEncoderNanoBEIREvaluator
+from .reranking import CrossEncoderRerankingEvaluator
+
+# Ensure that imports using deprecated paths still work
+# Although importing via `from sentence_transformers.cross_encoder.evaluation import ...` is recommended
+deprecated_modules = [
+    "sentence_transformers.cross_encoder.evaluation.CEBinaryAccuracyEvaluator",
+    "sentence_transformers.cross_encoder.evaluation.CEBinaryClassificationEvaluator",
+    "sentence_transformers.cross_encoder.evaluation.CEF1Evaluator",
+    "sentence_transformers.cross_encoder.evaluation.CESoftmaxAccuracyEvaluator",
+    "sentence_transformers.cross_encoder.evaluation.CECorrelationEvaluator",
+    "sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator",
+]
+for module in deprecated_modules:
+    sys.modules[module] = sys.modules["sentence_transformers.cross_encoder.evaluation.deprecated"]
 
 __all__ = [
-    "CEClassificationEvaluator",
-    "CECorrelationEvaluator",
+    "CrossEncoderClassificationEvaluator",
+    "CrossEncoderCorrelationEvaluator",
+    "CrossEncoderRerankingEvaluator",
+    "CrossEncoderNanoBEIREvaluator",
+    # Deprecated:
     "CERerankingEvaluator",
-    "CENanoBEIREvaluator",
-    "CEBinaryAccuracyEvaluator",  # Deprecated
-    "CEBinaryClassificationEvaluator",  # Deprecated
-    "CEF1Evaluator",  # Deprecated
-    "CESoftmaxAccuracyEvaluator",  # Deprecated
+    "CECorrelationEvaluator",
+    "CEBinaryAccuracyEvaluator",
+    "CEBinaryClassificationEvaluator",
+    "CEF1Evaluator",
+    "CESoftmaxAccuracyEvaluator",
 ]

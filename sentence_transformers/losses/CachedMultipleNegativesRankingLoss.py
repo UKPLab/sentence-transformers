@@ -85,7 +85,8 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             (3) A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain.
 
         Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in mini-batches and
-        requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
+        requires a lot memory when the batch size is large. One drawback is about the speed. Gradient caching will sacrifice
+        around 20% computation time according to the paper.
 
         Args:
             model: SentenceTransformer model
@@ -104,7 +105,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
         Requirements:
             1. (anchor, positive) pairs or (anchor, positive, negative pairs)
-            2. Should be used with large batch sizes for superior performance, but has slower training time than :class:`MultipleNegativesRankingLoss`
+            2. Should be used with large `per_device_train_batch_size` and low `mini_batch_size` for superior performance, but slower training time than :class:`MultipleNegativesRankingLoss`.
 
         Inputs:
             +-------------------------------------------------+--------+

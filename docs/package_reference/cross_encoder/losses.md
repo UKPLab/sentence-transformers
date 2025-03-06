@@ -13,6 +13,11 @@ Sadly, there is no "one size fits all" loss function. Which loss function is sui
 .. autoclass:: sentence_transformers.cross_encoder.losses.CrossEntropyLoss
 ```
 
+## ListNetLoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.cross_encoder.losses.ListNetLoss
+```
+
 ## MultipleNegativesRankingLoss
 ```{eval-rst}
 .. autoclass:: sentence_transformers.cross_encoder.losses.MultipleNegativesRankingLoss

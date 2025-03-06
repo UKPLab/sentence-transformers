@@ -252,3 +252,11 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
     @property
     def description(self) -> str:
         return "Semantic Similarity"
+
+    def get_config_dict(self):
+        config_dict = {}
+        config_dict_candidate_keys = ["truncate_dim", "precision"]
+        for key in config_dict_candidate_keys:
+            if getattr(self, key) is not None:
+                config_dict[key] = getattr(self, key)
+        return config_dict

@@ -92,3 +92,9 @@ class SentenceEvaluator:
             pass
 
         return re.sub(r"([a-z])([A-Z])", r"\g<1> \g<2>", class_name)
+
+    def get_config_dict(self) -> dict[str, Any]:
+        """
+        Return a dictionary with all meaningful configuration values of the evaluator to store in the model card.
+        """
+        return {}

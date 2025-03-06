@@ -73,7 +73,7 @@ Then you can load this model and run inference.
 from sentence_transformers import CrossEncoder
 
 # Download from the {{ hf_emoji }} Hub
-model = CrossEncoder("{{ model_id | default('sentence_transformers_model_id', true) }}")
+model = CrossEncoder("{{ model_id | default('cross_encoder_model_id', true) }}")
 # Get scores for pairs of texts
 pairs = [
 {%- for text in (predict_example or [["How many calories in an egg", "There are on average between 55 and 80 calories in an egg depending on its size."], ["How many calories in an egg", "Egg whites are very low in calories, have no fat, no cholesterol, and are loaded with protein."], ["How many calories in an egg", "Most of the calories in an egg come from the yellow yolk in the center."]]) %}
@@ -137,7 +137,8 @@ You can finetune this model on your own dataset.
         {%- endfor -%}
     {%- endif -%}
 {%- endif %}
-* Evaluated with {% if metrics.class_name.startswith("sentence_transformers.") %}[<code>{{ metrics.class_name.split(".")[-1] }}</code>](https://sbert.net/docs/package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.{{ metrics.class_name.split(".")[-1] }}){% else %}<code>{{ metrics.class_name }}</code>{% endif %}
+* Evaluated with {% if metrics.class_name.startswith("sentence_transformers.") %}[<code>{{ metrics.class_name.split(".")[-1] }}</code>](https://sbert.net/docs/package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.{{ metrics.class_name.split(".")[-1] }}){% else %}<code>{{ metrics.class_name }}</code>{% endif %}{% if metrics.config_code %} with these parameters:
+{{ metrics.config_code }}{% endif %}
 
 {{ metrics.table }}
 {%- endfor %}{% endif %}

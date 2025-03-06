@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class CEClassificationEvaluator(SentenceEvaluator):
+class CrossEncoderClassificationEvaluator(SentenceEvaluator):
     """
     Evaluate a CrossEncoder model based on the accuracy of the predicted class vs. the gold labels.
     The evaluator expects a list of sentence pairs and a list of gold labels. If the model has a single output,
@@ -37,7 +37,7 @@ class CEClassificationEvaluator(SentenceEvaluator):
         ::
 
             from sentence_transformers import CrossEncoder
-            from sentence_transformers.cross_encoder.evaluation import CEClassificationEvaluator
+            from sentence_transformers.cross_encoder.evaluation import CrossEncoderClassificationEvaluator
             from datasets import load_dataset
 
             # Load a model
@@ -52,14 +52,14 @@ class CEClassificationEvaluator(SentenceEvaluator):
             labels = [label_mapping[label] for label in eval_dataset["label"]]
 
             # Initialize the evaluator
-            cls_evaluator = CEClassificationEvaluator(
+            cls_evaluator = CrossEncoderClassificationEvaluator(
                 sentence_pairs=pairs,
                 labels=labels,
                 name="all-nli-dev",
             )
             results = cls_evaluator(model)
             '''
-            CEClassificationEvaluator: Evaluating the model on all-nli-dev dataset:
+            CrossEncoderClassificationEvaluator: Evaluating the model on all-nli-dev dataset:
             Macro F1:           89.43
             Micro F1:           89.30
             Weighted F1:        89.33
@@ -92,7 +92,7 @@ class CEClassificationEvaluator(SentenceEvaluator):
             show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
         self.show_progress_bar = show_progress_bar
 
-        self.csv_file = "CEClassificationEvaluator" + ("_" + name if name else "") + "_results.csv"
+        self.csv_file = "CrossEncoderClassificationEvaluator" + ("_" + name if name else "") + "_results.csv"
         self.write_csv = write_csv
 
     def __call__(self, model: CrossEncoder, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
@@ -104,7 +104,7 @@ class CEClassificationEvaluator(SentenceEvaluator):
         else:
             out_txt = ""
 
-        logger.info(f"CEClassificationEvaluator: Evaluating the model on {self.name} dataset{out_txt}:")
+        logger.info(f"CrossEncoderClassificationEvaluator: Evaluating the model on {self.name} dataset{out_txt}:")
         pred_scores = model.predict(
             self.sentence_pairs, convert_to_numpy=True, show_progress_bar=self.show_progress_bar
         )
@@ -118,12 +118,11 @@ class CEClassificationEvaluator(SentenceEvaluator):
             )
             ap = average_precision_score(self.labels, pred_scores)
 
-            # TODO: Look at the format of the logs, match with other evaluators
-            logger.info(f"Accuracy:           {acc * 100:.2f}\t(Threshold: {acc_threshold:.4f})")
-            logger.info(f"F1:                 {f1 * 100:.2f}\t(Threshold: {f1_threshold:.4f})")
-            logger.info(f"Precision:          {precision * 100:.2f}")
-            logger.info(f"Recall:             {recall * 100:.2f}")
-            logger.info(f"Average Precision:  {ap * 100:.2f}")
+            logger.info(f"Accuracy:          {acc * 100:.2f}\t(Threshold: {acc_threshold:.4f})")
+            logger.info(f"F1:                {f1 * 100:.2f}\t(Threshold: {f1_threshold:.4f})")
+            logger.info(f"Precision:         {precision * 100:.2f}")
+            logger.info(f"Recall:            {recall * 100:.2f}")
+            logger.info(f"Average Precision: {ap * 100:.2f}")
 
             metrics = {
                 "accuracy": acc,
