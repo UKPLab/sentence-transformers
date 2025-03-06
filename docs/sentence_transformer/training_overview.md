@@ -687,3 +687,14 @@ In the following table you find the performance for different models and their p
 | [microsoft/MiniLM-L12-H384-uncased](https://huggingface.co/microsoft/MiniLM-L12-H384-uncased)                                     | 56.79                                      |
 | [microsoft/deberta-v3-base](https://huggingface.co/microsoft/deberta-v3-base)                                                     | 54.46                                      |
 
+## Comparisons with CrossEncoder Training
+
+```{eval-rst}
+Training :class:`~sentence_transformers.SentenceTransformer` models is very similar as training :class:`~sentence_transformers.cross_encoder.CrossEncoder` models, with some key differences:
+
+- Instead of ``score``, ``scores``, ``label`` and ``labels`` columns being considered "label columns", only ``score`` and ``label`` are. As you can see in the `Loss Overview <loss_overview.html>`_ documentation, some losses require specific labels/scores in a column with one of these names.
+- For :class:`~sentence_transformers.cross_encoder.CrossEncoder` training, you can use (variably sized) lists of texts in a column. In :class:`~sentence_transformers.SentenceTransformer` training, you **cannot** use lists of inputs (e.g. texts) in a column of the training/evaluation dataset(s). In short: training with a variable number of negatives is not supported.
+
+See the `Cross Encoder > Training Overview <../cross_encoder/training_overview.html>`_ documentation for more details on training :class:`~sentence_transformers.cross_encoder.CrossEncoder` models.
+
+```
