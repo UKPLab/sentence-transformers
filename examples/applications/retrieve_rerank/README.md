@@ -61,4 +61,4 @@ We provide pre-trained models based on:
 
 ## Pre-trained Cross-Encoders (Re-Ranker)
 
-For pre-trained Cross Encoder models, see: [MS MARCO Cross-Encoders](../../../docs/pretrained-models/ce-msmarco.md)
+For pre-trained Cross Encoder models, see: [MS MARCO Cross-Encoders](../../../docs/cross_encoder/pretrained_models.md#ms-marco)
