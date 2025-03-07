@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Callable
 import torch
 from packaging.version import parse as parse_version
 from torch import nn
-from torch.utils.data import BatchSampler, ConcatDataset, DataLoader, SubsetRandomSampler
+from torch.utils.data import BatchSampler, ConcatDataset, DataLoader, RandomSampler
 from transformers import EvalPrediction, PreTrainedTokenizerBase, Trainer, TrainerCallback
 from transformers import __version__ as transformers_version
 from transformers.data.data_collator import DataCollator
@@ -597,7 +597,7 @@ class SentenceTransformerTrainer(Trainer):
 
         if self.args.batch_sampler == BatchSamplers.BATCH_SAMPLER:
             return DefaultBatchSampler(
-                SubsetRandomSampler(range(len(dataset)), generator=generator),
+                RandomSampler(dataset, generator=generator),
                 batch_size=batch_size,
                 drop_last=drop_last,
             )
