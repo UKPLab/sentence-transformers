@@ -40,7 +40,7 @@ class ListNetLoss(nn.Module):
 
         References:
             - Learning to Rank: From Pairwise Approach to Listwise Approach: https://www.microsoft.com/en-us/research/publication/learning-to-rank-from-pairwise-approach-to-listwise-approach/
-            - `Training Examples > Learning to Rank <../../../examples/training/cross-encoder/training_ms_marco_ListNetLoss_v4.py>`_
+            - `Training Examples > Learning to Rank <../../../examples/sentence_transformer/training/cross-encoder/training_ms_marco_ListNetLoss_v4.py>`_
 
         Requirements:
             1. Query with multiple documents (listwise approach)

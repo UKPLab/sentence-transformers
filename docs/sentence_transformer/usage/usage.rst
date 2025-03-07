@@ -47,15 +47,15 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    :maxdepth: 1
    :caption: Tasks and Advanced Usage
 
-   ../../../examples/applications/computing-embeddings/README
+   ../../../examples/sentence_transformer/applications/computing-embeddings/README
    semantic_textual_similarity
-   ../../../examples/applications/semantic-search/README
-   ../../../examples/applications/retrieve_rerank/README
-   ../../../examples/applications/clustering/README
-   ../../../examples/applications/paraphrase-mining/README
-   ../../../examples/applications/parallel-sentence-mining/README
-   ../../../examples/applications/image-search/README
-   ../../../examples/applications/embedding-quantization/README
+   ../../../examples/sentence_transformer/applications/semantic-search/README
+   ../../../examples/sentence_transformer/applications/retrieve_rerank/README
+   ../../../examples/sentence_transformer/applications/clustering/README
+   ../../../examples/sentence_transformer/applications/paraphrase-mining/README
+   ../../../examples/sentence_transformer/applications/parallel-sentence-mining/README
+   ../../../examples/sentence_transformer/applications/image-search/README
+   ../../../examples/sentence_transformer/applications/embedding-quantization/README
    efficiency
    custom_models
 

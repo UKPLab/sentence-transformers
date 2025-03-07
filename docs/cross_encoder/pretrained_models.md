@@ -39,7 +39,7 @@ Cross-Encoders require text pairs as inputs and output a score 0...1 (if the Sig
 | [cross-encoder/ms-marco-MiniLM-L12-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L12-v2) | 74.31 | 39.02 | 960
 | [cross-encoder/ms-marco-electra-base](https://huggingface.co/cross-encoder/ms-marco-electra-base) | 71.99 | 36.41 | 340 | 
 
-For details on the usage, see [Retrieve & Re-Rank](../../examples/applications/retrieve_rerank/README.md).
+For details on the usage, see [Retrieve & Re-Rank](../../examples/sentence_transformer/applications/retrieve_rerank/README.md).
 
 ## SQuAD (QNLI)
 

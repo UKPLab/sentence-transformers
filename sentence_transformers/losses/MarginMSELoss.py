@@ -25,8 +25,8 @@ class MarginMSELoss(nn.Module):
 
         References:
             - For more details, please refer to https://arxiv.org/abs/2010.02666.
-            - `Training Examples > MS MARCO <../../examples/training/ms_marco/README.html>`_
-            - `Unsupervised Learning > Domain Adaptation <../../examples/domain_adaptation/README.html>`_
+            - `Training Examples > MS MARCO <../../../examples/sentence_transformer/training/ms_marco/README.html>`_
+            - `Unsupervised Learning > Domain Adaptation <../../../examples/sentence_transformer/domain_adaptation/README.html>`_
 
         Requirements:
             1. (query, passage_one, passage_two) triplets

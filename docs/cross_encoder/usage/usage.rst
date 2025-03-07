@@ -72,4 +72,4 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    :maxdepth: 1
    :caption: Tasks
 
-   ../../../examples/applications/retrieve_rerank/README
+   ../../../examples/sentence_transformer/applications/retrieve_rerank/README

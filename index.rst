@@ -4,13 +4,13 @@
 
 .. tip::
 
-   Sentence Transformers v3.4 just released, introducing documentation for training with PEFT. Read `SentenceTransformer > Training Examples > Training with PEFT Adapters <examples/training/peft/README.html>`_ to learn more about how you can use train embedding models without finetuning all model parameters.
+   Sentence Transformers v3.4 just released, introducing documentation for training with PEFT. Read `SentenceTransformer > Training Examples > Training with PEFT Adapters <examples/sentence_transformer/training/peft/README.html>`_ to learn more about how you can use train embedding models without finetuning all model parameters.
 
 SentenceTransformers Documentation
 ==================================
 
 Sentence Transformers (a.k.a. SBERT) is the go-to Python module for accessing, using, and training state-of-the-art text and image embedding models.
-It can be used to compute embeddings using Sentence Transformer models (`quickstart <docs/quickstart.html#sentence-transformer>`_) or to calculate similarity scores using Cross-Encoder models (`quickstart <docs/quickstart.html#cross-encoder>`_). This unlocks a wide range of applications, including `semantic search <examples/applications/semantic-search/README.html>`_, `semantic textual similarity <docs/usage/semantic_textual_similarity.html>`_, and `paraphrase mining <examples/applications/paraphrase-mining/README.html>`_.
+It can be used to compute embeddings using Sentence Transformer models (`quickstart <docs/quickstart.html#sentence-transformer>`_) or to calculate similarity scores using Cross-Encoder models (`quickstart <docs/quickstart.html#cross-encoder>`_). This unlocks a wide range of applications, including `semantic search <examples/sentence_transformer/applications/semantic-search/README.html>`_, `semantic textual similarity <docs/usage/semantic_textual_similarity.html>`_, and `paraphrase mining <examples/sentence_transformer/applications/paraphrase-mining/README.html>`_.
 
 A wide selection of over `5,000 pre-trained Sentence Transformers models <https://huggingface.co/models?library=sentence-transformers>`_ are available for immediate use on 🤗 Hugging Face, including many of the state-of-the-art models from the `Massive Text Embeddings Benchmark (MTEB) leaderboard <https://huggingface.co/spaces/mteb/leaderboard>`_. Additionally, it is easy to `train or finetune your own models <docs/sentence_transformer/training_overview.html>`_ using Sentence Transformers, enabling you to create custom models for your specific use cases.
 
@@ -107,7 +107,7 @@ If you use one of the multilingual models, feel free to cite our publication `Ma
 
 
 
-If you use the code for `data augmentation <https://github.com/UKPLab/sentence-transformers/tree/master/examples/training/data_augmentation>`_, feel free to cite our publication `Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks <https://arxiv.org/abs/2010.08240>`_:
+If you use the code for `data augmentation <https://github.com/UKPLab/sentence-transformers/tree/master/examples/sentence_transformer/training/data_augmentation>`_, feel free to cite our publication `Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks <https://arxiv.org/abs/2010.08240>`_:
 
  .. code-block:: bibtex
 

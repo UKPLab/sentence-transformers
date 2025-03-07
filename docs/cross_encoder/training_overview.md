@@ -1,7 +1,7 @@
 # Training Overview
 
 ## Why Finetune?
-Cross Encoder models are very often used as 2nd stage rerankers in a [Retrieve and Rerank](../../examples/applications/retrieve_rerank/README.md) search stack. In such a situation, the Cross Encoder reranks the top X candidates from the retriever (which can be a [Sentence Transformer model](../sentence_transformer/usage/usage.rst)). To avoid the reranker model reducing the performance on your use case, finetuning it can be crucial. Rerankers always have just 1 output label.
+Cross Encoder models are very often used as 2nd stage rerankers in a [Retrieve and Rerank](../../examples/sentence_transformer/applications/retrieve_rerank/README.md) search stack. In such a situation, the Cross Encoder reranks the top X candidates from the retriever (which can be a [Sentence Transformer model](../sentence_transformer/usage/usage.rst)). To avoid the reranker model reducing the performance on your use case, finetuning it can be crucial. Rerankers always have just 1 output label.
 
 Beyond that, Cross Encoder models can also be used as pair classifiers. For example, a model trained on Natural Language Inference data can be used to classify pairs of texts as "contradiction", "entailment", and "neutral". Pair Classifiers generally have more than 1 output label.
 
@@ -951,7 +951,7 @@ Each training/evaluation batch will only contain samples from one of the dataset
 - ``MultiDatasetBatchSamplers.ROUND_ROBIN``: Round-robin sampling from each dataset until one is exhausted. With this strategy, it’s likely that not all samples from each dataset are used, but each dataset is sampled from equally.
 - ``MultiDatasetBatchSamplers.PROPORTIONAL`` (default): Sample from each dataset in proportion to its size. With this strategy, all samples from each dataset are used and larger datasets are sampled from more frequently.
 
-This multi-task training has been shown to be very effective, e.g. `Huang et al. <https://arxiv.org/pdf/2405.06932>`_ employed :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, :class:`~sentence_transformers.losses.CoSENTLoss`, and a variation on :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` without in-batch negatives and only hard negatives to reach state-of-the-art performance on Chinese. They even applied :class:`~sentence_transformers.losses.MatryoshkaLoss` to allow the model to produce `Matryoshka Embeddings <../../examples/training/matryoshka/README.html>`_.
+This multi-task training has been shown to be very effective, e.g. `Huang et al. <https://arxiv.org/pdf/2405.06932>`_ employed :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, :class:`~sentence_transformers.losses.CoSENTLoss`, and a variation on :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` without in-batch negatives and only hard negatives to reach state-of-the-art performance on Chinese. They even applied :class:`~sentence_transformers.losses.MatryoshkaLoss` to allow the model to produce `Matryoshka Embeddings <../../examples/sentence_transformer/training/matryoshka/README.html>`_.
 ```
 
 ## Deprecated Training 
