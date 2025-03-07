@@ -6,6 +6,7 @@ import torch
 from torch import Tensor, nn
 
 from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.util import fullname
 
 
 class BaseWeighingScheme(nn.Module):
@@ -78,66 +79,107 @@ class NDCGLoss2PPScheme(BaseWeighingScheme):
 
 
 class LambdaLoss(nn.Module):
-    """
-    LambdaLoss implementation for learning to rank in sentence-transformers.
-
-    This loss function implements the LambdaLoss framework for Learning to Rank,
-    which provides various weighing schemes including LambdaRank and NDCG variations.
-    The implementation is optimized to handle padded documents efficiently by only
-    processing valid documents during model inference.
-
-    Args:
-        model (CrossEncoder): CrossEncoder model to be trained
-        weighing_scheme (Optional[BaseWeighingScheme]): Weighing scheme to use
-        k (Optional[int]): Rank at which the loss is truncated
-        sigma (float): Score difference weight used in sigmoid
-        eps (float): Small constant for numerical stability
-        pad_value (int): Value used for padding in variable-length document lists
-        reduction (Literal["sum", "mean"]): Method to reduce the loss
-        reduction_log (Literal["natural", "binary"]): Type of logarithm to use
-        activation_fct (Optional[nn.Module]): Activation function to apply to model outputs
-
-    References:
-        - The LambdaLoss Framework for Ranking Metric Optimization
-        - Learning to Rank: From Pairwise Approach to Listwise Approach
-
-    Requirements:
-        1. Query with multiple documents (listwise approach)
-        2. Documents must have relevance scores/labels
-        3. Variable-length document lists are handled through padding
-        4. Padded documents are automatically excluded from model inference
-
-    Inputs:
-        +----------------------------------------+--------------------------------+
-        | Texts                                   | Labels                         |
-        +========================================+================================+
-        | (query, [doc1, doc2, ..., docN])       | [score1, score2, ..., scoreN] |
-        +----------------------------------------+--------------------------------+
-        Note: Documents with label=pad_value are efficiently skipped during processing
-    """
-
     def __init__(
         self,
         model: CrossEncoder,
-        weighing_scheme: BaseWeighingScheme | None = None,
+        weighing_scheme: BaseWeighingScheme | None = NoWeighingScheme(),
         k: int | None = None,
         sigma: float = 1.0,
         eps: float = 1e-10,
-        pad_value: int = -1,
         reduction: Literal["sum", "mean"] = "sum",
         reduction_log: Literal["natural", "binary"] = "binary",
-        activation_fct: nn.Module | None = None,
+        activation_fct: nn.Module | None = nn.Identity(),
+        mini_batch_size: int | None = None,
     ) -> None:
+        """
+        The LambdaLoss Framework for Ranking Metric Optimization. This loss function implements the LambdaLoss framework for ranking metric optimization,
+        which provides various weighing schemes including LambdaRank and NDCG variations.
+        The implementation is optimized to handle padded documents efficiently by only
+        processing valid documents during model inference.
+
+        .. note::
+
+            The number of documents per query can vary between samples with the ``LambdaLoss``.
+
+        Args:
+            model (CrossEncoder): CrossEncoder model to be trained
+            weighing_scheme (:class: `BaseWeighingScheme`, optional): Weighing scheme to use for the loss.
+                - NoWeighingScheme: No weighing scheme (weights = 1.0)
+                - NDCGLoss1Scheme: NDCG Loss1 weighing scheme
+                - NDCGLoss2Scheme: NDCG Loss2 weighing scheme
+                - LambdaRankScheme: LambdaRank weighing scheme
+                - NDCGLoss2PPScheme: NDCG Loss2++ weighing scheme
+
+                Defaults to NoWeighingScheme.
+            k (int, optional): Number of documents to consider for NDCG@K. Defaults to None (use all documents).
+            sigma (float): Score difference weight used in sigmoid
+            eps (float): Small constant for numerical stability
+            reduction (str): Method to reduce the loss
+                - "sum": Sum the loss over all valid pairs
+                - "mean": Average the loss over all valid pairs
+            reduction_log (str): Type of logarithm to use
+                - "natural": Natural logarithm (log)
+                - "binary": Binary logarithm (log2)
+            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the
+                loss. Defaults to :class:`~torch.nn.Identity`.
+            mini_batch_size (int, optional): Number of samples to process in each forward pass. This has a significant
+                impact on the memory consumption and speed of the training process. Three cases are possible:
+
+                - If ``mini_batch_size`` is None, the ``mini_batch_size`` is set to the batch size.
+                - If ``mini_batch_size`` is greater than 0, the batch is split into mini-batches of size ``mini_batch_size``.
+                - If ``mini_batch_size`` is <= 0, the entire batch is processed at once.
+
+                Defaults to None.
+
+        References:
+            - The LambdaLoss Framework for Ranking Metric Optimization: https://marc.najork.org/papers/cikm2018.pdf
+            - `Training Examples > Learning to Rank <../../../examples/training/cross-encoder/training_ms_marco_LambdaLoss_v4.py>`_
+
+        Requirements:
+            1. Query with multiple documents (listwise approach)
+            2. Documents must have relevance scores/labels. Both binary and continuous labels are supported.
+
+        Inputs:
+            +----------------------------------------+--------------------------------+-------------------------------+
+            | Texts                                  | Labels                         | Number of Model Output Labels |
+            +========================================+================================+===============================+
+            | (query, [doc1, doc2, ..., docN])       | [score1, score2, ..., scoreN]  | 1                             |
+            +----------------------------------------+--------------------------------+-------------------------------+
+
+        Example:
+            ::
+
+                from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderTrainer, losses
+                from datasets import Dataset
+
+                model = CrossEncoder("microsoft/mpnet-base")
+                train_dataset = Dataset.from_dict({
+                    "query": ["What are pandas?", "What is the capital of France?"],
+                    "docs": [
+                        ["Pandas are a kind of bear.", "Pandas are kind of like fish."],
+                        ["The capital of France is Paris.", "Paris is the capital of France.", "Paris is quite large."],
+                    ],
+                    "labels": [[1, 0], [1, 1, 0]],
+                })
+                loss = losses.LambdaLoss(model)
+
+                trainer = CrossEncoderTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
+        """
         super().__init__()
         self.model = model
         self.weighing_scheme = weighing_scheme or NoWeighingScheme()
         self.k = k
         self.sigma = sigma
         self.eps = eps
-        self.pad_value = pad_value
         self.reduction = reduction
         self.reduction_log = reduction_log
-        self.activation_fct = activation_fct
+        self.activation_fct = activation_fct or nn.Identity()
+        self.mini_batch_size = mini_batch_size
 
         if self.model.num_labels != 1:
             raise ValueError(
@@ -145,7 +187,7 @@ class LambdaLoss(nn.Module):
                 f"but got a model with {self.model.num_labels} output labels."
             )
 
-    def forward(self, inputs: list[list[str], list[list[str]]], labels: Tensor) -> Tensor:
+    def forward(self, inputs: list[list[str], list[list[str]]], labels: list[Tensor]) -> Tensor:
         """
         Compute LambdaLoss for a batch of queries and their documents.
 
@@ -154,53 +196,73 @@ class LambdaLoss(nn.Module):
             labels: Ground truth relevance scores, shape (batch_size, num_documents)
 
         Returns:
-            Tensor: Computed loss value
+            Tensor: LambdaLoss loss over the batch
         """
-        queries, docs_list = inputs
-        labels = labels.float()
-        batch_size, max_docs = labels.size()
+        if isinstance(labels, Tensor):
+            raise ValueError(
+                "LambdaLoss expects a list of labels for each sample, but got a single value for each sample."
+            )
+        if len(inputs) != 2:
+            raise ValueError(f"LambdaLoss expects two inputs (queries, documents_list), but got {len(inputs)} inputs.")
 
-        # Create mask for valid (non-padded) documents
-        mask = labels != self.pad_value  # shape: (batch_size, max_docs)
-        batch_indices, doc_indices = torch.where(mask)
+        queries, docs_list = inputs
+        docs_per_query = [len(docs) for docs in docs_list]
+        max_docs = max(docs_per_query)
+        batch_size = len(queries)
+
+        if docs_per_query != [len(labels) for labels in labels]:
+            raise ValueError(
+                f"Number of documents per query in inputs ({docs_per_query}) does not match number of labels per query ({[len(labels) for labels in labels]})."
+            )
 
         # Create input pairs for the model
-        pairs = [
-            (queries[batch_index], docs_list[batch_index][doc_index])
-            for batch_index, doc_index in zip(batch_indices.tolist(), doc_indices.tolist())
-        ]
+        pairs = [(query, document) for query, docs in zip(queries, docs_list) for document in docs]
 
         if not pairs:
             # Handle edge case where all documents are padded
-            return torch.tensor(0.0, device=self.model.device)
+            return torch.tensor(0.0, device=self.model.device, requires_grad=True)
 
-        # Tokenize inputs and get model predictions
-        tokens = self.model.tokenizer(
-            pairs,
-            padding=True,
-            truncation=True,
-            return_tensors="pt",
-        )
-        tokens = tokens.to(self.model.device)
-        logits = self.model(**tokens)[0].view(-1)
+        mini_batch_size = self.mini_batch_size or batch_size
+        if mini_batch_size <= 0:
+            mini_batch_size = len(pairs)
 
-        # Create full logits tensor with -inf for padded positions
-        y_pred = torch.full((batch_size, max_docs), float("-inf"), device=self.model.device)
-        y_pred[batch_indices, doc_indices] = logits
+        logits_list = []
+        for i in range(0, len(pairs), mini_batch_size):
+            mini_batch_pairs = pairs[i : i + mini_batch_size]
 
-        if self.activation_fct is not None:
-            y_pred = self.activation_fct(y_pred)
+            tokens = self.model.tokenizer(
+                mini_batch_pairs,
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+            )
+            tokens = tokens.to(self.model.device)
 
-        # Move labels to correct device and handle padding
-        y_true = labels.to(self.model.device)
+            logits = self.model(**tokens)[0].view(-1)
+            logits_list.append(logits)
+
+        logits = torch.cat(logits_list, dim=0)
+        logits = self.activation_fct(logits)
+
+        # Create output tensor filled with 0 (padded logits will be ignored via labels)
+        logits_matrix = torch.full((batch_size, max_docs), -1e16, device=self.model.device)
+
+        # Place logits in the desired positions in the logit matrix
+        doc_indices = torch.cat([torch.arange(len(docs)) for docs in docs_list], dim=0)
+        batch_indices = torch.repeat_interleave(torch.arange(batch_size), torch.tensor(docs_per_query))
+        logits_matrix[batch_indices, doc_indices] = logits
+
+        # Idem for labels, but fill with -inf to 0 out padded logits in the loss
+        labels_matrix = torch.full_like(logits_matrix, float("-inf"))
+        labels_matrix[batch_indices, doc_indices] = torch.cat(labels, dim=0).float()
+        labels_matrix = labels_matrix.to(self.model.device)
 
         # Calculate LambdaLoss components
-        device = y_pred.device
-        y_pred_sorted, indices_pred = y_pred.sort(descending=True, dim=-1)
-        y_true_sorted, _ = y_true.sort(descending=True, dim=-1)
+        logits_matrix_sorted, indices_pred = logits_matrix.sort(descending=True, dim=-1)
+        labels_matrix_sorted, _ = labels_matrix.sort(descending=True, dim=-1)
 
         # Create masks for valid pairs
-        true_sorted_by_preds = torch.gather(y_true, dim=1, index=indices_pred)
+        true_sorted_by_preds = torch.gather(labels_matrix, dim=1, index=indices_pred)
         true_diffs = true_sorted_by_preds[:, :, None] - true_sorted_by_preds[:, None, :]
         padded_pairs_mask = torch.isfinite(true_diffs)
 
@@ -209,23 +271,23 @@ class LambdaLoss(nn.Module):
 
         # Create truncation mask if k is specified
         k = self.k or max_docs
-        ndcg_at_k_mask = torch.zeros((max_docs, max_docs), dtype=torch.bool, device=device)
+        ndcg_at_k_mask = torch.zeros((max_docs, max_docs), dtype=torch.bool, device=self.model.device)
         ndcg_at_k_mask[:k, :k] = 1
 
         # Calculate gains and discounts
         true_sorted_by_preds.clamp_(min=0.0)
-        y_true_sorted.clamp_(min=0.0)
+        labels_matrix_sorted.clamp_(min=0.0)
 
-        pos_idxs = torch.arange(1, max_docs + 1).to(device)
+        pos_idxs = torch.arange(1, max_docs + 1).to(self.model.device)
         D = torch.log2(1.0 + pos_idxs.float())[None, :]
-        maxDCGs = torch.sum(((torch.pow(2, y_true_sorted) - 1) / D)[:, :k], dim=-1).clamp(min=self.eps)
+        maxDCGs = torch.sum(((torch.pow(2, labels_matrix_sorted) - 1) / D)[:, :k], dim=-1).clamp(min=self.eps)
         G = (torch.pow(2, true_sorted_by_preds) - 1) / maxDCGs[:, None]
 
         # Apply weighing scheme
         weights = self.weighing_scheme(G, D, true_sorted_by_preds)
 
         # Calculate scores differences and probabilities
-        scores_diffs = (y_pred_sorted[:, :, None] - y_pred_sorted[:, None, :]).clamp(min=-1e8, max=1e8)
+        scores_diffs = (logits_matrix_sorted[:, :, None] - logits_matrix_sorted[:, None, :]).clamp(min=-1e8, max=1e8)
         scores_diffs.masked_fill_(torch.isnan(scores_diffs), 0.0)
         weighted_probas = (torch.sigmoid(self.sigma * scores_diffs).clamp(min=self.eps) ** weights).clamp(min=self.eps)
 
@@ -239,7 +301,7 @@ class LambdaLoss(nn.Module):
         masked_losses = losses[padded_pairs_mask & ndcg_at_k_mask]
         if self.reduction == "sum":
             loss = -torch.sum(masked_losses)
-        else:  # mean
+        else:
             loss = -torch.mean(masked_losses)
 
         return loss
@@ -252,14 +314,14 @@ class LambdaLoss(nn.Module):
             Dictionary containing the configuration parameters
         """
         return {
-            "weighing_scheme": self.weighing_scheme.__class__.__name__,
+            "weighing_scheme": fullname(self.weighing_scheme),
             "k": self.k,
             "sigma": self.sigma,
             "eps": self.eps,
-            "pad_value": self.pad_value,
             "reduction": self.reduction,
             "reduction_log": self.reduction_log,
-            "activation_fct": (self.activation_fct.__class__.__name__ if self.activation_fct else None),
+            "activation_fct": fullname(self.activation_fct),
+            "mini_batch_size": self.mini_batch_size,
         }
 
     @property
