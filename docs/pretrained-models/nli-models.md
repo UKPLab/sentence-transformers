@@ -8,7 +8,7 @@ As shown, this produces sentence embeddings that can be used for various use cas
 # Datasets
 We train the models on the [SNLI](https://nlp.stanford.edu/projects/snli/) and on the [MultiNLI](https://www.nyu.edu/projects/bowman/multinli/) dataset. We call the combination of the two datasets AllNLI.
 
-For a training example, see [examples/training/nli/training_nli.py](../../examples/training/nli/training_nli.py). 
+For a training example, see [examples/sentence_transformer/training/nli/training_nli.py](../../examples/sentence_transformer/training/nli/training_nli.py). 
 
 # Pretrained models
 We provide the various pre-trained models. The performance was evaluated on the test set of the [STS benchmark dataset](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) using Spearman rank correlation.
@@ -24,4 +24,4 @@ Here are the performances on the STS benchmark for other sentence embeddings met
 - Universal Sentence Encoder: 74.92
 
 # Applications
-This model works well in accessing the coarse-grained similarity between sentences. For application examples, see [semantic_textual_similarity](../sentence_transformer/usage/semantic_textual_similarity.rst) and [semantic search](../../examples/applications/semantic-search/README.md).
+This model works well in accessing the coarse-grained similarity between sentences. For application examples, see [semantic_textual_similarity](../sentence_transformer/usage/semantic_textual_similarity.rst) and [semantic search](../../examples/sentence_transformer/applications/semantic-search/README.md).

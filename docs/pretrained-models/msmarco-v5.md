@@ -19,7 +19,7 @@ print("Similarity:", util.dot_score(query_embedding, passage_embedding))
 ```
 
 
-For more details on the usage, see [Applications - Information Retrieval](../../examples/applications/retrieve_rerank/README.md)
+For more details on the usage, see [Applications - Information Retrieval](../../examples/sentence_transformer/applications/retrieve_rerank/README.md)
 
 
 ## Performance

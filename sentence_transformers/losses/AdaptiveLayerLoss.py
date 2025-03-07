@@ -149,7 +149,7 @@ class AdaptiveLayerLoss(nn.Module):
 
         References:
             - The concept was inspired by the 2DMSE paper: https://arxiv.org/abs/2402.14776
-            - `Adaptive Layers <../../examples/training/adaptive_layer/README.html>`_
+            - `Adaptive Layers <../../../examples/sentence_transformer/training/adaptive_layer/README.html>`_
 
         Requirements:
             1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss`,

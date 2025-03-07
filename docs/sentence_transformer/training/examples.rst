@@ -6,29 +6,29 @@ Training Examples
    :maxdepth: 1
    :caption: Supervised Learning
 
-   ../../../examples/training/sts/README
-   ../../../examples/training/nli/README
-   ../../../examples/training/paraphrases/README
-   ../../../examples/training/quora_duplicate_questions/README
-   ../../../examples/training/ms_marco/README
-   ../../../examples/training/matryoshka/README
-   ../../../examples/training/adaptive_layer/README
-   ../../../examples/training/multilingual/README
-   ../../../examples/training/distillation/README
-   ../../../examples/training/data_augmentation/README
-   ../../../examples/training/prompts/README
-   ../../../examples/training/peft/README
+   ../../../examples/sentence_transformer/training/sts/README
+   ../../../examples/sentence_transformer/training/nli/README
+   ../../../examples/sentence_transformer/training/paraphrases/README
+   ../../../examples/sentence_transformer/training/quora_duplicate_questions/README
+   ../../../examples/sentence_transformer/training/ms_marco/README
+   ../../../examples/sentence_transformer/training/matryoshka/README
+   ../../../examples/sentence_transformer/training/adaptive_layer/README
+   ../../../examples/sentence_transformer/training/multilingual/README
+   ../../../examples/sentence_transformer/training/distillation/README
+   ../../../examples/sentence_transformer/training/data_augmentation/README
+   ../../../examples/sentence_transformer/training/prompts/README
+   ../../../examples/sentence_transformer/training/peft/README
 
 .. toctree::
    :maxdepth: 1
    :caption: Unsupervised Learning
 
-   ../../../examples/unsupervised_learning/README
-   ../../../examples/domain_adaptation/README
+   ../../../examples/sentence_transformer/unsupervised_learning/README
+   ../../../examples/sentence_transformer/domain_adaptation/README
 
 .. toctree::
    :maxdepth: 1
    :caption: Advanced Usage
 
-   ../../../examples/training/hpo/README
+   ../../../examples/sentence_transformer/training/hpo/README
    distributed

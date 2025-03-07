@@ -27,6 +27,23 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
     The metrics are the cosine similarity as well as euclidean and Manhattan distance
     The returned score is the Spearman correlation with a specified metric.
 
+    Args:
+        sentences1 (List[str]): List with the first sentence in a pair.
+        sentences2 (List[str]): List with the second sentence in a pair.
+        scores (List[float]): Similarity score between sentences1[i] and sentences2[i].
+        batch_size (int, optional): The batch size for processing the sentences. Defaults to 16.
+        main_similarity (Optional[Union[str, SimilarityFunction]], optional): The main similarity function to use.
+            Can be a string (e.g. "cosine", "dot") or a SimilarityFunction object. Defaults to None.
+        similarity_fn_names (List[str], optional): List of similarity function names to use. If None, the
+            ``similarity_fn_name`` attribute of the model is used. Defaults to None.
+        name (str, optional): The name of the evaluator. Defaults to "".
+        show_progress_bar (bool, optional): Whether to show a progress bar during evaluation. Defaults to False.
+        write_csv (bool, optional): Whether to write the evaluation results to a CSV file. Defaults to True.
+        precision (Optional[Literal["float32", "int8", "uint8", "binary", "ubinary"]], optional): The precision
+            to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or "ubinary". Defaults to None.
+        truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the
+            model's current truncation dimension. Defaults to None.
+
     Example:
         ::
 
@@ -72,26 +89,6 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] | None = None,
         truncate_dim: int | None = None,
     ):
-        """
-        Constructs an evaluator based for the dataset.
-
-        Args:
-            sentences1 (List[str]): List with the first sentence in a pair.
-            sentences2 (List[str]): List with the second sentence in a pair.
-            scores (List[float]): Similarity score between sentences1[i] and sentences2[i].
-            batch_size (int, optional): The batch size for processing the sentences. Defaults to 16.
-            main_similarity (Optional[Union[str, SimilarityFunction]], optional): The main similarity function to use.
-                Can be a string (e.g. "cosine", "dot") or a SimilarityFunction object. Defaults to None.
-            similarity_fn_names (List[str], optional): List of similarity function names to use. If None, the
-                ``similarity_fn_name`` attribute of the model is used. Defaults to None.
-            name (str, optional): The name of the evaluator. Defaults to "".
-            show_progress_bar (bool, optional): Whether to show a progress bar during evaluation. Defaults to False.
-            write_csv (bool, optional): Whether to write the evaluation results to a CSV file. Defaults to True.
-            precision (Optional[Literal["float32", "int8", "uint8", "binary", "ubinary"]], optional): The precision
-                to use for the embeddings. Can be "float32", "int8", "uint8", "binary", or "ubinary". Defaults to None.
-            truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the
-                model's current truncation dimension. Defaults to None.
-        """
         super().__init__()
         self.sentences1 = sentences1
         self.sentences2 = sentences2
@@ -255,3 +252,11 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
     @property
     def description(self) -> str:
         return "Semantic Similarity"
+
+    def get_config_dict(self):
+        config_dict = {}
+        config_dict_candidate_keys = ["truncate_dim", "precision"]
+        for key in config_dict_candidate_keys:
+            if getattr(self, key) is not None:
+                config_dict[key] = getattr(self, key)
+        return config_dict
