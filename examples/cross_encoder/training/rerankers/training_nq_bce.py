@@ -33,15 +33,15 @@ def main():
         model_card_data=CrossEncoderModelCardData(
             language="en",
             license="apache-2.0",
-            model_name="ModernBERT-base trained on GooAQ",
+            model_name="ModernBERT-base trained on Natural Questions",
         ),
     )
     print("Model max length:", model.max_length)
     print("Model num labels:", model.num_labels)
 
-    # 2a. Load the GooAQ dataset: https://huggingface.co/datasets/sentence-transformers/gooaq
-    logging.info("Read the gooaq training dataset")
-    full_dataset = load_dataset("sentence-transformers/gooaq", split="train").select(range(100_000))
+    # 2a. Load the NQ dataset: https://huggingface.co/datasets/sentence-transformers/natural-questions
+    logging.info("Read the Natural Questions training dataset")
+    full_dataset = load_dataset("sentence-transformers/natural-questions", split="train").select(range(100_000))
     dataset_dict = full_dataset.train_test_split(test_size=1_000, seed=12)
     train_dataset = dataset_dict["train"]
     eval_dataset = dataset_dict["test"]
@@ -65,9 +65,9 @@ def main():
     logging.info(hard_train_dataset)
 
     # 2c. (Optionally) Save the hard training dataset to disk
-    # hard_train_dataset.save_to_disk("gooaq-hard-train")
+    # hard_train_dataset.save_to_disk("nq-hard-train")
     # Load again with:
-    # hard_train_dataset = load_from_disk("gooaq-hard-train")
+    # hard_train_dataset = load_from_disk("nq-hard-train")
 
     # 3. Define our training loss.
     # pos_weight is recommended to be set as the ratio between positives to negatives, a.k.a. `num_hard_negatives`
@@ -96,14 +96,15 @@ def main():
     reranking_evaluator = CrossEncoderRerankingEvaluator(
         samples=[
             {
-                "query": sample["question"],
+                "query": sample["query"],
                 "positive": [sample["answer"]],
                 "documents": [sample[column_name] for column_name in hard_eval_dataset.column_names[2:]],
             }
             for sample in hard_eval_dataset
         ],
         batch_size=train_batch_size,
-        name="gooaq-dev",
+        name="nq-dev",
+        always_rerank_positives=False,
     )
 
     # 4c. Combine the evaluators & run the base model on them
@@ -112,7 +113,7 @@ def main():
 
     # 5. Define the training arguments
     short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
-    run_name = f"reranker-{short_model_name}-gooaq-bce"
+    run_name = f"reranker-{short_model_name}-nq-bce"
     args = CrossEncoderTrainingArguments(
         # Required parameter:
         output_dir=f"models/{run_name}",
@@ -126,7 +127,7 @@ def main():
         bf16=True,  # Set to True if you have a GPU that supports BF16
         dataloader_num_workers=4,
         load_best_model_at_end=True,
-        metric_for_best_model="eval_gooaq-dev_ndcg@10",
+        metric_for_best_model="eval_nq-dev_ndcg@10",
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
         eval_steps=1000,

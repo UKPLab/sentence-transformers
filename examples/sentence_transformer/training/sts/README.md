@@ -5,6 +5,10 @@ Semantic Textual Similarity (STS) assigns a score on the similarity of two texts
 - **[training_stsbenchmark.py](training_stsbenchmark.py)** - This example shows how to create a SentenceTransformer model from scratch by using a pre-trained transformer model (e.g. [`distilbert-base-uncased`](https://huggingface.co/distilbert/distilbert-base-uncased)) together with a pooling layer.
 - **[training_stsbenchmark_continue_training.py](training_stsbenchmark_continue_training.py)** - This example shows how to continue training on STS data for a previously created & trained SentenceTransformer model (e.g. [`all-mpnet-base-v2`](https://huggingface.co/sentence-transformers/all-mpnet-base-v2)).
 
+```{eval-rst}
+You can also train and use :class:`~sentence_transformers.cross_encoder.CrossEncoder` models for this task. See `Cross Encoder > Training Examples > Semantic Textual Similarity <../../../cross_encoder/training/sts/README.html>`_ for more details.
+```
+
 ## Training data
 ```{eval-rst}
 In STS, we have sentence pairs annotated together with a score indicating the similarity. In the original STSbenchmark dataset, the scores range from 0 to 5. We have normalized these scores to range between 0 and 1 in `stsb <https://huggingface.co/datasets/sentence-transformers/stsb>`_, as that is required for :class:`~sentence_transformers.losses.CosineSimilarityLoss` as you can see in the `Loss Overiew <../../../../docs/sentence_transformer/loss_overview.html>`_.

@@ -9,85 +9,103 @@ python training_quora_duplicate_questions.py
 
 """
 
-import csv
 import logging
-import math
-import os
+import traceback
 from datetime import datetime
-from zipfile import ZipFile
 
-from torch.utils.data import DataLoader
+from datasets import load_dataset
 
-from sentence_transformers import LoggingHandler, util
-from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation import CEBinaryClassificationEvaluator
-from sentence_transformers.readers import InputExample
+from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderTrainingArguments
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderClassificationEvaluator
+from sentence_transformers.cross_encoder.losses import BinaryCrossEntropyLoss
+from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
 
-#### Just some code to print debug information to stdout
-logging.basicConfig(
-    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
+# Set the log level to INFO to get more information
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
+
+train_batch_size = 64
+num_epochs = 1
+output_dir = "output/training_ce_quora-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+# 1. Define our CrossEncoder model. We use distilroberta-base as the base model and set it up to predict 1 label
+# You can also use other base models, like bert-base-uncased, microsoft/mpnet-base, or rerankers like Alibaba-NLP/gte-reranker-modernbert-base
+model_name = "distilroberta-base"
+model = CrossEncoder(model_name, num_labels=1)
+
+# 2. Load the Quora duplicates dataset: https://huggingface.co/datasets/sentence-transformers/quora-duplicates
+logging.info("Read quora-duplicates train dataset")
+dataset = load_dataset("sentence-transformers/quora-duplicates", "pair-class", split="train")
+eval_dataset = dataset.select(range(10_000))
+test_dataset = dataset.select(range(10_000, 20_000))
+train_dataset = dataset.select(range(20_000, len(dataset)))
+logging.info(train_dataset)
+logging.info(eval_dataset)
+logging.info(test_dataset)
+
+# 3. Define our training loss, we use one that accepts pairs with a binary label
+loss = BinaryCrossEntropyLoss(model)
+
+# 4. Before and during training, we use CrossEncoderClassificationEvaluator to measure the performance on the dev set
+dev_cls_evaluator = CrossEncoderClassificationEvaluator(
+    sentence_pairs=list(zip(eval_dataset["sentence1"], eval_dataset["sentence2"])),
+    labels=eval_dataset["label"],
+    name="quora-duplicates-dev",
 )
-logger = logging.getLogger(__name__)
-#### /print debug information to stdout
+dev_cls_evaluator(model)
 
-
-# Check if dataset exists. If not, download and extract  it
-dataset_path = "quora-dataset/"
-
-if not os.path.exists(dataset_path):
-    logger.info("Dataset not found. Download")
-    zip_save_path = "quora-IR-dataset.zip"
-    util.http_get(url="https://sbert.net/datasets/quora-IR-dataset.zip", path=zip_save_path)
-    with ZipFile(zip_save_path, "r") as zip:
-        zip.extractall(dataset_path)
-
-
-# Read the quora dataset split for classification
-logger.info("Read train dataset")
-train_samples = []
-with open(os.path.join(dataset_path, "classification", "train_pairs.tsv"), encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        train_samples.append(InputExample(texts=[row["question1"], row["question2"]], label=int(row["is_duplicate"])))
-        train_samples.append(InputExample(texts=[row["question2"], row["question1"]], label=int(row["is_duplicate"])))
-
-
-logger.info("Read dev dataset")
-dev_samples = []
-with open(os.path.join(dataset_path, "classification", "dev_pairs.tsv"), encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        dev_samples.append(InputExample(texts=[row["question1"], row["question2"]], label=int(row["is_duplicate"])))
-
-
-# Configuration
-train_batch_size = 16
-num_epochs = 4
-model_save_path = "output/training_quora-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-
-# We use distilroberta-base with a single label, i.e., it will output a value between 0 and 1 indicating the similarity of the two questions
-model = CrossEncoder("distilroberta-base", num_labels=1)
-
-# We wrap train_samples (which is a List[InputExample]) into a pytorch DataLoader
-train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
-
-
-# We add an evaluator, which evaluates the performance during training
-evaluator = CEBinaryClassificationEvaluator.from_input_examples(dev_samples, name="Quora-dev")
-
-
-# Configure the training
-warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-logger.info(f"Warmup-steps: {warmup_steps}")
-
-
-# Train the model
-model.fit(
-    train_dataloader=train_dataloader,
-    evaluator=evaluator,
-    epochs=num_epochs,
-    evaluation_steps=5000,
-    warmup_steps=warmup_steps,
-    output_path=model_save_path,
+# 5. Define the training arguments
+short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+run_name = f"reranker-{short_model_name}-quora-duplicates"
+args = CrossEncoderTrainingArguments(
+    # Required parameter:
+    output_dir=output_dir,
+    # Optional training parameters:
+    num_train_epochs=num_epochs,
+    per_device_train_batch_size=train_batch_size,
+    per_device_eval_batch_size=train_batch_size,
+    warmup_ratio=0.1,
+    fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
+    bf16=True,  # Set to True if you have a GPU that supports BF16
+    # Optional tracking/debugging parameters:
+    eval_strategy="steps",
+    eval_steps=500,
+    save_strategy="steps",
+    save_steps=500,
+    save_total_limit=2,
+    logging_steps=100,
+    run_name=run_name,  # Will be used in W&B if `wandb` is installed
 )
+
+# 6. Create the trainer & start training
+trainer = CrossEncoderTrainer(
+    model=model,
+    args=args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    loss=loss,
+    evaluator=dev_cls_evaluator,
+)
+trainer.train()
+
+# 7. Evaluate the final model on test dataset
+test_cls_evaluator = CrossEncoderClassificationEvaluator(
+    sentence_pairs=list(zip(eval_dataset["sentence1"], eval_dataset["sentence2"])),
+    labels=eval_dataset["label"],
+    name="quora-duplicates-test",
+)
+test_cls_evaluator(model)
+
+# 8. Save the final model
+final_output_dir = f"{output_dir}/final"
+model.save_pretrained(final_output_dir)
+
+# 9. (Optional) save the model to the Hugging Face Hub!
+# It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+try:
+    model.push_to_hub(run_name)
+except Exception:
+    logging.error(
+        f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
+        f"`huggingface-cli login`, followed by loading the model using `model = CrossEncoder({final_output_dir!r})` "
+        f"and saving it using `model.push_to_hub('{run_name}')`."
+    )

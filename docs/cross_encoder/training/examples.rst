@@ -6,11 +6,15 @@ Training Examples
    :maxdepth: 1
    :caption: Supervised Learning
 
-   ../../../examples/cross_encoder/training/ms_marco/cross_encoder_README
+   ../../../examples/cross_encoder/training/sts/README
+   ../../../examples/cross_encoder/training/nli/README
+   ../../../examples/cross_encoder/training/quora_duplicate_questions/README
+   ../../../examples/cross_encoder/training/ms_marco/README
+   ../../../examples/cross_encoder/training/rerankers/README
+   ../../../examples/cross_encoder/training/distillation/README
 
 .. toctree::
    :maxdepth: 1
    :caption: Advanced Usage
 
-   ../../../examples/sentence_transformer/training/hpo/README
    ../../sentence_transformer/training/distributed

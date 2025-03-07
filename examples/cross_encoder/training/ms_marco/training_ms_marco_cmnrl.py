@@ -7,7 +7,6 @@ from torch import nn
 
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
-from sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
 from sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss import (
     CachedMultipleNegativesRankingLoss,
 )
@@ -18,8 +17,6 @@ from sentence_transformers.training_args import BatchSamplers
 
 def main():
     model_name = "answerdotai/ModernBERT-base"
-    # loss_name = "cmnrl"
-    loss_name = "bce"
 
     # Set the log level to INFO to get more information
     logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
@@ -35,17 +32,6 @@ def main():
     # 2. Load the MS MARCO dataset: https://huggingface.co/datasets/microsoft/ms_marco
     logging.info("Read train dataset")
     dataset = load_dataset("microsoft/ms_marco", "v1.1", split="train")
-
-    def bce_mapper(batch):
-        queries = []
-        passages = []
-        labels = []
-        for query, passages_info in zip(batch["query"], batch["passages"]):
-            for idx, is_selected in enumerate(passages_info["is_selected"]):
-                queries.append(query)
-                passages.append(passages_info["passage_text"][idx])
-                labels.append(is_selected)
-        return {"query": queries, "passage": passages, "label": labels}
 
     def mnrl_mapper(batch):
         outputs = defaultdict(list)
@@ -64,28 +50,22 @@ def main():
                 outputs[f"negative_{idx + 1}"].append(passages_info["passage_text"][negatives[idx]])
         return outputs
 
-    if loss_name == "cmnrl":
-        dataset = dataset.map(mnrl_mapper, batched=True, remove_columns=dataset.column_names)
-    else:
-        dataset = dataset.map(bce_mapper, batched=True, remove_columns=dataset.column_names)
+    dataset = dataset.map(mnrl_mapper, batched=True, remove_columns=dataset.column_names)
     dataset = dataset.train_test_split(test_size=10_000)
     train_dataset = dataset["train"]
     eval_dataset = dataset["test"]
     logging.info(train_dataset)
 
     # 3. Define our training loss
-    if loss_name == "cmnrl":
-        scale = 20.0
-        activation_fct = nn.Tanh()
-        loss = CachedMultipleNegativesRankingLoss(
-            model,
-            num_negatives=5,
-            mini_batch_size=32,
-            scale=scale,
-            activation_fct=activation_fct,
-        )
-    else:
-        loss = BinaryCrossEntropyLoss(model)
+    scale = 10.0
+    activation_fct = nn.Sigmoid()
+    loss = CachedMultipleNegativesRankingLoss(
+        model,
+        num_negatives=5,
+        mini_batch_size=32,
+        scale=scale,
+        activation_fct=activation_fct,
+    )
 
     # 4. Define the evaluator. We use the CrossEncoderNanoBEIREvaluator, which is a light-weight evaluator for English reranking
     evaluator = CrossEncoderNanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=train_batch_size)
@@ -93,7 +73,7 @@ def main():
 
     # 5. Define the training arguments
     short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
-    run_name = f"reranker-msmarco-v1.1-{short_model_name}-{loss_name}"
+    run_name = f"reranker-msmarco-v1.1-{short_model_name}-cmnrl"
     args = CrossEncoderTrainingArguments(
         # Required parameter:
         output_dir=f"models/{run_name}",
@@ -106,16 +86,16 @@ def main():
         fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
         bf16=True,  # Set to True if you have a GPU that supports BF16
         # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
-        batch_sampler=BatchSamplers.NO_DUPLICATES if loss_name == "cmnrl" else BatchSamplers.BATCH_SAMPLER,
+        batch_sampler=BatchSamplers.NO_DUPLICATES,
         load_best_model_at_end=True,
         metric_for_best_model="eval_NanoBEIR_R100_mean_ndcg@10",
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
-        eval_steps=400 if loss_name == "cmnrl" else 40_000,
+        eval_steps=400,
         save_strategy="steps",
-        save_steps=400 if loss_name == "cmnrl" else 40_000,
+        save_steps=400,
         save_total_limit=2,
-        logging_steps=100 if loss_name == "cmnrl" else 10_000,
+        logging_steps=100,
         logging_first_step=True,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
         seed=12,

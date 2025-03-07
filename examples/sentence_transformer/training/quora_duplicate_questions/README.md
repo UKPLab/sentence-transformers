@@ -4,6 +4,10 @@ This folder contains scripts that demonstrate how to train SentenceTransformers 
 
 Models trained on this dataset can be used for mining duplicate questions, i.e., given a large set of sentences (in this case questions), identify all pairs that are duplicates. See [Paraphrase Mining](../../applications/paraphrase-mining/README.md) for an example how to use sentence transformers to mine for duplicate questions / paraphrases. This approach can be scaled to hundred thousands of sentences.
 
+```{eval-rst}
+You can also train and use :class:`~sentence_transformers.cross_encoder.CrossEncoder` models for this task. See `Cross Encoder > Training Examples > Quora Duplicate Questions <../../../cross_encoder/training/quora_duplicate_questions/README.html>`_ for more details.
+```
+
 ## Training
 
 ```{eval-rst}

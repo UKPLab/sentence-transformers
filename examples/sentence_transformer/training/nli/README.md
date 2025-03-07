@@ -18,6 +18,10 @@ To train on NLI, see the following example files:
     Following the `GISTEmbed <https://arxiv.org/abs/2402.16829>`_ paper, we can modify the in-batch negative selection from :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` using a guiding model. Candidate negative pairs are ignored during training if the guiding model considers the pair to be too similar. In practice, the :class:`~sentence_transformers.losses.GISTEmbedLoss` tends to produce a stronger training signal than :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` at the cost of some training overhead for running inference on the guiding model.
     ```
 
+```{eval-rst}
+You can also train and use :class:`~sentence_transformers.cross_encoder.CrossEncoder` models for this task. See `Cross Encoder > Training Examples > Natural Language Inference <../../../cross_encoder/training/nli/README.html>`_ for more details.
+```
+
 ## Data
 We combine [SNLI](https://huggingface.co/datasets/stanfordnlp/snli) and [MultiNLI](https://huggingface.co/datasets/nyu-mll/multi_nli) into a dataset we call [AllNLI](https://huggingface.co/datasets/sentence-transformers/all-nli). These two datasets contain sentence pairs and one of three labels: entailment, neutral, contradiction:
 

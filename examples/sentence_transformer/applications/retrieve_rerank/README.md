@@ -1,7 +1,5 @@
 # Retrieve & Re-Rank
-In [Semantic Search](../semantic-search/README.md) we have shown how to use SentenceTransformer to compute embeddings for queries, sentences, and paragraphs and how to use this for semantic search. 
-
-For complex search tasks, for example question answering retrieval, the search can significantly be improved by using **Retrieve & Re-Rank**.
+In [Semantic Search](../semantic-search/README.md) we have shown how to use SentenceTransformer to compute embeddings for queries, sentences, and paragraphs and how to use this for semantic search. For complex search tasks, for example question answering retrieval, the search can significantly be improved by using **Retrieve & Re-Rank**.
 
 ## Retrieve & Re-Rank Pipeline
 
@@ -9,7 +7,9 @@ The following pipeline for Information Retrieval / Question Answering Retrieval 
 
 ![InformationRetrieval](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/InformationRetrieval.png)
 
-Given a search query, we first use a **retrieval system** that retrieves a large list of e.g. 100 possible hits which are potentially relevant for the query. For the retrieval, we can use either lexical search, e.g. with a vector engine like Elasticsearch, or we can use dense retrieval with a bi-encoder.  However, the retrieval system might retrieve documents that are not that relevant for the search query. Hence, in a second stage, we use a **re-ranker** based on a **cross-encoder** that scores the relevancy of all candidates for the given search query. The output will be a ranked list of hits we can present to the user.
+```{eval-rst}
+Given a search query, we first use a **retrieval system** that retrieves a large list of e.g. 100 possible hits which are potentially relevant for the query. For the retrieval, we can use either lexical search, e.g. with a vector engine like Elasticsearch, or we can use dense retrieval with a :class:`~sentence_transformers.SentenceTransformer` (a.k.a. bi-encoder).  However, the retrieval system might retrieve documents that are not that relevant for the search query. Hence, in a second stage, we use a **re-ranker** based on a :class:`~sentence_transformers.cross_encoder.CrossEncoder` that scores the relevancy of all candidates for the given search query. The output will be a ranked list of hits we can present to the user.
+```
 
 ## Retrieval: Bi-Encoder
 For the retrieval of the candidate set, we can either use lexical search (e.g. [Elasticsearch](https://www.elastic.co/elasticsearch/)), or we can use a bi-encoder which is implemented in Sentence Transformers.

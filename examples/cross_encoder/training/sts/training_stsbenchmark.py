@@ -8,89 +8,100 @@ Usage:
 python training_stsbenchmark.py
 """
 
-import csv
-import gzip
 import logging
-import math
-import os
+import traceback
 from datetime import datetime
 
-from torch.utils.data import DataLoader
+from datasets import load_dataset
 
-from sentence_transformers import InputExample, LoggingHandler, util
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
+from sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
+from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
+from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
 
-#### Just some code to print debug information to stdout
-logging.basicConfig(
-    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
-)
-logger = logging.getLogger(__name__)
-#### /print debug information to stdout
+# Set the log level to INFO to get more information
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
-
-# Check if dataset exists. If not, download and extract  it
-sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
-
-if not os.path.exists(sts_dataset_path):
-    util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
-
-
-# Define our Cross-Encoder
-train_batch_size = 16
+train_batch_size = 64
 num_epochs = 4
-model_save_path = "output/training_stsbenchmark-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+output_dir = "output/training_ce_stsbenchmark-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-# We use distilroberta-base as base model and set num_labels=1, which predicts a continuous score between 0 and 1
-model = CrossEncoder("distilroberta-base", num_labels=1)
+# 1. Define our CrossEncoder model. We use distilroberta-base as the base model and set it up to predict 1 label
+# You can also use other base models, like bert-base-uncased, microsoft/mpnet-base, or rerankers like Alibaba-NLP/gte-reranker-modernbert-base
+model_name = "distilroberta-base"
+model = CrossEncoder(model_name, num_labels=1)
 
+# 2. Load the STSB dataset: https://huggingface.co/datasets/sentence-transformers/stsb
+train_dataset = load_dataset("sentence-transformers/stsb", split="train")
+eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
+test_dataset = load_dataset("sentence-transformers/stsb", split="test")
+logging.info(train_dataset)
 
-# Read STSb dataset
-logger.info("Read STSbenchmark train dataset")
+# 3. Define our training loss, we use one that accepts pairs with a binary label
+loss = BinaryCrossEntropyLoss(model)
 
-train_samples = []
-dev_samples = []
-test_samples = []
-with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        score = float(row["score"]) / 5.0  # Normalize score to range 0 ... 1
+# 4. Before and during training, we use CrossEncoderClassificationEvaluator to measure the performance on the dev set
+eval_evaluator = CrossEncoderCorrelationEvaluator(
+    sentence_pairs=list(zip(eval_dataset["sentence1"], eval_dataset["sentence2"])),
+    scores=eval_dataset["score"],
+    name="stsb-validation",
+)
+eval_evaluator(model)
 
-        if row["split"] == "dev":
-            dev_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
-        elif row["split"] == "test":
-            test_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
-        else:
-            # As we want to get symmetric scores, i.e. CrossEncoder(A,B) = CrossEncoder(B,A), we pass both combinations to the train set
-            train_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
-            train_samples.append(InputExample(texts=[row["sentence2"], row["sentence1"]], label=score))
-
-
-# We wrap train_samples (which is a List[InputExample]) into a pytorch DataLoader
-train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
-
-
-# We add an evaluator, which evaluates the performance during training
-evaluator = CrossEncoderCorrelationEvaluator.from_input_examples(dev_samples, name="sts-dev")
-
-
-# Configure the training
-warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-logger.info(f"Warmup-steps: {warmup_steps}")
-
-
-# Train the model
-model.fit(
-    train_dataloader=train_dataloader,
-    evaluator=evaluator,
-    epochs=num_epochs,
-    warmup_steps=warmup_steps,
-    output_path=model_save_path,
+# 5. Define the training arguments
+short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+run_name = f"reranker-{short_model_name}-stsb"
+args = CrossEncoderTrainingArguments(
+    # Required parameter:
+    output_dir=output_dir,
+    # Optional training parameters:
+    num_train_epochs=num_epochs,
+    per_device_train_batch_size=train_batch_size,
+    per_device_eval_batch_size=train_batch_size,
+    warmup_ratio=0.1,
+    fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
+    bf16=True,  # Set to True if you have a GPU that supports BF16
+    # Optional tracking/debugging parameters:
+    eval_strategy="steps",
+    eval_steps=80,
+    save_strategy="steps",
+    save_steps=80,
+    save_total_limit=2,
+    logging_steps=20,
+    run_name=run_name,  # Will be used in W&B if `wandb` is installed
 )
 
+# 6. Create the trainer & start training
+trainer = CrossEncoderTrainer(
+    model=model,
+    args=args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    loss=loss,
+    evaluator=eval_evaluator,
+)
+trainer.train()
 
-##### Load model and eval on test set
-model = CrossEncoder(model_save_path)
+# 7. Evaluate the final model on test dataset
+test_evaluator = CrossEncoderCorrelationEvaluator(
+    sentence_pairs=list(zip(test_dataset["sentence1"], test_dataset["sentence2"])),
+    scores=test_dataset["score"],
+    name="stsb-test",
+)
+test_evaluator(model)
 
-evaluator = CrossEncoderCorrelationEvaluator.from_input_examples(test_samples, name="sts-test")
-evaluator(model)
+# 8. Save the final model
+final_output_dir = f"{output_dir}/final"
+model.save_pretrained(final_output_dir)
+
+# 9. (Optional) save the model to the Hugging Face Hub!
+# It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+try:
+    model.push_to_hub(run_name)
+except Exception:
+    logging.error(
+        f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
+        f"`huggingface-cli login`, followed by loading the model using `model = CrossEncoder({final_output_dir!r})` "
+        f"and saving it using `model.push_to_hub('{run_name}')`."
+    )

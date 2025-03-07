@@ -8,78 +8,103 @@ Usage:
 python training_nli.py
 """
 
-import csv
-import gzip
 import logging
-import math
-import os
+import traceback
 from datetime import datetime
 
-from torch.utils.data import DataLoader
+from datasets import load_dataset
 
-from sentence_transformers import LoggingHandler, util
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.evaluation import CEF1Evaluator, CESoftmaxAccuracyEvaluator
-from sentence_transformers.evaluation import SequentialEvaluator
-from sentence_transformers.readers import InputExample
+from sentence_transformers.cross_encoder.evaluation import CrossEncoderClassificationEvaluator
+from sentence_transformers.cross_encoder.losses.CrossEntropyLoss import CrossEntropyLoss
+from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
+from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
 
-#### Just some code to print debug information to stdout
-logging.basicConfig(
-    format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
+# Set the log level to INFO to get more information
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
+
+train_batch_size = 64
+num_epochs = 1
+output_dir = "output/training_ce_allnli-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+# 1. Define our CrossEncoder model. We use distilroberta-base as the base model and set it up to predict 3 labels
+# You can also use other base models, like bert-base-uncased, microsoft/mpnet-base, etc.
+model_name = "distilroberta-base"
+model = CrossEncoder(model_name, num_labels=3)
+
+# 2. Load the AllNLI dataset: https://huggingface.co/datasets/sentence-transformers/all-nli
+# We'll start with 100k training samples, but you can increase this to get a stronger model
+logging.info("Read AllNLI train dataset")
+train_dataset = load_dataset("sentence-transformers/all-nli", "pair-class", split="train").select(range(100_000))
+eval_dataset = load_dataset("sentence-transformers/all-nli", "pair-class", split="dev").select(range(1000))
+test_dataset = load_dataset("sentence-transformers/all-nli", "pair-class", split="test")
+logging.info(train_dataset)
+
+# 3. Define our training loss:
+loss = CrossEntropyLoss(model)
+
+# 4. Before and during training, we use CrossEncoderClassificationEvaluator to measure the performance on the dev set
+dev_cls_evaluator = CrossEncoderClassificationEvaluator(
+    sentence_pairs=list(zip(eval_dataset["premise"], eval_dataset["hypothesis"])),
+    labels=eval_dataset["label"],
+    name="AllNLI-dev",
 )
-logger = logging.getLogger(__name__)
-#### /print debug information to stdout
+dev_cls_evaluator(model)
 
-
-# As dataset, we use SNLI + MultiNLI
-# Check if dataset exists. If not, download and extract  it
-nli_dataset_path = "datasets/AllNLI.tsv.gz"
-
-if not os.path.exists(nli_dataset_path):
-    util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
-
-
-# Read the AllNLI.tsv.gz file and create the training dataset
-logger.info("Read AllNLI train dataset")
-
-label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
-train_samples = []
-dev_samples = []
-with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        label_id = label2int[row["label"]]
-        if row["split"] == "train":
-            train_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=label_id))
-        else:
-            dev_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=label_id))
-
-
-train_batch_size = 16
-num_epochs = 4
-model_save_path = "output/training_allnli-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-# Define our CrossEncoder model. We use distilroberta-base as basis and setup it up to predict 3 labels
-model = CrossEncoder("distilroberta-base", num_labels=len(label2int))
-
-# We wrap train_samples, which is a list of InputExample, in a pytorch DataLoader
-train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
-
-# During training, we use CESoftmaxAccuracyEvaluator and CEF1Evaluator to measure the performance on the dev set
-accuracy_evaluator = CESoftmaxAccuracyEvaluator.from_input_examples(dev_samples, name="AllNLI-dev")
-f1_evaluator = CEF1Evaluator.from_input_examples(dev_samples, name="AllNLI-dev")
-evaluator = SequentialEvaluator([accuracy_evaluator, f1_evaluator])
-
-warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-logger.info(f"Warmup-steps: {warmup_steps}")
-
-
-# Train the model
-model.fit(
-    train_dataloader=train_dataloader,
-    evaluator=evaluator,
-    epochs=num_epochs,
-    evaluation_steps=10000,
-    warmup_steps=warmup_steps,
-    output_path=model_save_path,
+# 5. Define the training arguments
+short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+run_name = f"reranker-{short_model_name}-nli"
+args = CrossEncoderTrainingArguments(
+    # Required parameter:
+    output_dir=output_dir,
+    # Optional training parameters:
+    num_train_epochs=num_epochs,
+    per_device_train_batch_size=train_batch_size,
+    per_device_eval_batch_size=train_batch_size,
+    warmup_ratio=0.1,
+    fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
+    bf16=True,  # Set to True if you have a GPU that supports BF16
+    # Optional tracking/debugging parameters:
+    eval_strategy="steps",
+    eval_steps=500,
+    save_strategy="steps",
+    save_steps=500,
+    save_total_limit=2,
+    logging_steps=100,
+    run_name=run_name,  # Will be used in W&B if `wandb` is installed
 )
+
+# 6. Create the trainer & start training
+trainer = CrossEncoderTrainer(
+    model=model,
+    args=args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    loss=loss,
+    evaluator=dev_cls_evaluator,
+)
+trainer.train()
+
+# 7. Evaluate the final model on test dataset
+test_cls_evaluator = CrossEncoderClassificationEvaluator(
+    list(zip(test_dataset["premise"], test_dataset["hypothesis"])),
+    test_dataset["label"],
+    name="AllNLI-test",
+)
+test_cls_evaluator(model)
+
+# 8. Save the final model
+final_output_dir = f"{output_dir}/final"
+model.save_pretrained(final_output_dir)
+
+# 9. (Optional) save the model to the Hugging Face Hub!
+# It is recommended to run `huggingface-cli login` to log into your Hugging Face account first
+model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
+try:
+    model.push_to_hub(run_name)
+except Exception:
+    logging.error(
+        f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
+        f"`huggingface-cli login`, followed by loading the model using `model = CrossEncoder({final_output_dir!r})` "
+        f"and saving it using `model.push_to_hub('{run_name}')`."
+    )
