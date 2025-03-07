@@ -35,7 +35,7 @@ Cross-Encoders require text pairs as inputs and output a score 0...1 (if the Sig
 | [cross-encoder/ms-marco-TinyBERT-L2-v2](https://huggingface.co/cross-encoder/ms-marco-TinyBERT-L2)  | 69.84 | 32.56 | 9000
 | [cross-encoder/ms-marco-MiniLM-L2-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L2-v2) | 71.01 | 34.85 | 4100
 | [cross-encoder/ms-marco-MiniLM-L4-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L4-v2) | 73.04 | 37.70 | 2500
-| [cross-encoder/ms-marco-MiniLM-L6-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2) | 74.30 | 39.01 | 1800
+| **[cross-encoder/ms-marco-MiniLM-L6-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2)** | 74.30 | 39.01 | 1800
 | [cross-encoder/ms-marco-MiniLM-L12-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L12-v2) | 74.31 | 39.02 | 960
 | [cross-encoder/ms-marco-electra-base](https://huggingface.co/cross-encoder/ms-marco-electra-base) | 71.99 | 36.41 | 340 | 
 
