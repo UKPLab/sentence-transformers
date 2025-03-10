@@ -94,7 +94,7 @@ def main():
     # 3. Define our training loss
     loss = LambdaLoss(
         model=model,
-        weighing_scheme=NDCGLoss2PPScheme(),
+        weighting_scheme=NDCGLoss2PPScheme(),
         mini_batch_size=mini_batch_size,
     )
 

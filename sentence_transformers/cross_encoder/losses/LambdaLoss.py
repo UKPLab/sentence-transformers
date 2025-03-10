@@ -9,8 +9,8 @@ from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.util import fullname
 
 
-class BaseWeighingScheme(nn.Module):
-    """Base class for implementing weighing schemes in LambdaLoss."""
+class BaseWeightingScheme(nn.Module):
+    """Base class for implementing weighting schemes in LambdaLoss."""
 
     def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
         """
@@ -27,15 +27,15 @@ class BaseWeighingScheme(nn.Module):
         raise NotImplementedError
 
 
-class NoWeighingScheme(BaseWeighingScheme):
-    """Implementation of no weighing scheme (weights = 1.0)."""
+class NoWeightingScheme(BaseWeightingScheme):
+    """Implementation of no weighting scheme (weights = 1.0)."""
 
     def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
         return torch.tensor(1.0, device=gain.device)
 
 
-class NDCGLoss1Scheme(BaseWeighingScheme):
-    """Implementation of NDCG Loss1 weighing scheme.
+class NDCGLoss1Scheme(BaseWeightingScheme):
+    """Implementation of NDCG Loss1 weighting scheme.
 
     It is used to optimize for the NDCG metric, but this weighting scheme is not recommended as the
     NDCGLoss2Scheme and NDCGLoss2PPScheme were shown to reach superior performance in the original
@@ -46,8 +46,8 @@ class NDCGLoss1Scheme(BaseWeighingScheme):
         return (gain / discount)[:, :, None]
 
 
-class NDCGLoss2Scheme(BaseWeighingScheme):
-    """Implementation of NDCG Loss2 weighing scheme.
+class NDCGLoss2Scheme(BaseWeightingScheme):
+    """Implementation of NDCG Loss2 weighting scheme.
 
     This scheme uses a tighter bound than NDCGLoss1Scheme and was shown to reach
     superior performance in the original LambdaLoss paper. It is used to optimize
@@ -65,10 +65,10 @@ class NDCGLoss2Scheme(BaseWeighingScheme):
         return deltas[None, :, :] * torch.abs(gain[:, :, None] - gain[:, None, :])
 
 
-class LambdaRankScheme(BaseWeighingScheme):
-    """Implementation of LambdaRank weighing scheme.
+class LambdaRankScheme(BaseWeightingScheme):
+    """Implementation of LambdaRank weighting scheme.
 
-    This weighing optimizes a coarse upper bound of NDCG.
+    This weighting optimizes a coarse upper bound of NDCG.
     """
 
     def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
@@ -77,10 +77,10 @@ class LambdaRankScheme(BaseWeighingScheme):
         )
 
 
-class NDCGLoss2PPScheme(BaseWeighingScheme):
-    """Implementation of NDCG Loss2++ weighing scheme.
+class NDCGLoss2PPScheme(BaseWeightingScheme):
+    """Implementation of NDCG Loss2++ weighting scheme.
 
-    It is a hybrid weighing scheme that combines the NDCGLoss2 and LambdaRank schemes.
+    It is a hybrid weighting scheme that combines the NDCGLoss2 and LambdaRank schemes.
     """
 
     def __init__(self, mu: float = 10.0):
@@ -99,7 +99,7 @@ class LambdaLoss(nn.Module):
     def __init__(
         self,
         model: CrossEncoder,
-        weighing_scheme: BaseWeighingScheme | None = NoWeighingScheme(),
+        weighting_scheme: BaseWeightingScheme | None = NoWeightingScheme(),
         k: int | None = None,
         sigma: float = 1.0,
         eps: float = 1e-10,
@@ -109,7 +109,7 @@ class LambdaLoss(nn.Module):
     ) -> None:
         """
         The LambdaLoss Framework for Ranking Metric Optimization. This loss function implements the LambdaLoss framework for ranking metric optimization,
-        which provides various weighing schemes including LambdaRank and NDCG variations.
+        which provides various weighting schemes including LambdaRank and NDCG variations.
         The implementation is optimized to handle padded documents efficiently by only
         processing valid documents during model inference.
 
@@ -119,14 +119,14 @@ class LambdaLoss(nn.Module):
 
         Args:
             model (CrossEncoder): CrossEncoder model to be trained
-            weighing_scheme (:class: `BaseWeighingScheme`, optional): Weighing scheme to use for the loss.
-                - NoWeighingScheme: No weighing scheme (weights = 1.0)
-                - NDCGLoss1Scheme: NDCG Loss1 weighing scheme
-                - NDCGLoss2Scheme: NDCG Loss2 weighing scheme
-                - LambdaRankScheme: LambdaRank weighing scheme
-                - NDCGLoss2PPScheme: NDCG Loss2++ weighing scheme
+            weighting_scheme (:class: `BaseWeightingScheme`, optional): Weighting scheme to use for the loss.
+                - NoWeightingScheme: No weighting scheme (weights = 1.0)
+                - NDCGLoss1Scheme: NDCG Loss1 weighting scheme
+                - NDCGLoss2Scheme: NDCG Loss2 weighting scheme
+                - LambdaRankScheme: LambdaRank weighting scheme
+                - NDCGLoss2PPScheme: NDCG Loss2++ weighting scheme
 
-                Defaults to NoWeighingScheme. In the original LambdaLoss paper, the NDCGLoss2PPScheme was shown to reach
+                Defaults to NoWeightingScheme. In the original LambdaLoss paper, the NDCGLoss2PPScheme was shown to reach
                 the strongest performance, with the NDCGLoss2Scheme following closely.
             k (int, optional): Number of documents to consider for NDCG@K. Defaults to None (use all documents).
             sigma (float): Score difference weight used in sigmoid
@@ -186,7 +186,7 @@ class LambdaLoss(nn.Module):
         """
         super().__init__()
         self.model = model
-        self.weighing_scheme = weighing_scheme or NoWeighingScheme()
+        self.weighting_scheme = weighting_scheme or NoWeightingScheme()
         self.k = k
         self.sigma = sigma
         self.eps = eps
@@ -279,7 +279,7 @@ class LambdaLoss(nn.Module):
         true_diffs = true_sorted_by_preds[:, :, None] - true_sorted_by_preds[:, None, :]
         padded_pairs_mask = torch.isfinite(true_diffs)
 
-        if not isinstance(self.weighing_scheme, NDCGLoss1Scheme):
+        if not isinstance(self.weighting_scheme, NDCGLoss1Scheme):
             padded_pairs_mask = padded_pairs_mask & (true_diffs > 0)
 
         # Create truncation mask if k is specified
@@ -296,8 +296,8 @@ class LambdaLoss(nn.Module):
         maxDCGs = torch.sum(((torch.pow(2, labels_matrix_sorted) - 1) / discount)[:, :k], dim=-1).clamp(min=self.eps)
         gain = (torch.pow(2, true_sorted_by_preds) - 1) / maxDCGs[:, None]
 
-        # Apply weighing scheme
-        weights = self.weighing_scheme(gain, discount, true_sorted_by_preds)
+        # Apply weighting scheme
+        weights = self.weighting_scheme(gain, discount, true_sorted_by_preds)
 
         # Calculate scores differences and probabilities
         scores_diffs = (logits_matrix_sorted[:, :, None] - logits_matrix_sorted[:, None, :]).clamp(min=-1e8, max=1e8)
@@ -323,7 +323,7 @@ class LambdaLoss(nn.Module):
             Dictionary containing the configuration parameters
         """
         return {
-            "weighing_scheme": fullname(self.weighing_scheme),
+            "weighting_scheme": fullname(self.weighting_scheme),
             "k": self.k,
             "sigma": self.sigma,
             "eps": self.eps,
