@@ -35,14 +35,24 @@ class NoWeighingScheme(BaseWeighingScheme):
 
 
 class NDCGLoss1Scheme(BaseWeighingScheme):
-    """Implementation of NDCG Loss1 weighing scheme."""
+    """Implementation of NDCG Loss1 weighing scheme.
+
+    It is used to optimize for the NDCG metric, but this weighting scheme is not recommended as the
+    NDCGLoss2Scheme and NDCGLoss2PPScheme were shown to reach superior performance in the original
+    LambdaLoss paper.
+    """
 
     def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
         return (gain / discount)[:, :, None]
 
 
 class NDCGLoss2Scheme(BaseWeighingScheme):
-    """Implementation of NDCG Loss2 weighing scheme."""
+    """Implementation of NDCG Loss2 weighing scheme.
+
+    This scheme uses a tighter bound than NDCGLoss1Scheme and was shown to reach
+    superior performance in the original LambdaLoss paper. It is used to optimize
+    for the NDCG metric.
+    """
 
     def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
         pos_idxs = torch.arange(1, gain.shape[1] + 1, device=gain.device)
@@ -56,7 +66,10 @@ class NDCGLoss2Scheme(BaseWeighingScheme):
 
 
 class LambdaRankScheme(BaseWeighingScheme):
-    """Implementation of LambdaRank weighing scheme."""
+    """Implementation of LambdaRank weighing scheme.
+
+    This weighing optimizes a coarse upper bound of NDCG.
+    """
 
     def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
         return torch.abs(torch.pow(discount[:, :, None], -1.0) - torch.pow(discount[:, None, :], -1.0)) * torch.abs(
@@ -65,7 +78,10 @@ class LambdaRankScheme(BaseWeighingScheme):
 
 
 class NDCGLoss2PPScheme(BaseWeighingScheme):
-    """Implementation of NDCG Loss2++ weighing scheme."""
+    """Implementation of NDCG Loss2++ weighing scheme.
+
+    It is a hybrid weighing scheme that combines the NDCGLoss2 and LambdaRank schemes.
+    """
 
     def __init__(self, mu: float = 10.0):
         super().__init__()
@@ -110,7 +126,8 @@ class LambdaLoss(nn.Module):
                 - LambdaRankScheme: LambdaRank weighing scheme
                 - NDCGLoss2PPScheme: NDCG Loss2++ weighing scheme
 
-                Defaults to NoWeighingScheme.
+                Defaults to NoWeighingScheme. In the original LambdaLoss paper, the NDCGLoss2PPScheme was shown to reach
+                the strongest performance, with the NDCGLoss2Scheme following closely.
             k (int, optional): Number of documents to consider for NDCG@K. Defaults to None (use all documents).
             sigma (float): Score difference weight used in sigmoid
             eps (float): Small constant for numerical stability
