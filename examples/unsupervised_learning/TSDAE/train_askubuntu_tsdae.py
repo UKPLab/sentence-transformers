@@ -107,16 +107,18 @@ def noise_fn(text, del_ratio=0.6):
 # TSDAE requires a dataset with 2 columns: a text column and a noisified text column
 # Here we are using a function to delete some words, but you can use any other method to noisify your text
 train_dataset = train_dataset.map(noise_fn, input_columns="text")
+# Reorder columns to [(damaged_sentence, original_sentence) pairs] to ensure compatibility with ``DenoisingAutoEncoderDataset``.
+train_dataset = train_dataset.select_columns(['noisy', 'text'])
 print(train_dataset)
 print(train_dataset[0])
 """
 Dataset({
-    features: ['text', 'noisy'],
+    features: ['noisy', 'text'],
     num_rows: 160436
 })
 {
-    'text': "how to get the `` your battery is broken '' message to go away ?",
     'noisy': 'how to get "battery is broken go?',
+    'text': "how to get the `` your battery is broken '' message to go away ?",
 }
 """
 print(eval_dataset)
