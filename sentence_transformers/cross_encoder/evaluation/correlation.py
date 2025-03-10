@@ -38,7 +38,7 @@ class CrossEncoderCorrelationEvaluator(SentenceEvaluator):
             from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
 
             # Load a model
-            model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+            model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
 
             # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
             eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")

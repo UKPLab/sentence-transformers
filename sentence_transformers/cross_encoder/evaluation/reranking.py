@@ -46,8 +46,8 @@ class CrossEncoderRerankingEvaluator(SentenceEvaluator):
                 ranked by similarity, with the most similar documents first. Mutually exclusive with 'negative'.
         at_k (int, optional): Only consider the top k most similar documents to each query for the evaluation. Defaults to 10.
         always_rerank_positives (bool): If True, always evaluate with all positives included. If False, only include
-            the positives that are already in the documents list. Always set to True if your `samples` contain `negative`
-            instead of `documents`. When using `documents`, setting this to True will result in a more useful evaluation
+            the positives that are already in the documents list. Always set to True if your ``samples`` contain ``negative``
+            instead of ``documents``. When using ``documents``, setting this to True will result in a more useful evaluation
             signal, but setting it to False will result in a more realistic evaluation. Defaults to True.
         name (str, optional): Name of the evaluator, used for logging, saving in a CSV, and the model card. Defaults to "".
         batch_size (int): Batch size to compute sentence embeddings. Defaults to 64.
@@ -63,7 +63,7 @@ class CrossEncoderRerankingEvaluator(SentenceEvaluator):
             from datasets import load_dataset
 
             # Load a model
-            model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+            model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
 
             # Load a dataset with queries, positives, and negatives
             eval_dataset = load_dataset("microsoft/ms_marco", "v1.1", split="validation")
@@ -291,7 +291,9 @@ class CrossEncoderRerankingEvaluator(SentenceEvaluator):
         return mrr, ndcg, ap
 
     def get_config_dict(self):
-        return {
+        config_dict = {
             "at_k": self.at_k,
-            "always_rerank_positives": self.always_rerank_positives,
         }
+        if self.samples and "documents" in self.samples[0]:
+            config_dict["always_rerank_positives"] = self.always_rerank_positives
+        return config_dict

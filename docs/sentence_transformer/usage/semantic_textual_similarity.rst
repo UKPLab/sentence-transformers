@@ -1,7 +1,7 @@
 Semantic Textual Similarity
 ===========================
 
-For Semantic Textual Similarity (STS), we want to produce embeddings for all texts involved and calculate the similarities between them. The text pairs with the highest similarity score are most semantically similar. See also the `Computing Embeddings <../../../examples/applications/computing-embeddings/README.html>`_ documentation for more advanced details on getting embedding scores.
+For Semantic Textual Similarity (STS), we want to produce embeddings for all texts involved and calculate the similarities between them. The text pairs with the highest similarity score are most semantically similar. See also the `Computing Embeddings <../../../examples/sentence_transformer/applications/computing-embeddings/README.html>`_ documentation for more advanced details on getting embedding scores.
 
 .. sidebar:: Documentation
 
@@ -129,4 +129,4 @@ Sentence Transformers implements two methods to calculate the similarity between
 
    Dot product on normalized embeddings is equivalent to cosine similarity, but "cosine" will re-normalize the embeddings again. As a result, the "dot" metric will be faster than "cosine".
 
-If you want find the highest scoring pairs in a long list of sentences, have a look at `Paraphrase Mining <../../../examples/applications/paraphrase-mining/README.html>`_.
+If you want find the highest scoring pairs in a long list of sentences, have a look at `Paraphrase Mining <../../../examples/sentence_transformer/applications/paraphrase-mining/README.html>`_.

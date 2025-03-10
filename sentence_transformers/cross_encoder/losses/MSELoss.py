@@ -46,7 +46,7 @@ class MSELoss(nn.Module):
                 from datasets import Dataset
 
                 student_model = CrossEncoder("microsoft/mpnet-base")
-                teacher_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-12-v2")
+                teacher_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L12-v2")
                 train_dataset = Dataset.from_dict({
                     "query": ["What are pandas?", "What is the capital of France?"],
                     "answer": ["Pandas are a kind of bear.", "The capital of France is Paris."],

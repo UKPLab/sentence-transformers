@@ -438,7 +438,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             ::
 
                 from sentence_transformers import CrossEncoder
-                model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+                model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
 
                 query = "Who wrote 'To Kill a Mockingbird'?"
                 documents = [

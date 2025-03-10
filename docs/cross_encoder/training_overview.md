@@ -1,7 +1,7 @@
 # Training Overview
 
 ## Why Finetune?
-Cross Encoder models are very often used as 2nd stage rerankers in a [Retrieve and Rerank](../../examples/applications/retrieve_rerank/README.md) search stack. In such a situation, the Cross Encoder reranks the top X candidates from the retriever (which can be a [Sentence Transformer model](../sentence_transformer/usage/usage.rst)). To avoid the reranker model reducing the performance on your use case, finetuning it can be crucial. Rerankers always have just 1 output label.
+Cross Encoder models are very often used as 2nd stage rerankers in a [Retrieve and Rerank](../../examples/sentence_transformer/applications/retrieve_rerank/README.md) search stack. In such a situation, the Cross Encoder reranks the top X candidates from the retriever (which can be a [Sentence Transformer model](../sentence_transformer/usage/usage.rst)). To avoid the reranker model reducing the performance on your use case, finetuning it can be crucial. Rerankers always have just 1 output label.
 
 Beyond that, Cross Encoder models can also be used as pair classifiers. For example, a model trained on Natural Language Inference data can be used to classify pairs of texts as "contradiction", "entailment", and "neutral". Pair Classifiers generally have more than 1 output label.
 
@@ -380,7 +380,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         <div class="sidebar">
             <p class="sidebar-title">Documentation</p>
             <ul class="simple">
-                <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2">cross-encoder/ms-marco-MiniLM-L-6-v2</a></li>
+                <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2">cross-encoder/ms-marco-MiniLM-L6-v2</a></li>
                 <li><a class="reference internal" href="../package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.CrossEncoderNanoBEIREvaluator" title="sentence_transformers.evaluation.CrossEncoderNanoBEIREvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.evaluation.CrossEncoderNanoBEIREvaluator</span></code></a></li>
             </ul>
         </div>
@@ -391,7 +391,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
 
         # Load a model
-        model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
 
         # Initialize the evaluator. Unlike most other evaluators, this one loads the relevant datasets
         # directly from Hugging Face, so there's no mandatory arguments
@@ -430,7 +430,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         <div class="sidebar">
             <p class="sidebar-title">Documentation</p>
             <ul class="simple">
-                <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2">cross-encoder/ms-marco-MiniLM-L-6-v2</a></li>
+                <li><a class="reference external" href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2">cross-encoder/ms-marco-MiniLM-L6-v2</a></li>
                 <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/gooaq">sentence-transformers/gooaq</a></li>
                 <li><a class="reference internal" href="../package_reference/util.html#sentence_transformers.util.mine_hard_negatives" title="sentence_transformers.util.mine_hard_negatives"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.util.mine_hard_negatives</span></code></a></li>
                 <li><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator" title="sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator</span></code></a></li>
@@ -446,7 +446,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         from sentence_transformers.util import mine_hard_negatives
 
         # Load a model
-        model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
 
         # Load the GooAQ dataset: https://huggingface.co/datasets/sentence-transformers/gooaq
         full_dataset = load_dataset("sentence-transformers/gooaq", split=f"train").select(range(100_000))
@@ -513,7 +513,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         <div class="sidebar">
             <p class="sidebar-title">Documentation</p>
             <ul class="simple">
-                <li><a class="reference external" href="https://huggingface.co/cross-encoder/stsb-TinyBERT-L-4">cross-encoder/stsb-TinyBERT-L-4</a></li>
+                <li><a class="reference external" href="https://huggingface.co/cross-encoder/stsb-TinyBERT-L4">cross-encoder/stsb-TinyBERT-L4</a></li>
                 <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/stsb">sentence-transformers/stsb</a></li>
                 <li><a class="reference internal" href="../package_reference/cross_encoder/evaluation.html#sentence_transformers.cross_encoder.evaluation.CrossEncoderCorrelationEvaluator" title="sentence_transformers.cross_encoder.evaluation.CrossEncoderCorrelationEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.cross_encoder.evaluation.CrossEncoderCorrelationEvaluator</span></code></a></li>
             </ul>
@@ -526,7 +526,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         from sentence_transformers.cross_encoder.evaluation import CrossEncoderCorrelationEvaluator
 
         # Load a model
-        model = CrossEncoder("cross-encoder/stsb-TinyBERT-L-4")
+        model = CrossEncoder("cross-encoder/stsb-TinyBERT-L4")
 
         # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
         eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
@@ -951,7 +951,7 @@ Each training/evaluation batch will only contain samples from one of the dataset
 - ``MultiDatasetBatchSamplers.ROUND_ROBIN``: Round-robin sampling from each dataset until one is exhausted. With this strategy, it’s likely that not all samples from each dataset are used, but each dataset is sampled from equally.
 - ``MultiDatasetBatchSamplers.PROPORTIONAL`` (default): Sample from each dataset in proportion to its size. With this strategy, all samples from each dataset are used and larger datasets are sampled from more frequently.
 
-This multi-task training has been shown to be very effective, e.g. `Huang et al. <https://arxiv.org/pdf/2405.06932>`_ employed :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, :class:`~sentence_transformers.losses.CoSENTLoss`, and a variation on :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` without in-batch negatives and only hard negatives to reach state-of-the-art performance on Chinese. They even applied :class:`~sentence_transformers.losses.MatryoshkaLoss` to allow the model to produce `Matryoshka Embeddings <../../examples/training/matryoshka/README.html>`_.
+This multi-task training has been shown to be very effective, e.g. `Huang et al. <https://arxiv.org/pdf/2405.06932>`_ employed :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, :class:`~sentence_transformers.losses.CoSENTLoss`, and a variation on :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` without in-batch negatives and only hard negatives to reach state-of-the-art performance on Chinese. They even applied :class:`~sentence_transformers.losses.MatryoshkaLoss` to allow the model to produce `Matryoshka Embeddings <../../examples/sentence_transformer/training/matryoshka/README.html>`_.
 ```
 
 ## Deprecated Training 
@@ -983,4 +983,13 @@ In case there are issues with the updated :meth:`CrossEncoder.fit() <sentence_tr
 ```
 
 ## Comparisons with SentenceTransformer Training
-TODO
+
+```{eval-rst}
+Training :class:`~sentence_transformers.cross_encoder.CrossEncoder` models is very similar as training :class:`~sentence_transformers.SentenceTransformer` models, with some key differences:
+
+- Instead of just ``score`` and ``label``, columns named ``scores`` and ``labels`` will also be considered "label columns" for :class:`~sentence_transformers.cross_encoder.CrossEncoder` training. As you can see in the `Loss Overview <loss_overview.html>`_ documentation, some losses require specific labels/scores in a column with one of these names.
+- In :class:`~sentence_transformers.SentenceTransformer` training, you cannot use lists of inputs (e.g. texts) in a column of the training/evaluation dataset(s). For :class:`~sentence_transformers.cross_encoder.CrossEncoder` training, you **can** use (variably sized) lists of texts in a column. This is required for the :class:`~sentence_transformers.cross_encoder.losses.ListNetLoss` class, for example.
+
+See the `Sentence Transformer > Training Overview <../sentence_transformer/training_overview.html>`_ documentation for more details on training :class:`~sentence_transformers.SentenceTransformer` models.
+
+```

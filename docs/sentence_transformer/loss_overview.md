@@ -1,5 +1,7 @@
 # Loss Overview
 
+## Loss Table
+
 Loss functions play a critical role in the performance of your fine-tuned model. Sadly, there is no "one size fits all" loss function. Ideally, this table should help narrow down your choice of loss function(s) by matching them to your data formats.
 
 ```{eval-rst}
@@ -60,4 +62,6 @@ To get full support with the automatic model card generation, you may also wish 
 
 - a ``get_config_dict`` method that returns a dictionary of loss parameters.
 - a ``citation`` property so your work gets cited in all models that train with the loss.
+
+Consider inspecting existing loss functions to get a feel for how loss functions are commonly implemented.
 ```

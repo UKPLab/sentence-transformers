@@ -32,7 +32,7 @@ class ContrastiveTensionLoss(nn.Module):
 
     References:
         * Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
-        * `Unsupervised Learning > CT <../../examples/unsupervised_learning/CT/README.html>`_
+        * `Unsupervised Learning > CT <../../../examples/sentence_transformer/unsupervised_learning/CT/README.html>`_
 
     Inputs:
         +------------------+--------+
@@ -127,7 +127,7 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
 
         References:
             - Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
-            - `Unsupervised Learning > CT (In-Batch Negatives) <../../examples/unsupervised_learning/CT_In-Batch_Negatives/README.html>`_
+            - `Unsupervised Learning > CT (In-Batch Negatives) <../../../examples/sentence_transformer/unsupervised_learning/CT_In-Batch_Negatives/README.html>`_
 
         Relations:
             * :class:`ContrastiveTensionLoss` does not select negative pairs in-batch, resulting in a weaker training signal than this loss.

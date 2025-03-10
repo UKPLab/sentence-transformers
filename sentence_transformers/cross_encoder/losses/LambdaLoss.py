@@ -130,7 +130,7 @@ class LambdaLoss(nn.Module):
 
         References:
             - The LambdaLoss Framework for Ranking Metric Optimization: https://marc.najork.org/papers/cikm2018.pdf
-            - `Training Examples > Learning to Rank <../../../examples/training/cross-encoder/training_ms_marco_LambdaLoss_v4.py>`_
+            - `Training Examples > Learning to Rank <../../../examples/cross-encoder/training/ms_marco/training_ms_marco_lambda.py>`_
 
         Requirements:
             1. Query with multiple documents (listwise approach)
