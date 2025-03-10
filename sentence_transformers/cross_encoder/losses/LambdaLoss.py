@@ -310,7 +310,6 @@ class LambdaLoss(nn.Module):
             "k": self.k,
             "sigma": self.sigma,
             "eps": self.eps,
-            "reduction": self.reduction,
             "reduction_log": self.reduction_log,
             "activation_fct": fullname(self.activation_fct),
             "mini_batch_size": self.mini_batch_size,
