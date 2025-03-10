@@ -108,7 +108,7 @@ def noise_fn(text, del_ratio=0.6):
 # Here we are using a function to delete some words, but you can use any other method to noisify your text
 train_dataset = train_dataset.map(noise_fn, input_columns="text")
 # Reorder columns to [(damaged_sentence, original_sentence) pairs] to ensure compatibility with ``DenoisingAutoEncoderDataset``.
-train_dataset = train_dataset.select_columns(['noisy', 'text'])
+train_dataset = train_dataset.select_columns(["noisy", "text"])
 print(train_dataset)
 print(train_dataset[0])
 """
@@ -194,5 +194,5 @@ except Exception:
     logging.error(
         f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
         f"`huggingface-cli login`, followed by loading the model using `model = SentenceTransformer({final_output_dir!r})` "
-        f"and saving it using `model.push_to_hub('{model_name}-tsdae')`."
+        f"and saving it using `model.push_to_hub('{model_name}-tsdae-askubuntu')`."
     )

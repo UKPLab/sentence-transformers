@@ -58,7 +58,7 @@ def noise_fn(text, del_ratio=0.6):
 # Here we are using a function to delete some words, but you can use any other method to noisify your text
 dataset = dataset.map(noise_fn, input_columns="text")
 # Reorder columns to [(damaged_sentence, original_sentence) pairs] to ensure compatibility with ``DenoisingAutoEncoderDataset``.
-dataset = dataset.select_columns(['noisy', 'text'])
+dataset = dataset.select_columns(["noisy", "text"])
 dataset = dataset.train_test_split(test_size=10000)
 train_dataset = dataset["train"]
 eval_dataset = dataset["test"]
