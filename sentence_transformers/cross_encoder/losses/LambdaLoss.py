@@ -86,7 +86,6 @@ class LambdaLoss(nn.Module):
         k: int | None = None,
         sigma: float = 1.0,
         eps: float = 1e-10,
-        reduction: Literal["sum", "mean"] = "sum",
         reduction_log: Literal["natural", "binary"] = "binary",
         activation_fct: nn.Module | None = nn.Identity(),
         mini_batch_size: int | None = None,
@@ -114,9 +113,6 @@ class LambdaLoss(nn.Module):
             k (int, optional): Number of documents to consider for NDCG@K. Defaults to None (use all documents).
             sigma (float): Score difference weight used in sigmoid
             eps (float): Small constant for numerical stability
-            reduction (str): Method to reduce the loss
-                - "sum": Sum the loss over all valid pairs
-                - "mean": Average the loss over all valid pairs
             reduction_log (str): Type of logarithm to use
                 - "natural": Natural logarithm (log)
                 - "binary": Binary logarithm (log2)
@@ -176,7 +172,6 @@ class LambdaLoss(nn.Module):
         self.k = k
         self.sigma = sigma
         self.eps = eps
-        self.reduction = reduction
         self.reduction_log = reduction_log
         self.activation_fct = activation_fct or nn.Identity()
         self.mini_batch_size = mini_batch_size
@@ -297,13 +292,9 @@ class LambdaLoss(nn.Module):
         else:  # binary
             losses = torch.log2(weighted_probas)
 
-        # Apply final reduction
+        # Apply masks and reduction
         masked_losses = losses[padded_pairs_mask & ndcg_at_k_mask]
-        if self.reduction == "sum":
-            loss = -torch.sum(masked_losses)
-        else:
-            loss = -torch.mean(masked_losses)
-
+        loss = -torch.mean(masked_losses)
         return loss
 
     def get_config_dict(self) -> dict[str, float | int | str | None]:
