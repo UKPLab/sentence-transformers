@@ -12,13 +12,13 @@ from sentence_transformers.util import fullname
 class BaseWeighingScheme(nn.Module):
     """Base class for implementing weighing schemes in LambdaLoss."""
 
-    def forward(self, G: Tensor, D: Tensor, true_sorted: Tensor) -> Tensor:
+    def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
         """
         Calculate weights for the loss function.
 
         Args:
-            G: Normalized gains tensor
-            D: Discount tensor
+            gain: Normalized gains tensor
+            discount: Discount tensor
             true_sorted: Sorted ground truth labels
 
         Returns:
@@ -30,36 +30,37 @@ class BaseWeighingScheme(nn.Module):
 class NoWeighingScheme(BaseWeighingScheme):
     """Implementation of no weighing scheme (weights = 1.0)."""
 
-    def forward(self, G: Tensor, D: Tensor, true_sorted: Tensor) -> Tensor:
-        return torch.tensor(1.0, device=G.device)
+    def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
+        return torch.tensor(1.0, device=gain.device)
 
 
 class NDCGLoss1Scheme(BaseWeighingScheme):
     """Implementation of NDCG Loss1 weighing scheme."""
 
-    def forward(self, G: Tensor, D: Tensor, true_sorted: Tensor) -> Tensor:
-        return (G / D)[:, :, None]
+    def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
+        return (gain / discount)[:, :, None]
 
 
 class NDCGLoss2Scheme(BaseWeighingScheme):
     """Implementation of NDCG Loss2 weighing scheme."""
 
-    def forward(self, G: Tensor, D: Tensor, true_sorted: Tensor) -> Tensor:
-        pos_idxs = torch.arange(1, G.shape[1] + 1, device=G.device)
+    def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
+        pos_idxs = torch.arange(1, gain.shape[1] + 1, device=gain.device)
         delta_idxs = torch.abs(pos_idxs[:, None] - pos_idxs[None, :])
         deltas = torch.abs(
-            torch.pow(torch.abs(D[0, delta_idxs - 1]), -1.0) - torch.pow(torch.abs(D[0, delta_idxs]), -1.0)
+            torch.pow(torch.abs(discount[0, delta_idxs - 1]), -1.0)
+            - torch.pow(torch.abs(discount[0, delta_idxs]), -1.0)
         )
         deltas.diagonal().zero_()
-        return deltas[None, :, :] * torch.abs(G[:, :, None] - G[:, None, :])
+        return deltas[None, :, :] * torch.abs(gain[:, :, None] - gain[:, None, :])
 
 
 class LambdaRankScheme(BaseWeighingScheme):
     """Implementation of LambdaRank weighing scheme."""
 
-    def forward(self, G: Tensor, D: Tensor, true_sorted: Tensor) -> Tensor:
-        return torch.abs(torch.pow(D[:, :, None], -1.0) - torch.pow(D[:, None, :], -1.0)) * torch.abs(
-            G[:, :, None] - G[:, None, :]
+    def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
+        return torch.abs(torch.pow(discount[:, :, None], -1.0) - torch.pow(discount[:, None, :], -1.0)) * torch.abs(
+            gain[:, :, None] - gain[:, None, :]
         )
 
 
@@ -72,9 +73,9 @@ class NDCGLoss2PPScheme(BaseWeighingScheme):
         self.ndcg_loss2 = NDCGLoss2Scheme()
         self.lambda_rank = LambdaRankScheme()
 
-    def forward(self, G: Tensor, D: Tensor, true_sorted: Tensor) -> Tensor:
-        ndcg_weights = self.ndcg_loss2(G, D, true_sorted)
-        lambda_weights = self.lambda_rank(G, D, true_sorted)
+    def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
+        ndcg_weights = self.ndcg_loss2(gain, discount, true_sorted)
+        lambda_weights = self.lambda_rank(gain, discount, true_sorted)
         return self.mu * ndcg_weights + lambda_weights
 
 
@@ -274,12 +275,12 @@ class LambdaLoss(nn.Module):
         labels_matrix_sorted.clamp_(min=0.0)
 
         pos_idxs = torch.arange(1, max_docs + 1).to(self.model.device)
-        D = torch.log2(1.0 + pos_idxs.float())[None, :]
-        maxDCGs = torch.sum(((torch.pow(2, labels_matrix_sorted) - 1) / D)[:, :k], dim=-1).clamp(min=self.eps)
-        G = (torch.pow(2, true_sorted_by_preds) - 1) / maxDCGs[:, None]
+        discount = torch.log2(1.0 + pos_idxs.float())[None, :]
+        maxDCGs = torch.sum(((torch.pow(2, labels_matrix_sorted) - 1) / discount)[:, :k], dim=-1).clamp(min=self.eps)
+        gain = (torch.pow(2, true_sorted_by_preds) - 1) / maxDCGs[:, None]
 
         # Apply weighing scheme
-        weights = self.weighing_scheme(G, D, true_sorted_by_preds)
+        weights = self.weighing_scheme(gain, discount, true_sorted_by_preds)
 
         # Calculate scores differences and probabilities
         scores_diffs = (logits_matrix_sorted[:, :, None] - logits_matrix_sorted[:, None, :]).clamp(min=-1e8, max=1e8)
