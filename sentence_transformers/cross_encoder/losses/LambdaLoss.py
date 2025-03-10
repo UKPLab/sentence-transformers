@@ -12,6 +12,10 @@ from sentence_transformers.util import fullname
 class BaseWeightingScheme(nn.Module):
     """Base class for implementing weighting schemes in LambdaLoss."""
 
+    def __init__(self, *args, **kwargs) -> None:
+        """"""
+        super().__init__(*args, **kwargs)
+
     def forward(self, gain: Tensor, discount: Tensor, true_sorted: Tensor) -> Tensor:
         """
         Calculate weights for the loss function.
@@ -80,7 +84,8 @@ class LambdaRankScheme(BaseWeightingScheme):
 class NDCGLoss2PPScheme(BaseWeightingScheme):
     """Implementation of NDCG Loss2++ weighting scheme.
 
-    It is a hybrid weighting scheme that combines the NDCGLoss2 and LambdaRank schemes.
+    It is a hybrid weighting scheme that combines the NDCGLoss2 and LambdaRank schemes. It
+    was shown to reach the strongest performance in the original LambdaLoss paper.
     """
 
     def __init__(self, mu: float = 10.0):
