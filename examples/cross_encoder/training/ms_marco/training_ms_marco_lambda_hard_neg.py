@@ -8,9 +8,7 @@ from sentence_transformers import CrossEncoder, SentenceTransformer
 from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
 from sentence_transformers.cross_encoder.losses import LambdaLoss, NDCGLoss2PPScheme
 from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
-from sentence_transformers.cross_encoder.training_args import (
-    CrossEncoderTrainingArguments,
-)
+from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
 from sentence_transformers.util import mine_hard_negatives
 
 
@@ -35,7 +33,7 @@ def main():
     dt = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # 1. Define our CrossEncoder model
-    model = CrossEncoder(model_name, num_labels=1, cache_folder=".cache")
+    model = CrossEncoder(model_name, num_labels=1)
     print("Model max length:", model.max_length)
     print("Model num labels:", model.num_labels)
 
@@ -43,96 +41,7 @@ def main():
     logging.info("Read train dataset")
     dataset = load_dataset("microsoft/ms_marco", "v1.1", split="train")
 
-    def listwise_hard_negative_mining(
-        embedding_model_name: str,
-        dataset: Dataset,
-        start_idx: int,
-        num_hard_negatives: int,
-        mine_hard_neg_batch_size: int,
-    ) -> Dataset:
-        logging.info("Creating hard negative dataset")
-        query_positive_pairs = []
-
-        # Extract all queries and positive pairs
-        for item in dataset:
-            query = item["query"]
-            passages = item["passages"]["passage_text"]
-            labels = item["passages"]["is_selected"]
-
-            # Find positive passages
-            for i, (passage, label) in enumerate(zip(passages, labels)):
-                if label > 0:
-                    query_positive_pairs.append({"query": query, "positive": passage})
-
-        pairs_dataset = Dataset.from_dict(
-            {
-                "query": [item["query"] for item in query_positive_pairs],
-                "positive": [item["positive"] for item in query_positive_pairs],
-            }
-        )
-        logging.info(f"Created {len(pairs_dataset):_} query-positive pairs")
-
-        # Extract all passages to use as corpus
-        all_passages = []
-        for item in dataset:
-            all_passages.extend(item["passages"]["passage_text"])
-
-        # Remove duplicates
-        all_passages = list(set(all_passages))
-        logging.info(f"Corpus contains {len(all_passages):_} unique passages")
-
-        # Use the mine_hard_negatives utility to find hard negatives
-        hard_negatives_dataset = mine_hard_negatives(
-            dataset=pairs_dataset,
-            model=SentenceTransformer(embedding_model_name, cache_folder=".cache"),
-            corpus=all_passages,  # Use all passages as the corpus
-            num_negatives=num_hard_negatives,
-            range_min=start_idx,  # Skip the most similar passages
-            range_max=start_idx + num_hard_negatives * 3,  # Look for negatives in a reasonable range
-            batch_size=mine_hard_neg_batch_size,
-            output_format="n-tuple",
-            use_faiss=True,
-        )
-
-        negative_columns = [col for col in hard_negatives_dataset.column_names if col.startswith("negative_")]
-
-        def transform_to_listwise(batch):
-            processed_docs = []
-            processed_labels = []
-
-            for i in range(len(batch["query"])):
-                docs = [batch["positive"][i]]
-                for neg_col in negative_columns:
-                    docs.append(batch[neg_col][i])
-                processed_labels.append([1] + [0] * len(negative_columns))
-                processed_docs.append(docs)
-
-            return {
-                "query": batch["query"],
-                "docs": processed_docs,
-                "labels": processed_labels,
-            }
-
-        return hard_negatives_dataset.map(
-            lambda batch: transform_to_listwise(batch),
-            batched=True,
-            remove_columns=hard_negatives_dataset.column_names,
-            desc="Converting to listwise structure",
-        )
-
-    embedding_model_name = "all-MiniLM-L6-v2"
-    start_idx = 3
-    num_hard_negatives = 9  # 1 positive + 9 negatives
-    mine_hard_neg_batch_size = 1024
-
-    hard_negatives_dataset = listwise_hard_negative_mining(
-        embedding_model_name=embedding_model_name,
-        dataset=dataset,
-        start_idx=start_idx,
-        num_hard_negatives=num_hard_negatives,
-        mine_hard_neg_batch_size=mine_hard_neg_batch_size,
-    )
-
+    # 2a. Prepare the normal MS MARCO dataset for training
     def listwise_mapper(batch, max_docs: int | None = 10):
         processed_queries = []
         processed_docs = []
@@ -170,15 +79,77 @@ def main():
 
     # Create a dataset with a "query" column with strings, a "docs" column with lists of strings,
     # and a "labels" column with lists of floats
-    dataset = dataset.map(
+    listwise_dataset = dataset.map(
         lambda batch: listwise_mapper(batch=batch, max_docs=max_docs),
         batched=True,
         remove_columns=dataset.column_names,
         desc="Processing listwise samples",
     )
 
-    # Concatenate datasets
-    dataset = concatenate_datasets([dataset, hard_negatives_dataset])
+    # 2b. Prepare the hard negative dataset by mining hard negatives
+    embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    embedding_model_batch_size = 1024
+    start_idx = 3
+    num_hard_negatives = 9  # 1 positive + 9 negatives
+
+    logging.info("Creating hard negative dataset")
+    queries = []
+    positives = []
+
+    # Extract all queries and positive pairs
+    for item in dataset:
+        query = item["query"]
+        passages = item["passages"]["passage_text"]
+        labels = item["passages"]["is_selected"]
+
+        # Find positive passages
+        for i, (passage, label) in enumerate(zip(passages, labels)):
+            if label > 0:
+                queries.append(query)
+                positives.append(passage)
+
+    pairs_dataset = Dataset.from_dict({"query": queries, "positive": positives})
+    logging.info(f"Created {len(pairs_dataset):_} query-positive pairs")
+
+    # Extract all passages to use as corpus
+    all_passages = []
+    for item in dataset:
+        all_passages.extend(item["passages"]["passage_text"])
+
+    # Remove duplicates
+    all_passages = list(set(all_passages))
+    logging.info(f"Corpus contains {len(all_passages):_} unique passages")
+
+    # Use the mine_hard_negatives utility to find hard negatives
+    hard_negatives_dataset = mine_hard_negatives(
+        dataset=pairs_dataset,
+        model=embedding_model,
+        corpus=all_passages,  # Use all passages as the corpus
+        num_negatives=num_hard_negatives,
+        range_min=start_idx,  # Skip the most similar passages
+        range_max=start_idx + num_hard_negatives * 3,  # Look for negatives in a reasonable range
+        batch_size=embedding_model_batch_size,
+        output_format="n-tuple",
+        use_faiss=True,
+    )
+
+    def transform_to_listwise(batch):
+        queries = batch.pop("query")
+        # Combine all positive and negative passages for each query, setting the first passage as the positive
+        # (label 1) and the rest as negatives (label 0)
+        docs = list(zip(*batch.values()))
+        labels = [[1] + [0] * (len(docs[0]) - 1) for _ in range(len(queries))]
+        return {"query": queries, "docs": docs, "labels": labels}
+
+    hard_negatives_dataset = hard_negatives_dataset.map(
+        lambda batch: transform_to_listwise(batch),
+        batched=True,
+        remove_columns=hard_negatives_dataset.column_names,
+        desc="Converting to listwise structure",
+    )
+
+    # Concatenate the two datasets into one
+    dataset: Dataset = concatenate_datasets([listwise_dataset, hard_negatives_dataset])
 
     dataset = dataset.train_test_split(test_size=1_000, seed=12)
     train_dataset = dataset["train"]

@@ -8,9 +8,7 @@ from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
 from sentence_transformers.cross_encoder.losses import LambdaLoss, NDCGLoss2PPScheme
 from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
-from sentence_transformers.cross_encoder.training_args import (
-    CrossEncoderTrainingArguments,
-)
+from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
 
 
 def main():
@@ -34,7 +32,7 @@ def main():
     dt = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # 1. Define our CrossEncoder model
-    model = CrossEncoder(model_name, num_labels=1, cache_dir=".cache")
+    model = CrossEncoder(model_name, num_labels=1)
     print("Model max length:", model.max_length)
     print("Model num labels:", model.num_labels)
 
