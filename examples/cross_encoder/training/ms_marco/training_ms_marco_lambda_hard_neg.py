@@ -89,7 +89,7 @@ def main():
     # 2b. Prepare the hard negative dataset by mining hard negatives
     embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
     embedding_model_batch_size = 1024
-    start_idx = 3
+    skip_n_hardest = 3
     num_hard_negatives = 9  # 1 positive + 9 negatives
 
     logging.info("Creating hard negative dataset")
@@ -126,8 +126,8 @@ def main():
         model=embedding_model,
         corpus=all_passages,  # Use all passages as the corpus
         num_negatives=num_hard_negatives,
-        range_min=start_idx,  # Skip the most similar passages
-        range_max=start_idx + num_hard_negatives * 3,  # Look for negatives in a reasonable range
+        range_min=skip_n_hardest,  # Skip the most similar passages
+        range_max=skip_n_hardest + num_hard_negatives * 3,  # Look for negatives in a reasonable range
         batch_size=embedding_model_batch_size,
         output_format="n-tuple",
         use_faiss=True,
