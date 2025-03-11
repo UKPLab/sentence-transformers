@@ -137,7 +137,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             token=token,
             **config_kwargs,
         )
-        classifier_trained = False  # TODO: This is 'breaking'
+        classifier_trained = False
         if config.architectures is not None:
             classifier_trained = any([arch.endswith("ForSequenceClassification") for arch in config.architectures])
 
