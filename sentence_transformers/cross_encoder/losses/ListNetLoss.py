@@ -174,9 +174,7 @@ class ListNetLoss(nn.Module):
         Returns:
             Dictionary containing the configuration parameters
         """
-        return {
-            "activation_fct": fullname(self.activation_fct),
-        }
+        return {"activation_fct": fullname(self.activation_fct), "mini_batch_size": self.mini_batch_size}
 
     @property
     def citation(self) -> str:

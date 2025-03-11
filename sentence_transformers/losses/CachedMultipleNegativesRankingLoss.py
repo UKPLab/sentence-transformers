@@ -279,7 +279,11 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         return loss
 
     def get_config_dict(self) -> dict[str, Any]:
-        return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
+        return {
+            "scale": self.scale,
+            "similarity_fct": self.similarity_fct.__name__,
+            "mini_batch_size": self.mini_batch_size,
+        }
 
     @property
     def citation(self) -> str:
