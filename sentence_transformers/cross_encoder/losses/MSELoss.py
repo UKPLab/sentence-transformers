@@ -24,6 +24,7 @@ class MSELoss(nn.Module):
 
         References:
             - Improving Efficient Neural Ranking Models with Cross-Architecture Knowledge Distillation: https://arxiv.org/abs/2010.02666
+            - `Cross Encoder > Training Examples > Distillation <../../../examples/cross_encoder/training/distillation/README.html>`_
 
         Requirements:
             1. Your model must be initialized with `num_labels = 1` (a.k.a. the default) to predict one class.

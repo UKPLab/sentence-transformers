@@ -113,6 +113,8 @@ class CachedMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
             - Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup: https://arxiv.org/pdf/2101.06983.pdf
+            - `Cross Encoder > Training Examples > MS MARCO <../../../examples/cross_encoder/training/ms_marco/README.html>`_
+            - `Cross Encoder > Training Examples > Rerankers <../../../examples/cross_encoder/training/rerankers/README.html>`_
 
         Requirements:
             1. Your model must be initialized with `num_labels = 1` (a.k.a. the default) to predict one class.

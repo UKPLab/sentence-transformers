@@ -29,6 +29,10 @@ class BinaryCrossEntropyLoss(nn.Module):
 
         References:
             - :class:`torch.nn.BCEWithLogitsLoss`
+            - `Cross Encoder > Training Examples > Semantic Textual Similarity <../../../examples/cross_encoder/training/sts/README.html>`_
+            - `Cross Encoder > Training Examples > Quora Duplicate Questions <../../../examples/cross_encoder/training/quora_duplicate_questions/README.html>`_
+            - `Cross Encoder > Training Examples > MS MARCO <../../../examples/cross_encoder/training/ms_marco/README.html>`_
+            - `Cross Encoder > Training Examples > Rerankers <../../../examples/cross_encoder/training/rerankers/README.html>`_
 
         Requirements:
             1. Your model must be initialized with `num_labels = 1` (a.k.a. the default) to predict one class.

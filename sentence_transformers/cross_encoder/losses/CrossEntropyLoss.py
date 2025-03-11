@@ -19,6 +19,7 @@ class CrossEntropyLoss(nn.Module):
 
         References:
             - :class:`torch.nn.CrossEntropyLoss`
+            - `Cross Encoder > Training Examples > Natural Language Inference <../../../examples/cross_encoder/training/nli/README.html>`_
 
         Requirements:
             1. Your model can be initialized with `num_labels > 1` to predict multiple classes.

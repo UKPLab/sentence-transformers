@@ -41,7 +41,7 @@ class ListNetLoss(nn.Module):
         References:
             - Learning to Rank: From Pairwise Approach to Listwise Approach: https://www.microsoft.com/en-us/research/publication/learning-to-rank-from-pairwise-approach-to-listwise-approach/
             - Context-Aware Learning to Rank with Self-Attention: https://arxiv.org/abs/2005.10084
-            - `Training Examples > MS MARCO <../../../examples/cross_encoder/training/ms_marco/README.html>`_
+            - `Cross Encoder > Training Examples > MS MARCO <../../../examples/cross_encoder/training/ms_marco/README.html>`_
 
         Requirements:
             1. Query with multiple documents (listwise approach)
