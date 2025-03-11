@@ -49,7 +49,15 @@ with (
         line = line.strip()
         if len(line) >= 10:
             train_sentences.append(line)
-dataset = Dataset.from_dict({"text": train_sentences})
+
+dataset = Dataset.from_dict({"noisy": train_sentences, "text": train_sentences})
+
+
+def noise_transform(batch):
+    if "noisy" not in batch:
+        raise ValueError("Input batch must contain a 'noisy' key.")
+    batch["noisy"] = [noise_fn(text) for text in batch["noisy"]]
+    return batch
 
 
 def noise_fn(text, del_ratio=0.6):
@@ -67,14 +75,13 @@ def noise_fn(text, del_ratio=0.6):
         return {"noisy": random.choice(words)}
 
     noisy_text = TreebankWordDetokenizer().detokenize(kept_words)
-    return {"noisy": noisy_text}
+    return noisy_text
 
 
 # TSDAE requires a dataset with 2 columns: a text column and a noisified text column
-# Here we are using a function to delete some words, but you can use any other method to noisify your text
-dataset = dataset.map(noise_fn, input_columns="text")
-# Reorder columns to [(damaged_sentence, original_sentence) pairs] to ensure compatibility with ``DenoisingAutoEncoderDataset``.
-dataset = dataset.select_columns(["noisy", "text"])
+# Here we are using a function to delete some words, but you can customize `noise_fn` for other method to noisify your text
+# As the deletion should be dynamic and on-the-fly during training, we use set_transform to obtain it
+dataset.set_transform(transform=noise_transform, columns=["noisy"], output_all_columns=True)
 dataset = dataset.train_test_split(test_size=10000)
 train_dataset = dataset["train"]
 eval_dataset = dataset["test"]
