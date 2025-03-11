@@ -51,8 +51,8 @@ class STSDataReader:
         with (
             gzip.open(filepath, "rt", encoding="utf8")
             if filename.endswith(".gz")
-            else open(filepath, encoding="utf-8") as fIn
-        ):
+            else open(filepath, encoding="utf-8")
+        ) as fIn:
             data = csv.reader(fIn, delimiter=self.delimiter, quoting=self.quoting)
             examples = []
             for id, row in enumerate(data):
