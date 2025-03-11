@@ -12,7 +12,7 @@ from sentence_transformers import CrossEncoder
 import torch
 
 # Load https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2
-model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2", default_activation_function=torch.nn.Sigmoid())
+model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2", activation_fn=torch.nn.Sigmoid())
 scores = model.predict([
     ("How many people live in Berlin?", "Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers."),
     ("How many people live in Berlin?", "Berlin is well known for its museums."),
@@ -27,7 +27,7 @@ Cross-Encoders require text pairs as inputs and output a score 0...1 (if the Sig
 
 ```{eval-rst}
 .. note::
-    You can initialize these models with ``default_activation_function=torch.nn.Sigmoid()`` to force the model to return scores between 0 and 1. Otherwise, the raw value can reasonably range between -10 and 10.
+    You can initialize these models with ``activation_fn=torch.nn.Sigmoid()`` to force the model to return scores between 0 and 1. Otherwise, the raw value can reasonably range between -10 and 10.
 ```
 
 | Model Name        | NDCG@10 (TREC DL 19) | MRR@10 (MS Marco Dev)  | Docs / Sec |
