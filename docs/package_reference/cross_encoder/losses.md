@@ -17,6 +17,7 @@ Sadly, there is no "one size fits all" loss function. Which loss function is sui
 ```{eval-rst}
 .. autoclass:: sentence_transformers.cross_encoder.losses.LambdaLoss
 
+.. autoclass:: sentence_transformers.cross_encoder.losses.LambdaLoss.BaseWeightingScheme
 .. autoclass:: sentence_transformers.cross_encoder.losses.NoWeightingScheme
 .. autoclass:: sentence_transformers.cross_encoder.losses.NDCGLoss1Scheme
 .. autoclass:: sentence_transformers.cross_encoder.losses.NDCGLoss2Scheme

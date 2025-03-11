@@ -124,12 +124,13 @@ class LambdaLoss(nn.Module):
 
         Args:
             model (CrossEncoder): CrossEncoder model to be trained
-            weighting_scheme (:class: `BaseWeightingScheme`, optional): Weighting scheme to use for the loss.
-                - NoWeightingScheme: No weighting scheme (weights = 1.0)
-                - NDCGLoss1Scheme: NDCG Loss1 weighting scheme
-                - NDCGLoss2Scheme: NDCG Loss2 weighting scheme
-                - LambdaRankScheme: LambdaRank weighting scheme
-                - NDCGLoss2PPScheme: NDCG Loss2++ weighting scheme
+            weighting_scheme (:class:`~sentence_transformers.cross_encoder.losses.LambdaLoss.BaseWeightingScheme`, optional): Weighting scheme to use for the loss.
+
+                - :class:`~sentence_transformers.cross_encoder.losses.NoWeightingScheme`: No weighting scheme (weights = 1.0)
+                - :class:`~sentence_transformers.cross_encoder.losses.NDCGLoss1Scheme`: NDCG Loss1 weighting scheme
+                - :class:`~sentence_transformers.cross_encoder.losses.NDCGLoss2Scheme`: NDCG Loss2 weighting scheme
+                - :class:`~sentence_transformers.cross_encoder.losses.LambdaRankScheme`: LambdaRank weighting scheme
+                - :class:`~sentence_transformers.cross_encoder.losses.NDCGLoss2PPScheme`: NDCG Loss2++ weighting scheme
 
                 Defaults to NDCGLoss2PPScheme. In the original LambdaLoss paper, the NDCGLoss2PPScheme was shown to reach
                 the strongest performance, with the NDCGLoss2Scheme following closely.
@@ -152,7 +153,8 @@ class LambdaLoss(nn.Module):
 
         References:
             - The LambdaLoss Framework for Ranking Metric Optimization: https://marc.najork.org/papers/cikm2018.pdf
-            - `Training Examples > Learning to Rank <../../../examples/cross-encoder/training/ms_marco/training_ms_marco_lambda.py>`_
+            - Context-Aware Learning to Rank with Self-Attention: https://arxiv.org/abs/2005.10084
+            - `Training Examples > MS MARCO <../../../examples/cross_encoder/training/ms_marco/README.html>`_
 
         Requirements:
             1. Query with multiple documents (listwise approach)
