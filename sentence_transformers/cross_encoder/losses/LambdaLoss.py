@@ -104,7 +104,7 @@ class LambdaLoss(nn.Module):
     def __init__(
         self,
         model: CrossEncoder,
-        weighting_scheme: BaseWeightingScheme | None = NoWeightingScheme(),
+        weighting_scheme: BaseWeightingScheme | None = NDCGLoss2PPScheme(),
         k: int | None = None,
         sigma: float = 1.0,
         eps: float = 1e-10,
@@ -131,7 +131,7 @@ class LambdaLoss(nn.Module):
                 - LambdaRankScheme: LambdaRank weighting scheme
                 - NDCGLoss2PPScheme: NDCG Loss2++ weighting scheme
 
-                Defaults to NoWeightingScheme. In the original LambdaLoss paper, the NDCGLoss2PPScheme was shown to reach
+                Defaults to NDCGLoss2PPScheme. In the original LambdaLoss paper, the NDCGLoss2PPScheme was shown to reach
                 the strongest performance, with the NDCGLoss2Scheme following closely.
             k (int, optional): Number of documents to consider for NDCG@K. Defaults to None (use all documents).
             sigma (float): Score difference weight used in sigmoid
