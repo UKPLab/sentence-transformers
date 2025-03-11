@@ -43,7 +43,7 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
         task_name (`str`): The human-readable task the model is trained on,
             e.g. "semantic search and paraphrase mining".
         tags (`Optional[List[str]]`): A list of tags for the model,
-            e.g. ["sentence-transformers", "cross-encoder", "sentence-ranking", "text-classification"].
+            e.g. ["sentence-transformers", "cross-encoder"].
 
     .. tip::
 
@@ -70,7 +70,6 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
         default_factory=lambda: [
             "sentence-transformers",
             "cross-encoder",
-            "text-classification",
         ]
     )
 
@@ -78,9 +77,7 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
     predict_example: list[list[str]] | None = field(default=None, init=False)
 
     # Computed once, always unchanged
-    # TODO: text-ranking would be nice; but we don't have a widget for that yet
-    # Note also that this only applies for models with num_labels=1
-    pipeline_tag: str = field(default="text-classification", init=False)
+    pipeline_tag: str = field(default=None, init=False)
 
     # Passed via `register_model` only
     model: CrossEncoder | None = field(default=None, init=False, repr=False)
@@ -121,6 +118,8 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
             self.task_name = (
                 "text reranking and semantic search" if model.num_labels == 1 else "text pair classification"
             )
+        if self.pipeline_tag is None:
+            self.pipeline_tag = "text-ranking" if model.num_labels == 1 else "text-classification"
 
     def tokenize(self, text: str | list[str]) -> dict[str, Any]:
         return self.model.tokenizer(text)

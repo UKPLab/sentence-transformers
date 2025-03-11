@@ -3,7 +3,7 @@
 We have released various pre-trained Cross Encoder models via our [Cross Encoder Hugging Face organization](https://huggingface.co/models?author=cross-encoder). Additionally, numerous community CrossEncoder models have been publicly released on the Hugging Face Hub.
 
 * **Original models**: [Cross Encoder Hugging Face organization](https://huggingface.co/models?library=sentence-transformers&author=cross-encoder).
-* **Community models**: All Cross Encoder models on Hugging Face. TODO
+* **Community models**: [All Cross Encoder models on Hugging Face](https://huggingface.co/models?library=sentence-transformers&pipeline_tag=text-ranking)
 
 Each of these models can be easily downloaded and used like so:
 

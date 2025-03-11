@@ -45,6 +45,7 @@ def dummy_dataset():
             [
                 "- sentence-transformers",
                 "- cross-encoder",
+                "pipeline_tag: text-ranking",
                 "This is a [Cross Encoder](https://www.sbert.net/docs/cross_encoder/usage/usage.html) model finetuned from [prajjwal1/bert-tiny](https://huggingface.co/prajjwal1/bert-tiny)",
                 "[sentence-transformers](https://www.SBERT.net) library",
                 "It computes scores for pairs of texts, which can be used for text reranking and semantic search.",
@@ -69,6 +70,7 @@ def dummy_dataset():
             [
                 "- sentence-transformers",
                 "- cross-encoder",
+                "pipeline_tag: text-classification",
                 "This is a [Cross Encoder](https://www.sbert.net/docs/cross_encoder/usage/usage.html) model finetuned from [prajjwal1/bert-tiny](https://huggingface.co/prajjwal1/bert-tiny)",
                 "[sentence-transformers](https://www.SBERT.net) library",
                 "It computes scores for pairs of texts, which can be used for text pair classification.",
