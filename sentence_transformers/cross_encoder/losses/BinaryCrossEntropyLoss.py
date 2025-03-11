@@ -17,14 +17,14 @@ class BinaryCrossEntropyLoss(nn.Module):
         """
         Computes the Binary Cross Entropy Loss for a CrossEncoder model. This loss is used to train a model to predict
         a high logit for positive pairs and a low logit for negative pairs. The model should be initialized with
-        `num_labels = 1` (a.k.a. the default) to predict one class.
+        ``num_labels = 1`` (a.k.a. the default) to predict one class.
 
         It has been used to train many of the strong `CrossEncoder MS MARCO Reranker models <https://huggingface.co/models?author=cross-encoder&search=marco>`_.
 
         Args:
             model (:class:`~sentence_transformers.cross_encoder.CrossEncoder`): A CrossEncoder model to be trained.
             activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Identity`.
-            pos_weight (Tensor, optional): A weight of positive examples. Must be a :class:`torch.Tensor` like `torch.tensor(4)` for a weight of 4. Defaults to None.
+            pos_weight (Tensor, optional): A weight of positive examples. Must be a :class:`torch.Tensor` like ``torch.tensor(4)`` for a weight of 4. Defaults to None.
             **kwargs: Additional keyword arguments passed to the underlying :class:`torch.nn.BCEWithLogitsLoss`.
 
         References:
