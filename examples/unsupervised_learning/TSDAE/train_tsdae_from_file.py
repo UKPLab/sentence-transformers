@@ -56,13 +56,23 @@ dataset = Dataset.from_dict({"noisy": train_sentences, "text": train_sentences})
 def noise_transform(batch):
     if "noisy" not in batch:
         raise ValueError("Input batch must contain a 'noisy' key.")
-    batch["noisy"] = [noise_fn(text) for text in batch["noisy"]]
+
+    batch["noisy"] = [noise_fn(text)["noisy"] for text in batch["noisy"]]
     return batch
 
 
 def noise_fn(text, del_ratio=0.6):
+    """
+    Applies noise by randomly deleting words.
+
+    WARNING: nltk's tokenization/detokenization is designed primarily for English.
+    For other languages, especially those without clear word boundaries (e.g., Chinese),
+    custom tokenization and detokenization are strongly recommended.
+    """
     from nltk import word_tokenize
     from nltk.tokenize.treebank import TreebankWordDetokenizer
+
+    assert 0.0 <= del_ratio < 1.0, "del_ratio must be in the range [0, 1)"
 
     words = word_tokenize(text)
     n = len(words)
@@ -75,12 +85,12 @@ def noise_fn(text, del_ratio=0.6):
         return {"noisy": random.choice(words)}
 
     noisy_text = TreebankWordDetokenizer().detokenize(kept_words)
-    return noisy_text
+    return {"noisy": noisy_text}
 
 
 # TSDAE requires a dataset with 2 columns: a text column and a noisified text column
 # Here we are using a function to delete some words, but you can customize `noise_fn` for other method to noisify your text
-# As the deletion should be dynamic and on-the-fly during training, we use set_transform to obtain it
+# Since the deletion needs to be dynamic and occur on-the-fly during training, we use set_transform to achieve this.
 dataset.set_transform(transform=noise_transform, columns=["noisy"], output_all_columns=True)
 dataset = dataset.train_test_split(test_size=10000)
 train_dataset = dataset["train"]
