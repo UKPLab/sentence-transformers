@@ -127,10 +127,10 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
 
         if args is None:
             output_dir = "tmp_trainer"
-            logger.info(f"No `TrainingArguments` passed, using `output_dir={output_dir}`.")
+            logger.info(f"No `CrossEncoderTrainingArguments` passed, using `output_dir={output_dir}`.")
             args = CrossEncoderTrainingArguments(output_dir=output_dir)
         elif not isinstance(args, CrossEncoderTrainingArguments):
-            raise ValueError("Please use `TrainingArguments` imported from `sentence_transformers`.")
+            raise ValueError("Please use `CrossEncoderTrainingArguments` imported from `sentence_transformers`.")
 
         if model is None:
             if model_init is not None:

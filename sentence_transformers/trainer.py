@@ -146,10 +146,12 @@ class SentenceTransformerTrainer(Trainer):
 
         if args is None:
             output_dir = "tmp_trainer"
-            logger.info(f"No `TrainingArguments` passed, using `output_dir={output_dir}`.")
+            logger.info(f"No `SentenceTransformerTrainingArguments` passed, using `output_dir={output_dir}`.")
             args = SentenceTransformerTrainingArguments(output_dir=output_dir)
         elif not isinstance(args, SentenceTransformerTrainingArguments):
-            raise ValueError("Please use `TrainingArguments` imported from `sentence_transformers`.")
+            raise ValueError(
+                "Please use `SentenceTransformerTrainingArguments` imported from `sentence_transformers`."
+            )
 
         if model is None:
             if model_init is not None:
