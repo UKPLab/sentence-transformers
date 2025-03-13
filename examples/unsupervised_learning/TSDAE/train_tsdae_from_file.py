@@ -68,7 +68,7 @@ def noise_transform(texts, del_ratio=0.6):
     assert 0.0 <= del_ratio < 1.0, "del_ratio must be in the range [0, 1)"
 
     noisy_texts = []
-    for text in texts:
+    for text in texts["text"]:
         words = word_tokenize(text)
         n = len(words)
         if n == 0:
@@ -82,7 +82,7 @@ def noise_transform(texts, del_ratio=0.6):
             continue
 
         noisy_texts.append(TreebankWordDetokenizer().detokenize(kept_words))
-    return {"noisy": noisy_texts, "text": texts}
+    return {"noisy": noisy_texts, "text": texts["text"]}
 
 
 # TSDAE requires a dataset with 2 columns: a noisified text column and a text column
