@@ -54,21 +54,26 @@ with (
 dataset = Dataset.from_dict({"text": train_sentences})
 
 
-def noise_transform(texts, del_ratio=0.6):
+def noise_transform(batch, del_ratio=0.6):
     """
     Applies noise by randomly deleting words.
 
     WARNING: nltk's tokenization/detokenization is designed primarily for English.
     For other languages, especially those without clear word boundaries (e.g., Chinese),
     custom tokenization and detokenization are strongly recommended.
+
+    Args:
+        batch (Dict[str, List[str]]): A dictionary with the structure {column_name: [string1, string2, ...]}, where each list contains the batch data for the respective column.
+        del_ratio (float): The ratio of words to delete. Defaults to 0.6.
     """
     from nltk import word_tokenize
     from nltk.tokenize.treebank import TreebankWordDetokenizer
 
     assert 0.0 <= del_ratio < 1.0, "del_ratio must be in the range [0, 1)"
+    assert isinstance(batch, dict) and "text" in batch, "batch must be a dictionary with a 'text' key."
 
     noisy_texts = []
-    for text in texts["text"]:
+    for text in batch["text"]:
         words = word_tokenize(text)
         n = len(words)
         if n == 0:
@@ -82,13 +87,13 @@ def noise_transform(texts, del_ratio=0.6):
             continue
 
         noisy_texts.append(TreebankWordDetokenizer().detokenize(kept_words))
-    return {"noisy": noisy_texts, "text": texts["text"]}
+    return {"noisy": noisy_texts, "text": batch["text"]}
 
 
 # TSDAE requires a dataset with 2 columns: a noisified text column and a text column
 # We use a function to delete some words, but you can customize `noise_transform` to noisify your text some other way.
 # We use `set_transform` instead of `map` so the noisified text differs each epoch.
-dataset.set_transform(transform=noise_transform, columns=["text"], output_all_columns=True)
+dataset.set_transform(transform=lambda batch: noise_transform(batch), columns=["text"], output_all_columns=True)
 dataset = dataset.train_test_split(test_size=10000)
 train_dataset = dataset["train"]
 eval_dataset = dataset["test"]
