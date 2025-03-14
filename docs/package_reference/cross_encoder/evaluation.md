@@ -1,31 +1,22 @@
 # Evaluation
-CrossEncoder have their own evaluation classes, that are in `sentence_transformers.cross_encoder.evaluation`.
+CrossEncoder have their own evaluation classes in `sentence_transformers.cross_encoder.evaluation`.
 
-## CEBinaryAccuracyEvaluator
+## CrossEncoderRerankingEvaluator
 ```{eval-rst}
-.. autoclass:: sentence_transformers.cross_encoder.evaluation.CEBinaryAccuracyEvaluator
-```
-## CEBinaryClassificationEvaluator
-```{eval-rst}
-.. autoclass:: sentence_transformers.cross_encoder.evaluation.CEBinaryClassificationEvaluator
+.. autoclass:: sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator
 ```
 
-## CECorrelationEvaluator
+## CrossEncoderNanoBEIREvaluator
 ```{eval-rst}
-.. autoclass:: sentence_transformers.cross_encoder.evaluation.CECorrelationEvaluator
+.. autoclass:: sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator
 ```
 
-## CEF1Evaluator
+## CrossEncoderClassificationEvaluator
 ```{eval-rst}
-.. autoclass:: sentence_transformers.cross_encoder.evaluation.CEF1Evaluator
+.. autoclass:: sentence_transformers.cross_encoder.evaluation.CrossEncoderClassificationEvaluator
 ```
 
-## CESoftmaxAccuracyEvaluator
+## CrossEncoderCorrelationEvaluator
 ```{eval-rst}
-.. autoclass:: sentence_transformers.cross_encoder.evaluation.CESoftmaxAccuracyEvaluator
-```
-
-## CERerankingEvaluator
-```{eval-rst}
-.. autoclass:: sentence_transformers.cross_encoder.evaluation.CERerankingEvaluator
+.. autoclass:: sentence_transformers.cross_encoder.evaluation.CrossEncoderCorrelationEvaluator
 ```

@@ -25,7 +25,7 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    from sentence_transformers import CrossEncoder
    
    # 1. Load a pre-trained CrossEncoder model
-   model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+   model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
 
    # 2. Predict scores for a pair of sentences
    scores = model.predict([
@@ -72,4 +72,4 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    :maxdepth: 1
    :caption: Tasks
 
-   ../../../examples/applications/retrieve_rerank/README
+   ../../../examples/sentence_transformer/applications/retrieve_rerank/README

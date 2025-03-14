@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
+from sentence_transformers.util import is_training_available
 
 
 @pytest.mark.parametrize(
@@ -26,6 +27,9 @@ def test_model_card_data(revision, expected_base_revision) -> None:
         assert model.model_card_data.base_model_revision == expected_base_revision
 
 
+@pytest.mark.skipif(
+    not is_training_available(), reason='Sentence Transformers was not installed with the `["train"]` extra.'
+)
 def test_generated_from_trainer_tag(stsb_bert_tiny_model: SentenceTransformer) -> None:
     model = stsb_bert_tiny_model
 

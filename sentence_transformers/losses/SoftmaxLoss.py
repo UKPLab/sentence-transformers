@@ -43,7 +43,7 @@ class SoftmaxLoss(nn.Module):
 
         References:
             - Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks: https://arxiv.org/abs/1908.10084
-            - `Training Examples > Natural Language Inference <../../examples/training/nli/README.html>`_
+            - `Training Examples > Natural Language Inference <../../../examples/sentence_transformer/training/nli/README.html>`_
 
         Requirements:
             1. sentence pairs with a class label

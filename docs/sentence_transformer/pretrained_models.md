@@ -51,7 +51,7 @@ The **all-*** models were trained on all available training data (more than 1 bi
 
 ## Semantic Search Models
 
-The following models have been specifically trained for **Semantic Search**: Given a question / search query, these models are able to find relevant text passages. For more details, see [Usage > Semantic Search](../../examples/applications/semantic-search/README.md).
+The following models have been specifically trained for **Semantic Search**: Given a question / search query, these models are able to find relevant text passages. For more details, see [Usage > Semantic Search](../../examples/sentence_transformer/applications/semantic-search/README.md).
 
 ```{eval-rst}
 .. sidebar:: Documentation
@@ -142,10 +142,10 @@ These models find semantically similar sentences within one language or across l
 Bitext mining describes the process of finding translated sentence pairs in two languages. If this is your use-case, the following model gives the best performance:
 - **[LaBSE](https://huggingface.co/sentence-transformers/LaBSE)** - [LaBSE](https://arxiv.org/abs/2007.01852) Model. Supports 109 languages. Works well for finding translation pairs in multiple languages. As detailed  [here](https://arxiv.org/abs/2004.09813), LaBSE works less well for assessing the similarity of sentence pairs that are not translations of each other.
 
-Extending a model to new languages is easy by following [Training Examples > Multilingual Models](../../examples/training/multilingual/README.md).
+Extending a model to new languages is easy by following [Training Examples > Multilingual Models](../../examples/sentence_transformer/training/multilingual/README.md).
 
 ## Image & Text-Models
-The following models can embed images and text into a joint vector space. See [Usage > Image Search](../../examples/applications/image-search/README.md) for more details how to use for text2image-search, image2image-search, image clustering, and zero-shot image classification.
+The following models can embed images and text into a joint vector space. See [Usage > Image Search](../../examples/sentence_transformer/applications/image-search/README.md) for more details how to use for text2image-search, image2image-search, image clustering, and zero-shot image classification.
 
 The following models are available with their respective Top 1 accuracy on zero-shot ImageNet validation dataset.
 
@@ -214,4 +214,4 @@ All other Instructor models either 1) will not load as they refer to `Instructor
 ## Scientific Similarity Models
 [SPECTER](https://arxiv.org/abs/2004.07180) is a model trained on scientific citations and can be used to estimate the similarity of two publications. We can use it to find similar papers.
 
-- **[allenai-specter](https://huggingface.co/sentence-transformers/allenai-specter)** - [Semantic Search Python Example](../../examples/applications/semantic-search/semantic_search_publications.py) / [Semantic Search Colab Example](https://colab.research.google.com/drive/12hfBveGHRsxhPIUMmJYrll2lFU4fOX06)
+- **[allenai-specter](https://huggingface.co/sentence-transformers/allenai-specter)** - [Semantic Search Python Example](../../examples/sentence_transformer/applications/semantic-search/semantic_search_publications.py) / [Semantic Search Colab Example](https://colab.research.google.com/drive/12hfBveGHRsxhPIUMmJYrll2lFU4fOX06)

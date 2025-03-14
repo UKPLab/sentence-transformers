@@ -6,7 +6,7 @@ It was trained with a triplet-loss: The anchor and the positive example were sen
 # Dataset
 We use dataset from Ein Dor et al., 2018, [Learning Thematic Similarity Metric Using Triplet Networks](https://aclweb.org/anthology/P18-2009).
 
-See [examples/training_wikipedia_sections.py](../../examples/training/other/training_wikipedia_sections.py) for how to train on this dataset.
+See [examples/sentence_transformer/training_wikipedia_sections.py](../../examples/sentence_transformer/training/other/training_wikipedia_sections.py) for how to train on this dataset.
 
 
 # Pre-trained models
@@ -36,6 +36,6 @@ However, it does not matter how far the negative example is away, it can be litt
 However, this model works well for **fine-grained clustering**. 
 
 For an example, see:
-[examples/application_clustering_wikipedia_sections.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/clustering_wikipedia_sections.py)
+[examples/application_clustering_wikipedia_sections.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/applications/clustering_wikipedia_sections.py)
 
 

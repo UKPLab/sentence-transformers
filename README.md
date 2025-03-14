@@ -94,7 +94,7 @@ We provide a large list of [Pretrained Models](https://www.sbert.net/docs/senten
 
 This framework allows you to fine-tune your own sentence embedding methods, so that you get task-specific sentence embeddings. You have various options to choose from in order to get perfect sentence embeddings for your specific task. 
 
-See [Training Overview](https://www.sbert.net/docs/sentence_transformer/training_overview.html) for an introduction how to train your own embedding models. We provide [various examples](https://github.com/UKPLab/sentence-transformers/tree/master/examples/training) how to train models on various datasets.
+See [Training Overview](https://www.sbert.net/docs/sentence_transformer/training_overview.html) for an introduction how to train your own embedding models. We provide [various examples](https://github.com/UKPLab/sentence-transformers/tree/master/examples/sentence_transformer/training) how to train models on various datasets.
 
 Some highlights are:
 - Support of various transformer networks including BERT, RoBERTa, XLM-R, DistilBERT, Electra, BART, ...
@@ -106,18 +106,18 @@ Some highlights are:
 
 You can use this framework for:
 
-- [Computing Sentence Embeddings](https://www.sbert.net/examples/applications/computing-embeddings/README.html)
+- [Computing Sentence Embeddings](https://www.sbert.net/examples/sentence_transformer/applications/computing-embeddings/README.html)
 - [Semantic Textual Similarity](https://www.sbert.net/docs/usage/semantic_textual_similarity.html)
-- [Semantic Search](https://www.sbert.net/examples/applications/semantic-search/README.html)
-- [Retrieve & Re-Rank](https://www.sbert.net/examples/applications/retrieve_rerank/README.html) 
-- [Clustering](https://www.sbert.net/examples/applications/clustering/README.html)
-- [Paraphrase Mining](https://www.sbert.net/examples/applications/paraphrase-mining/README.html)
-- [Translated Sentence Mining](https://www.sbert.net/examples/applications/parallel-sentence-mining/README.html)
-- [Multilingual Image Search, Clustering & Duplicate Detection](https://www.sbert.net/examples/applications/image-search/README.html)
+- [Semantic Search](https://www.sbert.net/examples/sentence_transformer/applications/semantic-search/README.html)
+- [Retrieve & Re-Rank](https://www.sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html) 
+- [Clustering](https://www.sbert.net/examples/sentence_transformer/applications/clustering/README.html)
+- [Paraphrase Mining](https://www.sbert.net/examples/sentence_transformer/applications/paraphrase-mining/README.html)
+- [Translated Sentence Mining](https://www.sbert.net/examples/sentence_transformer/applications/parallel-sentence-mining/README.html)
+- [Multilingual Image Search, Clustering & Duplicate Detection](https://www.sbert.net/examples/sentence_transformer/applications/image-search/README.html)
 
 and many more use-cases.
 
-For all examples, see [examples/applications](https://github.com/UKPLab/sentence-transformers/tree/master/examples/applications).
+For all examples, see [examples/sentence_transformer/applications](https://github.com/UKPLab/sentence-transformers/tree/master/examples/sentence_transformer/applications).
 
 ## Development setup
 
