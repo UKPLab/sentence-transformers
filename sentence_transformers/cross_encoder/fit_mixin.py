@@ -199,17 +199,17 @@ class FitMixin:
         show_progress_bar: bool = True,
     ) -> None:
         """
-        Deprecated training method from before Sentence Transformers TODO, it is recommended to use
+        Deprecated training method from before Sentence Transformers v4.0, it is recommended to use
         :class:`~sentence_transformers.trainer.CrossEncoderTrainer` instead. This method uses
         :class:`~sentence_transformers.trainer.CrossEncoderTrainer` behind the scenes, but does
         not provide as much flexibility as the Trainer itself.
 
         This training approach uses a DataLoader and Loss function to train the model.
 
-        This method should produce equivalent results in TODO as before TODO, but if you encounter any issues
+        This method should produce equivalent results in v4.0 as before v4.0, but if you encounter any issues
         with your existing training scripts, then you may wish to use
         :meth:`CrossEncoder.old_fit <sentence_transformers.cross_encoder.CrossEncoder.old_fit>` instead.
-        That uses the old training method from before TODO.
+        That uses the old training method from before v4.0.
 
         Args:
             train_dataloader: The DataLoader with InputExample instances
@@ -434,9 +434,9 @@ class FitMixin:
         show_progress_bar: bool = True,
     ) -> None:
         """
-        Deprecated training method from before Sentence Transformers TODO, it is recommended to use
+        Deprecated training method from before Sentence Transformers v4.0, it is recommended to use
         :class:`~sentence_transformers.trainer.CrossEncoderTrainer` instead. This method should
-        only be used if you encounter issues with your existing training scripts after upgrading to TODO.
+        only be used if you encounter issues with your existing training scripts after upgrading to v4.0.
 
         This training approach uses a DataLoader and Loss function to train the model.
 
