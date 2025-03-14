@@ -129,23 +129,8 @@ def main():
         range_min=skip_n_hardest,  # Skip the most similar passages
         range_max=skip_n_hardest + num_hard_negatives * 3,  # Look for negatives in a reasonable range
         batch_size=embedding_model_batch_size,
-        output_format="n-tuple",
+        output_format="labeled-list",
         use_faiss=True,
-    )
-
-    def transform_to_listwise(batch):
-        queries = batch.pop("query")
-        # Combine all positive and negative passages for each query, setting the first passage as the positive
-        # (label 1) and the rest as negatives (label 0)
-        docs = list(zip(*batch.values()))
-        labels = [[1] + [0] * (len(docs[0]) - 1) for _ in range(len(queries))]
-        return {"query": queries, "docs": docs, "labels": labels}
-
-    hard_negatives_dataset = hard_negatives_dataset.map(
-        lambda batch: transform_to_listwise(batch),
-        batched=True,
-        remove_columns=hard_negatives_dataset.column_names,
-        desc="Converting to listwise structure",
     )
 
     # Concatenate the two datasets into one
