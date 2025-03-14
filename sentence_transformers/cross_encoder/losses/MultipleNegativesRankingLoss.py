@@ -130,20 +130,22 @@ class MultipleNegativesRankingLoss(nn.Module):
         self, anchors: list[str], candidates: list[list[str]]
     ) -> Generator[list[str], None, None]:
         batch_size = len(anchors)
-        num_candidates = len(candidates)
+        num_columns = len(candidates)
 
         # Given N anchors, we want to select num_negatives negatives for each anchor
         candidates_flattened = [candidate for sublist in candidates for candidate in sublist]
 
-        if self.num_negatives is not None and self.num_negatives < num_candidates:
-            # Create a mask for each anchor to each candidate index, where the matching positive
-            # and hard negatives are masked out. From the remaining options, we randomly select
-            # num_negatives indices.
-            mask = ~torch.eye(batch_size, dtype=torch.bool).repeat(1, num_candidates)
+        # Create a mask for each anchor to each candidate index, where the matching positive
+        # and hard negatives are masked out.
+        mask = ~torch.eye(batch_size, dtype=torch.bool).repeat(1, num_columns)
+        if self.num_negatives is not None and self.num_negatives < len(candidates_flattened):
+            # From the remaining options, we randomly select num_negatives indices.
             negative_indices = torch.multinomial(mask.float(), self.num_negatives)
         else:
             # If num_negatives is None or larger than the number of candidates, we select all negatives
-            negative_indices = torch.arange(len(candidates[0])).repeat(len(candidates), 1)
+            # by using the mask as a slicer to get the indices of the negative candidates
+            all_indices = torch.arange(batch_size).repeat(batch_size * num_columns, 1)
+            negative_indices = all_indices[mask].reshape(batch_size, -1)
 
         for negative_indices_row in negative_indices.T:
             yield [candidates_flattened[negative_idx] for negative_idx in negative_indices_row]
