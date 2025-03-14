@@ -331,6 +331,8 @@ Here is an example of how :class:`~sentence_transformers.cross_encoder.training_
 ```
 
 ```python
+from sentence_transformers.cross_encoder import CrossEncoderTrainingArguments
+
 args = CrossEncoderTrainingArguments(
     # Required parameter:
     output_dir="models/reranker-MiniLM-msmarco-v1",
