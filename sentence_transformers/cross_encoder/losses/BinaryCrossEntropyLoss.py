@@ -46,6 +46,11 @@ class BinaryCrossEntropyLoss(nn.Module):
             | (sentence_A, sentence_B) pairs                  | float similarity score between 0 and 1 | 1                             |
             +-------------------------------------------------+----------------------------------------+-------------------------------+
 
+        Recommendations:
+            - Use :class:`~sentence_transformers.util.mine_hard_negatives` with ``output_format="labeled-pair"``
+              to convert question-answer pairs to the ``(anchor, positive/negative) pairs`` format with labels as 1 or 0,
+              using hard negatives.
+
         Example:
             ::
 

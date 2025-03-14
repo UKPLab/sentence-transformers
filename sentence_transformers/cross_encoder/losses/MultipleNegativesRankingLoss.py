@@ -63,6 +63,8 @@ class MultipleNegativesRankingLoss(nn.Module):
         Recommendations:
             - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
               ensure that no in-batch negatives are duplicates of the anchor or positive samples.
+            - Use :class:`~sentence_transformers.util.mine_hard_negatives` with ``output_format="n-tuple"`` or
+              ``output_format="triplet"`` to convert question-answer pairs to triplets with hard negatives.
 
         Relations:
             - :class:`CachedMultipleNegativesRankingLoss` is equivalent to this loss, but it uses caching that allows for

@@ -532,7 +532,7 @@ def mine_hard_negatives(
     num_negatives: int = 3,
     sampling_strategy: Literal["random", "top"] = "top",
     include_positives: bool = False,
-    output_format: Literal["triplet", "labeled-pair", "n-tuple"] = "triplet",
+    output_format: Literal["triplet", "n-tuple", "labeled-pair", "labeled-list"] = "triplet",
     batch_size: int = 32,
     faiss_batch_size: int = 16384,
     use_faiss: bool = False,
@@ -645,11 +645,12 @@ def mine_hard_negatives(
             Setting this to True is primarily useful for creating Reranking evaluation datasets for CrossEncoder models,
             where it can be useful to get a full ranking (including the positives) from a first-stage retrieval model.
             Defaults to False.
-        output_format (Literal["triplet", "labeled-pair", "n-tuple"]): Output format for the `datasets.Dataset`. Options are:
+        output_format (Literal["triplet", "n-tuple", "labeled-pair", "labeled-list"]): Output format for the `datasets.Dataset`. Options are:
 
-            - "triplet": (anchor, positive, negative) triplets, i.e. 3 columns
-            - "labeled-pair": (anchor, passage, label) text tuples with a label of 0 for negative and 1 for positive, i.e. 3 columns.
-            - "n-tuple": (anchor, positive, negative_1, ..., negative_n) tuples, i.e. 2 + num_negatives columns.
+            - "triplet": (anchor, positive, negative) triplets, i.e. 3 columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss`.
+            - "n-tuple": (anchor, positive, negative_1, ..., negative_n) tuples, i.e. 2 + num_negatives columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss`.
+            - "labeled-pair": (anchor, passage, label) text tuples with a label of 0 for negative and 1 for positive, i.e. 3 columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss`.
+            - "labeled-list": (anchor, [doc1, doc2, ..., docN], [label1, label2, ..., labelN]) triplets with labels of 0 for negative and 1 for positive, i.e. 3 columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.LambdaLoss`.
 
             Defaults to "triplet".
         batch_size (int): Batch size for encoding the dataset. Defaults to 32.
@@ -1024,6 +1025,21 @@ def mine_hard_negatives(
         }
         negative_scores = negative_scores.flatten()
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep].flatten() - negative_scores
+
+    elif output_format == "labeled-list":
+        indices_to_keep = negative_scores != -float("inf")
+
+        dataset_data = {
+            anchor_column_name: [all_queries[idx] for idx, keep_row in enumerate(indices_to_keep) if keep_row.any()],
+            positive_column_name: [
+                [positives[idx]] + [corpus[index] for keep, index in zip(keep_row, indices_row) if keep]
+                for idx, (keep_row, indices_row) in enumerate(zip(indices_to_keep, indices))
+                if keep_row.any()
+            ],
+            "labels": [[1] + [0] * sum(keep_row) for keep_row in indices_to_keep if keep_row.any()],
+        }
+        negative_scores = negative_scores[indices_to_keep]
+        difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
 
     if len(dataset_data) == 0:
         raise ValueError("No triplets could be generated. Please check the parameters and dataset.")

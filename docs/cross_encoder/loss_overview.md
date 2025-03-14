@@ -12,8 +12,9 @@ Loss functions play a critical role in the performance of your fine-tuned Cross 
     Additionally, :func:`~sentence_transformers.util.mine_hard_negatives` can easily be used to turn ``(anchor, positive)`` to:
 
     - ``(anchor, positive, negative) triplets`` with ``output_format="triplet"``, 
-    - ``(anchor, passage, label) labeled pairs`` with a label of 0 for negative and 1 for positive with ``output_format="labeled-pair"``,
     - ``(anchor, positive, negative_1, …, negative_n) tuples`` with ``output_format="n-tuple"``.
+    - ``(anchor, passage, label) labeled pairs`` with a label of 0 for negative and 1 for positive with ``output_format="labeled-pair"``,
+    - ``(anchor, [doc1, doc2, ..., docN], [label1, label2, ..., labelN]) triplets`` with labels of 0 for negative and 1 for positive with ``output_format="labeled-list"``, 
 ```
 
 | Inputs                                            | Labels                                   | Number of Model Output Labels | Appropriate Loss Functions                                                                                                                                                                                                                                              |

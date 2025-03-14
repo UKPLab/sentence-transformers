@@ -167,6 +167,10 @@ class LambdaLoss(nn.Module):
             | (query, [doc1, doc2, ..., docN])       | [score1, score2, ..., scoreN]  | 1                             |
             +----------------------------------------+--------------------------------+-------------------------------+
 
+        Recommendations:
+            - Use :class:`~sentence_transformers.util.mine_hard_negatives` with ``output_format="labeled-list"``
+              to convert question-answer pairs to the required input format with hard negatives.
+
         Example:
             ::
 
