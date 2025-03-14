@@ -86,9 +86,9 @@ def main():
         metric_for_best_model="eval_NanoBEIR_R100_mean_ndcg@10",
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
-        eval_steps=20000,
+        eval_steps=10000,
         save_strategy="steps",
-        save_steps=20000,
+        save_steps=10000,
         save_total_limit=2,
         logging_steps=4000,
         logging_first_step=True,

@@ -72,11 +72,11 @@ def main():
         metric_for_best_model="eval_NanoBEIR_R100_mean_ndcg@10",
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
-        eval_steps=40_000,
+        eval_steps=4_000,
         save_strategy="steps",
-        save_steps=40_000,
+        save_steps=4_000,
         save_total_limit=2,
-        logging_steps=10_000,
+        logging_steps=1_000,
         logging_first_step=True,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
         seed=12,

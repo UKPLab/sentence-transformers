@@ -42,7 +42,7 @@ logging.info(eval_dataset)
 loss = CachedMultipleNegativesRankingLoss(
     model=model,
     num_negatives=num_rand_negatives,
-    mini_batch_size=32,  # Informs the memory usage
+    mini_batch_size=16,  # Informs the memory usage
 )
 
 # 4. Use CrossEncoderNanoBEIREvaluator, a light-weight evaluator for English reranking
@@ -68,11 +68,11 @@ args = CrossEncoderTrainingArguments(
     bf16=True,  # Set to True if you have a GPU that supports BF16
     # Optional tracking/debugging parameters:
     eval_strategy="steps",
-    eval_steps=100,
+    eval_steps=250,
     save_strategy="steps",
-    save_steps=100,
+    save_steps=250,
     save_total_limit=2,
-    logging_steps=50,
+    logging_steps=100,
     logging_first_step=True,
     run_name=run_name,  # Will be used in W&B if `wandb` is installed
     seed=12,
