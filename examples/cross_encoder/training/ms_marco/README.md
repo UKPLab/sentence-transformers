@@ -40,6 +40,10 @@ In all scripts, the model is evaluated on subsets of `MS MARCO <https://huggingf
     ```{eval-rst}
     This example uses the :class:`~sentence_transformers.cross_encoder.losses.LambdaLoss` with the :class:`~sentence_transformers.cross_encoder.losses.NDCGLoss2PPScheme` loss scheme. The script applies dataset pre-processing into ``(query, [doc1, doc2, ..., docN])`` with ``labels`` as ``[score1, score2, ..., scoreN]``.
     ```
+* **[training_ms_marco_lambda_preprocessed.py](training_ms_marco_lambda_preprocessed.py)**:
+    ```{eval-rst}
+    This example uses the :class:`~sentence_transformers.cross_encoder.losses.LambdaLoss` with the :class:`~sentence_transformers.cross_encoder.losses.NDCGLoss2PPScheme` loss scheme on a `pre-processed MS MARCO dataset <https://huggingface.co/datasets/sentence-transformers/msmarco>`_.
+    ```
 * **[training_ms_marco_lambda_hard_neg.py](training_ms_marco_lambda_hard_neg.py)**:
     ```{eval-rst}
     This example extends the above example by increasing the size of the training dataset by mining hard negatives with :func:`~sentence_transformers.util.mine_hard_negatives`.
