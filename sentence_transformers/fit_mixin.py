@@ -386,15 +386,20 @@ class FitMixin:
             trainer.add_callback(SaveModelCallback(output_path, evaluator, save_best_model))
 
         if checkpoint_path is not None and resume_from_checkpoint:
-            if os.path.exists(checkpoint_path):
+            if os.path.exists(checkpoint_path) and os.path.isdir(checkpoint_path):
                 logger.info(
-                    f"Looking for checkpoints in checkpoint directory: {checkpoint_path}"
+                    f"Looking for checkpoints in: {checkpoint_path}"
                 )
-                all_checkpoints =  [checkpoint for checkpoint in os.listdir(checkpoint_path) if "checkpoint-" in checkpoint]
 
-                if len(all_checkpoints) > 1:
+                all_checkpoints = [
+                    checkpoint for checkpoint in os.listdir(checkpoint_path)
+                    if checkpoint.startswith("checkpoint-") and checkpoint.split("-")[-1].isdigit()
+                ]
+
+                if all_checkpoints:
                     latest_checkpoint = max(all_checkpoints, key=lambda x: int(x.split("-")[-1]))
-                    resume_from_checkpoint= os.path.join(checkpoint_path, latest_checkpoint)
+                    resume_from_checkpoint = os.path.join(checkpoint_path, latest_checkpoint)
+                    logger.info(f"Resuming from latest checkpoint: {resume_from_checkpoint}")
                 else:
                     logger.warning(
                         f"No checkpoints found in checkpoint directory: {checkpoint_path}"
@@ -402,7 +407,7 @@ class FitMixin:
                     resume_from_checkpoint = None
             else:
                 logger.warning(
-                    f"Checkpoint directory has not yet been created: {checkpoint_path}"
+                    f"Checkpoint directory does not exist or is not a directory: {checkpoint_path}"
                 )       
                 resume_from_checkpoint = None
         
