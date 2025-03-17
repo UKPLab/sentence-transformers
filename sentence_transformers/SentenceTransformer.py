@@ -406,6 +406,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> Tensor: ...
+
     # Return a single tensor because we're passing a single sentence.
 
     @overload
@@ -424,6 +425,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> np.ndarray: ...
+
     # Return a single array, because convert_to_numpy is True
     # and "sentence_embeddings" is passed
 
@@ -443,6 +445,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> Tensor: ...
+
     # Return a single tensor, because convert_to_tensor is True
     # and "sentence_embeddings" is passed
 
@@ -462,6 +465,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> list[Tensor]: ...
+
     # Return a list of tensors. Value of convert_ doesn't matter.
 
     @overload
@@ -480,6 +484,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> list[dict[str, Tensor]]: ...
+
     # Return a list of dict of features, ignore the conversion args.
 
     @overload
@@ -498,8 +503,8 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> dict[str, Tensor]: ...
-    # Return a dict of features, ignore the conversion args.
 
+    # Return a dict of features, ignore the conversion args.
 
     @overload
     def encode(
@@ -517,6 +522,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> Tensor: ...
+
     # If "token_embeddings" is True, then the output is a single tensor.
 
     def encode(
