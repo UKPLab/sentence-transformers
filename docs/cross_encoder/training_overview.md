@@ -194,7 +194,7 @@ The strongest CrossEncoder models are generally trained to recognize hard negati
         range_max=100,  # Consider only the x most similar samples
         max_score=0.8,  # Only consider samples with a similarity score of at most x
         margin=0.1,  # Similarity between query and negative samples should be x lower than query-positive similarity
-        sampling_strategy="top",  # Randomly sample negatives from the range
+        sampling_strategy="top",  # Sample the top negatives from the range
         batch_size=4096,  # Use a batch size of 4096 for the embedding model
         output_format="labeled-pair",  # The output format is (query, passage, label), as required by BinaryCrossEntropyLoss
         use_faiss=True,  # Using FAISS is recommended to keep memory usage low (pip install faiss-gpu or pip install faiss-cpu)
@@ -809,7 +809,7 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
                 margin=0,  # Similarity between query and negative samples should be x lower than query-positive similarity
                 range_min=0,  # Skip the x most similar samples
                 range_max=100,  # Consider only the x most similar samples
-                sampling_strategy="top",  # Randomly sample negatives from the range
+                sampling_strategy="top",  # Sample the top negatives from the range
                 batch_size=4096,  # Use a batch size of 4096 for the embedding model
                 output_format="labeled-pair",  # The output format is (query, passage, label), as required by BinaryCrossEntropyLoss
                 use_faiss=True,

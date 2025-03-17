@@ -57,7 +57,7 @@ def main():
         margin=0,  # Similarity between query and negative samples should be x lower than query-positive similarity
         range_min=0,  # Skip the x most similar samples
         range_max=100,  # Consider only the x most similar samples
-        sampling_strategy="top",  # Randomly sample negatives from the range
+        sampling_strategy="top",  # Sample the top negatives from the range
         batch_size=4096,  # Use a batch size of 4096 for the embedding model
         output_format="labeled-pair",  # The output format is (query, passage, label), as required by BinaryCrossEntropyLoss
         use_faiss=True,
