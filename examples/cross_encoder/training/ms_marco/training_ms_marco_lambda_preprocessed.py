@@ -46,8 +46,8 @@ def main():
 
     def it_to_text_transform(batch):
         return {
-            "query": [queries[qid] for qid in batch["query_id"]],
-            "docs": [[corpus[pid] for pid in doc_ids[:max_docs]] for doc_ids in batch["docs_ids"]],
+            "query_id": [queries[qid] for qid in batch["query_id"]],
+            "doc_ids": [[corpus[pid] for pid in doc_ids[:max_docs]] for doc_ids in batch["doc_ids"]],
             "labels": [labels[:max_docs] for labels in batch["labels"]],
         }
 
@@ -66,7 +66,6 @@ def main():
     )
 
     # 4. Define the evaluator. We use the CENanoBEIREvaluator, which is a light-weight evaluator for English reranking
-    # NOTE::: rerank 100 might be too high for NanoBEIR, consider reducing it to 20, 30, 40, 50
     evaluator = CrossEncoderNanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=eval_batch_size)
     evaluator(model)
 
