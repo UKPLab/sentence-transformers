@@ -93,7 +93,9 @@ class CrossEncoderCorrelationEvaluator(SentenceEvaluator):
             scores.append(example.label)
         return cls(sentence_pairs, scores, **kwargs)
 
-    def __call__(self, model: CrossEncoder, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: CrossEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"

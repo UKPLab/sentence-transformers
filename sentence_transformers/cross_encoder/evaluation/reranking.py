@@ -132,7 +132,9 @@ class CrossEncoderRerankingEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.primary_metric = f"ndcg@{self.at_k}"
 
-    def __call__(self, model: CrossEncoder, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
+    def __call__(
+        self, model: CrossEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
+    ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"
