@@ -93,11 +93,18 @@ def noise_transform(batch, del_ratio=0.6):
     WARNING: nltk's tokenization/detokenization is designed primarily for English.
     For other languages, especially those without clear word boundaries (e.g., Chinese),
     custom tokenization and detokenization are strongly recommended.
+
+    Args:
+        batch (Dict[str, List[str]]): A dictionary with the structure
+            {column_name: [string1, string2, ...]}, where each list contains
+            the batch data for the respective column.
+        del_ratio (float): The ratio of words to delete. Defaults to 0.6.
     """
     from nltk import word_tokenize
     from nltk.tokenize.treebank import TreebankWordDetokenizer
 
     assert 0.0 <= del_ratio < 1.0, "del_ratio must be in the range [0, 1)"
+    assert isinstance(batch, dict) and "text" in batch, "batch must be a dictionary with a 'text' key."
 
     texts = batch["text"]
     noisy_texts = []
@@ -121,7 +128,7 @@ def noise_transform(batch, del_ratio=0.6):
 # TSDAE requires a dataset with 2 columns: a noisified text column and a text column
 # We use a function to delete some words, but you can customize `noise_transform` to noisify your text some other way.
 # We use `set_transform` instead of `map` so the noisified text differs each epoch.
-train_dataset.set_transform(transform=noise_transform, columns=["text"], output_all_columns=True)
+train_dataset.set_transform(transform=lambda batch: noise_transform(batch), columns=["text"], output_all_columns=True)
 print(train_dataset)
 print(train_dataset[0])
 """

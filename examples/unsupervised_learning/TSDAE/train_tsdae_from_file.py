@@ -63,7 +63,9 @@ def noise_transform(batch, del_ratio=0.6):
     custom tokenization and detokenization are strongly recommended.
 
     Args:
-        batch (Dict[str, List[str]]): A dictionary with the structure {column_name: [string1, string2, ...]}, where each list contains the batch data for the respective column.
+        batch (Dict[str, List[str]]): A dictionary with the structure
+            {column_name: [string1, string2, ...]}, where each list contains
+            the batch data for the respective column.
         del_ratio (float): The ratio of words to delete. Defaults to 0.6.
     """
     from nltk import word_tokenize
