@@ -240,7 +240,7 @@ class FitMixin:
             checkpoint_save_total_limit: Total number of checkpoints to
                 store
             resume_from_checkpoint: If true, searches for checkpoints
-            to continue training from.
+                to continue training from.
         """
         if not is_datasets_available():
             raise ImportError("Please install `datasets` to use this function: `pip install datasets`.")
