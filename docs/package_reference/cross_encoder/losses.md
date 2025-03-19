@@ -25,6 +25,18 @@ Sadly, there is no "one size fits all" loss function. Which loss function is sui
 .. autoclass:: sentence_transformers.cross_encoder.losses.NDCGLoss2PPScheme
 ```
 
+## ListMLELoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.cross_encoder.losses.ListMLELoss
+```
+
+## PListMLELoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.cross_encoder.losses.PListMLELoss
+
+.. autoclass:: sentence_transformers.cross_encoder.losses.PListMLELambdaWeight
+```
+
 ## ListNetLoss
 ```{eval-rst}
 .. autoclass:: sentence_transformers.cross_encoder.losses.ListNetLoss

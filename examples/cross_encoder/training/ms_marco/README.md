@@ -48,6 +48,16 @@ In all scripts, the model is evaluated on subsets of `MS MARCO <https://huggingf
     ```{eval-rst}
     This example extends the above example by increasing the size of the training dataset by mining hard negatives with :func:`~sentence_transformers.util.mine_hard_negatives`.
     ```
+* **[training_ms_marco_listmle.py](training_ms_marco_listmle.py)**:
+    ```{eval-rst}
+    This example uses the :class:`~sentence_transformers.cross_encoder.losses.ListMLELoss`. The script applies dataset pre-processing into ``(query, [doc1, doc2, ..., docN])`` with ``labels`` as ``[score1, score2, ..., scoreN]``.
+    ```
+* **[training_ms_marco_plistmle.py](training_ms_marco_plistmle.py)**:
+    ```{eval-rst}
+    This example uses the :class:`~sentence_transformers.cross_encoder.losses.PListMLELoss` with the default :class:`~sentence_transformers.cross_encoder.losses.PListMLELambdaWeight` position weighting. The script applies dataset pre-processing into ``(query, [doc1, doc2, ..., docN])`` with ``labels`` as ``[score1, score2, ..., scoreN]``.
+    ```
+
+Out of these training scripts, I suspect that **[training_ms_marco_lambda_preprocessed.py](training_ms_marco_lambda_preprocessed.py)**, **[training_ms_marco_lambda_hard_neg.py](training_ms_marco_lambda_hard_neg.py)** or **[training_ms_marco_bce_preprocessed.py](training_ms_marco_bce_preprocessed.py)** produces the strongest model, as anecdotally `LambdaLoss` and `BinaryCrossEntropyLoss` are quite strong. It seems that `LambdaLoss` > `PListMLELoss` > `ListNetLoss` > `ListMLELoss` out of all learning to rank losses, but your milage may vary.
 
 Additionally, you can also train with Distillation. See [Cross Encoder > Training Examples > Distillation](../distillation/README.md) for more details.
 
