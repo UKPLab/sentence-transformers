@@ -19,7 +19,10 @@ weights in the student from scratch.
 There is a performance - speed trade-off. However, we found that a student with 4 instead of 12 layers keeps about 99.4%
 of the teacher performance, while being 2.3 times faster.
 """
-
+import numpy as np
+import json
+import dataclasses
+import transformers
 import logging
 import traceback
 from datetime import datetime
