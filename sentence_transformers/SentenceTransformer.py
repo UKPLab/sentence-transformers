@@ -46,9 +46,9 @@ from .util import (
     is_sentence_transformer_model,
     load_dir_path,
     load_file_path,
-    process_attention_mask,
     save_to_hub_args_decorator,
     truncate_embeddings,
+    truncate_masked_sequence,
 )
 
 logger = logging.getLogger(__name__)
@@ -561,10 +561,13 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 out_features["sentence_embedding"] = truncate_embeddings(
                     out_features["sentence_embedding"], self.truncate_dim
                 )
-                if "token_embeddings" in out_features:
-                    out_features["token_embeddings"] = process_attention_mask(
-                        out_features["token_embeddings"], out_features["attention_mask"]
-                    )
+                # Do this check because otherwise this function is always in the
+                # hot path.
+                if output_value == "token_embeddings" or output_value is None:
+                    if "token_embeddings" in out_features:
+                        out_features["token_embeddings"] = truncate_masked_sequence(
+                            out_features["token_embeddings"], out_features["attention_mask"]
+                        )
                 if output_value == "token_embeddings":
                     embeddings = features["token_embeddings"]
                 elif output_value is None:  # Return all outputs
