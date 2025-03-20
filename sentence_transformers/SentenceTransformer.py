@@ -390,77 +390,9 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         """
         return self.backend
 
-    @overload
     def encode(
         self,
-        sentences: str,
-        prompt_name: str | None = ...,
-        prompt: str | None = ...,
-        batch_size: int = ...,
-        show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
-        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
-        convert_to_numpy: Literal[False] = ...,
-        convert_to_tensor: Literal[False] = ...,
-        device: str = ...,
-        normalize_embeddings: bool = ...,
-        **kwargs,
-    ) -> Tensor: ...
-
-    @overload
-    def encode(
-        self,
-        sentences: str | list[str],
-        prompt_name: str | None = ...,
-        prompt: str | None = ...,
-        batch_size: int = ...,
-        show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
-        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
-        convert_to_numpy: Literal[True] = ...,
-        convert_to_tensor: Literal[False] = ...,
-        device: str = ...,
-        normalize_embeddings: bool = ...,
-        **kwargs,
-    ) -> np.ndarray: ...
-
-    @overload
-    def encode(
-        self,
-        sentences: str | list[str],
-        prompt_name: str | None = ...,
-        prompt: str | None = ...,
-        batch_size: int = ...,
-        show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
-        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
-        convert_to_numpy: bool = ...,
-        convert_to_tensor: Literal[True] = ...,
-        device: str = ...,
-        normalize_embeddings: bool = ...,
-        **kwargs,
-    ) -> Tensor: ...
-
-    @overload
-    def encode(
-        self,
-        sentences: list[str] | np.ndarray,
-        prompt_name: str | None = ...,
-        prompt: str | None = ...,
-        batch_size: int = ...,
-        show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
-        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
-        convert_to_numpy: Literal[False] = ...,
-        convert_to_tensor: Literal[False] = ...,
-        device: str = ...,
-        normalize_embeddings: bool = ...,
-        **kwargs,
-    ) -> list[Tensor]: ...
-
-    def encode(
-        self,
-        sentences: str | list[str],
+        sentences: str | list[str] | np.ndarray,
         prompt_name: str | None = None,
         prompt: str | None = None,
         batch_size: int = 32,
@@ -469,10 +401,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-        device: str = None,
+        device: str | None = None,
         normalize_embeddings: bool = False,
         **kwargs,
-    ) -> list[Tensor] | np.ndarray | Tensor:
+    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
         Computes sentence embeddings.
 
