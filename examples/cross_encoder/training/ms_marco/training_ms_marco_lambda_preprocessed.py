@@ -2,6 +2,7 @@ import logging
 import traceback
 from datetime import datetime
 
+import torch
 from datasets import load_dataset
 
 from sentence_transformers.cross_encoder import CrossEncoder
@@ -32,6 +33,8 @@ def main():
     dt = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # 1. Define our CrossEncoder model
+    # Set the seed so the new classifier weights are identical in subsequent runs
+    torch.manual_seed(12)
     model = CrossEncoder(model_name, num_labels=1)
     print("Model max length:", model.max_length)
     print("Model num labels:", model.num_labels)

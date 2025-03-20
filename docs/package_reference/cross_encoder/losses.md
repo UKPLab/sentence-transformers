@@ -61,3 +61,8 @@ Sadly, there is no "one size fits all" loss function. Which loss function is sui
 ```{eval-rst}
 .. autoclass:: sentence_transformers.cross_encoder.losses.MarginMSELoss
 ```
+
+## RankNetLoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.cross_encoder.losses.RankNetLoss
+```

@@ -188,7 +188,7 @@ class ListNetLoss(nn.Module):
     def citation(self) -> str:
         return """
 @inproceedings{cao2007learning,
-    title={Learning to rank: from pairwise approach to listwise approach},
+    title={Learning to Rank: From Pairwise Approach to Listwise Approach},
     author={Cao, Zhe and Qin, Tao and Liu, Tie-Yan and Tsai, Ming-Feng and Li, Hang},
     booktitle={Proceedings of the 24th international conference on Machine learning},
     pages={129--136},

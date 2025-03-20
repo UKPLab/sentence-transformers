@@ -17,6 +17,7 @@ from .MarginMSELoss import MarginMSELoss
 from .MSELoss import MSELoss
 from .MultipleNegativesRankingLoss import MultipleNegativesRankingLoss
 from .PListMLELoss import PListMLELambdaWeight, PListMLELoss
+from .RankNetLoss import RankNetLoss
 
 __all__ = [
     "BinaryCrossEntropyLoss",
@@ -35,4 +36,5 @@ __all__ = [
     "NDCGLoss2Scheme",
     "LambdaRankScheme",
     "NDCGLoss2PPScheme",
+    "RankNetLoss",
 ]

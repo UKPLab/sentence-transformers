@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import traceback
 from datetime import datetime
@@ -7,7 +9,7 @@ from datasets import load_dataset
 
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
-from sentence_transformers.cross_encoder.losses import LambdaLoss, NDCGLoss2PPScheme
+from sentence_transformers.cross_encoder.losses import RankNetLoss
 from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
 from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
 
@@ -93,9 +95,8 @@ def main():
     logging.info(train_dataset)
 
     # 3. Define our training loss
-    loss = LambdaLoss(
+    loss = RankNetLoss(
         model=model,
-        weighting_scheme=NDCGLoss2PPScheme(),
         mini_batch_size=mini_batch_size,
     )
 
@@ -105,7 +106,7 @@ def main():
 
     # 5. Define the training arguments
     short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
-    run_name = f"reranker-msmarco-v1.1-{short_model_name}-lambdaloss"
+    run_name = f"reranker-msmarco-v1.1-{short_model_name}-ranknetloss"
     args = CrossEncoderTrainingArguments(
         # Required parameter:
         output_dir=f"models/{run_name}_{dt}",

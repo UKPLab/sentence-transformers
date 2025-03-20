@@ -351,7 +351,7 @@ class LambdaLoss(nn.Module):
     def citation(self) -> str:
         return """
 @inproceedings{wang2018lambdaloss,
-  title={The lambdaloss framework for ranking metric optimization},
+  title={The LambdaLoss Framework for Ranking Metric Optimization},
   author={Wang, Xuanhui and Li, Cheng and Golbandi, Nadav and Bendersky, Michael and Najork, Marc},
   booktitle={Proceedings of the 27th ACM international conference on information and knowledge management},
   pages={1313--1322},

@@ -284,7 +284,7 @@ class PListMLELoss(nn.Module):
     def citation(self) -> str:
         return """
 @inproceedings{lan2014position,
-  title={Position-Aware ListMLE: A Sequential Learning Process for Ranking.},
+  title={Position-Aware ListMLE: A Sequential Learning Process for Ranking},
   author={Lan, Yanyan and Zhu, Yadong and Guo, Jiafeng and Niu, Shuzi and Cheng, Xueqi},
   booktitle={UAI},
   volume={14},

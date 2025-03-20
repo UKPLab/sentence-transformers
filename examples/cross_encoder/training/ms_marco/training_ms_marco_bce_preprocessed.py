@@ -1,6 +1,7 @@
 import logging
 import traceback
 
+import torch
 from datasets import load_dataset, load_from_disk
 
 from sentence_transformers.cross_encoder import CrossEncoder
@@ -21,6 +22,8 @@ def main():
     dataset_size = 2_000_000
 
     # 1. Define our CrossEncoder model
+    # Set the seed so the new classifier weights are identical in subsequent runs
+    torch.manual_seed(12)
     model = CrossEncoder(model_name)
     print("Model max length:", model.max_length)
     print("Model num labels:", model.num_labels)

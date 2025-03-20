@@ -2,6 +2,7 @@ import logging
 import traceback
 from collections import defaultdict
 
+import torch
 from datasets import load_dataset
 from torch import nn
 
@@ -25,6 +26,8 @@ def main():
     num_epochs = 1
 
     # 1. Define our CrossEncoder model
+    # Set the seed so the new classifier weights are identical in subsequent runs
+    torch.manual_seed(12)
     model = CrossEncoder(model_name)
     print("Model max length:", model.max_length)
     print("Model num labels:", model.num_labels)

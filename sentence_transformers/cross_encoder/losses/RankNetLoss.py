@@ -1,52 +1,50 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from torch import nn
 
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.losses.PListMLELoss import PListMLELoss
+from sentence_transformers.cross_encoder.losses import LambdaLoss, NoWeightingScheme
 
 
-class ListMLELoss(PListMLELoss):
+class RankNetLoss(LambdaLoss):
     def __init__(
         self,
         model: CrossEncoder,
+        k: int | None = None,
+        sigma: float = 1.0,
+        eps: float = 1e-10,
+        reduction_log: Literal["natural", "binary"] = "binary",
         activation_fct: nn.Module | None = nn.Identity(),
         mini_batch_size: int | None = None,
-        respect_input_order: bool = True,
     ) -> None:
         """
-        This loss function implements the ListMLE learning to rank algorithm, which uses a list-wise
-        approach based on maximum likelihood estimation of permutations. It maximizes the likelihood
-        of the permutation induced by the ground truth labels.
-
-        .. note::
-
-            The number of documents per query can vary between samples with the ``ListMLELoss``.
+        RankNet loss implementation for learning to rank. This loss function implements the RankNet algorithm,
+        which learns a ranking function by optimizing pairwise document comparisons using a neural network.
+        The implementation is optimized to handle padded documents efficiently by only processing valid
+        documents during model inference.
 
         Args:
             model (CrossEncoder): CrossEncoder model to be trained
+            sigma (float): Score difference weight used in sigmoid (default: 1.0)
+            eps (float): Small constant for numerical stability (default: 1e-10)
             activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the
                 loss. Defaults to :class:`~torch.nn.Identity`.
             mini_batch_size (int, optional): Number of samples to process in each forward pass. This has a significant
                 impact on the memory consumption and speed of the training process. Three cases are possible:
-
                 - If ``mini_batch_size`` is None, the ``mini_batch_size`` is set to the batch size.
                 - If ``mini_batch_size`` is greater than 0, the batch is split into mini-batches of size ``mini_batch_size``.
                 - If ``mini_batch_size`` is <= 0, the entire batch is processed at once.
-
                 Defaults to None.
-            respect_input_order (bool): Whether to respect the original input order of documents.
-                If True, assumes the input documents are already ordered by relevance (most relevant first).
-                If False, sorts documents by label values. Defaults to True.
 
         References:
-            - Listwise approach to learning to rank: theory and algorithm: https://dl.acm.org/doi/abs/10.1145/1390156.1390306
+            - Learning to Rank using Gradient Descent: https://icml.cc/Conferences/2015/wp-content/uploads/2015/06/icml_ranking.pdf
             - `Cross Encoder > Training Examples > MS MARCO <../../../examples/cross_encoder/training/ms_marco/README.html>`_
 
         Requirements:
-            1. Query with multiple documents (listwise approach)
+            1. Query with multiple documents (pairwise approach)
             2. Documents must have relevance scores/labels. Both binary and continuous labels are supported.
-            3. Documents must be sorted in a defined rank order.
 
         Inputs:
             +----------------------------------------+--------------------------------+-------------------------------+
@@ -60,12 +58,11 @@ class ListMLELoss(PListMLELoss):
               to convert question-answer pairs to the required input format with hard negatives.
 
         Relations:
-            - The :class:`~sentence_transformers.cross_encoder.losses.PListMLELoss` is an extension of the
-              :class:`~sentence_transformers.cross_encoder.losses.ListMLELoss` and allows for positional weighting
-              of the loss. :class:`~sentence_transformers.cross_encoder.losses.PListMLELoss` generally outperforms
-              :class:`~sentence_transformers.cross_encoder.losses.ListMLELoss` and is recommended over it.
-            - :class:`~sentence_transformers.cross_encoder.losses.LambdaLoss` takes the same inputs, and generally
-              outperforms this loss.
+            - :class:`~sentence_transformers.cross_encoder.losses.LambdaLoss` can be seen as an extension of this loss
+              where each score pair is weighted. Alternatively, this loss can be seen as a special case of the
+              :class:`~sentence_transformers.cross_encoder.losses.LambdaLoss` without a weighting scheme.
+            - :class:`~sentence_transformers.cross_encoder.losses.LambdaLoss` with its default NDCGLoss2++ weighting
+              scheme anecdotally performs better than the other losses with the same input format.
 
         Example:
             ::
@@ -82,9 +79,7 @@ class ListMLELoss(PListMLELoss):
                     ],
                     "labels": [[1, 0], [1, 1, 0]],
                 })
-
-                # Standard ListMLE loss respecting input order
-                loss = losses.ListMLELoss(model)
+                loss = losses.RankNetLoss(model)
 
                 trainer = CrossEncoderTrainer(
                     model=model,
@@ -95,10 +90,13 @@ class ListMLELoss(PListMLELoss):
         """
         super().__init__(
             model=model,
-            lambda_weight=None,
+            weighting_scheme=NoWeightingScheme(),
+            k=k,
+            sigma=sigma,
+            eps=eps,
+            reduction_log=reduction_log,
             activation_fct=activation_fct,
             mini_batch_size=mini_batch_size,
-            respect_input_order=respect_input_order,
         )
 
     def get_config_dict(self) -> dict[str, float | int | str | None]:
@@ -109,18 +107,17 @@ class ListMLELoss(PListMLELoss):
             Dictionary containing the configuration parameters
         """
         config = super().get_config_dict()
-        del config["lambda_weight"]
+        del config["weighting_scheme"]
         return config
 
     @property
     def citation(self) -> str:
         return """
-@inproceedings{10.1145/1390156.1390306,
-    title = {Listwise Approach to Learning to Rank - Theory and Algorithm},
-    author = {Xia, Fen and Liu, Tie-Yan and Wang, Jue and Zhang, Wensheng and Li, Hang},
-    booktitle = {Proceedings of the 25th International Conference on Machine Learning},
-    pages = {1192-1199},
-    year = {2008},
-    url = {https://doi.org/10.1145/1390156.1390306},
+@inproceedings{burges2005learning,
+  title={Learning to Rank using Gradient Descent},
+  author={Burges, Chris and Shaked, Tal and Renshaw, Erin and Lazier, Ari and Deeds, Matt and Hamilton, Nicole and Hullender, Greg},
+  booktitle={Proceedings of the 22nd international conference on Machine learning},
+  pages={89--96},
+  year={2005}
 }
 """
