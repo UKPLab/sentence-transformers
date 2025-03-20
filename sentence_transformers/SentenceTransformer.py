@@ -46,6 +46,7 @@ from .util import (
     is_sentence_transformer_model,
     load_dir_path,
     load_file_path,
+    process_attention_mask,
     save_to_hub_args_decorator,
     truncate_embeddings,
 )
@@ -628,15 +629,12 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 out_features["sentence_embedding"] = truncate_embeddings(
                     out_features["sentence_embedding"], self.truncate_dim
                 )
-
+                if "token_embeddings" in out_features:
+                    out_features["token_embeddings"] = process_attention_mask(
+                        out_features["token_embeddings"], out_features["attention_mask"]
+                    )
                 if output_value == "token_embeddings":
-                    embeddings = []
-                    for token_emb, attention in zip(out_features[output_value], out_features["attention_mask"]):
-                        last_mask_id = len(attention) - 1
-                        while last_mask_id > 0 and attention[last_mask_id].item() == 0:
-                            last_mask_id -= 1
-
-                        embeddings.append(token_emb[0 : last_mask_id + 1])
+                    embeddings = features["token_embeddings"]
                 elif output_value is None:  # Return all outputs
                     embeddings = []
                     for sent_idx in range(len(out_features["sentence_embedding"])):

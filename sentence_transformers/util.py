@@ -1509,3 +1509,32 @@ def disable_datasets_caching():
     finally:
         if is_originally_enabled:
             enable_caching()
+
+
+def process_attention_mask(token_embeddings: list[torch.Tensor], attention_mask: torch.Tensor) -> list[torch.Tensor]:
+    """Process the attention mask to remove padding tokens from the token embeddings."""
+    out: list[torch.Tensor] = []
+    for token_emb, attention in zip(token_embeddings, attention_mask):
+        if attention[0] == 0:
+            last_mask_id = 1
+        else:
+            last_mask_id = (attention == 0).float().argmax().item()
+
+        out.append(token_emb[:last_mask_id])
+
+    return out
+
+
+def process_attention_mask_old(
+    token_embeddings: list[torch.Tensor], attention_mask: torch.Tensor
+) -> list[torch.Tensor]:
+    """Process the attention mask to remove padding tokens from the token embeddings."""
+    out: list[torch.Tensor] = []
+    for token_emb, attention in zip(token_embeddings, attention_mask):
+        last_mask_id = len(attention) - 1
+        while last_mask_id > 0 and attention[last_mask_id].item() == 0:
+            last_mask_id -= 1
+
+        out.append(token_emb[0 : last_mask_id + 1])
+
+    return out
