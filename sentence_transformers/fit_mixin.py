@@ -183,6 +183,7 @@ class FitMixin:
         checkpoint_path: str = None,
         checkpoint_save_steps: int = 500,
         checkpoint_save_total_limit: int = 0,
+        resume_from_checkpoint: bool = False,
     ) -> None:
         """
         Deprecated training method from before Sentence Transformers v3.0, it is recommended to use
@@ -238,6 +239,8 @@ class FitMixin:
                 steps
             checkpoint_save_total_limit: Total number of checkpoints to
                 store
+            resume_from_checkpoint: If true, searches for checkpoints
+                to continue training from.
         """
         if not is_datasets_available():
             raise ImportError("Please install `datasets` to use this function: `pip install datasets`.")
@@ -381,7 +384,28 @@ class FitMixin:
         if output_path is not None:
             trainer.add_callback(SaveModelCallback(output_path, evaluator, save_best_model))
 
-        trainer.train()
+        if checkpoint_path is not None and resume_from_checkpoint:
+            if os.path.exists(checkpoint_path) and os.path.isdir(checkpoint_path):
+                logger.info(f"Looking for checkpoints in: {checkpoint_path}")
+
+                all_checkpoints = [
+                    checkpoint
+                    for checkpoint in os.listdir(checkpoint_path)
+                    if checkpoint.startswith("checkpoint-") and checkpoint.split("-")[-1].isdigit()
+                ]
+
+                if all_checkpoints:
+                    latest_checkpoint = max(all_checkpoints, key=lambda x: int(x.split("-")[-1]))
+                    resume_from_checkpoint = os.path.join(checkpoint_path, latest_checkpoint)
+                    logger.info(f"Resuming from latest checkpoint: {resume_from_checkpoint}")
+                else:
+                    logger.warning(f"No checkpoints found in checkpoint directory: {checkpoint_path}")
+                    resume_from_checkpoint = None
+            else:
+                logger.warning(f"Checkpoint directory does not exist or is not a directory: {checkpoint_path}")
+                resume_from_checkpoint = None
+
+        trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int) -> LambdaLR:

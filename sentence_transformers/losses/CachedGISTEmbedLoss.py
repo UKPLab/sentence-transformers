@@ -175,7 +175,7 @@ class CachedGISTEmbedLoss(nn.Module):
         with_grad: bool,
         copy_random_state: bool,
         random_state: RandContext | None = None,
-    ) -> tuple[Tensor, RandContext | None]:
+    ) -> tuple[Tensor, Tensor, RandContext | None]:
         """Do forward pass on a minibatch of the input features and return corresponding embeddings."""
         grad_context = nullcontext if with_grad else torch.no_grad
         random_state_context = nullcontext() if random_state is None else random_state
@@ -203,7 +203,7 @@ class CachedGISTEmbedLoss(nn.Module):
         with_grad: bool,
         copy_random_state: bool,
         random_states: list[RandContext] | None = None,
-    ) -> Iterator[tuple[Tensor, RandContext | None]]:
+    ) -> Iterator[tuple[Tensor, Tensor, RandContext | None]]:
         """Do forward pass on all the minibatches of the input features and yield corresponding embeddings."""
         input_ids: Tensor = sentence_feature["input_ids"]
         bsz, _ = input_ids.shape
