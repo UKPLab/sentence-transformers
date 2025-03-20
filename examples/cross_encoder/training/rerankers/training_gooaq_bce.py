@@ -35,12 +35,6 @@ def main():
             license="apache-2.0",
             model_name="ModernBERT-base trained on GooAQ",
         ),
-        # config_kwargs={
-        #     "attention_dropout": 0.1,
-        #     "classifier_dropout": 0.1,
-        #     "embedding_dropout": 0.1,
-        #     "mlp_dropout": 0.1,
-        # }
     )
     print("Model max length:", model.max_length)
     print("Model num labels:", model.num_labels)
@@ -61,7 +55,7 @@ def main():
         embedding_model,
         num_negatives=num_hard_negatives,  # How many negatives per question-answer pair
         margin=0,  # Similarity between query and negative samples should be x lower than query-positive similarity
-        range_min=3,  # Skip the x most similar samples
+        range_min=0,  # Skip the x most similar samples
         range_max=100,  # Consider only the x most similar samples
         sampling_strategy="top",  # Sample the top negatives from the range
         batch_size=4096,  # Use a batch size of 4096 for the embedding model
@@ -119,7 +113,7 @@ def main():
 
     # 5. Define the training arguments
     short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
-    run_name = f"reranker-{short_model_name}-gooaq-bce-0margin-3min-100max-5top"
+    run_name = f"reranker-{short_model_name}-gooaq-bce"
     args = CrossEncoderTrainingArguments(
         # Required parameter:
         output_dir=f"models/{run_name}",
