@@ -54,13 +54,13 @@ Experimentation with an ``activation_fct`` and ``scale`` is warranted for this l
 
 ## Inference
 
-The [tomaarsen/reranker-ModernBERT-base-gooaq-bce-static-retriever-hardest](https://huggingface.co/tomaarsen/reranker-ModernBERT-base-gooaq-bce-static-retriever-hardest) model was trained with the first script. If you want to try out the model before training something yourself, feel free to use this script:
+The [tomaarsen/reranker-ModernBERT-base-gooaq-bce](https://huggingface.co/tomaarsen/reranker-ModernBERT-base-gooaq-bce) model was trained with the first script. If you want to try out the model before training something yourself, feel free to use this script:
 
 ```python
 from sentence_transformers import CrossEncoder
 
 # Download from the 🤗 Hub
-model = CrossEncoder("tomaarsen/reranker-ModernBERT-base-gooaq-bce-static-retriever-hardest")
+model = CrossEncoder("tomaarsen/reranker-ModernBERT-base-gooaq-bce")
 
 # Get scores for pairs of texts
 pairs = [
@@ -72,7 +72,7 @@ pairs = [
 ]
 scores = model.predict(pairs)
 print(scores)
-# [0.00208696 0.973685   0.02914573 0.94538945 0.00319354]
+# [0.00121048 0.97105724 0.00536712 0.8632406  0.00168043]
 
 # Or rank different texts based on similarity to a single text
 ranks = model.rank(
@@ -87,10 +87,10 @@ ranks = model.rank(
 )
 print(ranks)
 # [
-#     {"corpus_id": 0, "score": 0.973685},
-#     {"corpus_id": 1, "score": 0.94538945},
-#     {"corpus_id": 2, "score": 0.029145734},
-#     {"corpus_id": 4, "score": 0.003193541},
-#     {"corpus_id": 3, "score": 0.002086963},
+#     {'corpus_id': 0, 'score': 0.97105724},
+#     {'corpus_id': 1, 'score': 0.8632406},
+#     {'corpus_id': 2, 'score': 0.0053671156},
+#     {'corpus_id': 4, 'score': 0.0016804343},
+#     {'corpus_id': 3, 'score': 0.0012104829},
 # ]
 ```
