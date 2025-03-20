@@ -1511,14 +1511,35 @@ def disable_datasets_caching():
             enable_caching()
 
 
-def process_attention_mask(token_embeddings: list[torch.Tensor], attention_mask: torch.Tensor) -> list[torch.Tensor]:
-    """Process the attention mask to remove padding tokens from the token embeddings."""
+def truncate_masked_sequence(token_embeddings: torch.Tensor, attention_mask: torch.Tensor) -> list[torch.Tensor]:
+    """
+    Process a tensor to remove padding tokens.
+
+    Args:
+        token_embeddings (torch.Tensor): The token embeddings.
+        attention_mask (torch.Tensor): The attention mask.
+
+    Returns:
+        list[torch.Tensor]: The processed token embeddings. Each tensor in the list corresponds to a sequence.
+        Each tensor contains all tokens up until the first padding token in the trailing sequence of padding tokens.
+    """
     out: list[torch.Tensor] = []
-    for token_emb, attention in zip(token_embeddings, attention_mask):
-        if attention[0] == 0:
+    all_zero_mask = attention_mask == 0
+    for token_emb, zero_mask in zip(token_embeddings, all_zero_mask):
+        # Three cases:
+        # 1. No padding tokens. This happens at least once per batch
+        # unless padding is constant.
+        if not any(zero_mask):
+            out.append(token_emb)
+            continue
+        # 2. The first token is already a padding token.
+        # This should not happen, but leads to weird cases if we don't check.
+        if zero_mask[0]:
             last_mask_id = 1
         else:
-            last_mask_id = (attention == 0).float().argmax().item()
+            # 3. The padding tokens are in the middle of the sequence.
+            # We find the last padding token and remove it and everything after it.
+            last_mask_id = zero_mask.float().argmax().item()
 
         out.append(token_emb[:last_mask_id])
 
