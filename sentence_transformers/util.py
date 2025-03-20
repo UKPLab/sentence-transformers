@@ -1538,7 +1538,7 @@ def truncate_masked_sequence(token_embeddings: torch.Tensor, attention_mask: tor
             last_mask_id = 1
         else:
             # 3. The padding tokens are in the middle of the sequence.
-            # We find the last padding token and remove it and everything after it.
+            # We find the first padding token and remove it and everything after it.
             last_mask_id = zero_mask.float().argmax().item()
 
         out.append(token_emb[:last_mask_id])
