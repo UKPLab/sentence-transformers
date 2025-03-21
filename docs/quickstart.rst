@@ -159,7 +159,7 @@ Consider reading one of the following sections next:
 * `Sentence Transformers > Usage <./sentence_transformer/usage/usage.html>`_
 * `Sentence Transformers > Pretrained Models <./sentence_transformer/pretrained_models.html>`_
 * `Sentence Transformers > Training Overview <./sentence_transformer/training_overview.html>`_
-* `Sentence Transformers > Training Examples > Multilingual Models <../examples/training/multilingual/README.html>`_
+* `Sentence Transformers > Training Examples > Multilingual Models <../examples/sentence_transformer/training/multilingual/README.html>`_
 * `Cross Encoder > Usage <./cross_encoder/usage/usage.html>`_
 * `Cross Encoder > Pretrained Models <./cross_encoder/pretrained_models.html>`_
 

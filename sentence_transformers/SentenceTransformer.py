@@ -25,6 +25,7 @@ import torch
 import torch.multiprocessing as mp
 import transformers
 from huggingface_hub import HfApi
+from packaging import version
 from torch import Tensor, device, nn
 from tqdm.autonotebook import trange
 from transformers import is_torch_npu_available
@@ -1554,12 +1555,13 @@ print(similarities)
             if (
                 "__version__" in self._model_config
                 and "sentence_transformers" in self._model_config["__version__"]
-                and self._model_config["__version__"]["sentence_transformers"] > __version__
+                and version.parse(self._model_config["__version__"]["sentence_transformers"])
+                > version.parse(__version__)
             ):
                 logger.warning(
-                    "You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(
-                        self._model_config["__version__"]["sentence_transformers"], __version__
-                    )
+                    f'You are trying to use a model that was created with Sentence Transformers version {self._model_config["__version__"]["sentence_transformers"]}, '
+                    f"but you're currently using version {__version__}. This might cause unexpected behavior or errors. "
+                    "In that case, try to update to the latest version."
                 )
 
             # Set score functions & prompts if not already overridden by the __init__ calls

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import numpy as np
 from torch import Tensor
@@ -71,12 +71,30 @@ dataset_name_to_human_readable = {
 
 class NanoBEIREvaluator(SentenceEvaluator):
     """
-    This class evaluates the performance of a SentenceTransformer Model on the NanoBEIR collection of datasets.
+    This class evaluates the performance of a SentenceTransformer Model on the NanoBEIR collection of Information Retrieval datasets.
 
-    The collection is a set of datasets based on the BEIR collection, but with a significantly smaller size, so it can be used for quickly evaluating the retrieval performance of a model before commiting to a full evaluation.
-    The datasets are available on HuggingFace at https://huggingface.co/collections/zeta-alpha-ai/nanobeir-66e1a0af21dfd93e620cd9f6
-    The Evaluator will return the same metrics as the InformationRetrievalEvaluator (i.e., MRR, nDCG, Recall@k), for each dataset and on average.
+    The collection is a set of datasets based on the BEIR collection, but with a significantly smaller size, so it can
+    be used for quickly evaluating the retrieval performance of a model before commiting to a full evaluation.
+    The datasets are available on Hugging Face in the `NanoBEIR collection <https://huggingface.co/collections/zeta-alpha-ai/nanobeir-66e1a0af21dfd93e620cd9f6>`_.
+    This evaluator will return the same metrics as the InformationRetrievalEvaluator (i.e., MRR, nDCG, Recall@k), for each dataset and on average.
 
+    Args:
+        dataset_names (List[str]): The names of the datasets to evaluate on. Defaults to all datasets.
+        mrr_at_k (List[int]): A list of integers representing the values of k for MRR calculation. Defaults to [10].
+        ndcg_at_k (List[int]): A list of integers representing the values of k for NDCG calculation. Defaults to [10].
+        accuracy_at_k (List[int]): A list of integers representing the values of k for accuracy calculation. Defaults to [1, 3, 5, 10].
+        precision_recall_at_k (List[int]): A list of integers representing the values of k for precision and recall calculation. Defaults to [1, 3, 5, 10].
+        map_at_k (List[int]): A list of integers representing the values of k for MAP calculation. Defaults to [100].
+        show_progress_bar (bool): Whether to show a progress bar during evaluation. Defaults to False.
+        batch_size (int): The batch size for evaluation. Defaults to 32.
+        write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
+        truncate_dim (int, optional): The dimension to truncate the embeddings to. Defaults to None.
+        score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to {SimilarityFunction.COSINE.value: cos_sim, SimilarityFunction.DOT_PRODUCT.value: dot_score}.
+        main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
+        aggregate_fn (Callable[[list[float]], float]): The function to aggregate the scores. Defaults to np.mean.
+        aggregate_key (str): The key to use for the aggregated score. Defaults to "mean".
+        query_prompts (str | dict[str, str], optional): The prompts to add to the queries. If a string, will add the same prompt to all queries. If a dict, expects that all datasets in dataset_names are keys.
+        corpus_prompts (str | dict[str, str], optional): The prompts to add to the corpus. If a string, will add the same prompt to all corpus. If a dict, expects that all datasets in dataset_names are keys.
 
     Example:
         ::
@@ -187,27 +205,6 @@ class NanoBEIREvaluator(SentenceEvaluator):
         query_prompts: str | dict[str, str] | None = None,
         corpus_prompts: str | dict[str, str] | None = None,
     ):
-        """
-        Initializes the NanoBEIREvaluator.
-
-        Args:
-            dataset_names (List[str]): The names of the datasets to evaluate on.
-            mrr_at_k (List[int]): A list of integers representing the values of k for MRR calculation. Defaults to [10].
-            ndcg_at_k (List[int]): A list of integers representing the values of k for NDCG calculation. Defaults to [10].
-            accuracy_at_k (List[int]): A list of integers representing the values of k for accuracy calculation. Defaults to [1, 3, 5, 10].
-            precision_recall_at_k (List[int]): A list of integers representing the values of k for precision and recall calculation. Defaults to [1, 3, 5, 10].
-            map_at_k (List[int]): A list of integers representing the values of k for MAP calculation. Defaults to [100].
-            show_progress_bar (bool): Whether to show a progress bar during evaluation. Defaults to False.
-            batch_size (int): The batch size for evaluation. Defaults to 32.
-            write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
-            truncate_dim (int, optional): The dimension to truncate the embeddings to. Defaults to None.
-            score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to {SimilarityFunction.COSINE.value: cos_sim, SimilarityFunction.DOT_PRODUCT.value: dot_score}.
-            main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
-            aggregate_fn (Callable[[list[float]], float]): The function to aggregate the scores. Defaults to np.mean.
-            aggregate_key (str): The key to use for the aggregated score. Defaults to "mean".
-            query_prompts (str | dict[str, str], optional): The prompts to add to the queries. If a string, will add the same prompt to all queries. If a dict, expects that all datasets in dataset_names are keys.
-            corpus_prompts (str | dict[str, str], optional): The prompts to add to the corpus. If a string, will add the same prompt to all corpus. If a dict, expects that all datasets in dataset_names are keys.
-        """
         super().__init__()
         if dataset_names is None:
             dataset_names = list(dataset_name_to_id.keys())
@@ -250,7 +247,10 @@ class NanoBEIREvaluator(SentenceEvaluator):
             "main_score_function": main_score_function,
         }
 
-        self.evaluators = [self._load_dataset(name, **ir_evaluator_kwargs) for name in self.dataset_names]
+        self.evaluators = [
+            self._load_dataset(name, **ir_evaluator_kwargs)
+            for name in tqdm(self.dataset_names, desc="Loading NanoBEIR datasets", leave=False)
+        ]
 
         self.csv_file: str = f"NanoBEIR_evaluation_{aggregate_key}_results.csv"
         self.csv_headers = ["epoch", "steps"]
@@ -375,7 +375,6 @@ class NanoBEIREvaluator(SentenceEvaluator):
             for k in self.ndcg_at_k:
                 logger.info("NDCG@{}: {:.4f}".format(k, agg_results[f"{name}_ndcg@{k}"]))
 
-        # TODO: Ensure this primary_metric works as expected, also with bolding the right thing in the model card
         agg_results = self.prefix_name_to_metrics(agg_results, self.name)
         self.store_metrics_in_model_card_data(model, agg_results, epoch, steps)
 
@@ -391,7 +390,9 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
     def _load_dataset(self, dataset_name: DatasetNameType, **ir_evaluator_kwargs) -> InformationRetrievalEvaluator:
         if not is_datasets_available():
-            raise ValueError("datasets is not available. Please install it to use the NanoBEIREvaluator.")
+            raise ValueError(
+                "datasets is not available. Please install it to use the NanoBEIREvaluator via `pip install datasets`."
+            )
         from datasets import load_dataset
 
         dataset_path = dataset_name_to_id[dataset_name.lower()]
@@ -450,3 +451,11 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
         if error_msg:
             raise ValueError(error_msg.strip())
+
+    def get_config_dict(self) -> dict[str, Any]:
+        config_dict = {"dataset_names": self.dataset_names}
+        config_dict_candidate_keys = ["truncate_dim", "query_prompts", "corpus_prompts"]
+        for key in config_dict_candidate_keys:
+            if getattr(self, key) is not None:
+                config_dict[key] = getattr(self, key)
+        return config_dict

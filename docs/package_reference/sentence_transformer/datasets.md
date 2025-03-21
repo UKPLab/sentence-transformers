@@ -14,7 +14,7 @@
 
 
 ## ParallelSentencesDataset
-`ParallelSentencesDataset` is used for multilingual training. For details, see [multilingual training](../../../examples/training/multilingual/README.md).
+`ParallelSentencesDataset` is used for multilingual training. For details, see [multilingual training](../../../examples/sentence_transformer/training/multilingual/README.md).
 ```{eval-rst}
 .. autoclass:: sentence_transformers.datasets.ParallelSentencesDataset
 ```

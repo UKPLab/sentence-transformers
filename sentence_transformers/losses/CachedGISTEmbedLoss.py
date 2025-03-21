@@ -336,4 +336,5 @@ class CachedGISTEmbedLoss(nn.Module):
         return {
             "guide": self.guide,
             "temperature": self.temperature,
+            "mini_batch_size": self.mini_batch_size,
         }

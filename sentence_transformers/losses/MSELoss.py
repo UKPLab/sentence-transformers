@@ -15,15 +15,15 @@ class MSELoss(nn.Module):
         is used when extending sentence embeddings to new languages as described in our publication
         Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation.
 
-        For an example, see `the distillation documentation <../../examples/training/distillation/README.html>`_ on extending language models to new languages.
+        For an example, see `the distillation documentation <../../../examples/sentence_transformer/training/distillation/README.html>`_ on extending language models to new languages.
 
         Args:
             model: SentenceTransformerModel
 
         References:
             - Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation: https://arxiv.org/abs/2004.09813
-            - `Training > Model Distillation <../../examples/training/distillation/README.html>`_
-            - `Training > Multilingual Models <../../examples/training/multilingual/README.html>`_
+            - `Training > Model Distillation <../../../examples/sentence_transformer/training/distillation/README.html>`_
+            - `Training > Multilingual Models <../../../examples/sentence_transformer/training/multilingual/README.html>`_
 
         Requirements:
             1. Usually uses a finetuned teacher M in a knowledge distillation setup
