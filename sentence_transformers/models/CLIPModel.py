@@ -21,6 +21,14 @@ class CLIPModel(nn.Module):
     def __repr__(self) -> str:
         return "CLIPModel()"
 
+    @property
+    def max_seq_length(self) -> int:
+        return self.processor.tokenizer.model_max_length
+
+    @max_seq_length.setter
+    def max_seq_length(self, value: int) -> None:
+        self.processor.tokenizer.model_max_length = value
+    
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         image_embeds = []
         text_embeds = []
