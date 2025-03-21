@@ -315,6 +315,7 @@ class SentenceTransformerModelCardData(CardData):
     pipeline_tag: str = field(default="sentence-similarity", init=False)
     library_name: str = field(default="sentence-transformers", init=False)
     version: dict[str, str] = field(default_factory=get_versions, init=False)
+    template_path: Path = field(default=Path(__file__).parent / "model_card_template.md", init=False)
 
     # Passed via `register_model` only
     model: SentenceTransformer | None = field(default=None, init=False, repr=False)
@@ -1016,6 +1017,7 @@ class SentenceTransformerModelCardData(CardData):
 
 
 def generate_model_card(model: SentenceTransformer) -> str:
-    template_path = Path(__file__).parent / "model_card_template.md"
-    model_card = ModelCard.from_template(card_data=model.model_card_data, template_path=template_path, hf_emoji="🤗")
+    model_card = ModelCard.from_template(
+        card_data=model.model_card_data, template_path=model.model_card_data.template_path, hf_emoji="🤗"
+    )
     return model_card.content
