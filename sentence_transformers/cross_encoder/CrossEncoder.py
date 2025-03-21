@@ -9,6 +9,7 @@ from typing import Callable, Literal, overload
 import numpy as np
 import torch
 from huggingface_hub import HfApi
+from packaging import version
 from torch import nn
 from tqdm.autonotebook import trange
 from transformers import (
@@ -21,6 +22,7 @@ from transformers import (
 from transformers.utils import PushToHubMixin
 from typing_extensions import deprecated
 
+from sentence_transformers import __version__
 from sentence_transformers.cross_encoder.fit_mixin import FitMixin
 from sentence_transformers.cross_encoder.model_card import CrossEncoderModelCardData, generate_model_card
 from sentence_transformers.cross_encoder.util import (
@@ -137,6 +139,15 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             token=token,
             **config_kwargs,
         )
+        if hasattr(config, "sentence_transformers") and "version" in config.sentence_transformers:
+            model_version = config.sentence_transformers["version"]
+            if version.parse(model_version) > version.parse(__version__):
+                logger.warning(
+                    f"You are trying to use a model that was created with Sentence Transformers version {model_version}, "
+                    f"but you're currently using version {__version__}. This might cause unexpected behavior or errors. "
+                    "In that case, try to update to the latest version."
+                )
+
         classifier_trained = False
         if config.architectures is not None:
             classifier_trained = any([arch.endswith("ForSequenceClassification") for arch in config.architectures])
@@ -206,12 +217,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             self.activation_fn = self.get_default_activation_fn()
 
         if set_default:
-            try:
-                if not hasattr(self.config, "sentence_transformers"):
-                    self.config.sentence_transformers = {}
-                self.config.sentence_transformers["activation_fn"] = fullname(self.activation_fn)
-            except Exception as e:
-                logger.warning(f"Was not able to update config about the default activation_fn: {str(e)}")
+            self.set_config_value("activation_fn", fullname(self.activation_fn))
 
     def get_default_activation_fn(self) -> Callable:
         activation_fn_path = None
@@ -238,6 +244,21 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         if self.config.num_labels == 1:
             return nn.Sigmoid()
         return nn.Identity()
+
+    def set_config_value(self, key: str, value) -> None:
+        """
+        Set a value in the underlying model's config.
+
+        Args:
+            key (str): The key to set.
+            value: The value to set.
+        """
+        try:
+            if not hasattr(self.config, "sentence_transformers"):
+                self.config.sentence_transformers = {}
+            self.config.sentence_transformers[key] = value
+        except Exception as e:
+            logger.warning(f"Was not able to add '{key}' to the config: {str(e)}")
 
     @property
     def config(self) -> PretrainedConfig:
@@ -503,6 +524,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             return
 
         logger.info(f"Save model to {path}")
+        self.set_config_value("version", __version__)
         self.model.save_pretrained(path, safe_serialization=safe_serialization, **kwargs)
         self.tokenizer.save_pretrained(path, **kwargs)
         self._create_model_card(path)
