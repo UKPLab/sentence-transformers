@@ -11,7 +11,7 @@ from sentence_transformers.model_card import SentenceTransformerModelCardCallbac
 from sentence_transformers.util import is_datasets_available
 
 if is_datasets_available():
-    from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, Value
+    from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, Sequence, Value
 
 logger = logging.getLogger(__name__)
 
@@ -96,20 +96,38 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
             # We can't set widget examples from an IterableDataset without losing data
             return
 
+        if len(dataset) == 0:
+            return
+
         columns = [
             column
             for column, feature in dataset.features.items()
-            if isinstance(feature, Value) and feature.dtype in {"string", "large_string"}
+            if (isinstance(feature, Value) and feature.dtype in {"string", "large_string"})
+            or (
+                isinstance(feature, Sequence)
+                and isinstance(feature.feature, Value)
+                and feature.feature.dtype in {"string", "large_string"}
+            )
         ]
         if len(columns) < 2:
             return
 
         query_column = columns[0]
-        response_column = columns[1]
+        answer_column = columns[1]
 
-        self.predict_example = [
-            [query, response] for query, response in zip(dataset[:5][query_column], dataset[:5][response_column])
-        ]
+        query_type = type(dataset[0][query_column])
+        answer_type = type(dataset[0][answer_column])
+
+        queries = dataset[:5][query_column]
+        answers = dataset[:5][answer_column]
+
+        # If the response is a list, then the first query-answer is a nice example
+        if answer_type is list:
+            answers = answers[0][:5]
+            queries = [queries[0]] * len(answers)
+
+        if query_type is str:
+            self.predict_example = [[query, response] for query, response in zip(queries, answers)]
 
     def register_model(self, model) -> None:
         super().register_model(model)
