@@ -760,20 +760,22 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
 
         from sentence_transformers import SentenceTransformer
         from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderModelCardData
-        from sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator import CrossEncoderNanoBEIREvaluator
-        from sentence_transformers.cross_encoder.evaluation.CrossEncoderRerankingEvaluator import CrossEncoderRerankingEvaluator
+        from sentence_transformers.cross_encoder.evaluation import (
+            CrossEncoderNanoBEIREvaluator,
+            CrossEncoderRerankingEvaluator,
+        )
         from sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
         from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
         from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
         from sentence_transformers.evaluation.SequentialEvaluator import SequentialEvaluator
         from sentence_transformers.util import mine_hard_negatives
 
+        # Set the log level to INFO to get more information
+        logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
+
 
         def main():
             model_name = "answerdotai/ModernBERT-base"
-
-            # Set the log level to INFO to get more information
-            logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
             train_batch_size = 64
             num_epochs = 1
@@ -856,6 +858,9 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
                 ],
                 batch_size=train_batch_size,
                 name="gooaq-dev",
+                # Realistic setting: only rerank the positives that the retriever found
+                # Set to True to rerank *all* positives
+                always_rerank_positives=False,
             )
 
             # 4c. Combine the evaluators & run the base model on them
