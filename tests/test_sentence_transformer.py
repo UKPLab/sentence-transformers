@@ -23,6 +23,7 @@ from sentence_transformers import SentenceTransformer, util
 from sentence_transformers.models import (
     CNN,
     LSTM,
+    CLIPModel,
     Dense,
     LayerNorm,
     Normalize,
@@ -790,3 +791,19 @@ def test_load_adapter_with_revision():
     )
     embeddings = model.encode("Hello, World!")
     assert embeddings.shape == (128,)
+
+
+def test_clip():
+    model = CLIPModel()
+    assert model.max_seq_length == 77
+    assert model.processor.tokenizer.model_max_length == 77
+    tokenized = model.tokenize(["This is my text sentence"])
+    assert "input_ids" in tokenized
+    assert tokenized["input_ids"].shape == (1, 7)
+
+    model.max_seq_length = 5
+    assert model.max_seq_length == 5
+    assert model.processor.tokenizer.model_max_length == 5
+    tokenized = model.tokenize(["This is my text sentence"])
+    assert "input_ids" in tokenized
+    assert tokenized["input_ids"].shape == (1, 5)
