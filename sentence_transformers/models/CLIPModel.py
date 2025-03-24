@@ -28,7 +28,7 @@ class CLIPModel(nn.Module):
     @max_seq_length.setter
     def max_seq_length(self, value: int) -> None:
         self.processor.tokenizer.model_max_length = value
-    
+
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         image_embeds = []
         text_embeds = []
