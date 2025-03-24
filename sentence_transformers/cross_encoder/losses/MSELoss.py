@@ -7,14 +7,14 @@ from sentence_transformers.util import fullname
 
 
 class MSELoss(nn.Module):
-    def __init__(self, model: CrossEncoder, activation_fct: nn.Module = nn.Identity(), **kwargs) -> None:
+    def __init__(self, model: CrossEncoder, activation_fn: nn.Module = nn.Identity(), **kwargs) -> None:
         """
         Computes the MSE loss between the computed query-passage score and a target query-passage score. This loss
         is used to distill a cross-encoder model from a teacher cross-encoder model or gold labels.
 
         Args:
             model (:class:`~sentence_transformers.cross_encoder.CrossEncoder`): A CrossEncoder model to be trained.
-            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss.
+            activation_fn (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss.
             **kwargs: Additional keyword arguments passed to the underlying :class:`torch.nn.MSELoss`.
 
         .. note::
@@ -70,7 +70,7 @@ class MSELoss(nn.Module):
         """
         super().__init__()
         self.model = model
-        self.activation_fct = activation_fct
+        self.activation_fn = activation_fn
         self.loss_fct = nn.MSELoss(**kwargs)
 
         if not isinstance(self.model, CrossEncoder):
@@ -100,11 +100,11 @@ class MSELoss(nn.Module):
         )
         tokens.to(self.model.device)
         logits = self.model(**tokens)[0].view(-1)
-        logits = self.activation_fct(logits)
+        logits = self.activation_fn(logits)
         loss = self.loss_fct(logits, labels.float())
         return loss
 
     def get_config_dict(self):
         return {
-            "activation_fct": fullname(self.activation_fct),
+            "activation_fn": fullname(self.activation_fn),
         }

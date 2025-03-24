@@ -11,7 +11,7 @@ class ListNetLoss(nn.Module):
     def __init__(
         self,
         model: CrossEncoder,
-        activation_fct: nn.Module | None = nn.Identity(),
+        activation_fn: nn.Module | None = nn.Identity(),
         mini_batch_size: int | None = None,
     ) -> None:
         """
@@ -27,7 +27,7 @@ class ListNetLoss(nn.Module):
 
         Args:
             model (CrossEncoder): CrossEncoder model to be trained
-            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the
+            activation_fn (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the
                 loss. Defaults to :class:`~torch.nn.Identity`.
             mini_batch_size (int, optional): Number of samples to process in each forward pass. This has a significant
                 impact on the memory consumption and speed of the training process. Three cases are possible:
@@ -88,7 +88,7 @@ class ListNetLoss(nn.Module):
         """
         super().__init__()
         self.model = model
-        self.activation_fct = activation_fct or nn.Identity()
+        self.activation_fn = activation_fn or nn.Identity()
         self.mini_batch_size = mini_batch_size
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
@@ -155,7 +155,7 @@ class ListNetLoss(nn.Module):
             logits_list.append(logits)
 
         logits = torch.cat(logits_list, dim=0)
-        logits = self.activation_fct(logits)
+        logits = self.activation_fn(logits)
 
         # Create output tensor filled with 0 (padded logits will be ignored via labels)
         logits_matrix = torch.full((batch_size, max_docs), -1e16, device=self.model.device)
@@ -182,7 +182,7 @@ class ListNetLoss(nn.Module):
         Returns:
             Dictionary containing the configuration parameters
         """
-        return {"activation_fct": fullname(self.activation_fct), "mini_batch_size": self.mini_batch_size}
+        return {"activation_fn": fullname(self.activation_fn), "mini_batch_size": self.mini_batch_size}
 
     @property
     def citation(self) -> str:

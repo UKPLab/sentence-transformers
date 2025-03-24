@@ -10,7 +10,7 @@ class BinaryCrossEntropyLoss(nn.Module):
     def __init__(
         self,
         model: CrossEncoder,
-        activation_fct: nn.Module = nn.Identity(),
+        activation_fn: nn.Module = nn.Identity(),
         pos_weight: Tensor | None = None,
         **kwargs,
     ) -> None:
@@ -23,7 +23,7 @@ class BinaryCrossEntropyLoss(nn.Module):
 
         Args:
             model (:class:`~sentence_transformers.cross_encoder.CrossEncoder`): A CrossEncoder model to be trained.
-            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Identity`.
+            activation_fn (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Identity`.
             pos_weight (Tensor, optional): A weight of positive examples. Must be a :class:`torch.Tensor` like ``torch.tensor(4)`` for a weight of 4. Defaults to None.
             **kwargs: Additional keyword arguments passed to the underlying :class:`torch.nn.BCEWithLogitsLoss`.
 
@@ -74,7 +74,7 @@ class BinaryCrossEntropyLoss(nn.Module):
         """
         super().__init__()
         self.model = model
-        self.activation_fct = activation_fct
+        self.activation_fn = activation_fn
         self.pos_weight = pos_weight
         self.bce_with_logits_loss = nn.BCEWithLogitsLoss(pos_weight=pos_weight, **kwargs)
 
@@ -105,12 +105,12 @@ class BinaryCrossEntropyLoss(nn.Module):
         )
         tokens.to(self.model.device)
         logits = self.model(**tokens)[0].view(-1)
-        logits = self.activation_fct(logits)
+        logits = self.activation_fn(logits)
         loss = self.bce_with_logits_loss(logits, labels.float())
         return loss
 
     def get_config_dict(self):
         return {
-            "activation_fct": fullname(self.activation_fct),
+            "activation_fn": fullname(self.activation_fn),
             "pos_weight": self.pos_weight if self.pos_weight is None else self.pos_weight.item(),
         }

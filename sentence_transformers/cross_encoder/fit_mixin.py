@@ -144,11 +144,11 @@ class OriginalCallback(TrainerCallback):
 class FitMixinLoss(nn.Module):
     """A wrapper around the torch loss function that just accepts logits and labels, to be used in CrossEncoder.fit()"""
 
-    def __init__(self, model: CrossEncoder, loss_fct: nn.Module, activation_fct: nn.Module = nn.Identity()) -> None:
+    def __init__(self, model: CrossEncoder, loss_fct: nn.Module, activation_fn: nn.Module = nn.Identity()) -> None:
         super().__init__()
         self.model = model
         self.loss_fct = loss_fct
-        self.activation_fct = activation_fct
+        self.activation_fn = activation_fn
 
     def forward(self, inputs: list[list[str]], labels: Tensor) -> Tensor:
         if len(inputs) != 2:
@@ -170,7 +170,7 @@ class FitMixinLoss(nn.Module):
             labels = labels.float()
         else:
             labels = labels.long()
-        logits = self.activation_fct(logits)
+        logits = self.activation_fn(logits)
         loss = self.loss_fct(logits, labels)
         return loss
 
@@ -338,11 +338,11 @@ class FitMixin:
 
         if loss_fct is None:
             if self.config.num_labels == 1:
-                loss_fct = BinaryCrossEntropyLoss(self, activation_fct=activation_fct)
+                loss_fct = BinaryCrossEntropyLoss(self, activation_fn=activation_fct)
             else:
-                loss_fct = CrossEntropyLoss(self, activation_fct=activation_fct)
+                loss_fct = CrossEntropyLoss(self, activation_fn=activation_fct)
         else:
-            loss_fct = FitMixinLoss(self, loss_fct=loss_fct, activation_fct=activation_fct)
+            loss_fct = FitMixinLoss(self, loss_fct=loss_fct, activation_fn=activation_fct)
 
         # Create callbacks
         callbacks = []

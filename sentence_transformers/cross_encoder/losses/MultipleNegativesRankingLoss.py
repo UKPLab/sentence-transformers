@@ -15,7 +15,7 @@ class MultipleNegativesRankingLoss(nn.Module):
         model: CrossEncoder,
         num_negatives: int | None = 4,
         scale: int = 10.0,
-        activation_fct: nn.Module | None = nn.Sigmoid(),
+        activation_fn: nn.Module | None = nn.Sigmoid(),
     ) -> None:
         """
         Given a list of (anchor, positive) pairs or (anchor, positive, negative) triplets, this loss optimizes the following:
@@ -37,7 +37,7 @@ class MultipleNegativesRankingLoss(nn.Module):
             model (:class:`~sentence_transformers.cross_encoder.CrossEncoder`): A CrossEncoder model to be trained.
             num_negatives (int, optional): Number of in-batch negatives to sample for each anchor. Defaults to 4.
             scale (int, optional): Output of similarity function is multiplied by scale value. Defaults to 10.0.
-            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Sigmoid`.
+            activation_fn (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Sigmoid`.
 
         .. note::
 
@@ -95,7 +95,7 @@ class MultipleNegativesRankingLoss(nn.Module):
         self.model = model
         self.num_negatives = num_negatives
         self.scale = scale
-        self.activation_fct = activation_fct
+        self.activation_fn = activation_fn
 
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
@@ -155,8 +155,8 @@ class MultipleNegativesRankingLoss(nn.Module):
         logits = torch.cat(logits, dim=0).reshape(-1, batch_size).T
 
         # Apply the post-processing on the logits
-        if self.activation_fct:
-            logits = self.activation_fct(logits)
+        if self.activation_fn:
+            logits = self.activation_fn(logits)
         if self.scale:
             logits = logits * self.scale
 
@@ -187,5 +187,5 @@ class MultipleNegativesRankingLoss(nn.Module):
         return {
             "scale": self.scale,
             "num_negatives": self.num_negatives,
-            "activation_fct": fullname(self.activation_fct),
+            "activation_fn": fullname(self.activation_fn),
         }

@@ -6,7 +6,7 @@ from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
 
 
 class CrossEntropyLoss(nn.Module):
-    def __init__(self, model: CrossEncoder, activation_fct: nn.Module = nn.Identity(), **kwargs) -> None:
+    def __init__(self, model: CrossEncoder, activation_fn: nn.Module = nn.Identity(), **kwargs) -> None:
         """
         Computes the Cross Entropy Loss for a CrossEncoder model. This loss is used to train a model to predict the
         correct class label for a given pair of sentences. The number of classes should be equal to the number of model
@@ -14,7 +14,7 @@ class CrossEntropyLoss(nn.Module):
 
         Args:
             model (:class:`~sentence_transformers.cross_encoder.CrossEncoder`): A CrossEncoder model to be trained.
-            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Identity`.
+            activation_fn (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Identity`.
             **kwargs: Additional keyword arguments passed to the underlying :class:`torch.nn.CrossEntropyLoss`.
 
         References:
@@ -55,7 +55,7 @@ class CrossEntropyLoss(nn.Module):
         """
         super().__init__()
         self.model = model
-        self.activation_fct = activation_fct
+        self.activation_fn = activation_fn
         self.ce_loss = nn.CrossEntropyLoss(**kwargs)
 
         if not isinstance(self.model, CrossEncoder):
@@ -79,6 +79,6 @@ class CrossEntropyLoss(nn.Module):
         )
         tokens.to(self.model.device)
         logits = self.model(**tokens)[0]
-        logits = self.activation_fct(logits)
+        logits = self.activation_fn(logits)
         loss = self.ce_loss(logits, labels)
         return loss

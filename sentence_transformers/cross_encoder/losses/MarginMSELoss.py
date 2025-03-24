@@ -7,7 +7,7 @@ from sentence_transformers.util import fullname
 
 
 class MarginMSELoss(nn.Module):
-    def __init__(self, model: CrossEncoder, activation_fct: nn.Module = nn.Identity(), **kwargs) -> None:
+    def __init__(self, model: CrossEncoder, activation_fn: nn.Module = nn.Identity(), **kwargs) -> None:
         """
         Computes the MSE loss between ``|sim(Query, Pos) - sim(Query, Neg)|`` and ``|gold_sim(Query, Pos) - gold_sim(Query, Neg)|``.
         This loss is often used to distill a cross-encoder model from a teacher cross-encoder model or gold labels.
@@ -23,7 +23,7 @@ class MarginMSELoss(nn.Module):
 
         Args:
             model (:class:`~sentence_transformers.cross_encoder.CrossEncoder`): A CrossEncoder model to be trained.
-            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss.
+            activation_fn (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss.
             **kwargs: Additional keyword arguments passed to the underlying :class:`torch.nn.MSELoss`.
 
         References:
@@ -77,7 +77,7 @@ class MarginMSELoss(nn.Module):
         """
         super().__init__()
         self.model = model
-        self.activation_fct = activation_fct
+        self.activation_fn = activation_fn
         self.loss_fct = nn.MSELoss(**kwargs)
 
         if not isinstance(self.model, CrossEncoder):
@@ -107,7 +107,7 @@ class MarginMSELoss(nn.Module):
         )
         tokens.to(self.model.device)
         positive_logits = self.model(**tokens)[0].view(-1)
-        positive_logits = self.activation_fct(positive_logits)
+        positive_logits = self.activation_fn(positive_logits)
 
         negative_pairs = list(zip(inputs[0], inputs[2]))
         tokens = self.model.tokenizer(
@@ -118,7 +118,7 @@ class MarginMSELoss(nn.Module):
         )
         tokens.to(self.model.device)
         negative_logits = self.model(**tokens)[0].view(-1)
-        negative_logits = self.activation_fct(negative_logits)
+        negative_logits = self.activation_fn(negative_logits)
 
         margin_logits = positive_logits - negative_logits
         loss = self.loss_fct(margin_logits, labels.float())
@@ -126,7 +126,7 @@ class MarginMSELoss(nn.Module):
 
     def get_config_dict(self):
         return {
-            "activation_fct": fullname(self.activation_fct),
+            "activation_fn": fullname(self.activation_fn),
         }
 
     @property

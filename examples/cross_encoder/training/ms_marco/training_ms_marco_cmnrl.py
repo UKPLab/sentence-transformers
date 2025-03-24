@@ -61,13 +61,13 @@ def main():
 
     # 3. Define our training loss
     scale = 10.0
-    activation_fct = nn.Sigmoid()
+    activation_fn = nn.Sigmoid()
     loss = CachedMultipleNegativesRankingLoss(
         model,
         num_negatives=5,
         mini_batch_size=32,
         scale=scale,
-        activation_fct=activation_fct,
+        activation_fn=activation_fn,
     )
 
     # 4. Define the evaluator. We use the CrossEncoderNanoBEIREvaluator, which is a light-weight evaluator for English reranking

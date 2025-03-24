@@ -10,7 +10,7 @@ class ListMLELoss(PListMLELoss):
     def __init__(
         self,
         model: CrossEncoder,
-        activation_fct: nn.Module | None = nn.Identity(),
+        activation_fn: nn.Module | None = nn.Identity(),
         mini_batch_size: int | None = None,
         respect_input_order: bool = True,
     ) -> None:
@@ -25,7 +25,7 @@ class ListMLELoss(PListMLELoss):
 
         Args:
             model (CrossEncoder): CrossEncoder model to be trained
-            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the
+            activation_fn (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the
                 loss. Defaults to :class:`~torch.nn.Identity`.
             mini_batch_size (int, optional): Number of samples to process in each forward pass. This has a significant
                 impact on the memory consumption and speed of the training process. Three cases are possible:
@@ -96,7 +96,7 @@ class ListMLELoss(PListMLELoss):
         super().__init__(
             model=model,
             lambda_weight=None,
-            activation_fct=activation_fct,
+            activation_fn=activation_fn,
             mini_batch_size=mini_batch_size,
             respect_input_order=respect_input_order,
         )

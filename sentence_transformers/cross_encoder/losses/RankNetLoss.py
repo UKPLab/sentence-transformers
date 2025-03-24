@@ -16,7 +16,7 @@ class RankNetLoss(LambdaLoss):
         sigma: float = 1.0,
         eps: float = 1e-10,
         reduction_log: Literal["natural", "binary"] = "binary",
-        activation_fct: nn.Module | None = nn.Identity(),
+        activation_fn: nn.Module | None = nn.Identity(),
         mini_batch_size: int | None = None,
     ) -> None:
         """
@@ -29,7 +29,7 @@ class RankNetLoss(LambdaLoss):
             model (CrossEncoder): CrossEncoder model to be trained
             sigma (float): Score difference weight used in sigmoid (default: 1.0)
             eps (float): Small constant for numerical stability (default: 1e-10)
-            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the
+            activation_fn (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the
                 loss. Defaults to :class:`~torch.nn.Identity`.
             mini_batch_size (int, optional): Number of samples to process in each forward pass. This has a significant
                 impact on the memory consumption and speed of the training process. Three cases are possible:
@@ -95,7 +95,7 @@ class RankNetLoss(LambdaLoss):
             sigma=sigma,
             eps=eps,
             reduction_log=reduction_log,
-            activation_fct=activation_fct,
+            activation_fn=activation_fn,
             mini_batch_size=mini_batch_size,
         )
 

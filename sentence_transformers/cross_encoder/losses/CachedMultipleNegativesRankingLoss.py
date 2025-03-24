@@ -65,7 +65,7 @@ class CachedMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
         model: CrossEncoder,
         num_negatives: int | None = 4,
         scale: float = 10.0,
-        activation_fct: nn.Module | None = nn.Sigmoid(),
+        activation_fn: nn.Module | None = nn.Sigmoid(),
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
     ) -> None:
@@ -102,7 +102,7 @@ class CachedMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
             model (:class:`~sentence_transformers.cross_encoder.CrossEncoder`): A CrossEncoder model to be trained.
             num_negatives (int, optional): Number of in-batch negatives to sample for each anchor. Defaults to 4.
             scale (int, optional): Output of similarity function is multiplied by scale value. Defaults to 10.0.
-            activation_fct (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Sigmoid`.
+            activation_fn (:class:`~torch.nn.Module`): Activation function applied to the logits before computing the loss. Defaults to :class:`~torch.nn.Sigmoid`.
             mini_batch_size (int, optional): Mini-batch size for the forward pass. This informs the memory usage. Defaults to 32.
             show_progress_bar (bool, optional): Whether to show a progress bar during the forward pass. Defaults to False.
 
@@ -163,7 +163,7 @@ class CachedMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
                 )
                 trainer.train()
         """
-        super().__init__(model, num_negatives, scale, activation_fct)
+        super().__init__(model, num_negatives, scale, activation_fn)
         self.mini_batch_size = mini_batch_size
         self.show_progress_bar = show_progress_bar
 

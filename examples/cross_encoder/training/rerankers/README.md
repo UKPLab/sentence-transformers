@@ -49,7 +49,7 @@ The loss will then compute scores for all (query, answer) pairs, *including* the
 
 The :class:`~sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss` uses an approach called `GradCache <https://arxiv.org/abs/2101.06983>`_ to allow computing the scores in mini-batches without increasing the memory usage excessively. This loss is recommended over the "standard" :class:`~sentence_transformers.cross_encoder.losses.MultipleNegativesRankingLoss` (a.k.a. InfoNCE) loss, which does not have this clever mini-batching support and thus requires a lot of memory.
 
-Experimentation with an ``activation_fct`` and ``scale`` is warranted for this loss. :class:`torch.nn.Sigmoid` with ``scale=10.0`` works okay, :class:`torch.nn.Identity`` with ``scale=1.0`` also works, and the `mGTE <https://arxiv.org/abs/2407.19669>`_ paper authors suggest using :class:`torch.nn.Tanh` with ``scale=10.0``.
+Experimentation with an ``activation_fn`` and ``scale`` is warranted for this loss. :class:`torch.nn.Sigmoid` with ``scale=10.0`` works okay, :class:`torch.nn.Identity`` with ``scale=1.0`` also works, and the `mGTE <https://arxiv.org/abs/2407.19669>`_ paper authors suggest using :class:`torch.nn.Tanh` with ``scale=10.0``.
 ```
 
 ## Inference
