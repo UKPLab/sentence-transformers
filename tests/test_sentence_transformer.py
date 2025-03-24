@@ -22,6 +22,7 @@ from sentence_transformers import SentenceTransformer, util
 from sentence_transformers.models import (
     CNN,
     LSTM,
+    CLIPModel,
     Dense,
     LayerNorm,
     Normalize,
@@ -691,3 +692,19 @@ def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
     model = stsb_bert_tiny_model
     embeddings = model.encode([])
     assert embeddings.shape == (0,)
+
+
+def test_clip():
+    model = CLIPModel()
+    assert model.max_seq_length == 77
+    assert model.processor.tokenizer.model_max_length == 77
+    tokenized = model.tokenize(["This is my text sentence"])
+    assert "input_ids" in tokenized
+    assert tokenized["input_ids"].shape == (1, 7)
+
+    model.max_seq_length = 5
+    assert model.max_seq_length == 5
+    assert model.processor.tokenizer.model_max_length == 5
+    tokenized = model.tokenize(["This is my text sentence"])
+    assert "input_ids" in tokenized
+    assert tokenized["input_ids"].shape == (1, 5)
