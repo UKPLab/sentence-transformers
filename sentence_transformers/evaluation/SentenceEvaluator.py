@@ -52,15 +52,14 @@ class SentenceEvaluator:
         pass
 
     def prefix_name_to_metrics(self, metrics: dict[str, float], name: str) -> dict[str, float]:
-        if not name:
-            return metrics
-
         def maybe_to_float(value: Any) -> Any:
             try:
                 return float(value)
             except ValueError:
                 return value
 
+        if not name:
+            return {key: maybe_to_float(value) for key, value in metrics.items()}
         metrics = {name + "_" + key: maybe_to_float(value) for key, value in metrics.items()}
         if hasattr(self, "primary_metric") and not self.primary_metric.startswith(name + "_"):
             self.primary_metric = name + "_" + self.primary_metric
