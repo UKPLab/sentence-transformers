@@ -132,6 +132,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
 
    docs/installation
    docs/quickstart
+   docs/migration_guide
 
 .. toctree::
    :maxdepth: 2
