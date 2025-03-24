@@ -10,13 +10,14 @@ import os
 import re
 from functools import partial
 from pathlib import Path
-from typing import Dict, List, Literal, cast
+from typing import Literal, cast
 
 import numpy as np
 import pytest
 import torch
-from huggingface_hub import GitRefInfo, GitRefs, HfApi, RepoUrl
+from huggingface_hub import CommitInfo, HfApi, RepoUrl
 from torch import nn
+from transformers.utils import is_peft_available
 
 from sentence_transformers import SentenceTransformer, util
 from sentence_transformers.models import (
@@ -109,30 +110,26 @@ def test_push_to_hub(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureF
     def mock_upload_folder(self, **kwargs):
         nonlocal mock_upload_folder_kwargs
         mock_upload_folder_kwargs = kwargs
-
-    def mock_list_repo_refs(self, repo_id=None, **kwargs):
-        try:
-            git_ref_info = GitRefInfo(name="main", ref="refs/heads/main", target_commit="123456")
-            git_ref_info2 = GitRefInfo(name="revision_test", ref="refs/heads/revision_test", target_commit="678901")
-        except TypeError:
-            git_ref_info = GitRefInfo(dict(name="main", ref="refs/heads/main", targetCommit="123456"))
-            git_ref_info2 = GitRefInfo(
-                dict(name="revision_test", ref="refs/heads/revision_test", target_commit="678901")
+        if kwargs.get("revision") is None:
+            return CommitInfo(
+                commit_url=f"https://huggingface.co/{kwargs.get('repo_id')}/commit/123456",
+                commit_message="commit_message",
+                commit_description="commit_description",
+                oid="oid",
             )
-        # workaround for https://github.com/huggingface/huggingface_hub/issues/1956
-        git_ref_kwargs = {"branches": [git_ref_info, git_ref_info2], "converts": [], "tags": [], "pull_requests": None}
-        try:
-            return GitRefs(**git_ref_kwargs)
-        except TypeError:
-            git_ref_kwargs.pop("pull_requests")
-            return GitRefs(**git_ref_kwargs)
+        else:
+            return CommitInfo(
+                commit_url=f"https://huggingface.co/{kwargs.get('repo_id')}/commit/678901",
+                commit_message="commit_message",
+                commit_description="commit_description",
+                oid="oid",
+            )
 
     def mock_create_branch(self, repo_id, branch, revision=None, **kwargs):
         return None
 
     monkeypatch.setattr(HfApi, "create_repo", mock_create_repo)
     monkeypatch.setattr(HfApi, "upload_folder", mock_upload_folder)
-    monkeypatch.setattr(HfApi, "list_repo_refs", mock_list_repo_refs)
     monkeypatch.setattr(HfApi, "create_branch", mock_create_branch)
 
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
@@ -289,12 +286,12 @@ def test_load_with_revision() -> None:
     assert not torch.equal(main_embeddings, older_model.encode(test_sentence, convert_to_tensor=True))
 
 
-def test_load_local_without_normalize_directory() -> None:
-    tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-    tiny_model.add_module("Normalize", Normalize())
+def test_load_local_without_normalize_directory(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    model = stsb_bert_tiny_model
+    model.add_module("Normalize", Normalize())
     with SafeTemporaryDirectory() as tmp_folder:
         model_path = Path(tmp_folder) / "tiny_model_local"
-        tiny_model.save(str(model_path))
+        model.save(str(model_path))
 
         assert (model_path / "2_Normalize").exists()
         os.rmdir(model_path / "2_Normalize")
@@ -305,8 +302,8 @@ def test_load_local_without_normalize_directory() -> None:
         assert isinstance(fresh_tiny_model, SentenceTransformer)
 
 
-def test_prompts(caplog: pytest.LogCaptureFixture) -> None:
-    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+def test_prompts(stsb_bert_tiny_model: SentenceTransformer, caplog: pytest.LogCaptureFixture) -> None:
+    model = stsb_bert_tiny_model
     assert model.prompts == {}
     assert model.default_prompt_name is None
     texts = ["How to bake a chocolate cake", "Symptoms of the flu"]
@@ -421,6 +418,33 @@ def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert transformer_kwargs["model_args"]["attn_implementation"] == "eager"
 
 
+@pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test PEFT support.")
+def test_load_checkpoint_with_peft_and_lora() -> None:
+    from peft import LoraConfig, PeftModel, TaskType
+
+    peft_config = LoraConfig(
+        target_modules=["query", "key", "value"],
+        task_type=TaskType.FEATURE_EXTRACTION,
+        inference_mode=False,
+        r=8,
+        lora_alpha=32,
+        lora_dropout=0.1,
+    )
+
+    with SafeTemporaryDirectory() as tmp_folder:
+        model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+        model.add_adapter(peft_config)
+        model.save(tmp_folder)
+        expecteds = model.encode(["Hello there!", "How are you?"], convert_to_tensor=True)
+
+        loaded_peft_model = SentenceTransformer(tmp_folder)
+        actuals = loaded_peft_model.encode(["Hello there!", "How are you?"], convert_to_tensor=True)
+
+        assert isinstance(model._modules["0"].auto_model, nn.Module)
+        assert isinstance(loaded_peft_model._modules["0"].auto_model, PeftModel)
+        assert torch.equal(expecteds, actuals)
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
 def test_encode_fp16() -> None:
     tiny_model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
@@ -474,13 +498,14 @@ def test_encode_quantization(
 @pytest.mark.parametrize("normalize_embeddings", [True, False])
 @pytest.mark.parametrize("output_value", ["sentence_embedding", None])
 def test_encode_truncate(
+    stsb_bert_tiny_model_reused: SentenceTransformer,
     sentences: str | list[str],
     convert_to_tensor: bool,
     convert_to_numpy: bool,
     normalize_embeddings: bool,
     output_value: Literal["sentence_embedding"] | None,
 ) -> None:
-    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    model = stsb_bert_tiny_model_reused
     embeddings_full_unnormalized: torch.Tensor = model.encode(
         sentences, convert_to_numpy=False, convert_to_tensor=True
     )  # These are raw embeddings which serve as the reference to test against
@@ -497,10 +522,10 @@ def test_encode_truncate(
         # Extract the sentence embeddings out of outputs
         if output_value is None:
             # We get the whole plate
-            if not isinstance(outputs, List):
+            if not isinstance(outputs, list):
                 embeddings = outputs["sentence_embedding"]
             else:
-                outputs = cast(List[Dict[str, torch.Tensor]], outputs)
+                outputs = cast(list[dict[str, torch.Tensor]], outputs)
                 embeddings = [out_features["sentence_embedding"] for out_features in outputs]
         else:
             embeddings = outputs
@@ -592,7 +617,7 @@ def test_similarity_score(stsb_bert_tiny_model_reused: SentenceTransformer, simi
 def test_similarity_score_save(stsb_bert_tiny_model: SentenceTransformer) -> None:
     model = stsb_bert_tiny_model
     embeddings = model.encode(["Sentence 1", "Sentence 2"])
-    assert model.similarity_fn_name is None
+    assert model.similarity_fn_name == "cosine"
     cosine_scores = model.similarity(embeddings, embeddings)
     # Using 'similarity' methods sets the default similarity function to 'cosine'
     assert model.similarity_fn_name == "cosine"
@@ -692,6 +717,80 @@ def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
     model = stsb_bert_tiny_model
     embeddings = model.encode([])
     assert embeddings.shape == (0,)
+
+
+@pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test adapter methods.")
+def test_multiple_adapters() -> None:
+    text = "Hello, World!"
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    vec_initial = model.encode(text)
+    from peft import LoraConfig, TaskType, get_model_status
+
+    # Adding a fresh adapter
+    peft_config = LoraConfig(
+        target_modules=["query", "key", "value"],
+        task_type=TaskType.FEATURE_EXTRACTION,
+        inference_mode=False,
+        r=8,
+        lora_alpha=32,
+        lora_dropout=0.1,
+        init_lora_weights=False,  # Random initialization to test the adapter
+    )
+    model.add_adapter(peft_config)
+
+    # Load an adapter from the hub
+    model.load_adapter("sentence-transformers-testing/stsb-bert-tiny-lora", "hub_adapter")
+
+    # Adding another one with a different name
+    peft_config = LoraConfig(
+        target_modules=["value"],
+        task_type=TaskType.FEATURE_EXTRACTION,
+        inference_mode=False,
+        r=2,
+        lora_alpha=16,
+        lora_dropout=0.1,
+        init_lora_weights=False,  # Random initialization to test the adapter
+    )
+    model.add_adapter(peft_config, "my_adapter")
+
+    # Check that peft recognizes the adapters while we compute vectors for later comparison
+    status = get_model_status(model)
+    assert status.available_adapters == ["default", "hub_adapter", "my_adapter"]
+    assert status.enabled
+    assert status.active_adapters == ["my_adapter"]
+    assert status.active_adapters == model.active_adapters()
+    vec_my_adapter = model.encode(text)
+
+    model.set_adapter("default")
+    status = get_model_status(model)
+    assert status.active_adapters == ["default"]
+    vec_default_adapter = model.encode(text)
+
+    model.disable_adapters()
+    status = get_model_status(model)
+    assert not status.enabled
+    vec_no_adapter = model.encode(text)
+
+    # Check that each vector is different
+    assert not np.allclose(vec_my_adapter, vec_default_adapter)
+    assert not np.allclose(vec_my_adapter, vec_no_adapter)
+    assert not np.allclose(vec_default_adapter, vec_no_adapter)
+    # Check that the vectors from the original model match
+    assert np.allclose(vec_initial, vec_no_adapter)
+
+    # Check that for non Transformer-based models we have an error
+    model = SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency")
+    with pytest.raises(ValueError, match="PEFT methods are only supported"):
+        model.add_adapter(peft_config)
+
+
+@pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test loading PEFT models.")
+def test_load_adapter_with_revision():
+    model = SentenceTransformer(
+        "sentence-transformers-testing/stsb-bert-tiny-lora", revision="3b4f75bcb3dec36a7e05da8c44ee2f7f1d023b1a"
+    )
+    embeddings = model.encode("Hello, World!")
+    assert embeddings.shape == (128,)
 
 
 def test_clip():

@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import string
-from typing import Iterable
+from collections.abc import Iterable
 
 from transformers.utils.import_utils import NLTK_IMPORT_ERROR, is_nltk_available
 

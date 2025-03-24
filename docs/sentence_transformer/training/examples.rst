@@ -16,6 +16,8 @@ Training Examples
    ../../../examples/training/multilingual/README
    ../../../examples/training/distillation/README
    ../../../examples/training/data_augmentation/README
+   ../../../examples/training/prompts/README
+   ../../../examples/training/peft/README
 
 .. toctree::
    :maxdepth: 1

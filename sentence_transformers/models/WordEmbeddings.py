@@ -137,9 +137,11 @@ class WordEmbeddings(nn.Module):
         vocab = []
         embeddings = []
 
-        with gzip.open(embeddings_file_path, "rt", encoding="utf8") if embeddings_file_path.endswith(".gz") else open(
-            embeddings_file_path, encoding="utf8"
-        ) as fIn:
+        with (
+            gzip.open(embeddings_file_path, "rt", encoding="utf8")
+            if embeddings_file_path.endswith(".gz")
+            else open(embeddings_file_path, encoding="utf8") as fIn
+        ):
             iterator = tqdm(fIn, desc="Load Word Embeddings", unit="Embeddings")
             for line in iterator:
                 split = line.rstrip().split(item_separator)

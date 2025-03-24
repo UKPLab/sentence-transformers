@@ -56,14 +56,16 @@ class SentenceEvaluator:
 
     def prefix_name_to_metrics(self, metrics: dict[str, float], name: str) -> dict[str, float]:
         if not name:
-            return metrics
-        metrics = {name + "_" + key: value for key, value in metrics.items()}
+            return {key: float(value) for key, value in metrics.items()}
+        metrics = {name + "_" + key: float(value) for key, value in metrics.items()}
         if hasattr(self, "primary_metric") and not self.primary_metric.startswith(name + "_"):
             self.primary_metric = name + "_" + self.primary_metric
         return metrics
 
-    def store_metrics_in_model_card_data(self, model: SentenceTransformer, metrics: dict[str, Any]) -> None:
-        model.model_card_data.set_evaluation_metrics(self, metrics)
+    def store_metrics_in_model_card_data(
+        self, model: SentenceTransformer, metrics: dict[str, Any], epoch: int = 0, step: int = 0
+    ) -> None:
+        model.model_card_data.set_evaluation_metrics(self, metrics, epoch, step)
 
     @property
     def description(self) -> str:

@@ -1,3 +1,13 @@
+"""
+This file contains deprecated code that can only be used with the old `model.fit`-style Sentence Transformers v2.X training.
+It exists for backwards compatibility with the `model.old_fit` method, but will be removed in a future version.
+
+Nowadays, with Sentence Transformers v3+, it is recommended to use the `SentenceTransformerTrainer` class to train models.
+See https://www.sbert.net/docs/sentence_transformer/training_overview.html for more information.
+
+Instead, you should create a `datasets` `Dataset` for training: https://huggingface.co/docs/datasets/create_dataset
+"""
+
 from __future__ import annotations
 
 import gzip
@@ -77,9 +87,11 @@ class ParallelSentencesDataset(Dataset):
         logger.info("Load " + filepath)
         parallel_sentences = []
 
-        with gzip.open(filepath, "rt", encoding="utf8") if filepath.endswith(".gz") else open(
-            filepath, encoding="utf8"
-        ) as fIn:
+        with (
+            gzip.open(filepath, "rt", encoding="utf8")
+            if filepath.endswith(".gz")
+            else open(filepath, encoding="utf8") as fIn
+        ):
             count = 0
             for line in fIn:
                 sentences = line.strip().split("\t")

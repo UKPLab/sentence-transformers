@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 import torch
 import torch.nn.functional as F
@@ -36,7 +36,7 @@ class MegaBatchMarginLoss(nn.Module):
                 down the large batch into smaller batches with fewer
                 examples.
             mini_batch_size: Size for the mini-batches. Should be a
-                devisor for the batch size in your data loader.
+                divisor for the batch size in your data loader.
 
         References:
             - This loss function was inspired by the ParaNMT paper: https://www.aclweb.org/anthology/P18-1042/
@@ -59,25 +59,30 @@ class MegaBatchMarginLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, InputExample, losses
-                from torch.utils.data import DataLoader
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainingArguments, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-                model = SentenceTransformer('all-MiniLM-L6-v2')
-
-                total_examples = 500
                 train_batch_size = 250
                 train_mini_batch_size = 32
 
-                train_examples = [
-                    InputExample(texts=[f"This is sentence number {i}", f"This is sentence number {i+1}"]) for i in range(total_examples)
-                ]
-                train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=train_batch_size)
-                train_loss = losses.MegaBatchMarginLoss(model=model, mini_batch_size=train_mini_batch_size)
+                model = SentenceTransformer('all-MiniLM-L6-v2')
+                train_dataset = Dataset.from_dict({
+                    "anchor": [f"This is sentence number {i}" for i in range(500)],
+                    "positive": [f"This is sentence number {i}" for i in range(1, 501)],
+                })
+                loss = losses.MegaBatchMarginLoss(model=model, mini_batch_size=train_mini_batch_size)
 
-                model.fit(
-                    [(train_dataloader, train_loss)],
-                    epochs=10,
+                args = SentenceTransformerTrainingArguments(
+                    output_dir="output",
+                    per_device_train_batch_size=train_batch_size,
                 )
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    args=args,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
         """
         super().__init__()
         self.model = model

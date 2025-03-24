@@ -5,7 +5,7 @@ This page shows how to **train** Cross Encoder models on this dataset so that it
 
 If you are interested in how to use these models, see [Application - Retrieve & Re-Rank](../../applications/retrieve_rerank/README.md).
 
-There are **pre-trained models** available, which you can directly use without the need of training your own models. For more information, see [Pretrained Cross-Encoders](../../../docs/cross_encoder/pretrained_models.html#ms-marco).
+There are **pre-trained models** available, which you can directly use without the need of training your own models. For more information, see [Pretrained Cross-Encoders](../../../docs/cross_encoder/pretrained_models.md#ms-marco).
 
 ## Cross-Encoder
 A [Cross-Encoder](https://www.sbert.net/examples/applications/cross-encoder/README.html) accepts both inputs, the query and the possible relevant passage and returns a score between 0 and 1 how relevant the passage is for the given query.

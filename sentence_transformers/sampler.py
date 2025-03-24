@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Iterator
 from itertools import accumulate, cycle
-from typing import Any, Iterator
+from typing import Any
 
 import torch
 from torch.utils.data import BatchSampler, ConcatDataset, SubsetRandomSampler
@@ -166,7 +167,7 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
             seed (int, optional): Seed for the random number generator to ensure reproducibility.
         """
         super().__init__(dataset, batch_size, drop_last)
-        if label_columns := set(dataset.column_names) & (set(valid_label_columns) | {"dataset_name"}):
+        if label_columns := set(dataset.column_names) & set(valid_label_columns):
             dataset = dataset.remove_columns(label_columns)
         self.dataset = dataset
         self.batch_size = batch_size
@@ -183,12 +184,19 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
         if self.generator and self.seed:
             self.generator.manual_seed(self.seed + self.epoch)
 
-        remaining_indices = set(torch.randperm(len(self.dataset), generator=self.generator).tolist())
+        # We create a dictionary to None because we need a data structure that:
+        # 1. Allows for cheap removal of elements
+        # 2. Preserves the order of elements, i.e. remains random
+        remaining_indices = dict.fromkeys(torch.randperm(len(self.dataset), generator=self.generator).tolist())
         while remaining_indices:
             batch_values = set()
             batch_indices = []
             for index in remaining_indices:
-                sample_values = set(self.dataset[index].values())
+                sample_values = {
+                    str(value)
+                    for key, value in self.dataset[index].items()
+                    if not key.endswith("_prompt_length") and key != "dataset_name"
+                }
                 if sample_values & batch_values:
                     continue
 
@@ -204,7 +212,8 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
                 if not self.drop_last:
                     yield batch_indices
 
-            remaining_indices -= set(batch_indices)
+            for index in batch_indices:
+                del remaining_indices[index]
 
     def __len__(self) -> int:
         if self.drop_last:

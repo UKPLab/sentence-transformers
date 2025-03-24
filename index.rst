@@ -1,6 +1,10 @@
-.. note::
+.. tip::
 
-   Sentence Transformers v3.0 just released, introducing a new training API for Sentence Transformer models. Read `SentenceTransformer > Training Overview <docs/sentence_transformer/training_overview.html>`_ to learn more about the training API, and check out `v3.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v3.0.0>`_ for details on the other changes.
+   You can now use ONNX and OpenVINO backends for Sentence Transformer models. Read `SentenceTransformer > Usage > Speeding up Inference <docs/sentence_transformer/usage/efficiency.html>`_ to learn more about the new backends and what they can mean for your inference speed.
+
+.. tip::
+
+   Sentence Transformers v3.4 just released, introducing documentation for training with PEFT. Read `SentenceTransformer > Training Examples > Training with PEFT Adapters <examples/training/peft/README.html>`_ to learn more about how you can use train embedding models without finetuning all model parameters.
 
 SentenceTransformers Documentation
 ==================================
@@ -28,7 +32,7 @@ Using Sentence Transformer models is elementary:
    
       pip install -U sentence-transformers
    
-   We recommend **Python 3.8+** and **PyTorch 1.11.0+**. See `installation <docs/installation.html>`_ for further installation options.
+   We recommend **Python 3.9+** and **PyTorch 1.11.0+**. See `installation <docs/installation.html>`_ for further installation options.
 
 .. code-block:: python
 
@@ -63,6 +67,7 @@ Consider reading one of the following sections to answer the related questions:
 
 * How to **use** Sentence Transformer models? `Sentence Transformers > Usage <docs/sentence_transformer/usage/usage.html>`_
 * What Sentence Transformer **models** can I use? `Sentence Transformers > Pretrained Models <docs/sentence_transformer/pretrained_models.html>`_
+* How do I make Sentence Transformer models **faster**? `Sentence Transformers > Usage > Speeding up Inference <docs/sentence_transformer/usage/efficiency.html>`_
 * How do I **train/finetune** a Sentence Transformer model? `Sentence Transformers > Training Overview <docs/sentence_transformer/training_overview.html>`_
 * How to **use** Cross Encoder models? `Cross Encoder > Usage <docs/cross_encoder/usage/usage.html>`_
 * What Cross Encoder **models** can I use? `Cross Encoder > Pretrained Models <docs/cross_encoder/pretrained_models.html>`_

@@ -1,3 +1,13 @@
+"""
+This file contains deprecated code that can only be used with the old `model.fit`-style Sentence Transformers v2.X training.
+It exists for backwards compatibility with the `model.old_fit` method, but will be removed in a future version.
+
+Nowadays, with Sentence Transformers v3+, it is recommended to use the `SentenceTransformerTrainer` class to train models.
+See https://www.sbert.net/docs/sentence_transformer/training_overview.html for more information.
+
+In particular, you can pass "no_duplicates" to `batch_sampler` in the `SentenceTransformerTrainingArguments` class.
+"""
+
 from __future__ import annotations
 
 import math
@@ -26,6 +36,8 @@ class NoDuplicatesDataLoader:
 
                 valid_example = True
                 for text in example.texts:
+                    if not isinstance(text, str):
+                        text = str(text)
                     if text.strip().lower() in texts_in_batch:
                         valid_example = False
                         break
@@ -33,6 +45,8 @@ class NoDuplicatesDataLoader:
                 if valid_example:
                     batch.append(example)
                     for text in example.texts:
+                        if not isinstance(text, str):
+                            text = str(text)
                         texts_in_batch.add(text.strip().lower())
 
                 self.data_pointer += 1

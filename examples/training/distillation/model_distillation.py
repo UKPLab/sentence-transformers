@@ -56,16 +56,6 @@ student_model = SentenceTransformer(student_model_name)
 inference_batch_size = 64
 train_batch_size = 64
 
-# We use AllNLI as a source of sentences for the distillation
-nli_dataset_path = "datasets/AllNLI.tsv.gz"
-
-# Further, we use sentences extracted from the English Wikipedia to train the distillation
-wikipedia_dataset_path = "datasets/wikipedia-en-sentences.txt.gz"
-
-# We use the STS benchmark dataset to see how much performance we loose
-sts_dataset_path = "datasets/stsbenchmark.tsv.gz"
-
-
 logging.info("Load the AllNLI dataset")
 # Load the AllNLI dataset: https://huggingface.co/datasets/sentence-transformers/all-nli
 nli_train_dataset = load_dataset("sentence-transformers/all-nli", "pair-score", split="train")

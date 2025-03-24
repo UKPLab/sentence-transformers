@@ -1,3 +1,13 @@
+"""
+This file contains deprecated code that can only be used with the old `model.fit`-style Sentence Transformers v2.X training.
+It exists for backwards compatibility with the `model.old_fit` method, but will be removed in a future version.
+
+Nowadays, with Sentence Transformers v3+, it is recommended to use the `SentenceTransformerTrainer` class to train models.
+See https://www.sbert.net/docs/sentence_transformer/training_overview.html for more information.
+
+Instead, you should create a `datasets` `Dataset` for training: https://huggingface.co/docs/datasets/create_dataset
+"""
+
 from __future__ import annotations
 
 import csv
@@ -38,8 +48,10 @@ class STSDataReader:
     def get_examples(self, filename, max_examples=0):
         """filename specified which data split to use (train.csv, dev.csv, test.csv)."""
         filepath = os.path.join(self.dataset_folder, filename)
-        with gzip.open(filepath, "rt", encoding="utf8") if filename.endswith(".gz") else open(
-            filepath, encoding="utf-8"
+        with (
+            gzip.open(filepath, "rt", encoding="utf8")
+            if filename.endswith(".gz")
+            else open(filepath, encoding="utf-8")
         ) as fIn:
             data = csv.reader(fIn, delimiter=self.delimiter, quoting=self.quoting)
             examples = []

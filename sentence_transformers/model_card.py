@@ -27,12 +27,12 @@ from transformers.modelcard import make_markdown_table
 from transformers.trainer_callback import TrainerControl, TrainerState
 
 from sentence_transformers import __version__ as sentence_transformers_version
-from sentence_transformers.models import Transformer
+from sentence_transformers.models import StaticEmbedding, Transformer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sentence_transformers.util import fullname, is_accelerate_available, is_datasets_available
 
 if is_datasets_available():
-    from datasets import Dataset, DatasetDict, IterableDataset, Value
+    from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, Value
 
 logger = logging.getLogger(__name__)
 
@@ -43,21 +43,9 @@ if TYPE_CHECKING:
 
 
 class ModelCardCallback(TrainerCallback):
-    def __init__(self, trainer: SentenceTransformerTrainer, default_args_dict: dict[str, Any]) -> None:
+    def __init__(self, default_args_dict: dict[str, Any]) -> None:
         super().__init__()
-        self.trainer = trainer
         self.default_args_dict = default_args_dict
-
-        callbacks = [
-            callback
-            for callback in self.trainer.callback_handler.callbacks
-            if isinstance(callback, CodeCarbonCallback)
-        ]
-        if callbacks:
-            trainer.model.model_card_data.code_carbon_callback = callbacks[0]
-
-        trainer.model.model_card_data.trainer = trainer
-        trainer.model.model_card_data.add_tags("generated_from_trainer")
 
     def on_init_end(
         self,
@@ -65,25 +53,35 @@ class ModelCardCallback(TrainerCallback):
         state: TrainerState,
         control: TrainerControl,
         model: SentenceTransformer,
+        trainer: SentenceTransformerTrainer,
         **kwargs,
     ) -> None:
         from sentence_transformers.losses import AdaptiveLayerLoss, Matryoshka2dLoss, MatryoshkaLoss
 
+        model.model_card_data.add_tags("generated_from_trainer")
+
+        # Try to set the code carbon callback if it exists
+        callbacks = [
+            callback for callback in trainer.callback_handler.callbacks if isinstance(callback, CodeCarbonCallback)
+        ]
+        if callbacks:
+            model.model_card_data.code_carbon_callback = callbacks[0]
+
         # Try to infer the dataset "name", "id" and "revision" from the dataset cache files
-        if self.trainer.train_dataset:
+        if trainer.train_dataset:
             model.model_card_data.train_datasets = model.model_card_data.extract_dataset_metadata(
-                self.trainer.train_dataset, model.model_card_data.train_datasets, "train"
+                trainer.train_dataset, model.model_card_data.train_datasets, trainer.loss, "train"
             )
 
-        if self.trainer.eval_dataset:
+        if trainer.eval_dataset:
             model.model_card_data.eval_datasets = model.model_card_data.extract_dataset_metadata(
-                self.trainer.eval_dataset, model.model_card_data.eval_datasets, "eval"
+                trainer.eval_dataset, model.model_card_data.eval_datasets, trainer.loss, "eval"
             )
 
-        if isinstance(self.trainer.loss, dict):
-            losses = list(self.trainer.loss.values())
+        if isinstance(trainer.loss, dict):
+            losses = list(trainer.loss.values())
         else:
-            losses = [self.trainer.loss]
+            losses = [trainer.loss]
         # Some losses are known to use other losses internally, e.g. MatryoshkaLoss, AdaptiveLayerLoss and Matryoshka2dLoss
         # So, verify for `loss` attributes in the losses
         loss_idx = 0
@@ -99,6 +97,10 @@ class ModelCardCallback(TrainerCallback):
 
         model.model_card_data.set_losses(losses)
 
+        # Extract some meaningful examples from the evaluation or training dataset to showcase the performance
+        if not model.model_card_data.widget and (dataset := trainer.eval_dataset or trainer.train_dataset):
+            model.model_card_data.set_widget_examples(dataset)
+
     def on_train_begin(
         self,
         args: SentenceTransformerTrainingArguments,
@@ -107,7 +109,6 @@ class ModelCardCallback(TrainerCallback):
         model: SentenceTransformer,
         **kwargs,
     ) -> None:
-        # model.model_card_data.hyperparameters = extract_hyperparameters_from_trainer(self.trainer)
         ignore_keys = {
             "output_dir",
             "logging_dir",
@@ -304,7 +305,6 @@ class SentenceTransformerModelCardData(CardData):
     code_carbon_callback: CodeCarbonCallback | None = field(default=None, init=False)
     citations: dict[str, str] = field(default_factory=dict, init=False)
     best_model_step: int | None = field(default=None, init=False)
-    trainer: SentenceTransformerTrainer | None = field(default=None, init=False, repr=False)
     datasets: list[str] = field(default_factory=list, init=False, repr=False)
 
     # Utility fields
@@ -315,6 +315,7 @@ class SentenceTransformerModelCardData(CardData):
     pipeline_tag: str = field(default="sentence-similarity", init=False)
     library_name: str = field(default="sentence-transformers", init=False)
     version: dict[str, str] = field(default_factory=get_versions, init=False)
+    template_path: Path = field(default=Path(__file__).parent / "model_card_template.md", init=False)
 
     # Passed via `register_model` only
     model: SentenceTransformer | None = field(default=None, init=False, repr=False)
@@ -335,7 +336,9 @@ class SentenceTransformerModelCardData(CardData):
             )
             self.model_id = None
 
-    def validate_datasets(self, dataset_list, infer_languages: bool = True) -> None:
+    def validate_datasets(
+        self, dataset_list: list[dict[str, Any]], infer_languages: bool = True
+    ) -> list[dict[str, Any]]:
         output_dataset_list = []
         for dataset in dataset_list:
             if "name" not in dataset:
@@ -354,13 +357,12 @@ class SentenceTransformerModelCardData(CardData):
                 else:
                     if info.cardData and infer_languages and "language" in info.cardData:
                         dataset_language = info.cardData.get("language")
-                        if dataset_language is None:
-                            break
-                        if isinstance(dataset_language, str):
-                            dataset_language = [dataset_language]
-                        for language in dataset_language:
-                            if language not in self.language:
-                                self.language.append(language)
+                        if dataset_language is not None:
+                            if isinstance(dataset_language, str):
+                                dataset_language = [dataset_language]
+                            for language in dataset_language:
+                                if language not in self.language:
+                                    self.language.append(language)
 
                     # Track dataset IDs for the metadata
                     if info.id not in self.datasets:
@@ -404,7 +406,7 @@ class SentenceTransformerModelCardData(CardData):
         self.best_model_step = step
 
     def set_widget_examples(self, dataset: Dataset | DatasetDict) -> None:
-        if isinstance(dataset, IterableDataset):
+        if isinstance(dataset, (IterableDataset, IterableDatasetDict)):
             # We can't set widget examples from an IterableDataset without losing data
             return
 
@@ -418,20 +420,32 @@ class SentenceTransformerModelCardData(CardData):
         for dataset_name, num_samples in tqdm(
             dataset_names.items(), desc="Computing widget examples", unit="example", leave=False
         ):
+            if isinstance(dataset[dataset_name], IterableDataset):
+                # We can't set widget examples from an IterableDataset without losing data
+                continue
+
             # Sample 1000 examples from the dataset, sort them by length, and pick the shortest examples as the core
             # examples for the widget
             columns = [
                 column
                 for column, feature in dataset[dataset_name].features.items()
-                if isinstance(feature, Value) and feature.dtype == "string" and column != "dataset_name"
+                if isinstance(feature, dict)
+                or (isinstance(feature, Value) and feature.dtype in {"string", "large_string"})
             ]
             str_dataset = dataset[dataset_name].select_columns(columns)
             dataset_size = len(str_dataset)
+            if dataset_size == 0:
+                continue
+
             lengths = {}
             for idx, sample in enumerate(
                 str_dataset.select(random.sample(range(dataset_size), k=min(num_samples_to_check, dataset_size)))
             ):
-                lengths[idx] = sum(len(value) for value in sample.values())
+                lengths[idx] = sum(
+                    len(value)
+                    for key, value in sample.items()
+                    if key != "dataset_name" and not key.endswith("_prompt_length")
+                )
 
             indices, _ = zip(*sorted(lengths.items(), key=lambda x: x[1]))
             target_indices, backup_indices = indices[:num_samples], list(indices[num_samples:][::-1])
@@ -439,10 +453,18 @@ class SentenceTransformerModelCardData(CardData):
             # We want 4 texts, so we take texts from the backup indices, short texts first
             for idx in target_indices:
                 # This is anywhere between 1 and n texts
-                sentences = list(str_dataset[idx].values())
+                sentences = [
+                    sentence
+                    for key, sentence in str_dataset[idx].items()
+                    if key != "dataset_name" and not key.endswith("_prompt_length")
+                ]
                 while len(sentences) < 4 and backup_indices:
                     backup_idx = backup_indices.pop()
-                    backup_sample = list(str_dataset[backup_idx].values())
+                    backup_sample = [
+                        sentence
+                        for key, sentence in str_dataset[backup_idx].items()
+                        if key != "dataset_name" and not key.endswith("_prompt_length")
+                    ]
                     if len(backup_sample) == 1:
                         # If there is only one text in the backup sample, we take it
                         sentences.extend(backup_sample)
@@ -458,7 +480,9 @@ class SentenceTransformerModelCardData(CardData):
                 )
                 self.predict_example = sentences[:3]
 
-    def set_evaluation_metrics(self, evaluator: SentenceEvaluator, metrics: dict[str, Any]) -> None:
+    def set_evaluation_metrics(
+        self, evaluator: SentenceEvaluator, metrics: dict[str, Any], epoch: int = 0, step: int = 0
+    ) -> None:
         from sentence_transformers.evaluation import SequentialEvaluator
 
         self.eval_results_dict[evaluator] = copy(metrics)
@@ -470,12 +494,6 @@ class SentenceTransformerModelCardData(CardData):
             elif isinstance(primary_metrics, str):
                 primary_metrics = [primary_metrics]
 
-            if self.trainer is None:
-                step = 0
-                epoch = 0
-            else:
-                step = self.trainer.state.global_step
-                epoch = self.trainer.state.epoch
             training_log_metrics = {key: value for key, value in metrics.items() if key in primary_metrics}
 
             if self.training_logs and self.training_logs[-1]["Step"] == step:
@@ -600,9 +618,9 @@ class SentenceTransformerModelCardData(CardData):
                     dataset_info["stats"][column] = {
                         "dtype": "float",
                         "data": {
-                            "min": round(min(dataset[column]), 2),
-                            "mean": round(sum(dataset[column]) / len(dataset), 2),
-                            "max": round(max(dataset[column]), 2),
+                            "min": round(min(subsection), 2),
+                            "mean": round(sum(subsection) / len(subsection), 2),
+                            "max": round(max(subsection), 2),
                         },
                     }
                 elif isinstance(first, list):
@@ -645,6 +663,9 @@ class SentenceTransformerModelCardData(CardData):
                     # If the value is a long list, truncate it
                     if isinstance(value, list) and len(value) > 5:
                         value = str(value[:5])[:-1] + ", ...]"
+                    # If the value is a really long string, truncate it
+                    if isinstance(value, str) and len(value) > 1000:
+                        value = value[:1000] + "..."
                     # Avoid newlines in the table
                     value = str(value).replace("\n", "<br>")
                     columns[column] = f"<code>{value}</code>"
@@ -664,8 +685,12 @@ class SentenceTransformerModelCardData(CardData):
         return dataset_info
 
     def extract_dataset_metadata(
-        self, dataset: Dataset | DatasetDict, dataset_metadata, dataset_type: Literal["train", "eval"]
-    ) -> dict[str, Any]:
+        self,
+        dataset: Dataset | DatasetDict,
+        dataset_metadata: list[dict[str, Any]],
+        loss: nn.Module | dict[str, nn.Module],
+        dataset_type: Literal["train", "eval"],
+    ) -> list[dict[str, Any]]:
         if dataset:
             if dataset_metadata and (
                 (isinstance(dataset, DatasetDict) and len(dataset_metadata) != len(dataset))
@@ -685,14 +710,14 @@ class SentenceTransformerModelCardData(CardData):
                     self.compute_dataset_metrics(
                         dataset_value,
                         dataset_info,
-                        self.trainer.loss[dataset_name] if isinstance(self.trainer.loss, dict) else self.trainer.loss,
+                        loss[dataset_name] if isinstance(loss, dict) else loss,
                     )
                     for dataset_name, dataset_value, dataset_info in zip(
                         dataset.keys(), dataset.values(), dataset_metadata
                     )
                 ]
             else:
-                dataset_metadata = [self.compute_dataset_metrics(dataset, dataset_metadata[0], self.trainer.loss)]
+                dataset_metadata = [self.compute_dataset_metrics(dataset, dataset_metadata[0], loss)]
 
         # Try to get the number of training samples
         if dataset_type == "train":
@@ -753,6 +778,9 @@ class SentenceTransformerModelCardData(CardData):
             for model_id in candidate_model_ids:
                 if self.set_base_model(model_id):
                     break
+        elif isinstance(self.model[0], StaticEmbedding):
+            if self.model[0].base_model:
+                self.set_base_model(self.model[0].base_model)
 
     def format_eval_metrics(self) -> dict[str, Any]:
         """Format the evaluation metrics for the model card.
@@ -804,7 +832,7 @@ class SentenceTransformerModelCardData(CardData):
                     "class_name": fullname(evaluator),
                     "description": description,
                     "dataset_name": dataset_name,
-                    "table": make_markdown_table(table_lines).replace("-:|", "--|"),
+                    "table_lines": table_lines,
                 }
             )
             eval_results.extend(
@@ -813,7 +841,7 @@ class SentenceTransformerModelCardData(CardData):
                         task_name=description,
                         task_type=description.lower().replace(" ", "-"),
                         dataset_type=dataset_name or "unknown",
-                        dataset_name=dataset_name.replace("_", " ").replace("-", " ") or "Unknown",
+                        dataset_name=dataset_name.replace("_", " ").replace("-", " ") if dataset_name else "Unknown",
                         metric_name=metric_key.replace("_", " ").title(),
                         metric_type=metric_key,
                         metric_value=metric_value,
@@ -824,8 +852,39 @@ class SentenceTransformerModelCardData(CardData):
             )
             all_metrics.update(metrics)
 
+        # Group eval_metrics together by class name and table_lines metrics
+        grouped_eval_metrics = []
+        for eval_metric in eval_metrics:
+            eval_metric_mapping = {line["Metric"]: line["Value"] for line in eval_metric["table_lines"]}
+            eval_metric_metrics = set(eval_metric_mapping)
+            for grouped_eval_metric in grouped_eval_metrics:
+                grouped_eval_metric_metrics = set(line["Metric"] for line in grouped_eval_metric["table_lines"])
+                if (
+                    eval_metric["class_name"] == grouped_eval_metric["class_name"]
+                    and eval_metric_metrics == grouped_eval_metric_metrics
+                    and eval_metric["dataset_name"] != grouped_eval_metric["dataset_name"]
+                ):
+                    # Add the evaluation results to the existing grouped evaluation metric
+                    for line in grouped_eval_metric["table_lines"]:
+                        if "Value" in line:
+                            line[grouped_eval_metric["dataset_name"]] = line.pop("Value")
+
+                        line[eval_metric["dataset_name"]] = eval_metric_mapping[line["Metric"]]
+
+                    if not isinstance(grouped_eval_metric["dataset_name"], list):
+                        grouped_eval_metric["dataset_name"] = [grouped_eval_metric["dataset_name"]]
+                    grouped_eval_metric["dataset_name"].append(eval_metric["dataset_name"])
+                    break
+            else:
+                grouped_eval_metrics.append(eval_metric)
+
+        for grouped_eval_metric in grouped_eval_metrics:
+            grouped_eval_metric["table"] = make_markdown_table(grouped_eval_metric.pop("table_lines")).replace(
+                "-:|", "--|"
+            )
+
         return {
-            "eval_metrics": eval_metrics,
+            "eval_metrics": grouped_eval_metrics,
             "metrics": list(all_metrics.keys()),
             "model-index": eval_results_to_model_index(self.model_name, eval_results),
         }
@@ -888,14 +947,6 @@ class SentenceTransformerModelCardData(CardData):
         return results
 
     def to_dict(self) -> dict[str, Any]:
-        # Extract some meaningful examples from the evaluation or training dataset to showcase the performance
-        if (
-            not self.widget
-            and self.trainer is not None
-            and (dataset := self.trainer.eval_dataset or self.trainer.train_dataset)
-        ):
-            self.set_widget_examples(dataset)
-
         # Try to set the base model
         if self.first_save and not self.base_model:
             try:
@@ -966,6 +1017,7 @@ class SentenceTransformerModelCardData(CardData):
 
 
 def generate_model_card(model: SentenceTransformer) -> str:
-    template_path = Path(__file__).parent / "model_card_template.md"
-    model_card = ModelCard.from_template(card_data=model.model_card_data, template_path=template_path, hf_emoji="🤗")
+    model_card = ModelCard.from_template(
+        card_data=model.model_card_data, template_path=model.model_card_data.template_path, hf_emoji="🤗"
+    )
     return model_card.content

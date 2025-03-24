@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
 from contextlib import nullcontext
 from functools import partial
-from typing import Any, Iterable, Iterator
+from typing import Any
 
 import torch
 import tqdm
@@ -10,6 +11,7 @@ from torch import Tensor, nn
 
 from sentence_transformers import SentenceTransformer, util
 from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import RandContext
+from sentence_transformers.models import StaticEmbedding
 
 
 def _backward_hook(
@@ -114,6 +116,12 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             - Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup: https://arxiv.org/pdf/2101.06983.pdf
         """
         super().__init__()
+        if isinstance(model[0], StaticEmbedding):
+            raise ValueError(
+                "CachedMultipleNegativesSymmetricRankingLoss is not compatible with a SentenceTransformer model based on a StaticEmbedding. "
+                "Consider using MultipleNegativesSymmetricRankingLoss instead."
+            )
+
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct
@@ -174,39 +182,14 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
 
     def calculate_loss_and_cache_gradients(self, reps: list[list[Tensor]]) -> Tensor:
         """Calculate the symmetric loss and cache gradients."""
-        embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
-        embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
+        loss = self.calculate_loss(reps, with_backward=True)
+        loss = loss.detach().requires_grad_()
 
-        batch_size = len(embeddings_a)
-        labels = torch.arange(batch_size, device=embeddings_a.device)
-
-        losses: list[torch.Tensor] = []
-        for b in tqdm.trange(
-            0,
-            batch_size,
-            self.mini_batch_size,
-            desc="Preparing caches",
-            disable=not self.show_progress_bar,
-        ):
-            e = min(b + self.mini_batch_size, batch_size)
-            scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
-            forward_loss: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e])
-
-            positive_scores = scores[:, b:e]
-            backward_loss: torch.Tensor = self.cross_entropy_loss(positive_scores.t(), labels[: len(positive_scores)])
-
-            loss_mbatch = (forward_loss + backward_loss) / 2
-            loss_mbatch.backward()
-            losses.append(loss_mbatch.detach())
-
-        loss = sum(losses) / len(losses)
-        loss = loss.requires_grad_()
-
-        self.cache = [[r.grad for r in rs] for rs in reps]
+        self.cache = [[r.grad for r in rs] for rs in reps]  # e.g. 3 * bsz/mbsz * (mbsz, hdim)
 
         return loss
 
-    def calculate_loss(self, reps: list[list[Tensor]]) -> Tensor:
+    def calculate_loss(self, reps: list[list[Tensor]], with_backward: bool = False) -> Tensor:
         """Calculate the symmetric loss without caching gradients (for evaluation)."""
         embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
         embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
@@ -230,6 +213,9 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             backward_loss: torch.Tensor = self.cross_entropy_loss(positive_scores.t(), labels[: len(positive_scores)])
 
             loss_mbatch = (forward_loss + backward_loss) / 2
+            if with_backward:
+                loss_mbatch.backward()
+                loss_mbatch = loss_mbatch.detach()
             losses.append(loss_mbatch)
 
         loss = sum(losses) / len(losses)

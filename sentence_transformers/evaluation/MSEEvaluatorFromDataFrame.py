@@ -79,8 +79,10 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             self.csv_headers.append(f"{src_lang}-{trg_lang}")
 
         all_source_sentences = list(all_source_sentences)
-        with nullcontext() if self.truncate_dim is None else teacher_model.truncate_sentence_embeddings(
-            self.truncate_dim
+        with (
+            nullcontext()
+            if self.truncate_dim is None
+            else teacher_model.truncate_sentence_embeddings(self.truncate_dim)
         ):
             all_src_embeddings = teacher_model.encode(all_source_sentences, batch_size=self.batch_size)
         self.teacher_embeddings = {sent: emb for sent, emb in zip(all_source_sentences, all_src_embeddings)}
@@ -118,7 +120,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         # Return negative score as SentenceTransformers maximizes the performance
         metrics = {"negative_mse": -np.mean(mse_scores).item()}
         metrics = self.prefix_name_to_metrics(metrics, self.name)
-        self.store_metrics_in_model_card_data(model, metrics)
+        self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
 
     @property

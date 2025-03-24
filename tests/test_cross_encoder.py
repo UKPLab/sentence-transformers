@@ -7,12 +7,13 @@ from __future__ import annotations
 import csv
 import gzip
 import os
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import numpy as np
 import pytest
 import torch
+from pytest import FixtureRequest
 from torch.utils.data import DataLoader
 
 from sentence_transformers import CrossEncoder, util
@@ -133,7 +134,12 @@ def test_load_with_revision() -> None:
     assert not torch.equal(main_prob, older_model.predict(test_sentences, convert_to_tensor=True))
 
 
-def test_rank() -> None:
+@pytest.mark.parametrize(
+    argnames="return_documents",
+    argvalues=[True, False],
+    ids=["return-docs", "no-return-docs"],
+)
+def test_rank(return_documents: bool, request: FixtureRequest) -> None:
     model = CrossEncoder("cross-encoder/stsb-distilroberta-base")
     # We want to compute the similarity between the query sentence
     query = "A man is eating pasta."
@@ -153,7 +159,10 @@ def test_rank() -> None:
     expected_ranking = [0, 1, 3, 6, 2, 5, 7, 4, 8]
 
     # 1. We rank all sentences in the corpus for the query
-    ranks = model.rank(query, corpus)
+    ranks = model.rank(query=query, documents=corpus, return_documents=return_documents)
+    if request.node.callspec.id == "return-docs":
+        assert {*corpus} == {rank.get("text") for rank in ranks}
+
     pred_ranking = [rank["corpus_id"] for rank in ranks]
     assert pred_ranking == expected_ranking
 
@@ -183,3 +192,35 @@ def test_bfloat16() -> None:
 
     ranking = model.rank("Hello there!", ["Hello, World!", "Heya!"])
     assert isinstance(ranking, list)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test moving devices effectively.")
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_device_assignment(device):
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", device=device)
+    assert model.device.type == device
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test moving devices effectively.")
+def test_device_switching():
+    # test assignment using .to
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", device="cpu")
+    assert model.device.type == "cpu"
+    assert model.model.device.type == "cpu"
+
+    model.to("cuda")
+    assert model.device.type == "cuda"
+    assert model.model.device.type == "cuda"
+
+    del model
+    torch.cuda.empty_cache()
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test moving devices effectively.")
+def test_target_device_backwards_compat():
+    model = CrossEncoder("cross-encoder/stsb-distilroberta-base", device="cpu")
+    assert model.device.type == "cpu"
+
+    assert model._target_device.type == "cpu"
+    model._target_device = "cuda"
+    assert model.device.type == "cuda"

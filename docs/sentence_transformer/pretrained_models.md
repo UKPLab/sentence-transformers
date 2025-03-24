@@ -1,12 +1,13 @@
 # Pretrained Models
 
+```{eval-rst}
 We provide various pre-trained Sentence Transformers models via our Sentence Transformers Hugging Face organization. Additionally, over 6,000 community Sentence Transformers models have been publicly released on the Hugging Face Hub. All models can be found here:
-* **Original models**: [Sentence Transformers Hugging Face organization](https://huggingface.co/models?library=sentence-transformers&author=sentence-transformers).
-* **Community models**: [All Sentence Transformer models on Hugging Face](https://huggingface.co/models?library=sentence-transformers).
+
+* **Original models**: `Sentence Transformers Hugging Face organization <https://huggingface.co/models?library=sentence-transformers&author=sentence-transformers>`_.
+* **Community models**: `All Sentence Transformer models on Hugging Face <https://huggingface.co/models?library=sentence-transformers>`_.
 
 Each of these models can be easily downloaded and used like so:
 
-```eval_rst
 .. sidebar:: Original Models
 
     For the original models from the `Sentence Transformers Hugging Face organization <https://huggingface.co/models?library=sentence-transformers&author=sentence-transformers>`_, it is not necessary to include the model author or organization prefix. For example, this snippet loads `sentence-transformers/all-mpnet-base-v2 <https://huggingface.co/sentence-transformers/all-mpnet-base-v2>`_.
@@ -25,12 +26,16 @@ embeddings = model.encode([
 similarities = model.similarity(embeddings, embeddings)
 ```
 
-```eval_rst
+```{eval-rst}
 .. note::
     Consider using the `Massive Textual Embedding Benchmark leaderboard <https://huggingface.co/spaces/mteb/leaderboard>`_ as an inspiration of strong Sentence Transformer models. Be wary:
 
     - **Model sizes**: it is recommended to filter away the large models that might not be feasible without excessive hardware.
     - **Experimentation is key**: models that perform well on the leaderboard do not necessarily do well on your tasks, it is **crucial** to experiment with various promising models.
+
+.. tip::
+
+    Read `Sentence Transformer > Usage > Speeding up Inference <./usage/efficiency.html>`_ for tips on how to speed up inference of models by up to 2x-3x.
 ```
 
 ## Original Models
@@ -48,7 +53,7 @@ The **all-*** models were trained on all available training data (more than 1 bi
 
 The following models have been specifically trained for **Semantic Search**: Given a question / search query, these models are able to find relevant text passages. For more details, see [Usage > Semantic Search](../../examples/applications/semantic-search/README.md).
 
-```eval_rst
+```{eval-rst}
 .. sidebar:: Documentation
 
    #. `multi-qa-mpnet-base-cos-v1 <https://huggingface.co/sentence-transformers/multi-qa-mpnet-base-cos-v1>`_
@@ -137,7 +142,7 @@ These models find semantically similar sentences within one language or across l
 Bitext mining describes the process of finding translated sentence pairs in two languages. If this is your use-case, the following model gives the best performance:
 - **[LaBSE](https://huggingface.co/sentence-transformers/LaBSE)** - [LaBSE](https://arxiv.org/abs/2007.01852) Model. Supports 109 languages. Works well for finding translation pairs in multiple languages. As detailed  [here](https://arxiv.org/abs/2004.09813), LaBSE works less well for assessing the similarity of sentence pairs that are not translations of each other.
 
-Extending a model to new languages is easy by following [Training Examples > Multilingual Models](../../examples/training/multilingual/README.html).
+Extending a model to new languages is easy by following [Training Examples > Multilingual Models](../../examples/training/multilingual/README.md).
 
 ## Image & Text-Models
 The following models can embed images and text into a joint vector space. See [Usage > Image Search](../../examples/applications/image-search/README.md) for more details how to use for text2image-search, image2image-search, image clustering, and zero-shot image classification.

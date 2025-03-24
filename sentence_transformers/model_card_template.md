@@ -6,7 +6,7 @@
 
 # {{ model_name if model_name else "Sentence Transformer model" }}
 
-This is a [sentence-transformers](https://www.SBERT.net) model{% if base_model %} finetuned from [{{ base_model }}](https://huggingface.co/{{ base_model }}){% else %} trained{% endif %}{% if train_datasets | selectattr("name") | list %} on the {% for dataset in (train_datasets | selectattr("name")) %}{% if dataset.id %}[{{ dataset.name if dataset.name else dataset.id }}](https://huggingface.co/datasets/{{ dataset.id }}){% else %}{{ dataset.name }}{% endif %}{% if not loop.last %}{% if loop.index == (train_datasets | selectattr("name") | list | length - 1) %} and {% else %}, {% endif %}{% endif %}{% endfor %} dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}{% endif %}. It maps sentences & paragraphs to a {{ output_dimensionality }}-dimensional dense vector space and can be used for {{ task_name }}.
+This is a [sentence-transformers](https://www.SBERT.net) model{% if base_model %} finetuned from [{{ base_model }}](https://huggingface.co/{{ base_model }}){% else %} trained{% endif %}{% if train_datasets | selectattr("name") | list %} on {% if train_datasets | selectattr("name") | map(attribute="name") | join(", ") | length > 200 %}{{ train_datasets | length }}{% else %}the {% for dataset in (train_datasets | selectattr("name")) %}{% if dataset.id %}[{{ dataset.name if dataset.name else dataset.id }}](https://huggingface.co/datasets/{{ dataset.id }}){% else %}{{ dataset.name }}{% endif %}{% if not loop.last %}{% if loop.index == (train_datasets | selectattr("name") | list | length - 1) %} and {% else %}, {% endif %}{% endif %}{% endfor %}{% endif %} dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}{% endif %}. It maps sentences & paragraphs to a {{ output_dimensionality }}-dimensional dense vector space and can be used for {{ task_name }}.
 
 ## Model Details
 
@@ -22,7 +22,7 @@ This is a [sentence-transformers](https://www.SBERT.net) model{% if base_model %
     <!-- - **Base model:** [Unknown](https://huggingface.co/unknown) -->
 {%- endif %}
 - **Maximum Sequence Length:** {{ model_max_length }} tokens
-- **Output Dimensionality:** {{ output_dimensionality }} tokens
+- **Output Dimensionality:** {{ output_dimensionality }} dimensions
 - **Similarity Function:** {{ similarity_fn_name }}
 {% if train_datasets | selectattr("name") | list -%}
     - **Training Dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}:**
@@ -125,7 +125,18 @@ You can finetune this model on your own dataset.
 ### Metrics
 {% for metrics in eval_metrics %}
 #### {{ metrics.description }}
-{% if metrics.dataset_name %}* Dataset: `{{ metrics.dataset_name }}`{% endif %}
+{% if metrics.dataset_name %}
+* Dataset{% if metrics.dataset_name is not string and metrics.dataset_name | length > 1 %}s{% endif %}: {% if metrics.dataset_name is string -%}
+        `{{ metrics.dataset_name }}`
+    {%- else -%}
+        {%- for name in metrics.dataset_name -%}
+            `{{ name }}`
+            {%- if not loop.last -%}
+                {%- if loop.index == metrics.dataset_name | length - 1 %} and {% else -%}, {% endif -%}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+{%- endif %}
 * Evaluated with {% if metrics.class_name.startswith("sentence_transformers.") %}[<code>{{ metrics.class_name.split(".")[-1] }}</code>](https://sbert.net/docs/package_reference/sentence_transformer/evaluation.html#sentence_transformers.evaluation.{{ metrics.class_name.split(".")[-1] }}){% else %}<code>{{ metrics.class_name }}</code>{% endif %}
 
 {{ metrics.table }}
@@ -145,10 +156,11 @@ You can finetune this model on your own dataset.
 ## Training Details
 {% for dataset_type, dataset_list in [("training", train_datasets), ("evaluation", eval_datasets)] %}{% if dataset_list %}
 ### {{ dataset_type.title() }} Dataset{{"s" if dataset_list | length > 1 else ""}}
-{% for dataset in dataset_list %}
+{% for dataset in dataset_list %}{% if dataset_list | length > 3 %}<details><summary>{{ dataset['name'] or 'Unnamed Dataset' }}</summary>
+{% endif %}
 #### {{ dataset['name'] or 'Unnamed Dataset' }}
-
-{% if dataset['name'] %}* Dataset: {% if 'id' in dataset %}[{{ dataset['name'] }}](https://huggingface.co/datasets/{{ dataset['id'] }}){% else %}{{ dataset['name'] }}{% endif %}
+{% if dataset['name'] %}
+* Dataset: {% if 'id' in dataset %}[{{ dataset['name'] }}](https://huggingface.co/datasets/{{ dataset['id'] }}){% else %}{{ dataset['name'] }}{% endif %}
 {%- if 'revision' in dataset and 'id' in dataset %} at [{{ dataset['revision'][:7] }}](https://huggingface.co/datasets/{{ dataset['id'] }}/tree/{{ dataset['revision'] }}){% endif %}{% endif %}
 {% if dataset['size'] %}* Size: {{ "{:,}".format(dataset['size']) }} {{ dataset_type }} samples
 {% endif %}* Columns: {% if dataset['columns'] | length == 1 %}{{ dataset['columns'][0] }}{% elif dataset['columns'] | length == 2 %}{{ dataset['columns'][0] }} and {{ dataset['columns'][1] }}{% else %}{{ dataset['columns'][:-1] | join(', ') }}, and {{ dataset['columns'][-1] }}{% endif %}
@@ -156,7 +168,8 @@ You can finetune this model on your own dataset.
 {{ dataset['stats_table'] }}{% endif %}{% if dataset['examples_table'] %}* Samples:
 {{ dataset['examples_table'] }}{% endif %}* Loss: {% if dataset["loss"]["fullname"].startswith("sentence_transformers.") %}[<code>{{ dataset["loss"]["fullname"].split(".")[-1] }}</code>](https://sbert.net/docs/package_reference/sentence_transformer/losses.html#{{ dataset["loss"]["fullname"].split(".")[-1].lower() }}){% else %}<code>{{ dataset["loss"]["fullname"] }}</code>{% endif %}{% if "config_code" in dataset["loss"] %} with these parameters:
 {{ dataset["loss"]["config_code"] }}{% endif %}
-{% endfor %}{% endif %}{% endfor -%}
+{% if dataset_list | length > 3 %}</details>
+{% endif %}{% endfor %}{% endif %}{% endfor -%}
 
 {% if all_hyperparameters %}
 ### Training Hyperparameters

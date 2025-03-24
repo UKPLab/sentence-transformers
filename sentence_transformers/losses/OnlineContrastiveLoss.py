@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -43,7 +43,7 @@ class OnlineContrastiveLoss(nn.Module):
 
         Relations:
             - :class:`ContrastiveLoss` is similar, but does not use hard positive and hard negative pairs.
-            :class:`OnlineContrastiveLoss` often yields better results.
+              :class:`OnlineContrastiveLoss` often yields better results.
 
         Example:
             ::

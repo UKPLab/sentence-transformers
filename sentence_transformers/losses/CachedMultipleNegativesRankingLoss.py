@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
 from contextlib import nullcontext
 from functools import partial
-from typing import Any, Iterable, Iterator
+from typing import Any
 
 import torch
 import tqdm
@@ -10,6 +11,7 @@ from torch import Tensor, nn
 from torch.utils.checkpoint import get_device_states, set_device_states
 
 from sentence_transformers import SentenceTransformer, util
+from sentence_transformers.models import StaticEmbedding
 
 
 class RandContext:
@@ -121,8 +123,8 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
         Relations:
             - Equivalent to :class:`MultipleNegativesRankingLoss`, but with caching that allows for much higher batch sizes
-            (and thus better performance) without extra memory usage. This loss also trains roughly 2x to 2.4x slower than
-            :class:`MultipleNegativesRankingLoss`.
+              (and thus better performance) without extra memory usage. This loss also trains roughly 2x to 2.4x slower than
+              :class:`MultipleNegativesRankingLoss`.
 
         Example:
             ::
@@ -135,7 +137,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
                     "anchor": ["It's nice weather outside today.", "He drove to work."],
                     "positive": ["It's so sunny.", "He took the car to the office."],
                 })
-                loss = losses.CachedGISTEmbedLoss(model, mini_batch_size=64)
+                loss = losses.CachedMultipleNegativesRankingLoss(model, mini_batch_size=64)
 
                 trainer = SentenceTransformerTrainer(
                     model=model,
@@ -145,6 +147,12 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
                 trainer.train()
         """
         super().__init__()
+        if isinstance(model[0], StaticEmbedding):
+            raise ValueError(
+                "CachedMultipleNegativesRankingLoss is not compatible with a SentenceTransformer model based on a StaticEmbedding. "
+                "Consider using MultipleNegativesRankingLoss instead."
+            )
+
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct
@@ -205,34 +213,14 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
     def calculate_loss_and_cache_gradients(self, reps: list[list[Tensor]]) -> Tensor:
         """Calculate the cross-entropy loss and cache the gradients wrt. the embeddings."""
-        embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
-        embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
-
-        batch_size = len(embeddings_a)
-        labels = torch.tensor(
-            range(batch_size), dtype=torch.long, device=embeddings_a.device
-        )  # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
-        losses: list[torch.Tensor] = []
-        for b in tqdm.trange(
-            0,
-            batch_size,
-            self.mini_batch_size,
-            desc="Preparing caches",
-            disable=not self.show_progress_bar,
-        ):
-            e = b + self.mini_batch_size
-            scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
-            loss_mbatch: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e]) * len(scores) / batch_size
-            loss_mbatch.backward()
-            losses.append(loss_mbatch.detach())
-
-        loss = sum(losses).requires_grad_()
+        loss = self.calculate_loss(reps, with_backward=True)
+        loss = loss.detach().requires_grad_()
 
         self.cache = [[r.grad for r in rs] for rs in reps]  # e.g. 3 * bsz/mbsz * (mbsz, hdim)
 
         return loss
 
-    def calculate_loss(self, reps: list[list[Tensor]]) -> Tensor:
+    def calculate_loss(self, reps: list[list[Tensor]], with_backward: bool = False) -> Tensor:
         """Calculate the cross-entropy loss. No need to cache the gradients."""
         embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
         embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
@@ -252,6 +240,9 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             e = b + self.mini_batch_size
             scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
             loss_mbatch: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e]) * len(scores) / batch_size
+            if with_backward:
+                loss_mbatch.backward()
+                loss_mbatch = loss_mbatch.detach()
             losses.append(loss_mbatch)
 
         loss = sum(losses)
