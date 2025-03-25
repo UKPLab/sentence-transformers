@@ -25,6 +25,7 @@ from transformers import TrainerCallback
 from transformers.integrations import CodeCarbonCallback
 from transformers.modelcard import make_markdown_table
 from transformers.trainer_callback import TrainerControl, TrainerState
+from typing_extensions import deprecated
 
 from sentence_transformers import __version__ as sentence_transformers_version
 from sentence_transformers.models import StaticEmbedding, Transformer
@@ -42,7 +43,7 @@ if TYPE_CHECKING:
     from sentence_transformers.trainer import SentenceTransformerTrainer
 
 
-class ModelCardCallback(TrainerCallback):
+class SentenceTransformerModelCardCallback(TrainerCallback):
     def __init__(self, default_args_dict: dict[str, Any]) -> None:
         super().__init__()
         self.default_args_dict = default_args_dict
@@ -195,6 +196,14 @@ class ModelCardCallback(TrainerCallback):
                 )
 
 
+@deprecated(
+    "The `ModelCardCallback` has been renamed to `SentenceTransformerModelCardCallback` and the former is now deprecated. Please use `SentenceTransformerModelCardCallback` instead."
+)
+class ModelCardCallback(SentenceTransformerModelCardCallback):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 YAML_FIELDS = [
     "language",
     "license",
@@ -231,6 +240,12 @@ def get_versions() -> dict[str, Any]:
     versions["tokenizers"] = tokenizers_version
 
     return versions
+
+
+def format_log(value: float | int | str) -> Any:
+    if isinstance(value, float):
+        return round(value, 4)
+    return value
 
 
 @dataclass
@@ -292,7 +307,7 @@ class SentenceTransformerModelCardData(CardData):
     )
     generate_widget_examples: Literal["deprecated"] = "deprecated"
 
-    # Automatically filled by `ModelCardCallback` and the Trainer directly
+    # Automatically filled by `SentenceTransformerModelCardCallback` and the Trainer directly
     base_model: str | None = field(default=None, init=False)
     base_model_revision: str | None = field(default=None, init=False)
     non_default_hyperparameters: dict[str, Any] = field(default_factory=dict, init=False)
@@ -300,7 +315,7 @@ class SentenceTransformerModelCardData(CardData):
     eval_results_dict: dict[SentenceEvaluator, dict[str, Any]] | None = field(default_factory=dict, init=False)
     training_logs: list[dict[str, float]] = field(default_factory=list, init=False)
     widget: list[dict[str, str]] = field(default_factory=list, init=False)
-    predict_example: str | None = field(default=None, init=False)
+    predict_example: list[str] | None = field(default=None, init=False)
     label_example_list: list[dict[str, str]] = field(default_factory=list, init=False)
     code_carbon_callback: CodeCarbonCallback | None = field(default=None, init=False)
     citations: dict[str, str] = field(default_factory=dict, init=False)
@@ -559,6 +574,9 @@ class SentenceTransformerModelCardData(CardData):
 
         return [dataset_output]
 
+    def tokenize(self, text: str | list[str]) -> dict[str, Any]:
+        return self.model.tokenize(text)
+
     def compute_dataset_metrics(
         self,
         dataset: Dataset | IterableDataset | None,
@@ -581,7 +599,8 @@ class SentenceTransformerModelCardData(CardData):
         if not dataset:
             return {}
 
-        if "size" not in dataset_info and isinstance(dataset, Dataset):
+        if isinstance(dataset, Dataset):
+            # Size might already be defined, but `len(dataset)` is more reliable
             dataset_info["size"] = len(dataset)
         dataset_info["columns"] = [f"<code>{column}</code>" for column in dataset.column_names]
         dataset_info["stats"] = {}
@@ -590,7 +609,7 @@ class SentenceTransformerModelCardData(CardData):
                 subsection = dataset[:1000][column]
                 first = subsection[0]
                 if isinstance(first, str):
-                    tokenized = self.model.tokenize(subsection)
+                    tokenized = self.tokenize(subsection)
                     if isinstance(tokenized, dict) and "attention_mask" in tokenized:
                         lengths = tokenized["attention_mask"].sum(dim=1).tolist()
                         suffix = "tokens"
@@ -817,9 +836,9 @@ class SentenceTransformerModelCardData(CardData):
             table_lines = [
                 {
                     "Metric": f"**{metric_key}**" if metric_key == primary_metric else metric_key,
-                    "Value": f"**{round(metric_value, 4)}**"
+                    "Value": f"**{format_log(metric_value)}**"
                     if metric_key == primary_metric
-                    else round(metric_value, 4),
+                    else format_log(metric_value),
                 }
                 for metric_key, metric_value in metrics.items()
             ]
@@ -827,14 +846,35 @@ class SentenceTransformerModelCardData(CardData):
             # E.g. "Binary Classification" or "Semantic Similarity"
             description = evaluator.description
             dataset_name = getattr(evaluator, "name", None)
+            config_code = ""
+            if hasattr(evaluator, "get_config_dict") and (config := evaluator.get_config_dict()):
+                try:
+                    str_config = json.dumps(config, indent=4)
+                except TypeError:
+                    str_config = str(config)
+                config_code = indent(f"```json\n{str_config}\n```", "  ")
+
             eval_metrics.append(
                 {
                     "class_name": fullname(evaluator),
                     "description": description,
                     "dataset_name": dataset_name,
                     "table_lines": table_lines,
+                    "config_code": config_code,
                 }
             )
+
+            def try_to_float(metric_value):
+                try:
+                    return float(metric_value)
+                except Exception:
+                    pass
+
+                if isinstance(metric_value, str) and " " in metric_value:
+                    return try_to_float(metric_value.split()[0])
+
+                return None
+
             eval_results.extend(
                 [
                     EvalResult(
@@ -844,10 +884,10 @@ class SentenceTransformerModelCardData(CardData):
                         dataset_name=dataset_name.replace("_", " ").replace("-", " ") if dataset_name else "Unknown",
                         metric_name=metric_key.replace("_", " ").title(),
                         metric_type=metric_key,
-                        metric_value=metric_value,
+                        metric_value=metric_value_float,
                     )
                     for metric_key, metric_value in metrics.items()
-                    if isinstance(metric_value, (int, float))
+                    if (metric_value_float := try_to_float(metric_value)) is not None
                 ]
             )
             all_metrics.update(metrics)
@@ -863,6 +903,7 @@ class SentenceTransformerModelCardData(CardData):
                     eval_metric["class_name"] == grouped_eval_metric["class_name"]
                     and eval_metric_metrics == grouped_eval_metric_metrics
                     and eval_metric["dataset_name"] != grouped_eval_metric["dataset_name"]
+                    and eval_metric["config_code"] == grouped_eval_metric["config_code"]
                 ):
                     # Add the evaluation results to the existing grouped evaluation metric
                     for line in grouped_eval_metric["table_lines"]:
@@ -914,7 +955,7 @@ class SentenceTransformerModelCardData(CardData):
         sorted_eval_lines_keys = sorted(eval_lines_keys, key=sort_metrics)
         training_logs = [
             {
-                key: f"**{round(line[key], 4) if key in line else '-'}**"
+                key: f"**{format_log(line[key]) if key in line else '-'}**"
                 if line["Step"] == self.best_model_step
                 else line.get(key, "-")
                 for key in sorted_eval_lines_keys
@@ -946,6 +987,22 @@ class SentenceTransformerModelCardData(CardData):
             results["co2_eq_emissions"]["hardware_used"] = emissions_data.gpu_model
         return results
 
+    def get_model_specific_metadata(self) -> dict[str, Any]:
+        similarity_fn_name = "Cosine Similarity"
+        if self.model.similarity_fn_name:
+            similarity_fn_name = {
+                "cosine": "Cosine Similarity",
+                "dot": "Dot Product",
+                "euclidean": "Euclidean Distance",
+                "manhattan": "Manhattan Distance",
+            }.get(self.model.similarity_fn_name, self.model.similarity_fn_name.replace("_", " ").title())
+        return {
+            "model_max_length": self.model.get_max_seq_length(),
+            "output_dimensionality": self.model.get_sentence_embedding_dimension(),
+            "model_string": str(self.model),
+            "similarity_fn_name": similarity_fn_name,
+        }
+
     def to_dict(self) -> dict[str, Any]:
         # Try to set the base model
         if self.first_save and not self.base_model:
@@ -957,9 +1014,9 @@ class SentenceTransformerModelCardData(CardData):
         # Set the model name
         if not self.model_name:
             if self.base_model:
-                self.model_name = f"SentenceTransformer based on {self.base_model}"
+                self.model_name = f"{self.model.__class__.__name__} based on {self.base_model}"
             else:
-                self.model_name = "SentenceTransformer"
+                self.model_name = self.model.__class__.__name__
 
         super_dict = {field.name: getattr(self, field.name) for field in fields(self)}
 
@@ -989,19 +1046,7 @@ class SentenceTransformerModelCardData(CardData):
             super_dict.update(self.get_codecarbon_data())
 
         # Add some additional metadata stored in the model itself
-        super_dict["model_max_length"] = self.model.get_max_seq_length()
-        super_dict["output_dimensionality"] = self.model.get_sentence_embedding_dimension()
-        super_dict["model_string"] = str(self.model)
-        if self.model.similarity_fn_name:
-            super_dict["similarity_fn_name"] = {
-                "cosine": "Cosine Similarity",
-                "dot": "Dot Product",
-                "euclidean": "Euclidean Distance",
-                "manhattan": "Manhattan Distance",
-            }.get(self.model.similarity_fn_name, self.model.similarity_fn_name.replace("_", " ").title())
-        else:
-            super_dict["similarity_fn_name"] = "Cosine Similarity"
-
+        super_dict.update(self.get_model_specific_metadata())
         self.first_save = False
 
         for key in IGNORED_FIELDS:

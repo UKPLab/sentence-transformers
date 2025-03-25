@@ -9,21 +9,18 @@ if TYPE_CHECKING:
 
 class SentenceEvaluator:
     """
-    Base class for all evaluators
+    Base class for all evaluators. Notably, this class introduces the ``greater_is_better`` and ``primary_metric``
+    attributes. The former is a boolean indicating whether a higher evaluation score is better, which is used
+    for choosing the best checkpoint if ``load_best_model_at_end`` is set to ``True`` in the training arguments.
+
+    The latter is a string indicating the primary metric for the evaluator. This has to be defined whenever
+    the evaluator returns a dictionary of metrics, and the primary metric is the key pointing to the primary
+    metric, i.e. the one that is used for model selection and/or logging.
 
     Extend this class and implement __call__ for custom evaluators.
     """
 
     def __init__(self):
-        """
-        Base class for all evaluators. Notably, this class introduces the ``greater_is_better`` and ``primary_metric``
-        attributes. The former is a boolean indicating whether a higher evaluation score is better, which is used
-        for choosing the best checkpoint if ``load_best_model_at_end`` is set to ``True`` in the training arguments.
-
-        The latter is a string indicating the primary metric for the evaluator. This has to be defined whenever
-        the evaluator returns a dictionary of metrics, and the primary metric is the key pointing to the primary
-        metric, i.e. the one that is used for model selection and/or logging.
-        """
         self.greater_is_better = True
         self.primary_metric = None
 
@@ -55,9 +52,15 @@ class SentenceEvaluator:
         pass
 
     def prefix_name_to_metrics(self, metrics: dict[str, float], name: str) -> dict[str, float]:
+        def maybe_to_float(value: Any) -> Any:
+            try:
+                return float(value)
+            except ValueError:
+                return value
+
         if not name:
-            return {key: float(value) for key, value in metrics.items()}
-        metrics = {name + "_" + key: float(value) for key, value in metrics.items()}
+            return {key: maybe_to_float(value) for key, value in metrics.items()}
+        metrics = {name + "_" + key: maybe_to_float(value) for key, value in metrics.items()}
         if hasattr(self, "primary_metric") and not self.primary_metric.startswith(name + "_"):
             self.primary_metric = name + "_" + self.primary_metric
         return metrics
@@ -72,10 +75,15 @@ class SentenceEvaluator:
         """
         Returns a human-readable description of the evaluator: BinaryClassificationEvaluator -> Binary Classification
 
-        1. Remove "Evaluator" from the class name
-        2. Add a space before every capital letter
+        1. Replace "CE" prefix with "CrossEncoder"
+        2. Remove "Evaluator" from the class name
+        3. Add a space before every capital letter
         """
         class_name = self.__class__.__name__
+
+        if class_name.startswith("CE"):
+            class_name = "CrossEncoder" + class_name[2:]
+
         try:
             index = class_name.index("Evaluator")
             class_name = class_name[:index]
@@ -83,3 +91,9 @@ class SentenceEvaluator:
             pass
 
         return re.sub(r"([a-z])([A-Z])", r"\g<1> \g<2>", class_name)
+
+    def get_config_dict(self) -> dict[str, Any]:
+        """
+        Return a dictionary with all meaningful configuration values of the evaluator to store in the model card.
+        """
+        return {}

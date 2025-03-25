@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from sentence_transformers import CrossEncoder, SentenceTransformer
+from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Pooling, Transformer
 from sentence_transformers.util import is_datasets_available
 from tests.utils import SafeTemporaryDirectory
@@ -39,11 +39,6 @@ def paraphrase_distilroberta_base_v1_model() -> SentenceTransformer:
 
 
 @pytest.fixture()
-def distilroberta_base_ce_model() -> CrossEncoder:
-    return CrossEncoder("distilroberta-base", num_labels=1)
-
-
-@pytest.fixture()
 def clip_vit_b_32_model() -> SentenceTransformer:
     return SentenceTransformer("clip-ViT-B-32")
 
@@ -58,7 +53,7 @@ def distilbert_base_uncased_model() -> SentenceTransformer:
 
 @pytest.fixture(scope="session")
 def stsb_dataset_dict() -> DatasetDict:
-    return load_dataset("mteb/stsbenchmark-sts")
+    return load_dataset("sentence-transformers/stsb")
 
 
 @pytest.fixture()
