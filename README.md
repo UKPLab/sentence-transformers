@@ -12,13 +12,11 @@
 [#docs-package]: https://www.sbert.net/
 <!--- BADGES: END --->
 
-# Sentence Transformers: Multilingual Sentence, Paragraph, and Image Embeddings using BERT & Co.
+# Sentence Transformers: Embeddings, Retrieval, and Reranking
 
-This framework provides an easy method to compute dense vector representations for **sentences**, **paragraphs**, and **images**. The models are based on transformer networks like BERT / RoBERTa / XLM-RoBERTa etc. and achieve state-of-the-art performance in various tasks. Text is embedded in vector space such that similar text are closer and can efficiently be found using cosine similarity.
+This framework provides an easy method to compute embeddings for accessing, using, and training state-of-the-art embedding and reranker models. It compute embeddings using Sentence Transformer models ([quickstart](https://sbert.net/docs/quickstart.html#sentence-transformer)) or to calculate similarity scores using Cross-Encoder (a.k.a. reranker) models ([quickstart](https://sbert.net/docs/quickstart.html#cross-encoder)). This unlocks a wide range of applications, including [semantic search](https://sbert.net/examples/applications/semantic-search/README.html), [semantic textual similarity](https://sbert.net/docs/sentence_transformer/usage/semantic_textual_similarity.html), and [paraphrase mining](https://sbert.net/examples/applications/paraphrase-mining/README.html).
 
-We provide an increasing number of **[state-of-the-art pretrained models](https://www.sbert.net/docs/sentence_transformer/pretrained_models.html)** for more than 100 languages, fine-tuned for various use-cases.
-
-Further, this framework allows an easy  **[fine-tuning of custom embeddings models](https://www.sbert.net/docs/sentence_transformer/training_overview.html)**, to achieve maximal performance on your specific task.
+A wide selection of over [10,000 pre-trained Sentence Transformers models](https://huggingface.co/models?library=sentence-transformers) are available for immediate use on 🤗 Hugging Face, including many of the state-of-the-art models from the [Massive Text Embeddings Benchmark (MTEB) leaderboard](https://huggingface.co/spaces/mteb/leaderboard). Additionally, it is easy to train or finetune your own [embedding models](https://sbert.net/docs/sentence_transformer/training_overview.html) or [reranker models](https://sbert.net/docs/cross_encoder/training_overview.html) using Sentence Transformers, enabling you to create custom models for your specific use cases.
 
 For the **full documentation**, see **[www.SBERT.net](https://www.sbert.net)**.
 
@@ -55,7 +53,9 @@ If you want to use a GPU / CUDA, you must install PyTorch with the matching CUDA
 
 See [Quickstart](https://www.sbert.net/docs/quickstart.html) in our documentation.
 
-First download a pretrained model.
+### Embedding Models
+
+First download a pretrained embedding a.k.a. Sentence Transformer model.
 
 ````python
 from sentence_transformers import SentenceTransformer
@@ -63,7 +63,7 @@ from sentence_transformers import SentenceTransformer
 model = SentenceTransformer("all-MiniLM-L6-v2")
 ````
 
-Then provide some sentences to the model.
+Then provide some texts to the model.
 
 ````python
 sentences = [
@@ -86,21 +86,74 @@ print(similarities)
 #         [0.1046, 0.1411, 1.0000]])
 ````
 
+### Reranker Models
+
+First download a pretrained reranker a.k.a. Cross Encoder model.
+
+```python
+from sentence_transformers import CrossEncoder
+
+# 1. Load a pretrained CrossEncoder model
+model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
+```
+
+Then provide some texts to the model.
+
+```python
+# The texts for which to predict similarity scores
+query = "How many people live in Berlin?"
+passages = [
+    "Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers.",
+    "Berlin has a yearly total of about 135 million day visitors, making it one of the most-visited cities in the European Union.",
+    "In 2013 around 600,000 Berliners were registered in one of the more than 2,300 sport and fitness clubs.",
+]
+
+# 2a. predict scores pairs of texts
+scores = model.predict([(query, passage) for passage in passages])
+print(scores)
+# => [8.607139 5.506266 6.352977]
+```
+
+And we're good to go. You can also use [`model.rank`](https://sbert.net/docs/package_reference/cross_encoder/cross_encoder.html#sentence_transformers.cross_encoder.CrossEncoder.rank) to avoid having to perform the reranking manually:
+
+```python
+# 2b. Rank a list of passages for a query
+ranks = model.rank(query, passages, return_documents=True)
+
+print("Query:", query)
+for rank in ranks:
+    print(f"- #{rank['corpus_id']} ({rank['score']:.2f}): {rank['text']}")
+"""
+Query: How many people live in Berlin?
+- #0 (8.61): Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers.
+- #2 (6.35): In 2013 around 600,000 Berliners were registered in one of the more than 2,300 sport and fitness clubs.
+- #1 (5.51): Berlin has a yearly total of about 135 million day visitors, making it one of the most-visited cities in the European Union.
+"""
+```
+
 ## Pre-Trained Models
 
-We provide a large list of [Pretrained Models](https://www.sbert.net/docs/sentence_transformer/pretrained_models.html) for more than 100 languages. Some models are general purpose models, while others produce embeddings for specific use cases. Pre-trained models can be loaded by just passing the model name: `SentenceTransformer('model_name')`.
+We provide a large list of pretrained models for more than 100 languages. Some models are general purpose models, while others produce embeddings for specific use cases. 
+
+* [Pretrained Sentence Transformer (Embedding) Models](https://sbert.net/docs/sentence_transformer/pretrained_models.html)
+* [Pretrained Cross Encoder (Reranker) Models](https://sbert.net/docs/cross_encoder/pretrained_models.html)
 
 ## Training
 
 This framework allows you to fine-tune your own sentence embedding methods, so that you get task-specific sentence embeddings. You have various options to choose from in order to get perfect sentence embeddings for your specific task. 
 
-See [Training Overview](https://www.sbert.net/docs/sentence_transformer/training_overview.html) for an introduction how to train your own embedding models. We provide [various examples](https://github.com/UKPLab/sentence-transformers/tree/master/examples/sentence_transformer/training) how to train models on various datasets.
+* Embedding Models
+    * [Sentence Transformer > Training Overview](https://www.sbert.net/docs/sentence_transformer/training_overview.html)
+    * [Sentence Transformer > Training Examples](https://www.sbert.net/docs/sentence_transformer/training/examples.html) or [training examples on GitHub](https://github.com/UKPLab/sentence-transformers/tree/master/examples/sentence_transformer/training).
+* Reranker Models
+    * [Cross Encoder > Training Overview](https://www.sbert.net/docs/cross_encoder/training_overview.html)
+    * [Cross Encoder > Training Examples](https://www.sbert.net/docs/cross_encoder/training/examples.html) or [training examples on GitHub](https://github.com/UKPLab/sentence-transformers/tree/master/examples/cross_encoder/training).
 
-Some highlights are:
+Some highlights across both types of training are:
 - Support of various transformer networks including BERT, RoBERTa, XLM-R, DistilBERT, Electra, BART, ...
 - Multi-Lingual and multi-task learning
 - Evaluation during training to find optimal model
-- [20+ loss-functions](https://www.sbert.net/docs/package_reference/sentence_transformer/losses.html) allowing to tune models specifically for semantic search, paraphrase mining, semantic similarity comparison, clustering, triplet loss, contrastive loss, etc.
+- [20+ loss functions](https://www.sbert.net/docs/package_reference/sentence_transformer/losses.html) for embedding models and [10+ loss functions](https://www.sbert.net/docs/package_reference/cross_encoder/losses.html) for reranker models, allowing you to tune models specifically for semantic search, paraphrase mining, semantic similarity comparison, clustering, triplet loss, contrastive loss, etc.
 
 ## Application Examples
 
