@@ -1,0 +1,78 @@
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Moved main pages for v3.0
+Redirect 301 /docs/pretrained_models.html /docs/sentence_transformer/pretrained_models.html
+Redirect 301 /docs/pretrained_cross-encoders.html /docs/cross_encoder/pretrained_models.html
+Redirect 301 /docs/usage/semantic_textual_similarity.html /docs/sentence_transformer/usage/semantic_textual_similarity.html
+Redirect 301 /docs/training/loss_overview.html /docs/sentence_transformer/loss_overview.html
+Redirect 301 /docs/training/multilingual.html /examples/sentence_transformer/training/multilingual/README.html  # Propagated the v4.0 update
+Redirect 301 /docs/training/overview.html /docs/sentence_transformer/training_overview.html
+Redirect 301 /examples/applications/information-retrieval/README.html /examples/sentence_transformer/applications/retrieve_rerank/README.html  # Propagated the v4.0 update
+Redirect 301 /examples/datasets/README.html /docs/sentence_transformer/dataset_overview.html
+Redirect 301 /examples/training/datasets/README.html /docs/sentence_transformer/dataset_overview.html
+
+# Moved API Reference pages for v3.0
+Redirect 301 /docs/package_reference/cross_encoder.html /docs/package_reference/cross_encoder/cross_encoder.html
+Redirect 301 /docs/package_reference/datasets.html /docs/package_reference/sentence_transformer/datasets.html
+Redirect 301 /docs/package_reference/evaluation.html /docs/package_reference/sentence_transformer/evaluation.html
+Redirect 301 /docs/package_reference/losses.html /docs/package_reference/sentence_transformer/losses.html
+Redirect 301 /docs/package_reference/models.html /docs/package_reference/sentence_transformer/models.html
+Redirect 301 /docs/package_reference/quantization.html /docs/package_reference/sentence_transformer/quantization.html
+Redirect 301 /docs/package_reference/SentenceTransformer.html /docs/package_reference/sentence_transformer/SentenceTransformer.html
+
+# Removed pages for v3.0
+Redirect 301 /release_notes.html /index.html
+Redirect 301 /docs/contact.html /index.html
+Redirect 301 /docs/index.html /index.html
+Redirect 301 /examples/applications/image-search/tmp-clip-model/README.html /index.html
+
+# Removed pages for v3.0 (that shouldn't go to Home)
+Redirect 301 /docs/hugging_face.html /docs/sentence_transformer/pretrained_models.html
+Redirect 301 /docs/pretrained_models_performance.html /docs/sentence_transformer/pretrained_models.html
+Redirect 301 /docs/package_reference/readers.html /docs/package_reference/sentence_transformer/index.html
+Redirect 301 /docs/pretrained-models/msmarco.html /docs/pretrained-models/msmarco-v1.html
+Redirect 301 /docs/examples/training/sts/README.html /examples/sentence_transformer/training/sts/README.html  # Propagated the v4.0 update
+
+# Moved example pages for v4.0
+Redirect 301 /examples/applications/README.html /examples/cross_encoder/applications/README.html
+Redirect 301 /examples/training/ms_marco/cross_encoder_README.html /examples/cross_encoder/training/ms_marco/cross_encoder_README.html
+Redirect 301 /examples/training/README.html /examples/cross_encoder/training/README.html
+Redirect 301 /examples/applications/clustering/README.html /examples/sentence_transformer/applications/clustering/README.html
+Redirect 301 /examples/applications/embedding-quantization/README.html /examples/sentence_transformer/applications/embedding-quantization/README.html
+Redirect 301 /examples/applications/image-search/README.html /examples/sentence_transformer/applications/image-search/README.html
+Redirect 301 /examples/applications/parallel-sentence-mining/README.html /examples/sentence_transformer/applications/parallel-sentence-mining/README.html
+Redirect 301 /examples/applications/paraphrase-mining/README.html /examples/sentence_transformer/applications/paraphrase-mining/README.html
+Redirect 301 /examples/applications/README.html /examples/sentence_transformer/applications/README.html
+Redirect 301 /examples/applications/retrieve_rerank/README.html /examples/sentence_transformer/applications/retrieve_rerank/README.html
+Redirect 301 /examples/applications/semantic-search/README.html /examples/sentence_transformer/applications/semantic-search/README.html
+Redirect 301 /examples/applications/text-summarization/README.html /examples/sentence_transformer/applications/text-summarization/README.html
+Redirect 301 /examples/domain_adaptation/README.html /examples/sentence_transformer/domain_adaptation/README.html
+Redirect 301 /examples/README.html /examples/sentence_transformer/README.html
+Redirect 301 /examples/training/adaptive_layer/README.html /examples/sentence_transformer/training/adaptive_layer/README.html
+Redirect 301 /examples/training/data_augmentation/README.html /examples/sentence_transformer/training/data_augmentation/README.html
+Redirect 301 /examples/training/distillation/README.html /examples/sentence_transformer/training/distillation/README.html
+Redirect 301 /examples/training/matryoshka/README.html /examples/sentence_transformer/training/matryoshka/README.html
+Redirect 301 /examples/training/ms_marco/multilingual/README.html /examples/sentence_transformer/training/ms_marco/multilingual/README.html
+Redirect 301 /examples/training/ms_marco/README.html /examples/sentence_transformer/training/ms_marco/README.html
+Redirect 301 /examples/training/multilingual/README.html /examples/sentence_transformer/training/multilingual/README.html
+Redirect 301 /examples/training/nli/README.html /examples/sentence_transformer/training/nli/README.html
+Redirect 301 /examples/training/paraphrases/README.html /examples/sentence_transformer/training/paraphrases/README.html
+Redirect 301 /examples/training/peft/README.html /examples/sentence_transformer/training/peft/README.html
+Redirect 301 /examples/training/prompts/README.html /examples/sentence_transformer/training/prompts/README.html
+Redirect 301 /examples/training/quora_duplicate_questions/README.html /examples/sentence_transformer/training/quora_duplicate_questions/README.html
+Redirect 301 /examples/training/README.html /examples/sentence_transformer/training/README.html
+Redirect 301 /examples/training/sts/README.html /examples/sentence_transformer/training/sts/README.html
+Redirect 301 /examples/unsupervised_learning/CT/README.html /examples/sentence_transformer/unsupervised_learning/CT/README.html
+Redirect 301 /examples/unsupervised_learning/CT_In-Batch_Negatives/README.html /examples/sentence_transformer/unsupervised_learning/CT_In-Batch_Negatives/README.html
+Redirect 301 /examples/unsupervised_learning/MLM/README.html /examples/sentence_transformer/unsupervised_learning/MLM/README.html
+Redirect 301 /examples/unsupervised_learning/query_generation/README.html /examples/sentence_transformer/unsupervised_learning/query_generation/README.html
+Redirect 301 /examples/unsupervised_learning/README.html /examples/sentence_transformer/unsupervised_learning/README.html
+Redirect 301 /examples/unsupervised_learning/SimCSE/README.html /examples/sentence_transformer/unsupervised_learning/SimCSE/README.html
+Redirect 301 /examples/unsupervised_learning/TSDAE/README.html /examples/sentence_transformer/unsupervised_learning/TSDAE/README.html
+
+# Prevent 404's, redirect to home with 302 redirect
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ /index.html [L,R=302]
