@@ -532,6 +532,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
 
         # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
         eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
+        pairs = list(zip(eval_dataset["sentence1"], eval_dataset["sentence2"]))
 
         # Initialize the evaluator
         dev_evaluator = CrossEncoderCorrelationEvaluator(
