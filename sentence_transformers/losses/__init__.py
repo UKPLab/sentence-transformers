@@ -29,11 +29,13 @@ from .MSELoss import MSELoss
 from .MultipleNegativesRankingLoss import MultipleNegativesRankingLoss
 from .MultipleNegativesSymmetricRankingLoss import MultipleNegativesSymmetricRankingLoss
 from .OnlineContrastiveLoss import OnlineContrastiveLoss
+from .ReasonGuidedMNRLoss import ReasoningGuidedRankingLoss
 from .SoftmaxLoss import SoftmaxLoss
 from .TripletLoss import TripletDistanceMetric, TripletLoss
 
 __all__ = [
     "AdaptiveLayerLoss",
+    "ReasoningGuidedRankingLoss",
     "CosineSimilarityLoss",
     "SoftmaxLoss",
     "MultipleNegativesRankingLoss",
