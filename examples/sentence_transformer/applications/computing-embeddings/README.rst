@@ -144,7 +144,7 @@ Each model has a maximum sequence length under ``model.max_seq_length``, which i
 Multi-Process / Multi-GPU Encoding
 ----------------------------------
 
-You can encode input texts with more than one GPU (or with multiple processes on a CPU machine). For an example, see: `computing_embeddings_multi_gpu.py <https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/computing-embeddings/computing_embeddings_multi_gpu.py>`_.
+You can encode input texts with more than one GPU (or with multiple processes on a CPU machine). For an example, see: `computing_embeddings_multi_gpu.py <https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/applications/computing-embeddings/computing_embeddings_multi_gpu.py>`_.
 
  
 The relevant method is :meth:`~sentence_transformers.SentenceTransformer.start_multi_process_pool`, which starts multiple processes that are used for encoding.
