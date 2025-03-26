@@ -1,7 +1,7 @@
 [project]
 name = "sentence-transformers"
 version = "3.5.0.dev0"
-description = "State-of-the-Art Text Embeddings"
+description = "Embeddings, Retrieval, and Reranking"
 license = { text = "Apache 2.0" }
 readme = "README.md"
 authors = [
