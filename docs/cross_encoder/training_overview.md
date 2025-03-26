@@ -620,11 +620,14 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
 
         from datasets import load_dataset
 
-        from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderModelCardData
+        from sentence_transformers.cross_encoder import (
+            CrossEncoder,
+            CrossEncoderModelCardData,
+            CrossEncoderTrainer,
+            CrossEncoderTrainingArguments,
+        )
         from sentence_transformers.cross_encoder.evaluation import CrossEncoderNanoBEIREvaluator
         from sentence_transformers.cross_encoder.losses import CachedMultipleNegativesRankingLoss
-        from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
-        from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
 
         # Set the log level to INFO to get more information
         logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
@@ -759,15 +762,18 @@ The :class:`~sentence_transformers.cross_encoder.trainer.CrossEncoderTrainer` is
         from datasets import load_dataset
 
         from sentence_transformers import SentenceTransformer
-        from sentence_transformers.cross_encoder import CrossEncoder, CrossEncoderModelCardData
+        from sentence_transformers.cross_encoder import (
+            CrossEncoder,
+            CrossEncoderModelCardData,
+            CrossEncoderTrainer,
+            CrossEncoderTrainingArguments,
+        )
         from sentence_transformers.cross_encoder.evaluation import (
             CrossEncoderNanoBEIREvaluator,
             CrossEncoderRerankingEvaluator,
         )
-        from sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss import BinaryCrossEntropyLoss
-        from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
-        from sentence_transformers.cross_encoder.training_args import CrossEncoderTrainingArguments
-        from sentence_transformers.evaluation.SequentialEvaluator import SequentialEvaluator
+        from sentence_transformers.cross_encoder.losses import BinaryCrossEntropyLoss
+        from sentence_transformers.evaluation import SequentialEvaluator
         from sentence_transformers.util import mine_hard_negatives
 
         # Set the log level to INFO to get more information
