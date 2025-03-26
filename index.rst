@@ -1,6 +1,6 @@
 .. note::
 
-   Sentence Transformers v4.0 just released, introducing a new training API for CrossEncoder (a.k.a. reranker) models. Read `Cross Encoder > Training Overview <docs/cross_encoder/training_overview.html>`_ to learn more about the training API, and check out `v4.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v4.0.0>`_ for details on the other changes.
+   Sentence Transformers v4.0 just released, introducing a new training API for CrossEncoder (a.k.a. reranker) models. Read `Cross Encoder > Training Overview <docs/cross_encoder/training_overview.html>`_ to learn more about the training API, and check out `v4.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v4.0.1>`_ for details on the other changes.
 
 SentenceTransformers Documentation
 ==================================
