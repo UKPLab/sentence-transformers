@@ -5,7 +5,7 @@ If you are interested in how to use these models, see [Application - Retrieve & 
 
 ## Cross Encoder
 ```{eval-rst}
-A `Cross Encoder <../../applications/README.md>`_ accepts both a query and a possible relevant passage and returns a score denoting how relevant the passage is for the given query. Often times, a :class:`torch.nn.Sigmoid` is applied over the raw output prediction, casting it to a value between 0 and 1.
+A `Cross Encoder <../../applications/README.html>`_ accepts both a query and a possible relevant passage and returns a score denoting how relevant the passage is for the given query. Often times, a :class:`torch.nn.Sigmoid` is applied over the raw output prediction, casting it to a value between 0 and 1.
 ```
 
 ![CrossEncoder](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/CrossEncoder.png)

@@ -2,7 +2,7 @@
 SentenceTransformers also supports to load Cross-Encoders for sentence pair scoring and sentence pair classification tasks.
 
 
-## Bi-Encoder vs. Cross-Encoder
+## Cross-Encoder vs. Bi-Encoder
 
 First, it is important to understand the difference between Bi- and Cross-Encoder.
 
@@ -33,13 +33,13 @@ Using Cross-Encoders is quite easy:
 ```python
 from sentence_transformers.cross_encoder import CrossEncoder
 
-model = CrossEncoder("model_name_or_path")
+model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
 scores = model.predict([["My first", "sentence pair"], ["Second text", "pair"]])
 ```
 
 You pass to `model.predict` a list of sentence **pairs**. Note, Cross-Encoder do not work on individual sentence, you have to pass sentence pairs.
 
-As model name, you can pass any model or path that is compatible with Hugging Face [AutoModel](https://huggingface.co/transformers/model_doc/auto.html) class
+As model name, you can pass any model or path that is compatible with Hugging Face [AutoModel](https://huggingface.co/transformers/model_doc/auto.html) class.
 
 
 For a full example, to score a query with all possible sentences in a corpus see [cross-encoder_usage.py](cross-encoder_usage.py).

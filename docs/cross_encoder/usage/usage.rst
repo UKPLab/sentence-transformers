@@ -18,7 +18,7 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    3. :meth:`CrossEncoder.rank <sentence_transformers.cross_encoder.CrossEncoder.rank>`
 
    .. note::
-      MS Marco models return logits rather than scores between 0 and 1. Load the :class:`~sentence_transformers.cross_encoder.CrossEncoder` with ``default_activation_function=torch.nn.Sigmoid()`` to get scores between 0 and 1. This does not affect the ranking.
+      MS Marco models return logits rather than scores between 0 and 1. Load the :class:`~sentence_transformers.cross_encoder.CrossEncoder` with ``activation_fn=torch.nn.Sigmoid()`` to get scores between 0 and 1. This does not affect the ranking.
 
 ::
 
@@ -72,4 +72,5 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    :maxdepth: 1
    :caption: Tasks
 
+   Cross-Encoder vs Bi-Encoder <../../../examples/cross_encoder/applications/README>
    ../../../examples/sentence_transformer/applications/retrieve_rerank/README
