@@ -7,9 +7,9 @@ Redirect 301 /docs/pretrained_models.html /docs/sentence_transformer/pretrained_
 Redirect 301 /docs/pretrained_cross-encoders.html /docs/cross_encoder/pretrained_models.html
 Redirect 301 /docs/usage/semantic_textual_similarity.html /docs/sentence_transformer/usage/semantic_textual_similarity.html
 Redirect 301 /docs/training/loss_overview.html /docs/sentence_transformer/loss_overview.html
-Redirect 301 /docs/training/multilingual.html /examples/sentence_transformer/training/multilingual/README.html  # Propagated the v4.0 update
+Redirect 301 /docs/training/multilingual.html /examples/sentence_transformer/training/multilingual/README.html
 Redirect 301 /docs/training/overview.html /docs/sentence_transformer/training_overview.html
-Redirect 301 /examples/applications/information-retrieval/README.html /examples/sentence_transformer/applications/retrieve_rerank/README.html  # Propagated the v4.0 update
+Redirect 301 /examples/applications/information-retrieval/README.html /examples/sentence_transformer/applications/retrieve_rerank/README.html
 Redirect 301 /examples/datasets/README.html /docs/sentence_transformer/dataset_overview.html
 Redirect 301 /examples/training/datasets/README.html /docs/sentence_transformer/dataset_overview.html
 
@@ -28,12 +28,12 @@ Redirect 301 /docs/contact.html /index.html
 Redirect 301 /docs/index.html /index.html
 Redirect 301 /examples/applications/image-search/tmp-clip-model/README.html /index.html
 
-# Removed pages for v3.0 (that shouldn't go to Home)
+# Removed pages for v3.0 (that shouldnt go to Home)
 Redirect 301 /docs/hugging_face.html /docs/sentence_transformer/pretrained_models.html
 Redirect 301 /docs/pretrained_models_performance.html /docs/sentence_transformer/pretrained_models.html
 Redirect 301 /docs/package_reference/readers.html /docs/package_reference/sentence_transformer/index.html
 Redirect 301 /docs/pretrained-models/msmarco.html /docs/pretrained-models/msmarco-v1.html
-Redirect 301 /docs/examples/training/sts/README.html /examples/sentence_transformer/training/sts/README.html  # Propagated the v4.0 update
+Redirect 301 /docs/examples/training/sts/README.html /examples/sentence_transformer/training/sts/README.html
 
 # Moved example pages for v4.0
 Redirect 301 /examples/applications/README.html /examples/cross_encoder/applications/README.html
@@ -72,7 +72,8 @@ Redirect 301 /examples/unsupervised_learning/README.html /examples/sentence_tran
 Redirect 301 /examples/unsupervised_learning/SimCSE/README.html /examples/sentence_transformer/unsupervised_learning/SimCSE/README.html
 Redirect 301 /examples/unsupervised_learning/TSDAE/README.html /examples/sentence_transformer/unsupervised_learning/TSDAE/README.html
 
-# Prevent 404's, redirect to home with 302 redirect
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ /index.html [L,R=302]
+# Redirect to index.html when request file does not exist
+# RewriteCond %{REQUEST_FILENAME} !-f
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteRule ^ /index.html [L,R=302]
+ErrorDocument 404 /index.html
