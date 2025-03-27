@@ -1,5 +1,5 @@
 """
-This script is identical to examples/training/sts/training_stsbenchmark.py with seed optimization.
+This script is identical to examples/sentence_transformer/training/sts/training_stsbenchmark.py with seed optimization.
 We apply early stopping and evaluate the models over the dev set, to find out the best performing seeds.
 
 For more details refer to -

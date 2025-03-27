@@ -6,7 +6,7 @@ Nowadays, with Sentence Transformers v3+, it is recommended to use the `Sentence
 See https://www.sbert.net/docs/sentence_transformer/training_overview.html for more information.
 
 See this script for more details on how to use the new training API:
-https://github.com/UKPLab/sentence-transformers/blob/master/examples/unsupervised_learning/TSDAE/train_stsb_tsdae.py
+https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/unsupervised_learning/TSDAE/train_stsb_tsdae.py
 """
 
 from __future__ import annotations
