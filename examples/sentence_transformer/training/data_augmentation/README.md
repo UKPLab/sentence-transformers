@@ -51,7 +51,7 @@ We apply the Augmented SBERT (<b>Domain-Transfer</b>) strategy, it involves thre
 
 ## Training
  
-The [examples/training/data_augmentation](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/data_augmentation/) folder contains simple training examples for each scenario explained below:
+The [examples/sentence_transformer/training/data_augmentation](https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/training/data_augmentation/) folder contains simple training examples for each scenario explained below:
 
 - [train_sts_seed_optimization.py](train_sts_seed_optimization.py) 
     - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset with seed-optimization. 

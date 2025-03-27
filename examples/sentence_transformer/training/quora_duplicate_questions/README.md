@@ -20,7 +20,7 @@ For the complete training example, see [training_OnlineContrastiveLoss.py](train
 ```{eval-rst}
 The Quora Duplicates dataset has a `pair-class subset <https://huggingface.co/datasets/sentence-transformers/quora-duplicates/viewer/pair-class>`_ which consists of question pairs and labels: 1 for duplicate and 0 for different.
 
-As shown by our `Loss Overview <../../../../docs/sentence_transformer/loss_overview.md>`_, this allows us to use :class:`~sentence_transformers.losses.ContrastiveLoss`. Similar pairs with label 1 are pulled together, so that they are close in vector space, while dissimilar pairs that are closer than a defined margin are pushed away in vector space.
+As shown by our `Loss Overview <../../../../docs/sentence_transformer/loss_overview.html>`_, this allows us to use :class:`~sentence_transformers.losses.ContrastiveLoss`. Similar pairs with label 1 are pulled together, so that they are close in vector space, while dissimilar pairs that are closer than a defined margin are pushed away in vector space.
 
 An improved version is :class:`~sentence_transformers.losses.OnlineContrastiveLoss`. This loss looks which negative pairs have a lower distance than the largest positive pair and which positive pairs have a higher distance than the lowest distance of negative pairs. I.e., this loss automatically detects the hard cases in a batch and computes the loss only for these cases.
 ```
