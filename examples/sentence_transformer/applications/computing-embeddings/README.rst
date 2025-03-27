@@ -1,7 +1,7 @@
 Computing Embeddings
 ====================
 
-Once you have `installed <installation.md>`_ Sentence Transformers, you can easily use Sentence Transformer models:
+Once you have `installed <../../../../docs/installation.html>`_ Sentence Transformers, you can easily use Sentence Transformer models:
 
 .. sidebar:: Documentation
 
@@ -36,13 +36,13 @@ Once you have `installed <installation.md>`_ Sentence Transformers, you can easi
    #         [0.1046, 0.1411, 1.0000]])
 
 .. note::
-   Even though we talk about sentence embeddings, you can use Sentence Transformers for shorter phrases as well as for longer texts with multiple sentences. See `Input Sequence Length <#input-sequence-length>`_ for notes on embeddings for longer texts.
+   Even though we talk about sentence embeddings, you can use Sentence Transformers for shorter phrases as well as for longer texts with multiple sentences. See :ref:`input-sequence-length` for notes on embeddings for longer texts.
 
 
 Initializing a Sentence Transformer Model
 -----------------------------------------
 
-The first step is to load a pretrained Sentence Transformer model. You can use any of the models from the `Pretrained Models <../../docs/sentence_transformer/pretrained_models.html>`_ or a local model. See also :class:`~sentence_transformers.SentenceTransformer` for information on parameters.
+The first step is to load a pretrained Sentence Transformer model. You can use any of the models from the `Pretrained Models <../../../../docs/sentence_transformer/pretrained_models.html>`_ or a local model. See also :class:`~sentence_transformers.SentenceTransformer` for information on parameters.
 
 ::
 
@@ -118,6 +118,7 @@ During inference, prompts can be applied in a few different ways. All of these s
 
     embeddings = model.encode("How to bake a strawberry cake")
 
+.. _input-sequence-length:
 Input Sequence Length
 ---------------------
 
