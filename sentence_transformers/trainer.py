@@ -399,7 +399,6 @@ class SentenceTransformerTrainer(Trainer):
         # if the loss stores the model. Only called once per process
         if (
             model == self.model_wrapped
-            and model != self.model  # Only if the model is wrapped
             and hasattr(loss_fn, "model")  # Only if the loss stores the model
             and loss_fn.model != model  # Only if the wrapped model is not already stored
         ):
