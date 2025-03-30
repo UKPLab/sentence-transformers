@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from contextlib import nullcontext
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 import torch
 import tqdm
@@ -68,7 +68,7 @@ class CachedGISTEmbedLoss(nn.Module):
         temperature: float = 0.01,
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
-        margin_strategy: Optional[str] = None,   # None, "absolute", or "percentage"
+        margin_strategy: str | None = None,
         margin: float = 0.0,
     ) -> None:
         """
@@ -124,8 +124,8 @@ class CachedGISTEmbedLoss(nn.Module):
             +-------------------------------------------------+--------+
 
         Recommendations:
-            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to ensure that no in-batch negatives are duplicates of the anchor or positive samples.
-
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
+              ensure that no in-batch negatives are duplicates of the anchor or positive samples.
         Relations:
             - Equivalent to :class:`GISTEmbedLoss`, but with caching that allows for much higher batch sizes
 
@@ -146,7 +146,7 @@ class CachedGISTEmbedLoss(nn.Module):
                     guide,
                     mini_batch_size=64,
                     margin_strategy="absolute",   # or "percentage" (e.g., margin=0.95)
-                    margin=0.1                    
+                    margin=0.1
                 )
 
                 trainer = SentenceTransformerTrainer(
@@ -181,7 +181,10 @@ class CachedGISTEmbedLoss(nn.Module):
         if self.must_retokenize:
             self.tokenizer = model.tokenizer
         if margin_strategy is not None:
-            assert margin_strategy in ("absolute", "percentage"), "margin_strategy must be 'absolute', 'percentage', or None"
+            assert margin_strategy in (
+                "absolute",
+                "percentage",
+            ), "margin_strategy must be 'absolute', 'percentage', or None"
         else:
             if margin != 0:
                 raise ValueError(
@@ -300,7 +303,7 @@ class CachedGISTEmbedLoss(nn.Module):
             pp_sim = self.sim_matrix(concatenated_reps[1][b:e], concatenated_reps[1])  # positive-positive similarity
 
             # This uses guided (teacher) similarity as a dynamic threshold to identify and suppress false negatives
-            def mask_false_negatives(guided_sim_mat, raw_sim_mat, positive_mask: Optional[Tensor] = None):
+            def mask_false_negatives(guided_sim_mat, raw_sim_mat, positive_mask: Tensor | None = None):
                 if self.margin_strategy == "absolute":
                     # Remove samples whose guided similarity is higher than (positive_sim - margin)
                     mask = guided_sim_mat > (guided_sim - self.margin)
@@ -388,6 +391,6 @@ class CachedGISTEmbedLoss(nn.Module):
             "guide": self.guide,
             "temperature": self.temperature,
             "mini_batch_size": self.mini_batch_size,
-            "margin_strategy": self.margin_strategy, 
-            "margin": self.margin,                   
+            "margin_strategy": self.margin_strategy,
+            "margin": self.margin,
         }
