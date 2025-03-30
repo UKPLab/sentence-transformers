@@ -107,7 +107,6 @@ class CachedGISTEmbedLoss(nn.Module):
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
             - Scaling Deep Contrastive Learning Batch Size under Memory Limited Setup: https://arxiv.org/pdf/2101.06983.pdf
             - GISTEmbed: Guided In-sample Selection of Training Negatives for Text Embedding Fine-tuning https://arxiv.org/abs/2402.16829
-            - NV-Retriever: Improving text embedding models with effective hard-negative mining https://arxiv.org/pdf/2407.15831v2
 
         Requirements:
             1. (anchor, positive) pairs or (anchor, positive, negative pairs)
@@ -125,11 +124,10 @@ class CachedGISTEmbedLoss(nn.Module):
             +-------------------------------------------------+--------+
 
         Recommendations:
-            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
-            ensure that no in-batch negatives are duplicates of the anchor or positive samples.
+            - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to ensure that no in-batch negatives are duplicates of the anchor or positive samples.
 
         Relations:
-            - Equivalent to :class:`GISTEmbedLoss`, but with caching that allows for much higher batch sizes.
+            - Equivalent to :class:`GISTEmbedLoss`, but with caching that allows for much higher batch sizes
 
         Example:
             ::
