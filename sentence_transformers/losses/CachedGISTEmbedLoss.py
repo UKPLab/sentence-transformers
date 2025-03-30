@@ -91,11 +91,14 @@ class CachedGISTEmbedLoss(nn.Module):
             - None: No margin filtering is applied, but negatives more similar than positives are still excluded.
 
         Args:
-            model: SentenceTransformer model.
+            model: SentenceTransformer model
             guide: SentenceTransformer model to guide the in-batch negative sample selection.
             temperature: Temperature parameter to scale the cosine similarities.
-            mini_batch_size: Mini-batch size for the forward pass. Larger values reduce memory usage per step but may slow down training.
-            show_progress_bar: If True, shows a progress bar during mini-batch processing.
+            mini_batch_size: Mini-batch size for the forward pass, this denotes how much memory is actually used during
+                training and evaluation. The larger the mini-batch size, the more memory efficient the training is, but
+                the slower the training will be. It's recommended to set it as high as your GPU memory allows. The default
+                value is 32.
+            show_progress_bar: If True, a progress bar for the mini-batches is shown during training. The default is False.
             margin_strategy: Strategy used for false negative filtering. One of {"absolute", "percentage", None}.
                             If None, margin filtering is disabled (but negatives more similar than positives are still masked).
             margin: The margin value for filtering negatives. Required if margin_strategy is "absolute" or "percentage".
