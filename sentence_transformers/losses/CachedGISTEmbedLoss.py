@@ -83,8 +83,8 @@ class CachedGISTEmbedLoss(nn.Module):
         :class:`CachedMultipleNegativesRankingLoss`, it is possible to reduce memory usage while maintaining performance
         levels comparable to those of :class:`GISTEmbedLoss`.
 
-        Optionally, you can apply false-negative filtering strategies to discard hard negatives that are too similar to the
-        positive. Two strategies are supported:
+        You can apply different false-negative filtering strategies to discard hard negatives that are too similar to
+        the positive. Two strategies are supported:
 
             - "absolute": Discards negatives whose similarity score is greater than or equal to (positive_score - margin).
             - "percentage": Discards negatives whose similarity score is greater than or equal to (positive_score * margin).
@@ -100,7 +100,7 @@ class CachedGISTEmbedLoss(nn.Module):
                 value is 32.
             show_progress_bar: If True, a progress bar for the mini-batches is shown during training. The default is False.
             margin_strategy: Strategy used for false negative filtering. One of {"absolute", "percentage", None}.
-                            If None, margin filtering is disabled (but negatives more similar than positives are still masked).
+                If None, margin filtering is disabled (but negatives more similar than positives are still masked).
             margin: The margin value for filtering negatives. Required if ``margin_strategy`` is "absolute" or "percentage".
 
         References:

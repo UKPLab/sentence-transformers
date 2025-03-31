@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Literal
 
 import torch
 from torch import Tensor, nn
@@ -16,6 +16,8 @@ class GISTEmbedLoss(nn.Module):
         model: SentenceTransformer,
         guide: SentenceTransformer,
         temperature: float = 0.01,
+        margin_strategy: Literal["absolute", "percentage"] | None = None,
+        margin: float = 0.0,
     ) -> None:
         """
         This loss is used to train a SentenceTransformer model using the GISTEmbed algorithm.
@@ -23,13 +25,20 @@ class GISTEmbedLoss(nn.Module):
         in-batch negative sample selection. The cosine similarity is used to compute the loss
         and the temperature parameter is used to scale the cosine similarities.
 
+        You can apply different false-negative filtering strategies to discard hard negatives that are too similar to
+        the positive. Two strategies are supported:
+
+            - "absolute": Discards negatives whose similarity score is greater than or equal to (positive_score - margin).
+            - "percentage": Discards negatives whose similarity score is greater than or equal to (positive_score * margin).
+            - None: No margin filtering is applied, but negatives more similar than positives are still excluded.
+
         Args:
-            model: SentenceTransformer model based on a `transformers`
-                model.
-            guide: SentenceTransformer model to guide the in-batch
-                negative sample selection.
-            temperature: Temperature parameter to scale the cosine
-                similarities.
+            model: SentenceTransformer model based on a `transformers` model.
+            guide: SentenceTransformer model to guide the in-batch negative sample selection.
+            temperature: Temperature parameter to scale the cosine similarities.
+            margin_strategy: Strategy used for false negative filtering. One of {"absolute", "percentage", None}.
+                If None, margin filtering is disabled (but negatives more similar than positives are still masked).
+            margin: The margin value for filtering negatives. Required if ``margin_strategy`` is "absolute" or "percentage".
 
         References:
             - For further details, see: https://arxiv.org/abs/2402.16829
@@ -98,6 +107,17 @@ class GISTEmbedLoss(nn.Module):
                     "then the Sentence Transformer model must not be based on a StaticEmbedding."
                 )
 
+        if margin_strategy is not None:
+            if margin_strategy not in ("absolute", "percentage"):
+                raise ValueError("margin_strategy must be 'absolute', 'percentage', or None")
+        else:
+            if margin != 0:
+                raise ValueError(
+                    "If you set a non-zero margin, you must also set margin_strategy to 'absolute' or 'percentage'"
+                )
+        self.margin_strategy = margin_strategy
+        self.margin = margin
+
     def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
 
@@ -144,13 +164,31 @@ class GISTEmbedLoss(nn.Module):
         # Define the anchor threshold
         guided_sim = guided_ap_sim.diagonal().view(-1, 1)
 
-        # Find which samples cannot be used as negatives because they are
-        # more similar to the query than the assigned positive as deemed by the guide model.
-        # For these samples, we mask them with -inf to basically ignore their contribution to
-        # the loss.
-        ap_sim[guided_ap_sim > guided_sim] = -torch.inf
-        aa_sim[guided_aa_sim > guided_sim] = -torch.inf
-        pp_sim[guided_pp_sim > guided_sim] = -torch.inf
+        # This uses guided (teacher) similarity as a dynamic threshold to identify and suppress false negatives
+        def mask_false_negatives(guided_sim_mat, sim_mat, positive_mask: Tensor | None = None):
+            if self.margin_strategy == "absolute":
+                # Remove samples whose guided similarity is higher than (positive_sim - margin)
+                mask = guided_sim_mat > (guided_sim - self.margin)
+            elif self.margin_strategy == "percentage":
+                # Remove samples whose guided similarity is higher than (positive_sim * margin)
+                mask = guided_sim_mat > (guided_sim * self.margin)
+            else:
+                # Default strategy: remove samples with guided similarity higher than positive_sim
+                mask = guided_sim_mat > guided_sim
+
+            if positive_mask is not None:
+                # Ensure true positive pairs are not masked out
+                mask = mask & ~positive_mask
+            sim_mat[mask] = -torch.inf
+            return sim_mat
+
+        # Create a mask to protect true positive pairs in the anchor-positive matrix (i.e., diagonal elements)
+        positive_mask = torch.eye(*guided_ap_sim.shape, dtype=torch.bool, device=guided_ap_sim.device)
+
+        # Apply false negative suppression to each similarity matrix using guided similarity as anchor
+        ap_sim = mask_false_negatives(guided_ap_sim, ap_sim, positive_mask=positive_mask)  # anchor-positive
+        aa_sim = mask_false_negatives(guided_aa_sim, aa_sim)  # anchor-anchor
+        pp_sim = mask_false_negatives(guided_pp_sim, pp_sim)  # positive-positive
 
         scores = [ap_sim, aa_sim, pp_sim]
 
