@@ -101,7 +101,7 @@ class CachedGISTEmbedLoss(nn.Module):
             show_progress_bar: If True, a progress bar for the mini-batches is shown during training. The default is False.
             margin_strategy: Strategy used for false negative filtering. One of {"absolute", "percentage", None}.
                             If None, margin filtering is disabled (but negatives more similar than positives are still masked).
-            margin: The margin value for filtering negatives. Required if margin_strategy is "absolute" or "percentage".
+            margin: The margin value for filtering negatives. Required if ``margin_strategy`` is "absolute" or "percentage".
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
@@ -126,6 +126,7 @@ class CachedGISTEmbedLoss(nn.Module):
         Recommendations:
             - Use ``BatchSamplers.NO_DUPLICATES`` (:class:`docs <sentence_transformers.training_args.BatchSamplers>`) to
               ensure that no in-batch negatives are duplicates of the anchor or positive samples.
+
         Relations:
             - Equivalent to :class:`GISTEmbedLoss`, but with caching that allows for much higher batch sizes
 
