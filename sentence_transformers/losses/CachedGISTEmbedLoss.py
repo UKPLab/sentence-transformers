@@ -302,7 +302,7 @@ class CachedGISTEmbedLoss(nn.Module):
             pp_sim = self.sim_matrix(concatenated_reps[1][b:e], concatenated_reps[1])  # positive-positive similarity
 
             # This uses guided (teacher) similarity as a dynamic threshold to identify and suppress false negatives
-            def mask_false_negatives(guided_sim_mat, raw_sim_mat, positive_mask: Tensor | None = None):
+            def mask_false_negatives(guided_sim_mat, sim_mat, positive_mask: Tensor | None = None):
                 if self.margin_strategy == "absolute":
                     # Remove samples whose guided similarity is higher than (positive_sim - margin)
                     mask = guided_sim_mat > (guided_sim - self.margin)
@@ -316,15 +316,12 @@ class CachedGISTEmbedLoss(nn.Module):
                 if positive_mask is not None:
                     # Ensure true positive pairs are not masked out
                     mask = mask & ~positive_mask
-                raw_sim_mat[mask] = -torch.inf
-                return raw_sim_mat
+                sim_mat[mask] = -torch.inf
+                return sim_mat
 
             # Create a mask to protect true positive pairs in the anchor-positive matrix (i.e., diagonal elements)
-            positive_mask = torch.zeros_like(guided_ap_sim, dtype=torch.bool)
-            for i in range(guided_ap_sim.size(0)):
-                pos_idx = i + b
-                if pos_idx < guided_ap_sim.size(1):
-                    positive_mask[i, pos_idx] = True
+            positive_mask = torch.eye(*guided_ap_sim.shape, dtype=torch.bool, device=guided_ap_sim.device)
+            positive_mask = positive_mask.roll(b)
 
             # Apply false negative suppression to each similarity matrix using guided similarity as anchor
             ap_sim = mask_false_negatives(guided_ap_sim, ap_sim, positive_mask=positive_mask)  # anchor-positive
