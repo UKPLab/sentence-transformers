@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from contextlib import nullcontext
 from functools import partial
-from typing import Any
+from typing import Any, Literal
 
 import torch
 import tqdm
@@ -68,7 +68,7 @@ class CachedGISTEmbedLoss(nn.Module):
         temperature: float = 0.01,
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
-        margin_strategy: str | None = None,
+        margin_strategy: Literal["absolute", "percentage"] | None = None,
         margin: float = 0.0,
     ) -> None:
         """
