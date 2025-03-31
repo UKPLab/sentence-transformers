@@ -182,10 +182,8 @@ class CachedGISTEmbedLoss(nn.Module):
         if self.must_retokenize:
             self.tokenizer = model.tokenizer
         if margin_strategy is not None:
-            assert margin_strategy in (
-                "absolute",
-                "percentage",
-            ), "margin_strategy must be 'absolute', 'percentage', or None"
+            if margin_strategy not in ("absolute", "percentage"):
+                raise ValueError("margin_strategy must be 'absolute', 'percentage', or None")
         else:
             if margin != 0:
                 raise ValueError(
