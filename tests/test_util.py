@@ -6,7 +6,7 @@ import sklearn
 import torch
 
 from sentence_transformers import SentenceTransformer, util
-from sentence_transformers.util import community_detection
+from sentence_transformers.util import community_detection, truncate_masked_sequence
 
 
 def test_normalize_embeddings() -> None:
@@ -275,3 +275,28 @@ def test_community_detection_gpu_support():
     ]
     result = community_detection(embeddings, threshold=0.8, min_community_size=2)
     assert sorted([sorted(community) for community in result]) == sorted([sorted(community) for community in expected])
+
+
+def test_truncate_masked_sequence() -> None:
+    """Tests whether util.truncate_masked_sequence works correctly."""
+    input_ids = torch.tensor([[101, 102, 103, 104, 105, 106], [101, 102, 103, 104, 105, 106]])
+    expected = [torch.tensor([101, 102, 103, 104]), torch.tensor([101, 102, 103, 104, 105, 106])]
+    attention_mask = torch.tensor([[1, 1, 1, 1, 0, 0], [1, 1, 1, 1, 1, 1]])
+    truncated_input_ids = truncate_masked_sequence(input_ids, attention_mask)
+    assert [torch.equal(x, y) for x, y in zip(truncated_input_ids, expected)]
+
+    old_output = _truncate_masked_sequence_old(input_ids, attention_mask)
+    assert [torch.equal(x, y) for x, y in zip(truncated_input_ids, old_output)]
+
+
+def _truncate_masked_sequence_old(token_embeddings: torch.Tensor, attention_mask: torch.Tensor) -> list[torch.Tensor]:
+    """Helper function."""
+    out: list[torch.Tensor] = []
+    for token_emb, attention in zip(token_embeddings, attention_mask):
+        last_mask_id = len(attention) - 1
+        while last_mask_id > 0 and attention[last_mask_id].item() == 0:
+            last_mask_id -= 1
+
+        out.append(token_emb[0 : last_mask_id + 1])
+
+    return out
