@@ -271,6 +271,10 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
     def max_length(self) -> int:
         return self.tokenizer.model_max_length
 
+    @max_length.setter
+    def max_length(self, value: int) -> None:
+        self.tokenizer.model_max_length = value
+
     @property
     @deprecated(
         "The `default_activation_function` property was renamed and is now deprecated. "
