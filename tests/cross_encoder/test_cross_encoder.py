@@ -589,3 +589,13 @@ def test_default_activation_fn(reranker_bert_tiny_model: CrossEncoder):
         DeprecationWarning, match="The `default_activation_function` property was renamed and is now deprecated.*"
     ):
         assert fullname(model.default_activation_function) == "torch.nn.modules.activation.Sigmoid"
+
+
+def test_bge_reranker_max_length():
+    model = CrossEncoder("BAAI/bge-reranker-base")
+    assert model.max_length == 512
+    assert model.tokenizer.model_max_length == 512
+
+    model.max_length = 256
+    assert model.max_length == 256
+    assert model.tokenizer.model_max_length == 256

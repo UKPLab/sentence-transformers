@@ -167,11 +167,8 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             token=token,
             **model_kwargs,
         )
-        if "model_max_length" not in tokenizer_kwargs:
-            if max_length is not None:
-                tokenizer_kwargs["model_max_length"] = max_length
-            elif hasattr(self.config, "max_position_embeddings"):
-                tokenizer_kwargs["model_max_length"] = self.config.max_position_embeddings
+        if "model_max_length" not in tokenizer_kwargs and max_length is not None:
+            tokenizer_kwargs["model_max_length"] = max_length
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name_or_path,
@@ -182,6 +179,8 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             token=token,
             **tokenizer_kwargs,
         )
+        if "model_max_length" not in tokenizer_kwargs and hasattr(self.config, "max_position_embeddings"):
+            self.tokenizer.model_max_length = min(self.tokenizer.model_max_length, self.config.max_position_embeddings)
 
         # Check if a readme exists
         model_card_path = load_file_path(
@@ -271,6 +270,10 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
     @property
     def max_length(self) -> int:
         return self.tokenizer.model_max_length
+
+    @max_length.setter
+    def max_length(self, value: int) -> None:
+        self.tokenizer.model_max_length = value
 
     @property
     @deprecated(
