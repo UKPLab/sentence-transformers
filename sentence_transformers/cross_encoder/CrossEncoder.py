@@ -586,6 +586,37 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         create_pr: bool = False,
         tags: list[str] | None = None,
     ) -> str:
+        """
+        Upload the CrossEncoder model to the Hugging Face Hub.
+
+        Example:
+            ::
+
+                from sentence_transformers import CrossEncoder
+
+                model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
+                model.push_to_hub("username/my-crossencoder-model")
+                # => "https://huggingface.co/username/my-crossencoder-model"
+
+        Args:
+            repo_id (str): The name of the repository on the Hugging Face Hub, e.g. "username/repo_name",
+                "organization/repo_name" or just "repo_name".
+            token (str, optional): The authentication token to use for the Hugging Face Hub API.
+                If not provided, will use the token stored via the Hugging Face CLI.
+            private (bool, optional): Whether to create a private repository. If not specified,
+                the repository will be public.
+            safe_serialization (bool, optional): Whether or not to convert the model weights in safetensors
+                format for safer serialization. Defaults to True.
+            commit_message (str, optional): The commit message to use for the push. Defaults to "Add new CrossEncoder model".
+            exist_ok (bool, optional): If True, do not raise an error if the repository already exists.
+                Ignored if ``create_pr=True``. Defaults to False.
+            revision (str, optional): The git branch to commit to. Defaults to the head of the 'main' branch.
+            create_pr (bool, optional): Whether to create a Pull Request with the upload or directly commit. Defaults to False.
+            tags (list[str], optional): A list of tags to add to the model card. Defaults to None.
+
+        Returns:
+            str: URL of the commit or pull request (if create_pr=True)
+        """
         api = HfApi(token=token)
         repo_url = api.create_repo(
             repo_id=repo_id,
