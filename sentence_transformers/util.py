@@ -1517,18 +1517,22 @@ def save_to_hub_args_decorator(func):
     return wrapper
 
 
-def get_device_name() -> Literal["mps", "cuda", "npu", "hpu", "cpu"]:
+def get_device_name() -> str:
     """
     Returns the name of the device where this module is running on.
 
-    It's a simple implementation that doesn't cover cases when more powerful GPUs are available and
-    not a primary device ('cuda:0') or MPS device is available, but not configured properly.
+    This function only supports single device or basic distributed training setups.
+    In distributed mode for cuda device, it uses the rank to assign a specific CUDA device.
 
     Returns:
-        str: Device name, like 'cuda' or 'cpu'
+        str: Device name, like 'cuda:2', 'mps', 'npu', 'hpu', or 'cpu'
     """
     if torch.cuda.is_available():
-        return "cuda"
+        if torch.distributed.is_initialized():
+            local_rank = torch.distributed.get_rank()
+        else:
+            local_rank = int(os.environ.get("LOCAL_RANK", 0))
+        return f"cuda:{local_rank}"
     elif torch.backends.mps.is_available():
         return "mps"
     elif is_torch_npu_available():
