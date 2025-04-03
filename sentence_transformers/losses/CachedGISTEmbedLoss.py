@@ -68,7 +68,7 @@ class CachedGISTEmbedLoss(nn.Module):
         temperature: float = 0.01,
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
-        margin_strategy: Literal["absolute", "percentage"] | None = None,
+        margin_strategy: Literal["absolute", "percentage"] = "absolute",
         margin: float = 0.0,
     ) -> None:
         """
@@ -88,7 +88,6 @@ class CachedGISTEmbedLoss(nn.Module):
 
             - "absolute": Discards negatives whose similarity score is greater than or equal to (positive_score - margin).
             - "percentage": Discards negatives whose similarity score is greater than or equal to (positive_score * margin).
-            - None: No margin filtering is applied, but negatives more similar than positives are still excluded.
 
         Args:
             model: SentenceTransformer model
@@ -99,9 +98,9 @@ class CachedGISTEmbedLoss(nn.Module):
                 the slower the training will be. It's recommended to set it as high as your GPU memory allows. The default
                 value is 32.
             show_progress_bar: If True, a progress bar for the mini-batches is shown during training. The default is False.
-            margin_strategy: Strategy used for false negative filtering. One of {"absolute", "percentage", None}.
-                If None, margin filtering is disabled (but negatives more similar than positives are still masked).
-            margin: The margin value for filtering negatives. Required if ``margin_strategy`` is "absolute" or "percentage".
+            margin_strategy: Strategy used for false negative filtering. One of {"absolute", "percentage"}.
+            margin: The margin value for filtering negatives. Defaults to 0.0, together with the "absolute" strategy,
+                this only removes negatives that are more similar to the query than the positive is to the query.
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
@@ -309,9 +308,6 @@ class CachedGISTEmbedLoss(nn.Module):
                 elif self.margin_strategy == "percentage":
                     # Remove samples whose guided similarity is higher than (positive_sim * margin)
                     mask = guided_sim_mat > (guided_sim * self.margin)
-                else:
-                    # Default strategy: remove samples with guided similarity higher than positive_sim
-                    mask = guided_sim_mat > guided_sim
 
                 if positive_mask is not None:
                     # Ensure true positive pairs are not masked out
