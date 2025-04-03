@@ -196,7 +196,7 @@ class GISTEmbedLoss(nn.Module):
         if negative is not None:
             an_sim = self.sim_matrix(anchor, negative)
             guided_an_sim = self.sim_matrix(anchor_guide, negative_guide)
-            an_sim[guided_an_sim > guided_sim] = -torch.inf
+            an_sim = mask_false_negatives(guided_an_sim, an_sim)
 
             scores.append(an_sim)
 
@@ -212,6 +212,8 @@ class GISTEmbedLoss(nn.Module):
         return {
             "guide": self.guide,
             "temperature": self.temperature,
+            "margin_strategy": self.margin_strategy,
+            "margin": self.margin,
         }
 
     @property
