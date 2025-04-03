@@ -1529,11 +1529,10 @@ def get_device_name() -> str:
     """
     if torch.cuda.is_available():
         if torch.distributed.is_initialized():
-            device = f"cuda:{torch.distributed.get_rank()}"
+            local_rank = torch.distributed.get_rank()
         else:
             local_rank = int(os.environ.get("LOCAL_RANK", 0))
-            device = f"cuda:{local_rank}"
-        return device
+        return f"cuda:{local_rank}"
     elif torch.backends.mps.is_available():
         return "mps"
     elif is_torch_npu_available():
