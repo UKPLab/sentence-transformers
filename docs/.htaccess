@@ -36,15 +36,13 @@ Redirect 301 /docs/pretrained-models/msmarco.html /docs/pretrained-models/msmarc
 Redirect 301 /docs/examples/training/sts/README.html /examples/sentence_transformer/training/sts/README.html
 
 # Moved example pages for v4.0
-Redirect 301 /examples/applications/README.html /examples/cross_encoder/applications/README.html
-Redirect 301 /examples/training/ms_marco/cross_encoder_README.html /examples/cross_encoder/training/ms_marco/cross_encoder_README.html
-Redirect 301 /examples/training/README.html /examples/cross_encoder/training/README.html
+Redirect 301 /examples/training/ms_marco/cross_encoder_README.html /examples/cross_encoder/training/ms_marco/README.html
+Redirect 301 /examples/applications/cross-encoder/README.html /examples/cross_encoder/applications/README.html
 Redirect 301 /examples/applications/clustering/README.html /examples/sentence_transformer/applications/clustering/README.html
 Redirect 301 /examples/applications/embedding-quantization/README.html /examples/sentence_transformer/applications/embedding-quantization/README.html
 Redirect 301 /examples/applications/image-search/README.html /examples/sentence_transformer/applications/image-search/README.html
 Redirect 301 /examples/applications/parallel-sentence-mining/README.html /examples/sentence_transformer/applications/parallel-sentence-mining/README.html
 Redirect 301 /examples/applications/paraphrase-mining/README.html /examples/sentence_transformer/applications/paraphrase-mining/README.html
-Redirect 301 /examples/applications/README.html /examples/sentence_transformer/applications/README.html
 Redirect 301 /examples/applications/retrieve_rerank/README.html /examples/sentence_transformer/applications/retrieve_rerank/README.html
 Redirect 301 /examples/applications/semantic-search/README.html /examples/sentence_transformer/applications/semantic-search/README.html
 Redirect 301 /examples/applications/text-summarization/README.html /examples/sentence_transformer/applications/text-summarization/README.html
