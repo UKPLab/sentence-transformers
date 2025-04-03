@@ -99,7 +99,11 @@ To convert a model to ONNX format, you can use the following code:
    sentences = ["This is an example sentence", "Each sentence is converted"]
    embeddings = model.encode(sentences)
 
-If the model path or repository already contains a model in ONNX format, Sentence Transformers will automatically use it. Otherwise, it will convert the model to ONNX the format. 
+If the model path or repository already contains a model in ONNX format, Sentence Transformers will automatically use it. Otherwise, it will convert the model to the ONNX format. 
+
+.. note::
+
+   If you wish to use the ONNX model outside of Sentence Transformers, you'll need to perform pooling and/or normalization yourself. The ONNX export only converts the Transformer component, which outputs token embeddings, not sentence embeddings. To get sentence embeddings, you'll need to apply the appropriate pooling strategy (like mean pooling) and any normalization that the original model uses.
 
 All keyword arguments passed via ``model_kwargs`` will be passed on to :meth:`ORTModel.from_pretrained <optimum.onnxruntime.ORTModel.from_pretrained>`. Some notable arguments include:
 
@@ -290,6 +294,12 @@ To convert a model to OpenVINO format, you can use the following code:
    
    sentences = ["This is an example sentence", "Each sentence is converted"]
    embeddings = model.encode(sentences)
+
+If the model path or repository already contains a model in OpenVINO format, Sentence Transformers will automatically use it. Otherwise, it will convert the model to the OpenVINO format.
+
+.. note::
+
+   If you wish to use the OpenVINO model outside of Sentence Transformers, you'll need to perform pooling and/or normalization yourself. The OpenVINO export only converts the Transformer component, which outputs token embeddings, not sentence embeddings. To get sentence embeddings, you'll need to apply the appropriate pooling strategy (like mean pooling) and any normalization that the original model uses.
 
 .. raw:: html
 
