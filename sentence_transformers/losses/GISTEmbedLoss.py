@@ -107,7 +107,7 @@ class GISTEmbedLoss(nn.Module):
                 )
 
         if margin_strategy not in ("absolute", "percentage"):
-            raise ValueError("margin_strategy must be 'absolute' or 'percentage'")
+            raise ValueError("margin_strategy must be 'absolute' or 'percentage'.")
         self.margin_strategy = margin_strategy
         self.margin = margin
 
