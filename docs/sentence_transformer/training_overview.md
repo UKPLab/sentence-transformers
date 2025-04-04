@@ -109,10 +109,6 @@ The :class:`SentenceTransformerTrainer` trains and evaluates using :class:`datas
 
 .. tab:: Local Data that requires pre-processing
 
-    .. sidebar:: Documentation
-
-        - :meth:`datasets.Dataset.from_dict`
-
     If you have local data that requires some extra pre-processing, my recommendation is to initialize your dataset using :meth:`datasets.Dataset.from_dict` and a dictionary of lists, like so:
 
     .. raw:: html
@@ -150,7 +146,7 @@ It is important that your dataset format matches your loss function (or that you
 1. If your loss function requires a *Label* according to the `Loss Overview <loss_overview.html>`_ table, then your dataset must have a **column named "label" or "score"**. This column is automatically taken as the label.
 2. All columns not named "label" or "score" are considered *Inputs* according to the `Loss Overview <loss_overview.html>`_ table. The number of remaining columns must match the number of valid inputs for your chosen loss. The names of these columns are **irrelevant**, only the **order matters**. 
 
-For example, given a dataset with columns ``["text1", "text2", "label"]`` where the "label" column has float similarity score, we can use it with :class:`~sentence_transformers.losses.CoSENTLoss`, :class:`~sentence_transformers.losses.AnglELoss`, and :class:`~sentence_transformers.losses.CosineSimilarityLoss` because it:
+For example, given a dataset with columns ``["text1", "text2", "label"]`` where the "label" column has float similarity score between 0 and 1, we can use it with :class:`~sentence_transformers.losses.CoSENTLoss`, :class:`~sentence_transformers.losses.AnglELoss`, and :class:`~sentence_transformers.losses.CosineSimilarityLoss` because it:
 
 1. has a "label" column as is required for these loss functions.
 2. has 2 non-label columns, exactly the amount required by these loss functions.
@@ -166,7 +162,7 @@ Loss functions quantify how well a model performs for a given batch of data, all
 Sadly, there is no single loss function that works best for all use-cases. Instead, which loss function to use greatly depends on your available data and on your target task. See [Dataset Format](#dataset-format) to learn what datasets are valid for which loss functions. Additionally, the [Loss Overview](loss_overview) will be your best friend to learn about the options.
 
 ```{eval-rst}
-Most loss functions can be initialized with just the :class:`SentenceTransformer` that you're training, alongside some optional parameters, e.g.:
+Most loss functions can be initialized with just the :class:`~sentence_transformers.SentenceTransformer` that you're training, alongside some optional parameters, e.g.:
 
 .. sidebar:: Documentation
 
@@ -203,8 +199,6 @@ Most loss functions can be initialized with just the :class:`SentenceTransformer
 The :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` class can be used to specify parameters for influencing training performance as well as defining the tracking/debugging parameters. Although it is optional, it is heavily recommended to experiment with the various useful arguments.
 ```
 
-The following are tables with some of the most useful training arguments.
-
 <div class="training-arguments">
     <div class="header">Key Training Arguments for improving training performance</div>
     <div class="table">
@@ -218,6 +212,8 @@ The following are tables with some of the most useful training arguments.
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.auto_find_batch_size "><code>auto_find_batch_size</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.fp16"><code>fp16</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.bf16"><code>bf16</code></a>
+        <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.load_best_model_at_end"><code>load_best_model_at_end</code></a>
+        <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.metric_for_best_model"><code>metric_for_best_model</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.gradient_accumulation_steps"><code>gradient_accumulation_steps</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.gradient_checkpointing"><code>gradient_checkpointing</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.eval_accumulation_steps"><code>eval_accumulation_steps</code></a>
@@ -236,8 +232,8 @@ The following are tables with some of the most useful training arguments.
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.save_strategy"><code>save_strategy</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.save_steps"><code>save_steps</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.save_total_limit"><code>save_total_limit</code></a>
-        <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.load_best_model_at_end"><code>load_best_model_at_end</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.report_to"><code>report_to</code></a>
+        <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.run_name"><code>run_name</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.log_level"><code>log_level</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.logging_steps"><code>logging_steps</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.push_to_hub"><code>push_to_hub</code></a>
@@ -278,7 +274,7 @@ args = SentenceTransformerTrainingArguments(
 
 ## Evaluator
 
-You can provide the [`SentenceTransformerTrainer`](https://sbert.net/docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer) with an `eval_dataset` to get the evaluation loss during training, but it may be useful to get more concrete metrics during training, too. For this, you can use evaluators to assess the model's performance with useful metrics before, during, or after training. You can use both an `eval_dataset` and an evaluator, one or the other, or neither. They evaluate based on the `eval_strategy` and `eval_steps` [Training Arguments](#training-arguments).
+You can provide the [`SentenceTransformerTrainer`](https://sbert.net/docs/package_reference/sentence_transformer/trainer.html#sentence_transformers.trainer.SentenceTransformerTrainer) with an `eval_dataset` to get the evaluation loss during training, but it may be useful to get more concrete metrics during training, too. For this, you can use evaluators to assess the model's performance with useful metrics before, during, or after training. You can use both an `eval_dataset` and an evaluator, one or the other, or neither. They evaluate based on the `eval_strategy` and `eval_steps` [Training Arguments](#training-arguments).
 
 Here are the implemented Evaluators that come with Sentence Transformers:
 ```{eval-rst}
@@ -330,7 +326,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
             name="sts-dev",
         )
         # You can run evaluation like so:
-        # dev_evaluator(model)
+        # results = dev_evaluator(model)
 
 .. tab:: TripletEvaluator with AllNLI
 
@@ -363,7 +359,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
             name="all-nli-dev",
         )
         # You can run evaluation like so:
-        # dev_evaluator(model)
+        # results = dev_evaluator(model)
 
 .. tab:: NanoBEIREvaluator
 
@@ -384,7 +380,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         # directly from Hugging Face, so there's no mandatory arguments
         dev_evaluator = NanoBEIREvaluator()
         # You can run evaluation like so:
-        # dev_evaluator(model)
+        # results = dev_evaluator(model)
 
 .. warning::
 
@@ -394,7 +390,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
 ## Trainer
 
 ```{eval-rst}
-The :class:`~sentence_transformers.SentenceTransformerTrainer` is where all previous components come together. We only have to specify the trainer with the model, training arguments (optional), training dataset, evaluation dataset (optional), loss function, evaluator (optional) and we can start training. Let's have a look at a script where all of these components come together:
+The :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` is where all previous components come together. We only have to specify the trainer with the model, training arguments (optional), training dataset, evaluation dataset (optional), loss function, evaluator (optional) and we can start training. Let's have a look at a script where all of these components come together:
 
 .. sidebar:: Documentation
 
@@ -519,9 +515,9 @@ documentation for more information on the integrated callbacks and how to write 
 
 ## Multi-Dataset Training
 ```{eval-rst}
-The top performing models are trained using many datasets at once. Normally, this is rather tricky, as each dataset has a different format. However, :class:`SentenceTransformerTrainer` can train with multiple datasets without having to convert each dataset to the same format. It can even apply different loss functions to each of the datasets. The steps to train with multiple datasets are:
+The top performing models are trained using many datasets at once. Normally, this is rather tricky, as each dataset has a different format. However, :class:`sentence_transformers.trainer.SentenceTransformerTrainer` can train with multiple datasets without having to convert each dataset to the same format. It can even apply different loss functions to each of the datasets. The steps to train with multiple datasets are:
 
-- Use a dictionary of :class:`~datasets.Dataset` instances (or a :class:`~datasets.DatasetDict`) as the ``train_dataset`` and ``eval_dataset``.
+- Use a dictionary of :class:`~datasets.Dataset` instances (or a :class:`~datasets.DatasetDict`) as the ``train_dataset``  (and optionally also ``eval_dataset``).
 - (Optional) Use a dictionary of loss functions mapping dataset names to losses. Only required if you wish to use different loss function for different datasets.
 
 Each training/evaluation batch will only contain samples from one of the datasets. The order in which batches are samples from the multiple datasets is defined by the :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers` enum, which can be passed to the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments` via ``multi_dataset_batch_sampler``. Valid options are:
@@ -529,7 +525,7 @@ Each training/evaluation batch will only contain samples from one of the dataset
 - ``MultiDatasetBatchSamplers.ROUND_ROBIN``: Round-robin sampling from each dataset until one is exhausted. With this strategy, it’s likely that not all samples from each dataset are used, but each dataset is sampled from equally.
 - ``MultiDatasetBatchSamplers.PROPORTIONAL`` (default): Sample from each dataset in proportion to its size. With this strategy, all samples from each dataset are used and larger datasets are sampled from more frequently.
 
-This multi-task training has been shown to be very effective, e.g. `Huang et al. <https://arxiv.org/pdf/2405.06932>`_ employed :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, :class:`~sentence_transformers.losses.CoSENTLoss`, and a variation on :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` without in-batch negatives and only hard negatives to reach state-of-the-art performance on Chinese. They even applied :class:`~sentence_transformers.losses.MatryoshkaLoss` to allow the model to produce `Matryoshka Embeddings <../../examples/training/matryoshka/README.html>`_.
+This multi-task training has been shown to be very effective, e.g. `Huang et al. <https://arxiv.org/pdf/2405.06932>`_ employed :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, :class:`~sentence_transformers.losses.CoSENTLoss`, and a variation on :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss` without in-batch negatives and only hard negatives to reach state-of-the-art performance on Chinese. They even applied :class:`~sentence_transformers.losses.MatryoshkaLoss` to allow the model to produce `Matryoshka Embeddings <../../examples/sentence_transformer/training/matryoshka/README.html>`_.
 
 Training on multiple datasets looks like this:
 
@@ -548,8 +544,8 @@ Training on multiple datasets looks like this:
 
     **Training Examples:**
 
-    - `Quora Duplicate Questions > Multi-task learning <https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/quora_duplicate_questions/training_multi-task-learning.py>`_
-    - `AllNLI + STSb > Multi-task learning <https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/other/training_multi-task.py>`_
+    - `Quora Duplicate Questions > Multi-task learning <https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/training/quora_duplicate_questions/training_multi-task-learning.py>`_
+    - `AllNLI + STSb > Multi-task learning <https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/training/other/training_multi-task.py>`_
 
 ::
 
@@ -642,7 +638,7 @@ Training on multiple datasets looks like this:
 
 ## Deprecated Training 
 ```{eval-rst}
-Prior to the Sentence Transformers v3.0 release, models would be trained with the :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>` method and a :class:`~torch.utils.data.DataLoader` of :class:`~sentence_transformers.readers.InputExample`, which looked something like this::
+Prior to the Sentence Transformers v3.0 release, models would be trained with the :meth:`SentenceTransformer.fit() <sentence_transformers.SentenceTransformer.fit>` method and a :class:`~torch.utils.data.DataLoader` of :class:`~sentence_transformers.readers.InputExample`, which looked something like this::
 
     from sentence_transformers import SentenceTransformer, InputExample, losses
     from torch.utils.data import DataLoader
@@ -663,16 +659,16 @@ Prior to the Sentence Transformers v3.0 release, models would be trained with th
     # Tune the model
     model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_steps=100)
 
-Since the v3.0 release, using :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>` is still possible, but it will initialize a :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` behind the scenes. It is recommended to use the Trainer directly, as you will have more control via the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`, but existing training scripts relying on :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>` should still work.
+Since the v3.0 release, using :meth:`SentenceTransformer.fit() <sentence_transformers.SentenceTransformer.fit>` is still possible, but it will initialize a :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` behind the scenes. It is recommended to use the Trainer directly, as you will have more control via the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`, but existing training scripts relying on :meth:`SentenceTransformer.fit() <sentence_transformers.SentenceTransformer.fit>` should still work.
 
-In case there are issues with the updated :meth:`SentenceTransformer.fit <sentence_transformers.SentenceTransformer.fit>`, you can also get exactly the old behaviour by calling :meth:`SentenceTransformer.old_fit <sentence_transformers.SentenceTransformer.old_fit>` instead, but this method will be deprecated fully in the future.
+In case there are issues with the updated :meth:`SentenceTransformer.fit() <sentence_transformers.SentenceTransformer.fit>`, you can also get exactly the old behaviour by calling :meth:`SentenceTransformer.old_fit() <sentence_transformers.SentenceTransformer.old_fit>` instead, but this method is planned to be deprecated fully in the future.
 
 ```
 
 ## Best Base Embedding Models
 The quality of your text embedding model depends on which transformer model you choose. Sadly we cannot infer from a better performance on e.g. the GLUE or SuperGLUE benchmark that this model will also yield better representations.
 
-To test the suitability of transformer models, I use the [training_nli_v2.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/nli/training_nli_v2.py) script and train on 560k (anchor, positive, negative)-triplets for 1 epoch with batch size 64. I then evaluate on 14 diverse text similarity tasks (clustering, semantic search, duplicate detection etc.) from various domains.
+To test the suitability of transformer models, I use the [training_nli_v2.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/training/nli/training_nli_v2.py) script and train on 560k (anchor, positive, negative)-triplets for 1 epoch with batch size 64. I then evaluate on 14 diverse text similarity tasks (clustering, semantic search, duplicate detection etc.) from various domains.
 
 In the following table you find the performance for different models and their performance on this benchmark:
 
@@ -692,3 +688,14 @@ In the following table you find the performance for different models and their p
 | [microsoft/MiniLM-L12-H384-uncased](https://huggingface.co/microsoft/MiniLM-L12-H384-uncased)                                     | 56.79                                      |
 | [microsoft/deberta-v3-base](https://huggingface.co/microsoft/deberta-v3-base)                                                     | 54.46                                      |
 
+## Comparisons with CrossEncoder Training
+
+```{eval-rst}
+Training :class:`~sentence_transformers.SentenceTransformer` models is very similar as training :class:`~sentence_transformers.cross_encoder.CrossEncoder` models, with some key differences:
+
+- Instead of ``score``, ``scores``, ``label`` and ``labels`` columns being considered "label columns", only ``score`` and ``label`` are. As you can see in the `Loss Overview <loss_overview.html>`_ documentation, some losses require specific labels/scores in a column with one of these names.
+- For :class:`~sentence_transformers.cross_encoder.CrossEncoder` training, you can use (variably sized) lists of texts in a column. In :class:`~sentence_transformers.SentenceTransformer` training, you **cannot** use lists of inputs (e.g. texts) in a column of the training/evaluation dataset(s). In short: training with a variable number of negatives is not supported.
+
+See the `Cross Encoder > Training Overview <../cross_encoder/training_overview.html>`_ documentation for more details on training :class:`~sentence_transformers.cross_encoder.CrossEncoder` models.
+
+```

@@ -21,7 +21,7 @@ from transformers.trainer_utils import EvalLoopOutput
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
 from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
-from sentence_transformers.model_card import ModelCardCallback
+from sentence_transformers.model_card import SentenceTransformerModelCardCallback
 from sentence_transformers.models import Pooling
 from sentence_transformers.models.Transformer import Transformer
 from sentence_transformers.sampler import (
@@ -150,10 +150,12 @@ class SentenceTransformerTrainer(Trainer):
 
         if args is None:
             output_dir = "tmp_trainer"
-            logger.info(f"No `TrainingArguments` passed, using `output_dir={output_dir}`.")
+            logger.info(f"No `SentenceTransformerTrainingArguments` passed, using `output_dir={output_dir}`.")
             args = SentenceTransformerTrainingArguments(output_dir=output_dir)
         elif not isinstance(args, SentenceTransformerTrainingArguments):
-            raise ValueError("Please use `TrainingArguments` imported from `sentence_transformers`.")
+            raise ValueError(
+                "Please use `SentenceTransformerTrainingArguments` imported from `sentence_transformers`."
+            )
 
         if model is None:
             if model_init is not None:
@@ -315,9 +317,9 @@ class SentenceTransformerTrainer(Trainer):
             This method can be overriden by subclassing the trainer to remove/customize this callback in custom uses cases
         """
 
-        model_card_callback = ModelCardCallback(default_args_dict)
+        model_card_callback = SentenceTransformerModelCardCallback(default_args_dict)
         self.add_callback(model_card_callback)
-        model_card_callback.on_init_end(self.args, self.state, self.control, self.model, trainer=self)
+        model_card_callback.on_init_end(self.args, self.state, self.control, model=self.model, trainer=self)
 
     def call_model_init(self, trial=None) -> SentenceTransformer:
         model = super().call_model_init(trial=trial)
@@ -405,7 +407,6 @@ class SentenceTransformerTrainer(Trainer):
         # if the loss stores the model. Only called once per process
         if (
             model == self.model_wrapped
-            and model != self.model  # Only if the model is wrapped
             and hasattr(loss_fn, "model")  # Only if the loss stores the model
             and loss_fn.model != model  # Only if the wrapped model is not already stored
         ):
