@@ -16,6 +16,8 @@ import numpy as np
 import requests
 import torch
 from huggingface_hub import hf_hub_download, snapshot_download
+from scipy.sparse import coo_matrix
+from sklearn.metrics import pairwise_distances
 from torch import Tensor, device
 from tqdm import trange
 from tqdm.autonotebook import tqdm
@@ -159,6 +161,13 @@ def pairwise_dot_score(a: Tensor, b: Tensor) -> Tensor:
     return (a * b).sum(dim=-1).to_dense()
 
 
+def to_scipy_coo(x: Tensor) -> coo_matrix:
+    x = x.coalesce()
+    indices = x.indices().cpu().numpy()
+    values = x.values().cpu().numpy()
+    return coo_matrix((values, (indices[0], indices[1])), shape=x.shape)
+
+
 def manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) -> Tensor:
     """
     Computes the manhattan similarity (i.e., negative distance) between two tensors.
@@ -171,16 +180,20 @@ def manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) 
     Returns:
         Tensor: Matrix with res[i][j] = -manhattan_distance(a[i], b[j])
     """
-    # TODO Check  if it's actually possible to handle sparse tensors in an efficient way
+    # TODO Check  if it's actually possible to handle sparse tensors on cuda
     a = _convert_to_batch_tensor(a)
     b = _convert_to_batch_tensor(b)
 
-    if a.is_sparse:
-        logger.warning("Manhattan similarity does not support sparse tensors. Converting to dense.")
-        a = a.coalesce().to_dense()
-        b = b.coalesce().to_dense()
+    if a.is_sparse or b.is_sparse:
+        logger.warning("Using scipy for sparse Manhattan similarity computation.")
 
-    return -torch.cdist(a, b, p=1.0)
+        a_coo = to_scipy_coo(a)
+        b_coo = to_scipy_coo(b)
+        dist = pairwise_distances(a_coo, b_coo, metric="manhattan")
+        return torch.from_numpy(-dist).float().to(a.device)
+
+    else:
+        return -torch.cdist(a, b, p=1.0)
 
 
 def pairwise_manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor):

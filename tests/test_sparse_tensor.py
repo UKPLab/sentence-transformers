@@ -39,8 +39,10 @@ def sparse_tensors():
 
     tensor1 = create_sparse_tensor(rows, cols, num_nonzero, seed=42)
     tensor2 = create_sparse_tensor(rows, cols, num_nonzero, seed=1337)
-
-    return tensor1, tensor2
+    if torch.cuda.is_available():
+        return tensor1.to("cuda"), tensor2.to("cuda")
+    else:
+        return tensor1, tensor2
 
 
 def test_cos_sim_sparse(sparse_tensors):
@@ -154,7 +156,7 @@ def test_performance_with_large_vectors():
     # Set dimensions for large sparse vectors
     rows = 500  # Just a few vectors to compare
     cols = 100000  # Large dimensionality
-    num_nonzero = 500  # 500 non-null elements per vector
+    num_nonzero = 128  # 128 non-null elements per vector
 
     print("\nPerformance test with large sparse vs. dense vectors")
     print(f"Shape: ({rows}, {cols}), Non-zeros per vector: {num_nonzero}")
@@ -173,7 +175,7 @@ def test_performance_with_large_vectors():
     similarity_functions = [
         ("cos_sim", util.cos_sim),
         ("dot_score", util.dot_score),
-        # ("manhattan_sim", util.manhattan_sim), # Comment until the function is implemented in a fast way
+        ("manhattan_sim", util.manhattan_sim),  # Comment until the function is implemented in a fast way
         ("euclidean_sim", util.euclidean_sim),
         ("pairwise_cos_sim", util.pairwise_cos_sim),
         ("pairwise_dot_score", util.pairwise_dot_score),
