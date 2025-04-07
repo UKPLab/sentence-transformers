@@ -395,10 +395,7 @@ def paraphrase_mining(
 
     # Compute embedding for the sentences
     embeddings = model.encode(
-        sentences,
-        show_progress_bar=show_progress_bar,
-        batch_size=batch_size,
-        convert_to_tensor=True,
+        sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True
     )
 
     return paraphrase_mining_embeddings(
@@ -543,11 +540,7 @@ def semantic_search(
 
             # Get top-k scores
             cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(
-                cos_scores,
-                min(top_k, len(cos_scores[0])),
-                dim=1,
-                largest=True,
-                sorted=False,
+                cos_scores, min(top_k, len(cos_scores[0])), dim=1, largest=True, sorted=False
             )
             cos_scores_top_k_values = cos_scores_top_k_values.cpu().tolist()
             cos_scores_top_k_idx = cos_scores_top_k_idx.cpu().tolist()
@@ -567,10 +560,7 @@ def semantic_search(
     for query_id in range(len(queries_result_list)):
         for doc_itr in range(len(queries_result_list[query_id])):
             score, corpus_id = queries_result_list[query_id][doc_itr]
-            queries_result_list[query_id][doc_itr] = {
-                "corpus_id": corpus_id,
-                "score": score,
-            }
+            queries_result_list[query_id][doc_itr] = {"corpus_id": corpus_id, "score": score}
         queries_result_list[query_id] = sorted(queries_result_list[query_id], key=lambda x: x["score"], reverse=True)
 
     return queries_result_list
@@ -822,30 +812,18 @@ def mine_hard_negatives(
     # Embed the corpus and the queries
     if use_multi_process:
         pool = model.start_multi_process_pool(
-            target_devices=(None if isinstance(use_multi_process, bool) else use_multi_process)
+            target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
         )
         corpus_embeddings = model.encode_multi_process(
-            corpus,
-            pool,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            show_progress_bar=True,
+            corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
         )
         query_embeddings = model.encode_multi_process(
-            queries,
-            pool,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            show_progress_bar=True,
+            queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
         )
         model.stop_multi_process_pool(pool)
     else:
         corpus_embeddings = model.encode(
-            corpus,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-            show_progress_bar=True,
+            corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
         )
         query_embeddings = model.encode(
             queries,
@@ -1133,26 +1111,11 @@ def mine_hard_negatives(
             ("mean", torch.mean),
             ("median", torch.median),
             ("std", torch.std),
-            (
-                "min",
-                lambda scores: (torch.min(scores) if scores.numel() > 0 else float("inf")),
-            ),
-            (
-                "25%",
-                lambda scores: (torch.quantile(scores.float(), q=0.25) if scores.numel() > 0 else float("inf")),
-            ),
-            (
-                "50%",
-                lambda scores: (torch.quantile(scores.float(), q=0.5) if scores.numel() > 0 else float("inf")),
-            ),
-            (
-                "75%",
-                lambda scores: (torch.quantile(scores.float(), q=0.75) if scores.numel() > 0 else float("inf")),
-            ),
-            (
-                "max",
-                lambda scores: (torch.max(scores) if scores.numel() > 0 else float("-inf")),
-            ),
+            ("min", lambda scores: torch.min(scores) if scores.numel() > 0 else float("inf")),
+            ("25%", lambda scores: torch.quantile(scores.float(), q=0.25) if scores.numel() > 0 else float("inf")),
+            ("50%", lambda scores: torch.quantile(scores.float(), q=0.5) if scores.numel() > 0 else float("inf")),
+            ("75%", lambda scores: torch.quantile(scores.float(), q=0.75) if scores.numel() > 0 else float("inf")),
+            ("max", lambda scores: torch.max(scores) if scores.numel() > 0 else float("-inf")),
         ]:
             print(
                 row_format.format(
@@ -1216,10 +1179,7 @@ def http_get(url: str, path: str) -> None:
 
     req = requests.get(url, stream=True)
     if req.status_code != 200:
-        print(
-            f"Exception when trying to download {url}. Response {req.status_code}",
-            file=sys.stderr,
-        )
+        print(f"Exception when trying to download {url}. Response {req.status_code}", file=sys.stderr)
         req.raise_for_status()
         return
 
@@ -1355,9 +1315,7 @@ def community_detection(
     sort_max_size = min(max(2 * min_community_size, 50), len(embeddings))
 
     for start_idx in tqdm(
-        range(0, len(embeddings), batch_size),
-        desc="Finding clusters",
-        disable=not show_progress_bar,
+        range(0, len(embeddings), batch_size), desc="Finding clusters", disable=not show_progress_bar
     ):
         # Compute cosine similarity scores
         cos_scores = embeddings[start_idx : start_idx + batch_size] @ embeddings.T
