@@ -113,7 +113,7 @@ When  you use GPL, please have a look at: [GPL: Generative Pseudo Labeling for U
 In the following you find a (selective) list of articles / applications using SentenceTransformers to do amazing stuff. Feel free to contact me (info@nils-reimers.de) to add you application here. 
 - **December 2021 - [Sentence Transformer Fine-Tuning (SetFit): Outperforming GPT-3 on few-shot Text-Classification while being 1600 times smaller](https://towardsdatascience.com/sentence-transformer-fine-tuning-setfit-outperforms-gpt-3-on-few-shot-text-classification-while-d9a3788f0b4e?gi=4bdbaff416e3)**
 - **October 2021: [Natural Language Processing (NLP) for Semantic Search](https://www.pinecone.io/learn/nlp)**
-- **January 2021 - [Advance BERT model via transferring knowledge from Cross-Encoders to Bi-Encoders](https://towardsdatascience.com/advance-nlp-model-via-transferring-knowledge-from-cross-encoders-to-bi-encoders-3e0fc564f554)**
+- **January 2021 - [Advance BERT model via transferring knowledge from Cross-Encoders to Bi-Encoders](https://resources.experfy.com/ai-ml/bert-model-transferring-knowledge-cross-encoders-bi-encoders/)**
 - **November 2020 - [How to Build a Semantic Search Engine With Transformers and Faiss](https://towardsdatascience.com/how-to-build-a-semantic-search-engine-with-transformers-and-faiss-dcbea307a0e8)**
 - **October 2020 - [Topic Modeling with BERT](https://towardsdatascience.com/topic-modeling-with-bert-779f7db187e6)**
 - **September 2020 - [Elastic Transformers -
