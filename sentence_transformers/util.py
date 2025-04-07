@@ -171,39 +171,16 @@ def manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) 
     Returns:
         Tensor: Matrix with res[i][j] = -manhattan_distance(a[i], b[j])
     """
-    # TODO UPGRADE THIS WAY TOO SLOW ON TEST
+    # TODO Check  if it's actually possible to handle sparse tensors in an efficient way
     a = _convert_to_batch_tensor(a)
     b = _convert_to_batch_tensor(b)
 
     if a.is_sparse:
-        # For sparse tensors, we need to compute Manhattan distance directly
-        result = torch.zeros((a.shape[0], b.shape[0]), device=a.device)
+        logger.warning("Manhattan similarity does not support sparse tensors. Converting to dense.")
+        a = a.coalesce().to_dense()
+        b = b.coalesce().to_dense()
 
-        # For each pair of vectors (i, j), compute Manhattan distance
-        for i in range(a.shape[0]):
-            for j in range(b.shape[0]):
-                # Get sparse tensors for this pair
-                a_vec = a[i]
-                b_vec = b[j]
-
-                # Get all indices that appear in either vector
-                a_indices = set((a_vec._indices()[0].tolist()) if a_vec._nnz() > 0 else [])
-                b_indices = set((b_vec._indices()[0].tolist()) if b_vec._nnz() > 0 else [])
-                all_indices = a_indices.union(b_indices)
-
-                # Calculate Manhattan distance directly from sparse representation
-                distance = 0.0
-                for idx in all_indices:
-                    a_val = a_vec._values()[a_vec._indices()[0] == idx].sum() if idx in a_indices else 0.0
-                    b_val = b_vec._values()[b_vec._indices()[0] == idx].sum() if idx in b_indices else 0.0
-                    distance += abs(a_val - b_val)
-
-                # For indices not in either sparse vector, the difference is 0
-                result[i, j] = -distance
-
-        return result.to_dense()
-    else:
-        return -torch.cdist(a, b, p=1.0)
+    return -torch.cdist(a, b, p=1.0)
 
 
 def pairwise_manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor):
@@ -277,7 +254,7 @@ def pairwise_angle_sim(x: Tensor, y: Tensor) -> Tensor:
     Returns:
         Tensor: Vector with res[i] = angle_sim(a[i], b[i])
     """
-    # TODO Check  if it's actually possible to handle sparse tensors
+    # TODO Check  if it's actually possible to handle sparse tensors in an efficient way
     if x.is_sparse:
         logger.warning("Pairwise angle similarity does not support sparse tensors. Converting to dense.")
         x = x.coalesce().to_dense()
@@ -318,21 +295,19 @@ def normalize_embeddings(embeddings: Tensor) -> Tensor:
         return torch.nn.functional.normalize(embeddings, p=2, dim=1)
 
     embeddings = embeddings.coalesce()
+    indices, values = embeddings.indices(), embeddings.values()
 
-    indices, values, size = embeddings.indices(), embeddings.values(), embeddings.size()
+    # Compute row norms efficiently
+    row_norms = torch.zeros(embeddings.size(0), device=embeddings.device)
+    row_norms.index_add_(0, indices[0], values**2)
+    row_norms = torch.sqrt(row_norms).index_select(0, indices[0])
 
-    # Group by row and compute norms
-    row_indices = indices[0]
-    unique_rows, normalized_values = row_indices.unique(), values.clone()
+    # Normalize values where norm > 0
+    mask = row_norms > 0
+    normalized_values = values.clone()
+    normalized_values[mask] /= row_norms[mask]
 
-    for row in unique_rows:
-        mask = row_indices == row
-        row_norm = torch.sqrt(torch.sum(values[mask] ** 2))
-        if row_norm > 0:
-            normalized_values[mask] /= row_norm
-
-    # Create new sparse tensor with normalized values
-    return torch.sparse_coo_tensor(indices, normalized_values, size)
+    return torch.sparse_coo_tensor(indices, normalized_values, embeddings.size())
 
 
 @overload

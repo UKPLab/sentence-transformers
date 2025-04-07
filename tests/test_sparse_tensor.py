@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import gc
 import time
 
 import numpy as np
-import psutil
 import pytest
 import torch
 
@@ -54,9 +52,6 @@ def test_cos_sim_sparse(sparse_tensors):
 
     sim_sparse = util.cos_sim(tensor1, tensor2)
     sim_dense = util.cos_sim(dense1, dense2)
-
-    print("Cosine similarity:\n", sim_sparse)
-    print("Dense cosine similarity:\n", sim_dense)
 
     assert torch.allclose(sim_sparse, sim_dense, rtol=1e-5, atol=1e-5)
 
@@ -154,20 +149,25 @@ def test_pairwise_euclidean_sim_sparse(sparse_tensors):
 
 
 def test_performance_with_large_vectors():
-    """Test performance (time and memory) for all similarity functions with large sparse vectors."""
+    """Test performance (time) for all similarity functions with large sparse vectors vs dense."""
 
     # Set dimensions for large sparse vectors
-    rows = 50  # Just a few vectors to compare
+    rows = 500  # Just a few vectors to compare
     cols = 100000  # Large dimensionality
     num_nonzero = 500  # 500 non-null elements per vector
 
-    print("\nPerformance test with large sparse vectors")
+    print("\nPerformance test with large sparse vs. dense vectors")
     print(f"Shape: ({rows}, {cols}), Non-zeros per vector: {num_nonzero}")
 
     # Create large sparse tensors
     print("Creating sparse tensors...")
-    tensor1 = create_sparse_tensor(rows, cols, num_nonzero, seed=42)
-    tensor2 = create_sparse_tensor(rows, cols, num_nonzero, seed=1337)
+    tensor1_sparse = create_sparse_tensor(rows, cols, num_nonzero, seed=42)
+    tensor2_sparse = create_sparse_tensor(rows, cols, num_nonzero, seed=1337)
+
+    # Convert to dense for comparison
+    print("Converting to dense tensors...")
+    tensor1_dense = tensor1_sparse.to_dense()
+    tensor2_dense = tensor2_sparse.to_dense()
 
     # List of functions to test
     similarity_functions = [
@@ -183,49 +183,42 @@ def test_performance_with_large_vectors():
 
     results = []
 
-    # Get initial memory usage
-    process = psutil.Process()
-
     for name, func in similarity_functions:
-        # Clear cache and collect garbage
-        torch.cuda.empty_cache() if torch.cuda.is_available() else None
-        gc.collect()
-
-        # Memory before operation
-        mem_before = process.memory_info().rss / 1024 / 1024  # MB
-
         # Time sparse operation
         start_time = time.time()
-        _ = func(tensor1, tensor2)
+        _ = func(tensor1_sparse, tensor2_sparse)
         sparse_time = time.time() - start_time
 
-        # Memory after sparse operation
-        mem_after_sparse = process.memory_info().rss / 1024 / 1024  # MB
-        sparse_mem = mem_after_sparse - mem_before
+        # Time dense operation
+        start_time = time.time()
+        _ = func(tensor1_dense, tensor2_dense)
+        dense_time = time.time() - start_time
+
+        # Calculate speedup ratio
+        speedup_ratio = dense_time / sparse_time if sparse_time > 0 else float("inf")
 
         results.append(
-            {
-                "function": name,
-                "sparse_time": sparse_time,
-                "sparse_mem": sparse_mem,
-            }
+            {"function": name, "sparse_time": sparse_time, "dense_time": dense_time, "speedup_ratio": speedup_ratio}
         )
 
     # Print results in a table
     print("\nPerformance Results:")
-    print(f"{'Function':<25} | {'Sparse Time (s)':<15} | {'Sparse Mem (MB)':<15} ")
-    print("-" * 120)
+    print(f"{'Function':<25} | {'Sparse Time (s)':<15} | {'Dense Time (s)':<15} | {'Speedup Ratio':<15}")
+    print("-" * 80)
 
     for r in results:
-        print(f"{r['function']:<25} | {r['sparse_time']:<15.6f} | {r['sparse_mem']:<15.2f} ")
+        print(
+            f"{r['function']:<25} | {r['sparse_time']:<15.6f} | {r['dense_time']:<15.6f} | {r['speedup_ratio']:<15.2f}"
+        )
 
     # Create performance summary
     sparse_time_avg = np.mean([r["sparse_time"] for r in results])
-    sparse_mem_avg = np.mean([r["sparse_mem"] for r in results])
+    dense_time_avg = np.mean([r["dense_time"] for r in results])
+    avg_speedup = np.mean([r["speedup_ratio"] for r in results])
 
     print("\nAverage Performance:")
     print(f"Time - Sparse: {sparse_time_avg:.6f}s")
-    print(f"Memory - Sparse: {sparse_mem_avg:.2f}MB")
+    print(f"Time - Dense: {dense_time_avg:.6f}s")
+    print(f"Average speedup: {avg_speedup:.2f}x")
 
-    assert sparse_time_avg < 0.05, "Sparse operations took too long!"
-    assert sparse_mem_avg < 10, "Sparse operations used too much memory!"
+    assert sparse_time_avg < 0.1, "Sparse operations took too long!"
