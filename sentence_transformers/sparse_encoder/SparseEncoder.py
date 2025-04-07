@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import torch
@@ -124,6 +124,7 @@ class SparseEncoder(SentenceTransformer):
             #         [0.0492, 0.0421, 1.0000]])
     """
 
+    # TODO: Check if there is no other things we need to overwrite espacially for models specificty
     def __init__(
         self,
         model_name_or_path: str | None,
@@ -139,15 +140,21 @@ class SparseEncoder(SentenceTransformer):
 
         logger.info(f"Initialized SparseEncoder with threshold={sparsity_threshold}, topk={topk}")
 
+    # TODO: Look at the overload ? Add handling for dict and list[dict]
     def encode(
         self,
-        sentences: str | list[str],
+        sentences: str | list[str] | np.ndarray,
+        prompt_name: str | None = None,
+        prompt: str | None = None,
         batch_size: int = 32,
         show_progress_bar: bool | None = None,
-        convert_to_numpy: bool = False,
-        convert_to_tensor: bool = True,
+        output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
+        convert_to_numpy: bool = True,
+        convert_to_tensor: bool = False,
+        device: str | None = None,
+        normalize_embeddings: bool = False,
         convert_to_sparse_tensor: bool = True,
-        normalize_embeddings: bool = True,
         sparsity_threshold: float | None = None,
         topk: int = None,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
@@ -195,10 +202,15 @@ class SparseEncoder(SentenceTransformer):
         """
         embeddings = super().encode(
             sentences,
+            prompt_name=prompt_name,
+            prompt=prompt,
             batch_size=batch_size,
             show_progress_bar=show_progress_bar,
+            output_value=output_value,
+            precision=precision,
             convert_to_numpy=convert_to_numpy,
             convert_to_tensor=convert_to_tensor,
+            device=device,
             normalize_embeddings=normalize_embeddings,
         )
 
@@ -236,6 +248,8 @@ class SparseEncoder(SentenceTransformer):
                 embeddings = [emb.to_sparse() for emb in embeddings]
 
         return embeddings
+
+    # TODO: Check but forward, similarity_fn_name, similarity, similarity_pairwise shouldn't be overwritten
 
     def set_sparsity_threshold(self, threshold: float) -> None:
         """
@@ -288,8 +302,11 @@ class SparseEncoder(SentenceTransformer):
 
         return {"sparsity": sparsity, "density": density, "non_zero_count": non_zero, "total_elements": total_elements}
 
+    # TODO : Probably gonna need to overwrite the multiprocess functions, such as save, load, evaluate, etc.
+
 
 if __name__ == "__main__":
+    # Small test on a ST model to check if the class works
     # Load a pre-trained SentenceTransformer model
     model = SparseEncoder("all-mpnet-base-v2")
 
@@ -306,3 +323,37 @@ if __name__ == "__main__":
     # Get the similarity scores between all sentences
     similarities = model.similarity(embeddings, embeddings)
     print(similarities)
+
+    from datasets import Dataset
+
+    from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+
+    student_model = SparseEncoder("microsoft/mpnet-base")
+    teacher_model = SparseEncoder("all-mpnet-base-v2")
+    train_dataset = Dataset.from_dict(
+        {
+            "query": ["It's nice weather outside today.", "He drove to work."],
+            "passage1": ["It's so sunny.", "He took the car to work."],
+            "passage2": ["It's very sunny.", "She walked to the store."],
+        }
+    )
+
+    def compute_labels(batch):
+        emb_queries = teacher_model.encode(batch["query"], convert_to_sparse_tensor=True, topk=0)
+        emb_passages1 = teacher_model.encode(batch["passage1"], convert_to_sparse_tensor=True, topk=0)
+        emb_passages2 = teacher_model.encode(batch["passage2"], convert_to_sparse_tensor=True, topk=0)
+        return {
+            "label": teacher_model.similarity_pairwise(emb_queries, emb_passages1)
+            - teacher_model.similarity_pairwise(emb_queries, emb_passages2)
+        }
+
+    train_dataset = train_dataset.map(compute_labels, batched=True)
+    # In this example, the labels become -0.036 and 0.68, respectively
+    loss = losses.MarginMSELoss(student_model)
+
+    trainer = SentenceTransformerTrainer(
+        model=student_model,
+        train_dataset=train_dataset,
+        loss=loss,
+    )
+    trainer.train()
