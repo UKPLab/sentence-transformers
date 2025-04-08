@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal
+from typing import Any
 
 import numpy as np
 import torch
 from torch import Tensor
+from tqdm import trange
 
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.models import Pooling, Transformer
+from sentence_transformers.sparse_encoder.models import CSRSparsity
+from sentence_transformers.util import batch_to_device
 
 logger = logging.getLogger(__name__)
 
@@ -125,38 +129,39 @@ class SparseEncoder(SentenceTransformer):
     """
 
     # TODO: Check if there is no other things we need to overwrite espacially for models specificty
-    def __init__(
-        self,
-        model_name_or_path: str | None,
-        *args: Any,
-        sparsity_threshold: float | None = 0.0,
-        topk: int | None = 0,
-        **kwargs: Any,
-    ) -> None:
-        """Initialize the SparseEncoder with sparsity parameters."""
-        super().__init__(model_name_or_path, *args, **kwargs)
-        self.sparsity_threshold = sparsity_threshold
-        self.topk = topk
+    # def __init__(
+    #     self,
+    #     model_name_or_path: str | None,
+    #     *args: Any,
+    #     sparsity_threshold: float | None = 0.0,
+    #     topk: int | None = 0,
+    #     **kwargs: Any,
+    # ) -> None:
+    #     """Initialize the SparseEncoder with sparsity parameters."""
+    #     super().__init__(model_name_or_path, *args, **kwargs)
+    #     self.sparsity_threshold = sparsity_threshold
+    #     self.topk = topk
 
-        logger.info(f"Initialized SparseEncoder with threshold={sparsity_threshold}, topk={topk}")
+    #     logger.info(f"Initialized SparseEncoder with threshold={sparsity_threshold}, topk={topk}")
 
     # TODO: Look at the overload ? Add handling for dict and list[dict]
     def encode(
         self,
         sentences: str | list[str] | np.ndarray,
-        prompt_name: str | None = None,
-        prompt: str | None = None,
+        # prompt_name: str | None = None,
+        # prompt: str | None = None,
         batch_size: int = 32,
         show_progress_bar: bool | None = None,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
-        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
-        convert_to_numpy: bool = True,
-        convert_to_tensor: bool = False,
-        device: str | None = None,
-        normalize_embeddings: bool = False,
+        # output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
+        # precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
+        # convert_to_numpy: bool = True,
+        # convert_to_tensor: bool = False,
+        # device: str | None = None,
+        # normalize_embeddings: bool = False,
         convert_to_sparse_tensor: bool = True,
-        sparsity_threshold: float | None = None,
-        topk: int = None,
+        # sparsity_threshold: float | None = None,
+        # topk: int = None,
+        **kwargs: Any,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
         Computes sentence embeddings with possible sparsity in the output.
@@ -199,6 +204,28 @@ class SparseEncoder(SentenceTransformer):
 
         Example:
             # TODO: Add example usage
+        """
+        self.eval()
+        if show_progress_bar is None:
+            show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
+
+        all_embeddings = []
+        for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
+            sentences_batch = sentences[start_index : start_index + batch_size]
+            features = self.tokenize(sentences_batch)
+            features = batch_to_device(features, self.device)
+
+            with torch.no_grad():
+                out_features = self.forward(features, **kwargs)
+                embeddings = out_features["sparse_embedding"]
+                all_embeddings.extend(embeddings)
+
+        all_embeddings = torch.stack(all_embeddings)
+
+        if convert_to_sparse_tensor:
+            all_embeddings = all_embeddings.to_sparse()
+
+        return all_embeddings
         """
         embeddings = super().encode(
             sentences,
@@ -248,6 +275,7 @@ class SparseEncoder(SentenceTransformer):
                 embeddings = [emb.to_sparse() for emb in embeddings]
 
         return embeddings
+        """
 
     # TODO: Check but forward, similarity_fn_name, similarity, similarity_pairwise shouldn't be overwritten
 
@@ -260,8 +288,13 @@ class SparseEncoder(SentenceTransformer):
         """
         if threshold < 0:
             raise ValueError("Sparsity threshold must be non-negative")
-        self.sparsity_threshold = threshold
-        logger.info(f"Set sparsity threshold to {threshold}")
+        # self.sparsity_threshold = threshold
+        # logger.info(f"Set sparsity threshold to {threshold}")
+        for module in self:
+            if isinstance(module, CSRSparsity):
+                module.sparsity_threshold = threshold
+                logger.info(f"Set sparsity threshold to {threshold} in {module.__class__.__name__}")
+                break
 
     def set_topk(self, topk: int) -> None:
         """
@@ -272,8 +305,11 @@ class SparseEncoder(SentenceTransformer):
         """
         if topk < 0:
             raise ValueError("Top-k must be an integer")
-        self.topk = topk
-        logger.info(f"Set topk to {topk}")
+        for module in self:
+            if isinstance(module, CSRSparsity):
+                module.topk = topk
+                logger.info(f"Set topk to {topk} in {module.__class__.__name__}")
+                break
 
     def get_sparsity_stats(self, embeddings: torch.Tensor) -> dict[str, float]:
         """
@@ -308,7 +344,13 @@ class SparseEncoder(SentenceTransformer):
 if __name__ == "__main__":
     # Small test on a ST model to check if the class works
     # Load a pre-trained SentenceTransformer model
-    model = SparseEncoder("all-mpnet-base-v2")
+    transformer = Transformer("sentence-transformers/all-mpnet-base-v2")
+    pooling = Pooling(transformer.get_word_embedding_dimension(), pooling_mode="mean")
+    csr_sparsity = CSRSparsity(topk=16)
+    model = SparseEncoder(modules=[transformer, pooling, csr_sparsity])
+    # NOTE: We can (somehow, not sure yet) update `model.module_kwargs` with `CSRSparsity` automatically.
+    # See https://sbert.net/docs/sentence_transformer/usage/custom_models.html#advanced-keyword-argument-passthrough-in-custom-modules
+    # In short, this means that we can use model.encode(..., topk=16) and it will be passed to the CSRSparsity module.
 
     # Encode some texts
     sentences = [
@@ -316,7 +358,7 @@ if __name__ == "__main__":
         "It's so sunny outside!",
         "He drove to the stadium.",
     ]
-    embeddings = model.encode(sentences, convert_to_sparse_tensor=True, topk=16)
+    embeddings = model.encode(sentences, convert_to_sparse_tensor=True)
     print(embeddings.shape)
     # (3, 768)
 
@@ -324,6 +366,9 @@ if __name__ == "__main__":
     similarities = model.similarity(embeddings, embeddings)
     print(similarities)
 
+    breakpoint()
+    """
+    # For later:
     from datasets import Dataset
 
     from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
@@ -357,3 +402,4 @@ if __name__ == "__main__":
         loss=loss,
     )
     trainer.train()
+    """
