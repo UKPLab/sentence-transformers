@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 
@@ -35,11 +35,3 @@ class SparseEncoderTrainingArguments(SentenceTransformerTrainingArguments):
             The multi-dataset batch sampler to use. See :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers`
             for valid options. Defaults to ``MultiDatasetBatchSamplers.PROPORTIONAL``.
     """
-
-    # Sparsity parameters
-    sparsity_threshold: float = field(default=0.0, metadata={"help": "Threshold for sparsifying embeddings"})
-
-    topk: int | None = field(
-        default=None,
-        metadata={"help": "Number of top values to keep in sparse embeddings"},
-    )

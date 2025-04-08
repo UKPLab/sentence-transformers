@@ -27,8 +27,8 @@ class CSRLoss(nn.Module):
     def __init__(
         self,
         model: SparseEncoder,
-        beta: float = 1 / 32,
-        gamma: float = 0.1,
+        beta: float = 0.1,
+        gamma: float = 1.0,
         scale: float = 20.0,
     ):
         super().__init__()

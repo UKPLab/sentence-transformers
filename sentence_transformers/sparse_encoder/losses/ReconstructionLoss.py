@@ -22,7 +22,7 @@ class ReconstructionLoss(nn.Module):
     - L_aux = ||e - ê||₂², e = f(x) - f(dx), ê = W_dec*z
     """
 
-    def __init__(self, model: SparseEncoder, beta: float = 1 / 32):
+    def __init__(self, model: SparseEncoder, beta: float = 1.0) -> None:
         super().__init__()
         self.model = model
         self.beta = beta
