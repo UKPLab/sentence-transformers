@@ -88,6 +88,7 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
 
     # Computed once, always unchanged
     pipeline_tag: str = field(default=None, init=False)
+    template_path: Path = field(default=Path(__file__).parent / "model_card_template.md", init=False)
 
     # Passed via `register_model` only
     model: SparseEncoder | None = field(default=None, init=False, repr=False)
