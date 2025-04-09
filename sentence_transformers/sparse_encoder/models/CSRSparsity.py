@@ -6,6 +6,8 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from safetensors.torch import load_model as load_safetensors_model
+from safetensors.torch import save_model as save_safetensors_model
 
 from sentence_transformers.sparse_encoder.models.TopKActivation import TopKActivation
 
