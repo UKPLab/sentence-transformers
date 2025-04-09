@@ -16,6 +16,7 @@ from sentence_transformers.sparse_encoder.data_collator import SparseEncoderData
 from sentence_transformers.sparse_encoder.losses import (
     SparseMultipleNegativesRankingLoss,
 )
+from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardCallback
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 from sentence_transformers.sparse_encoder.training_args import (
     SparseEncoderTrainingArguments,
@@ -30,6 +31,9 @@ logger = logging.getLogger(__name__)
 
 
 class SparseEncoderTrainer(SentenceTransformerTrainer):
+    # TODO: Check if there is no other things we need to overwrite
+    # TODO: Add the proper description
+    # TODO: Clean encode implementation
     """
     SparseEncoderTrainer is a simple but feature-complete training and eval loop for PyTorch
     based on the SentenceTransformerTrainer that based on 🤗 Transformers :class:`~transformers.Trainer`.
@@ -288,5 +292,21 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         self.add_model_card_callback(default_args_dict)
 
     def add_model_card_callback(self, default_args_dict: dict[str, Any]) -> None:
-        # TODO: Adapth this to the new model card system for sparse encoders
-        pass
+        """
+        Add a callback responsible for automatically tracking data required for the automatic model card generation
+
+        This method is called in the ``__init__`` method of the
+        :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` class.
+
+        Args:
+            default_args_dict (Dict[str, Any]): A dictionary of the default training arguments, so we can determine
+                which arguments have been changed for the model card.
+
+        .. note::
+
+            This method can be overriden by subclassing the trainer to remove/customize this callback in custom uses cases
+        """
+
+        model_card_callback = SparseEncoderModelCardCallback(default_args_dict)
+        self.add_callback(model_card_callback)
+        model_card_callback.on_init_end(self.args, self.state, self.control, model=self.model, trainer=self)

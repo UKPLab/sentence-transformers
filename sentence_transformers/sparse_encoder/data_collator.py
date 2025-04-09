@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SparseEncoderDataCollator(SentenceTransformerDataCollator):
-    """Collator for a SparseEncoder model.
+    """Collator for a SparseEncoder model. Overrided from SentenceTransformerDataCollator nothing added.
     This encodes the text columns to {column}_input_ids and {column}_attention_mask columns.
     This works with the two text dataset that is used as the example in the training overview:
     https://www.sbert.net/docs/sentence_transformer/training_overview.html

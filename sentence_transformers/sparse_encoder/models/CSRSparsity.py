@@ -15,7 +15,7 @@ class CSRSparsity(nn.Module):
     CSR (Compressed Sparse Row) Sparsity module.
 
     This module implements the Sparse AutoEncoder architecture based on the paper:
-    "Sparse AutoEncoder for Sentence Embeddings"
+    Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation, https://arxiv.org/abs/2503.01776
     """
 
     def __init__(
@@ -146,7 +146,7 @@ class CSRSparsity(nn.Module):
             "k_aux": self.k_aux,
         }
 
-    def save(self, output_path, safe_serialization: bool = True) -> None:
+    def save(self, output_path) -> None:
         with open(os.path.join(output_path, "config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut)
 

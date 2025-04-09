@@ -15,6 +15,8 @@ from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 class CSRLoss(nn.Module):
     """
     CSR Loss module that combines Reconstruction Loss and Sparse Multiple Negatives Ranking Loss.
+    Based on the paper:
+    Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation, https://arxiv.org/abs/2503.01776
 
     This module computes the combined loss according to the formula:
     L_CSR = L_recon + γ * L_MRL

@@ -8,8 +8,7 @@ class TopKActivation(nn.Module):
     """
     TopK activation function for Sparse AutoEncoder.
 
-    This module implements the TopK activation function as described in the paper:
-    z_k := TopK(W_enc(f(x) - b_pre) + b_enc)
+    This module implements the TopK activation function.
 
     The TopK activation function keeps only the k largest values and sets the rest to zero.
     """

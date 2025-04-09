@@ -17,131 +17,54 @@ logger = logging.getLogger(__name__)
 
 
 class SparseEncoder(SentenceTransformer):
-    """
-    A specialized SentenceTransformer model that produces sparse embeddings.
-    This class extends SentenceTransformer to create sparse representation of text.
-    Sparse embeddings are a type of representation where most of the values are zero,
-    and only a few values are non-zero. They are useful for efficient similarity search, reduced memory usage,
-    and can improve performance in certain information retrieval tasks.
+    # TODO: Check if there is no other things we need to overwrite espacially for models specificty in the init
+    # TODO: Look at the overload of encode ? Add handling for dict and list[dict]
+    # TODO: Add the proper description with associate example
+    # TODO: Clean encode implementation
 
-    Args:
-        model_name_or_path (str, optional): If it is a filepath on disc, it loads the model from that path. If it is not a path,
-            it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model
-            from the Hugging Face Hub with that name.
-        modules (Iterable[nn.Module], optional): A list of torch Modules that should be called sequentially, can be used to create custom
-            SentenceTransformer models from scratch.
-        device (str, optional): Device (like "cuda", "cpu", "mps", "npu") that should be used for computation. If None, checks if a GPU
-            can be used.
-        prompts (Dict[str, str], optional): A dictionary with prompts for the model. The key is the prompt name, the value is the prompt text.
-            The prompt text will be prepended before any text to encode. For example:
-            `{"query": "query: ", "passage": "passage: "}` or `{"clustering": "Identify the main category based on the
-            titles in "}`.
-        default_prompt_name (str, optional): The name of the prompt that should be used by default. If not set,
-            no prompt will be applied.
-        similarity_fn_name (str or SimilarityFunction, optional): The name of the similarity function to use. Valid options are "cosine", "dot",
-            "euclidean", and "manhattan". If not set, it is automatically set to "cosine" if `similarity` or
-            `similarity_pairwise` are called while `model.similarity_fn_name` is still `None`.
-        cache_folder (str, optional): Path to store models. Can also be set by the SENTENCE_TRANSFORMERS_HOME environment variable.
-        trust_remote_code (bool, optional): Whether or not to allow for custom models defined on the Hub in their own modeling files.
-            This option should only be set to True for repositories you trust and in which you have read the code, as it
-            will execute code present on the Hub on your local machine.
-        revision (str, optional): The specific model version to use. It can be a branch name, a tag name, or a commit id,
-            for a stored model on Hugging Face.
-        local_files_only (bool, optional): Whether or not to only look at local files (i.e., do not try to download the model).
-        token (bool or str, optional): Hugging Face authentication token to download private models.
-        use_auth_token (bool or str, optional): Deprecated argument. Please use `token` instead.
-        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
-            only applicable during inference when :meth:`SentenceTransformer.encode` is called.
-        topk (int, optional): Default number of top-k elements to keep in each embedding. Defaults to 0.
-        model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers model.
-            Particularly useful options are:
+    # NOTE: Function available in SparseEvaluator and if we override them (D for DONE) or no (ND for NOT DONE) or no and shouldn't be done (N&SBD):
+    # - __init__ ND
+    # - get_backend ND
+    # - encode D (look at all the overloads possibility tho)
+    # - forward ND
+    # - similarity_fn_name ND
+    # - similarity ND
+    # - similarity_pairwise ND
+    # - start_multi_process_pool ND
+    # - stop_multi_process_pool ND
+    # - encode_multi_process ND
+    # - _encode_multi_process_worker ND
+    # - set_pooling_include_prompt ND
+    # - get_max_seq_length ND
+    # - tokenize ND
+    # - get_sentence_features ND
+    # - get_sentence_embedding_dimension ND
+    # - truncate_sentence_embeddings ND
+    # - _first_module ND
+    # - _last_module ND
+    # - save ND
+    # - save_pretrained ND
+    # - _create_model_card ND
+    # - save_to_hub ND
+    # - push_to_hub ND
+    # - _text_length ND
+    # - evaluate ND
+    # - _load_auto_model ND
+    # - _load_module_class_from_ref ND
+    # - _load_sbert_model ND
+    # - load ND
+    # - device ND
+    # - tokenizer ND
+    # - max_seq_length ND
+    # - _target_device ND
+    # - _no_split_modules ND
+    # - _keys_to_ignore_on_save ND
+    # - gradient_checkpointing_enable ND
 
-            - ``torch_dtype``: Override the default `torch.dtype` and load the model under a specific `dtype`.
-              The different options are:
+    # -----------------------------------Added------------------------------------
+    # - set_topk D
+    # - get_sparsity_stats D
 
-                    1. ``torch.float16``, ``torch.bfloat16`` or ``torch.float``: load in a specified
-                    ``dtype``, ignoring the model's ``config.torch_dtype`` if one exists. If not specified - the model will
-                    get loaded in ``torch.float`` (fp32).
-
-                    2. ``"auto"`` - A ``torch_dtype`` entry in the ``config.json`` file of the model will be
-                    attempted to be used. If this entry isn't found then next check the ``dtype`` of the first weight in
-                    the checkpoint that's of a floating point type and use that as ``dtype``. This will load the model
-                    using the ``dtype`` it was saved in at the end of the training. It can't be used as an indicator of how
-                    the model was trained. Since it could be trained in one of half precision dtypes, but saved in fp32.
-            - ``attn_implementation``: The attention implementation to use in the model (if relevant). Can be any of
-              `"eager"` (manual implementation of the attention), `"sdpa"` (using `F.scaled_dot_product_attention
-              <https://pytorch.org/docs/master/generated/torch.nn.functional.scaled_dot_product_attention.html>`_),
-              or `"flash_attention_2"` (using `Dao-AILab/flash-attention <https://github.com/Dao-AILab/flash-attention>`_).
-              By default, if available, SDPA will be used for torch>=2.1.1. The default is otherwise the manual `"eager"`
-              implementation.
-            - ``provider``: If backend is "onnx", this is the provider to use for inference, for example "CPUExecutionProvider",
-              "CUDAExecutionProvider", etc. See https://onnxruntime.ai/docs/execution-providers/ for all ONNX execution providers.
-            - ``file_name``: If backend is "onnx" or "openvino", this is the file name to load, useful for loading optimized
-              or quantized ONNX or OpenVINO models.
-            - ``export``: If backend is "onnx" or "openvino", then this is a boolean flag specifying whether this model should
-              be exported to the backend. If not specified, the model will be exported only if the model repository or directory
-              does not already contain an exported model.
-
-            See the `PreTrainedModel.from_pretrained
-            <https://huggingface.co/docs/transformers/en/main_classes/model#transformers.PreTrainedModel.from_pretrained>`_
-            documentation for more details.
-        tokenizer_kwargs (Dict[str, Any], optional): Additional tokenizer configuration parameters to be passed to the Hugging Face Transformers tokenizer.
-            See the `AutoTokenizer.from_pretrained
-            <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoTokenizer.from_pretrained>`_
-            documentation for more details.
-        config_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers config.
-            See the `AutoConfig.from_pretrained
-            <https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoConfig.from_pretrained>`_
-            documentation for more details.
-        model_card_data (:class:`~sentence_transformers.model_card.SentenceTransformerModelCardData`, optional): A model
-            card data object that contains information about the model. This is used to generate a model card when saving
-            the model. If not set, a default model card data object is created.
-        backend (str): The backend to use for inference. Can be one of "torch" (default), "onnx", or "openvino".
-            See https://sbert.net/docs/sentence_transformer/usage/efficiency.html for benchmarking information
-            on the different backends.
-
-
-    Example:
-        ::
-
-            from sentence_transformers import SentenceTransformer
-
-            # Load a pre-trained SentenceTransformer model
-            model = SentenceTransformer('all-mpnet-base-v2')
-
-            # Encode some texts
-            sentences = [
-                "The weather is lovely today.",
-                "It's so sunny outside!",
-                "He drove to the stadium.",
-            ]
-            embeddings = model.encode(sentences)
-            print(embeddings.shape)
-            # (3, 768)
-
-            # Get the similarity scores between all sentences
-            similarities = model.similarity(embeddings, embeddings)
-            print(similarities)
-            # tensor([[1.0000, 0.6817, 0.0492],
-            #         [0.6817, 1.0000, 0.0421],
-            #         [0.0492, 0.0421, 1.0000]])
-    """
-
-    # TODO: Check if there is no other things we need to overwrite espacially for models specificty
-    # def __init__(
-    #     self,
-    #     model_name_or_path: str | None,
-    #     *args: Any,
-    #     topk: int | None = 0,
-    #     **kwargs: Any,
-    # ) -> None:
-    #     """Initialize the SparseEncoder with sparsity parameters."""
-    #     super().__init__(model_name_or_path, *args, **kwargs)
-    #     self.topk = topk
-
-    #     logger.info(f"Initialized SparseEncoder with topk={topk}")
-
-    # TODO: Look at the overload ? Add handling for dict and list[dict]
     def encode(
         self,
         sentences: str | list[str] | np.ndarray,
@@ -224,8 +147,6 @@ class SparseEncoder(SentenceTransformer):
 
         return all_embeddings
 
-    # TODO: Check but forward, similarity_fn_name, similarity, similarity_pairwise shouldn't be overwritten
-
     def set_topk(self, topk: int) -> None:
         """
         Set the number of top-k elements to keep in the sparse representation.
@@ -272,8 +193,6 @@ class SparseEncoder(SentenceTransformer):
             "non_zero_count": non_zero,
             "total_elements": total_elements,
         }
-
-    # TODO : Probably gonna need to overwrite the multiprocess functions, such as save, load, evaluate, etc.
 
 
 if __name__ == "__main__":
