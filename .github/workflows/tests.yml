@@ -11,6 +11,9 @@ on:
       - v*-release
   workflow_dispatch:
 
+env:
+  TRANSFORMERS_IS_CI: 1
+
 jobs:
 
   test_sampling:

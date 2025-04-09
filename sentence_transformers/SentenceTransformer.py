@@ -25,6 +25,7 @@ import torch
 import torch.multiprocessing as mp
 import transformers
 from huggingface_hub import HfApi
+from packaging import version
 from torch import Tensor, device, nn
 from tqdm.autonotebook import trange
 from transformers import is_torch_npu_available
@@ -292,7 +293,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             if not os.path.exists(model_name_or_path):
                 # Not a path, load from hub
                 if "\\" in model_name_or_path or model_name_or_path.count("/") > 1:
-                    raise ValueError(f"Path {model_name_or_path} not found")
+                    raise FileNotFoundError(f"Path {model_name_or_path} not found")
 
                 if "/" not in model_name_or_path and model_name_or_path.lower() not in basic_transformer_models:
                     # A model from sentence-transformers
@@ -390,6 +391,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         """
         return self.backend
 
+    # Return a single tensor because we're passing a single sentence.
     @overload
     def encode(
         self,
@@ -398,49 +400,54 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         prompt: str | None = ...,
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
+        output_value: Literal["sentence_embedding", "token_embeddings"] = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: Literal[False] = ...,
-        convert_to_tensor: Literal[False] = ...,
-        device: str = ...,
+        convert_to_tensor: bool = ...,
+        device: str | None = ...,
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> Tensor: ...
 
+    # Return a single array, because convert_to_numpy is True
+    # and "sentence_embeddings" is passed
     @overload
     def encode(
         self,
-        sentences: str | list[str],
+        sentences: str | list[str] | np.ndarray,
         prompt_name: str | None = ...,
         prompt: str | None = ...,
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
+        output_value: Literal["sentence_embedding"] = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: Literal[True] = ...,
         convert_to_tensor: Literal[False] = ...,
-        device: str = ...,
+        device: str | None = ...,
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> np.ndarray: ...
 
+    # Return a single tensor, because convert_to_tensor is True
+    # and "sentence_embeddings" is passed
     @overload
     def encode(
         self,
-        sentences: str | list[str],
+        sentences: str | list[str] | np.ndarray,
         prompt_name: str | None = ...,
         prompt: str | None = ...,
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
+        output_value: Literal["sentence_embedding"] = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: bool = ...,
         convert_to_tensor: Literal[True] = ...,
-        device: str = ...,
+        device: str | None = ...,
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> Tensor: ...
 
+    # Return a list of tensors. Value of convert_ doesn't matter.
     @overload
     def encode(
         self,
@@ -449,18 +456,72 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         prompt: str | None = ...,
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
+        output_value: Literal["sentence_embedding", "token_embeddings"] = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
-        convert_to_numpy: Literal[False] = ...,
-        convert_to_tensor: Literal[False] = ...,
-        device: str = ...,
+        convert_to_numpy: bool = ...,
+        convert_to_tensor: bool = ...,
+        device: str | None = ...,
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> list[Tensor]: ...
 
+    # Return a list of dict of features, ignore the conversion args.
+    @overload
     def encode(
         self,
-        sentences: str | list[str],
+        sentences: list[str] | np.ndarray,
+        prompt_name: str | None = ...,
+        prompt: str | None = ...,
+        batch_size: int = ...,
+        show_progress_bar: bool | None = ...,
+        output_value: None = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: bool = ...,
+        convert_to_tensor: bool = ...,
+        device: str | None = ...,
+        normalize_embeddings: bool = ...,
+        **kwargs,
+    ) -> list[dict[str, Tensor]]: ...
+
+    # Return a dict of features, ignore the conversion args.
+    @overload
+    def encode(
+        self,
+        sentences: str,
+        prompt_name: str | None = ...,
+        prompt: str | None = ...,
+        batch_size: int = ...,
+        show_progress_bar: bool | None = ...,
+        output_value: None = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: bool = ...,
+        convert_to_tensor: bool = ...,
+        device: str | None = ...,
+        normalize_embeddings: bool = ...,
+        **kwargs,
+    ) -> dict[str, Tensor]: ...
+
+    # If "token_embeddings" is True, then the output is a single tensor.
+    @overload
+    def encode(
+        self,
+        sentences: str,
+        prompt_name: str | None = ...,
+        prompt: str | None = ...,
+        batch_size: int = ...,
+        show_progress_bar: bool | None = ...,
+        output_value: Literal["token_embeddings"] = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: bool = ...,
+        convert_to_tensor: bool = ...,
+        device: str | None = ...,
+        normalize_embeddings: bool = ...,
+        **kwargs,
+    ) -> Tensor: ...
+
+    def encode(
+        self,
+        sentences: str | list[str] | np.ndarray,
         prompt_name: str | None = None,
         prompt: str | None = None,
         batch_size: int = 32,
@@ -469,10 +530,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-        device: str = None,
+        device: str | None = None,
         normalize_embeddings: bool = False,
         **kwargs,
-    ) -> list[Tensor] | np.ndarray | Tensor:
+    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
         Computes sentence embeddings.
 
@@ -529,8 +590,9 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         if self.device.type == "hpu" and not self.is_hpu_graph_enabled:
             import habana_frameworks.torch as ht
 
-            ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
-            self.is_hpu_graph_enabled = True
+            if hasattr(ht, "hpu") and hasattr(ht.hpu, "wrap_in_hpu_graph"):
+                ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
+                self.is_hpu_graph_enabled = True
 
         self.eval()
         if show_progress_bar is None:
@@ -1621,12 +1683,13 @@ print(similarities)
             if (
                 "__version__" in self._model_config
                 and "sentence_transformers" in self._model_config["__version__"]
-                and self._model_config["__version__"]["sentence_transformers"] > __version__
+                and version.parse(self._model_config["__version__"]["sentence_transformers"])
+                > version.parse(__version__)
             ):
                 logger.warning(
-                    "You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(
-                        self._model_config["__version__"]["sentence_transformers"], __version__
-                    )
+                    f'You are trying to use a model that was created with Sentence Transformers version {self._model_config["__version__"]["sentence_transformers"]}, '
+                    f"but you're currently using version {__version__}. This might cause unexpected behavior or errors. "
+                    "In that case, try to update to the latest version."
                 )
 
             # Set score functions & prompts if not already overridden by the __init__ calls
