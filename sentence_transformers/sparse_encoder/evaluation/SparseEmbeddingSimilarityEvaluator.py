@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import logging
 import os
-from typing import Literal
 
 from scipy.stats import pearsonr, spearmanr
 
@@ -75,32 +74,6 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             # => 0.881019449484294
     """
 
-    def __init__(
-        self,
-        sentences1: list[str],
-        sentences2: list[str],
-        scores: list[float],
-        batch_size: int = 16,
-        main_similarity: str | SimilarityFunction | None = None,
-        similarity_fn_names: (list[Literal["cosine", "euclidean", "manhattan", "dot"]] | None) = None,
-        name: str = "",
-        show_progress_bar: bool = False,
-        write_csv: bool = True,
-        precision: (Literal["float32", "int8", "uint8", "binary", "ubinary"] | None) = None,
-    ):
-        super().__init__(
-            sentences1=sentences1,
-            sentences2=sentences2,
-            scores=scores,
-            batch_size=batch_size,
-            main_similarity=main_similarity,
-            similarity_fn_names=similarity_fn_names,
-            name=name,
-            show_progress_bar=show_progress_bar,
-            write_csv=write_csv,
-            precision=precision,
-        )
-
     def __call__(
         self,
         model: SparseEncoder,
@@ -151,9 +124,9 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
         metrics = {}
         for fn_name in self.similarity_fn_names:
             if fn_name in similarity_functions:
-                scores = similarity_functions[fn_name](embeddings1, embeddings2)
-                eval_pearson, _ = pearsonr(labels, scores.cpu().numpy())
-                eval_spearman, _ = spearmanr(labels, scores.cpu().numpy())
+                scores = similarity_functions[fn_name](embeddings1, embeddings2).cpu().numpy()
+                eval_pearson, _ = pearsonr(labels, scores)
+                eval_spearman, _ = spearmanr(labels, scores)
                 metrics[f"pearson_{fn_name}"] = eval_pearson
                 metrics[f"spearman_{fn_name}"] = eval_spearman
                 logger.info(

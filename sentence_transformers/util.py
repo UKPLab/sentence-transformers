@@ -233,7 +233,13 @@ def euclidean_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) 
         b_norm_sq = torch.sparse.sum(b * b, dim=1).to_dense().unsqueeze(0)  # Shape (1, M)
         dot_product = torch.matmul(a, b.t()).to_dense()  # Shape (N, M)
 
-        return -torch.sqrt(a_norm_sq - 2 * dot_product + b_norm_sq).to_dense()
+        # Calculate squared distance
+        squared_dist = a_norm_sq - 2 * dot_product + b_norm_sq
+
+        # Ensure no negative values before square root (due to numerical precision)
+        squared_dist = torch.clamp(squared_dist, min=0.0)
+
+        return -torch.sqrt(squared_dist)
     else:
         return -torch.cdist(a, b, p=2.0)
 

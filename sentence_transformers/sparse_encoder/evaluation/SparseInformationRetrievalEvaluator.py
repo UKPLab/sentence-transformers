@@ -3,14 +3,12 @@ from __future__ import annotations
 import heapq
 import logging
 from contextlib import nullcontext
-from typing import Callable
 
 import torch
 from torch import Tensor
 from tqdm import trange
 
 from sentence_transformers.evaluation import InformationRetrievalEvaluator
-from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.sparse_encoder import SparseEncoder
 
 logger = logging.getLogger(__name__)
@@ -116,67 +114,6 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             print(results[ir_evaluator.primary_metric])
             # => 0.29335196224364596
     """
-
-    def __init__(
-        self,
-        queries: dict[str, str],  # qid => query
-        corpus: dict[str, str],  # cid => doc
-        relevant_docs: dict[str, set[str]],  # qid => Set[cid]
-        corpus_chunk_size: int = 50000,
-        mrr_at_k: list[int] = [10],
-        ndcg_at_k: list[int] = [10],
-        accuracy_at_k: list[int] = [1, 3, 5, 10],
-        precision_recall_at_k: list[int] = [1, 3, 5, 10],
-        map_at_k: list[int] = [100],
-        show_progress_bar: bool = False,
-        batch_size: int = 32,
-        name: str = "",
-        write_csv: bool = True,
-        truncate_dim: int | None = None,
-        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] | None = None,
-        main_score_function: str | SimilarityFunction | None = None,
-        query_prompt: str | None = None,
-        query_prompt_name: str | None = None,
-        corpus_prompt: str | None = None,
-        corpus_prompt_name: str | None = None,
-    ) -> None:
-        """
-        Initialize the SparseInformationRetrievalEvaluator.
-
-        Args:
-            queries: List of queries
-            corpus: List of documents in the corpus
-            relevant_docs: List of lists of relevant document indices for each query
-            name: Name of the evaluator
-            batch_size: Batch size for encoding
-            show_progress_bar: Whether to show a progress bar
-            write_csv: Whether to write results to CSV
-            score_function: Function to compute similarity scores
-            main_score_function: Main similarity metric to use
-            limit: Limit the number of examples to evaluate
-        """
-        super().__init__(
-            queries=queries,
-            corpus=corpus,
-            relevant_docs=relevant_docs,
-            corpus_chunk_size=corpus_chunk_size,
-            mrr_at_k=mrr_at_k,
-            ndcg_at_k=ndcg_at_k,
-            accuracy_at_k=accuracy_at_k,
-            precision_recall_at_k=precision_recall_at_k,
-            map_at_k=map_at_k,
-            show_progress_bar=show_progress_bar,
-            batch_size=batch_size,
-            name=name,
-            write_csv=write_csv,
-            truncate_dim=truncate_dim,
-            score_functions=score_functions,
-            main_score_function=main_score_function,
-            query_prompt=query_prompt,
-            query_prompt_name=query_prompt_name,
-            corpus_prompt=corpus_prompt,
-            corpus_prompt_name=corpus_prompt_name,
-        )
 
     def compute_metrices(
         self,

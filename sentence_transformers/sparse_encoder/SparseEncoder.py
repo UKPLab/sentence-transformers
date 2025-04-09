@@ -221,12 +221,11 @@ class SparseEncoder(SentenceTransformer):
             with torch.no_grad():
                 out_features = self.forward(features, **kwargs)
                 embeddings = out_features["sparse_embedding"]
+                if convert_to_sparse_tensor:
+                    embeddings = embeddings.to_sparse()
                 all_embeddings.extend(embeddings)
 
         all_embeddings = torch.stack(all_embeddings)
-
-        if convert_to_sparse_tensor:
-            all_embeddings = all_embeddings.to_sparse()
 
         return all_embeddings
 
