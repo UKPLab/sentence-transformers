@@ -52,7 +52,6 @@ class SparseEncoder(SentenceTransformer):
         use_auth_token (bool or str, optional): Deprecated argument. Please use `token` instead.
         truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
             only applicable during inference when :meth:`SentenceTransformer.encode` is called.
-        sparsity_threshold (float, optional): Default threshold for considering values as non-zero. Defaults to 0.0.
         topk (int, optional): Default number of top-k elements to keep in each embedding. Defaults to 0.
         model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers model.
             Particularly useful options are:
@@ -133,16 +132,14 @@ class SparseEncoder(SentenceTransformer):
     #     self,
     #     model_name_or_path: str | None,
     #     *args: Any,
-    #     sparsity_threshold: float | None = 0.0,
     #     topk: int | None = 0,
     #     **kwargs: Any,
     # ) -> None:
     #     """Initialize the SparseEncoder with sparsity parameters."""
     #     super().__init__(model_name_or_path, *args, **kwargs)
-    #     self.sparsity_threshold = sparsity_threshold
     #     self.topk = topk
 
-    #     logger.info(f"Initialized SparseEncoder with threshold={sparsity_threshold}, topk={topk}")
+    #     logger.info(f"Initialized SparseEncoder with topk={topk}")
 
     # TODO: Look at the overload ? Add handling for dict and list[dict]
     def encode(
@@ -159,7 +156,6 @@ class SparseEncoder(SentenceTransformer):
         # device: str | None = None,
         # normalize_embeddings: bool = False,
         convert_to_sparse_tensor: bool = True,
-        # sparsity_threshold: float | None = None,
         # topk: int = None,
         **kwargs: Any,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
@@ -194,7 +190,6 @@ class SparseEncoder(SentenceTransformer):
             device (str, optional): Which :class:`torch.device` to use for the computation. Defaults to None.
             normalize_embeddings (bool, optional): Whether to normalize returned vectors to have length 1. In that case,
                 the faster dot-product (util.dot_score) instead of cosine similarity can be used. Defaults to False.
-            sparsity_threshold (float, optional): The threshold for considering values as non-zero. Values below this threshold will be set to zero.
             topk (int, optional): The number of top-k elements to keep in each embedding. If set, the rest will be set to zero.
         Returns:
             Union[List[torch.Tensor], np.ndarray, torch.Tensor, Dict[str, torch.Tensor], List[Dict[str, torch.Tensor]]]:
@@ -230,24 +225,6 @@ class SparseEncoder(SentenceTransformer):
         return all_embeddings
 
     # TODO: Check but forward, similarity_fn_name, similarity, similarity_pairwise shouldn't be overwritten
-
-    def set_sparsity_threshold(self, threshold: float) -> None:
-        """
-        Set the sparsity threshold for the encoder.
-
-        Args:
-            threshold (float): The threshold value. Values below this threshold will be set to zero.
-        """
-        # Will be useful later for splade models
-        # if threshold < 0:
-        #     raise ValueError("Sparsity threshold must be non-negative")
-        # # self.sparsity_threshold = threshold
-        # # logger.info(f"Set sparsity threshold to {threshold}")
-        # for module in self:
-        #     if isinstance(module, CSRSparsity):
-        #         module.sparsity_threshold = threshold
-        #         logger.info(f"Set sparsity threshold to {threshold} in {module.__class__.__name__}")
-        #         break
 
     def set_topk(self, topk: int) -> None:
         """
