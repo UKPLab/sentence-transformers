@@ -146,15 +146,29 @@ class CSRSparsity(nn.Module):
             "k_aux": self.k_aux,
         }
 
-    def save(self, output_path) -> None:
+    def save(self, output_path, safe_serialization: bool = True) -> None:
         with open(os.path.join(output_path, "config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut)
+        
+        if safe_serialization:
+            save_safetensors_model(self, os.path.join(output_path, "model.safetensors"))
+        else:
+            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
 
     @staticmethod
     def load(input_path):
         with open(os.path.join(input_path, "config.json")) as fIn:
             config = json.load(fIn)
-        return CSRSparsity(**config)
+        module = CSRSparsity(**config)
+        if os.path.exists(os.path.join(input_path, "model.safetensors")):
+            load_safetensors_model(module, os.path.join(input_path, "model.safetensors"))
+        else:
+            module.load_state_dict(
+                torch.load(
+                    os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
+                )
+            )
+        return module
 
     def __repr__(self):
         return f"CSRSparsity({self.get_config_dict()})"
