@@ -53,7 +53,7 @@ class Dense(nn.Module):
         sentence_embedding = self.linear(features["sentence_embedding"])
         if self.activation_function:
             sentence_embedding = self.activation_function(sentence_embedding)
-        
+
         features["sentence_embedding"] = sentence_embedding
         return features
 
