@@ -6,6 +6,7 @@ from datasets import load_dataset
 
 from sentence_transformers.models import Pooling, Transformer
 from sentence_transformers.sparse_encoder import SparseEncoder
+from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator
 from sentence_transformers.sparse_encoder.losses import CSRLoss
 from sentence_transformers.sparse_encoder.models import CSRSparsity
 from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
@@ -42,6 +43,13 @@ def main():
     logging.info(train_dataset)
     logging.info(eval_dataset)
 
+    # Initialize the NanoBEIR evaluator
+    evaluator = SparseNanoBEIREvaluator(
+        dataset_names=["msmarco", "nq"],
+        show_progress_bar=True,
+        batch_size=32,
+    )
+
     # Set up training arguments
     training_args = SparseEncoderTrainingArguments(
         output_dir="./sparse_encoder_nq",
@@ -56,6 +64,7 @@ def main():
         save_strategy="steps",
         save_steps=140,
         load_best_model_at_end=True,
+        metric_for_best_model="NanoBEIR_mean_cosine_ndcg@10",  # Using NDCG@10 as the primary metric
         learning_rate=4e-5,
         optim="adamw_torch",
         weight_decay=1e-4,
@@ -77,6 +86,7 @@ def main():
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         loss=loss,
+        evaluator=evaluator,  # Add the NanoBEIR evaluator
     )
 
     # Train model
