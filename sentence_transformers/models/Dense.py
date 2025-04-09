@@ -49,8 +49,12 @@ class Dense(nn.Module):
         if init_bias is not None:
             self.linear.bias = nn.Parameter(init_bias)
 
-    def forward(self, features: dict[str, Tensor]):
-        features.update({"sentence_embedding": self.activation_function(self.linear(features["sentence_embedding"]))})
+    def forward(self, features: dict[str, Tensor]) -> dict[str, Tensor]:
+        sentence_embedding = self.linear(features["sentence_embedding"])
+        if self.activation_function:
+            sentence_embedding = self.activation_function(sentence_embedding)
+        
+        features["sentence_embedding"] = sentence_embedding
         return features
 
     def get_sentence_embedding_dimension(self) -> int:
