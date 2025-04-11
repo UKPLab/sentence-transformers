@@ -12,6 +12,24 @@ from safetensors.torch import save_model as save_safetensors_model
 from sentence_transformers.sparse_encoder.models.TopKActivation import TopKActivation
 
 
+class TiedTranspose(nn.Module):
+    def __init__(self, linear: nn.Linear):
+        super().__init__()
+        self.linear = linear
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        assert self.linear.bias is None
+        return F.linear(x, self.linear.weight.t(), None)
+
+    @property
+    def weight(self) -> torch.Tensor:
+        return self.linear.weight.t()
+
+    @property
+    def bias(self) -> torch.Tensor:
+        return self.linear.bias
+
+
 class CSRSparsity(nn.Module):
     """
     CSR (Compressed Sparse Row) Sparsity module.
@@ -42,14 +60,17 @@ class CSRSparsity(nn.Module):
         self.k = k
         self.k_aux = k_aux
 
-        # Encoder parameters
-        self.W_enc = nn.Parameter(torch.randn(hidden_dim, input_dim) / input_dim**0.5)
-        self.b_enc = nn.Parameter(torch.zeros(hidden_dim))
+        # Pre-computed bias
         self.b_pre = nn.Parameter(torch.zeros(input_dim))
 
+        # Encoder parameters
+        self.encoder = nn.Linear(input_dim, hidden_dim, bias=False)
+
+        # latent bias
+        self.latent_bias = nn.Parameter(torch.zeros(hidden_dim))
+
         # Decoder parameters
-        self.W_dec = nn.Parameter(torch.randn(input_dim, hidden_dim) / hidden_dim**0.5)
-        self.b_dec = nn.Parameter(torch.zeros(input_dim))
+        self.decoder: TiedTranspose = TiedTranspose(self.encoder)
 
         # TopK activation functions
         self.topk = TopKActivation(k=k)
@@ -66,7 +87,7 @@ class CSRSparsity(nn.Module):
             Encoded embeddings of shape (batch_size, hidden_dim)
         """
         # Compute z = TopK(W_enc * (x - b_pre) + b_enc)
-        z = self.topk(F.linear(x - self.b_pre, self.W_enc, self.b_enc))
+        z = self.topk(F.linear(x - self.b_pre, self.encoder.weight, self.latent_bias))
         return z
 
     def decode(self, z: torch.Tensor) -> torch.Tensor:
@@ -80,7 +101,7 @@ class CSRSparsity(nn.Module):
             Decoded embeddings of shape (batch_size, input_dim)
         """
         # Compute x̂ = W_dec * z + b_pre
-        x_hat = F.linear(z, self.W_dec, self.b_pre)
+        x_hat = F.linear(z, self.decoder.weight, self.b_pre)
         return x_hat
 
     def forward(self, features: dict) -> dict:
@@ -100,10 +121,10 @@ class CSRSparsity(nn.Module):
         z = self.encode(x)
 
         # Compute z_4k = TopK(W_enc * (x - b_pre) + b_enc) with 4k values
-        z_4k = self.topk_aux(F.linear(x - self.b_pre, self.W_enc, self.b_enc))
+        z_4k = self.topk_aux(F.linear(x - self.b_pre, self.encoder.weight, self.latent_bias))
 
         # Compute z_aux = TopK(W_enc * (x - b_pre) + b_enc) with k_aux values
-        z_aux = self.topk_aux(F.linear(x - self.b_pre, self.W_enc, self.b_enc))
+        z_aux = self.topk_aux(F.linear(x - self.b_pre, self.encoder.weight, self.latent_bias))
 
         # Compute x̂ = W_dec * z + b_pre
         x_hat = self.decode(z)
@@ -116,7 +137,7 @@ class CSRSparsity(nn.Module):
 
         # Compute f(x) - f(dx) for auxiliary loss
         e = x - x_hat
-        e_hat = F.linear(z, self.W_dec, self.b_dec)
+        e_hat = F.linear(z, self.decoder.weight)
 
         # Update the features dictionary
         features.update(
@@ -151,7 +172,7 @@ class CSRSparsity(nn.Module):
     def save(self, output_path, safe_serialization: bool = True) -> None:
         with open(os.path.join(output_path, "config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut)
-        
+
         if safe_serialization:
             save_safetensors_model(self, os.path.join(output_path, "model.safetensors"))
         else:

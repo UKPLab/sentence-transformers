@@ -11,7 +11,7 @@ from tqdm import trange
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Pooling, Transformer
 from sentence_transformers.sparse_encoder.models import CSRSparsity
-from sentence_transformers.util import batch_to_device
+from sentence_transformers.util import batch_to_device, truncate_embeddings_for_sparse
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +139,8 @@ class SparseEncoder(SentenceTransformer):
             with torch.no_grad():
                 out_features = self.forward(features, **kwargs)
                 embeddings = out_features["sparse_embedding"]
+                embeddings = truncate_embeddings_for_sparse(embeddings, truncate_dim=self.truncate_dim)
+
                 if convert_to_sparse_tensor:
                     embeddings = embeddings.to_sparse()
                 all_embeddings.extend(embeddings)

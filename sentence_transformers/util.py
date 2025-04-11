@@ -369,6 +369,57 @@ def truncate_embeddings(embeddings: np.ndarray | torch.Tensor, truncate_dim: int
     return embeddings[..., :truncate_dim]
 
 
+def truncate_embeddings_for_sparse(embeddings: np.ndarray | torch.Tensor, truncate_dim: int | None) -> torch.Tensor:
+    """
+    Keeps only the top-k values (in absolute terms) for each embedding and creates a sparse tensor.
+
+    Args:
+        embeddings (Union[np.ndarray, torch.Tensor]): Embeddings to sparsify by keeping only top_k values.
+        truncate_dim (int): Number of values to keep per embedding.
+
+    Example:
+        >>> from sentence_transformers import SentenceTransformer
+        >>> from sentence_transformers.util import truncate_embeddings_for_sparse
+        >>> model = SentenceTransformer("all-MiniLM-L6-v2")
+        >>> embeddings = model.encode(["Hello world", "How are you?"])
+        >>> embeddings.shape
+        (2, 384)
+        >>> sparse_embeddings = truncate_embeddings_for_sparse(embeddings, top_k=10)
+        >>> sparse_embeddings.is_sparse
+        True
+        >>> sparse_embeddings.shape
+        torch.Size([2, 384])
+        >>> # Only has 10 non-zero values per embedding
+        >>> sparse_embeddings.indices().shape[1]
+        20
+
+    Returns:
+        torch.Tensor: A sparse tensor containing only the top-k values per embedding.
+    """
+    if truncate_dim is None:
+        return embeddings
+    # Convert to tensor if numpy array
+    if isinstance(embeddings, np.ndarray):
+        embeddings = torch.tensor(embeddings)
+
+    batch_size, dim = embeddings.shape
+    device = embeddings.device
+
+    # Get the top-k indices for each embedding (by absolute value)
+    _, top_indices = torch.topk(torch.abs(embeddings), k=min(truncate_dim, dim), dim=1)
+
+    # Create a mask of zeros, then set the top-k positions to 1
+    mask = torch.zeros_like(embeddings, dtype=torch.bool)
+    batch_indices = torch.arange(batch_size, device=device).unsqueeze(1).expand(-1, min(truncate_dim, dim))
+    mask[batch_indices.flatten(), top_indices.flatten()] = True
+
+    # Create a sparse tensor with only the top values
+    sparse_embeddings = embeddings.clone()
+    sparse_embeddings[~mask] = 0
+
+    return sparse_embeddings
+
+
 def paraphrase_mining(
     model,
     sentences: list[str],

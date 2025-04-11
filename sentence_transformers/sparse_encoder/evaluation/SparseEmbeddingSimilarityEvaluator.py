@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import logging
 import os
+from contextlib import nullcontext
 
 from scipy.stats import pearsonr, spearmanr
 
@@ -95,18 +96,19 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
         logger.info(f"SparseEmbeddingSimilarityEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
 
         # Get sparse embeddings
-        embeddings1 = model.encode(
-            self.sentences1,
-            batch_size=self.batch_size,
-            show_progress_bar=self.show_progress_bar,
-            convert_to_tensor_sparse=True,
-        )
-        embeddings2 = model.encode(
-            self.sentences2,
-            batch_size=self.batch_size,
-            show_progress_bar=self.show_progress_bar,
-            convert_to_tensor_sparse=True,
-        )
+        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
+            embeddings1 = model.encode(
+                self.sentences1,
+                batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
+                convert_to_tensor_sparse=True,
+            )
+            embeddings2 = model.encode(
+                self.sentences2,
+                batch_size=self.batch_size,
+                show_progress_bar=self.show_progress_bar,
+                convert_to_tensor_sparse=True,
+            )
 
         labels = self.scores
 
