@@ -8,11 +8,16 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from sklearn.metrics import average_precision_score, matthews_corrcoef
-from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 from sentence_transformers.readers import InputExample
 from sentence_transformers.similarity_functions import SimilarityFunction
+from sentence_transformers.util import (
+    pairwise_cos_sim,
+    pairwise_dot_score,
+    pairwise_euclidean_sim,
+    pairwise_manhattan_sim,
+)
 
 if TYPE_CHECKING:
     from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -223,47 +228,32 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                 sentences = list(set(self.sentences1 + self.sentences2))
             except TypeError:
                 # Otherwise we just embed everything, e.g. if the sentences are images for evaluating a CLIP model
-                embeddings1 = model.encode(
-                    self.sentences1,
-                    batch_size=self.batch_size,
-                    show_progress_bar=self.show_progress_bar,
-                    convert_to_numpy=True,
-                )
-                embeddings2 = model.encode(
-                    self.sentences2,
-                    batch_size=self.batch_size,
-                    show_progress_bar=self.show_progress_bar,
-                    convert_to_numpy=True,
-                )
+                embeddings1 = self.embed_inputs(model, self.sentences1)
+                embeddings2 = self.embed_inputs(model, self.sentences2)
             else:
-                embeddings = model.encode(
-                    sentences,
-                    batch_size=self.batch_size,
-                    show_progress_bar=self.show_progress_bar,
-                    convert_to_numpy=True,
-                )
+                embeddings = self.embed_inputs(model, sentences)
                 emb_dict = {sent: emb for sent, emb in zip(sentences, embeddings)}
                 embeddings1 = [emb_dict[sent] for sent in self.sentences1]
                 embeddings2 = [emb_dict[sent] for sent in self.sentences2]
 
         similarity_fns = {
             SimilarityFunction.COSINE.value: {
-                "score_fn": lambda x, y: 1 - paired_cosine_distances(x, y),
+                "score_fn": lambda x, y: pairwise_cos_sim(x, y),
                 "name": "Cosine-Similarity",
                 "greater_is_better": True,
             },
             SimilarityFunction.DOT_PRODUCT.value: {
-                "score_fn": lambda x, y: np.sum(np.asarray(x) * np.asarray(y), axis=-1),
+                "score_fn": lambda x, y: pairwise_dot_score(x, y),
                 "name": "Dot-Product",
                 "greater_is_better": True,
             },
             SimilarityFunction.MANHATTAN.value: {
-                "score_fn": lambda x, y: -paired_manhattan_distances(x, y),
+                "score_fn": lambda x, y: pairwise_manhattan_sim(x, y),
                 "name": "Manhattan-Distance",
                 "greater_is_better": False,
             },
             SimilarityFunction.EUCLIDEAN.value: {
-                "score_fn": lambda x, y: -paired_euclidean_distances(x, y),
+                "score_fn": lambda x, y: pairwise_euclidean_sim(x, y),
                 "name": "Euclidean-Distance",
                 "greater_is_better": False,
             },
@@ -273,7 +263,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         output_scores = {}
         for similarity_fn_name in self.similarity_fn_names:
             similarity_fn = similarity_fns[similarity_fn_name]
-            scores = similarity_fn["score_fn"](embeddings1, embeddings2)
+            scores = similarity_fn["score_fn"](embeddings1, embeddings2).detach().cpu().numpy()
             greater_is_better = similarity_fn["greater_is_better"]
             name = similarity_fn["name"]
 
@@ -303,6 +293,20 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             }
 
         return output_scores
+
+    def embed_inputs(
+        self,
+        model: SentenceTransformer,
+        sentences: str | list[str] | np.ndarray,
+        **kwargs,
+    ) -> np.ndarray:
+        return model.encode(
+            sentences,
+            batch_size=self.batch_size,
+            show_progress_bar=self.show_progress_bar,
+            convert_to_numpy=True,
+            **kwargs,
+        )
 
     @staticmethod
     def find_best_acc_and_threshold(scores, labels, high_score_more_similar: bool):

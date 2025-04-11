@@ -180,7 +180,6 @@ def manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) 
     Returns:
         Tensor: Matrix with res[i][j] = -manhattan_distance(a[i], b[j])
     """
-    # TODO Check  if it's actually possible to handle sparse tensors on cuda
     a = _convert_to_batch_tensor(a)
     b = _convert_to_batch_tensor(b)
 

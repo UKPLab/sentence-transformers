@@ -15,7 +15,10 @@ from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 from sentence_transformers.util import cos_sim
 
 if TYPE_CHECKING:
+    from torch import Tensor
+
     from sentence_transformers.SentenceTransformer import SentenceTransformer
+
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +197,10 @@ class RerankingEvaluator(SentenceEvaluator):
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
 
-    def compute_metrices(self, model):
+    def compute_metrices(
+        self,
+        model: SentenceTransformer,
+    ):
         """
         Computes the evaluation metrics for the given model.
 
@@ -210,7 +216,10 @@ class RerankingEvaluator(SentenceEvaluator):
             else self.compute_metrices_individual(model)
         )
 
-    def compute_metrices_batched(self, model):
+    def compute_metrices_batched(
+        self,
+        model: SentenceTransformer,
+    ):
         """
         Computes the evaluation metrics in a batched way, by batching all queries and all documents together.
 
@@ -225,11 +234,8 @@ class RerankingEvaluator(SentenceEvaluator):
         all_ap_scores = []
 
         with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            all_query_embs = model.encode(
-                [sample["query"] for sample in self.samples],
-                convert_to_tensor=True,
-                batch_size=self.batch_size,
-                show_progress_bar=self.show_progress_bar,
+            all_query_embs = self.embed_inputs(
+                model, [sample["query"] for sample in self.samples], show_progress_bar=self.show_progress_bar
             )
 
             all_docs = []
@@ -238,10 +244,7 @@ class RerankingEvaluator(SentenceEvaluator):
                 all_docs.extend(sample["positive"])
                 all_docs.extend(sample["negative"])
 
-            all_docs_embs = model.encode(
-                all_docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=self.show_progress_bar
-            )
-
+            all_docs_embs = self.embed_inputs(model, all_docs, show_progress_bar=self.show_progress_bar)
         # Compute scores
         query_idx, docs_idx = 0, 0
         for instance in self.samples:
@@ -284,7 +287,10 @@ class RerankingEvaluator(SentenceEvaluator):
 
         return {"map": mean_ap, "mrr": mean_mrr, "ndcg": mean_ndcg}
 
-    def compute_metrices_individual(self, model):
+    def compute_metrices_individual(
+        self,
+        model: SentenceTransformer,
+    ):
         """
         Computes the evaluation metrics individually by embedding every (query, positive, negative) tuple individually.
 
@@ -310,12 +316,8 @@ class RerankingEvaluator(SentenceEvaluator):
             is_relevant = [1] * len(positive) + [0] * len(negative)
 
             with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-                query_emb = model.encode(
-                    [query], convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False
-                )
-                docs_emb = model.encode(
-                    docs, convert_to_tensor=True, batch_size=self.batch_size, show_progress_bar=False
-                )
+                query_emb = self.embed_inputs(model, [query], show_progress_bar=False)
+                docs_emb = self.embed_inputs(model, docs, show_progress_bar=False)
 
             pred_scores = self.similarity_fct(query_emb, docs_emb)
             if len(pred_scores.shape) > 1:
@@ -343,6 +345,21 @@ class RerankingEvaluator(SentenceEvaluator):
         mean_ndcg = np.mean(all_ndcg_scores)
 
         return {"map": mean_ap, "mrr": mean_mrr, "ndcg": mean_ndcg}
+
+    def embed_inputs(
+        self,
+        model: SentenceTransformer,
+        sentences: str | list[str] | np.ndarray,
+        show_progress_bar: bool | None = None,
+        **kwargs,
+    ) -> Tensor:
+        return model.encode(
+            sentences,
+            batch_size=self.batch_size,
+            show_progress_bar=show_progress_bar,
+            convert_to_tensor=True,
+            **kwargs,
+        )
 
     def get_config_dict(self):
         config_dict = {"at_k": self.at_k}

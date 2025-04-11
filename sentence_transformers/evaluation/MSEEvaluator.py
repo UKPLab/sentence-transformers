@@ -7,8 +7,11 @@ from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
+from sentence_transformers.util import pairwise_euclidean_sim
 
 if TYPE_CHECKING:
+    import numpy as np
+
     from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
@@ -86,10 +89,7 @@ class MSEEvaluator(SentenceEvaluator):
             if self.truncate_dim is None
             else teacher_model.truncate_sentence_embeddings(self.truncate_dim)
         ):
-            self.source_embeddings = teacher_model.encode(
-                source_sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_numpy=True
-            )
-
+            self.source_embeddings = self.embed_inputs(teacher_model, source_sentences)
         self.target_sentences = target_sentences
         self.show_progress_bar = show_progress_bar
         self.batch_size = batch_size
@@ -112,14 +112,9 @@ class MSEEvaluator(SentenceEvaluator):
             out_txt += f" (truncated to {self.truncate_dim})"
 
         with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            target_embeddings = model.encode(
-                self.target_sentences,
-                show_progress_bar=self.show_progress_bar,
-                batch_size=self.batch_size,
-                convert_to_numpy=True,
-            )
+            target_embeddings = self.embed_inputs(model, self.target_sentences)
 
-        mse = ((self.source_embeddings - target_embeddings) ** 2).mean()
+        mse = ((-pairwise_euclidean_sim(self.source_embeddings, target_embeddings)) ** 2).mean()
         mse *= 100
 
         logger.info(f"MSE evaluation (lower = better) on the {self.name} dataset{out_txt}:")
@@ -140,6 +135,20 @@ class MSEEvaluator(SentenceEvaluator):
         metrics = self.prefix_name_to_metrics(metrics, self.name)
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
+
+    def embed_inputs(
+        self,
+        model: SentenceTransformer,
+        sentences: str | list[str] | np.ndarray,
+        **kwargs,
+    ) -> np.ndarray:
+        return model.encode(
+            sentences,
+            batch_size=self.batch_size,
+            show_progress_bar=self.show_progress_bar,
+            convert_to_numpy=True,
+            **kwargs,
+        )
 
     @property
     def description(self) -> str:

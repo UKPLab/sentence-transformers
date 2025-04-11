@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+from sentence_transformers.evaluation import RerankingEvaluator
 
 if TYPE_CHECKING:
     import numpy as np
@@ -15,25 +15,42 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
+class SparseRerankingEvaluator(RerankingEvaluator):
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         return super.__call__(model, output_path, epoch, steps)
 
+    def compute_metrices(
+        self,
+        model: SparseEncoder,
+    ):
+        return super.compute_metrices(model)
+
+    def compute_metrices_batched(
+        self,
+        model: SparseEncoder,
+    ):
+        return super.compute_metrices_batched(model)
+
+    def compute_metrices_individual(
+        self,
+        model: SparseEncoder,
+    ):
+        return super.compute_metrices_individual(model)
+
     def embed_inputs(
         self,
         model: SparseEncoder,
         sentences: str | list[str] | np.ndarray,
+        show_progress_bar: bool | None = None,
         **kwargs,
     ) -> Tensor:
         return model.encode(
             sentences,
             batch_size=self.batch_size,
-            show_progress_bar=self.show_progress_bar,
-            convert_to_sparse_tensor=True,
-            precision=self.precision,
-            normalize_embeddings=bool(self.precision),
+            show_progress_bar=show_progress_bar,
+            convert_to_tensor=True,
             **kwargs,
         )
 
