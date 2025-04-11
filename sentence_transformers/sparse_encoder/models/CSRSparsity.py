@@ -74,6 +74,7 @@ class CSRSparsity(nn.Module):
 
         # TopK activation functions
         self.topk = TopKActivation(k=k)
+        self.top4k = TopKActivation(k=4 * k)
         self.topk_aux = TopKActivation(k=k_aux)
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
@@ -86,8 +87,8 @@ class CSRSparsity(nn.Module):
         Returns:
             Encoded embeddings of shape (batch_size, hidden_dim)
         """
-        # Compute z = TopK(W_enc * (x - b_pre) + b_enc)
-        z = self.topk(F.linear(x - self.b_pre, self.encoder.weight, self.latent_bias))
+        # Compute z = W_enc * (x - b_pre) + b_enc
+        z = F.linear(x - self.b_pre, self.encoder.weight, self.latent_bias)
         return z
 
     def decode(self, z: torch.Tensor) -> torch.Tensor:
@@ -115,19 +116,22 @@ class CSRSparsity(nn.Module):
             Dictionary containing the original embeddings and sparse embeddings
         """
         # Get the sentence embeddings
-        x = features["sentence_embedding"]
+        f_x = features["sentence_embedding"]
 
-        # Compute z = TopK(W_enc * (x - b_pre) + b_enc)
-        z = self.encode(x)
+        # Compute z = (W_enc * (f_x - b_pre) + b_enc)
+        z = self.encode(f_x)
 
-        # Compute z_4k = TopK(W_enc * (x - b_pre) + b_enc) with 4k values
-        z_4k = self.topk_aux(F.linear(x - self.b_pre, self.encoder.weight, self.latent_bias))
+        # Compute z_k = TopK(W_enc * (f_x - b_pre) + b_enc) with k values
+        z_k = self.topk(z)
 
-        # Compute z_aux = TopK(W_enc * (x - b_pre) + b_enc) with k_aux values
-        z_aux = self.topk_aux(F.linear(x - self.b_pre, self.encoder.weight, self.latent_bias))
+        # Compute z_4k = TopK(W_enc * (f_x - b_pre) + b_enc) with 4k values
+        z_4k = self.top4k(z)
 
-        # Compute x̂ = W_dec * z + b_pre
-        x_hat = self.decode(z)
+        # Compute z_aux = TopK(W_enc * (f_x - b_pre) + b_enc) with k_aux values
+        z_aux = self.topk_aux(z)
+
+        # Compute x̂_k = W_dec * z_k + b_pre
+        x_hat_k = self.decode(z_k)
 
         # Compute x̂_4k = W_dec * z_4k + b_pre
         x_hat_4k = self.decode(z_4k)
@@ -135,24 +139,24 @@ class CSRSparsity(nn.Module):
         # Compute x̂_aux = W_dec * z_aux + b_pre
         x_hat_aux = self.decode(z_aux)
 
-        # Compute f(x) - f(dx) for auxiliary loss
-        e = x - x_hat
-        e_hat = F.linear(z, self.decoder.weight)
+        e = f_x - x_hat_aux
+        e_hat = x_hat_k + self.b_pre
 
         # Update the features dictionary
         features.update(
             {
-                "sentence_embedding": z,
-                "sentence_embedding_4k": z_4k,
+                "sentence_embedding_backbone": f_x,
+                "sentence_embedding_encoded": z,
+                "sentence_embedding_encoded_4k": z_4k,
                 "auxiliary_embedding": z_aux,
-                "decoded_embedding": x_hat,
+                "decoded_embedding_k": x_hat_k,
                 "decoded_embedding_4k": x_hat_4k,
                 "decoded_embedding_aux": x_hat_aux,
                 "error": e,
                 "error_hat": e_hat,
             }
         )
-
+        features["sentence_embedding"] = z_k
         return features
 
     def get_config_dict(self):

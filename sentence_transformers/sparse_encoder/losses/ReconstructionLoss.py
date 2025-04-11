@@ -59,17 +59,17 @@ class ReconstructionLoss(nn.Module):
 
         # Process each sentence feature
         for features in outputs:
-            x = features["sentence_embedding"]
-            x_hat = features["decoded_embedding"]
+            f_x = features["sentence_embedding_backbone"]
+            x_hat_k = features["decoded_embedding_k"]
             x_hat_4k = features["decoded_embedding_4k"]
             e = features["error"]
             e_hat = features["error_hat"]
 
             # L(k) = ||f(x) - f(dx)_k||₂²
-            L_k = F.mse_loss(x, x_hat)
+            L_k = F.mse_loss(f_x, x_hat_k)
 
             # L(4k) = ||f(x) - f(dx)_4k||₂²
-            L_4k = F.mse_loss(x, x_hat_4k)
+            L_4k = F.mse_loss(f_x, x_hat_4k)
 
             # L_aux = ||e - ê||₂²
             L_aux = F.mse_loss(e, e_hat)
