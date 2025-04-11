@@ -54,7 +54,7 @@ def main():
         train_dataset,
         embedding_model,
         num_negatives=num_hard_negatives,  # How many negatives per question-answer pair
-        margin=0,  # Similarity between query and negative samples should be x lower than query-positive similarity
+        absolute_margin=0,  # Similarity between query and negative samples should be x lower than query-positive similarity
         range_min=0,  # Skip the x most similar samples
         range_max=100,  # Consider only the x most similar samples
         sampling_strategy="top",  # Sample the top negatives from the range
