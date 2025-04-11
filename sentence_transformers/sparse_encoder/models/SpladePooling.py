@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
+import os
+from typing import Any
+
 import torch
 from torch import nn
-
-# TODO: SAVING LOADING with config.json
 
 
 class SpladePooling(nn.Module):
@@ -14,18 +16,26 @@ class SpladePooling(nn.Module):
     sequence length dimension.
 
     Args:
+        word_embedding_dimension: Dimension of the word embeddings (vocab size)
         pooling_strategy: Either 'max' or 'sum' for SPLADE pooling
 
     """
 
+    SPLADE_POOLING_MODES = (
+        "sum",
+        "max",
+    )
+
     def __init__(
         self,
+        word_embedding_dimension: int,
         pooling_strategy: str = "max",
     ) -> None:
         super().__init__()
         self.pooling_strategy = pooling_strategy
-        if pooling_strategy not in ["max", "sum"]:
+        if pooling_strategy not in self.SPLADE_POOLING_MODES:
             raise ValueError("pooling_strategy must be either 'max' or 'sum'")
+        self.config_keys = ["pooling_strategy"]
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         """Forward pass of the mofrom ...models.Pooling import Pooling
@@ -51,7 +61,16 @@ class SpladePooling(nn.Module):
 
         return {"sentence_embedding": pooled_scores}
 
-    def get_sentence_embedding_dimension(self) -> int:
-        """Get the dimension of the SPLADE embeddings (vocabulary size)"""
-        # This will be set by the MLMTransformer
-        return self.auto_model.config.vocab_size if hasattr(self, "auto_model") else None
+    def get_config_dict(self) -> dict[str, Any]:
+        return {key: self.__dict__[key] for key in self.config_keys}
+
+    def save(self, output_path) -> None:
+        with open(os.path.join(output_path, "config.json"), "w") as fOut:
+            json.dump(self.get_config_dict(), fOut, indent=2)
+
+    @staticmethod
+    def load(input_path) -> SpladePooling:
+        with open(os.path.join(input_path, "config.json")) as fIn:
+            config = json.load(fIn)
+
+        return SpladePooling(**config)
