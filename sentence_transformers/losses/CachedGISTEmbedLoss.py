@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from contextlib import nullcontext
 from functools import partial
-from typing import Any
+from typing import Any, Literal
 
 import torch
 import tqdm
@@ -68,6 +68,8 @@ class CachedGISTEmbedLoss(nn.Module):
         temperature: float = 0.01,
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
+        margin_strategy: Literal["absolute", "percentage"] = "absolute",
+        margin: float = 0.0,
     ) -> None:
         """
         This loss is a combination of :class:`GISTEmbedLoss` and :class:`CachedMultipleNegativesRankingLoss`.
@@ -81,6 +83,12 @@ class CachedGISTEmbedLoss(nn.Module):
         :class:`CachedMultipleNegativesRankingLoss`, it is possible to reduce memory usage while maintaining performance
         levels comparable to those of :class:`GISTEmbedLoss`.
 
+        You can apply different false-negative filtering strategies to discard hard negatives that are too similar to
+        the positive. Two strategies are supported:
+
+            - "absolute": Discards negatives whose similarity score is greater than or equal to (positive_score - margin).
+            - "percentage": Discards negatives whose similarity score is greater than or equal to (positive_score * margin).
+
         Args:
             model: SentenceTransformer model
             guide: SentenceTransformer model to guide the in-batch negative sample selection.
@@ -90,6 +98,9 @@ class CachedGISTEmbedLoss(nn.Module):
                 the slower the training will be. It's recommended to set it as high as your GPU memory allows. The default
                 value is 32.
             show_progress_bar: If True, a progress bar for the mini-batches is shown during training. The default is False.
+            margin_strategy: Strategy used for false negative filtering. One of {"absolute", "percentage"}.
+            margin: The margin value for filtering negatives. Defaults to 0.0, together with the "absolute" strategy,
+                this only removes negatives that are more similar to the query than the positive is to the query.
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
@@ -130,7 +141,13 @@ class CachedGISTEmbedLoss(nn.Module):
                     "anchor": ["It's nice weather outside today.", "He drove to work."],
                     "positive": ["It's so sunny.", "He took the car to the office."],
                 })
-                loss = losses.CachedGISTEmbedLoss(model, guide, mini_batch_size=64)
+                loss = losses.CachedGISTEmbedLoss(
+                    model,
+                    guide,
+                    mini_batch_size=64,
+                    margin_strategy="absolute",   # or "percentage" (e.g., margin=0.95)
+                    margin=0.1
+                )
 
                 trainer = SentenceTransformerTrainer(
                     model=model,
@@ -163,6 +180,10 @@ class CachedGISTEmbedLoss(nn.Module):
         )
         if self.must_retokenize:
             self.tokenizer = model.tokenizer
+        if margin_strategy not in ("absolute", "percentage"):
+            raise ValueError("margin_strategy must be 'absolute' or 'percentage'.")
+        self.margin_strategy = margin_strategy
+        self.margin = margin
 
     def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
@@ -273,10 +294,29 @@ class CachedGISTEmbedLoss(nn.Module):
             aa_sim = self.sim_matrix(concatenated_reps[0][b:e], concatenated_reps[0])  # anchor-anchor similarity
             pp_sim = self.sim_matrix(concatenated_reps[1][b:e], concatenated_reps[1])  # positive-positive similarity
 
-            # Apply thresholds based on guided model similarities
-            ap_sim[guided_ap_sim > guided_sim] = -torch.inf
-            aa_sim[guided_aa_sim > guided_sim] = -torch.inf
-            pp_sim[guided_pp_sim > guided_sim] = -torch.inf
+            # This uses guided (teacher) similarity as a dynamic threshold to identify and suppress false negatives
+            def mask_false_negatives(guided_sim_mat, sim_mat, positive_mask: Tensor | None = None):
+                if self.margin_strategy == "absolute":
+                    # Remove samples whose guided similarity is higher than (positive_sim - margin)
+                    mask = guided_sim_mat > (guided_sim - self.margin)
+                elif self.margin_strategy == "percentage":
+                    # Remove samples whose guided similarity is higher than (positive_sim * margin)
+                    mask = guided_sim_mat > (guided_sim * self.margin)
+
+                if positive_mask is not None:
+                    # Ensure true positive pairs are not masked out
+                    mask = mask & ~positive_mask
+                sim_mat[mask] = -torch.inf
+                return sim_mat
+
+            # Create a mask to protect true positive pairs in the anchor-positive matrix (i.e., diagonal elements)
+            positive_mask = torch.eye(*guided_ap_sim.shape, dtype=torch.bool, device=guided_ap_sim.device)
+            positive_mask = positive_mask.roll(b)
+
+            # Apply false negative suppression to each similarity matrix using guided similarity as anchor
+            ap_sim = mask_false_negatives(guided_ap_sim, ap_sim, positive_mask=positive_mask)  # anchor-positive
+            aa_sim = mask_false_negatives(guided_aa_sim, aa_sim)  # anchor-anchor
+            pp_sim = mask_false_negatives(guided_pp_sim, pp_sim)  # positive-positive
 
             # Concatenate the similarity matrices for anchor-positive, anchor-anchor, and positive-positive
             scores = torch.cat([ap_sim, aa_sim, pp_sim], dim=1)
@@ -286,7 +326,7 @@ class CachedGISTEmbedLoss(nn.Module):
                 for i in range(2, len(concatenated_reps)):  # Start from 2 since first 2 are anchor-positive
                     guided_neg_sim = self.sim_matrix(concatenated_guided_reps[0][b:e], concatenated_guided_reps[i])
                     neg_sim = self.sim_matrix(concatenated_reps[0][b:e], concatenated_reps[i])
-                    neg_sim[guided_neg_sim > guided_sim] = -torch.inf
+                    neg_sim = mask_false_negatives(guided_neg_sim, neg_sim)
                     scores = torch.cat([scores, neg_sim], dim=1)
 
             # Normalize the scores and calculate the cross-entropy loss
@@ -337,4 +377,6 @@ class CachedGISTEmbedLoss(nn.Module):
             "guide": self.guide,
             "temperature": self.temperature,
             "mini_batch_size": self.mini_batch_size,
+            "margin_strategy": self.margin_strategy,
+            "margin": self.margin,
         }
