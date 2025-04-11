@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class SparseMSEEvaluator(MSEEvaluatorFromDataFrame):
+class SparseMSEEvaluatorDataFrame(MSEEvaluatorFromDataFrame):
     def __init__(
         self,
         dataframe: list[dict[str, str]],

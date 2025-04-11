@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-
-import torch
-from torch import Tensor
-
 from sentence_transformers import util
 from sentence_transformers.losses.MultipleNegativesRankingLoss import (
     MultipleNegativesRankingLoss,
 )
+from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
 
 class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
@@ -94,55 +90,5 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
             trainer.train()
     """
 
-    def __init__(
-        self,
-        model,
-        scale: float = 20.0,
-        similarity_fct=util.cos_sim,
-    ) -> None:
+    def __init__(self, model: SparseEncoder, scale: float = 20.0, similarity_fct=util.cos_sim) -> None:
         super().__init__(model, scale, similarity_fct)
-
-    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
-        """ """
-        # Get sparse embeddings for all sentences
-        embeddings = [self.model(sentence_feature)["sparse_embedding"] for sentence_feature in sentence_features]
-
-        return self.compute_loss_from_embeddings(embeddings)
-
-    def compute_loss_from_embeddings(self, embeddings: list[torch.Tensor]) -> dict[str, torch.Tensor]:
-        """
-        Compute the multiple negatives ranking loss from embeddings.
-
-        Args:
-            embeddings: List of sparse embeddings
-
-        Returns:
-            Dictionary containing the total loss
-        """
-
-        anchors = embeddings[0]  # (batch_size, embedding_dim)
-        candidates = torch.cat(embeddings[1:])  # (batch_size * (1 + num_negatives), embedding_dim)
-
-        # For every anchor, we compute the similarity to all other candidates (positives and negatives),
-        # also from other anchors. This gives us a lot of in-batch negatives.
-        scores = self.similarity_fct(anchors, candidates) * self.scale
-        # (batch_size, batch_size * (1 + num_negatives))
-
-        # anchor[i] should be most similar to candidates[i], as that is the paired positive,
-        # so the label for anchor[i] is i
-        range_labels = torch.arange(0, scores.size(0), device=scores.device)
-
-        loss = self.cross_entropy_loss(scores, range_labels)
-
-        return loss
-
-    def get_config_dict(self):
-        """
-        Get the configuration dictionary.
-
-        Returns:
-            Dictionary containing the configuration parameters
-        """
-        return {
-            "scale": self.scale,
-        }

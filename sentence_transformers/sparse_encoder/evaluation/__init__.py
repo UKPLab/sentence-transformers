@@ -18,8 +18,8 @@ from sentence_transformers.sparse_encoder.evaluation.SparseMSEEvaluatorDataFrame
 from sentence_transformers.sparse_encoder.evaluation.SparseNanoBEIREvaluator import (
     SparseNanoBEIREvaluator,
 )
-from sentence_transformers.sparse_encoder.evaluation.SparseReranking import (
-    SparseReranking,
+from sentence_transformers.sparse_encoder.evaluation.SparseRerankingEvaluator import (
+    SparseRerankingEvaluator,
 )
 from sentence_transformers.sparse_encoder.evaluation.SparseTranslationEvaluator import (
     SparseTranslationEvaluator,
@@ -36,7 +36,7 @@ __all__ = [
     "SparseNanoBEIREvaluator",
     "SparseTripletEvaluator",
     "SparseTranslationEvaluator",
-    "SparseReranking",
+    "SparseRerankingEvaluator",
     "SparseMSEEvaluatorDataFrame",
 ]
 

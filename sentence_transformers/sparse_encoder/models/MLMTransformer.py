@@ -7,6 +7,7 @@ from torch import nn
 from transformers import AutoConfig, AutoModelForMaskedLM, AutoTokenizer
 
 
+# TODO: Check the tokenizer  problem and if more need to be implement like the Transformer class
 class MLMTransformer(nn.Module):
     """A minimal Transformer model that uses MLM (Masked Language Modeling).
 
