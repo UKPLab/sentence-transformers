@@ -377,22 +377,6 @@ def truncate_embeddings_for_sparse(embeddings: np.ndarray | torch.Tensor, trunca
         embeddings (Union[np.ndarray, torch.Tensor]): Embeddings to sparsify by keeping only top_k values.
         truncate_dim (int): Number of values to keep per embedding.
 
-    Example:
-        >>> from sentence_transformers import SentenceTransformer
-        >>> from sentence_transformers.util import truncate_embeddings_for_sparse
-        >>> model = SentenceTransformer("all-MiniLM-L6-v2")
-        >>> embeddings = model.encode(["Hello world", "How are you?"])
-        >>> embeddings.shape
-        (2, 384)
-        >>> sparse_embeddings = truncate_embeddings_for_sparse(embeddings, top_k=10)
-        >>> sparse_embeddings.is_sparse
-        True
-        >>> sparse_embeddings.shape
-        torch.Size([2, 384])
-        >>> # Only has 10 non-zero values per embedding
-        >>> sparse_embeddings.indices().shape[1]
-        20
-
     Returns:
         torch.Tensor: A sparse tensor containing only the top-k values per embedding.
     """
@@ -414,10 +398,9 @@ def truncate_embeddings_for_sparse(embeddings: np.ndarray | torch.Tensor, trunca
     mask[batch_indices.flatten(), top_indices.flatten()] = True
 
     # Create a sparse tensor with only the top values
-    sparse_embeddings = embeddings.clone()
-    sparse_embeddings[~mask] = 0
+    embeddings[~mask] = 0
 
-    return sparse_embeddings
+    return embeddings
 
 
 def paraphrase_mining(

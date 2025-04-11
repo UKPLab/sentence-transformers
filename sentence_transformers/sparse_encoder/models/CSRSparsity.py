@@ -142,8 +142,8 @@ class CSRSparsity(nn.Module):
         # Update the features dictionary
         features.update(
             {
-                "sparse_embedding": z,
-                "sparse_embedding_4k": z_4k,
+                "sentence_embedding": z,
+                "sentence_embedding_4k": z_4k,
                 "auxiliary_embedding": z_aux,
                 "decoded_embedding": x_hat,
                 "decoded_embedding_4k": x_hat_4k,

@@ -138,7 +138,7 @@ class SparseEncoder(SentenceTransformer):
 
             with torch.no_grad():
                 out_features = self.forward(features, **kwargs)
-                embeddings = out_features["sparse_embedding"]
+                embeddings = out_features["sentence_embedding"]
                 embeddings = truncate_embeddings_for_sparse(embeddings, truncate_dim=self.truncate_dim)
 
                 if convert_to_sparse_tensor:

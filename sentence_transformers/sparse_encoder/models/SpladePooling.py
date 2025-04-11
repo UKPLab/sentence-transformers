@@ -3,6 +3,8 @@ from __future__ import annotations
 import torch
 from torch import nn
 
+# TODO: SAVING LOADING with config.json
+
 
 class SpladePooling(nn.Module):
     """SPLADE pooling layer that aggregates MLM logits using max or sum pooling.
@@ -47,7 +49,7 @@ class SpladePooling(nn.Module):
         else:  # sum
             pooled_scores = torch.sum(splade_scores, dim=1)  # shape: batch_size, vocab_size
 
-        return {"sparse_embedding": pooled_scores}
+        return {"sentence_embedding": pooled_scores}
 
     def get_sentence_embedding_dimension(self) -> int:
         """Get the dimension of the SPLADE embeddings (vocabulary size)"""

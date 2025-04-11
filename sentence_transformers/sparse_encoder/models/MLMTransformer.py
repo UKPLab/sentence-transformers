@@ -79,7 +79,7 @@ class MLMTransformer(nn.Module):
             Dictionary containing token embeddings and MLM logits
         """
         # Get MLM outputs
-        mlm_outputs = self.auto_model(**features, output_hidden_states=True)
+        mlm_outputs = self.auto_model(**features)
 
         # Get the MLM head logits (shape: batch_size, seq_length, vocab_size)
         mlm_logits = mlm_outputs.logits

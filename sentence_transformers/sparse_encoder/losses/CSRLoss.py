@@ -61,11 +61,11 @@ class CSRLoss(nn.Module):
         """
         # Compute embeddings using the model
         outputs = [self.model(sentence_feature) for sentence_feature in sentence_features]
-        sparse_embeddings = [output["sparse_embedding"] for output in outputs]
+        sentence_embedding = [output["sentence_embedding"] for output in outputs]
 
         recon_loss = self.reconstruction_loss.compute_loss_from_embeddings(outputs)
 
-        ranking_loss = self.ranking_loss.compute_loss_from_embeddings(sparse_embeddings)
+        ranking_loss = self.ranking_loss.compute_loss_from_embeddings(sentence_embedding)
 
         # Compute total loss: L_CSR = L_recon + γ * L_MRL
         total_loss = recon_loss + self.gamma * ranking_loss
