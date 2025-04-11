@@ -460,7 +460,6 @@ print(scores)
 ```
 """
 
-            breakpoint()
             huggingface_hub.upload_folder(
                 folder_path=save_dir,
                 path_in_repo=backend,
