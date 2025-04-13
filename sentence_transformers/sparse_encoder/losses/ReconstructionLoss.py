@@ -9,6 +9,18 @@ import torch.nn.functional as F
 from sentence_transformers.sparse_encoder import SparseEncoder
 
 
+def normalized_mean_squared_error(
+    reconstruction: torch.Tensor,
+    original_input: torch.Tensor,
+) -> torch.Tensor:
+    """
+    :param reconstruction: output of Autoencoder.decode (shape: [batch, n_inputs])
+    :param original_input: input of Autoencoder.encode (shape: [batch, n_inputs])
+    :return: normalized mean squared error (shape: [1])
+    """
+    return (((reconstruction - original_input) ** 2).mean(dim=1) / (original_input**2).mean(dim=1)).mean()
+
+
 class ReconstructionLoss(nn.Module):
     """
     Reconstruction Loss module for Sparse AutoEncoder.
@@ -59,20 +71,20 @@ class ReconstructionLoss(nn.Module):
 
         # Process each sentence feature
         for features in outputs:
-            f_x = features["sentence_embedding_backbone"]
-            x_hat_k = features["decoded_embedding_k"]
-            x_hat_4k = features["decoded_embedding_4k"]
-            e = features["error"]
-            e_hat = features["error_hat"]
+            x = features["sentence_embedding_backbone"]
+            recons_k = features["decoded_embedding_k"]
+            recons_4k = features["decoded_embedding_4k"]
+            recons_aux = features["decoded_embedding_aux"]
+            reconsk_pre_bias = features["decoded_embedding_k_pre_bias"]
 
             # L(k) = ||f(x) - f(dx)_k||₂²
-            L_k = F.mse_loss(f_x, x_hat_k)
+            L_k = F.mse_loss(x, recons_k)
 
             # L(4k) = ||f(x) - f(dx)_4k||₂²
-            L_4k = F.mse_loss(f_x, x_hat_4k)
+            L_4k = F.mse_loss(x, recons_4k)
 
             # L_aux = ||e - ê||₂²
-            L_aux = F.mse_loss(e, e_hat)
+            L_aux = normalized_mean_squared_error(recons_aux, x - reconsk_pre_bias)
 
             # Accumulate losses
             total_L_k += L_k

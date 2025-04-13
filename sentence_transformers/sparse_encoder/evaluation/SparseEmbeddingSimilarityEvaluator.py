@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 
@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     import numpy as np
     from torch import Tensor
 
+    from sentence_transformers.similarity_functions import SimilarityFunction
     from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
 
@@ -16,10 +17,38 @@ logger = logging.getLogger(__name__)
 
 
 class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
+    def __init__(
+        self,
+        sentences1: list[str],
+        sentences2: list[str],
+        scores: list[float],
+        batch_size: int = 16,
+        main_similarity: str | SimilarityFunction | None = None,
+        similarity_fn_names: list[Literal["cosine", "euclidean", "manhattan", "dot"]] | None = None,
+        name: str = "",
+        show_progress_bar: bool = False,
+        write_csv: bool = True,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] | None = None,
+        truncate_dim: int | None = None,
+    ):
+        super().__init__(
+            sentences1,
+            sentences2,
+            scores,
+            batch_size,
+            main_similarity,
+            similarity_fn_names,
+            name,
+            show_progress_bar,
+            write_csv,
+            precision,
+            truncate_dim,
+        )
+
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        return super.__call__(model, output_path, epoch, steps)
+        return super().__call__(model, output_path, epoch, steps)
 
     def embed_inputs(
         self,

@@ -14,7 +14,7 @@ from sentence_transformers.sparse_encoder.losses import (
     ReconstructionLoss,
     SparseMultipleNegativesRankingLoss,
 )
-from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling, TopKActivation
+from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
 from sentence_transformers.sparse_encoder.training_args import (
@@ -29,7 +29,6 @@ __all__ = [
     "SparseEncoderTrainingArguments",
     # Models
     "CSRSparsity",
-    "TopKActivation",
     "MLMTransformer",
     "SpladePooling",
     # Losses

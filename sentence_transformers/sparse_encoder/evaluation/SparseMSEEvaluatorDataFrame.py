@@ -24,12 +24,12 @@ class SparseMSEEvaluatorDataFrame(MSEEvaluatorFromDataFrame):
         write_csv: bool = True,
         truncate_dim: int | None = None,
     ):
-        super.__init__(dataframe, teacher_model, combinations, batch_size, name, write_csv, truncate_dim)
+        super().__init__(dataframe, teacher_model, combinations, batch_size, name, write_csv, truncate_dim)
 
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        return super.__call__(model, output_path, epoch, steps)
+        return super().__call__(model, output_path, epoch, steps)
 
     def embed_inputs(
         self,

@@ -31,6 +31,7 @@ binary_acc_evaluator = SparseBinaryClassificationEvaluator(
     labels=eval_dataset["label"],
     name="quora_duplicates_dev",
     show_progress_bar=True,
+    similarity_fn_names=["cosine", "dot", "euclidean", "manhattan"],
 )
 results = binary_acc_evaluator(model)
 
