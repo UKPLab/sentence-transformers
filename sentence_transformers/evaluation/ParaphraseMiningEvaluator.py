@@ -22,6 +22,34 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
     identifies the pairs with the highest similarity. It compare the extracted paraphrase pairs
     with a set of gold labels and computes the F1 score.
 
+    Args:
+        sentences_map (Dict[str, str]): A dictionary that maps sentence-ids to sentences.
+            For example, sentences_map[id] => sentence.
+        duplicates_list (List[Tuple[str, str]], optional): A list with id pairs [(id1, id2), (id1, id5)]
+            that identifies the duplicates / paraphrases in the sentences_map. Defaults to None.
+        duplicates_dict (Dict[str, Dict[str, bool]], optional): A default dictionary mapping [id1][id2]
+            to true if id1 and id2 are duplicates. Must be symmetric, i.e., if [id1][id2] => True,
+            then [id2][id1] => True. Defaults to None.
+        add_transitive_closure (bool, optional): If true, it adds a transitive closure,
+            i.e. if dup[a][b] and dup[b][c], then dup[a][c]. Defaults to False.
+        query_chunk_size (int, optional): To identify the paraphrases, the cosine-similarity between
+            all sentence-pairs will be computed. As this might require a lot of memory, we perform
+            a batched computation. query_chunk_size sentences will be compared against up to
+            corpus_chunk_size sentences. In the default setting, 5000 sentences will be grouped
+            together and compared up-to against 100k other sentences. Defaults to 5000.
+        corpus_chunk_size (int, optional): The corpus will be batched, to reduce the memory requirement.
+            Defaults to 100000.
+        max_pairs (int, optional): We will only extract up to max_pairs potential paraphrase candidates.
+            Defaults to 500000.
+        top_k (int, optional): For each query, we extract the top_k most similar pairs and add it to a sorted list.
+            I.e., for one sentence we cannot find more than top_k paraphrases. Defaults to 100.
+        show_progress_bar (bool, optional): Output a progress bar. Defaults to False.
+        batch_size (int, optional): Batch size for computing sentence embeddings. Defaults to 16.
+        name (str, optional): Name of the experiment. Defaults to "".
+        write_csv (bool, optional): Write results to CSV file. Defaults to True.
+        truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to.
+            `None` uses the model's current truncation dimension. Defaults to None.
+
     Example:
         ::
 
@@ -78,37 +106,6 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         write_csv: bool = True,
         truncate_dim: int | None = None,
     ):
-        """
-        Initializes the ParaphraseMiningEvaluator.
-
-        Args:
-            sentences_map (Dict[str, str]): A dictionary that maps sentence-ids to sentences.
-                For example, sentences_map[id] => sentence.
-            duplicates_list (List[Tuple[str, str]], optional): A list with id pairs [(id1, id2), (id1, id5)]
-                that identifies the duplicates / paraphrases in the sentences_map. Defaults to None.
-            duplicates_dict (Dict[str, Dict[str, bool]], optional): A default dictionary mapping [id1][id2]
-                to true if id1 and id2 are duplicates. Must be symmetric, i.e., if [id1][id2] => True,
-                then [id2][id1] => True. Defaults to None.
-            add_transitive_closure (bool, optional): If true, it adds a transitive closure,
-                i.e. if dup[a][b] and dup[b][c], then dup[a][c]. Defaults to False.
-            query_chunk_size (int, optional): To identify the paraphrases, the cosine-similarity between
-                all sentence-pairs will be computed. As this might require a lot of memory, we perform
-                a batched computation. query_chunk_size sentences will be compared against up to
-                corpus_chunk_size sentences. In the default setting, 5000 sentences will be grouped
-                together and compared up-to against 100k other sentences. Defaults to 5000.
-            corpus_chunk_size (int, optional): The corpus will be batched, to reduce the memory requirement.
-                Defaults to 100000.
-            max_pairs (int, optional): We will only extract up to max_pairs potential paraphrase candidates.
-                Defaults to 500000.
-            top_k (int, optional): For each query, we extract the top_k most similar pairs and add it to a sorted list.
-                I.e., for one sentence we cannot find more than top_k paraphrases. Defaults to 100.
-            show_progress_bar (bool, optional): Output a progress bar. Defaults to False.
-            batch_size (int, optional): Batch size for computing sentence embeddings. Defaults to 16.
-            name (str, optional): Name of the experiment. Defaults to "".
-            write_csv (bool, optional): Write results to CSV file. Defaults to True.
-            truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to.
-                `None` uses the model's current truncation dimension. Defaults to None.
-        """
         super().__init__()
         self.sentences = []
         self.ids = []
@@ -270,3 +267,13 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
                         nodes_visited.add(connected_subgraph_nodes[i])
                         nodes_visited.add(connected_subgraph_nodes[j])
         return graph
+
+    def get_config_dict(self):
+        config_dict = {
+            "add_transitive_closure": self.add_transitive_closure,
+            "max_pairs": self.max_pairs,
+            "top_k": self.top_k,
+        }
+        if self.truncate_dim is not None:
+            config_dict["truncate_dim"] = self.truncate_dim
+        return config_dict

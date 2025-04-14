@@ -9,8 +9,9 @@ import numpy as np
 import torch
 from torch import Tensor, nn
 
-from sentence_transformers import InputExample, util
+from sentence_transformers.readers import InputExample
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers.util import cos_sim
 
 
 class ContrastiveTensionLoss(nn.Module):
@@ -31,7 +32,7 @@ class ContrastiveTensionLoss(nn.Module):
 
     References:
         * Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
-        * `Unsupervised Learning > CT <../../examples/unsupervised_learning/CT/README.html>`_
+        * `Unsupervised Learning > CT <../../../examples/sentence_transformer/unsupervised_learning/CT/README.html>`_
 
     Inputs:
         +------------------+--------+
@@ -104,7 +105,7 @@ class ContrastiveTensionLoss(nn.Module):
 
 
 class ContrastiveTensionLossInBatchNegatives(nn.Module):
-    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim) -> None:
+    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=cos_sim) -> None:
         """
         This loss expects only single sentences, without any labels. Positive and negative pairs are automatically created via random sampling,
         such that a positive pair consists of two identical sentences and a negative pair consists of two different sentences. An independent
@@ -126,7 +127,7 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
 
         References:
             - Semantic Re-Tuning with Contrastive Tension: https://openreview.net/pdf?id=Ov_sMNau-PF
-            - `Unsupervised Learning > CT (In-Batch Negatives) <../../examples/unsupervised_learning/CT_In-Batch_Negatives/README.html>`_
+            - `Unsupervised Learning > CT (In-Batch Negatives) <../../../examples/sentence_transformer/unsupervised_learning/CT_In-Batch_Negatives/README.html>`_
 
         Relations:
             * :class:`ContrastiveTensionLoss` does not select negative pairs in-batch, resulting in a weaker training signal than this loss.

@@ -16,7 +16,7 @@ def test_simple_encode(clip_vit_b_32_model: SentenceTransformer) -> None:
     # Encode an image:
     image_filepath = os.path.join(
         os.path.dirname(os.path.realpath(__file__)),
-        "../examples/applications/image-search/two_dogs_in_snow.jpg",
+        "../examples/sentence_transformer/applications/image-search/two_dogs_in_snow.jpg",
     )
     img_emb = model.encode(Image.open(image_filepath))
 
