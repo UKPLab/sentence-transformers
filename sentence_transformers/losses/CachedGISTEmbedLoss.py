@@ -68,7 +68,7 @@ class CachedGISTEmbedLoss(nn.Module):
         temperature: float = 0.01,
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
-        margin_strategy: Literal["absolute", "percentage"] = "absolute",
+        margin_strategy: Literal["absolute", "relative"] = "absolute",
         margin: float = 0.0,
     ) -> None:
         """
@@ -86,8 +86,8 @@ class CachedGISTEmbedLoss(nn.Module):
         You can apply different false-negative filtering strategies to discard hard negatives that are too similar to
         the positive. Two strategies are supported:
 
-            - "absolute": Discards negatives whose similarity score is greater than or equal to (positive_score - margin).
-            - "percentage": Discards negatives whose similarity score is greater than or equal to (positive_score * margin).
+            - "absolute": Discards negatives whose similarity score is greater than or equal to ``positive_score - margin``.
+            - "relative": Discards negatives whose similarity score is greater than or equal to ``positive_score * (1 - margin)``.
 
         Args:
             model: SentenceTransformer model
@@ -98,7 +98,7 @@ class CachedGISTEmbedLoss(nn.Module):
                 the slower the training will be. It's recommended to set it as high as your GPU memory allows. The default
                 value is 32.
             show_progress_bar: If True, a progress bar for the mini-batches is shown during training. The default is False.
-            margin_strategy: Strategy used for false negative filtering. One of {"absolute", "percentage"}.
+            margin_strategy: Strategy used for false negative filtering. One of {"absolute", "relative"}.
             margin: The margin value for filtering negatives. Defaults to 0.0, together with the "absolute" strategy,
                 this only removes negatives that are more similar to the query than the positive is to the query.
 
@@ -145,7 +145,7 @@ class CachedGISTEmbedLoss(nn.Module):
                     model,
                     guide,
                     mini_batch_size=64,
-                    margin_strategy="absolute",   # or "percentage" (e.g., margin=0.95)
+                    margin_strategy="absolute",   # or "relative" (e.g., margin=0.05 for max. 95% of positive similarity)
                     margin=0.1
                 )
 
@@ -180,8 +180,8 @@ class CachedGISTEmbedLoss(nn.Module):
         )
         if self.must_retokenize:
             self.tokenizer = model.tokenizer
-        if margin_strategy not in ("absolute", "percentage"):
-            raise ValueError("margin_strategy must be 'absolute' or 'percentage'.")
+        if margin_strategy not in ("absolute", "relative"):
+            raise ValueError("margin_strategy must be 'absolute' or 'relative'.")
         self.margin_strategy = margin_strategy
         self.margin = margin
 
@@ -299,9 +299,9 @@ class CachedGISTEmbedLoss(nn.Module):
                 if self.margin_strategy == "absolute":
                     # Remove samples whose guided similarity is higher than (positive_sim - margin)
                     mask = guided_sim_mat > (guided_sim - self.margin)
-                elif self.margin_strategy == "percentage":
+                elif self.margin_strategy == "relative":
                     # Remove samples whose guided similarity is higher than (positive_sim * margin)
-                    mask = guided_sim_mat > (guided_sim * self.margin)
+                    mask = guided_sim_mat > (guided_sim * (1 - self.margin))
 
                 if positive_mask is not None:
                     # Ensure true positive pairs are not masked out

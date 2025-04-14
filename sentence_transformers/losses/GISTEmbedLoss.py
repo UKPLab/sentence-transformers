@@ -16,7 +16,7 @@ class GISTEmbedLoss(nn.Module):
         model: SentenceTransformer,
         guide: SentenceTransformer,
         temperature: float = 0.01,
-        margin_strategy: Literal["absolute", "percentage"] = "absolute",
+        margin_strategy: Literal["absolute", "relative"] = "absolute",
         margin: float = 0.0,
     ) -> None:
         """
@@ -28,14 +28,14 @@ class GISTEmbedLoss(nn.Module):
         You can apply different false-negative filtering strategies to discard hard negatives that are too similar to
         the positive. Two strategies are supported:
 
-            - "absolute": Discards negatives whose similarity score is greater than or equal to (positive_score - margin).
-            - "percentage": Discards negatives whose similarity score is greater than or equal to (positive_score * margin).
+            - "absolute": Discards negatives whose similarity score is greater than or equal to ``positive_score - margin``.
+            - "relative": Discards negatives whose similarity score is greater than or equal to ``positive_score * (1 - margin)``.
 
         Args:
             model: SentenceTransformer model based on a `transformers` model.
             guide: SentenceTransformer model to guide the in-batch negative sample selection.
             temperature: Temperature parameter to scale the cosine similarities.
-            margin_strategy: Strategy used for false negative filtering. One of {"absolute", "percentage"}.
+            margin_strategy: Strategy used for false negative filtering. One of {"absolute", "relative"}.
             margin: The margin value for filtering negatives. Defaults to 0.0, together with the "absolute" strategy,
                 this only removes negatives that are more similar to the query than the positive is to the query.
 
@@ -106,8 +106,8 @@ class GISTEmbedLoss(nn.Module):
                     "then the Sentence Transformer model must not be based on a StaticEmbedding."
                 )
 
-        if margin_strategy not in ("absolute", "percentage"):
-            raise ValueError("margin_strategy must be 'absolute' or 'percentage'.")
+        if margin_strategy not in ("absolute", "relative"):
+            raise ValueError("margin_strategy must be 'absolute' or 'relative'.")
         self.margin_strategy = margin_strategy
         self.margin = margin
 
@@ -162,9 +162,9 @@ class GISTEmbedLoss(nn.Module):
             if self.margin_strategy == "absolute":
                 # Remove samples whose guided similarity is higher than (positive_sim - margin)
                 mask = guided_sim_mat > (guided_sim - self.margin)
-            elif self.margin_strategy == "percentage":
+            elif self.margin_strategy == "relative":
                 # Remove samples whose guided similarity is higher than (positive_sim * margin)
-                mask = guided_sim_mat > (guided_sim * self.margin)
+                mask = guided_sim_mat > (guided_sim * (1 - self.margin))
 
             if positive_mask is not None:
                 # Ensure true positive pairs are not masked out
