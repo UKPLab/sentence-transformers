@@ -563,10 +563,10 @@ def mine_hard_negatives(
       satisfy the margin or max_score conditions.
     - **max_score**: Maximum score to consider as a negative: useful to skip candidates that are too similar to the anchor.
     - **min_score**: Minimum score to consider as a negative: useful to skip candidates that are too dissimilar to the anchor.
-    - **absolute_margin**: Absolute margin for hard negative mining: useful to skip candidates negatives whose similarity
+    - **absolute_margin**: Absolute margin for hard negative mining: useful to skip candidate negatives whose similarity
       to the anchor is within a certain margin of the positive pair. A value of 0 can be used to enforce that the negative
       is always further away from the anchor than the positive.
-    - **relative_margin**: Relative margin for hard negative mining: useful to skip candidates negatives whose similarity
+    - **relative_margin**: Relative margin for hard negative mining: useful to skip candidate negatives whose similarity
       to the anchor is within a certain margin of the positive pair. A value of 0.05 means that the negative is at most 95%
       as similar to the anchor as the positive.
     - **sampling_strategy**: Sampling strategy for negatives: "top" or "random". "top" will always sample the top n
