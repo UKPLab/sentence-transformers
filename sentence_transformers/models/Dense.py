@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from typing import Callable
 
 import torch
 from safetensors.torch import load_model as load_safetensors_model
@@ -32,9 +33,9 @@ class Dense(nn.Module):
         in_features: int,
         out_features: int,
         bias: bool = True,
-        activation_function=nn.Tanh(),
-        init_weight: Tensor = None,
-        init_bias: Tensor = None,
+        activation_function: Callable[[Tensor], Tensor] = nn.Tanh(),
+        init_weight: Tensor | None = None,
+        init_bias: Tensor | None = None,
     ):
         super().__init__()
         self.in_features = in_features
