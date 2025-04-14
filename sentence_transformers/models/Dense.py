@@ -41,7 +41,7 @@ class Dense(nn.Module):
         self.in_features = in_features
         self.out_features = out_features
         self.bias = bias
-        self.activation_function = activation_function or nn.Identity()
+        self.activation_function = nn.Identity() if activation_function is None else activation_function
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
         if init_weight is not None:
