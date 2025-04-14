@@ -33,7 +33,7 @@ class Dense(nn.Module):
         in_features: int,
         out_features: int,
         bias: bool = True,
-        activation_function: Callable[[Tensor], Tensor] = nn.Tanh(),
+        activation_function: Callable[[Tensor], Tensor] | None = nn.Tanh(),
         init_weight: Tensor | None = None,
         init_bias: Tensor | None = None,
     ):
