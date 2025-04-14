@@ -653,9 +653,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             return folder_url.pr_url
         return folder_url.commit_url
 
-    def to(self, device: int | str | torch.device | None = None) -> None:
-        return self.model.to(device)
-
     @property
     def _target_device(self) -> torch.device:
         logger.warning(
