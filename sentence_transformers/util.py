@@ -586,7 +586,7 @@ def mine_hard_negatives(
                 num_negatives=num_negatives,  # 10 or less is recommended
                 sampling_strategy="top",      # "top" means that we sample the top candidates as negatives
                 batch_size=batch_size,        # Adjust as needed
-                use_faiss=True,               # Use faiss/faiss-gpu for faster similarity search
+                use_faiss=True,               # Optional: Use faiss/faiss-gpu for faster similarity search
             )
 
         This corresponds with the `TopK-PercPos (95%)` mining method.
