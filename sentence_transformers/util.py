@@ -528,7 +528,8 @@ def mine_hard_negatives(
     range_max: int | None = None,
     max_score: float | None = None,
     min_score: float | None = None,
-    margin: float | None = None,
+    absolute_margin: float | None = None,
+    relative_margin: float | None = None,
     num_negatives: int = 3,
     sampling_strategy: Literal["random", "top"] = "top",
     include_positives: bool = False,
@@ -539,6 +540,7 @@ def mine_hard_negatives(
     use_multi_process: list[str] | bool = False,
     verbose: bool = True,
     as_triplets: bool | None = None,
+    margin: float | None = None,
 ) -> Dataset:
     """
     Add hard negatives to a dataset of (anchor, positive) pairs to create (anchor, positive, negative) triplets or
@@ -561,12 +563,33 @@ def mine_hard_negatives(
       satisfy the margin or max_score conditions.
     - **max_score**: Maximum score to consider as a negative: useful to skip candidates that are too similar to the anchor.
     - **min_score**: Minimum score to consider as a negative: useful to skip candidates that are too dissimilar to the anchor.
-    - **margin**: Margin for hard negative mining: useful to skip candidates negatives whose similarity to the anchor is
-      within a certain margin of the positive pair. A value of 0 can be used to enforce that the negative is always
-      further away from the anchor than the positive.
+    - **absolute_margin**: Absolute margin for hard negative mining: useful to skip candidate negatives whose similarity
+      to the anchor is within a certain margin of the positive pair. A value of 0 can be used to enforce that the negative
+      is always further away from the anchor than the positive.
+    - **relative_margin**: Relative margin for hard negative mining: useful to skip candidate negatives whose similarity
+      to the anchor is within a certain margin of the positive pair. A value of 0.05 means that the negative is at most 95%
+      as similar to the anchor as the positive.
     - **sampling_strategy**: Sampling strategy for negatives: "top" or "random". "top" will always sample the top n
       candidates as negatives, while "random" will sample n negatives randomly from the candidates that satisfy the
       margin or max_score conditions.
+
+    .. tip::
+
+        The excellent `NV-Retriever paper <https://arxiv.org/abs/2407.15831>`_ is a great resource for understanding the
+        details of hard negative mining and how to use it effectively. Notably, it reaches the strongest performance using
+        these settings::
+
+            dataset = mine_hard_negatives(
+                dataset=dataset,
+                model=model,
+                relative_margin=0.05,         # 0.05 means that the negative is at most 95% as similar to the anchor as the positive
+                num_negatives=num_negatives,  # 10 or less is recommended
+                sampling_strategy="top",      # "top" means that we sample the top candidates as negatives
+                batch_size=batch_size,        # Adjust as needed
+                use_faiss=True,               # Optional: Use faiss/faiss-gpu for faster similarity search
+            )
+
+        This corresponds with the `TopK-PercPos (95%)` mining method.
 
     Example:
 
@@ -589,33 +612,32 @@ def mine_hard_negatives(
         ...     range_min=10,
         ...     range_max=50,
         ...     max_score=0.8,
-        ...     margin=0.1,
+        ...     relative_margin=0.05,
         ...     num_negatives=5,
         ...     sampling_strategy="random",
         ...     batch_size=128,
         ...     use_faiss=True,
         ... )
-        Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 784/784 [00:43<00:00, 17.83it/s]
-        Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 784/784 [00:07<00:00, 99.60it/s]
-        Querying FAISS index: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████| 784/784 [00:00<00:00, 884.99it/s]
+        Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████| 588/588 [00:32<00:00, 18.07it/s]
+        Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████| 784/784 [00:08<00:00, 96.41it/s]
+        Querying FAISS index: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████| 7/7 [00:06<00:00,  1.06it/s]
         Metric       Positive       Negative     Difference
-        Count         100,231        431,255        431,255
-        Mean           0.6866         0.4289         0.2804
-        Median         0.7010         0.4193         0.2740
-        Std            0.1125         0.0754         0.0999
-        Min            0.0303         0.1720         0.1001
-        25%            0.6221         0.3747         0.1991
-        50%            0.7010         0.4193         0.2740
-        75%            0.7667         0.4751         0.3530
-        Max            0.9584         0.7743         0.7003
-        Skipped 1289492 potential negatives (25.23%) due to the margin of 0.1.
-        Skipped 39 potential negatives (0.00%) due to the maximum score of 0.8.
-        Could not find enough negatives for 69900 samples (13.95%). Consider adjusting the range_max, range_min, margin and max_score parameters if you'd like to find more valid negatives.
-        >>> # Note: The minimum similarity difference is 0.1001 due to our margin of 0.1
+        Count         100,231        487,865
+        Mean           0.6866         0.4194         0.2752
+        Median         0.7010         0.4102         0.2760
+        Std            0.1125         0.0719         0.1136
+        Min            0.0303         0.1702         0.0209
+        25%            0.6221         0.3672         0.1899
+        50%            0.7010         0.4102         0.2760
+        75%            0.7667         0.4647         0.3590
+        Max            0.9584         0.7621         0.7073
+        Skipped 427,503 potential negatives (8.36%) due to the relative_margin of 0.05.
+        Skipped 978 potential negatives (0.02%) due to the max_score of 0.8.
+        Could not find enough negatives for 13290 samples (2.65%). Consider adjusting the range_max, range_min, relative_margin and max_score parameters if you'd like to find more valid negatives.
         >>> dataset
         Dataset({
             features: ['query', 'answer', 'negative'],
-            num_rows: 431255
+            num_rows: 487865
         })
         >>> dataset[0]
         {
@@ -638,7 +660,11 @@ def mine_hard_negatives(
         range_max (int, optional): Maximum rank of the closest matches to consider as negatives. Defaults to None.
         max_score (float, optional): Maximum score to consider as a negative. Defaults to None.
         min_score (float, optional): Minimum score to consider as a negative. Defaults to None.
-        margin (float, optional): Margin for hard negative mining. Defaults to None.
+        absolute_margin (float, optional): Absolute margin for hard negative mining, i.e. the minimum distance between
+            the positive similarity and the negative similarity. Defaults to None.
+        relative_margin (float, optional): Relative margin for hard negative mining, i.e. the maximum ratio between
+            the positive similarity and the negative similarity. A value of 0.05 means that the negative is at most
+            95% as similar to the anchor as the positive. Defaults to None.
         num_negatives (int): Number of negatives to sample. Defaults to 3.
         sampling_strategy (Literal["random", "top"]): Sampling strategy for negatives: "top" or "random". Defaults to "top".
         include_positives (bool): Whether to include the positives in the negative candidates.
@@ -661,6 +687,7 @@ def mine_hard_negatives(
             ["cuda:0", "cuda:1", ...] or ["cpu", "cpu", "cpu", "cpu"].
         verbose (bool): Whether to print statistics and logging. Defaults to True.
         as_triplets (bool, optional): Deprecated. Use `output_format` instead. Defaults to None.
+        margin (float, optional): Deprecated. Use `absolute_margin` or `relative_margin` instead. Defaults to None.
 
     Returns:
         Dataset: A dataset containing (anchor, positive, negative) triplets, (anchor, passage, label) text tuples with
@@ -708,6 +735,13 @@ def mine_hard_negatives(
             )
             output_format = "n-tuple"
 
+    if margin is not None:
+        absolute_margin = margin
+        logger.warning(
+            "The `margin` parameter is deprecated. Use the `absolute_margin` and/or `relative_margin` parameter instead. "
+            f"Setting `absolute_margin` to `{absolute_margin}`."
+        )
+
     # To avoid re-embedding the same query multiple times, we keep a counter of the number of positives per query
     positives_per_query = list(
         dataset.to_pandas().groupby(anchor_column_name).count().to_dict()[positive_column_name].values()
@@ -715,7 +749,7 @@ def mine_hard_negatives(
     max_positives = max(positives_per_query)
 
     if range_max is None:
-        if margin is not None or max_score is not None:
+        if absolute_margin is not None or relative_margin is not None or max_score is not None:
             # max_positives + 10 * num_negatives negatives because some might be skipped, and range_min skipped
             range_max = range_min + (num_negatives * 10) + max_positives
         else:
@@ -847,7 +881,9 @@ def mine_hard_negatives(
     del corpus_embeddings
 
     # Rescore with cross_encoder
-    if cross_encoder is not None and (margin is not None or max_score is not None):
+    if cross_encoder is not None and (
+        absolute_margin is not None or relative_margin is not None or max_score is not None
+    ):
         for idx, candidate_idx in tqdm(enumerate(indices), desc="Rescoring with CrossEncoder", total=len(indices)):
             query = queries[idx]
             candidate_passages = [corpus[_idx] for _idx in candidate_idx]
@@ -876,7 +912,7 @@ def mine_hard_negatives(
     num_candidates = scores.numel()
 
     # Remove based on margin
-    if margin is not None:
+    if absolute_margin is not None or relative_margin is not None:
         # If we have a margin, we will remove candidates that are too close to the positive pair
         # If there are multiple positives, we need to define which one to use for the margin
         # To be on the safe side, we will use the _minimum_ positive score (i.e., harder positive) for the margin
@@ -886,16 +922,23 @@ def mine_hard_negatives(
             max_positive_scores[q_idx] = torch.min(positive_scores[start_idx : start_idx + n_positives[q_idx]])
             start_idx += n_positives[q_idx - 1]
 
-        removed_indices = scores + margin > max_positive_scores.repeat(scores.size(1), 1).T
-        scores[removed_indices] = -float("inf")
+        if absolute_margin is not None:
+            removed_indices = scores + absolute_margin > max_positive_scores.repeat(scores.size(1), 1).T
+            scores[removed_indices] = -float("inf")
 
-        num_skipped = removed_indices.sum().item()
-        if num_skipped:
-            log_counters["margin"] = {
-                "skipped": num_skipped,
-                "ratio": num_skipped / num_candidates,
-            }
-            num_candidates -= num_skipped
+            num_skipped = removed_indices.sum().item()
+            if num_skipped:
+                log_counters["absolute_margin"] = {"skipped": num_skipped, "ratio": num_skipped / num_candidates}
+                num_candidates -= num_skipped
+
+        if relative_margin is not None:
+            removed_indices = scores > max_positive_scores.repeat(scores.size(1), 1).T * (1 - relative_margin)
+            scores[removed_indices] = -float("inf")
+
+            num_skipped = removed_indices.sum().item()
+            if num_skipped:
+                log_counters["relative_margin"] = {"skipped": num_skipped, "ratio": num_skipped / num_candidates}
+                num_candidates -= num_skipped
 
     # Remove based on max_score
     if max_score is not None:
@@ -1077,26 +1120,28 @@ def mine_hard_negatives(
                 )
             )
 
-        if "margin" in log_counters:
-            print(
-                f"Skipped {log_counters['margin']['skipped']} potential negatives ({log_counters['margin']['ratio']:.2%}) due to the margin of {margin}."
-            )
-        if "max_score" in log_counters:
-            print(
-                f"Skipped {log_counters['max_score']['skipped']} potential negatives ({log_counters['max_score']['ratio']:.2%}) due to the maximum score of {max_score}."
-            )
-        if "min_score" in log_counters:
-            print(
-                f"Skipped {log_counters['min_score']['skipped']} potential negatives ({log_counters['min_score']['ratio']:.2%}) due to the minimum score of {min_score}."
-            )
+        for param_name, param_value in [
+            ("absolute_margin", absolute_margin),
+            ("relative_margin", relative_margin),
+            ("max_score", max_score),
+            ("min_score", min_score),
+        ]:
+            if param_name in log_counters:
+                skipped = log_counters[param_name]["skipped"]
+                ratio = log_counters[param_name]["ratio"]
+                print(
+                    f"Skipped {skipped:,} potential negatives ({ratio:.2%}) due to the {param_name} of {param_value}."
+                )
 
         missing_negatives = (num_negatives * len(dataset)) - len(negative_scores)
         if missing_negatives > 0:
             solutions = ["range_max"]
             if range_min > 0:
                 solutions.append("range_min")
-            if margin is not None:
-                solutions.append("margin")
+            if absolute_margin is not None:
+                solutions.append("absolute_margin")
+            if relative_margin is not None:
+                solutions.append("relative_margin")
             if max_score is not None:
                 solutions.append("max_score")
             considerations = ", ".join(solutions[:-1])
