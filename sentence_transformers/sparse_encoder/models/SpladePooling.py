@@ -28,7 +28,6 @@ class SpladePooling(nn.Module):
 
     def __init__(
         self,
-        word_embedding_dimension: int,
         pooling_strategy: str = "max",
     ) -> None:
         super().__init__()
