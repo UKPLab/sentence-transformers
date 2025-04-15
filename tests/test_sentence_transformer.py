@@ -376,6 +376,27 @@ def test_save_load_prompts() -> None:
         assert fresh_model.default_prompt_name == "query"
 
 
+def test_prompt_output_value_None(stsb_bert_tiny_model_reused) -> None:
+    model = stsb_bert_tiny_model_reused
+    outputs = model.encode(
+        ["Text one", "Text two"],
+        prompt="query: ",
+        output_value=None,
+    )
+    assert len(outputs) == 2
+    assert isinstance(outputs, list)
+    expected_keys = {
+        "input_ids",
+        "token_type_ids",
+        "attention_mask",
+        "sentence_embedding",
+        "token_embeddings",
+        "prompt_length",
+    }
+    assert set(outputs[0].keys()) == expected_keys
+    assert set(outputs[1].keys()) == expected_keys
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
 def test_load_with_torch_dtype() -> None:
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")

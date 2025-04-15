@@ -700,9 +700,15 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                         embeddings.append(token_emb[0 : last_mask_id + 1])
                 elif output_value is None:  # Return all outputs
                     embeddings = []
-                    for sent_idx in range(len(out_features["sentence_embedding"])):
-                        row = {name: out_features[name][sent_idx] for name in out_features}
-                        embeddings.append(row)
+                    for idx in range(len(out_features["sentence_embedding"])):
+                        batch_item = {}
+                        for name, value in out_features.items():
+                            try:
+                                batch_item[name] = value[idx]
+                            except TypeError:
+                                # Handle non-indexable values (like prompt_length)
+                                batch_item[name] = value
+                        embeddings.append(batch_item)
                 else:  # Sentence embeddings
                     embeddings = out_features[output_value]
                     embeddings = embeddings.detach()
