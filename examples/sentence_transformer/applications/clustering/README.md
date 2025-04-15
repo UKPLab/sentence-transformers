@@ -51,6 +51,6 @@ For each topic, you want to extract the words that describe this topic:
 
 ![20news](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/20news_top2vec.png) 
 
-Sentence-Transformers can be used to identify these topics in a collection of sentences, paragraphs or short documents. For an excellent tutorial, see [Topic Modeling with BERT](https://towardsdatascience.com/topic-modeling-with-bert-779f7db187e6) as well as the [BERTopic](https://github.com/MaartenGr/BERTopic) and [Top2Vec](https://github.com/ddangelov/Top2Vec) repositories.
- 
+Sentence-Transformers can be used to identify these topics in a collection of sentences, paragraphs or short documents. For an excellent tutorial, see [Topic Modeling with BERT](https://medium.com/data-science/topic-modeling-with-bert-779f7db187e6) as well as the [BERTopic](https://github.com/MaartenGr/BERTopic) and [Top2Vec](https://github.com/ddangelov/Top2Vec) repositories.
+
 Image source: [Top2Vec: Distributed Representations of Topics](https://arxiv.org/abs/2008.09470)
