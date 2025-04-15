@@ -776,7 +776,16 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
 
     def save_pretrained(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
         """
-        Saves the model and tokenizer to path; identical to `save`
+        Save the model and tokenizer to the specified path.
+
+        Args:
+            path (str): Directory where the model should be saved
+            safe_serialization (bool, optional): Whether to save using `safetensors` or the traditional
+                PyTorch way. Defaults to True.
+            **kwargs: Additional arguments passed to the underlying save methods of the model and tokenizer.
+
+        Returns:
+            None
         """
         return self.save(path, safe_serialization=safe_serialization, **kwargs)
 
