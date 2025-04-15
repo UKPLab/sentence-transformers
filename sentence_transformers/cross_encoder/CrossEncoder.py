@@ -22,6 +22,7 @@ from transformers import (
     AutoTokenizer,
     PretrainedConfig,
     PreTrainedModel,
+    PreTrainedTokenizer,
 )
 from transformers.utils import PushToHubMixin
 from typing_extensions import deprecated
@@ -188,7 +189,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
 
         if "model_max_length" not in tokenizer_kwargs and max_length is not None:
             tokenizer_kwargs["model_max_length"] = max_length
-        self.tokenizer = AutoTokenizer.from_pretrained(
+        self.tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
             model_name_or_path,
             cache_dir=cache_folder,
             trust_remote_code=trust_remote_code,
