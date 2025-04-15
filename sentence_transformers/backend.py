@@ -13,7 +13,7 @@ from sentence_transformers.util import disable_datasets_caching, is_datasets_ava
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentence_transformers.SentenceTransformer import SentenceTransformer
+    from sentence_transformers import CrossEncoder, SentenceTransformer
 
     try:
         from optimum.intel import OVQuantizationConfig
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 def export_optimized_onnx_model(
-    model: SentenceTransformer,
+    model: SentenceTransformer | CrossEncoder,
     optimization_config: OptimizationConfig | Literal["O1", "O2", "O3", "O4"],
     model_name_or_path: str,
     push_to_hub: bool = False,
@@ -34,7 +34,7 @@ def export_optimized_onnx_model(
     file_suffix: str | None = None,
 ) -> None:
     """
-    Export an optimized ONNX model from a SentenceTransformer model.
+    Export an optimized ONNX model from a SentenceTransformer or CrossEncoder model.
 
     The O1-O4 optimization levels are defined by Optimum and are documented here:
     https://huggingface.co/docs/optimum/main/en/onnxruntime/usage_guides/optimization
@@ -46,10 +46,14 @@ def export_optimized_onnx_model(
     - O3: same as O2 with GELU approximation.
     - O4: same as O3 with mixed precision (fp16, GPU-only)
 
-    See https://sbert.net/docs/sentence_transformer/usage/efficiency.html for more information & benchmarks.
+    See the following pages for more information & benchmarks:
+
+    - `Sentence Transformer > Usage > Speeding up Inference <https://sbert.net/docs/sentence_transformer/usage/efficiency.html>`_
+    - `Cross Encoder > Usage > Speeding up Inference <https://sbert.net/docs/cross_encoder/usage/efficiency.html>`_
 
     Args:
-        model (SentenceTransformer): The SentenceTransformer model to be optimized. Must be loaded with `backend="onnx"`.
+        model (SentenceTransformer | CrossEncoder): The SentenceTransformer or CrossEncoder model to be optimized.
+            Must be loaded with `backend="onnx"`.
         optimization_config (OptimizationConfig | Literal["O1", "O2", "O3", "O4"]): The optimization configuration or level.
         model_name_or_path (str): The path or Hugging Face Hub repository name where the optimized model will be saved.
         push_to_hub (bool, optional): Whether to push the optimized model to the Hugging Face Hub. Defaults to False.
@@ -58,17 +62,17 @@ def export_optimized_onnx_model(
 
     Raises:
         ImportError: If the required packages `optimum` and `onnxruntime` are not installed.
-        ValueError: If the provided model is not a valid SentenceTransformer model loaded with `backend="onnx"`.
+        ValueError: If the provided model is not a valid SentenceTransformer or CrossEncoder model loaded with `backend="onnx"`.
         ValueError: If the provided optimization_config is not valid.
 
     Returns:
         None
     """
-    from sentence_transformers import SentenceTransformer
+    from sentence_transformers import CrossEncoder, SentenceTransformer
     from sentence_transformers.models.Transformer import Transformer
 
     try:
-        from optimum.onnxruntime import ORTModelForFeatureExtraction, ORTOptimizer
+        from optimum.onnxruntime import ORTModelForFeatureExtraction, ORTModelForSequenceClassification, ORTOptimizer
         from optimum.onnxruntime.configuration import AutoOptimizationConfig
     except ImportError:
         raise ImportError(
@@ -77,17 +81,22 @@ def export_optimized_onnx_model(
             "or `pip install optimum[onnxruntime-gpu]`"
         )
 
-    if (
-        not isinstance(model, SentenceTransformer)
-        or not len(model)
-        or not isinstance(model[0], Transformer)
-        or not isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
-    ):
+    viable_st_model = (
+        isinstance(model, SentenceTransformer)
+        and len(model)
+        and isinstance(model[0], Transformer)
+        and isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
+    )
+    viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, ORTModelForSequenceClassification)
+    if not (viable_st_model or viable_ce_model):
         raise ValueError(
-            'The model must be a Transformer-based SentenceTransformer model loaded with `backend="onnx"`.'
+            'The model must be a Transformer-based SentenceTransformer or CrossEncoder model loaded with `backend="onnx"`.'
         )
 
-    ort_model: ORTModelForFeatureExtraction = model[0].auto_model
+    if viable_st_model:
+        ort_model: ORTModelForFeatureExtraction = model[0].auto_model
+    else:
+        ort_model: ORTModelForSequenceClassification = model.model
     optimizer = ORTOptimizer.from_pretrained(ort_model)
 
     if isinstance(optimization_config, str):
@@ -111,11 +120,12 @@ def export_optimized_onnx_model(
         create_pr=create_pr,
         file_suffix=file_suffix,
         backend="onnx",
+        model=model,
     )
 
 
 def export_dynamic_quantized_onnx_model(
-    model: SentenceTransformer,
+    model: SentenceTransformer | CrossEncoder,
     quantization_config: QuantizationConfig | Literal["arm64", "avx2", "avx512", "avx512_vnni"],
     model_name_or_path: str,
     push_to_hub: bool = False,
@@ -123,16 +133,20 @@ def export_dynamic_quantized_onnx_model(
     file_suffix: str | None = None,
 ) -> None:
     """
-    Export a quantized ONNX model from a SentenceTransformer model.
+    Export a quantized ONNX model from a SentenceTransformer or CrossEncoder model.
 
     This function applies dynamic quantization, i.e. without a calibration dataset.
     Each of the default quantization configurations quantize the model to int8, allowing
     for faster inference on CPUs, but are likely slower on GPUs.
 
-    See https://sbert.net/docs/sentence_transformer/usage/efficiency.html for more information & benchmarks.
+    See the following pages for more information & benchmarks:
+
+    - `Sentence Transformer > Usage > Speeding up Inference <https://sbert.net/docs/sentence_transformer/usage/efficiency.html>`_
+    - `Cross Encoder > Usage > Speeding up Inference <https://sbert.net/docs/cross_encoder/usage/efficiency.html>`_
 
     Args:
-        model (SentenceTransformer): The SentenceTransformer model to be quantized. Must be loaded with `backend="onnx"`.
+        model (SentenceTransformer | CrossEncoder): The SentenceTransformer or CrossEncoder model to be quantized.
+            Must be loaded with `backend="onnx"`.
         quantization_config (QuantizationConfig): The quantization configuration.
         model_name_or_path (str): The path or Hugging Face Hub repository name where the quantized model will be saved.
         push_to_hub (bool, optional): Whether to push the quantized model to the Hugging Face Hub. Defaults to False.
@@ -141,17 +155,17 @@ def export_dynamic_quantized_onnx_model(
 
     Raises:
         ImportError: If the required packages `optimum` and `onnxruntime` are not installed.
-        ValueError: If the provided model is not a valid SentenceTransformer model loaded with `backend="onnx"`.
+        ValueError: If the provided model is not a valid SentenceTransformer or CrossEncoder model loaded with `backend="onnx"`.
         ValueError: If the provided quantization_config is not valid.
 
     Returns:
         None
     """
-    from sentence_transformers import SentenceTransformer
+    from sentence_transformers import CrossEncoder, SentenceTransformer
     from sentence_transformers.models.Transformer import Transformer
 
     try:
-        from optimum.onnxruntime import ORTModelForFeatureExtraction, ORTQuantizer
+        from optimum.onnxruntime import ORTModelForFeatureExtraction, ORTModelForSequenceClassification, ORTQuantizer
         from optimum.onnxruntime.configuration import AutoQuantizationConfig
     except ImportError:
         raise ImportError(
@@ -160,17 +174,22 @@ def export_dynamic_quantized_onnx_model(
             "or `pip install optimum[onnxruntime-gpu]`"
         )
 
-    if (
-        not isinstance(model, SentenceTransformer)
-        or not len(model)
-        or not isinstance(model[0], Transformer)
-        or not isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
-    ):
+    viable_st_model = (
+        isinstance(model, SentenceTransformer)
+        and len(model)
+        and isinstance(model[0], Transformer)
+        and isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
+    )
+    viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, ORTModelForSequenceClassification)
+    if not (viable_st_model or viable_ce_model):
         raise ValueError(
-            'The model must be a Transformer-based SentenceTransformer model loaded with `backend="onnx"`.'
+            'The model must be a Transformer-based SentenceTransformer or CrossEncoder model loaded with `backend="onnx"`.'
         )
 
-    ort_model: ORTModelForFeatureExtraction = model[0].auto_model
+    if viable_st_model:
+        ort_model: ORTModelForFeatureExtraction = model[0].auto_model
+    else:
+        ort_model: ORTModelForSequenceClassification = model.model
     quantizer = ORTQuantizer.from_pretrained(ort_model)
 
     if isinstance(quantization_config, str):
@@ -195,11 +214,12 @@ def export_dynamic_quantized_onnx_model(
         create_pr=create_pr,
         file_suffix=file_suffix,
         backend="onnx",
+        model=model,
     )
 
 
 def export_static_quantized_openvino_model(
-    model: SentenceTransformer,
+    model: SentenceTransformer | CrossEncoder,
     quantization_config: OVQuantizationConfig | dict | None,
     model_name_or_path: str,
     dataset_name: str | None = None,
@@ -211,16 +231,20 @@ def export_static_quantized_openvino_model(
     file_suffix: str = "qint8_quantized",
 ) -> None:
     """
-    Export a quantized OpenVINO model from a SentenceTransformer model.
+    Export a quantized OpenVINO model from a SentenceTransformer or CrossEncoder model.
 
     This function applies Post-Training Static Quantization (PTQ) using a calibration dataset, which calibrates
     quantization constants without requiring model retraining. Each default quantization configuration converts
     the model to int8 precision, enabling faster inference while maintaining accuracy.
 
-    See https://sbert.net/docs/sentence_transformer/usage/efficiency.html for more information & benchmarks.
+    See the following pages for more information & benchmarks:
+
+    - `Sentence Transformer > Usage > Speeding up Inference <https://sbert.net/docs/sentence_transformer/usage/efficiency.html>`_
+    - `Cross Encoder > Usage > Speeding up Inference <https://sbert.net/docs/cross_encoder/usage/efficiency.html>`_
 
     Args:
-        model (SentenceTransformer): The SentenceTransformer model to be quantized. Must be loaded with `backend="openvino"`.
+        model (SentenceTransformer | CrossEncoder): The SentenceTransformer or CrossEncoder model to be quantized.
+            Must be loaded with `backend="openvino"`.
         quantization_config (OVQuantizationConfig | dict | None): The quantization configuration. If None, default values are used.
         model_name_or_path (str): The path or Hugging Face Hub repository name where the quantized model will be saved.
         dataset_name(str, optional): The name of the dataset to load for calibration.
@@ -234,17 +258,23 @@ def export_static_quantized_openvino_model(
 
     Raises:
         ImportError: If the required packages `optimum` and `openvino` are not installed.
-        ValueError: If the provided model is not a valid SentenceTransformer model loaded with `backend="openvino"`.
+        ValueError: If the provided model is not a valid SentenceTransformer or CrossEncoder model loaded with `backend="openvino"`.
         ValueError: If the provided quantization_config is not valid.
 
     Returns:
         None
     """
-    from sentence_transformers import SentenceTransformer
+    from sentence_transformers import CrossEncoder, SentenceTransformer
     from sentence_transformers.models.Transformer import Transformer
 
     try:
-        from optimum.intel import OVConfig, OVModelForFeatureExtraction, OVQuantizationConfig, OVQuantizer
+        from optimum.intel import (
+            OVConfig,
+            OVModelForFeatureExtraction,
+            OVModelForSequenceClassification,
+            OVQuantizationConfig,
+            OVQuantizer,
+        )
     except ImportError:
         raise ImportError(
             "Please install datasets, optimum-intel and openvino to use this function. "
@@ -255,20 +285,25 @@ def export_static_quantized_openvino_model(
             "Please install datasets to use this function. You can install it with pip: `pip install datasets`"
         )
 
-    if (
-        not isinstance(model, SentenceTransformer)
-        or not len(model)
-        or not isinstance(model[0], Transformer)
-        or not isinstance(model[0].auto_model, OVModelForFeatureExtraction)
-    ):
+    viable_st_model = (
+        isinstance(model, SentenceTransformer)
+        and len(model)
+        and isinstance(model[0], Transformer)
+        and isinstance(model[0].auto_model, OVModelForFeatureExtraction)
+    )
+    viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, OVModelForSequenceClassification)
+    if not (viable_st_model or viable_ce_model):
         raise ValueError(
-            'The model must be a Transformer-based SentenceTransformer model loaded with `backend="openvino"`.'
+            'The model must be a Transformer-based SentenceTransformer or CrossEncoder model loaded with `backend="openvino"`.'
         )
 
     if quantization_config is None:
         quantization_config = OVQuantizationConfig()
 
-    ov_model: OVModelForFeatureExtraction = model[0].auto_model
+    if viable_st_model:
+        ov_model: OVModelForFeatureExtraction = model[0].auto_model
+    else:
+        ov_model: OVModelForSequenceClassification = model.model
     ov_config = OVConfig(quantization_config=quantization_config)
     quantizer = OVQuantizer.from_pretrained(ov_model)
 
@@ -306,6 +341,7 @@ def export_static_quantized_openvino_model(
         create_pr=create_pr,
         file_suffix=file_suffix,
         backend="openvino",
+        model=model,
     )
 
 
@@ -318,7 +354,10 @@ def save_or_push_to_hub_model(
     create_pr: bool = False,
     file_suffix: str | None = None,
     backend: str = "onnx",
+    model: SentenceTransformer | CrossEncoder | None = None,
 ):
+    from sentence_transformers import CrossEncoder, SentenceTransformer
+
     if backend == "onnx":
         file_name = f"model_{file_suffix}.onnx"
     elif backend == "openvino":
@@ -349,7 +388,8 @@ def save_or_push_to_hub_model(
             commit_description = ""
             if create_pr:
                 opt_config_string = repr(config).replace("(", "(\n\t").replace(", ", ",\n\t").replace(")", "\n)")
-                commit_description = f"""\
+                if model is None or isinstance(model, SentenceTransformer):
+                    commit_description = f"""\
 Hello!
 
 *This pull request has been automatically generated from the [`{export_function_name}`](https://sbert.net/docs/package_reference/util.html#sentence_transformers.backend.{export_function_name}) function from the Sentence Transformers library.*
@@ -379,6 +419,44 @@ print(embeddings.shape)
 
 similarities = model.similarity(embeddings, embeddings)
 print(similarities)
+```
+"""
+                elif isinstance(model, CrossEncoder):
+                    commit_description = f"""\
+Hello!
+
+*This pull request has been automatically generated from the [`{export_function_name}`](https://sbert.net/docs/package_reference/util.html#sentence_transformers.backend.{export_function_name}) function from the Sentence Transformers library.*
+
+## Config
+```python
+{opt_config_string}
+```
+
+## Tip:
+Consider testing this pull request before merging by loading the model from this PR with the `revision` argument:
+```python
+from sentence_transformers import CrossEncoder
+
+# TODO: Fill in the PR number
+pr_number = 2
+model = CrossEncoder(
+    "{model_name_or_path}",
+    revision=f"refs/pr/{{pr_number}}",
+    backend="{backend}",
+    model_kwargs={{"file_name": "{file_name}"}},
+)
+
+# Verify that everything works as expected
+query = "Which planet is known as the Red Planet?"
+passages = [
+	"Venus is often called Earth's twin because of its similar size and proximity.",
+	"Mars, known for its reddish appearance, is often referred to as the Red Planet.",
+	"Jupiter, the largest planet in our solar system, has a prominent red spot.",
+	"Saturn, famous for its rings, is sometimes mistaken for the Red Planet."
+]
+
+scores = model.predict([(query, passage) for passage in passages])
+print(scores)
 ```
 """
 
