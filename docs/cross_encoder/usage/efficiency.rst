@@ -137,7 +137,7 @@ If the model path or repository already contains a model in ONNX format, Sentenc
 
    If you wish to use the ONNX model outside of Sentence Transformers, you might need to apply your chosen activation function (e.g. Sigmoid) to get identical results as the Cross Encoder in Sentence Transformers.
 
-All keyword arguments passed via ``model_kwargs`` will be passed on to :meth:`ORTModelForSequenceClassification.from_pretrained <optimum.onnxruntime.ORTModelForSequenceClassification.from_pretrained>`. Some notable arguments include:
+All keyword arguments passed via ``model_kwargs`` will be passed on to :meth:`ORTModelForSequenceClassification.from_pretrained <optimum.onnxruntime.ORTModel.from_pretrained>`. Some notable arguments include:
 
 * ``provider``: ONNX Runtime provider to use for loading the model, e.g. ``"CPUExecutionProvider"`` . See https://onnxruntime.ai/docs/execution-providers/ for possible providers. If not specified, the strongest provider (E.g. ``"CUDAExecutionProvider"``) will be used.
 * ``file_name``: The name of the ONNX file to load. If not specified, will default to ``"model.onnx"`` or otherwise ``"onnx/model.onnx"``. This argument is useful for specifying optimized or quantized models.
@@ -164,7 +164,7 @@ Optimizing ONNX Models
 
 .. include:: backend_export_sidebar.rst
 
-ONNX models can be optimized using Optimum, allowing for speedups on CPUs and GPUs alike. To do this, you can use the :func:`~sentence_transformers.backend.export_optimized_onnx_model` function, which saves the optimized in a directory or model repository that you specify. It expects:
+ONNX models can be optimized using `Optimum <https://huggingface.co/docs/optimum/index>`_, allowing for speedups on CPUs and GPUs alike. To do this, you can use the :func:`~sentence_transformers.backend.export_optimized_onnx_model` function, which saves the optimized in a directory or model repository that you specify. It expects:
 
 - ``model``: a Sentence Transformer or Cross Encoder model loaded with the ONNX backend.
 - ``optimization_config``: ``"O1"``, ``"O2"``, ``"O3"``, or ``"O4"`` representing optimization levels from :class:`~optimum.onnxruntime.AutoOptimizationConfig`, or an :class:`~optimum.onnxruntime.OptimizationConfig` instance.
@@ -236,7 +236,7 @@ Quantizing ONNX Models
 
 .. include:: backend_export_sidebar.rst
 
-ONNX models can be quantized to int8 precision using Optimum, allowing for faster inference on CPUs. To do this, you can use the :func:`~sentence_transformers.backend.export_dynamic_quantized_onnx_model` function, which saves the quantized in a directory or model repository that you specify. Dynamic quantization, unlike static quantization, does not require a calibration dataset. It expects:
+ONNX models can be quantized to int8 precision using `Optimum <https://huggingface.co/docs/optimum/index>`_, allowing for faster inference on CPUs. To do this, you can use the :func:`~sentence_transformers.backend.export_dynamic_quantized_onnx_model` function, which saves the quantized in a directory or model repository that you specify. Dynamic quantization, unlike static quantization, does not require a calibration dataset. It expects:
 
 - ``model``: a Sentence Transformer or Cross Encoder model loaded with the ONNX backend.
 - ``quantization_config``: ``"arm64"``, ``"avx2"``, ``"avx512"``, or ``"avx512_vnni"`` representing quantization configurations from :class:`~optimum.onnxruntime.AutoQuantizationConfig`, or an :class:`~optimum.onnxruntime.QuantizationConfig` instance.
@@ -369,15 +369,15 @@ Quantizing OpenVINO Models
 
 .. include:: backend_export_sidebar.rst
 
-OpenVINO models can be quantized to int8 precision using Optimum Intel to speed up inference.
+OpenVINO models can be quantized to int8 precision using `Optimum Intel <https://huggingface.co/docs/optimum/main/en/intel/index>`_ to speed up inference.
 To do this, you can use the :func:`~sentence_transformers.backend.export_static_quantized_openvino_model` function,
 which saves the quantized model in a directory or model repository that you specify.
 Post-Training Static Quantization expects:
 
 - ``model``: a Sentence Transformer or Cross Encoder model loaded with the OpenVINO backend.
 - ``quantization_config``: (Optional) The quantization configuration. This parameter accepts either:
-      ``None`` for the default 8-bit quantization, a dictionary representing quantization configurations, or
-      an :class:`~optimum.intel.OVQuantizationConfig` instance.
+  ``None`` for the default 8-bit quantization, a dictionary representing quantization configurations, or
+  an :class:`~optimum.intel.OVQuantizationConfig` instance.
 - ``model_name_or_path``: a path to save the quantized model file, or the repository name if you want to push it to the Hugging Face Hub.
 - ``dataset_name``: (Optional) The name of the dataset to load for calibration. If not specified, defaults to ``sst2`` subset from the ``glue`` dataset.
 - ``dataset_config_name``: (Optional) The specific configuration of the dataset to load.
@@ -467,13 +467,13 @@ The following images show the benchmark results for the different backends on GP
          <b>Datasets: </b> 2000 samples for GPU tests, 1000 samples for CPU tests.
          <ul>
             <li>
-               <a href="https://huggingface.co/datasets/sentence-transformers/stsb">sentence-transformers/stsb</a>: ``sentence1`` and ``sentence2`` columns as pairs, with 38.94 ± 13.97 and 38.96 ± 14.05 characters on average, respectively.
+               <a href="https://huggingface.co/datasets/sentence-transformers/stsb">sentence-transformers/stsb</a>: <code>sentence1</code> and <code>sentence2</code> columns as pairs, with 38.94 ± 13.97 and 38.96 ± 14.05 characters on average, respectively.
             </li>
             <li>
-               <a href="https://huggingface.co/datasets/sentence-transformers/natural-questions">sentence-transformers/natural-questions</a>: ``query`` and ``answer`` columns as pairs, with 46.99 ± 10.98 and 619.63 ± 345.30 characters on average, respectively.
+               <a href="https://huggingface.co/datasets/sentence-transformers/natural-questions">sentence-transformers/natural-questions</a>: <code>query</code> and <code>answer</code> columns as pairs, with 46.99 ± 10.98 and 619.63 ± 345.30 characters on average, respectively.
             </li>
             <li>
-               <a href="https://huggingface.co/datasets/stanfordnlp/imdb">stanfordnlp/imdb</a>: Two variants used from the ``text`` column: first 100 characters (100.00 ± 0.00 characters) and each sample repeated 4 times (16804.25 ± 10178.26 characters).
+               <a href="https://huggingface.co/datasets/stanfordnlp/imdb">stanfordnlp/imdb</a>: Two variants used from the <code>text</code> column: first 100 characters (100.00 ± 0.00 characters) and each sample repeated 4 times (16804.25 ± 10178.26 characters).
             </li>
          </ul>
       </li>
