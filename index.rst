@@ -1,6 +1,10 @@
-.. note::
+.. tip::
 
-   Sentence Transformers v4.0 just released, introducing a new training API for CrossEncoder (a.k.a. reranker) models. Read `Cross Encoder > Training Overview <docs/cross_encoder/training_overview.html>`_ to learn more about the training API, and check out `v4.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v4.0.0>`_ for details on the other changes.
+   Sentence Transformers v4.1 just released, bringing the ONNX and OpenVINO backends to CrossEncoder (a.k.a. reranker) models. Read `Cross Encoder > Usage > Speeding up Inference <docs/cross_encoder/usage/efficiency.html>`_ to read more about the performance boosts that you can expect.
+
+.. tip::
+
+   Sentence Transformers v4.0 recently released, introducing a new training API for CrossEncoder (a.k.a. reranker) models. Read `Cross Encoder > Training Overview <docs/cross_encoder/training_overview.html>`_ to learn more about the training API, and check out `v4.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v4.0.1>`_ for details on the other changes.
 
 SentenceTransformers Documentation
 ==================================
@@ -106,6 +110,7 @@ Consider reading one of the following sections to answer the related questions:
 * Reranker Models:
    * How to **use** Cross Encoder models? `Cross Encoder > Usage <docs/cross_encoder/usage/usage.html>`_
    * What Cross Encoder **models** can I use? `Cross Encoder > Pretrained Models <docs/cross_encoder/pretrained_models.html>`_
+   * How do I make Cross Encoder models **faster**? `Cross Encoder > Usage > Speeding up Inference <docs/cross_encoder/usage/efficiency.html>`_
    * How do I **train/finetune** a Cross Encoder model? `Cross Encoder > Training Overview <docs/cross_encoder/training_overview.html>`_
 
 Citing
