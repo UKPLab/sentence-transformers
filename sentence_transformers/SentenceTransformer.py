@@ -699,10 +699,20 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
                         embeddings.append(token_emb[0 : last_mask_id + 1])
                 elif output_value is None:  # Return all outputs
-                    embeddings = []
-                    for sent_idx in range(len(out_features["sentence_embedding"])):
-                        row = {name: out_features[name][sent_idx] for name in out_features}
-                        embeddings.append(row)
+
+                    def get_outputs_for_batch_idx(batch_idx: int) -> dict[str, Tensor]:
+                        row = {}
+                        for name, value in out_features.items():
+                            try:
+                                row[name] = value[batch_idx]
+                            except TypeError:
+                                # If we try and index a value that is not a list or tensor, we just add it as is
+                                # This is the case for the prompt length, which is a single int
+                                row[name] = value
+                        return row
+
+                    batch_size = len(out_features["sentence_embedding"])
+                    embeddings = [get_outputs_for_batch_idx(idx) for idx in range(batch_size)]
                 else:  # Sentence embeddings
                     embeddings = out_features[output_value]
                     embeddings = embeddings.detach()
