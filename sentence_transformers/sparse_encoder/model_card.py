@@ -30,8 +30,7 @@ if TYPE_CHECKING:
 
 
 class SparseEncoderModelCardCallback(SentenceTransformerModelCardCallback):
-    def __init__(self, default_args_dict: dict[str, Any]) -> None:
-        super().__init__(default_args_dict)
+    pass
 
 
 @dataclass

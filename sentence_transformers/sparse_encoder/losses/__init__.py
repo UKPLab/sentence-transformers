@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from sentence_transformers.sparse_encoder.losses.CSRLoss import CSRLoss
-from sentence_transformers.sparse_encoder.losses.ReconstructionLoss import (
-    ReconstructionLoss,
+from sentence_transformers.sparse_encoder.losses.CSRReconstructionLoss import (
+    CSRReconstructionLoss,
 )
 from sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss import (
     SparseMultipleNegativesRankingLoss,
@@ -10,6 +10,6 @@ from sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingL
 
 __all__ = [
     "CSRLoss",
-    "ReconstructionLoss",
+    "CSRReconstructionLoss",
     "SparseMultipleNegativesRankingLoss",
 ]

@@ -31,24 +31,24 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] | None = None,
         truncate_dim: int | None = None,
     ):
-        super().__init__(
-            sentences1,
-            sentences2,
-            scores,
-            batch_size,
-            main_similarity,
-            similarity_fn_names,
-            name,
-            show_progress_bar,
-            write_csv,
-            precision,
-            truncate_dim,
+        return super().__init__(
+            sentences1=sentences1,
+            sentences2=sentences2,
+            scores=scores,
+            batch_size=batch_size,
+            main_similarity=main_similarity,
+            similarity_fn_names=similarity_fn_names,
+            name=name,
+            show_progress_bar=show_progress_bar,
+            write_csv=write_csv,
+            precision=precision,
+            truncate_dim=truncate_dim,
         )
 
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        return super().__call__(model, output_path, epoch, steps)
+        return super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
 
     def embed_inputs(
         self,
@@ -69,4 +69,4 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
     def store_metrics_in_model_card_data(
         self, model: SparseEncoder, metrics: dict[str, Any], epoch: int = 0, step: int = 0
     ) -> None:
-        model.model_card_data.set_evaluation_metrics(self, metrics, epoch, step)
+        model.model_card_data.set_evaluation_metrics(self.name, metrics, epoch=epoch, step=step)

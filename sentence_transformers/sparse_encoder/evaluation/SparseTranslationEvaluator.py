@@ -27,7 +27,7 @@ class SparseTranslationEvaluator(TranslationEvaluator):
         write_csv: bool = True,
         truncate_dim: int | None = None,
     ):
-        super().__init__(
+        return super().__init__(
             source_sentences,
             target_sentences,
             show_progress_bar=show_progress_bar,
@@ -38,19 +38,10 @@ class SparseTranslationEvaluator(TranslationEvaluator):
             truncate_dim=truncate_dim,
         )
 
-        assert len(self.source_sentences) == len(self.target_sentences)
-
-        if name:
-            name = "_" + name
-
-        self.csv_file = "translation_evaluation" + name + "_results.csv"
-        self.csv_headers = ["epoch", "steps", "src2trg", "trg2src"]
-        self.primary_metric = "mean_accuracy"
-
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        return super().__call__(model, output_path, epoch, steps)
+        return super().__call__(model, output_path=output_path, epoch=epoch, steps=steps)
 
     def embed_inputs(
         self,
@@ -69,4 +60,4 @@ class SparseTranslationEvaluator(TranslationEvaluator):
     def store_metrics_in_model_card_data(
         self, model: SparseEncoder, metrics: dict[str, Any], epoch: int = 0, step: int = 0
     ) -> None:
-        model.model_card_data.set_evaluation_metrics(self, metrics, epoch, step)
+        model.model_card_data.set_evaluation_metrics(self, metrics, epoch=epoch, step=step)

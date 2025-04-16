@@ -91,4 +91,4 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
     """
 
     def __init__(self, model: SparseEncoder, scale: float = 20.0, similarity_fct=util.cos_sim) -> None:
-        super().__init__(model, scale, similarity_fct)
+        super().__init__(model, scale=scale, similarity_fct=similarity_fct)

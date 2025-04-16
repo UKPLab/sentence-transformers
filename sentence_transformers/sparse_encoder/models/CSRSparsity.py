@@ -30,7 +30,7 @@ class TiedTranspose(nn.Module):
 
 class CSRSparsity(nn.Module):
     """
-    CSR (Compressed Sparse Row) Sparsity module.
+    CSR (Contrastive Sparse Representation) Sparsity module.
 
     This module implements the Sparse AutoEncoder architecture based on the paper:
     Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation, https://arxiv.org/abs/2503.01776
@@ -136,14 +136,15 @@ class CSRSparsity(nn.Module):
             ret = ret * info["std"] + info["mu"]
         return ret
 
-    def forward(self, features: torch.Tensor) -> torch.Tensor:
+    def forward(self, features: torch.Tensor, truncate_dim: int | None = None) -> torch.Tensor:
+        k = truncate_dim if truncate_dim is not None else self.k
         x = features["sentence_embedding"]
 
         x, info = self.preprocess(x)
         latents_pre_act = self.encode_pre_act(x)
 
-        latents_k, latents_auxk = self.top_k(latents_pre_act, self.k)
-        latents_4k, _ = self.top_k(latents_pre_act, 4 * self.k)
+        latents_k, latents_auxk = self.top_k(latents_pre_act, k)
+        latents_4k, _ = self.top_k(latents_pre_act, 4 * k)
 
         recons_k = self.decode(latents_k, info)
         recons_4k = self.decode(latents_4k, info)

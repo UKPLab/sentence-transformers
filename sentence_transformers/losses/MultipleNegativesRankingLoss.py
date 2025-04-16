@@ -103,15 +103,15 @@ class MultipleNegativesRankingLoss(nn.Module):
 
         return self.compute_loss_from_embeddings(embeddings)
 
-    def compute_loss_from_embeddings(self, embeddings: list[torch.Tensor]) -> dict[str, torch.Tensor]:
+    def compute_loss_from_embeddings(self, embeddings: list[torch.Tensor]) -> torch.Tensor:
         """
         Compute the multiple negatives ranking loss from embeddings.
 
         Args:
-            embeddings: List of sparse embeddings
+            embeddings: List of embeddings
 
         Returns:
-            Dictionary containing the total loss
+            Loss value
         """
 
         anchors = embeddings[0]  # (batch_size, embedding_dim)

@@ -28,7 +28,7 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
         truncate_dim: int | None = None,
         similarity_fn_names: list[Literal["cosine", "dot", "euclidean", "manhattan"]] | None = None,
     ):
-        super().__init__(
+        return super().__init__(
             sentences1=sentences1,
             sentences2=sentences2,
             labels=labels,
@@ -43,10 +43,10 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        return super().__call__(model, output_path, epoch, steps)
+        return super().__call__(model, output_path=output_path, epoch=epoch, steps=steps)
 
     def compute_metrices(self, model: SparseEncoder) -> dict[str, dict[str, float]]:
-        return super().compute_metrices(model)
+        return super().compute_metrices(model=model)
 
     def embed_inputs(
         self,
@@ -65,4 +65,4 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
     def store_metrics_in_model_card_data(
         self, model: SparseEncoder, metrics: dict[str, Any], epoch: int = 0, step: int = 0
     ) -> None:
-        model.model_card_data.set_evaluation_metrics(self, metrics, epoch, step)
+        model.model_card_data.set_evaluation_metrics(self, metrics, epoch=epoch, step=step)

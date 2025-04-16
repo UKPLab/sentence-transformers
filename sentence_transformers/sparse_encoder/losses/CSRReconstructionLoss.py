@@ -9,10 +9,7 @@ import torch.nn.functional as F
 from sentence_transformers.sparse_encoder import SparseEncoder
 
 
-def normalized_mean_squared_error(
-    reconstruction: torch.Tensor,
-    original_input: torch.Tensor,
-) -> torch.Tensor:
+def normalized_mean_squared_error(reconstruction: torch.Tensor, original_input: torch.Tensor) -> torch.Tensor:
     """
     :param reconstruction: output of Autoencoder.decode (shape: [batch, n_inputs])
     :param original_input: input of Autoencoder.encode (shape: [batch, n_inputs])
@@ -21,9 +18,9 @@ def normalized_mean_squared_error(
     return (((reconstruction - original_input) ** 2).mean(dim=1) / (original_input**2).mean(dim=1)).mean()
 
 
-class ReconstructionLoss(nn.Module):
+class CSRReconstructionLoss(nn.Module):
     """
-    Reconstruction Loss module for Sparse AutoEncoder.
+    CSRReconstruction Loss module for Sparse AutoEncoder.
 
     This module computes the reconstruction loss according to the formula:
     L_recon = L(k) + L(4k)/8 + β*L_aux
@@ -41,7 +38,7 @@ class ReconstructionLoss(nn.Module):
 
     def forward(self, sentence_features: Iterable[dict[str, torch.Tensor]]) -> dict[str, torch.Tensor]:
         """
-        Forward pass of the Reconstruction Loss module.
+        Forward pass of the CSRReconstruction Loss module.
         This method is used when the loss is computed as part of the model's forward pass.
 
         Args:
@@ -56,7 +53,7 @@ class ReconstructionLoss(nn.Module):
 
     def compute_loss_from_embeddings(self, outputs: list[dict[str, torch.Tensor]]) -> dict[str, torch.Tensor]:
         """
-        Compute the reconstruction loss from embeddings.
+        Compute the CSRReconstruction loss from embeddings.
 
         Args:
             outputs: List of dictionaries containing sentence embeddings and their sparse representations
@@ -110,6 +107,4 @@ class ReconstructionLoss(nn.Module):
         Returns:
             Dictionary containing the configuration parameters
         """
-        return {
-            "beta": self.beta,
-        }
+        return {"beta": self.beta}

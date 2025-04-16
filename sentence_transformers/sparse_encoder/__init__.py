@@ -7,11 +7,13 @@ from sentence_transformers.sparse_encoder.evaluation import (
     SparseInformationRetrievalEvaluator,
     SparseMSEEvaluator,
     SparseNanoBEIREvaluator,
+    SparseRerankingEvaluator,
+    SparseTranslationEvaluator,
     SparseTripletEvaluator,
 )
 from sentence_transformers.sparse_encoder.losses import (
     CSRLoss,
-    ReconstructionLoss,
+    CSRReconstructionLoss,
     SparseMultipleNegativesRankingLoss,
 )
 from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
@@ -33,7 +35,7 @@ __all__ = [
     "SpladePooling",
     # Losses
     "CSRLoss",
-    "ReconstructionLoss",
+    "CSRReconstructionLoss",
     "SparseMultipleNegativesRankingLoss",
     # Evaluators
     "SparseBinaryClassificationEvaluator",
@@ -41,11 +43,11 @@ __all__ = [
     "SparseInformationRetrievalEvaluator",
     "SparseMSEEvaluator",
     "SparseNanoBEIREvaluator",
+    "SparseTranslationEvaluator",
+    "SparseRerankingEvaluator",
     "SparseTripletEvaluator",
 ]
 # TODO : Complete the SparseEncoder class
 # TODO : Add tests for all the components
-# TODO : Add in models the possibility to have the MLM head(for splade)
-# TODO : Check for every loss if compatible with the SparseEncoder but should have some minor modifications for the ones not using the utils similarity function
-# TODO : Same for the evaluator
+# TODO : Ask Update to TOM on loss to implement
 # TODO : Add the equivalent of the quantization file for the sparse encoder

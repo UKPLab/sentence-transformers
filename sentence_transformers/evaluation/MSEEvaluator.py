@@ -84,12 +84,6 @@ class MSEEvaluator(SentenceEvaluator):
     ):
         super().__init__()
         self.truncate_dim = truncate_dim
-        with (
-            nullcontext()
-            if self.truncate_dim is None
-            else teacher_model.truncate_sentence_embeddings(self.truncate_dim)
-        ):
-            self.source_embeddings = self.embed_inputs(teacher_model, source_sentences)
         self.target_sentences = target_sentences
         self.show_progress_bar = show_progress_bar
         self.batch_size = batch_size
@@ -99,6 +93,13 @@ class MSEEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps", "MSE"]
         self.write_csv = write_csv
         self.primary_metric = "negative_mse"
+
+        with (
+            nullcontext()
+            if self.truncate_dim is None
+            else teacher_model.truncate_sentence_embeddings(self.truncate_dim)
+        ):
+            self.source_embeddings = self.embed_inputs(teacher_model, source_sentences)
 
     def __call__(self, model: SentenceTransformer, output_path: str = None, epoch=-1, steps=-1) -> dict[str, float]:
         if epoch != -1:

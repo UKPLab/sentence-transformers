@@ -29,7 +29,7 @@ class SparseRerankingEvaluator(RerankingEvaluator):
         truncate_dim: int | None = None,
         mrr_at_k: int | None = None,
     ):
-        super().__init__(
+        return super().__init__(
             samples=samples,
             at_k=at_k,
             name=name,
@@ -45,24 +45,15 @@ class SparseRerankingEvaluator(RerankingEvaluator):
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        return super().__call__(model, output_path, epoch, steps)
+        return super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
 
-    def compute_metrices(
-        self,
-        model: SparseEncoder,
-    ):
+    def compute_metrices(self, model: SparseEncoder):
         return super().compute_metrices(model)
 
-    def compute_metrices_batched(
-        self,
-        model: SparseEncoder,
-    ):
+    def compute_metrices_batched(self, model: SparseEncoder):
         return super().compute_metrices_batched(model)
 
-    def compute_metrices_individual(
-        self,
-        model: SparseEncoder,
-    ):
+    def compute_metrices_individual(self, model: SparseEncoder):
         return super().compute_metrices_individual(model)
 
     def embed_inputs(
@@ -83,4 +74,4 @@ class SparseRerankingEvaluator(RerankingEvaluator):
     def store_metrics_in_model_card_data(
         self, model: SparseEncoder, metrics: dict[str, Any], epoch: int = 0, step: int = 0
     ) -> None:
-        model.model_card_data.set_evaluation_metrics(self, metrics, epoch, step)
+        model.model_card_data.set_evaluation_metrics(self, metrics, epoch=epoch, step=step)

@@ -197,10 +197,7 @@ class RerankingEvaluator(SentenceEvaluator):
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
 
-    def compute_metrices(
-        self,
-        model: SentenceTransformer,
-    ):
+    def compute_metrices(self, model: SentenceTransformer):
         """
         Computes the evaluation metrics for the given model.
 
@@ -216,10 +213,7 @@ class RerankingEvaluator(SentenceEvaluator):
             else self.compute_metrices_individual(model)
         )
 
-    def compute_metrices_batched(
-        self,
-        model: SentenceTransformer,
-    ):
+    def compute_metrices_batched(self, model: SentenceTransformer):
         """
         Computes the evaluation metrics in a batched way, by batching all queries and all documents together.
 
@@ -287,10 +281,7 @@ class RerankingEvaluator(SentenceEvaluator):
 
         return {"map": mean_ap, "mrr": mean_mrr, "ndcg": mean_ndcg}
 
-    def compute_metrices_individual(
-        self,
-        model: SentenceTransformer,
-    ):
+    def compute_metrices_individual(self, model: SentenceTransformer):
         """
         Computes the evaluation metrics individually by embedding every (query, positive, negative) tuple individually.
 

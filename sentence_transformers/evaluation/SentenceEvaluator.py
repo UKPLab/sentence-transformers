@@ -115,6 +115,6 @@ class SentenceEvaluator:
             sentences (str | list[str] | np.ndarray): Text that we are embedding
 
         Returns:
-            list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]: The associate Embedding
+            list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]: The associated embedding
         """
         return model.encode(sentences, **kwargs)

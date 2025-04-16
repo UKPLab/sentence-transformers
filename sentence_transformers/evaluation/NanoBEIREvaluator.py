@@ -246,7 +246,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
             "score_functions": score_functions,
             "main_score_function": main_score_function,
         }
-
+        self.information_retrieval_class = InformationRetrievalEvaluator
         self.evaluators = [
             self._load_dataset(name, **ir_evaluator_kwargs)
             for name in tqdm(self.dataset_names, desc="Loading NanoBEIR datasets", leave=False)
@@ -412,7 +412,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
         if self.corpus_prompts is not None:
             ir_evaluator_kwargs["corpus_prompt"] = self.corpus_prompts.get(dataset_name, None)
         human_readable_name = self._get_human_readable_name(dataset_name)
-        return InformationRetrievalEvaluator(
+        return self.information_retrieval_class(
             queries=queries_dict,
             corpus=corpus_dict,
             relevant_docs=qrels_dict,

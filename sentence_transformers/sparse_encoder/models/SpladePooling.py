@@ -21,15 +21,9 @@ class SpladePooling(nn.Module):
 
     """
 
-    SPLADE_POOLING_MODES = (
-        "sum",
-        "max",
-    )
+    SPLADE_POOLING_MODES = ("sum", "max")
 
-    def __init__(
-        self,
-        pooling_strategy: str = "max",
-    ) -> None:
+    def __init__(self, pooling_strategy: str = "max") -> None:
         super().__init__()
         self.pooling_strategy = pooling_strategy
         if pooling_strategy not in self.SPLADE_POOLING_MODES:
@@ -37,14 +31,11 @@ class SpladePooling(nn.Module):
         self.config_keys = ["pooling_strategy"]
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        """Forward pass of the mofrom ...models.Pooling import Pooling
-        del.
-
-                Args:
-                    features: Dictionary containing input features with 'mlm_logits' key
-
-                Returns:
-                    Dictionary containing SPLADE pooled embeddings
+        """FForward pass of the model.
+        Args:
+            features: Dictionary containing input features with 'mlm_logits' key
+        Returns:
+            Dictionary containing SPLADE pooled embeddings
         """
         # Get the MLM head logits (shape: batch_size, seq_length, vocab_size)
         mlm_logits = features["mlm_logits"]

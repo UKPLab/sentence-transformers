@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 class SparseEncoderTrainer(SentenceTransformerTrainer):
     # TODO: Check if there is no other things we need to overwrite
+    # TODO: Add for sure _load_from_checkpoint
     # TODO: Add the proper description
-    # TODO: Clean encode implementation
     """
     SparseEncoderTrainer is a simple but feature-complete training and eval loop for PyTorch
     based on the SentenceTransformerTrainer that based on 🤗 Transformers :class:`~transformers.Trainer`.
@@ -175,9 +175,7 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
             tokenizer = model.tokenizer
 
         if data_collator is None:
-            data_collator = SparseEncoderDataCollator(
-                tokenize_fn=model.tokenize,
-            )
+            data_collator = SparseEncoderDataCollator(tokenize_fn=model.tokenize)
 
         for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
             if isinstance(dataset, IterableDataset) and dataset.column_names is None:
@@ -301,10 +299,6 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         Args:
             default_args_dict (Dict[str, Any]): A dictionary of the default training arguments, so we can determine
                 which arguments have been changed for the model card.
-
-        .. note::
-
-            This method can be overriden by subclassing the trainer to remove/customize this callback in custom uses cases
         """
 
         model_card_callback = SparseEncoderModelCardCallback(default_args_dict)

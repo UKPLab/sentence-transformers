@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 class SparseEncoder(SentenceTransformer):
     # TODO: Check if there is no other things we need to overwrite espacially for models specificty in the init
-    # TODO: Look at the overload of encode ? Add handling for dict and list[dict]
     # TODO: Add the proper description with associate example
     # TODO: Clean encode implementation
 
@@ -79,7 +78,7 @@ class SparseEncoder(SentenceTransformer):
         # device: str | None = None,
         # normalize_embeddings: bool = False,
         convert_to_sparse_tensor: bool = True,
-        # topk: int = None,
+        truncate_dim: int = None,
         **kwargs: Any,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
@@ -149,21 +148,6 @@ class SparseEncoder(SentenceTransformer):
 
         return all_embeddings
 
-    def set_topk(self, topk: int) -> None:
-        """
-        Set the number of top-k elements to keep in the sparse representation.
-
-        Args:
-            topk (int): The number of top-k elements to keep. Set to None to disable top-k filtering.
-        """
-        if topk < 0:
-            raise ValueError("Top-k must be an integer")
-        for module in self:
-            if isinstance(module, CSRSparsity):
-                module.topk = topk
-                logger.info(f"Set topk to {topk} in {module.__class__.__name__}")
-                break
-
     def get_sparsity_stats(self, embeddings: torch.Tensor) -> dict[str, float]:
         """
         Calculate sparsity statistics for the given embeddings.
@@ -189,12 +173,7 @@ class SparseEncoder(SentenceTransformer):
         sparsity = 1.0 - (non_zero / total_elements)
         density = 1.0 - sparsity
 
-        return {
-            "sparsity": sparsity,
-            "density": density,
-            "non_zero_count": non_zero,
-            "total_elements": total_elements,
-        }
+        return {"sparsity": sparsity, "density": density, "non_zero_count": non_zero, "total_elements": total_elements}
 
 
 if __name__ == "__main__":

@@ -40,7 +40,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         corpus_prompt: str | None = None,
         corpus_prompt_name: str | None = None,
     ) -> None:
-        super().__init__(
+        return super().__init__(
             queries=queries,
             corpus=corpus,
             relevant_docs=relevant_docs,
@@ -66,12 +66,12 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
-        return super().__call__(model, output_path, epoch, steps, *args, **kwargs)
+        return super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps, *args, **kwargs)
 
     def compute_metrices(
         self, model: SparseEncoder, corpus_model=None, corpus_embeddings: Tensor | None = None
     ) -> dict[str, float]:
-        return super().compute_metrices(model, corpus_model, corpus_embeddings)
+        return super().compute_metrices(model=model, corpus_model=corpus_model, corpus_embeddings=corpus_embeddings)
 
     def embed_inputs(
         self,
@@ -94,4 +94,4 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
     def store_metrics_in_model_card_data(
         self, model: SparseEncoder, metrics: dict[str, Any], epoch: int = 0, step: int = 0
     ) -> None:
-        model.model_card_data.set_evaluation_metrics(self, metrics, epoch, step)
+        model.model_card_data.set_evaluation_metrics(self, metrics, epoch=epoch, step=step)

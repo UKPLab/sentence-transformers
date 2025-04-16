@@ -5,7 +5,7 @@ from collections.abc import Iterable
 import torch
 import torch.nn as nn
 
-from sentence_transformers.sparse_encoder.losses.ReconstructionLoss import ReconstructionLoss
+from sentence_transformers.sparse_encoder.losses.CSRReconstructionLoss import CSRReconstructionLoss
 from sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss import (
     SparseMultipleNegativesRankingLoss,
 )
@@ -14,7 +14,7 @@ from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
 class CSRLoss(nn.Module):
     """
-    CSR Loss module that combines Reconstruction Loss and Sparse Multiple Negatives Ranking Loss.
+    CSR Loss module that combines the CSRReconstruction Loss and Sparse Multiple Negatives Ranking Loss MRL (InfoNCE).
     Based on the paper:
     Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation, https://arxiv.org/abs/2503.01776
 
@@ -26,13 +26,7 @@ class CSRLoss(nn.Module):
     - L_MRL is the Multiple Negatives Ranking Loss
     """
 
-    def __init__(
-        self,
-        model: SparseEncoder,
-        beta: float = 0.1,
-        gamma: float = 1.0,
-        scale: float = 20.0,
-    ):
+    def __init__(self, model: SparseEncoder, beta: float = 0.1, gamma: float = 1.0, scale: float = 20.0):
         super().__init__()
         self.model = model
         self.beta = beta
@@ -40,13 +34,11 @@ class CSRLoss(nn.Module):
         self.scale = scale
 
         # Initialize the component losses
-        self.reconstruction_loss = ReconstructionLoss(model, beta)
+        self.reconstruction_loss = CSRReconstructionLoss(model, beta)
         self.ranking_loss = SparseMultipleNegativesRankingLoss(model, scale)
 
     def forward(
-        self,
-        sentence_features: Iterable[dict[str, torch.Tensor]],
-        labels: torch.Tensor = None,
+        self, sentence_features: Iterable[dict[str, torch.Tensor]], labels: torch.Tensor = None
     ) -> dict[str, torch.Tensor]:
         """
         Forward pass of the CSR Loss module.
@@ -79,8 +71,4 @@ class CSRLoss(nn.Module):
         Returns:
             Dictionary containing the configuration parameters
         """
-        return {
-            "beta": self.beta,
-            "gamma": self.gamma,
-            "scale": self.scale,
-        }
+        return {"beta": self.beta, "gamma": self.gamma, "scale": self.scale}

@@ -26,15 +26,7 @@ class SparseMSEEvaluator(MSEEvaluator):
         write_csv: bool = True,
         truncate_dim: int | None = None,
     ):
-        # Set attributes before calling super().__init__() because SparseMSEEvaluator.embed_inputs()
-        # is called in the superclass constructor.
-        self.batch_size = batch_size
-        self.show_progress_bar = show_progress_bar
-        self.name = name
-        self.write_csv = write_csv
-        self.truncate_dim = truncate_dim
-
-        super().__init__(
+        return super().__init__(
             source_sentences=source_sentences,
             target_sentences=target_sentences,
             teacher_model=teacher_model,
@@ -52,7 +44,7 @@ class SparseMSEEvaluator(MSEEvaluator):
         epoch: int = -1,
         steps: int = -1,
     ) -> dict[str, float]:
-        return super().__call__(model, output_path, epoch, steps)
+        return super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
 
     def embed_inputs(
         self,
@@ -75,4 +67,4 @@ class SparseMSEEvaluator(MSEEvaluator):
         epoch: int = 0,
         step: int = 0,
     ) -> None:
-        model.model_card_data.set_evaluation_metrics(self, metrics, epoch, step)
+        model.model_card_data.set_evaluation_metrics(self, metrics, epoch=epoch, step=step)
