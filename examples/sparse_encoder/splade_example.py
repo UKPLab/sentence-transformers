@@ -52,8 +52,8 @@ def main():
     for i, text in enumerate(texts):
         # Get top k indices in sparse tensor
         # Get top k indices in sparse tensor (sorted from highest to lowest)
-        top_indices = np.argsort(-embeddings[i].to_dense().numpy())[:top_k]
-        top_values = embeddings[i].to_dense().numpy()[top_indices]
+        top_indices = np.argsort(-embeddings[i].to_dense().cpu().numpy())[:top_k]
+        top_values = embeddings[i].to_dense().cpu().numpy()[top_indices]
         top_tokens = [model.tokenizer.decode([idx]) for idx in top_indices]
         print(f"{i}: {text}")
         print(f"Top tokens: {top_tokens}")

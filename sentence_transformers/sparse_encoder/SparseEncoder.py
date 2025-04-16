@@ -233,29 +233,37 @@ if __name__ == "__main__":
     similarities = model.similarity(embeddings, embeddings)
     print("Similarity matrix:\n", similarities)
 
-    breakpoint()
-    """
-        # For later:
+    model.save("sparse_encoder_model")
+    # For later:
     from datasets import Dataset
 
-    from sentence_transformers.sparse_encoder.losses import CSRLoss
+    from sentence_transformers import SentenceTransformer
+    from sentence_transformers.losses import MarginMSELoss
     from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
     from sentence_transformers.sparse_encoder.training_args import SparseEncoderTrainingArguments
 
-    student_model = SparseEncoder("microsoft/mpnet-base")
-    teacher_model = SparseEncoder("all-mpnet-base-v2")
+    student_model = SparseEncoder("sparse_encoder_model")
+    teacher_model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
     train_dataset = Dataset.from_dict(
         {
             "query": ["It's nice weather outside today.", "He drove to work."],
             "passage1": ["It's so sunny.", "He took the car to work."],
             "passage2": ["It's very sunny.", "She walked to the store."],
-        })
+        }
+    )
 
     # Initialize training arguments
     training_args = SparseEncoderTrainingArguments(
-        load_best_model_at_end=True,
-        topk=16
+        num_train_epochs=10,
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=16,
+        fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
+        bf16=False,  # Set to True if you have a GPU that supports BF16
+        logging_steps=1,
+        save_strategy="steps",
+        save_steps=3,
     )
+
     def compute_labels(batch):
         emb_queries = teacher_model.encode(batch["query"], convert_to_sparse_tensor=True, topk=0)
         emb_passages1 = teacher_model.encode(batch["passage1"], convert_to_sparse_tensor=True, topk=0)
@@ -266,15 +274,16 @@ if __name__ == "__main__":
         }
 
     train_dataset = train_dataset.map(compute_labels, batched=True)
-    # In this example, the labels become -0.036 and 0.68, respectively
-    loss = losses.MarginMSELoss(student_model)
 
-    trainer = SentenceTransformerTrainer(
+    loss = MarginMSELoss(student_model)
+
+    # Initialize trainer
+    trainer = SparseEncoderTrainer(
         model=student_model,
-        train_dataset=train_dataset,
         args=training_args,
+        train_dataset=train_dataset,
         loss=loss,
+    )
 
+    # Train model
     trainer.train()
-
-    """
