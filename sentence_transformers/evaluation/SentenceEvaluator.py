@@ -108,7 +108,7 @@ class SentenceEvaluator:
         **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
-        Call the encodder methode of the model pass
+        Call the encoder method of the model pass
 
         Args:
             model (SentenceTransformer): Model we are evaluating
