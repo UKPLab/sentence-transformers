@@ -8,14 +8,15 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers.util import pairwise_cos_sim, pairwise_euclidean_sim, pairwise_manhattan_sim
 
 
 class TripletDistanceMetric(Enum):
     """The metric for the triplet loss"""
 
-    COSINE = lambda x, y: 1 - F.cosine_similarity(x, y)
-    EUCLIDEAN = lambda x, y: F.pairwise_distance(x, y, p=2)
-    MANHATTAN = lambda x, y: F.pairwise_distance(x, y, p=1)
+    COSINE = lambda x, y: 1 - pairwise_cos_sim(x, y)
+    EUCLIDEAN = lambda x, y: pairwise_euclidean_sim(x, y)
+    MANHATTAN = lambda x, y: pairwise_manhattan_sim(x, y)
 
 
 class TripletLoss(nn.Module):

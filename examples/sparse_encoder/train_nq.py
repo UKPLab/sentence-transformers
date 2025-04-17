@@ -11,9 +11,7 @@ from sentence_transformers.sparse_encoder.evaluation.SparseNanoBEIREvaluator imp
 from sentence_transformers.sparse_encoder.losses import CSRLoss
 from sentence_transformers.sparse_encoder.models import CSRSparsity
 from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
-from sentence_transformers.sparse_encoder.training_args import (
-    SparseEncoderTrainingArguments,
-)
+from sentence_transformers.sparse_encoder.training_args import SparseEncoderTrainingArguments
 from sentence_transformers.training_args import BatchSamplers
 
 # Set up logging

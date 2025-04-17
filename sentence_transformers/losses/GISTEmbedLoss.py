@@ -5,8 +5,9 @@ from typing import Any
 
 import torch
 from torch import Tensor, nn
+from transformers import PreTrainedTokenizerBase
 
-from sentence_transformers.models import StaticEmbedding, Transformer
+from sentence_transformers.models import StaticEmbedding
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
@@ -82,9 +83,13 @@ class GISTEmbedLoss(nn.Module):
         self.guide = guide
         self.temperature = temperature
         self.similarity_fct = nn.CosineSimilarity(dim=-1)
-        if not isinstance(model[0], Transformer) or not isinstance(guide[0], Transformer):
+        if not hasattr(model, "tokenizer") or not hasattr(guide, "tokenizer"):
+            raise ValueError("Both the training model and the guiding model must have a tokenizer attribute.")
+        if not isinstance(model.tokenizer, PreTrainedTokenizerBase) or not isinstance(
+            guide.tokenizer, PreTrainedTokenizerBase
+        ):
             raise ValueError(
-                "Both the training model and the guiding model must be based on the `transformers` architecture."
+                "Both the training model and the guiding model must use a PreTrainedTokenizer from transformers."
             )
         self.must_retokenize = (
             model.tokenizer.get_vocab() != guide.tokenizer.get_vocab() or guide.max_seq_length < model.max_seq_length
