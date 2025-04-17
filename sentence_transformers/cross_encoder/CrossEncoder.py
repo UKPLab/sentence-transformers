@@ -918,3 +918,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
     @property
     def device(self) -> torch.device:
         return self.model.device
+
+    def gradient_checkpointing_enable(self, gradient_checkpointing_kwargs=None) -> None:
+        # Propagate the gradient checkpointing to the transformer model
+        return self.model.gradient_checkpointing_enable(gradient_checkpointing_kwargs)
