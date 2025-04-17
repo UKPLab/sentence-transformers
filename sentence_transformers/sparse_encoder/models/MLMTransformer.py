@@ -174,24 +174,10 @@ class MLMTransformer(nn.Module):
         Returns:
             Dictionary containing tokenized inputs
         """
-        # Check if the model is a DistilBERT model
-        is_distilbert = "distilbert" in self.auto_model.config.model_type.lower()
-
-        # For DistilBERT models, we need to exclude token_type_ids
-        if is_distilbert:
-            return self.tokenizer(
-                texts,
-                padding=padding,
-                truncation=True,
-                max_length=self.max_seq_length,
-                return_tensors="pt",
-                return_token_type_ids=False,  # Exclude token_type_ids for DistilBERT
-            )
-        else:
-            return self.tokenizer(
-                texts,
-                padding=padding,
-                truncation=True,
-                max_length=self.max_seq_length,
-                return_tensors="pt",
-            )
+        return self.tokenizer(
+            texts,
+            padding=padding,
+            truncation=True,
+            max_length=self.max_seq_length,
+            return_tensors="pt",
+        )
