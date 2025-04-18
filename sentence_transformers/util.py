@@ -362,8 +362,12 @@ def paraphrase_mining(
 
     # Compute embedding for the sentences
     embeddings = model.encode(
-        sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True,
-        prompt_name=prompt_name, prompt=prompt
+        sentences,
+        show_progress_bar=show_progress_bar,
+        batch_size=batch_size,
+        convert_to_tensor=True,
+        prompt_name=prompt_name,
+        prompt=prompt,
     )
 
     return paraphrase_mining_embeddings(
@@ -845,18 +849,33 @@ def mine_hard_negatives(
             target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
         )
         corpus_embeddings = model.encode_multi_process(
-            corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True,
-            prompt_name=prompt_name, prompt=prompt
+            corpus,
+            pool,
+            batch_size=batch_size,
+            normalize_embeddings=True,
+            show_progress_bar=True,
+            prompt_name=prompt_name,
+            prompt=prompt,
         )
         query_embeddings = model.encode_multi_process(
-            queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True,
-            prompt_name=prompt_name, prompt=prompt
+            queries,
+            pool,
+            batch_size=batch_size,
+            normalize_embeddings=True,
+            show_progress_bar=True,
+            prompt_name=prompt_name,
+            prompt=prompt,
         )
         model.stop_multi_process_pool(pool)
     else:
         corpus_embeddings = model.encode(
-            corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True,
-            prompt_name=prompt_name, prompt=prompt
+            corpus,
+            batch_size=batch_size,
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+            show_progress_bar=True,
+            prompt_name=prompt_name,
+            prompt=prompt,
         )
         query_embeddings = model.encode(
             queries,
@@ -865,7 +884,7 @@ def mine_hard_negatives(
             convert_to_numpy=True,
             show_progress_bar=True,
             prompt_name=prompt_name,
-            prompt=prompt
+            prompt=prompt,
         )
 
     if use_faiss:

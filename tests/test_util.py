@@ -277,7 +277,6 @@ def test_community_detection_gpu_support():
     assert sorted([sorted(community) for community in result]) == sorted([sorted(community) for community in expected])
 
 
-
 def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model: SentenceTransformer) -> None:
     """
     Tests that mine_hard_negatives runs with and without a prompt.
@@ -305,12 +304,13 @@ def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model:
             "Christopher Marlowe wrote 'Doctor Faustus'.",
             "Ethanol boils at 78 degrees Celsius.",
             "Quantum mechanics describes the smallest scales of energy.",
-        ]
+        ],
     }
 
     from datasets import Dataset
+
     dataset = Dataset.from_dict(data)
-    corpus = data["positive"] + data["negative_pool"] # Corpus includes positives and other docs
+    corpus = data["positive"] + data["negative_pool"]  # Corpus includes positives and other docs
 
     prompt = "query: "
     num_negatives = 1
@@ -326,12 +326,12 @@ def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model:
             num_negatives=num_negatives,
             batch_size=4,
             verbose=False,
-            output_format="triplet"
+            output_format="triplet",
         )
         # Assert basic success criteria
         assert isinstance(result_no_prompt, Dataset)
         assert "negative" in result_no_prompt.column_names
-        assert len(result_no_prompt) > 0 # Check that some negatives were found
+        assert len(result_no_prompt) > 0  # Check that some negatives were found
 
     except Exception as e:
         pytest.fail(f"mine_hard_negatives failed without prompt: {e}")
@@ -348,7 +348,7 @@ def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model:
             batch_size=4,
             verbose=False,
             prompt=prompt,
-            output_format="triplet"
+            output_format="triplet",
         )
         assert isinstance(result_with_prompt, Dataset)
         assert "negative" in result_with_prompt.column_names
