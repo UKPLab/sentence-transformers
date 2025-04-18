@@ -324,6 +324,8 @@ def paraphrase_mining(
     max_pairs: int = 500000,
     top_k: int = 100,
     score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
+    prompt_name: str | None = None,
+    prompt: str | None = None,
 ) -> list[list[float | int]]:
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
@@ -339,6 +341,20 @@ def paraphrase_mining(
         max_pairs (int, optional): Maximal number of text pairs returned. Defaults to 500000.
         top_k (int, optional): For each sentence, we retrieve up to top_k other sentences. Defaults to 100.
         score_function (Callable[[Tensor, Tensor], Tensor], optional): Function for computing scores. By default, cosine similarity. Defaults to cos_sim.
+        prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the sentence.
+            It must match a key in the `prompts` dictionary, which can be set during model initialization
+            or loaded from the model configuration.
+
+            Ignored if `prompt` is provided. Defaults to None.
+
+        prompt (Optional[str], optional): A raw prompt string to prepend directly to the input sentence during encoding.
+
+            For instance, `prompt="query: "` transforms the sentence
+            "What is the capital of France?" into:
+                "query: What is the capital of France?"
+
+            Use this to override the prompt logic entirely and supply your own prefix.
+            This takes precedence over `prompt_name`. Defaults to None.
 
     Returns:
         List[List[Union[float, int]]]: Returns a list of triplets with the format [score, id1, id2]
@@ -346,7 +362,8 @@ def paraphrase_mining(
 
     # Compute embedding for the sentences
     embeddings = model.encode(
-        sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True
+        sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True,
+        prompt_name=prompt_name, prompt=prompt
     )
 
     return paraphrase_mining_embeddings(
@@ -541,6 +558,8 @@ def mine_hard_negatives(
     verbose: bool = True,
     as_triplets: bool | None = None,
     margin: float | None = None,
+    prompt_name: str | None = None,
+    prompt: str | None = None,
 ) -> Dataset:
     """
     Add hard negatives to a dataset of (anchor, positive) pairs to create (anchor, positive, negative) triplets or
@@ -553,6 +572,8 @@ def mine_hard_negatives(
     This function uses a SentenceTransformer model to embed the sentences in the dataset, and then finds the closest
     matches to each anchor sentence in the dataset. It then samples negatives from the closest matches, optionally
     using a CrossEncoder model to rescore the candidates.
+
+    Supports prompt formatting for models that expect specific instruction-style input.
 
     You can influence the candidate negative selection in various ways:
 
@@ -688,6 +709,30 @@ def mine_hard_negatives(
         verbose (bool): Whether to print statistics and logging. Defaults to True.
         as_triplets (bool, optional): Deprecated. Use `output_format` instead. Defaults to None.
         margin (float, optional): Deprecated. Use `absolute_margin` or `relative_margin` instead. Defaults to None.
+        prompt_name (Optional[str], optional):
+            The name of a predefined prompt to use when encoding the sentence.
+            It must match a key in the `prompts` dictionary, which can be set during model initialization
+            or loaded from the model configuration.
+
+            For example, if `prompt_name="query"` and the prompts dictionary includes {"query": "query: "},
+            then the sentence "What is the capital of France?" is transformed into:
+                "query: What is the capital of France?"
+            before encoding.
+
+            This is useful for models that were trained or fine-tuned with specific prompt formats.
+
+            Ignored if `prompt` is provided. Defaults to None.
+
+        prompt (Optional[str], optional):
+            A raw prompt string to prepend directly to the input sentence during encoding.
+
+            For instance, `prompt="query: "` transforms the sentence
+            "What is the capital of France?" into:
+                "query: What is the capital of France?"
+
+            Use this to override the prompt logic entirely and supply your own prefix.
+            This takes precedence over `prompt_name`. Defaults to None.
+
 
     Returns:
         Dataset: A dataset containing (anchor, positive, negative) triplets, (anchor, passage, label) text tuples with
@@ -800,15 +845,18 @@ def mine_hard_negatives(
             target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
         )
         corpus_embeddings = model.encode_multi_process(
-            corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+            corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True,
+            prompt_name=prompt_name, prompt=prompt
         )
         query_embeddings = model.encode_multi_process(
-            queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+            queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True,
+            prompt_name=prompt_name, prompt=prompt
         )
         model.stop_multi_process_pool(pool)
     else:
         corpus_embeddings = model.encode(
-            corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
+            corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True,
+            prompt_name=prompt_name, prompt=prompt
         )
         query_embeddings = model.encode(
             queries,
@@ -816,6 +864,8 @@ def mine_hard_negatives(
             normalize_embeddings=True,
             convert_to_numpy=True,
             show_progress_bar=True,
+            prompt_name=prompt_name,
+            prompt=prompt
         )
 
     if use_faiss:
