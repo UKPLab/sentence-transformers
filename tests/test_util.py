@@ -275,3 +275,84 @@ def test_community_detection_gpu_support():
     ]
     result = community_detection(embeddings, threshold=0.8, min_community_size=2)
     assert sorted([sorted(community) for community in result]) == sorted([sorted(community) for community in expected])
+
+
+
+def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model: SentenceTransformer) -> None:
+    """
+    Tests that mine_hard_negatives runs with and without a prompt.
+    """
+    model = paraphrase_distilroberta_base_v1_model
+    # 1. Create a test dataset
+    data = {
+        "anchor": [
+            "What is the capital of France?",
+            "How does photosynthesis work?",
+            "Who wrote 'Hamlet'?",
+            "What is the boiling point of water?",
+            "Describe the theory of relativity.",
+        ],
+        "positive": [
+            "Paris is the capital of France.",
+            "Photosynthesis is the process used by plants to convert light energy into chemical energy.",
+            "William Shakespeare wrote 'Hamlet'.",
+            "Water boils at 100 degrees Celsius.",
+            "Relativity theory describes gravity as a property of spacetime.",
+        ],
+        "negative_pool": [
+            "Berlin is the capital of Germany.",
+            "Cellular respiration releases energy.",
+            "Christopher Marlowe wrote 'Doctor Faustus'.",
+            "Ethanol boils at 78 degrees Celsius.",
+            "Quantum mechanics describes the smallest scales of energy.",
+        ]
+    }
+
+    from datasets import Dataset
+    dataset = Dataset.from_dict(data)
+    corpus = data["positive"] + data["negative_pool"] # Corpus includes positives and other docs
+
+    prompt = "query: "
+    num_negatives = 1
+
+    # 2. Run without prompt
+    try:
+        result_no_prompt = util.mine_hard_negatives(
+            dataset=dataset,
+            model=model,
+            anchor_column_name="anchor",
+            positive_column_name="positive",
+            corpus=corpus,
+            num_negatives=num_negatives,
+            batch_size=4,
+            verbose=False,
+            output_format="triplet"
+        )
+        # Assert basic success criteria
+        assert isinstance(result_no_prompt, Dataset)
+        assert "negative" in result_no_prompt.column_names
+        assert len(result_no_prompt) > 0 # Check that some negatives were found
+
+    except Exception as e:
+        pytest.fail(f"mine_hard_negatives failed without prompt: {e}")
+
+    # 3. Run with prompt
+    try:
+        result_with_prompt = util.mine_hard_negatives(
+            dataset=dataset,
+            model=model,
+            anchor_column_name="anchor",
+            positive_column_name="positive",
+            corpus=corpus,
+            num_negatives=num_negatives,
+            batch_size=4,
+            verbose=False,
+            prompt=prompt,
+            output_format="triplet"
+        )
+        assert isinstance(result_with_prompt, Dataset)
+        assert "negative" in result_with_prompt.column_names
+        assert len(result_with_prompt) > 0
+
+    except Exception as e:
+        pytest.fail(f"mine_hard_negatives failed with prompt: {e}")
