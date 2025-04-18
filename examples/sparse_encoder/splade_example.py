@@ -6,13 +6,13 @@ from sentence_transformers.sparse_encoder.models import MLMTransformer, SpladePo
 
 def main():
     # Initialize the SPLADE model
-    model_name = "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill"  # "prithivida/Splade_PP_en_v1"  # "naver/splade-cocondenser-ensembledistil"
+    model_name = "naver/splade-cocondenser-ensembledistil"  # "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill"  # "naver/efficient-splade-V-large-doc"  # "prithivida/Splade_PP_en_v1"  # "naver/splade-cocondenser-ensembledistil"
     model = SparseEncoder(
         modules=[
             MLMTransformer(model_name),
             SpladePooling(pooling_strategy="max"),  # You can also use 'sum'
         ],
-        device="cpu",
+        device="cuda:0",
     )
 
     # Sample texts

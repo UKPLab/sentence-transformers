@@ -53,6 +53,7 @@ class SparseTranslationEvaluator(TranslationEvaluator):
             sentences,
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
+            convert_to_tensor=False,
             convert_to_sparse_tensor=True,
             **kwargs,
         )

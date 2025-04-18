@@ -42,7 +42,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         query_prompts: str | dict[str, str] | None = None,
         corpus_prompts: str | dict[str, str] | None = None,
     ):
-        return super().__init__(
+        super().__init__(
             dataset_names=dataset_names,
             mrr_at_k=mrr_at_k,
             ndcg_at_k=ndcg_at_k,
@@ -60,7 +60,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             query_prompts=query_prompts,
             corpus_prompts=corpus_prompts,
         )
-        self.self.information_retrieval_class = SparseInformationRetrievalEvaluator
+        self.information_retrieval_class = SparseInformationRetrievalEvaluator
 
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
@@ -70,4 +70,4 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
     def _load_dataset(
         self, dataset_name: DatasetNameType, **ir_evaluator_kwargs
     ) -> SparseInformationRetrievalEvaluator:
-        super()._load_dataset(dataset_name, **ir_evaluator_kwargs)
+        return super()._load_dataset(dataset_name, **ir_evaluator_kwargs)

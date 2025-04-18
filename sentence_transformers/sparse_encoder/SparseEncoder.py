@@ -74,7 +74,7 @@ class SparseEncoder(SentenceTransformer):
         # output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
         # precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         # convert_to_numpy: bool = True,
-        # convert_to_tensor: bool = False,
+        convert_to_tensor: bool = True,
         # device: str | None = None,
         # normalize_embeddings: bool = False,
         convert_to_sparse_tensor: bool = True,
@@ -144,8 +144,10 @@ class SparseEncoder(SentenceTransformer):
                     embeddings = embeddings.to_sparse()
                 all_embeddings.extend(embeddings)
 
-        all_embeddings = torch.stack(all_embeddings)
+        if not convert_to_tensor:
+            return all_embeddings
 
+        all_embeddings = torch.stack(all_embeddings)
         return all_embeddings
 
     def get_sparsity_stats(self, embeddings: torch.Tensor) -> dict[str, float]:

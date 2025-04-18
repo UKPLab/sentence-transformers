@@ -7,7 +7,6 @@ from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
-from sentence_transformers.util import pairwise_euclidean_sim
 
 if TYPE_CHECKING:
     import numpy as np
@@ -115,8 +114,8 @@ class MSEEvaluator(SentenceEvaluator):
         with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
             target_embeddings = self.embed_inputs(model, self.target_sentences)
 
-        mse = ((-pairwise_euclidean_sim(self.source_embeddings, target_embeddings)) ** 2).mean()
-        mse *= 100
+        mse = ((self.source_embeddings - target_embeddings) ** 2).mean()
+        mse = mse * 100
 
         logger.info(f"MSE evaluation (lower = better) on the {self.name} dataset{out_txt}:")
         logger.info(f"MSE (*100):\t{mse:4f}")

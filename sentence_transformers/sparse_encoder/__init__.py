@@ -14,9 +14,20 @@ from sentence_transformers.sparse_encoder.evaluation import (
 from sentence_transformers.sparse_encoder.losses import (
     CSRLoss,
     CSRReconstructionLoss,
+    SparseCachedGISTEmbedLoss,
+    SparseCachedMultipleNegativesRankingLoss,
+    SparseCoSENTLoss,
+    SparseCosineSimilarityLoss,
+    SparseGISTEmbedLoss,
+    SparseMarginMSELoss,
     SparseMultipleNegativesRankingLoss,
+    SparseTripletLoss,
 )
-from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
+from sentence_transformers.sparse_encoder.models import (
+    CSRSparsity,
+    MLMTransformer,
+    SpladePooling,
+)
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
 from sentence_transformers.sparse_encoder.training_args import (
@@ -37,6 +48,13 @@ __all__ = [
     "CSRLoss",
     "CSRReconstructionLoss",
     "SparseMultipleNegativesRankingLoss",
+    "SparseCoSENTLoss",
+    "SparseTripletLoss",
+    "SparseCachedMultipleNegativesRankingLoss",
+    "SparseMarginMSELoss",
+    "SparseGISTEmbedLoss",
+    "SparseCachedGISTEmbedLoss",
+    "SparseCosineSimilarityLoss",
     # Evaluators
     "SparseBinaryClassificationEvaluator",
     "SparseEmbeddingSimilarityEvaluator",

@@ -26,7 +26,7 @@ class SparseMSEEvaluator(MSEEvaluator):
         write_csv: bool = True,
         truncate_dim: int | None = None,
     ):
-        return super().__init__(
+        super().__init__(
             source_sentences=source_sentences,
             target_sentences=target_sentences,
             teacher_model=teacher_model,
@@ -35,6 +35,9 @@ class SparseMSEEvaluator(MSEEvaluator):
             name=name,
             write_csv=write_csv,
             truncate_dim=truncate_dim,
+        )
+        logger.warning(
+            "The SparseMSEEvaluator is not handling the mse compute with sparse tensors yet. Memory issues may occur."
         )
 
     def __call__(
@@ -56,7 +59,7 @@ class SparseMSEEvaluator(MSEEvaluator):
             sentences,
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
-            convert_to_sparse_tensor=True,
+            convert_to_sparse_tensor=False,
             **kwargs,
         )
 

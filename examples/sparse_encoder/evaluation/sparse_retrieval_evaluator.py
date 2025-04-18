@@ -2,25 +2,22 @@ import random
 
 from datasets import load_dataset
 
-from sentence_transformers.models import Pooling, Transformer
-from sentence_transformers.sparse_encoder import SparseEncoder
-from sentence_transformers.sparse_encoder.evaluation.SparseInformationRetrievalEvaluator import (
+from sentence_transformers.sparse_encoder import (
+    MLMTransformer,
+    SparseEncoder,
     SparseInformationRetrievalEvaluator,
+    SpladePooling,
 )
-from sentence_transformers.sparse_encoder.models import CSRSparsity
 
-# Initialize model components
-model_name = "sentence-transformers/all-mpnet-base-v2"
-transformer = Transformer(model_name)
-pooling = Pooling(transformer.get_word_embedding_dimension(), pooling_mode="mean")
-csr_sparsity = CSRSparsity(
-    input_dim=transformer.get_word_embedding_dimension(),
-    hidden_dim=4 * transformer.get_word_embedding_dimension(),
-    k=32,  # Number of top values to keep
-    k_aux=512,  # Number of top values for auxiliary loss
+# Initialize the SPLADE model
+model_name = "naver/splade-cocondenser-ensembledistil"
+model = SparseEncoder(
+    modules=[
+        MLMTransformer(model_name),
+        SpladePooling(pooling_strategy="max"),  # You can also use 'sum'
+    ],
+    device="cuda:0",
 )
-# Create the SparseEncoder model
-model = SparseEncoder(modules=[transformer, pooling, csr_sparsity])
 
 # Load the Touche-2020 IR dataset (https://huggingface.co/datasets/BeIR/webis-touche2020, https://huggingface.co/datasets/BeIR/webis-touche2020-qrels)
 corpus = load_dataset("BeIR/webis-touche2020", "corpus", split="corpus")
@@ -46,17 +43,24 @@ for qid, corpus_ids in zip(relevant_docs_data["query-id"], relevant_docs_data["c
         relevant_docs[qid] = set()
     relevant_docs[qid].add(corpus_ids)
 
-# Given queries, a corpus and a mapping with relevant documents, the InformationRetrievalEvaluator computes different IR metrics.
+# Given queries, a corpus and a mapping with relevant documents, the SparseInformationRetrievalEvaluator computes different IR metrics.
 ir_evaluator = SparseInformationRetrievalEvaluator(
     queries=queries,
     corpus=corpus,
     relevant_docs=relevant_docs,
     name="BeIR-touche2020-subset-test",
     show_progress_bar=True,
+    batch_size=32,
 )
+
+# Run evaluation
+print("Starting evaluation ")
 results = ir_evaluator(model)
-"""
-# Print the results
-"""
-print(ir_evaluator.primary_metric)
-print(results[ir_evaluator.primary_metric])
+
+print(f"Primary metric: {ir_evaluator.primary_metric}")
+print(f"Primary metric value: {results[ir_evaluator.primary_metric]:.4f}")
+
+# Print results for each dataset
+for key, value in results.items():
+    if key.startswith("Nano"):
+        print(f"{key}: {value:.4f}")

@@ -1,9 +1,7 @@
-from datasets import load_dataset
-
 from sentence_transformers.sparse_encoder import (
     MLMTransformer,
     SparseEncoder,
-    SparseTripletEvaluator,
+    SparseNanoBEIREvaluator,
     SpladePooling,
 )
 
@@ -16,23 +14,21 @@ model = SparseEncoder(
     ],
     device="cuda:0",
 )
-# Load triplets from the AllNLI dataset
-# The dataset contains triplets of (anchor, positive, negative) sentences
-dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="dev[:1000]")
-
-# Initialize the SparseTripletEvaluator
-evaluator = SparseTripletEvaluator(
-    anchors=dataset[:1000]["anchor"],
-    positives=dataset[:1000]["positive"],
-    negatives=dataset[:1000]["negative"],
-    name="all_nli_dev",
-    batch_size=32,
+# Create evaluator for all NanoBEIR datasets
+evaluator = SparseNanoBEIREvaluator(
+    dataset_names=None,  # None means evaluate on all datasets
     show_progress_bar=True,
+    batch_size=32,
 )
 
-# Run the evaluation
+# Run evaluation
+print("Starting evaluation on all NanoBEIR datasets")
 results = evaluator(model)
 
-# Print the results
 print(f"Primary metric: {evaluator.primary_metric}")
 print(f"Primary metric value: {results[evaluator.primary_metric]:.4f}")
+
+# Print results for each dataset
+for key, value in results.items():
+    if key.startswith("Nano"):
+        print(f"{key}: {value:.4f}")
