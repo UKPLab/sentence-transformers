@@ -1162,11 +1162,11 @@ def mine_hard_negatives(
             ("mean", torch.mean),
             ("median", torch.median),
             ("std", torch.std),
-            ("min", lambda scores: (torch.min(scores) if scores.numel() > 0 else float("inf"))),
-            ("25%", lambda scores: (torch.quantile(scores.float(), q=0.25) if scores.numel() > 0 else float("inf"))),
-            ("50%", lambda scores: (torch.quantile(scores.float(), q=0.5) if scores.numel() > 0 else float("inf"))),
-            ("75%", lambda scores: (torch.quantile(scores.float(), q=0.75) if scores.numel() > 0 else float("inf"))),
-            ("max", lambda scores: (torch.max(scores) if scores.numel() > 0 else float("-inf"))),
+            ("min", lambda scores: torch.min(scores) if scores.numel() > 0 else float("inf")),
+            ("25%", lambda scores: torch.quantile(scores.float(), q=0.25) if scores.numel() > 0 else float("inf")),
+            ("50%", lambda scores: torch.quantile(scores.float(), q=0.5) if scores.numel() > 0 else float("inf")),
+            ("75%", lambda scores: torch.quantile(scores.float(), q=0.75) if scores.numel() > 0 else float("inf")),
+            ("max", lambda scores: torch.max(scores) if scores.numel() > 0 else float("-inf")),
         ]:
             print(
                 row_format.format(
