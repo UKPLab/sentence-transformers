@@ -4,6 +4,7 @@ from sentence_transformers.sparse_encoder.losses.CSRLoss import CSRLoss
 from sentence_transformers.sparse_encoder.losses.CSRReconstructionLoss import (
     CSRReconstructionLoss,
 )
+from sentence_transformers.sparse_encoder.losses.SparseAnglELoss import SparseAnglELoss
 from sentence_transformers.sparse_encoder.losses.SparseCachedGISTEmbedLoss import (
     SparseCachedGISTEmbedLoss,
 )
@@ -22,6 +23,7 @@ from sentence_transformers.sparse_encoder.losses.SparseGISTEmbedLoss import (
 from sentence_transformers.sparse_encoder.losses.SparseMarginMSELoss import (
     SparseMarginMSELoss,
 )
+from sentence_transformers.sparse_encoder.losses.SparseMSELoss import SparseMSELoss
 from sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss import (
     SparseMultipleNegativesRankingLoss,
 )
@@ -40,4 +42,6 @@ __all__ = [
     "SparseGISTEmbedLoss",
     "SparseCachedGISTEmbedLoss",
     "SparseCosineSimilarityLoss",
+    "SparseMSELoss",
+    "SparseAnglELoss",
 ]

@@ -14,12 +14,14 @@ from sentence_transformers.sparse_encoder.evaluation import (
 from sentence_transformers.sparse_encoder.losses import (
     CSRLoss,
     CSRReconstructionLoss,
+    SparseAnglELoss,
     SparseCachedGISTEmbedLoss,
     SparseCachedMultipleNegativesRankingLoss,
     SparseCoSENTLoss,
     SparseCosineSimilarityLoss,
     SparseGISTEmbedLoss,
     SparseMarginMSELoss,
+    SparseMSELoss,
     SparseMultipleNegativesRankingLoss,
     SparseTripletLoss,
 )
@@ -55,6 +57,8 @@ __all__ = [
     "SparseGISTEmbedLoss",
     "SparseCachedGISTEmbedLoss",
     "SparseCosineSimilarityLoss",
+    "SparseMSELoss",
+    "SparseAnglELoss",
     # Evaluators
     "SparseBinaryClassificationEvaluator",
     "SparseEmbeddingSimilarityEvaluator",

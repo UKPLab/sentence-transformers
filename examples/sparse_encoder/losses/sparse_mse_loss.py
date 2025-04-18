@@ -4,7 +4,7 @@ from sentence_transformers.sparse_encoder import (
     MLMTransformer,
     SparseEncoder,
     SparseEncoderTrainer,
-    SparseMarginMSELoss,
+    SparseMSELoss,
     SpladePooling,
 )
 
@@ -28,28 +28,20 @@ teacher_model = SparseEncoder(
     device="cuda:0",
 )
 
-# Create a small toy dataset
 train_dataset = Dataset.from_dict(
     {
-        "query": ["It's nice weather outside today.", "He drove to work."],
-        "passage1": ["It's so sunny.", "He took the car to work."],
-        "passage2": ["It's very sunny.", "She walked to the store."],
+        "english": ["The first sentence", "The second sentence", "The third sentence", "The fourth sentence"],
+        "french": ["La première phrase", "La deuxième phrase", "La troisième phrase", "La quatrième phrase"],
     }
 )
 
 
 def compute_labels(batch):
-    emb_queries = teacher_model.encode(batch["query"])
-    emb_passages1 = teacher_model.encode(batch["passage1"])
-    emb_passages2 = teacher_model.encode(batch["passage2"])
-    return {
-        "label": teacher_model.similarity_pairwise(emb_queries, emb_passages1)
-        - teacher_model.similarity_pairwise(emb_queries, emb_passages2)
-    }
+    return {"label": teacher_model.encode(batch["english"], convert_to_sparse_tensor=False)}
 
 
 train_dataset = train_dataset.map(compute_labels, batched=True)
-loss = SparseMarginMSELoss(student_model)
+loss = SparseMSELoss(student_model)
 
 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
 trainer.train()
