@@ -1917,6 +1917,10 @@ print(similarities)
         self.to(device)
 
     @property
+    def dtype(self) -> torch.dtype:
+        return self[0].auto_model.dtype
+
+    @property
     def _no_split_modules(self) -> list[str]:
         try:
             return self._first_module()._no_split_modules
