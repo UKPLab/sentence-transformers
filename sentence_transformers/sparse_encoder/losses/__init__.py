@@ -17,6 +17,9 @@ from sentence_transformers.sparse_encoder.losses.SparseCoSENTLoss import (
 from sentence_transformers.sparse_encoder.losses.SparseCosineSimilarityLoss import (
     SparseCosineSimilarityLoss,
 )
+from sentence_transformers.sparse_encoder.losses.SparseDistillKLDivLoss import (
+    SparseDistillKLDivLoss,
+)
 from sentence_transformers.sparse_encoder.losses.SparseGISTEmbedLoss import (
     SparseGISTEmbedLoss,
 )
@@ -44,4 +47,5 @@ __all__ = [
     "SparseCosineSimilarityLoss",
     "SparseMSELoss",
     "SparseAnglELoss",
+    "SparseDistillKLDivLoss",
 ]

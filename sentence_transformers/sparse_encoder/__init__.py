@@ -19,6 +19,7 @@ from sentence_transformers.sparse_encoder.losses import (
     SparseCachedMultipleNegativesRankingLoss,
     SparseCoSENTLoss,
     SparseCosineSimilarityLoss,
+    SparseDistillKLDivLoss,
     SparseGISTEmbedLoss,
     SparseMarginMSELoss,
     SparseMSELoss,
@@ -59,6 +60,7 @@ __all__ = [
     "SparseCosineSimilarityLoss",
     "SparseMSELoss",
     "SparseAnglELoss",
+    "SparseDistillKLDivLoss",
     # Evaluators
     "SparseBinaryClassificationEvaluator",
     "SparseEmbeddingSimilarityEvaluator",
@@ -71,5 +73,4 @@ __all__ = [
 ]
 # TODO : Complete the SparseEncoder class
 # TODO : Add tests for all the components
-# TODO : Ask Update to TOM on loss to implement
 # TODO : Add the equivalent of the quantization file for the sparse encoder
