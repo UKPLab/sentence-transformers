@@ -35,5 +35,3 @@ __all__ = [
     "SparseTranslationEvaluator",
     "SparseRerankingEvaluator",
 ]
-
-# TODO: Ask Update to TOM on if they're important : LabelAccuracyEvaluator, ParaphraseMiningEvaluator
