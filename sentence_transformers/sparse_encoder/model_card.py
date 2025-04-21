@@ -14,14 +14,7 @@ from sentence_transformers.model_card import (
 from sentence_transformers.util import is_datasets_available
 
 if is_datasets_available():
-    from datasets import (
-        Dataset,
-        DatasetDict,
-        IterableDataset,
-        IterableDatasetDict,
-        Sequence,
-        Value,
-    )
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -92,43 +85,8 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
     # Passed via `register_model` only
     model: SparseEncoder | None = field(default=None, init=False, repr=False)
 
-    def set_widget_examples(self, dataset: Dataset | DatasetDict) -> None:
-        """
-        We don't set widget examples, but only load the prediction example.
-        This is because the Hugging Face Hub doesn't currently have a widget that accepts
-        text input for sparse encoding.
-        """
-        if isinstance(dataset, DatasetDict):
-            dataset = dataset[list(dataset.keys())[0]]
-
-        if isinstance(dataset, (IterableDataset, IterableDatasetDict)):
-            # We can't set widget examples from an IterableDataset without losing data
-            return
-
-        if len(dataset) == 0:
-            return
-
-        columns = [
-            column
-            for column, feature in dataset.features.items()
-            if (isinstance(feature, Value) and feature.dtype in {"string", "large_string"})
-            or (
-                isinstance(feature, Sequence)
-                and isinstance(feature.feature, Value)
-                and feature.feature.dtype in {"string", "large_string"}
-            )
-        ]
-        if len(columns) < 1:
-            return
-
-        text_column = columns[0]
-        texts = dataset[:5][text_column]
-
-        if isinstance(texts[0], str):
-            self.predict_example = [[text] for text in texts]
-
-    def register_model(self, model) -> None:
-        super().register_model(model)
+    def register_model(self, model: SparseEncoder) -> None:
+        self.model = model
 
         if self.task_name is None:
             self.task_name = "semantic search and sparse retrieval"
@@ -140,9 +98,8 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
 
     def get_model_specific_metadata(self) -> dict[str, Any]:
         return {
-            "model_max_length": self.model.max_length,
-            "sparsity_type": self.model.sparsity_type,
-            "vocab_size": self.model.vocab_size,
+            "model_max_length": self.model.get_max_seq_length(),
+            "output_dimensionality": self.model.get_sentence_embedding_dimension(),
         }
 
 

@@ -5,8 +5,6 @@ import os
 from typing import Any
 
 import torch
-from safetensors.torch import load_model as load_safetensors_model
-from safetensors.torch import save_model as save_safetensors_model
 from torch import nn
 from transformers import AutoConfig, AutoModelForMaskedLM, AutoTokenizer
 
@@ -28,6 +26,8 @@ class MLMTransformer(nn.Module):
         tokenizer_name_or_path: Name or path of the tokenizer
     """
 
+    save_in_root: bool = True
+
     def __init__(
         self,
         model_name_or_path: str,
@@ -38,10 +38,13 @@ class MLMTransformer(nn.Module):
         cache_dir: str | None = None,
         do_lower_case: bool = False,
         tokenizer_name_or_path: str | None = None,
+        backend: str = "torch",
     ) -> None:
         super().__init__()
+        self.config_keys = ["max_seq_length", "do_lower_case"]
+        self.do_lower_case = do_lower_case
+        self.backend = backend
 
-        # Set default values for optional arguments
         if model_args is None:
             model_args = {}
         if tokenizer_args is None:
@@ -49,10 +52,12 @@ class MLMTransformer(nn.Module):
         if config_args is None:
             config_args = {}
 
-        # Load config
         self.config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_dir, **config_args)
 
-        # Load tokenizer
+        self.auto_model = AutoModelForMaskedLM.from_pretrained(
+            model_name_or_path, config=self.config, cache_dir=cache_dir, **model_args
+        )
+
         if max_seq_length is not None and "model_max_length" not in tokenizer_args:
             tokenizer_args["model_max_length"] = max_seq_length
 
@@ -68,56 +73,18 @@ class MLMTransformer(nn.Module):
             if hasattr(self.config, "max_position_embeddings") and hasattr(self.tokenizer, "model_max_length"):
                 self.max_seq_length = min(self.config.max_position_embeddings, self.tokenizer.model_max_length)
 
-        # Load MLM model
-        self.auto_model = AutoModelForMaskedLM.from_pretrained(
-            model_name_or_path, config=self.config, cache_dir=cache_dir, **model_args
-        )
-
-        # Store initialization parameters
-        self.model_name_or_path = model_name_or_path
-        self.model_args = model_args
-        self.tokenizer_args = tokenizer_args
-        self.config_args = config_args
-        self.cache_dir = cache_dir
-        self.do_lower_case = do_lower_case
-        self.tokenizer_name_or_path = tokenizer_name_or_path
-
-    def get_config_dict(self):
-        """
-        Get the configuration dictionary.
-
-        Returns:
-            Dictionary containing the configuration parameters
-        """
-        return {
-            "model_name_or_path": self.model_name_or_path,
-            "max_seq_length": self.max_seq_length,
-            "model_args": self.model_args,
-            "tokenizer_args": self.tokenizer_args,
-            "config_args": self.config_args,
-            "cache_dir": self.cache_dir,
-            "do_lower_case": self.do_lower_case,
-            "tokenizer_name_or_path": self.tokenizer_name_or_path,
-        }
+    def get_config_dict(self) -> dict[str, Any]:
+        return {key: self.__dict__[key] for key in self.config_keys}
 
     def save(self, output_path: str, safe_serialization: bool = True) -> None:
-        """
-        Save the model to the specified path.
+        with open(os.path.join(output_path, "sentence_bert_config.json"), "w") as fOut:
+            json.dump(self.get_config_dict(), fOut, indent=2)
 
-        Args:
-            output_path: Path to save the model to
-            safe_serialization: Whether to use safetensors for serialization
-        """
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut)
+        self.auto_model.save_pretrained(output_path, safe_serialization=safe_serialization)
+        self.tokenizer.save_pretrained(output_path)
 
-        if safe_serialization:
-            save_safetensors_model(self, os.path.join(output_path, "model.safetensors"))
-        else:
-            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
-
-    @staticmethod
-    def load(input_path: str):
+    @classmethod
+    def load(cls, input_path: str) -> MLMTransformer:
         """
         Load the model from the specified path.
 
@@ -127,21 +94,10 @@ class MLMTransformer(nn.Module):
         Returns:
             Loaded MLMTransformer model
         """
-        with open(os.path.join(input_path, "config.json")) as fIn:
+        with open(os.path.join(input_path, "sentence_bert_config.json")) as fIn:
             config = json.load(fIn)
-
-        model = MLMTransformer(**config)
-        if os.path.exists(os.path.join(input_path, "model.safetensors")):
-            load_safetensors_model(model, os.path.join(input_path, "model.safetensors"))
-        else:
-            model.load_state_dict(
-                torch.load(
-                    os.path.join(input_path, "pytorch_model.bin"),
-                    map_location=torch.device("cpu"),
-                    weights_only=True,
-                )
-            )
-        return model
+        print(config)
+        return cls(model_name_or_path=input_path, **config)
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         """Forward pass of the model.
@@ -160,24 +116,48 @@ class MLMTransformer(nn.Module):
 
         return {"mlm_logits": mlm_logits}
 
-    def get_sentence_embedding_dimension(self) -> int:
-        """Get the dimension of the token embeddings"""
-        return self.auto_model.config.hidden_size
+    def tokenize(
+        self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True
+    ) -> dict[str, torch.Tensor]:
+        """Tokenizes a text and maps tokens to token-ids"""
+        output = {}
+        if isinstance(texts[0], str):
+            to_tokenize = [texts]
+        elif isinstance(texts[0], dict):
+            to_tokenize = []
+            output["text_keys"] = []
+            for lookup in texts:
+                text_key, text = next(iter(lookup.items()))
+                to_tokenize.append(text)
+                output["text_keys"].append(text_key)
+            to_tokenize = [to_tokenize]
+        else:
+            batch1, batch2 = [], []
+            for text_tuple in texts:
+                batch1.append(text_tuple[0])
+                batch2.append(text_tuple[1])
+            to_tokenize = [batch1, batch2]
 
-    def tokenize(self, texts: list[str], padding: bool = True) -> dict[str, torch.Tensor]:
-        """Tokenize the input texts.
+        # strip
+        to_tokenize = [[str(s).strip() for s in col] for col in to_tokenize]
 
-        Args:
-            texts: List of texts to tokenize
-            padding: Whether to pad the sequences
+        # Lowercase
+        if self.do_lower_case:
+            to_tokenize = [[s.lower() for s in col] for col in to_tokenize]
 
-        Returns:
-            Dictionary containing tokenized inputs
-        """
-        return self.tokenizer(
-            texts,
-            padding=padding,
-            truncation=True,
-            max_length=self.max_seq_length,
-            return_tensors="pt",
+        output.update(
+            self.tokenizer(
+                *to_tokenize,
+                padding=padding,
+                truncation="longest_first",
+                return_tensors="pt",
+                max_length=self.max_seq_length,
+            )
         )
+        return output
+
+    def get_sentence_embedding_dimension(self) -> int:
+        return self.auto_model.vocab_projector.out_features
+
+    def __repr__(self) -> str:
+        return f"MLMTransformer({self.get_config_dict()}) with MLMTransformer model: {self.auto_model.__class__.__name__} "

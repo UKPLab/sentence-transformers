@@ -28,11 +28,8 @@ from sentence_transformers.sparse_encoder.losses import (
     SparseTripletLoss,
     SpladeLoss,
 )
-from sentence_transformers.sparse_encoder.models import (
-    CSRSparsity,
-    MLMTransformer,
-    SpladePooling,
-)
+from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData
+from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
 from sentence_transformers.sparse_encoder.training_args import (
@@ -74,6 +71,8 @@ __all__ = [
     "SparseTranslationEvaluator",
     "SparseRerankingEvaluator",
     "SparseTripletEvaluator",
+    # Model card
+    "SparseEncoderModelCardData",
 ]
 # TODO : Complete the SparseEncoder class
 # TODO : Add tests for all the components

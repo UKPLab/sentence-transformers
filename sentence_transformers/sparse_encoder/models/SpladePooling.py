@@ -64,3 +64,6 @@ class SpladePooling(nn.Module):
             config = json.load(fIn)
 
         return SpladePooling(**config)
+
+    def __repr__(self) -> str:
+        return f"SpladePooling({self.get_config_dict()})"

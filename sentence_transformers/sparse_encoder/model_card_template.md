@@ -6,7 +6,7 @@
 
 # {{ model_name if model_name else "Sparse Encoder model" }}
 
-This is a [Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage.html) model{% if base_model %} finetuned from [{{ base_model }}](https://huggingface.co/{{ base_model }}){% else %} trained{% endif %}{% if train_datasets | selectattr("name") | list %} on {% if train_datasets | selectattr("name") | map(attribute="name") | join(", ") | length > 200 %}{{ train_datasets | length }}{% else %}the {% for dataset in (train_datasets | selectattr("name")) %}{% if dataset.id %}[{{ dataset.name if dataset.name else dataset.id }}](https://huggingface.co/datasets/{{ dataset.id }}){% else %}{{ dataset.name }}{% endif %}{% if not loop.last %}{% if loop.index == (train_datasets | selectattr("name") | list | length - 1) %} and {% else %}, {% endif %}{% endif %}{% endfor %}{% endif %} dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}{% endif %} using the [sentence-transformers](https://www.SBERT.net) library. It generates sparse vectors for texts, which can be used for {{ task_name }}.
+This is a [Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage.html) model{% if base_model %} finetuned from [{{ base_model }}](https://huggingface.co/{{ base_model }}){% else %} trained{% endif %}{% if train_datasets | selectattr("name") | list %} on {% if train_datasets | selectattr("name") | map(attribute="name") | join(", ") | length > 200 %}{{ train_datasets | length }}{% else %}the {% for dataset in (train_datasets | selectattr("name")) %}{% if dataset.id %}[{{ dataset.name if dataset.name else dataset.id }}](https://huggingface.co/datasets/{{ dataset.id }}){% else %}{{ dataset.name }}{% endif %}{% if not loop.last %}{% if loop.index == (train_datasets | selectattr("name") | list | length - 1) %} and {% else %}, {% endif %}{% endif %}{% endfor %}{% endif %} dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}{% endif %} using the [sentence-transformers](https://www.SBERT.net) library. It maps sentences & paragraphs to a {{ output_dimensionality }}-dimensional sparse vector space and can be used for {{ task_name }}.
 
 ## Model Details
 
@@ -22,8 +22,6 @@ This is a [Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage
     <!-- - **Base model:** [Unknown](https://huggingface.co/unknown) -->
 {%- endif %}
 - **Maximum Sequence Length:** {{ model_max_length }} tokens
-- **Sparsity Type:** {{ sparsity_type }}
-- **Vocabulary Size:** {{ vocab_size }} tokens
 {% if train_datasets | selectattr("name") | list -%}
     - **Training Dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}:**
     {%- for dataset in (train_datasets | selectattr("name")) %}
@@ -83,7 +81,7 @@ texts = [
 ]
 sparse_vectors = model.encode(texts)
 print(sparse_vectors.shape)
-# ({{ (predict_example or ["dummy", "dummy", "dummy"]) | length }}, {{ vocab_size }})
+# ({{ (predict_example or ["dummy", "dummy", "dummy"]) | length }}, {{output_dimensionality }})
 ```
 
 <!--

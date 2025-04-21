@@ -1,15 +1,21 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+import os
+import traceback
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Any, Literal
 
 import numpy as np
 import torch
-from torch import Tensor
+from torch import Tensor, nn
 from tqdm import trange
 
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Pooling, Transformer
+from sentence_transformers.similarity_functions import SimilarityFunction
+from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData, generate_model_card
 from sentence_transformers.sparse_encoder.models import CSRSparsity
 from sentence_transformers.util import batch_to_device, truncate_embeddings_for_sparse
 
@@ -63,6 +69,50 @@ class SparseEncoder(SentenceTransformer):
     # -----------------------------------Added------------------------------------
     # - set_topk D
     # - get_sparsity_stats D
+
+    def __init__(
+        self,
+        model_name_or_path: str | None = None,
+        modules: Iterable[nn.Module] | None = None,
+        device: str | None = None,
+        prompts: dict[str, str] | None = None,
+        default_prompt_name: str | None = None,
+        similarity_fn_name: str | SimilarityFunction | None = None,
+        cache_folder: str | None = None,
+        trust_remote_code: bool = False,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        token: bool | str | None = None,
+        use_auth_token: bool | str | None = None,
+        truncate_dim: int | None = None,
+        model_kwargs: dict[str, Any] | None = None,
+        tokenizer_kwargs: dict[str, Any] | None = None,
+        config_kwargs: dict[str, Any] | None = None,
+        model_card_data: SparseEncoderModelCardData | None = None,
+        backend: Literal["torch", "onnx", "openvino"] = "torch",
+    ) -> None:
+        super().__init__(
+            model_name_or_path=model_name_or_path,
+            modules=modules,
+            device=device,
+            prompts=prompts,
+            default_prompt_name=default_prompt_name,
+            similarity_fn_name=similarity_fn_name,
+            cache_folder=cache_folder,
+            trust_remote_code=trust_remote_code,
+            revision=revision,
+            local_files_only=local_files_only,
+            token=token,
+            use_auth_token=use_auth_token,
+            truncate_dim=truncate_dim,
+            model_kwargs=model_kwargs,
+            tokenizer_kwargs=tokenizer_kwargs,
+            config_kwargs=config_kwargs,
+            model_card_data=model_card_data,
+            backend=backend,
+        )
+        self.model_card_data = model_card_data or SparseEncoderModelCardData()
+        self.model_card_data.register_model(self)
 
     def encode(
         self,
@@ -149,6 +199,42 @@ class SparseEncoder(SentenceTransformer):
 
         all_embeddings = torch.stack(all_embeddings)
         return all_embeddings
+
+    @staticmethod
+    def load(input_path) -> SparseEncoder:
+        return SparseEncoder(input_path)
+
+    def _create_model_card(
+        self, path: str, model_name: str | None = None, train_datasets: list[str] | None = "deprecated"
+    ) -> None:
+        if model_name:
+            model_path = Path(model_name)
+            if not model_path.exists() and not self.model_card_data.model_id:
+                self.model_card_data.model_id = model_name
+
+        # If we loaded a Sparse Encoder model from the Hub, and no training was done, then
+        # we don't generate a new model card, but reuse the old one instead.
+        if self._model_card_text and "generated_from_trainer" not in self.model_card_data.tags:
+            model_card = self._model_card_text
+            if self.model_card_data.model_id:
+                # If the original model card was saved without a model_id, we replace the model_id with the new model_id
+                model_card = model_card.replace(
+                    'model = SparseEncoder("sparse_encoder_model_id"',
+                    f'model = SparseEncoder("{self.model_card_data.model_id}"',
+                )
+        else:
+            try:
+                model_card = generate_model_card(self)
+            except Exception:
+                logger.error(
+                    f"Error while generating model card:\n{traceback.format_exc()}"
+                    "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with this traceback.\n"
+                    "Skipping model card creation."
+                )
+                return
+
+        with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
+            fOut.write(model_card)
 
     def get_sparsity_stats(self, embeddings: torch.Tensor) -> dict[str, float]:
         """

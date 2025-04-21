@@ -1687,7 +1687,7 @@ print(similarities)
                 > version.parse(__version__)
             ):
                 logger.warning(
-                    f'You are trying to use a model that was created with Sentence Transformers version {self._model_config["__version__"]["sentence_transformers"]}, '
+                    f"You are trying to use a model that was created with Sentence Transformers version {self._model_config['__version__']['sentence_transformers']}, "
                     f"but you're currently using version {__version__}. This might cause unexpected behavior or errors. "
                     "In that case, try to update to the latest version."
                 )
