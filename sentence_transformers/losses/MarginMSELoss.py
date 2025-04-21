@@ -116,11 +116,15 @@ class MarginMSELoss(nn.Module):
         self.loss_fct = nn.MSELoss()
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+        embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
+
+        return self.compute_loss_from_embeddings(embeddings, labels)
+
+    def compute_loss_from_embeddings(self, embeddings: list[Tensor], labels: Tensor) -> Tensor:
         # sentence_features: query, positive passage, negative passage
-        reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
-        embeddings_query = reps[0]
-        embeddings_pos = reps[1]
-        embeddings_neg = reps[2]
+        embeddings_query = embeddings[0]
+        embeddings_pos = embeddings[1]
+        embeddings_neg = embeddings[2]
 
         scores_pos = self.similarity_fct(embeddings_query, embeddings_pos)
         scores_neg = self.similarity_fct(embeddings_query, embeddings_neg)

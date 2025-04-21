@@ -101,9 +101,9 @@ class MultipleNegativesRankingLoss(nn.Module):
         # Compute the embeddings and distribute them to anchor and candidates (positive and optionally negatives)
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
-        return self.compute_loss_from_embeddings(embeddings)
+        return self.compute_loss_from_embeddings(embeddings, labels)
 
-    def compute_loss_from_embeddings(self, embeddings: list[torch.Tensor]) -> torch.Tensor:
+    def compute_loss_from_embeddings(self, embeddings: list[Tensor], labels: Tensor) -> Tensor:
         """
         Compute the multiple negatives ranking loss from embeddings.
 

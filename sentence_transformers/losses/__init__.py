@@ -7,11 +7,16 @@ from .AdaptiveLayerLoss import AdaptiveLayerLoss
 from .AnglELoss import AnglELoss
 from .BatchAllTripletLoss import BatchAllTripletLoss
 from .BatchHardSoftMarginTripletLoss import BatchHardSoftMarginTripletLoss
-from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
+from .BatchHardTripletLoss import (
+    BatchHardTripletLoss,
+    BatchHardTripletLossDistanceFunction,
+)
 from .BatchSemiHardTripletLoss import BatchSemiHardTripletLoss
 from .CachedGISTEmbedLoss import CachedGISTEmbedLoss
 from .CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
-from .CachedMultipleNegativesSymmetricRankingLoss import CachedMultipleNegativesSymmetricRankingLoss
+from .CachedMultipleNegativesSymmetricRankingLoss import (
+    CachedMultipleNegativesSymmetricRankingLoss,
+)
 from .ContrastiveLoss import ContrastiveLoss, SiameseDistanceMetric
 from .ContrastiveTensionLoss import (
     ContrastiveTensionDataLoader,

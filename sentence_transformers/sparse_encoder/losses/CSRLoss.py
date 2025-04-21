@@ -57,7 +57,7 @@ class CSRLoss(nn.Module):
 
         recon_loss = self.reconstruction_loss.compute_loss_from_embeddings(outputs)
 
-        ranking_loss = self.ranking_loss.compute_loss_from_embeddings(sentence_embedding)
+        ranking_loss = self.ranking_loss.compute_loss_from_embeddings(sentence_embedding, labels)
 
         # Compute total loss: L_CSR = L_recon + γ * L_MRL
         total_loss = recon_loss + self.gamma * ranking_loss
@@ -72,3 +72,17 @@ class CSRLoss(nn.Module):
             Dictionary containing the configuration parameters
         """
         return {"beta": self.beta, "gamma": self.gamma, "scale": self.scale}
+
+    @property
+    def citation(self) -> str:
+        return """
+@misc{wen2025matryoshkarevisitingsparsecoding,
+      title={Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation},
+      author={Tiansheng Wen and Yifei Wang and Zequn Zeng and Zhong Peng and Yudi Su and Xinyang Liu and Bo Chen and Hongwei Liu and Stefanie Jegelka and Chenyu You},
+      year={2025},
+      eprint={2503.01776},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2503.01776},
+}
+"""
