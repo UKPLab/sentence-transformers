@@ -539,6 +539,7 @@ def mine_hard_negatives(
     use_faiss: bool = False,
     use_multi_process: list[str] | bool = False,
     verbose: bool = True,
+    cache_folder: str | None = None,
     as_triplets: bool | None = None,
     margin: float | None = None,
 ) -> Dataset:
@@ -686,6 +687,7 @@ def mine_hard_negatives(
             is available, and 4 CPU processes if it's not available. You can also pass a list of PyTorch devices like
             ["cuda:0", "cuda:1", ...] or ["cpu", "cpu", "cpu", "cpu"].
         verbose (bool): Whether to print statistics and logging. Defaults to True.
+        cache_folder (str, optional): Directory path for caching embeddings. If provided, the function will save **query_embeddings.npy** and **corpus_embeddings.npy** under this folder after the first run, and on subsequent calls will load from these files if they exist to avoid recomputation. Defaults to None.
         as_triplets (bool, optional): Deprecated. Use `output_format` instead. Defaults to None.
         margin (float, optional): Deprecated. Use `absolute_margin` or `relative_margin` instead. Defaults to None.
 
@@ -794,29 +796,82 @@ def mine_hard_negatives(
         avg_positives_per_query = np.mean(positives_per_query)
         print(f"Found an average of {avg_positives_per_query:.3f} positives per query.")
 
-    # Embed the corpus and the queries
-    if use_multi_process:
-        pool = model.start_multi_process_pool(
-            target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
-        )
-        corpus_embeddings = model.encode_multi_process(
-            corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
-        )
-        query_embeddings = model.encode_multi_process(
-            queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
-        )
-        model.stop_multi_process_pool(pool)
-    else:
-        corpus_embeddings = model.encode(
-            corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
-        )
-        query_embeddings = model.encode(
-            queries,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-            show_progress_bar=True,
-        )
+    if cache_folder:
+        os.makedirs(cache_folder, exist_ok=True)
+
+    q_file = os.path.join(cache_folder, "query_embeddings.npy") if cache_folder else None
+    c_file = os.path.join(cache_folder, "corpus_embeddings.npy") if cache_folder else None
+
+    need_encode_q = True
+    if cache_folder and os.path.exists(q_file):
+        loaded_q = np.load(q_file)
+        if loaded_q.shape[0] == len(queries):
+            if verbose:
+                print(f"[Cache] Loaded valid query embeddings from {q_file} (shape={loaded_q.shape})")
+            query_embeddings = loaded_q
+            need_encode_q = False
+        else:
+            if verbose:
+                print(
+                    f"[Cache] Shape mismatch for {q_file}: "
+                    f"found {loaded_q.shape[0]} rows but {len(queries)} queries. Re-encoding."
+                )
+
+    if need_encode_q:
+        # Embed the corpus and the queries
+        if use_multi_process:
+            pool = model.start_multi_process_pool(
+                target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
+            )
+            query_embeddings = model.encode_multi_process(
+                queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+            )
+            model.stop_multi_process_pool(pool)
+        else:
+            query_embeddings = model.encode(
+                queries,
+                batch_size=batch_size,
+                normalize_embeddings=True,
+                convert_to_numpy=True,
+                show_progress_bar=True,
+            )
+        if cache_folder:
+            np.save(q_file, query_embeddings)
+            if verbose:
+                print(f"[Cache] Saved query embeddings to {q_file}")
+
+    need_encode_c = True
+    if cache_folder and os.path.exists(c_file):
+        loaded_c = np.load(c_file)
+        if loaded_c.shape[0] == len(corpus):
+            if verbose:
+                print(f"[Cache] Loaded valid corpus embeddings from {c_file} (shape={loaded_c.shape})")
+            corpus_embeddings = loaded_c
+            need_encode_c = False
+        else:
+            if verbose:
+                print(
+                    f"[Cache] Shape mismatch for {c_file}: "
+                    f"found {loaded_c.shape[0]} rows but {len(corpus)} corpus items. Re-encoding."
+                )
+    if need_encode_c:
+        # Embed the corpus and the queries
+        if use_multi_process:
+            pool = model.start_multi_process_pool(
+                target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
+            )
+            corpus_embeddings = model.encode_multi_process(
+                corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+            )
+            model.stop_multi_process_pool(pool)
+        else:
+            corpus_embeddings = model.encode(
+                corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
+            )
+        if cache_folder:
+            np.save(c_file, corpus_embeddings)
+            if verbose:
+                print(f"[Cache] Saved corpus embeddings to {c_file}")
 
     if use_faiss:
         import faiss
