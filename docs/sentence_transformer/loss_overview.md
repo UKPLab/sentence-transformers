@@ -25,29 +25,31 @@ Loss functions play a critical role in the performance of your fine-tuned model.
 
 ## Loss modifiers
 
-These loss functions can be seen as *loss modifiers*: they work on top of standard loss functions, but apply those loss functions in different ways to try and instil useful properties into the trained embedding model.
+These loss functions can be seen as _loss modifiers_: they work on top of standard loss functions, but apply those loss functions in different ways to try and instil useful properties into the trained embedding model.
 
-For example, models trained with <a href="../package_reference/sentence_transformer/losses.html#matryoshkaloss">`MatryoshkaLoss`</a> produce embeddings whose size can be truncated without notable losses in performance, and models trained with <a href="../package_reference/sentence_transformer/losses.html#adaptivelayerloss">`AdaptiveLayerLoss`</a> still perform well when you remove model layers for faster inference.
+For example, models trained with <a href="../package_reference/sentence_transformer/losses.md#matryoshkaloss">`MatryoshkaLoss`</a> produce embeddings whose size can be truncated without notable losses in performance, and models trained with <a href="../package_reference/sentence_transformer/losses.md#adaptivelayerloss">`AdaptiveLayerLoss`</a> still perform well when you remove model layers for faster inference.
 
-| Texts | Labels | Appropriate Loss Functions                                                                                                                                                                                                                                                                                                  |
-|-------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `any` | `any`  | <a href="../package_reference/sentence_transformer/losses.html#matryoshkaloss">`MatryoshkaLoss`</a><br><a href="../package_reference/sentence_transformer/losses.html#adaptivelayerloss">`AdaptiveLayerLoss`</a><br><a href="../package_reference/sentence_transformer/losses.html#matryoshka2dloss">`Matryoshka2dLoss`</a> |
+| Texts | Labels | Appropriate Loss Functions                                                                                                                                                                                                                                                                                            |
+| ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `any` | `any`  | <a href="../package_reference/sentence_transformer/losses.md#matryoshkaloss">`MatryoshkaLoss`</a><br><a href="../package_reference/sentence_transformer/losses.md#adaptivelayerloss">`AdaptiveLayerLoss`</a><br><a href="../package_reference/sentence_transformer/losses.md#matryoshka2dloss">`Matryoshka2dLoss`</a> |
 
 ## Distillation
+
 These loss functions are specifically designed to be used when distilling the knowledge from one model into another.
 For example, when finetuning a small model to behave more like a larger & stronger one, or when finetuning a model to become multi-lingual.
 
-| Texts                                        | Labels                                                        | Appropriate Loss Functions                                                                        |
-|----------------------------------------------|---------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| `sentence`                                   | `model sentence embeddings`                                   | <a href="../package_reference/sentence_transformer/losses.html#mseloss">`MSELoss`</a>             |
-| `sentence_1, sentence_2, ..., sentence_N`    | `model sentence embeddings`                                   | <a href="../package_reference/sentence_transformer/losses.html#mseloss">`MSELoss`</a>             |
-| `(query, passage_one, passage_two) triplets` | `gold_sim(query, passage_one) - gold_sim(query, passage_two)` | <a href="../package_reference/sentence_transformer/losses.html#marginmseloss">`MarginMSELoss`</a> |
+| Texts                                        | Labels                                                        | Appropriate Loss Functions                                                                      |
+| -------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `sentence`                                   | `model sentence embeddings`                                   | <a href="../package_reference/sentence_transformer/losses.md#mseloss">`MSELoss`</a>             |
+| `sentence_1, sentence_2, ..., sentence_N`    | `model sentence embeddings`                                   | <a href="../package_reference/sentence_transformer/losses.md#mseloss">`MSELoss`</a>             |
+| `(query, passage_one, passage_two) triplets` | `gold_sim(query, passage_one) - gold_sim(query, passage_two)` | <a href="../package_reference/sentence_transformer/losses.md#marginmseloss">`MarginMSELoss`</a> |
 
 ## Commonly used Loss Functions
+
 In practice, not all loss functions get used equally often. The most common scenarios are:
 
-* `(anchor, positive) pairs` without any labels: <a href="../package_reference/sentence_transformer/losses.html#multiplenegativesrankingloss"><code>MultipleNegativesRankingLoss</code></a> (a.k.a. InfoNCE or in-batch negatives loss) is commonly used to train the top performing embedding models. This data is often relatively cheap to obtain, and the models are generally very performant. <a href="../package_reference/sentence_transformer/losses.html#cachedmultiplenegativesrankingloss"><code>CachedMultipleNegativesRankingLoss</code></a> is often used to increase the batch size, resulting in superior performance.
-* `(sentence_A, sentence_B) pairs` with a `float similarity score`: <a href="../package_reference/sentence_transformer/losses.html#cosinesimilarityloss"><code>CosineSimilarityLoss</code></a> is traditionally used a lot, though more recently <a href="../package_reference/sentence_transformer/losses.html#cosentloss"><code>CoSENTLoss</code></a> and <a href="../package_reference/sentence_transformer/losses.html#angleloss"><code>AnglELoss</code></a> are used as drop-in replacements with superior performance.
+- `(anchor, positive) pairs` without any labels: <a href="../package_reference/sentence_transformer/losses.md#multiplenegativesrankingloss"><code>MultipleNegativesRankingLoss</code></a> (a.k.a. InfoNCE or in-batch negatives loss) is commonly used to train the top performing embedding models. This data is often relatively cheap to obtain, and the models are generally very performant. <a href="../package_reference/sentence_transformer/losses.md#cachedmultiplenegativesrankingloss"><code>CachedMultipleNegativesRankingLoss</code></a> is often used to increase the batch size, resulting in superior performance.
+- `(sentence_A, sentence_B) pairs` with a `float similarity score`: <a href="../package_reference/sentence_transformer/losses.md#cosinesimilarityloss"><code>CosineSimilarityLoss</code></a> is traditionally used a lot, though more recently <a href="../package_reference/sentence_transformer/losses.md#cosentloss"><code>CoSENTLoss</code></a> and <a href="../package_reference/sentence_transformer/losses.md#angleloss"><code>AnglELoss</code></a> are used as drop-in replacements with superior performance.
 
 ## Custom Loss Functions
 
