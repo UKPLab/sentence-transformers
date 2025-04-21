@@ -62,12 +62,12 @@ def main():
 
     # Save the model
     model.push_to_hub(
-        "splade_example",
+        "sparse-embedding/splade_example",
         private=True,
     )
 
     # Load the model
-    loaded_model = SparseEncoder("arthurbresnu/splade_example")
+    loaded_model = SparseEncoder("sparse-embedding/splade_example")
 
     print(f"Loaded model: {loaded_model}")
 
