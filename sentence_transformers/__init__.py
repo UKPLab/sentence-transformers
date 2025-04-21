@@ -24,6 +24,7 @@ from sentence_transformers.quantization import quantize_embeddings
 from sentence_transformers.readers import InputExample
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.similarity_functions import SimilarityFunction
+from sentence_transformers.sparse_encoder import SparseEncoder
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sentence_transformers.util import mine_hard_negatives
@@ -52,4 +53,5 @@ __all__ = [
     "export_dynamic_quantized_onnx_model",
     "export_static_quantized_openvino_model",
     "mine_hard_negatives",
+    "SparseEncoder",
 ]
