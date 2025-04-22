@@ -49,6 +49,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Cache Hugging Face
+        id: cache-hf
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: ${{ runner.os }}-hf-cache
+
       - name: Setup Python environment
         uses: actions/setup-python@v5
         with:
@@ -65,13 +72,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install '.[train, onnx, openvino, dev]'
-
-      - name: Cache Hugging Face
-        id: cache-hf
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/huggingface
-          key: hf-cache
 
       - name: Install model2vec
         run: python -m pip install model2vec
