@@ -237,8 +237,8 @@ def test_trainer(
 
     model = stsb_bert_tiny_model
     original_model = deepcopy(model)
-    train_dataset = stsb_dataset_dict["train"][:10]
-    eval_dataset = stsb_dataset_dict["validation"][:10]
+    train_dataset = stsb_dataset_dict["train"].select(range(10))
+    eval_dataset = stsb_dataset_dict["validation"].select(range(10))
     loss = losses.CosineSimilarityLoss(model=model)
 
     if streaming:
