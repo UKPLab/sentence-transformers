@@ -27,6 +27,28 @@ class TripletEvaluator(SentenceEvaluator):
     Evaluate a model based on a triplet: (sentence, positive_example, negative_example).
     Checks if ``similarity(sentence, positive_example) < similarity(sentence, negative_example) + margin``.
 
+    Args:
+        anchors (List[str]): Sentences to check similarity to. (e.g. a query)
+        positives (List[str]): List of positive sentences
+        negatives (List[str]): List of negative sentences
+        main_similarity_function (Union[str, SimilarityFunction], optional):
+            The similarity function to use. If not specified, use cosine similarity,
+            dot product, Euclidean, and Manhattan similarity. Defaults to None.
+        margin (Union[float, Dict[str, float]], optional): Margins for various similarity metrics.
+            If a float is provided, it will be used as the margin for all similarity metrics.
+            If a dictionary is provided, the keys should be 'cosine', 'dot', 'manhattan', and 'euclidean'.
+            The value specifies the minimum margin by which the negative sample should be further from
+            the anchor than the positive sample. Defaults to None.
+        name (str): Name for the output. Defaults to "".
+        batch_size (int): Batch size used to compute embeddings. Defaults to 16.
+        show_progress_bar (bool): If true, prints a progress bar. Defaults to False.
+        write_csv (bool): Write results to a CSV file. Defaults to True.
+        truncate_dim (int, optional): The dimension to truncate sentence embeddings to.
+            `None` uses the model's current truncation dimension. Defaults to None.
+        similarity_fn_names (List[str], optional): List of similarity function names to evaluate.
+            If not specified, evaluate using the ``model.similarity_fn_name``.
+            Defaults to None.
+
     Example:
         ::
 
@@ -73,31 +95,6 @@ class TripletEvaluator(SentenceEvaluator):
         similarity_fn_names: list[Literal["cosine", "dot", "euclidean", "manhattan"]] | None = None,
         main_distance_function: str | SimilarityFunction | None = "deprecated",
     ):
-        """
-        Initializes a TripletEvaluator object.
-
-        Args:
-            anchors (List[str]): Sentences to check similarity to. (e.g. a query)
-            positives (List[str]): List of positive sentences
-            negatives (List[str]): List of negative sentences
-            main_similarity_function (Union[str, SimilarityFunction], optional):
-                The similarity function to use. If not specified, use cosine similarity,
-                dot product, Euclidean, and Manhattan similarity. Defaults to None.
-            margin (Union[float, Dict[str, float]], optional): Margins for various similarity metrics.
-                If a float is provided, it will be used as the margin for all similarity metrics.
-                If a dictionary is provided, the keys should be 'cosine', 'dot', 'manhattan', and 'euclidean'.
-                The value specifies the minimum margin by which the negative sample should be further from
-                the anchor than the positive sample. Defaults to None.
-            name (str): Name for the output. Defaults to "".
-            batch_size (int): Batch size used to compute embeddings. Defaults to 16.
-            show_progress_bar (bool): If true, prints a progress bar. Defaults to False.
-            write_csv (bool): Write results to a CSV file. Defaults to True.
-            truncate_dim (int, optional): The dimension to truncate sentence embeddings to.
-                `None` uses the model's current truncation dimension. Defaults to None.
-            similarity_fn_names (List[str], optional): List of similarity function names to evaluate.
-                If not specified, evaluate using the ``model.similarity_fn_name``.
-                Defaults to None.
-        """
         super().__init__()
         self.anchors = anchors
         self.positives = positives
@@ -263,3 +260,11 @@ class TripletEvaluator(SentenceEvaluator):
         metrics = self.prefix_name_to_metrics(metrics, self.name)
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
+
+    def get_config_dict(self):
+        config_dict = {}
+        if self.margin != {"cosine": 0, "dot": 0, "manhattan": 0, "euclidean": 0}:
+            config_dict["margin"] = self.margin
+        if self.truncate_dim is not None:
+            config_dict["truncate_dim"] = self.truncate_dim
+        return config_dict

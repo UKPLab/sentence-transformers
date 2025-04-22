@@ -1,10 +1,19 @@
 from __future__ import annotations
 
 import pytest
-from datasets import Dataset, DatasetDict
 
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
 from sentence_transformers.model_card import generate_model_card
+from sentence_transformers.util import is_datasets_available, is_training_available
+
+if is_datasets_available():
+    from datasets import Dataset, DatasetDict
+
+if not is_training_available():
+    pytest.skip(
+        reason='Sentence Transformers was not installed with the `["train"]` extra.',
+        allow_module_level=True,
+    )
 
 
 @pytest.fixture(scope="session")
@@ -38,6 +47,7 @@ def dummy_dataset():
                 "**Output Dimensionality:** 128 dimensions",
                 "**Similarity Function:** Cosine Similarity",
                 "#### Unnamed Dataset",
+                "| details | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> |",
                 " | <code>anchor 1</code> | <code>positive 1</code> | <code>negative 1</code> |",
                 "* Loss: [<code>CoSENTLoss</code>](https://sbert.net/docs/package_reference/sentence_transformer/losses.html#cosentloss) with these parameters:",
             ],
@@ -100,8 +110,8 @@ def test_model_card_base(
 
     model_card = generate_model_card(model)
 
-    # For debugging purposes, we save the model card to a file
-    # with open(f"test_model_card_{num_datasets}.md", "w", encoding="utf8") as f:
+    # For debugging purposes, we can save the model card to a file
+    # with open(f"test_model_card_{num_datasets}d.md", "w", encoding="utf8") as f:
     #     f.write(model_card)
 
     for substring in expected_substrings:
