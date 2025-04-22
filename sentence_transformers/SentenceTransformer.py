@@ -216,7 +216,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             adapt_transformers_to_gaudi()
 
         if model_name_or_path is not None and model_name_or_path != "":
-            logger.info(f"Load pretrained SentenceTransformer: {model_name_or_path}")
+            logger.info(f"Load pretrained {self.__class__.__name__}: {model_name_or_path}")
 
             # Old models that don't belong to any organization
             basic_transformer_models = [
@@ -1456,9 +1456,9 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         if commit_message is None:
             backend = self.get_backend()
             if backend == "torch":
-                commit_message = "Add new SentenceTransformer model"
+                commit_message = f"Add new {self.__class__.__name__} model"
             else:
-                commit_message = f"Add new SentenceTransformer model with an {backend} backend"
+                commit_message = f"Add new {self.__class__.__name__} model with an {backend} backend"
 
         commit_description = ""
         if create_pr:
@@ -1475,11 +1475,11 @@ Hello!
 ## Tip:
 Consider testing this pull request before merging by loading the model from this PR with the `revision` argument:
 ```python
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import {self.__class__.__name__}
 
 # TODO: Fill in the PR number
 pr_number = 2
-model = SentenceTransformer(
+model = {self.__class__.__name__}(
     "{repo_id}",
     revision=f"refs/pr/{{pr_number}}",
     backend="{self.get_backend()}",
