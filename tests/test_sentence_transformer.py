@@ -32,7 +32,7 @@ from sentence_transformers.models import (
     WeightedLayerPooling,
 )
 from sentence_transformers.similarity_functions import SimilarityFunction
-from tests.utils import SafeTemporaryDirectory
+from tests.utils import SafeTemporaryDirectory, is_ci
 
 
 def test_load_with_safetensors() -> None:
@@ -741,6 +741,9 @@ def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
 
 
 @pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test adapter methods.")
+@pytest.mark.skipif(
+    is_ci(), reason="huggingface_hub & PEFT incorrectly set the user agent in the CI, leading to failures."
+)
 def test_multiple_adapters() -> None:
     text = "Hello, World!"
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
@@ -806,6 +809,9 @@ def test_multiple_adapters() -> None:
 
 
 @pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test loading PEFT models.")
+@pytest.mark.skipif(
+    is_ci(), reason="huggingface_hub & PEFT incorrectly set the user agent in the CI, leading to failures."
+)
 def test_load_adapter_with_revision():
     model = SentenceTransformer(
         "sentence-transformers-testing/stsb-bert-tiny-lora", revision="3b4f75bcb3dec36a7e05da8c44ee2f7f1d023b1a"
