@@ -12,6 +12,7 @@ from functools import partial
 from pathlib import Path
 from typing import Literal, cast
 
+import huggingface_hub
 import numpy as np
 import pytest
 import torch
@@ -32,7 +33,7 @@ from sentence_transformers.models import (
     WeightedLayerPooling,
 )
 from sentence_transformers.similarity_functions import SimilarityFunction
-from tests.utils import SafeTemporaryDirectory
+from tests.utils import SafeTemporaryDirectory, get_hf_file_metadata_with_user_agent
 
 
 def test_load_with_safetensors() -> None:
@@ -741,7 +742,10 @@ def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
 
 
 @pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test adapter methods.")
-def test_multiple_adapters() -> None:
+def test_multiple_adapters(monkeypatch) -> None:
+    # Mock huggingface_hub.get_hf_file_metadata to include the transformers user agent
+    monkeypatch.setattr(huggingface_hub, "get_hf_file_metadata", get_hf_file_metadata_with_user_agent)
+
     text = "Hello, World!"
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
     vec_initial = model.encode(text)
@@ -806,7 +810,10 @@ def test_multiple_adapters() -> None:
 
 
 @pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test loading PEFT models.")
-def test_load_adapter_with_revision():
+def test_load_adapter_with_revision(monkeypatch):
+    # Mock huggingface_hub.get_hf_file_metadata to include the transformers user agent
+    monkeypatch.setattr(huggingface_hub, "get_hf_file_metadata", get_hf_file_metadata_with_user_agent)
+
     model = SentenceTransformer(
         "sentence-transformers-testing/stsb-bert-tiny-lora", revision="3b4f75bcb3dec36a7e05da8c44ee2f7f1d023b1a"
     )
