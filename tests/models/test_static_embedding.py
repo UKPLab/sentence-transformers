@@ -18,7 +18,7 @@ except ImportError:
 skip_if_no_model2vec = pytest.mark.skipif(model2vec is None, reason="The model2vec library is not installed.")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def tokenizer() -> Tokenizer:
     return Tokenizer.from_pretrained("bert-base-uncased")
 
