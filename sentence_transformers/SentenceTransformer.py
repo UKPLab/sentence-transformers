@@ -1929,5 +1929,5 @@ print(similarities)
     def gradient_checkpointing_enable(self, gradient_checkpointing_kwargs=None) -> None:
         # Propagate the gradient checkpointing to the transformer model
         for module in self:
-            if isinstance(module, Transformer):
+            if hasattr(module, "auto_model"):
                 return module.auto_model.gradient_checkpointing_enable(gradient_checkpointing_kwargs)

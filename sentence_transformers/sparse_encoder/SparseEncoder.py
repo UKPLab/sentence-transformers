@@ -35,9 +35,6 @@ class SparseEncoder(SentenceTransformer):
     # - _load_auto_model
     # - _load_module_class_from_ref
     # - _load_sbert_model
-    # - _no_split_modules
-    # - _keys_to_ignore_on_save
-    # - gradient_checkpointing_enable
 
     # --------------------------------------Done-----------------------------------------------------------
     # - __init__ (make sure nothing else need to be overrided)
@@ -68,9 +65,11 @@ class SparseEncoder(SentenceTransformer):
     # - tokenizer
     # - max_seq_length
     # - _target_device
+    # - _no_split_modules
+    # - _keys_to_ignore_on_save
+    # - gradient_checkpointing_enable
 
     # -----------------------------------Added------------------------------------
-    # - set_topk
     # - get_sparsity_stats
 
     def __init__(
