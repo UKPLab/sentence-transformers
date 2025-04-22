@@ -12,15 +12,15 @@ from tqdm import trange
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData
+from sentence_transformers.sparse_encoder.models import MLMTransformer, SpladePooling
 from sentence_transformers.util import batch_to_device, truncate_embeddings_for_sparse
 
 logger = logging.getLogger(__name__)
 
 
 class SparseEncoder(SentenceTransformer):
-    # TODO: Check if there is no other things we need to overwrite espacially for models specificty in the init
     # TODO: Add the proper description with associate example
-    # TODO: Clean encode implementation
+    # TODO: Clean encode & init implementation and check the last three functions not done
 
     # NOTE: Function available in SparseEvaluator:
     # ---------------------------------------------Not done---------------------------------------------
@@ -28,16 +28,15 @@ class SparseEncoder(SentenceTransformer):
     # - encode_multi_process
     # - _encode_multi_process_worker
 
-    # - _load_auto_model
-    # - _load_module_class_from_ref
-    # - _load_sbert_model
-
     # --------------------------------------Done-----------------------------------------------------------
     # - __init__ (make sure nothing else need to be overrided)
     # - encode (clean the implementation)
+
     # - save (just for the docstring)
     # - save_pretrained (just for the docstring)
     # - push_to_hub (just for the docstring)
+    # - _load_auto_model (to have a default splade model loaded)
+    # - _load_sbert_model (just for the docstring)
     # - _update_default_model_id
     # - load
 
@@ -60,6 +59,7 @@ class SparseEncoder(SentenceTransformer):
     # - save_to_hub
     # - _text_length
     # - evaluate
+    # - _load_module_class_from_ref
     # - device
     # - tokenizer
     # - max_seq_length
@@ -269,6 +269,103 @@ class SparseEncoder(SentenceTransformer):
             train_datasets=train_datasets,
             revision=revision,
             create_pr=create_pr,
+        )
+
+    def _load_auto_model(
+        self,
+        model_name_or_path: str,
+        token: bool | str | None,
+        cache_folder: str | None,
+        revision: str | None = None,
+        trust_remote_code: bool = False,
+        local_files_only: bool = False,
+        model_kwargs: dict[str, Any] | None = None,
+        tokenizer_kwargs: dict[str, Any] | None = None,
+        config_kwargs: dict[str, Any] | None = None,
+    ) -> list[nn.Module]:
+        """
+        Creates a simple MLMTransformer + SPladePooling model and returns the modules
+
+        Args:
+            model_name_or_path (str): The name or path of the pre-trained model.
+            token (Optional[Union[bool, str]]): The token to use for the model.
+            cache_folder (Optional[str]): The folder to cache the model.
+            revision (Optional[str], optional): The revision of the model. Defaults to None.
+            trust_remote_code (bool, optional): Whether to trust remote code. Defaults to False.
+            local_files_only (bool, optional): Whether to use only local files. Defaults to False.
+            model_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the model. Defaults to None.
+            tokenizer_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the tokenizer. Defaults to None.
+            config_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the config. Defaults to None.
+
+        Returns:
+            List[nn.Module]: A list containing the MLMTransformer model and the spladepooling model.
+        """
+        logger.warning(
+            f"No sparse-encoder model found with name {model_name_or_path}. Creating a new one with spladepooling."
+        )
+
+        shared_kwargs = {
+            "token": token,
+            "trust_remote_code": trust_remote_code,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        model_kwargs = shared_kwargs if model_kwargs is None else {**shared_kwargs, **model_kwargs}
+        tokenizer_kwargs = shared_kwargs if tokenizer_kwargs is None else {**shared_kwargs, **tokenizer_kwargs}
+        config_kwargs = shared_kwargs if config_kwargs is None else {**shared_kwargs, **config_kwargs}
+
+        mlmtransformer_model = MLMTransformer(
+            model_name_or_path,
+            cache_dir=cache_folder,
+            model_args=model_kwargs,
+            tokenizer_args=tokenizer_kwargs,
+            config_args=config_kwargs,
+            backend=self.backend,
+        )
+        splade_pooling_model = SpladePooling(pooling_strategy="max")
+        if not local_files_only:
+            self.model_card_data.set_base_model(model_name_or_path, revision=revision)
+        return [mlmtransformer_model, splade_pooling_model]
+
+    def _load_sbert_model(
+        self,
+        model_name_or_path: str,
+        token: bool | str | None,
+        cache_folder: str | None,
+        revision: str | None = None,
+        trust_remote_code: bool = False,
+        local_files_only: bool = False,
+        model_kwargs: dict[str, Any] | None = None,
+        tokenizer_kwargs: dict[str, Any] | None = None,
+        config_kwargs: dict[str, Any] | None = None,
+    ) -> dict[str, nn.Module]:
+        """
+        Loads a full SparseEncoder model using the modules.json file.
+
+        Args:
+            model_name_or_path (str): The name or path of the pre-trained model.
+            token (Optional[Union[bool, str]]): The token to use for the model.
+            cache_folder (Optional[str]): The folder to cache the model.
+            revision (Optional[str], optional): The revision of the model. Defaults to None.
+            trust_remote_code (bool, optional): Whether to trust remote code. Defaults to False.
+            local_files_only (bool, optional): Whether to use only local files. Defaults to False.
+            model_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the model. Defaults to None.
+            tokenizer_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the tokenizer. Defaults to None.
+            config_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the config. Defaults to None.
+
+        Returns:
+            OrderedDict[str, nn.Module]: An ordered dictionary containing the modules of the model.
+        """
+        return super()._load_sbert_model(
+            model_name_or_path=model_name_or_path,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            trust_remote_code=trust_remote_code,
+            local_files_only=local_files_only,
+            model_kwargs=model_kwargs,
+            tokenizer_kwargs=tokenizer_kwargs,
+            config_kwargs=config_kwargs,
         )
 
     @staticmethod
