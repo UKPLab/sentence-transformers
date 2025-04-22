@@ -18,7 +18,7 @@ from sentence_transformers.util import is_datasets_available, is_training_availa
 from tests.utils import SafeTemporaryDirectory
 
 if is_datasets_available():
-    from datasets import DatasetDict, load_dataset
+    from datasets import DatasetDict
 
 if not is_training_available():
     pytest.skip(
@@ -118,7 +118,12 @@ def test_model_card_reuse(reranker_bert_tiny_model: CrossEncoder):
 @pytest.mark.parametrize("eval_dict", [False, True])
 @pytest.mark.parametrize("loss_dict", [False, True])
 def test_trainer(
-    reranker_bert_tiny_model: CrossEncoder, streaming: bool, train_dict: bool, eval_dict: bool, loss_dict: bool
+    reranker_bert_tiny_model: CrossEncoder,
+    stsb_dataset_dict: DatasetDict,
+    streaming: bool,
+    train_dict: bool,
+    eval_dict: bool,
+    loss_dict: bool,
 ) -> None:
     """
     Some cases are not allowed:
@@ -156,8 +161,8 @@ def test_trainer(
 
     model = reranker_bert_tiny_model
     original_model = deepcopy(model)
-    train_dataset = load_dataset("sentence-transformers/stsb", split="train[:10]")
-    eval_dataset = load_dataset("sentence-transformers/stsb", split="validation[:10]")
+    train_dataset = stsb_dataset_dict["train"].select(range(10))
+    eval_dataset = stsb_dataset_dict["validation"].select(range(10))
     loss = losses.BinaryCrossEntropyLoss(model=model)
 
     if streaming:
