@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 class SparseEncoder(SentenceTransformer):
-    # TODO: Add the proper description with associate example
-    # TODO: Clean encode & init implementation and check the last three functions not done
+    # TODO: Add the proper description with associate example + docstring to all the functions
+    # TODO: Check the last three functions not done
 
     # NOTE: Function available in SparseEvaluator:
     # ---------------------------------------------Not done---------------------------------------------

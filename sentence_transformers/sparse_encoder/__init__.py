@@ -74,6 +74,5 @@ __all__ = [
     # Model card
     "SparseEncoderModelCardData",
 ]
-# TODO : Complete the SparseEncoder class
 # TODO : Add tests for all the components
 # TODO : Add the equivalent of the quantization file for the sparse encoder
