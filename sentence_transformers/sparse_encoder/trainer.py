@@ -31,9 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class SparseEncoderTrainer(SentenceTransformerTrainer):
-    # TODO: Check if there is no other things we need to overwrite
-    # TODO: Add for sure _load_from_checkpoint
-    # TODO: Add the proper description
+    # TODO: Check if there is no other things we need to overwrite and if the ones we did are correct + the docstring associated in the class
     """
     SparseEncoderTrainer is a simple but feature-complete training and eval loop for PyTorch
     based on the SentenceTransformerTrainer that based on 🤗 Transformers :class:`~transformers.Trainer`.
@@ -69,7 +67,7 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
             dataset names to loss class instances, a function that returns a loss class instance given a model,
             or a dictionary mapping dataset names to functions that return a loss class instance given a model.
             In practice, the latter two are primarily used for hyper-parameter optimization. Will default to
-            :class:`~sentence_transformers.losses.CoSENTLoss` if no ``loss`` is provided.
+            :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss` if no ``loss`` is provided.
         evaluator (Union[:class:`~sentence_transformers.evaluation.SentenceEvaluator`,\
             List[:class:`~sentence_transformers.evaluation.SentenceEvaluator`]], *optional*):
             The evaluator instance for useful evaluation metrics during training. You can use an ``evaluator`` with
@@ -294,7 +292,7 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         Add a callback responsible for automatically tracking data required for the automatic model card generation
 
         This method is called in the ``__init__`` method of the
-        :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` class.
+        :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` class.
 
         Args:
             default_args_dict (Dict[str, Any]): A dictionary of the default training arguments, so we can determine
@@ -304,3 +302,72 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         model_card_callback = SparseEncoderModelCardCallback(default_args_dict)
         self.add_callback(model_card_callback)
         model_card_callback.on_init_end(self.args, self.state, self.control, model=self.model, trainer=self)
+
+    # -----------------------------------To check if needed to be override and if yes is it correctly done-----------------------------------
+
+    def call_model_init(self, trial=None) -> SparseEncoder:
+        return super().call_model_init(trial=trial)
+
+    def override_model_in_loss(self, loss: torch.nn.Module, model: SparseEncoder) -> torch.nn.Module:
+        from sentence_transformers import SparseEncoder
+
+        for name, child in loss.named_children():
+            if name == "model" and isinstance(child, SparseEncoder):
+                loss.model = model
+            elif isinstance(child, torch.nn.Module):
+                setattr(loss, name, self.override_model_in_loss(child, model))
+        return loss
+
+    def prepare_loss(
+        self,
+        loss: Callable[[SparseEncoder], torch.nn.Module] | torch.nn.Module,
+        model: SparseEncoder,
+    ) -> torch.nn.Module:
+        return super().prepare_loss(loss=loss, model=model)
+
+    def compute_loss(
+        self,
+        model: SparseEncoder,
+        inputs: dict[str, torch.Tensor | Any],
+        return_outputs: bool = False,
+        num_items_in_batch=None,
+    ) -> torch.Tensor | tuple[torch.Tensor, dict[str, Any]]:
+        """
+        Computes the loss for the SparseEncoder model.
+
+        It uses ``self.loss`` to compute the loss, which can be a single loss function or a dictionary of loss functions
+        for different datasets. If the loss is a dictionary, the dataset name is expected to be passed in the inputs
+        under the key "dataset_name". This is done automatically in the ``add_dataset_name_column`` method.
+        Note that even if ``return_outputs = True``, the outputs will be empty, as the SparseEncoder losses do not
+        return outputs.
+
+        Args:
+            model (SparseEncoder): The SparseEncoder model.
+            inputs (Dict[str, Union[torch.Tensor, Any]]): The input data for the model.
+            return_outputs (bool, optional): Whether to return the outputs along with the loss. Defaults to False.
+            num_items_in_batch (int, optional): The number of items in the batch. Defaults to None. Unused, but required by the transformers Trainer.
+
+        Returns:
+            Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, Any]]]: The computed loss. If `return_outputs` is True, returns a tuple of loss and outputs. Otherwise, returns only the loss.
+        """
+        return super().compute_loss(
+            model=model, inputs=inputs, return_outputs=return_outputs, num_items_in_batch=num_items_in_batch
+        )
+
+    def _load_from_checkpoint(self, checkpoint_path: str) -> None:
+        from sentence_transformers import SparseEncoder
+
+        loaded_model = SparseEncoder(checkpoint_path, trust_remote_code=self.model.trust_remote_code)
+        self.model.load_state_dict(loaded_model.state_dict())
+
+    def get_optimizer_cls_and_kwargs(
+        self, args: SparseEncoderTrainingArguments, model: SparseEncoder | None = None
+    ) -> tuple[Any, Any]:
+        """
+        We have to override the optimizer_grouped_parameters because the Trainer superclass bases it on the `model`
+        itself, but the SparseEncoder losses can have weights that should be updated as well, e.g.
+        SoftmaxLoss (see #2872).
+
+        This method requires `transformers` >= 4.43.0.
+        """
+        return super().get_optimizer_cls_and_kwargs(args=args, model=model)

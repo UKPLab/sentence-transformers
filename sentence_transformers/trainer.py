@@ -23,7 +23,6 @@ from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvalua
 from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
 from sentence_transformers.model_card import SentenceTransformerModelCardCallback
 from sentence_transformers.models import Pooling
-from sentence_transformers.models.Transformer import Transformer
 from sentence_transformers.sampler import (
     DefaultBatchSampler,
     GroupByLabelBatchSampler,
@@ -513,7 +512,7 @@ class SentenceTransformerTrainer(Trainer):
     def _load_best_model(self) -> None:
         # We want to ensure that this does not fail, and it may change if transformers updates how checkpoints are saved
         # Loading the best model is only supported for `transformers`-based models
-        if not isinstance(self.model[0], Transformer):
+        if not hasattr(self.model[0], "auto_model"):
             logger.info("Could not load best model, as the model is not a `transformers`-based model.")
             return
 
