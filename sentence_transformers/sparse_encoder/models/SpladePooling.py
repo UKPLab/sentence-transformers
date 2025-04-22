@@ -16,7 +16,6 @@ class SpladePooling(nn.Module):
     sequence length dimension.
 
     Args:
-        word_embedding_dimension: Dimension of the word embeddings (vocab size)
         pooling_strategy: Either 'max' or 'sum' for SPLADE pooling
 
     """
@@ -39,7 +38,7 @@ class SpladePooling(nn.Module):
             Dictionary containing SPLADE pooled embeddings
         """
         # Get the MLM head logits (shape: batch_size, seq_length, vocab_size)
-        mlm_logits = features["mlm_logits"]
+        mlm_logits = features["token_embeddings"]
 
         # Apply ReLU and log transformation for SPLADE
         splade_scores = torch.log1p(torch.relu(mlm_logits))
@@ -53,8 +52,8 @@ class SpladePooling(nn.Module):
         # Set the word embedding dimension
         if self.word_embedding_dimension is None:
             self.word_embedding_dimension = pooled_scores.shape[1]
-
-        return {"sentence_embedding": pooled_scores}
+        features["sentence_embedding"] = pooled_scores
+        return features
 
     def get_config_dict(self) -> dict[str, Any]:
         return {key: self.__dict__[key] for key in self.config_keys}

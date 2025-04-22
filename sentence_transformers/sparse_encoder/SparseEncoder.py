@@ -118,46 +118,107 @@ class SparseEncoder(SentenceTransformer):
     def encode(
         self,
         sentences: str | list[str] | np.ndarray,
-        # prompt_name: str | None = None,
-        # prompt: str | None = None,
+        prompt_name: str | None = None,
+        prompt: str | None = None,
         batch_size: int = 32,
         show_progress_bar: bool | None = None,
-        # output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
-        # precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
-        # convert_to_numpy: bool = True,
+        output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
         convert_to_tensor: bool = True,
-        # device: str | None = None,
-        # normalize_embeddings: bool = False,
         convert_to_sparse_tensor: bool = True,
-        truncate_dim: int = None,
+        device: str | None = None,
         **kwargs: Any,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         self.eval()
         if show_progress_bar is None:
-            show_progress_bar = logger.getEffectiveLevel() in (
-                logging.INFO,
-                logging.DEBUG,
-            )
+            show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
+
+        if output_value != "sentence_embedding":
+            convert_to_tensor = False
+
+        input_was_string = False
+        if isinstance(sentences, str) or not hasattr(
+            sentences, "__len__"
+        ):  # Cast an individual sentence to a list with length 1
+            sentences = [sentences]
+            input_was_string = True
+
+        if prompt is None:
+            if prompt_name is not None:
+                try:
+                    prompt = self.prompts[prompt_name]
+                except KeyError:
+                    raise ValueError(
+                        f"Prompt name '{prompt_name}' not found in the configured prompts dictionary with keys {list(self.prompts.keys())!r}."
+                    )
+            elif self.default_prompt_name is not None:
+                prompt = self.prompts.get(self.default_prompt_name, None)
+        else:
+            if prompt_name is not None:
+                logger.warning(
+                    "Encode with either a `prompt`, a `prompt_name`, or neither, but not both. "
+                    "Ignoring the `prompt_name` in favor of `prompt`."
+                )
+
+        extra_features = {}
+        if prompt is not None:
+            sentences = [prompt + sentence for sentence in sentences]
+
+            # Some models (e.g. INSTRUCTOR, GRIT) require removing the prompt before pooling
+            # Tracking the prompt length allow us to remove the prompt during pooling
+            tokenized_prompt = self.tokenize([prompt])
+            if "input_ids" in tokenized_prompt:
+                extra_features["prompt_length"] = tokenized_prompt["input_ids"].shape[-1] - 1
+
+        if device is None:
+            device = self.device
+
+        self.to(device)
 
         all_embeddings = []
+        length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
+        sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
+
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
-            sentences_batch = sentences[start_index : start_index + batch_size]
+            sentences_batch = sentences_sorted[start_index : start_index + batch_size]
             features = self.tokenize(sentences_batch)
             features = batch_to_device(features, self.device)
+            features.update(extra_features)
 
             with torch.no_grad():
                 out_features = self.forward(features, **kwargs)
-                embeddings = out_features["sentence_embedding"]
-                embeddings = truncate_embeddings_for_sparse(embeddings, truncate_dim=self.truncate_dim)
+                out_features["sentence_embedding"] = truncate_embeddings_for_sparse(
+                    out_features["sentence_embedding"], truncate_dim=self.truncate_dim
+                )
 
-                if convert_to_sparse_tensor:
-                    embeddings = embeddings.to_sparse()
+                if output_value == "token_embeddings":
+                    embeddings = []
+                    for token_emb in out_features[output_value]:
+                        if convert_to_sparse_tensor:
+                            token_emb = token_emb.to_sparse()
+                        embeddings.append(token_emb)
+                elif output_value is None:  # Return all outputs
+                    embeddings = []
+                    for sent_idx in range(len(out_features["sentence_embedding"])):
+                        row = {name: out_features[name][sent_idx] for name in out_features}
+                        embeddings.append(row)
+                else:  # Sentence embeddings
+                    embeddings = out_features[output_value]
+                    embeddings = embeddings.detach()
+                    if convert_to_sparse_tensor:
+                        embeddings = embeddings.to_sparse()
+
                 all_embeddings.extend(embeddings)
+
+        all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
         if not convert_to_tensor:
             return all_embeddings
 
         all_embeddings = torch.stack(all_embeddings)
+
+        if input_was_string:
+            all_embeddings = all_embeddings[0]
+
         return all_embeddings
 
     def save(

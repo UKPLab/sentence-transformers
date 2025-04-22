@@ -106,7 +106,7 @@ class MLMTransformer(nn.Module):
             features: Dictionary containing input features
 
         Returns:
-            Dictionary containing token embeddings and MLM logits
+            Dictionary containing token embeddings
         """
         # Get MLM outputs
         mlm_outputs = self.auto_model(**features)
@@ -114,7 +114,8 @@ class MLMTransformer(nn.Module):
         # Get the MLM head logits (shape: batch_size, seq_length, vocab_size)
         mlm_logits = mlm_outputs.logits
 
-        return {"mlm_logits": mlm_logits}
+        features["token_embeddings"] = mlm_logits
+        return features
 
     def tokenize(
         self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True
