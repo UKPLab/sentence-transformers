@@ -1296,6 +1296,14 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             safe_serialization=safe_serialization,
         )
 
+    def _update_default_model_id(self, model_card):
+        if self.model_card_data.model_id:
+            model_card = model_card.replace(
+                'model = SentenceTransformer("sentence_transformers_model_id"',
+                f'model = SentenceTransformer("{self.model_card_data.model_id}"',
+            )
+        return model_card
+
     def _create_model_card(
         self, path: str, model_name: str | None = None, train_datasets: list[str] | None = "deprecated"
     ) -> None:
@@ -1320,12 +1328,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         # we don't generate a new model card, but reuse the old one instead.
         if self._model_card_text and "generated_from_trainer" not in self.model_card_data.tags:
             model_card = self._model_card_text
-            if self.model_card_data.model_id:
-                # If the original model card was saved without a model_id, we replace the model_id with the new model_id
-                model_card = model_card.replace(
-                    'model = SentenceTransformer("sentence_transformers_model_id"',
-                    f'model = SentenceTransformer("{self.model_card_data.model_id}"',
-                )
+            model_card = self._update_default_model_id(model_card)
         else:
             try:
                 model_card = generate_model_card(self)
@@ -1840,9 +1843,8 @@ print(similarities)
         Get torch.device from module, assuming that the whole module has one device.
         In case there are no PyTorch parameters, fall back to CPU.
         """
-        if isinstance(self[0], Transformer):
+        if hasattr(self[0], "auto_model") and hasattr(self[0].auto_model, "device"):
             return self[0].auto_model.device
-
         try:
             return next(self.parameters()).device
         except StopIteration:

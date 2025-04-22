@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import logging
-import os
-import traceback
 from collections.abc import Iterable
-from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
@@ -15,7 +12,7 @@ from tqdm import trange
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Pooling, Transformer
 from sentence_transformers.similarity_functions import SimilarityFunction
-from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData, generate_model_card
+from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData
 from sentence_transformers.sparse_encoder.models import CSRSparsity
 from sentence_transformers.util import batch_to_device, truncate_embeddings_for_sparse
 
@@ -27,48 +24,54 @@ class SparseEncoder(SentenceTransformer):
     # TODO: Add the proper description with associate example
     # TODO: Clean encode implementation
 
-    # NOTE: Function available in SparseEvaluator and if we override them (D for DONE) or no (ND for NOT DONE) or no and shouldn't be done (N&SBD):
-    # - __init__ ND
-    # - get_backend ND
-    # - encode D (look at all the overloads possibility tho)
-    # - forward ND
-    # - similarity_fn_name ND
-    # - similarity ND
-    # - similarity_pairwise ND
-    # - start_multi_process_pool ND
-    # - stop_multi_process_pool ND
-    # - encode_multi_process ND
-    # - _encode_multi_process_worker ND
-    # - set_pooling_include_prompt ND
-    # - get_max_seq_length ND
-    # - tokenize ND
-    # - get_sentence_features ND
-    # - get_sentence_embedding_dimension ND
-    # - truncate_sentence_embeddings ND
-    # - _first_module ND
-    # - _last_module ND
-    # - save ND
-    # - save_pretrained ND
-    # - _create_model_card ND
-    # - save_to_hub ND
-    # - push_to_hub ND
-    # - _text_length ND
-    # - evaluate ND
-    # - _load_auto_model ND
-    # - _load_module_class_from_ref ND
-    # - _load_sbert_model ND
-    # - load ND
-    # - device ND
-    # - tokenizer ND
-    # - max_seq_length ND
-    # - _target_device ND
-    # - _no_split_modules ND
-    # - _keys_to_ignore_on_save ND
-    # - gradient_checkpointing_enable ND
+    # NOTE: Function available in SparseEvaluator:
+    # ---------------------------------------------Not done---------------------------------------------
+    # - start_multi_process_pool
+    # - encode_multi_process
+    # - _encode_multi_process_worker
+    # - save
+    # - save_pretrained
+    # - push_to_hub
+    # - _load_auto_model
+    # - _load_module_class_from_ref
+    # - _load_sbert_model
+    # - _no_split_modules
+    # - _keys_to_ignore_on_save
+    # - gradient_checkpointing_enable
+
+    # --------------------------------------Done-----------------------------------------------------------
+    # - __init__ (make sure nothing else need to be overrided)
+    # - encode (clean the implementation)
+    # - _update_default_model_id
+    # - load
+
+    # -----------------------------------In my opinion shouldn't be done ------------------------------------
+    # - get_backend
+    # - forward
+    # - similarity_fn_name
+    # - similarity
+    # - similarity_pairwise
+    # - stop_multi_process_pool
+    # - set_pooling_include_prompt
+    # - get_max_seq_length
+    # - tokenize
+    # - get_sentence_features
+    # - get_sentence_embedding_dimension
+    # - truncate_sentence_embeddings
+    # - _first_module
+    # - _last_module
+    # - _create_model_card
+    # - save_to_hub
+    # - _text_length
+    # - evaluate
+    # - device
+    # - tokenizer
+    # - max_seq_length
+    # - _target_device
 
     # -----------------------------------Added------------------------------------
-    # - set_topk D
-    # - get_sparsity_stats D
+    # - set_topk
+    # - get_sparsity_stats
 
     def __init__(
         self,
@@ -200,41 +203,17 @@ class SparseEncoder(SentenceTransformer):
         all_embeddings = torch.stack(all_embeddings)
         return all_embeddings
 
+    def _update_default_model_id(self, model_card):
+        if self.model_card_data.model_id:
+            model_card = model_card.replace(
+                'model = SparseEncoder("sparse_encoder_model_id"',
+                f'model = SparseEncoder("{self.model_card_data.model_id}"',
+            )
+        return model_card
+
     @staticmethod
     def load(input_path) -> SparseEncoder:
         return SparseEncoder(input_path)
-
-    def _create_model_card(
-        self, path: str, model_name: str | None = None, train_datasets: list[str] | None = "deprecated"
-    ) -> None:
-        if model_name:
-            model_path = Path(model_name)
-            if not model_path.exists() and not self.model_card_data.model_id:
-                self.model_card_data.model_id = model_name
-
-        # If we loaded a Sparse Encoder model from the Hub, and no training was done, then
-        # we don't generate a new model card, but reuse the old one instead.
-        if self._model_card_text and "generated_from_trainer" not in self.model_card_data.tags:
-            model_card = self._model_card_text
-            if self.model_card_data.model_id:
-                # If the original model card was saved without a model_id, we replace the model_id with the new model_id
-                model_card = model_card.replace(
-                    'model = SparseEncoder("sparse_encoder_model_id"',
-                    f'model = SparseEncoder("{self.model_card_data.model_id}"',
-                )
-        else:
-            try:
-                model_card = generate_model_card(self)
-            except Exception:
-                logger.error(
-                    f"Error while generating model card:\n{traceback.format_exc()}"
-                    "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with this traceback.\n"
-                    "Skipping model card creation."
-                )
-                return
-
-        with open(os.path.join(path, "README.md"), "w", encoding="utf8") as fOut:
-            fOut.write(model_card)
 
     def get_sparsity_stats(self, embeddings: torch.Tensor) -> dict[str, float]:
         """

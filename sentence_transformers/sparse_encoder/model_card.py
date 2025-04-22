@@ -5,8 +5,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from huggingface_hub import ModelCard
-
 from sentence_transformers.model_card import (
     SentenceTransformerModelCardCallback,
     SentenceTransformerModelCardData,
@@ -101,9 +99,3 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
             "model_max_length": self.model.get_max_seq_length(),
             "output_dimensionality": self.model.get_sentence_embedding_dimension(),
         }
-
-
-def generate_model_card(model: SparseEncoder) -> str:
-    template_path = Path(__file__).parent / "model_card_template.md"
-    model_card = ModelCard.from_template(card_data=model.model_card_data, template_path=template_path, hf_emoji="🤗")
-    return model_card.content

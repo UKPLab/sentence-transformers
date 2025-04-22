@@ -29,9 +29,10 @@ class SpladePooling(nn.Module):
         if pooling_strategy not in self.SPLADE_POOLING_MODES:
             raise ValueError("pooling_strategy must be either 'max' or 'sum'")
         self.config_keys = ["pooling_strategy"]
+        self.word_embedding_dimension = None  # This will be set in the forward method
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        """FForward pass of the model.
+        """Forward pass of the model.
         Args:
             features: Dictionary containing input features with 'mlm_logits' key
         Returns:
@@ -48,6 +49,10 @@ class SpladePooling(nn.Module):
             pooled_scores = torch.max(splade_scores, dim=1)[0]  # shape: batch_size, vocab_size
         else:  # sum
             pooled_scores = torch.sum(splade_scores, dim=1)  # shape: batch_size, vocab_size
+
+        # Set the word embedding dimension
+        if self.word_embedding_dimension is None:
+            self.word_embedding_dimension = pooled_scores.shape[1]
 
         return {"sentence_embedding": pooled_scores}
 
@@ -67,3 +72,11 @@ class SpladePooling(nn.Module):
 
     def __repr__(self) -> str:
         return f"SpladePooling({self.get_config_dict()})"
+
+    def get_sentence_embedding_dimension(self) -> int:
+        """Get the dimension of the sentence embedding.
+
+        Returns:
+            int: Dimension of the sentence embedding
+        """
+        return self.word_embedding_dimension
