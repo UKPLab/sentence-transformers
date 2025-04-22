@@ -743,12 +743,19 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         return all_embeddings
 
     def forward(self, input: dict[str, Tensor], **kwargs) -> dict[str, Tensor]:
-        if self.module_kwargs is None:
+        if self.module_kwargs is None and not (hasattr(module, "forward_kwargs") for module in self.modules()):
             return super().forward(input)
 
         for module_name, module in self.named_children():
-            module_kwarg_keys = self.module_kwargs.get(module_name, [])
-            module_kwargs = {key: value for key, value in kwargs.items() if key in module_kwarg_keys}
+            if self.module_kwargs is not None:
+                module_kwarg_keys = self.module_kwargs.get(module_name, [])
+            else:
+                module_kwarg_keys = []
+            module_kwargs = {
+                key: value
+                for key, value in kwargs.items()
+                if key in module_kwarg_keys or hasattr(module, "forward_kwargs") and key in module.forward_kwargs
+            }
             input = module(input, **module_kwargs)
         return input
 

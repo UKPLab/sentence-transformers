@@ -49,6 +49,7 @@ class SparseTranslationEvaluator(TranslationEvaluator):
         sentences: str | list[str] | np.ndarray,
         **kwargs,
     ) -> list[Tensor]:
+        kwargs["truncate_dim"] = self.truncate_dim
         return model.encode(
             sentences,
             batch_size=self.batch_size,

@@ -58,6 +58,7 @@ class SparseTripletEvaluator(TripletEvaluator):
         sentences: str | list[str] | np.ndarray,
         **kwargs,
     ) -> Tensor:
+        kwargs["truncate_dim"] = self.truncate_dim
         return model.encode(
             sentences,
             batch_size=self.batch_size,

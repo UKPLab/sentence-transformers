@@ -29,6 +29,7 @@ class TiedTranspose(nn.Module):
 
 
 class CSRSparsity(nn.Module):
+    forward_kwargs = {"truncate_dim"}
     """
     CSR (Contrastive Sparse Representation) Sparsity module.
 
@@ -62,7 +63,7 @@ class CSRSparsity(nn.Module):
 
         def auxk_mask_fn(x):
             dead_mask = self.stats_last_nonzero > dead_threshold
-            x.data *= dead_mask  # inplace to save memoryr
+            x.data *= dead_mask  # inplace to save memory
             return x
 
         self.auxk_mask_fn = auxk_mask_fn
