@@ -66,6 +66,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install '.[train, onnx, openvino, dev]'
 
+      - name: Cache Hugging Face
+        id: cache-hf
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-cache
+
       - name: Install model2vec
         run: python -m pip install model2vec
         if: ${{ contains(fromJSON('["3.10", "3.11", "3.12"]'), matrix.python-version) }}
