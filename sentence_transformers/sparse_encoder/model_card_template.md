@@ -73,15 +73,20 @@ from sentence_transformers import SparseEncoder
 
 # Download from the {{ hf_emoji }} Hub
 model = SparseEncoder("{{ model_id | default('sparse_encoder_model_id', true) }}")
-# Get sparse vectors for texts
-texts = [
-{%- for text in (predict_example or [["How many calories in an egg"], ["What is the capital of France"], ["Tell me about quantum computing"]]) %}
-    {{ "%r" | format(text[0]) }},
+# Run inference
+sentences = [
+{%- for text in (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) %}
+    {{ "%r" | format(text) }},
 {%- endfor %}
 ]
-sparse_vectors = model.encode(texts)
-print(sparse_vectors.shape)
-# ({{ (predict_example or ["dummy", "dummy", "dummy"]) | length }}, {{output_dimensionality }})
+embeddings = model.encode(sentences)
+print(embeddings.shape)
+# ({{ (predict_example or  ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{output_dimensionality }})
+
+# Get the similarity scores for the embeddings
+similarities = model.similarity(embeddings, embeddings)
+print(similarities.shape)
+# [{{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}]
 ```
 
 <!--
