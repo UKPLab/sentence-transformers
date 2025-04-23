@@ -1917,8 +1917,11 @@ print(similarities)
         self.to(device)
 
     @property
-    def dtype(self) -> torch.dtype:
-        return self[0].auto_model.dtype
+    def dtype(self) -> torch.dtype | None:
+        for child in self.modules():
+            if child is not self and hasattr(child, "dtype"):
+                return child.dtype
+        return None
 
     @property
     def _no_split_modules(self) -> list[str]:
