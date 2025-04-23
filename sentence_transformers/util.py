@@ -774,7 +774,7 @@ def mine_hard_negatives(
 
     # Deduplicate the corpus
     # make sure all the positives are also in the corpus and de-duplicate it.
-    corpus = list(set(corpus) | set(positives))
+    corpus = list(dict.fromkeys(corpus + positives))
 
     # corpus_idx maps the corpus text into its position in the corpus
     # This position does not necessarily matches the original corpus, as it was de-duplicated.
@@ -782,7 +782,7 @@ def mine_hard_negatives(
 
     # Deduplicate the queries, but keep the original one for later reference.
     all_queries = queries.copy()
-    queries = list(set(queries))
+    queries = list(dict.fromkeys(queries))
     queries_idx = {query: idx for idx, query in enumerate(queries)}
     n_queries = len(queries)
     batch_idx = torch.arange(n_queries).unsqueeze(-1)
