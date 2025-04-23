@@ -1,5 +1,5 @@
 """
-This example uses LexRank (https://www.aaai.org/Papers/JAIR/Vol22/JAIR-2214.pdf)
+This example uses LexRank (https://jair.org/index.php/jair/article/view/10396/24901)
 to create an extractive summarization of a long document.
 
 The document is split into sentences using NLTK, then the sentence embeddings are computed. We
