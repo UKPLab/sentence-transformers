@@ -31,7 +31,7 @@ class SpladeLoss(nn.Module):
         self.model = model
         self.lamda_corpus = lamda_corpus
         self.lamda_query = lamda_query
-        self.main_loss = main_loss(model, similarity_fct=model.similarity_pairwise)
+        self.main_loss = main_loss
         self.flops_loss = FlopsLoss(model)
 
     def forward(

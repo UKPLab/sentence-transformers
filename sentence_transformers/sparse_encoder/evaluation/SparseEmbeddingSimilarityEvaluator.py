@@ -28,7 +28,6 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
         name: str = "",
         show_progress_bar: bool = False,
         write_csv: bool = True,
-        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] | None = None,
         truncate_dim: int | None = None,
     ):
         return super().__init__(
@@ -41,7 +40,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             name=name,
             show_progress_bar=show_progress_bar,
             write_csv=write_csv,
-            precision=precision,
+            precision=None,
             truncate_dim=truncate_dim,
         )
 
@@ -62,8 +61,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_sparse_tensor=True,
-            precision=self.precision,
-            normalize_embeddings=bool(self.precision),
+            save_on_cpu=True,
             **kwargs,
         )
 

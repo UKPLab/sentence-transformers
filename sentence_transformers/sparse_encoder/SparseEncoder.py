@@ -125,6 +125,7 @@ class SparseEncoder(SentenceTransformer):
         output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
         convert_to_tensor: bool = True,
         convert_to_sparse_tensor: bool = True,
+        save_on_cpu: bool = False,
         device: str | None = None,
         **kwargs: Any,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
@@ -206,6 +207,8 @@ class SparseEncoder(SentenceTransformer):
                     embeddings = embeddings.detach()
                     if convert_to_sparse_tensor:
                         embeddings = embeddings.to_sparse()
+                    if save_on_cpu:
+                        embeddings = embeddings.cpu()
 
                 all_embeddings.extend(embeddings)
 

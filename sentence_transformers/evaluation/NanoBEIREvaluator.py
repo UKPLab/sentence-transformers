@@ -246,7 +246,8 @@ class NanoBEIREvaluator(SentenceEvaluator):
             "score_functions": score_functions,
             "main_score_function": main_score_function,
         }
-        self.information_retrieval_class = InformationRetrievalEvaluator
+        if self.information_retrieval_class is None:
+            self.information_retrieval_class = InformationRetrievalEvaluator
         self.evaluators = [
             self._load_dataset(name, **ir_evaluator_kwargs)
             for name in tqdm(self.dataset_names, desc="Loading NanoBEIR datasets", leave=False)
