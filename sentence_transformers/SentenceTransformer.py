@@ -28,7 +28,7 @@ from huggingface_hub import HfApi
 from packaging import version
 from torch import Tensor, device, nn
 from tqdm.autonotebook import trange
-from transformers import is_torch_npu_available
+from transformers import PreTrainedModel, is_torch_npu_available
 from transformers.dynamic_module_utils import get_class_from_dynamic_module, get_relative_import_files
 
 from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
@@ -1850,8 +1850,9 @@ print(similarities)
         Get torch.device from module, assuming that the whole module has one device.
         In case there are no PyTorch parameters, fall back to CPU.
         """
-        if hasattr(self[0], "auto_model") and hasattr(self[0].auto_model, "device"):
-            return self[0].auto_model.device
+        for child in self.modules():
+            if isinstance(child, PreTrainedModel) and hasattr(child, "device"):
+                return child.device
         try:
             return next(self.parameters()).device
         except StopIteration:
@@ -1935,6 +1936,6 @@ print(similarities)
 
     def gradient_checkpointing_enable(self, gradient_checkpointing_kwargs=None) -> None:
         # Propagate the gradient checkpointing to the transformer model
-        for module in self:
-            if hasattr(module, "auto_model"):
-                return module.auto_model.gradient_checkpointing_enable(gradient_checkpointing_kwargs)
+        for child in self.modules():
+            if isinstance(child, PreTrainedModel):
+                return child.gradient_checkpointing_enable(gradient_checkpointing_kwargs)

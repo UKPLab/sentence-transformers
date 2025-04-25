@@ -108,8 +108,13 @@ class MLMTransformer(nn.Module):
         Returns:
             Dictionary containing token embeddings
         """
+        trans_features = {
+            key: value
+            for key, value in features.items()
+            if key in ["input_ids", "attention_mask", "token_type_ids", "inputs_embeds"]
+        }
         # Get MLM outputs
-        mlm_outputs = self.auto_model(**features)
+        mlm_outputs = self.auto_model(**trans_features)
 
         # Get the MLM head logits (shape: batch_size, seq_length, vocab_size)
         mlm_logits = mlm_outputs.logits
@@ -158,7 +163,7 @@ class MLMTransformer(nn.Module):
         return output
 
     def get_sentence_embedding_dimension(self) -> int:
-        return self.auto_model.vocab_projector.out_features
+        return self.auto_model.config.vocab_size
 
     def __repr__(self) -> str:
         return f"MLMTransformer({self.get_config_dict()}) with MLMTransformer model: {self.auto_model.__class__.__name__} "

@@ -22,13 +22,13 @@ class SpladePooling(nn.Module):
 
     SPLADE_POOLING_MODES = ("sum", "max")
 
-    def __init__(self, pooling_strategy: str = "max") -> None:
+    def __init__(self, pooling_strategy: str = "max", word_embedding_dimension: int = None) -> None:
         super().__init__()
         self.pooling_strategy = pooling_strategy
         if pooling_strategy not in self.SPLADE_POOLING_MODES:
             raise ValueError("pooling_strategy must be either 'max' or 'sum'")
-        self.config_keys = ["pooling_strategy"]
-        self.word_embedding_dimension = None  # This will be set in the forward method
+        self.config_keys = ["pooling_strategy", "word_embedding_dimension"]
+        self.word_embedding_dimension = word_embedding_dimension  # This will be set in the forward method
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         """Forward pass of the model.

@@ -29,7 +29,7 @@ from sentence_transformers.sparse_encoder.losses import (
     SpladeLoss,
 )
 from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData
-from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
+from sentence_transformers.sparse_encoder.models import IDF, CSRSparsity, MLMTransformer, SpladePooling
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
 from sentence_transformers.sparse_encoder.training_args import (
@@ -46,6 +46,7 @@ __all__ = [
     "CSRSparsity",
     "MLMTransformer",
     "SpladePooling",
+    "IDF",
     # Losses
     "CSRLoss",
     "CSRReconstructionLoss",
