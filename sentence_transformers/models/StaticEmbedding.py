@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import os
 from pathlib import Path
+from typing import Self
 
 import numpy as np
 import torch
@@ -12,10 +13,11 @@ from tokenizers import Tokenizer
 from torch import nn
 from transformers import PreTrainedTokenizerFast
 
+from sentence_transformers.models.ModuleWithTokenizer import ModuleWithTokenizer
 from sentence_transformers.util import get_device_name
 
 
-class StaticEmbedding(nn.Module):
+class StaticEmbedding(ModuleWithTokenizer):
     def __init__(
         self,
         tokenizer: Tokenizer | PreTrainedTokenizerFast,
@@ -102,8 +104,10 @@ class StaticEmbedding(nn.Module):
         features["sentence_embedding"] = self.embedding(features["input_ids"], features["offsets"])
         return features
 
+    """
     def get_config_dict(self) -> dict[str, float]:
         return {}
+    """
 
     @property
     def max_seq_length(self) -> int:
@@ -112,13 +116,23 @@ class StaticEmbedding(nn.Module):
     def get_sentence_embedding_dimension(self) -> int:
         return self.embedding_dim
 
+    """
     def save(self, save_dir: str, safe_serialization: bool = True, **kwargs) -> None:
         if safe_serialization:
             save_safetensors_file(self.state_dict(), os.path.join(save_dir, "model.safetensors"))
         else:
             torch.save(self.state_dict(), os.path.join(save_dir, "pytorch_model.bin"))
         self.tokenizer.save(str(Path(save_dir) / "tokenizer.json"))
+    """
 
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        if safe_serialization:
+            save_safetensors_file(self.state_dict(), os.path.join(output_path, "model.safetensors"))
+        else:
+            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
+        self.tokenizer.save(str(Path(output_path) / "tokenizer.json"))
+
+    """
     def load(load_dir: str, **kwargs) -> StaticEmbedding:
         tokenizer = Tokenizer.from_file(str(Path(load_dir) / "tokenizer.json"))
         if os.path.exists(os.path.join(load_dir, "model.safetensors")):
@@ -127,6 +141,55 @@ class StaticEmbedding(nn.Module):
             weights = torch.load(
                 os.path.join(load_dir, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
             )
+        try:
+            weights = weights["embedding.weight"]
+        except KeyError:
+            # For compatibility with model2vec models, which are saved with just an "embeddings" key
+            weights = weights["embeddings"]
+        return StaticEmbedding(tokenizer, embedding_weights=weights)
+    """
+
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        directory: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        hub_kwargs = {
+            "token": token,
+            "cache_folder": cache_folder,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        tokenizer_path = cls.load_file_path(
+            model_name_or_path,
+            filename=Path(directory) / "tokenizer.json",
+            **hub_kwargs,
+        )
+        tokenizer = Tokenizer.from_file(tokenizer_path)
+
+        safetensors_path = cls.load_file_path(
+            model_name_or_path,
+            filename=Path(directory) / "model.safetensors",
+            **hub_kwargs,
+        )
+        if safetensors_path is not None:
+            weights = load_safetensors_file(safetensors_path)
+        else:
+            pytorch_model_path = cls.load_file_path(
+                model_name_or_path,
+                filename=Path(directory) / "pytorch_model.bin",
+                **hub_kwargs,
+            )
+            if pytorch_model_path is None:
+                raise ValueError(f"Could not find 'model.safetensors' or 'pytorch_model.bin' in {model_name_or_path}.")
+            weights = torch.load(pytorch_model_path, map_location=torch.device("cpu"), weights_only=True)
+
         try:
             weights = weights["embedding.weight"]
         except KeyError:

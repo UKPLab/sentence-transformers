@@ -32,12 +32,13 @@ from transformers import is_torch_npu_available
 from transformers.dynamic_module_utils import get_class_from_dynamic_module, get_relative_import_files
 
 from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
+from sentence_transformers.models.Module import Module
 from sentence_transformers.similarity_functions import SimilarityFunction
 
 from . import __MODEL_HUB_ORGANIZATION__, __version__
 from .evaluation import SentenceEvaluator
 from .fit_mixin import FitMixin
-from .models import Normalize, Pooling, Transformer
+from .models import Pooling, Transformer
 from .peft_mixin import PeftAdapterMixin
 from .quantization import quantize_embeddings
 from .util import (
@@ -1738,12 +1739,13 @@ print(similarities)
         module_kwargs = OrderedDict()
         for module_config in modules_config:
             class_ref = module_config["type"]
-            module_class = self._load_module_class_from_ref(
+            module_class: Module = self._load_module_class_from_ref(
                 class_ref, model_name_or_path, trust_remote_code, revision, model_kwargs
             )
 
             # For Transformer, don't load the full directory, rely on `transformers` instead
             # But, do load the config file first.
+            """
             if module_config["path"] == "":
                 kwargs = {}
                 for config_name in [
@@ -1822,6 +1824,34 @@ print(similarities)
                         local_files_only=local_files_only,
                     )
                 module = module_class.load(module_path)
+            """
+            try:
+                module = module_class.load(
+                    model_name_or_path,
+                    module_config["path"],
+                    # Loading specific keyword arguments
+                    token=token,
+                    cache_folder=cache_folder,
+                    revision=revision,
+                    local_files_only=local_files_only,
+                    # Module-specific keyword arguments
+                    trust_remote_code=trust_remote_code,
+                    model_kwargs=model_kwargs,
+                    tokenizer_kwargs=tokenizer_kwargs,
+                    config_kwargs=config_kwargs,
+                    backend=self.backend,
+                )
+            except TypeError:
+                # Backwards compatibility
+                local_path = load_dir_path(
+                    model_name_or_path=model_name_or_path,
+                    directory=module_config["path"],
+                    token=token,
+                    cache_folder=cache_folder,
+                    revision=revision,
+                    local_files_only=local_files_only,
+                )
+                module = module_class.load(local_path)
 
             modules[module_config["name"]] = module
             module_kwargs[module_config["name"]] = module_config.get("kwargs", [])
@@ -1836,6 +1866,7 @@ print(similarities)
             self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return modules, module_kwargs
 
+    # TODO: Should we also update this?
     @staticmethod
     def load(input_path) -> SentenceTransformer:
         return SentenceTransformer(input_path)

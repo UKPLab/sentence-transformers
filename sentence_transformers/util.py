@@ -10,6 +10,7 @@ import random
 import sys
 from contextlib import contextmanager
 from importlib.metadata import PackageNotFoundError, metadata
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, overload
 
 import numpy as np
@@ -1455,7 +1456,7 @@ def is_sentence_transformer_model(
 
 def load_file_path(
     model_name_or_path: str,
-    filename: str,
+    filename: str | Path,
     token: bool | str | None = None,
     cache_folder: str | None = None,
     revision: str | None = None,
@@ -1476,15 +1477,15 @@ def load_file_path(
         Optional[str]: The path to the loaded file, or None if the file could not be found or loaded.
     """
     # If file is local
-    file_path = os.path.join(model_name_or_path, filename)
-    if os.path.exists(file_path):
-        return file_path
+    file_path = Path(model_name_or_path, filename)
+    if file_path.exists():
+        return str(file_path)
 
     # If file is remote
     try:
         return hf_hub_download(
             model_name_or_path,
-            filename=filename,
+            filename=str(filename),
             revision=revision,
             library_name="sentence-transformers",
             token=token,
@@ -1517,10 +1518,13 @@ def load_dir_path(
     Returns:
         Optional[str]: The directory path if it exists, otherwise None.
     """
+    if isinstance(directory, Path):
+        directory = directory.as_posix()
+
     # If file is local
-    dir_path = os.path.join(model_name_or_path, directory)
-    if os.path.exists(dir_path):
-        return dir_path
+    dir_path = Path(model_name_or_path, directory)
+    if dir_path.exists():
+        return str(dir_path)
 
     download_kwargs = {
         "repo_id": model_name_or_path,
@@ -1539,7 +1543,7 @@ def load_dir_path(
         # Otherwise, try local (i.e. cache) only
         download_kwargs["local_files_only"] = True
         repo_path = snapshot_download(**download_kwargs)
-    return os.path.join(repo_path, directory)
+    return Path(repo_path, directory)
 
 
 def save_to_hub_args_decorator(func):

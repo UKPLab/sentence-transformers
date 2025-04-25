@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import json
-import os
-from typing import Any
+from typing import Self
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor
+
+from sentence_transformers.models.Module import Module
 
 
-class Pooling(nn.Module):
+class Pooling(Module):
     """
     Performs pooling (max or mean) on the token embeddings.
 
@@ -51,6 +51,17 @@ class Pooling(nn.Module):
         "weightedmean",
     )
 
+    config_keys = [
+        "word_embedding_dimension",
+        "pooling_mode_cls_token",
+        "pooling_mode_mean_tokens",
+        "pooling_mode_max_tokens",
+        "pooling_mode_mean_sqrt_len_tokens",
+        "pooling_mode_weightedmean_tokens",
+        "pooling_mode_lasttoken",
+        "include_prompt",
+    ]
+
     def __init__(
         self,
         word_embedding_dimension: int,
@@ -64,17 +75,6 @@ class Pooling(nn.Module):
         include_prompt: bool = True,
     ) -> None:
         super().__init__()
-
-        self.config_keys = [
-            "word_embedding_dimension",
-            "pooling_mode_cls_token",
-            "pooling_mode_mean_tokens",
-            "pooling_mode_max_tokens",
-            "pooling_mode_mean_sqrt_len_tokens",
-            "pooling_mode_weightedmean_tokens",
-            "pooling_mode_lasttoken",
-            "include_prompt",
-        ]
 
         if pooling_mode is not None:  # Set pooling mode by string
             pooling_mode = pooling_mode.lower()
@@ -245,16 +245,39 @@ class Pooling(nn.Module):
     def get_sentence_embedding_dimension(self) -> int:
         return self.pooling_output_dimension
 
+    """
     def get_config_dict(self) -> dict[str, Any]:
         return {key: self.__dict__[key] for key in self.config_keys}
+    """
 
-    def save(self, output_path) -> None:
+    def save(self, output_path: str) -> None:
+        """
         with open(os.path.join(output_path, "config.json"), "w") as fOut:
             json.dump(self.get_config_dict(), fOut, indent=2)
+        """
+        self.save_config(output_path)
 
-    @staticmethod
-    def load(input_path) -> Pooling:
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        directory: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        """
         with open(os.path.join(input_path, "config.json")) as fIn:
             config = json.load(fIn)
-
-        return Pooling(**config)
+        """
+        config = cls.load_config(
+            model_name_or_path,
+            directory=directory,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
+        return cls(**config)
