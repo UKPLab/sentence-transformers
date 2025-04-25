@@ -5,6 +5,7 @@ import logging
 import os
 from collections import OrderedDict
 
+import torch
 from torch import Tensor, nn
 
 from sentence_transformers.util import import_from_string
@@ -122,6 +123,9 @@ class Asym(nn.Sequential):
                     f"Different tokenizer types detected across modules: {tokenizer_types}. "
                     "This may cause issues when processing mixed batches."
                 )
+                self.have_common_tokenizer = False
+            else:
+                self.have_common_tokenizer = True
 
     def _validate_devices(self):
         """Check if all modules are on the same device"""
@@ -135,9 +139,56 @@ class Asym(nn.Sequential):
 
     def forward(self, features: dict[str, Tensor]):
         if "text_keys" in features and len(features["text_keys"]) > 0:
-            text_key = features["text_keys"][0]
-            for model in self.sub_modules[text_key]:
-                features = model(features)
+            # Group indices by text_key
+            key_to_indices = {}
+            for idx, key in enumerate(features["text_keys"]):
+                if key not in key_to_indices:
+                    key_to_indices[key] = []
+                key_to_indices[key].append(idx)
+
+            # Process each key group separately
+            all_outputs = {}
+            for text_key, indices in key_to_indices.items():
+                # Extract batch for this text key
+                batch_features = {}
+                for k, v in features.items():
+                    if isinstance(v, Tensor):
+                        batch_features[k] = v[indices]
+                    elif isinstance(v, list) and len(v) == len(features["text_keys"]):
+                        batch_features[k] = [v[i] for i in indices]
+                    else:
+                        batch_features[k] = v
+
+                batch_features["text_keys"] = [text_key] * len(indices)  # Ensure all items have same key
+
+                # Apply models for this text key
+                for model in self.sub_modules[text_key]:
+                    batch_features = model(batch_features)
+
+                # Store results
+                for k, v in batch_features.items():
+                    if k not in all_outputs:
+                        all_outputs[k] = [None] * len(features["text_keys"])
+                    for i, idx in enumerate(indices):
+                        if isinstance(v, Tensor) and v.dim() > 0:
+                            all_outputs[k][idx] = v[i] if i < v.size(0) else v[0]
+                        elif isinstance(v, list) and len(v) == len(indices):
+                            all_outputs[k][idx] = v[i]
+                        else:
+                            # Handle scalar tensors or other types
+                            all_outputs[k][idx] = v
+            # Reconstruct features with processed outputs
+            for k, v in all_outputs.items():
+                if all(x is not None for x in v):
+                    if all(isinstance(x, Tensor) for x in v):
+                        try:
+                            features[k] = torch.stack(v)
+                        except Exception:
+                            # If tensors can't be stacked (different shapes), keep as list
+                            features[k] = v
+                    else:
+                        features[k] = v
+
         elif not self.allow_empty_key:
             raise ValueError("Input did not specify any keys and allow_empty_key is False")
 
@@ -159,11 +210,11 @@ class Asym(nn.Sequential):
             model_structure[name] = []
             for model in models:
                 # Use block count instead of random id
-                block_counts[name] += 1
                 model_id = f"{name}-{block_counts[name]}_{type(model).__name__}"
                 model_lookup[model_id] = model
                 model_types[model_id] = type(model).__module__
                 model_structure[name].append(model_id)
+                block_counts[name] += 1
 
         for model_id, model in model_lookup.items():
             model_path = os.path.join(output_path, str(model_id))
@@ -196,8 +247,11 @@ class Asym(nn.Sequential):
             text_key, text = next(iter(lookup.items()))
             if module_key is None:
                 module_key = text_key
-
-            assert text_key == module_key  # Mixed batches are not allowed
+            if text_key != module_key and not self.have_common_tokenizer:
+                raise AssertionError(
+                    f"Mixed batches are not allowed. Found different keys: {text_key} and {module_key}. "
+                    "Please ensure all inputs have the same key."
+                )
         return self.sub_modules[module_key][0].tokenize(texts, **kwargs)
 
     @staticmethod
@@ -305,17 +359,13 @@ class Asym(nn.Sequential):
 
 
 if __name__ == "__main__":
-    # from datasets import Dataset
+    from datasets import Dataset
 
-    # from sentence_transformers import models
-    # from sentence_transformers.sparse_encoder import (
-    #     IDF,
-    #     MLMTransformer,
-    #     SparseEncoder,
-    #     SparseEncoderTrainer,
-    #     SparseMultipleNegativesRankingLoss,
-    #     SpladePooling,
-    # )
+    from sentence_transformers.sparse_encoder import (
+        SparseEncoder,
+        SparseEncoderTrainer,
+        SparseMultipleNegativesRankingLoss,
+    )
 
     # doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill")
     # asym = models.Asym(
@@ -338,7 +388,7 @@ if __name__ == "__main__":
     # model.push_to_hub(
     #     "sparse-embedding/SparseEncodder_format_opensearch-neural-sparse-encoding-doc-v2-distill", private=True
     # )
-    # model = SparseEncoder("sparse-embedding/SparseEncodder_format_opensearch-neural-sparse-encoding-doc-v2-distill")
+    model = SparseEncoder("sparse-embedding/SparseEncodder_format_opensearch-neural-sparse-encoding-doc-v2-distill")
 
     # doc_encoder = MLMTransformer("naver/efficient-splade-VI-BT-large-doc")
     # query_encoder = MLMTransformer("naver/efficient-splade-VI-BT-large-query")
@@ -363,93 +413,12 @@ if __name__ == "__main__":
     #     private=True,
     # )
 
-    # train_dataset = Dataset.from_dict(
-    #     {
-    #         "query": [
-    #             "is toprol xl the same as metoprolol?",
-    #             "are eyes always the same size?",
-    #         ],
-    #         "answer": [
-    #             "Metoprolol succinate is also known by the brand name Toprol XL.",
-    #             "The eyes are always the same size from birth to death.",
-    #         ],
-    #     }
-    # )
-
-    # # This mapper turns normal texts into a dictionary mapping Asym keys to the text
-    # def mapper(sample):
-    #     return {
-    #         "query": {"query": sample["query"]},
-    #         "answer": {"doc": sample["answer"]},
-    #     }
-
-    # train_dataset = train_dataset.map(mapper)
-    # loss = SparseMultipleNegativesRankingLoss(model)
-
-    # trainer = SparseEncoderTrainer(
-    #     model=model,
-    #     train_dataset=train_dataset,
-    #     loss=loss,
-    # )
-    # # trainer.train()
-
-    # # For inference, you can pass dictionaries with the Asym keys:
-    # model.encode(
-    #     [
-    #         {"query": "how long do you have to wait to apply for cerb?"},
-    #         {"query": "<3 what does this symbol mean?"},
-    #         # {"doc": 'The definition of <3 is "Love".'},
-    #     ]
-    # )
-    # model.encode(
-    #     [
-    #         "how long do you have to wait to apply for cerb?",
-    #         "<3 what does this symbol mean?",
-    #         'The definition of <3 is "Love".',
-    #     ]
-    # )
-
-    # query = "What's the weather in ny now?"
-    # document = "Currently New York is rainy."
-
-    # query_embed = model.encode([{"query": query}])
-    # document_embed = model.encode([{"doc": document}])
-
-    # sim = model.similarity(query_embed, document_embed)
-    # print(f"Similarity: {sim}")
-    # -----------------------------------------------------------------------------------------------------
-
-    from datasets import Dataset
-
-    from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses, models
-
-    # # Load a SentenceTransformer model (pretrained or not), and add an Asym module
-    model = SentenceTransformer("microsoft/mpnet-base")
-    dim = model.get_sentence_embedding_dimension()
-    asym_model = models.Asym({"query": [models.Dense(dim, dim)], "doc": [models.Dense(dim, dim)]})
-    model.add_module("asym", asym_model)
-
-    # asym = models.Asym(
-    #     {
-    #         "query": [
-    #             models.Transformer("microsoft/mpnet-base"),
-    #             models.Pooling("cls"),
-    #             models.Dense(dim, dim),
-    #         ],
-    #         "doc": [
-    #             models.Transformer("microsoft/mpnet-base"),
-    #             models.Pooling("cls"),
-    #             models.Dense(dim, dim),
-    #         ],
-    #     }
-    # )
-    # model = SentenceTransformer(modules=[asym])
-    # model.push_to_hub("sparse-embedding/ST_model_with_asym_first_in_root", private=True)
-    # model = SentenceTransformer("sparse-embedding/ST_model_with_asym_first_in_root")
-
     train_dataset = Dataset.from_dict(
         {
-            "query": ["is toprol xl the same as metoprolol?", "are eyes always the same size?"],
+            "query": [
+                "is toprol xl the same as metoprolol?",
+                "are eyes always the same size?",
+            ],
             "answer": [
                 "Metoprolol succinate is also known by the brand name Toprol XL.",
                 "The eyes are always the same size from birth to death.",
@@ -465,9 +434,9 @@ if __name__ == "__main__":
         }
 
     train_dataset = train_dataset.map(mapper)
-    loss = losses.MultipleNegativesRankingLoss(model)
+    loss = SparseMultipleNegativesRankingLoss(model)
 
-    trainer = SentenceTransformerTrainer(
+    trainer = SparseEncoderTrainer(
         model=model,
         train_dataset=train_dataset,
         loss=loss,
@@ -475,10 +444,92 @@ if __name__ == "__main__":
     # trainer.train()
 
     # For inference, you can pass dictionaries with the Asym keys:
-    model.encode(
+    res = model.encode(
         [
-            {"query": "how long do you have to wait to apply for cerb?"},
-            {"query": "<3 what does this symbol mean?"},
+            {"doc": "Currently New York is rainy."},
+            {"query": "What's the weather in ny now?"},
             {"doc": 'The definition of <3 is "Love".'},
         ]
     )
+    model.encode(
+        [
+            "how long do you have to wait to apply for cerb?",
+            "<3 what does this symbol mean?",
+            'The definition of <3 is "Love".',
+        ]
+    )
+    sim = model.similarity(res[0], res[1])
+    print(f"Similarity: {sim}")
+    query = "What's the weather in ny now?"
+    document = "Currently New York is rainy."
+
+    query_embed = model.encode([{"query": query}])
+    document_embed = model.encode([{"doc": document}])
+
+    sim = model.similarity(query_embed, document_embed)
+    print(f"Similarity: {sim}")
+    # -----------------------------------------------------------------------------------------------------
+
+    # from datasets import Dataset
+
+    # from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses, models
+
+    # # # Load a SentenceTransformer model (pretrained or not), and add an Asym module
+    # model = SentenceTransformer("microsoft/mpnet-base")
+    # dim = model.get_sentence_embedding_dimension()
+    # asym_model = models.Asym({"query": [models.Dense(dim, dim)], "doc": [models.Dense(dim, dim)]})
+    # model.add_module("asym", asym_model)
+
+    # # asym = models.Asym(
+    # #     {
+    # #         "query": [
+    # #             models.Transformer("microsoft/mpnet-base"),
+    # #             models.Pooling("cls"),
+    # #             models.Dense(dim, dim),
+    # #         ],
+    # #         "doc": [
+    # #             models.Transformer("microsoft/mpnet-base"),
+    # #             models.Pooling("cls"),
+    # #             models.Dense(dim, dim),
+    # #         ],
+    # #     }
+    # # )
+    # # model = SentenceTransformer(modules=[asym])
+    # # model.push_to_hub("sparse-embedding/ST_model_with_asym_first_in_root", private=True)
+    # # model = SentenceTransformer("sparse-embedding/ST_model_with_asym_first_in_root")
+
+    # train_dataset = Dataset.from_dict(
+    #     {
+    #         "query": ["is toprol xl the same as metoprolol?", "are eyes always the same size?"],
+    #         "answer": [
+    #             "Metoprolol succinate is also known by the brand name Toprol XL.",
+    #             "The eyes are always the same size from birth to death.",
+    #         ],
+    #     }
+    # )
+
+    # # This mapper turns normal texts into a dictionary mapping Asym keys to the text
+    # def mapper(sample):
+    #     return {
+    #         "query": {"query": sample["query"]},
+    #         "answer": {"doc": sample["answer"]},
+    #     }
+
+    # train_dataset = train_dataset.map(mapper)
+    # loss = losses.MultipleNegativesRankingLoss(model)
+
+    # trainer = SentenceTransformerTrainer(
+    #     model=model,
+    #     train_dataset=train_dataset,
+    #     loss=loss,
+    # )
+    # # trainer.train()
+
+    # # For inference, you can pass dictionaries with the Asym keys:
+    # model.encode(
+    #     [
+    #         {"query": "how long do you have to wait to apply for cerb?"},
+    #         {"query": "<3 what does this symbol mean?"},
+    #         {"doc": 'The definition of <3 is "Love".'},
+    #     ]
+    # )
