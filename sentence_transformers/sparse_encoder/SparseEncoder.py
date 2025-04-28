@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 import numpy as np
+import numpy.typing as npt
 import torch
 from torch import Tensor, nn
 from tqdm import trange
@@ -39,6 +40,8 @@ class SparseEncoder(SentenceTransformer):
     # - _load_sbert_model (just for the docstring)
     # - _update_default_model_id
     # - load
+    # - similarity_fn_name (to have default of dot product)
+    # - similarity_pairwise (to have a default of dot product)
 
     # -----------------------------------In my opinion shouldn't be done ------------------------------------
     # - get_backend
@@ -131,7 +134,10 @@ class SparseEncoder(SentenceTransformer):
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         self.eval()
         if show_progress_bar is None:
-            show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
+            show_progress_bar = logger.getEffectiveLevel() in (
+                logging.INFO,
+                logging.DEBUG,
+            )
 
         if output_value != "sentence_embedding":
             convert_to_tensor = False
@@ -462,3 +468,30 @@ class SparseEncoder(SentenceTransformer):
         density = 1.0 - sparsity
 
         return {"sparsity": sparsity, "density": density, "non_zero_count": non_zero, "total_elements": total_elements}
+
+    @property
+    def similarity_fn_name(self) -> Literal["cosine", "dot", "euclidean", "manhattan"]:
+        if self._similarity_fn_name is None:
+            self.similarity_fn_name = SimilarityFunction.DOT
+        return self._similarity_fn_name
+
+    @property
+    def similarity_pairwise(
+        self,
+    ) -> Callable[[Tensor | npt.NDArray[np.float32], Tensor | npt.NDArray[np.float32]], Tensor]:
+        if self.similarity_fn_name is None:
+            self.similarity_fn_name = SimilarityFunction.DOT
+        return self._similarity_pairwise
+
+    @similarity_fn_name.setter
+    def similarity_fn_name(
+        self,
+        value: Literal["cosine", "dot", "euclidean", "manhattan"] | SimilarityFunction,
+    ) -> None:
+        if isinstance(value, SimilarityFunction):
+            value = value.value
+        self._similarity_fn_name = value
+
+        if value is not None:
+            self._similarity = SimilarityFunction.to_similarity_fn(value)
+            self._similarity_pairwise = SimilarityFunction.to_similarity_pairwise_fn(value)

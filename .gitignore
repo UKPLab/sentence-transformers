@@ -61,3 +61,7 @@ wandb
 checkpoints
 tmp
 .DS_Store
+
+# Database
+/qdrant_storage
+/runs

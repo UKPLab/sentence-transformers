@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class Asym(nn.Sequential):
-    # save_in_root: bool = True # as for now we can't handle this, save for later as should be done
+    # save_in_root: bool = True # TODO: need to be changed when loading method of Tom merged
 
     def __init__(self, sub_modules: dict[str, list[nn.Module]], allow_empty_key: bool = True):
         """
