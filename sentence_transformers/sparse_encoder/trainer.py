@@ -303,8 +303,6 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         self.add_callback(model_card_callback)
         model_card_callback.on_init_end(self.args, self.state, self.control, model=self.model, trainer=self)
 
-    # -----------------------------------To check if needed to be override and if yes is it correctly done-----------------------------------
-
     def call_model_init(self, trial=None) -> SparseEncoder:
         return super().call_model_init(trial=trial)
 

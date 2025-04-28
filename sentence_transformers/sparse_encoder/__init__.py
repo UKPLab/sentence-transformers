@@ -76,5 +76,3 @@ __all__ = [
     "SparseEncoderModelCardData",
 ]
 # TODO : Add tests for all the components
-# TODO : Add the equivalent of the quantization file for the sparse encoder
-# TODO : Watch for similaty default value as rn cosine but dot product might be better for sparse
