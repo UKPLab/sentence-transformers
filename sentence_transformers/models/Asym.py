@@ -210,7 +210,7 @@ class Asym(nn.Sequential):
             model_structure[name] = []
             for model in models:
                 # Use block count instead of random id
-                model_id = f"{name}-{block_counts[name]}_{type(model).__name__}"
+                model_id = f"{name}_{block_counts[name]}_{type(model).__name__}"
                 model_lookup[model_id] = model
                 model_types[model_id] = type(model).__module__
                 model_structure[name].append(model_id)
