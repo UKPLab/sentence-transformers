@@ -23,8 +23,7 @@ class IDF(torch.nn.Module):
         self.frozen = frozen
         self.word_embedding_dimension = self.weight.size(0)
         self.tokenizer = tokenizer
-        self.config_keys = ["frozen", "max_seq_length", "do_lower_case"]
-        self.do_lower_case = do_lower_case
+        self.config_keys = ["frozen", "max_seq_length"]
 
         # Set max_seq_length
         self.max_seq_length = max_seq_length
@@ -147,10 +146,6 @@ class IDF(torch.nn.Module):
 
         # strip
         to_tokenize = [[str(s).strip() for s in col] for col in to_tokenize]
-
-        # Lowercase
-        if self.do_lower_case:
-            to_tokenize = [[s.lower() for s in col] for col in to_tokenize]
 
         output.update(
             self.tokenizer(
