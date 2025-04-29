@@ -16,7 +16,6 @@ class IDF(torch.nn.Module):
         weight: torch.Tensor,
         frozen: bool = False,
         tokenizer=None,
-        do_lower_case: bool = False,
         max_seq_length: int | None = None,
     ):
         super().__init__()
