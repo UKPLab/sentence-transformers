@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 
 class SparseNanoBEIREvaluator(NanoBEIREvaluator):
+    information_retrieval_class = SparseInformationRetrievalEvaluator
+
     def __init__(
         self,
         dataset_names: list[DatasetNameType] | None = None,
@@ -42,7 +44,6 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         query_prompts: str | dict[str, str] | None = None,
         corpus_prompts: str | dict[str, str] | None = None,
     ):
-        self.information_retrieval_class = SparseInformationRetrievalEvaluator
         super().__init__(
             dataset_names=dataset_names,
             mrr_at_k=mrr_at_k,
