@@ -97,7 +97,7 @@ class Asym(nn.Sequential):
 
             for idx, model in enumerate(models):
                 # Use a more descriptive naming convention
-                ordered_dict[f"{name}-{idx}_{type(model).__name__}"] = model
+                ordered_dict[f"{name}_{idx}_{type(model).__name__}"] = model
         super().__init__(ordered_dict)
 
     def _validate_tokenizers(self):
