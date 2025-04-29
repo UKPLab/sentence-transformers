@@ -102,23 +102,25 @@ class Asym(nn.Sequential):
 
     def _validate_tokenizers(self):
         """Validate that all modules with tokenizers have compatible tokenizers"""
-        self.has_tokenizers = {}
         self.tokenizers = {}
 
         for key, models in self.sub_modules.items():
             if models and hasattr(models[0], "tokenizer") and models[0].tokenizer is not None:
-                self.has_tokenizers[key] = True
                 self.tokenizers[key] = models[0].tokenizer
             else:
-                self.has_tokenizers[key] = False
                 self.tokenizers[key] = None
 
         # Check if all modules with tokenizers have the same tokenizer
-        if sum(self.has_tokenizers.values()) > 1:
+        if sum(value is not None for value in self.tokenizers.values()) > 1:
             tokenizer_types = {
                 key: type(tokenizer).__name__ for key, tokenizer in self.tokenizers.items() if tokenizer is not None
             }
-            if len(set(tokenizer_types.values())) > 1:
+            tokenizer_vocebularies = {
+                key: tokenizer.get_vocab() if tokenizer is not None else None
+                for key, tokenizer in self.tokenizers.items()
+            }
+
+            if len(set(tokenizer_types.values())) > 1 or len(set(tokenizer_vocebularies.values())) > 1:
                 logger.warning(
                     f"Different tokenizer types detected across modules: {tokenizer_types}. "
                     "This may cause issues when processing mixed batches."
@@ -277,7 +279,7 @@ class Asym(nn.Sequential):
     @property
     def tokenizer(self):
         # Check if both modules have tokenizers
-        has_tokenizer_keys = [key for key, has_tokenizer in self.has_tokenizers.items() if has_tokenizer]
+        has_tokenizer_keys = [key for key, tokenizer in self.tokenizers.items() if tokenizer is not None]
 
         if len(has_tokenizer_keys) == 0:
             return None
@@ -302,7 +304,7 @@ class Asym(nn.Sequential):
     @tokenizer.setter
     def tokenizer(self, value) -> None:
         # Set the tokenizer for all modules that have a tokenizer
-        has_tokenizer_keys = [key for key, has_tokenizer in self.has_tokenizers.items() if has_tokenizer]
+        has_tokenizer_keys = [key for key, tokenizer in self.tokenizers.items() if tokenizer is not None]
 
         if len(has_tokenizer_keys) == 0:
             logger.warning("No modules have a tokenizer attribute to set.")
