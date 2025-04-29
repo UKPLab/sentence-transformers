@@ -45,8 +45,8 @@ def main():
     loss = SpladeLoss(
         model=model,
         main_loss=SparseMultipleNegativesRankingLoss(model=model, scale=20, similarity_fct=model.similarity),
-        lamda_query=0.1,  # Weight for query loss
-        lamda_corpus=0.08,
+        lambda_query=0.1,  # Weight for query loss
+        lambda_corpus=0.08,
     )  # Weight for document loss
     run_name = "splade-ModernBERT-nq-fresh"
     os.makedirs(f"runs/{run_name}", exist_ok=True)

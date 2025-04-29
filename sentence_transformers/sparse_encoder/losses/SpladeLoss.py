@@ -25,12 +25,12 @@ class PrincipalLoss(Enum):
 
 class SpladeLoss(nn.Module):
     def __init__(
-        self, model: SparseEncoder, main_loss: PrincipalLoss, lamda_corpus: float = 0.1, lamda_query: float = 0.1
+        self, model: SparseEncoder, main_loss: PrincipalLoss, lambda_corpus: float = 0.1, lambda_query: float = 0.1
     ):
         super().__init__()
         self.model = model
-        self.lamda_corpus = lamda_corpus
-        self.lamda_query = lamda_query
+        self.lambda_corpus = lambda_corpus
+        self.lambda_query = lambda_query
         self.main_loss = main_loss
         self.flops_loss = FlopsLoss(model)
 
@@ -46,7 +46,7 @@ class SpladeLoss(nn.Module):
         flops_corpus = self.flops_loss.compute_loss_from_embeddings(embeddings, "corpus")
 
         # Compute the total loss
-        total_loss = main_loss_value + self.lamda_query * flops_query + self.lamda_corpus * flops_corpus
+        total_loss = main_loss_value + self.lambda_query * flops_query + self.lambda_corpus * flops_corpus
         return total_loss
 
     def get_config_dict(self):
@@ -56,7 +56,7 @@ class SpladeLoss(nn.Module):
         Returns:
             Dictionary containing the configuration parameters
         """
-        return {"lamda_corpus": self.lamda_corpus, "lamda_query": self.lamda_query, "main_loss": self.main_loss}
+        return {"lambda_corpus": self.lambda_corpus, "lambda_query": self.lambda_query, "main_loss": self.main_loss}
 
     @property
     def citation(self) -> str:

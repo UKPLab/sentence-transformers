@@ -53,8 +53,8 @@ train_dataset = train_dataset.map(compute_labels, batched=True)
 loss = SpladeLoss(
     student_model,
     main_loss=SparseMarginMSELoss,
-    lamda_corpus=5e-3,
-    lamda_query=0.1,
+    lambda_corpus=5e-3,
+    lambda_query=0.1,
 )
 
 trainer = SparseEncoderTrainer(
