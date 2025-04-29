@@ -63,7 +63,7 @@ class IDF(torch.nn.Module):
             json.dump(config_dict, fOut)
 
     @classmethod
-    def from_json(cls, json_path: str, tokenizer, **config):
+    def from_json(cls, json_path: str, tokenizer: PreTrainedTokenizer, **config):
         with open(json_path) as fIn:
             idf = json.load(fIn)
 
