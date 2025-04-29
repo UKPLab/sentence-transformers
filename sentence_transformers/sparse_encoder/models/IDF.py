@@ -114,7 +114,7 @@ class IDF(torch.nn.Module):
         return self.word_embedding_dimension
 
     def get_config_dict(self) -> dict[str, Any]:
-        return {key: self.__dict__[key] for key in self.config_keys}
+        return {key: getattr(self, key) for key in self.config_keys}
 
     def tokenize(
         self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True
