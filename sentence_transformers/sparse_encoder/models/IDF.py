@@ -165,6 +165,7 @@ class IDF(torch.nn.Module):
         return output
 
 
+# TODO: Remember to remove this before merge/release
 if __name__ == "__main__":
     from sentence_transformers.sparse_encoder import MLMTransformer
 
