@@ -17,8 +17,8 @@ class IDF(torch.nn.Module):
     def __init__(
         self,
         weight: torch.Tensor,
+        tokenizer: PreTrainedTokenizer,
         frozen: bool = False,
-        tokenizer: PreTrainedTokenizer | None = None,
     ):
         super().__init__()
         self.weight = torch.nn.Parameter(weight, requires_grad=not frozen)
