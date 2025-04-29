@@ -1,3 +1,4 @@
+import torch
 from datasets import Dataset
 
 from sentence_transformers.sparse_encoder import (
@@ -33,7 +34,8 @@ train_dataset = Dataset.from_dict(
     {
         "query": ["It's nice weather outside today.", "He drove to work."],
         "passage1": ["It's so sunny.", "He took the car to work."],
-        "passage2": ["It's very sunny.", "She walked to the store."],
+        "passage2": ["It's very cold.", "She walked to the store."],
+        "passage3": ["Its rainy", "She took the bus"],
     }
 )
 
@@ -42,9 +44,17 @@ def compute_labels(batch):
     emb_queries = teacher_model.encode(batch["query"])
     emb_passages1 = teacher_model.encode(batch["passage1"])
     emb_passages2 = teacher_model.encode(batch["passage2"])
+    emb_passages3 = teacher_model.encode(batch["passage3"])
     return {
-        "label": teacher_model.similarity_pairwise(emb_queries, emb_passages1)
-        - teacher_model.similarity_pairwise(emb_queries, emb_passages2)
+        "label": torch.stack(
+            [
+                teacher_model.similarity_pairwise(emb_queries, emb_passages1)
+                - teacher_model.similarity_pairwise(emb_queries, emb_passages2),
+                teacher_model.similarity_pairwise(emb_queries, emb_passages1)
+                - teacher_model.similarity_pairwise(emb_queries, emb_passages3),
+            ],
+            dim=1,
+        )
     }
 
 
