@@ -5,6 +5,9 @@ You need Elasticsearch up and running locally:
 https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html
 
 Further, you need the Python Elasticsearch Client installed: https://elasticsearch-py.readthedocs.io/, e.g.:
+"""
+
+import time
 
 from datasets import load_dataset
 
