@@ -14,9 +14,8 @@ class IDF(torch.nn.Module):
     def __init__(
         self,
         weight: torch.Tensor,
+        tokenizer: AutoTokenizer,
         frozen: bool = False,
-        tokenizer=None,
-        max_seq_length: int | None = None,
     ):
         super().__init__()
         self.weight = torch.nn.Parameter(weight, requires_grad=not frozen)
@@ -24,12 +23,7 @@ class IDF(torch.nn.Module):
         self.word_embedding_dimension = self.weight.size(0)
         self.tokenizer = tokenizer
         self.config_keys = ["frozen", "max_seq_length"]
-
-        # Set max_seq_length
-        self.max_seq_length = max_seq_length
-        if max_seq_length is None:
-            if self.tokenizer is not None and hasattr(self.tokenizer, "model_max_length"):
-                self.max_seq_length = self.tokenizer.model_max_length
+        self.max_seq_length = self.tokenizer.model_max_length
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         input_ids = features["input_ids"]
@@ -143,17 +137,12 @@ class IDF(torch.nn.Module):
                 batch1.append(text_tuple[0])
                 batch2.append(text_tuple[1])
             to_tokenize = [batch1, batch2]
-
-        # strip
-        to_tokenize = [[str(s).strip() for s in col] for col in to_tokenize]
-
         output.update(
             self.tokenizer(
                 *to_tokenize,
                 padding=padding,
                 truncation="longest_first",
                 return_tensors="pt",
-                max_length=self.max_seq_length,
             )
         )
         return output
