@@ -358,6 +358,7 @@ class Asym(nn.Sequential):
             self.sub_modules[key][0].max_seq_length = value
 
 
+# TODO: Remove this before release/merging
 if __name__ == "__main__":
     from datasets import Dataset
 
