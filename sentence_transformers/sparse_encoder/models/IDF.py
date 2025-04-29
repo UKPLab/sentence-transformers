@@ -2,20 +2,23 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import torch
 from safetensors.torch import load_file as load_safetensors_file
 from safetensors.torch import save_model as save_safetensors_model
 from transformers import AutoTokenizer
 
+if TYPE_CHECKING:
+    from transformers import PreTrainedTokenizer
+
 
 class IDF(torch.nn.Module):
     def __init__(
         self,
         weight: torch.Tensor,
-        tokenizer: AutoTokenizer,
         frozen: bool = False,
+        tokenizer: PreTrainedTokenizer | None = None,
     ):
         super().__init__()
         self.weight = torch.nn.Parameter(weight, requires_grad=not frozen)
@@ -53,12 +56,8 @@ class IDF(torch.nn.Module):
         # Save config with tokenizer info
         config_dict = self.get_config_dict()
 
-        # Save tokenizer if available
-        if self.tokenizer is not None:
-            config_dict["has_tokenizer"] = True
-            self.tokenizer.save_pretrained(os.path.join(output_path, "tokenizer"))
-        else:
-            config_dict["has_tokenizer"] = False
+        # Save tokenizer
+        self.tokenizer.save_pretrained(output_path)
 
         with open(os.path.join(output_path, "config.json"), "w") as fOut:
             json.dump(config_dict, fOut)
@@ -85,16 +84,11 @@ class IDF(torch.nn.Module):
         with open(os.path.join(input_path, "config.json")) as fIn:
             config: dict = json.load(fIn)
 
-        # Load tokenizer if it was saved
-        tokenizer = None
-        if config.pop("has_tokenizer", False) and os.path.exists(os.path.join(input_path, "tokenizer")):
-            tokenizer = AutoTokenizer.from_pretrained(os.path.join(input_path, "tokenizer"))
+        tokenizer = AutoTokenizer.from_pretrained(input_path)
 
         path = config.pop("path", None)
 
         if path is not None and path.endswith(".json"):
-            if tokenizer is None:
-                raise ValueError("Tokenizer is required for loading from JSON")
             return cls.from_json(path, tokenizer, **config)
 
         # Load model weights
@@ -107,8 +101,8 @@ class IDF(torch.nn.Module):
         return model
 
     def __repr__(self) -> str:
-        tokenizer_info = f", tokenizer: {self.tokenizer.__class__.__name__}" if self.tokenizer else ""
-        return f"IDF ({self.get_config_dict()}, dim:{self.word_embedding_dimension}, {tokenizer_info})"
+        tokenizer_info = f", tokenizer: {self.tokenizer.__class__.__name__}"
+        return f"IDF ({self.get_config_dict()}, dim:{self.word_embedding_dimension}{tokenizer_info})"
 
     def get_sentence_embedding_dimension(self) -> int:
         return self.word_embedding_dimension
