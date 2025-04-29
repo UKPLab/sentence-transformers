@@ -25,7 +25,7 @@ class IDF(torch.nn.Module):
         self.frozen = frozen
         self.word_embedding_dimension = self.weight.size(0)
         self.tokenizer = tokenizer
-        self.config_keys = ["frozen", "max_seq_length"]
+        self.config_keys = ["frozen"]
         self.max_seq_length = self.tokenizer.model_max_length
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
