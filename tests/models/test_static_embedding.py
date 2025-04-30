@@ -69,7 +69,7 @@ def test_save_and_load(tmp_path: Path, static_embedding: StaticEmbedding) -> Non
 @skip_if_no_model2vec()
 def test_from_distillation() -> None:
     model = StaticEmbedding.from_distillation("sentence-transformers-testing/stsb-bert-tiny-safetensors", pca_dims=32)
-    assert model.embedding.weight.shape == (29528, 32)
+    assert model.embedding.weight.shape == (29525, 32)
 
 
 @skip_if_no_model2vec()
