@@ -12,6 +12,7 @@ from sentence_transformers.sparse_encoder.evaluation.SparseNanoBEIREvaluator imp
 from sentence_transformers.sparse_encoder.losses import SparseMultipleNegativesRankingLoss, SpladeLoss
 from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
 from sentence_transformers.sparse_encoder.training_args import SparseEncoderTrainingArguments
+from sentence_transformers.training_args import BatchSamplers
 
 # Set up logging
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
@@ -56,12 +57,13 @@ def main():
         bf16=True,
         logging_steps=200,
         eval_strategy="steps",
-        eval_steps=2400,
+        eval_steps=1400,
         save_strategy="steps",
-        save_steps=2400,
+        save_steps=1400,
         learning_rate=4e-5,
         optim="adamw_torch",
         run_name=run_name,
+        batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
     )
 
     # Initialize trainer
