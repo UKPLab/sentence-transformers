@@ -245,16 +245,7 @@ class Pooling(Module):
     def get_sentence_embedding_dimension(self) -> int:
         return self.pooling_output_dimension
 
-    """
-    def get_config_dict(self) -> dict[str, Any]:
-        return {key: self.__dict__[key] for key in self.config_keys}
-    """
-
     def save(self, output_path: str) -> None:
-        """
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut, indent=2)
-        """
         self.save_config(output_path)
 
     @classmethod
@@ -268,10 +259,6 @@ class Pooling(Module):
         local_files_only: bool = False,
         **kwargs,
     ) -> Self:
-        """
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-        """
         config = cls.load_config(
             model_name_or_path,
             directory=directory,

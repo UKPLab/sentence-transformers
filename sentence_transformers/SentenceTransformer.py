@@ -1743,92 +1743,13 @@ print(similarities)
                 class_ref, model_name_or_path, trust_remote_code, revision, model_kwargs
             )
 
-            # For Transformer, don't load the full directory, rely on `transformers` instead
-            # But, do load the config file first.
-            """
-            if module_config["path"] == "":
-                kwargs = {}
-                for config_name in [
-                    "sentence_bert_config.json",
-                    "sentence_roberta_config.json",
-                    "sentence_distilbert_config.json",
-                    "sentence_camembert_config.json",
-                    "sentence_albert_config.json",
-                    "sentence_xlm-roberta_config.json",
-                    "sentence_xlnet_config.json",
-                ]:
-                    config_path = load_file_path(
-                        model_name_or_path,
-                        config_name,
-                        token=token,
-                        cache_folder=cache_folder,
-                        revision=revision,
-                        local_files_only=local_files_only,
-                    )
-                    if config_path is not None:
-                        with open(config_path) as fIn:
-                            kwargs = json.load(fIn)
-                            # Don't allow configs to set trust_remote_code
-                            if "model_args" in kwargs and "trust_remote_code" in kwargs["model_args"]:
-                                kwargs["model_args"].pop("trust_remote_code")
-                            if "tokenizer_args" in kwargs and "trust_remote_code" in kwargs["tokenizer_args"]:
-                                kwargs["tokenizer_args"].pop("trust_remote_code")
-                            if "config_args" in kwargs and "trust_remote_code" in kwargs["config_args"]:
-                                kwargs["config_args"].pop("trust_remote_code")
-                        break
-
-                hub_kwargs = {
-                    "token": token,
-                    "trust_remote_code": trust_remote_code,
-                    "revision": revision,
-                    "local_files_only": local_files_only,
-                }
-                # 3rd priority: config file
-                if "model_args" not in kwargs:
-                    kwargs["model_args"] = {}
-                if "tokenizer_args" not in kwargs:
-                    kwargs["tokenizer_args"] = {}
-                if "config_args" not in kwargs:
-                    kwargs["config_args"] = {}
-
-                # 2nd priority: hub_kwargs
-                kwargs["model_args"].update(hub_kwargs)
-                kwargs["tokenizer_args"].update(hub_kwargs)
-                kwargs["config_args"].update(hub_kwargs)
-
-                # 1st priority: kwargs passed to SentenceTransformer
-                if model_kwargs:
-                    kwargs["model_args"].update(model_kwargs)
-                if tokenizer_kwargs:
-                    kwargs["tokenizer_args"].update(tokenizer_kwargs)
-                if config_kwargs:
-                    kwargs["config_args"].update(config_kwargs)
-
-                # Try to initialize the module with a lot of kwargs, but only if the module supports them
-                # Otherwise we fall back to the load method
-                try:
-                    module = module_class(model_name_or_path, cache_dir=cache_folder, backend=self.backend, **kwargs)
-                except TypeError:
-                    module = module_class.load(model_name_or_path)
-            else:
-                # Normalize does not require any files to be loaded
-                if module_class == Normalize:
-                    module_path = None
-                else:
-                    module_path = load_dir_path(
-                        model_name_or_path,
-                        module_config["path"],
-                        token=token,
-                        cache_folder=cache_folder,
-                        revision=revision,
-                        local_files_only=local_files_only,
-                    )
-                module = module_class.load(module_path)
-            """
+            # Try to use the load method with many keyword arguments
+            # If the module is older and doesn't support this, we fall back to the old method
+            # with only a path to a local directory containing the module files
             try:
                 module = module_class.load(
                     model_name_or_path,
-                    module_config["path"],
+                    directory=module_config["path"],
                     # Loading specific keyword arguments
                     token=token,
                     cache_folder=cache_folder,

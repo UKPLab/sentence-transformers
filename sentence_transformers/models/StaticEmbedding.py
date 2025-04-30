@@ -104,11 +104,6 @@ class StaticEmbedding(ModuleWithTokenizer):
         features["sentence_embedding"] = self.embedding(features["input_ids"], features["offsets"])
         return features
 
-    """
-    def get_config_dict(self) -> dict[str, float]:
-        return {}
-    """
-
     @property
     def max_seq_length(self) -> int:
         return math.inf
@@ -116,38 +111,12 @@ class StaticEmbedding(ModuleWithTokenizer):
     def get_sentence_embedding_dimension(self) -> int:
         return self.embedding_dim
 
-    """
-    def save(self, save_dir: str, safe_serialization: bool = True, **kwargs) -> None:
-        if safe_serialization:
-            save_safetensors_file(self.state_dict(), os.path.join(save_dir, "model.safetensors"))
-        else:
-            torch.save(self.state_dict(), os.path.join(save_dir, "pytorch_model.bin"))
-        self.tokenizer.save(str(Path(save_dir) / "tokenizer.json"))
-    """
-
     def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
         if safe_serialization:
             save_safetensors_file(self.state_dict(), os.path.join(output_path, "model.safetensors"))
         else:
             torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
         self.tokenizer.save(str(Path(output_path) / "tokenizer.json"))
-
-    """
-    def load(load_dir: str, **kwargs) -> StaticEmbedding:
-        tokenizer = Tokenizer.from_file(str(Path(load_dir) / "tokenizer.json"))
-        if os.path.exists(os.path.join(load_dir, "model.safetensors")):
-            weights = load_safetensors_file(os.path.join(load_dir, "model.safetensors"))
-        else:
-            weights = torch.load(
-                os.path.join(load_dir, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
-            )
-        try:
-            weights = weights["embedding.weight"]
-        except KeyError:
-            # For compatibility with model2vec models, which are saved with just an "embeddings" key
-            weights = weights["embeddings"]
-        return StaticEmbedding(tokenizer, embedding_weights=weights)
-    """
 
     @classmethod
     def load(

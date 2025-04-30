@@ -99,6 +99,7 @@ class Module(ABC, torch.nn.Module):
             local_files_only=local_files_only,
         )
 
+    @abstractmethod
     def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None: ...
 
     def save_config(self, output_path: str, filename: str | None = None) -> None:

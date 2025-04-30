@@ -509,44 +509,10 @@ class Transformer(ModuleWithTokenizer):
         )
         return output
 
-    """
-    def get_config_dict(self) -> dict[str, Any]:
-        return {key: self.__dict__[key] for key in self.config_keys}
-    """
-
-    def save(self, output_path: str, safe_serialization: bool = True) -> None:
+    def save(self, output_path: str, safe_serialization: bool = True, **kwargs) -> None:
         self.auto_model.save_pretrained(output_path, safe_serialization=safe_serialization)
         self.tokenizer.save_pretrained(output_path)
         self.save_config(output_path)
-
-    """
-    @classmethod
-    def load(cls, input_path: str) -> Transformer:
-        # Old classes used other config names than 'sentence_bert_config.json'
-        for config_name in [
-            "sentence_bert_config.json",
-            "sentence_roberta_config.json",
-            "sentence_distilbert_config.json",
-            "sentence_camembert_config.json",
-            "sentence_albert_config.json",
-            "sentence_xlm-roberta_config.json",
-            "sentence_xlnet_config.json",
-        ]:
-            sbert_config_path = os.path.join(input_path, config_name)
-            if os.path.exists(sbert_config_path):
-                break
-
-        with open(sbert_config_path) as fIn:
-            config = json.load(fIn)
-        # Don't allow configs to set trust_remote_code
-        if "model_args" in config and "trust_remote_code" in config["model_args"]:
-            config["model_args"].pop("trust_remote_code")
-        if "tokenizer_args" in config and "trust_remote_code" in config["tokenizer_args"]:
-            config["tokenizer_args"].pop("trust_remote_code")
-        if "config_args" in config and "trust_remote_code" in config["config_args"]:
-            config["config_args"].pop("trust_remote_code")
-        return cls(model_name_or_path=input_path, **config)
-    """
 
     @classmethod
     def load(

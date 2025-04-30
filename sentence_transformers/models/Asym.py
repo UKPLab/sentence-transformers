@@ -150,28 +150,6 @@ class Asym(ModuleWithTokenizer, nn.Sequential):
             assert text_key == module_key  # Mixed batches are not allowed
         return self.sub_modules[module_key][0].tokenize(texts, **kwargs)
 
-    """
-    @staticmethod
-    def load(input_path):
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-
-        modules = {}
-        for model_id, model_type in config["types"].items():
-            module_class = import_from_string(model_type)
-            module = module_class.load(os.path.join(input_path, model_id))
-            modules[model_id] = module
-
-        model_structure = {}
-        for key_name, models_list in config["structure"].items():
-            model_structure[key_name] = []
-            for model_id in models_list:
-                model_structure[key_name].append(modules[model_id])
-
-        model = Asym(model_structure, **config["parameters"])
-        return model
-    """
-
     @classmethod
     def load(
         cls,
