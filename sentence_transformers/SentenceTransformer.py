@@ -1228,8 +1228,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         # Save modules
         for idx, name in enumerate(self._modules):
-            module = self._modules[name]
-            if idx == 0 and hasattr(module, "save_in_root"):  # Save first module in the main folder
+            module: Module = self._modules[name]
+            if (
+                idx == 0 and hasattr(module, "save_in_root") and module.save_in_root
+            ):  # Save first module in the main folder
                 model_path = path + "/"
             else:
                 model_path = os.path.join(path, str(idx) + "_" + type(module).__name__)

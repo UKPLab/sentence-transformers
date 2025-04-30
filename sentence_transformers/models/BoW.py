@@ -1,23 +1,26 @@
 from __future__ import annotations
 
-import json
 import logging
-import os
-from typing import Literal
+from typing import Literal, Self
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor
+
+from sentence_transformers.models.ModuleWithTokenizer import ModuleWithTokenizer
 
 from .tokenizer import WhitespaceTokenizer
 
 logger = logging.getLogger(__name__)
 
 
-class BoW(nn.Module):
+class BoW(ModuleWithTokenizer):
     """Implements a Bag-of-Words (BoW) model to derive sentence embeddings.
 
     A weighting can be added to allow the generation of tf-idf vectors. The output vector has the size of the vocab.
     """
+
+    save_in_root: bool = False
+    config_keys: list[str] = ["vocab", "word_weights", "unknown_word_weight", "cumulative_term_frequency"]
 
     def __init__(
         self,
@@ -27,8 +30,7 @@ class BoW(nn.Module):
         cumulative_term_frequency: bool = True,
     ):
         super().__init__()
-        vocab = list(set(vocab))  # Ensure vocab is unique
-        self.config_keys = ["vocab", "word_weights", "unknown_word_weight", "cumulative_term_frequency"]
+        vocab = list(dict.fromkeys(vocab))  # Ensure vocab is unique
         self.vocab = vocab
         self.word_weights = word_weights
         self.unknown_word_weight = unknown_word_weight
@@ -81,16 +83,26 @@ class BoW(nn.Module):
 
         return {"sentence_embedding": torch.stack(vectors)}
 
-    def get_config_dict(self):
-        return {key: self.__dict__[key] for key in self.config_keys}
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        self.save_config(output_path)
 
-    def save(self, output_path):
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut, indent=2)
-
-    @staticmethod
-    def load(input_path):
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-
-        return BoW(**config)
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        directory: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        config = cls.load_config(
+            model_name_or_path,
+            directory=directory,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
+        return cls(**config)
