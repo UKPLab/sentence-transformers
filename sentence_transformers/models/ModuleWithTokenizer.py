@@ -11,6 +11,7 @@ from sentence_transformers.models.Module import Module
 
 
 # TODO: BaseModule? ModuleBase?
+# "WithTokenizer" might be problematic if we're going multi-modal
 class ModuleWithTokenizer(Module):
     save_in_root: bool = True
     tokenizer: PreTrainedTokenizerBase | Tokenizer

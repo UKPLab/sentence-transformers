@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from typing import Self
+
 import torch
 import transformers
 from PIL import Image
-from torch import nn
+
+from sentence_transformers.models.Asym import ModuleWithTokenizer
 
 
-class CLIPModel(nn.Module):
+class CLIPModel(ModuleWithTokenizer):
     save_in_root: bool = True
 
     def __init__(self, model_name: str = "openai/clip-vit-base-patch32", processor_name=None) -> None:
@@ -89,10 +92,27 @@ class CLIPModel(nn.Module):
     def tokenizer(self) -> transformers.CLIPProcessor:
         return self.processor
 
-    def save(self, output_path: str) -> None:
-        self.model.save_pretrained(output_path)
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        self.model.save_pretrained(output_path, safe_serialization=safe_serialization)
         self.processor.save_pretrained(output_path)
 
-    @staticmethod
-    def load(input_path: str) -> CLIPModel:
-        return CLIPModel(model_name=input_path)
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        directory: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        local_path = cls.load_dir_path(
+            model_name_or_path=model_name_or_path,
+            directory=directory,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
+        return cls(local_path)

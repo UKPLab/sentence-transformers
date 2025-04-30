@@ -8,7 +8,7 @@ from typing import Any, Self
 
 import torch
 
-from sentence_transformers.util import load_file_path
+from sentence_transformers.util import load_dir_path, load_file_path
 
 
 # BaseModule? ModuleBase?
@@ -93,6 +93,24 @@ class Module(ABC, torch.nn.Module):
         return load_file_path(
             model_name_or_path=model_name_or_path,
             filename=filename,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
+
+    @staticmethod
+    def load_dir_path(
+        model_name_or_path: str,
+        directory: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+    ) -> str:
+        return load_dir_path(
+            model_name_or_path=model_name_or_path,
+            directory=directory,
             token=token,
             cache_folder=cache_folder,
             revision=revision,
