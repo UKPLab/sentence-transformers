@@ -137,14 +137,14 @@ class StaticEmbedding(ModuleWithTokenizer):
         }
         tokenizer_path = cls.load_file_path(
             model_name_or_path,
-            filename=Path(directory) / "tokenizer.json",
+            filename=Path(directory, "tokenizer.json"),
             **hub_kwargs,
         )
         tokenizer = Tokenizer.from_file(tokenizer_path)
 
         safetensors_path = cls.load_file_path(
             model_name_or_path,
-            filename=Path(directory) / "model.safetensors",
+            filename=Path(directory, "model.safetensors"),
             **hub_kwargs,
         )
         if safetensors_path is not None:
@@ -152,7 +152,7 @@ class StaticEmbedding(ModuleWithTokenizer):
         else:
             pytorch_model_path = cls.load_file_path(
                 model_name_or_path,
-                filename=Path(directory) / "pytorch_model.bin",
+                filename=Path(directory, "pytorch_model.bin"),
                 **hub_kwargs,
             )
             if pytorch_model_path is None:

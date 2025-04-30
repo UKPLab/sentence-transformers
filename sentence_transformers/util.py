@@ -1485,7 +1485,8 @@ def load_file_path(
     try:
         return hf_hub_download(
             model_name_or_path,
-            filename=str(filename),
+            filename=Path(filename).name,
+            subfolder=Path(filename).parent.as_posix(),
             revision=revision,
             library_name="sentence-transformers",
             token=token,

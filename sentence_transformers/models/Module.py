@@ -65,7 +65,7 @@ class Module(ABC, torch.nn.Module):
             model_name_or_path (str): The path to the model directory or the name of the model.
         """
         config_filename = config_filename or cls.config_file_name
-        config_file_path = Path(directory) / config_filename
+        config_file_path = Path(directory, config_filename)
         config_path = load_file_path(
             model_name_or_path=model_name_or_path,
             filename=config_file_path,
