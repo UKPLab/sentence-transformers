@@ -13,6 +13,7 @@ from sentence_transformers.models.Module import Module
 # TODO: BaseModule? ModuleBase?
 class ModuleWithTokenizer(Module):
     save_in_root: bool = True
+    tokenizer: PreTrainedTokenizerBase | Tokenizer
 
     @abstractmethod
     def tokenize(self, texts: list[str], **kwargs) -> dict[str, torch.Tensor | Any]: ...
