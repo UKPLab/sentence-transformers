@@ -372,7 +372,7 @@ class Transformer(ModuleWithTokenizer):
         # If it doesn't, check if it exists in the backend subfolder.
         # If it does, set the subfolder to include the backend
         model_found = primary_full_path in model_file_names
-        if not model_found and "subfolder" not in model_args:
+        if not model_found:
             model_found = secondary_full_path in model_file_names
             if model_found:
                 if len(model_file_names) > 1 and "file_name" not in model_args:
@@ -380,7 +380,7 @@ class Transformer(ModuleWithTokenizer):
                         f"Multiple {backend_name} files found in {load_path.as_posix()!r}: {model_file_names}, defaulting to {secondary_full_path!r}. "
                         f'Please specify the desired file name via `model_kwargs={{"file_name": "<file_name>"}}`.'
                     )
-                model_args["subfolder"] = self.backend
+                model_args["subfolder"] = Path(subfolder, self.backend).as_posix() if subfolder else self.backend
                 model_args["file_name"] = file_name
         if export is None:
             export = not model_found
@@ -601,6 +601,11 @@ class Transformer(ModuleWithTokenizer):
             config["tokenizer_args"].update(tokenizer_kwargs)
         if config_kwargs:
             config["config_args"].update(config_kwargs)
+
+        if directory:
+            config["model_args"]["subfolder"] = directory
+            config["tokenizer_args"]["subfolder"] = directory
+            config["config_args"]["subfolder"] = directory
 
         return cls(
             model_name_or_path=model_name_or_path,
