@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import os
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
@@ -141,10 +142,14 @@ class StaticEmbedding(nn.Module):
         vocabulary: list[str] | None = None,
         device: str | None = None,
         pca_dims: int | None = 256,
-        apply_zipf: bool = True,
-        use_subword: bool = True,
+        apply_zipf: bool | None = None,
+        use_subword: bool | None = None,
+        sif_coefficient: float | None = 1e-4,
+        quantize_to: str = "float32",
+        token_remove_pattern: str | None = r"\[unused\d+\]",
+        **kwargs: Any,
     ) -> StaticEmbedding:
-        """
+        r"""
         Creates a StaticEmbedding instance from a distillation process using the `model2vec` package.
 
         Args:
@@ -155,6 +160,10 @@ class StaticEmbedding(nn.Module):
             pca_dims (int | None, optional): The number of dimensions for PCA reduction. Defaults to 256.
             apply_zipf (bool): Whether to apply Zipf's law during distillation. Defaults to True.
             use_subword (bool): Whether to use subword tokenization. Defaults to True.
+            sif_coefficient (float | None, optional): The coefficient for SIF weighting. Defaults to 1e-4.
+            quantize_to (str): The data type to quantize the weights to. Defaults to 'float32'.
+            token_remove_pattern (str | None, optional): A regex pattern to remove tokens from the vocabulary.
+                Defaults to r"\[unused\d+\]".
 
         Returns:
             StaticEmbedding: An instance of StaticEmbedding initialized with the distilled model's
@@ -179,6 +188,10 @@ class StaticEmbedding(nn.Module):
             pca_dims=pca_dims,
             apply_zipf=apply_zipf,
             use_subword=use_subword,
+            quantize_to=quantize_to,
+            sif_coefficient=sif_coefficient,
+            token_remove_pattern=token_remove_pattern,
+            **kwargs,
         )
         if isinstance(static_model.embedding, np.ndarray):
             embedding_weights = torch.from_numpy(static_model.embedding)
