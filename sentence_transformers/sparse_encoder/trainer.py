@@ -202,6 +202,27 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         if isinstance(eval_dataset, dict) and not isinstance(eval_dataset, DatasetDict):
             eval_dataset = DatasetDict(eval_dataset)
 
+        is_splade_loss = isinstance(loss, SpladeLoss) if loss is not None else False
+        has_splade_scheduler = (
+            any(isinstance(callback, SpladeLambdaSchedulerCallback) for callback in callbacks)
+            if callbacks is not None
+            else False
+        )
+
+        # If we're using SpladeLoss but don't have a scheduler callback, add one
+        if is_splade_loss and not has_splade_scheduler:
+            if callbacks is None:
+                callbacks = []
+
+            logger.warning(
+                "SpladeLoss detected without SpladeLambdaSchedulerCallback. "
+                "Adding default SpladeLambdaSchedulerCallback to gradually increase lambda values from 0 to their maximum."
+            )
+
+            # Create and add the callback
+            splade_callback = SpladeLambdaSchedulerCallback(loss=loss)
+            callbacks.append(splade_callback)
+
         # Transformers v4.46.0 introduced a ValueError if `eval_dataset` is None while eval_strategy is not "no",
         # but in Sentence Transformers you can also evaluate without an eval_dataset via an evaluator, so we set
         # it to "dummy" in that case to avoid the ValueError
@@ -273,27 +294,6 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
                     )
         else:
             self.loss = self.prepare_loss(loss, model)
-
-        is_splade_loss = isinstance(self.loss, SpladeLoss) if self.loss is not None else False
-        has_splade_scheduler = (
-            any(isinstance(callback, SpladeLambdaSchedulerCallback) for callback in callbacks)
-            if callbacks is not None
-            else False
-        )
-
-        # If we're using SpladeLoss but don't have a scheduler callback, add one
-        if is_splade_loss and not has_splade_scheduler:
-            if callbacks is None:
-                callbacks = []
-
-            logger.warning(
-                "SpladeLoss detected without SpladeLambdaSchedulerCallback. "
-                "Adding default SpladeLambdaSchedulerCallback to gradually increase lambda values from 0 to their maximum."
-            )
-
-            # Create and add the callback
-            splade_callback = SpladeLambdaSchedulerCallback(loss=self.loss)
-            callbacks.append(splade_callback)
 
         # If evaluator is a list, we wrap it in a SequentialEvaluator
         if evaluator is not None and not isinstance(evaluator, SentenceEvaluator):
