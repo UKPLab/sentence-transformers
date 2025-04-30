@@ -82,7 +82,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         **kwargs,
     ) -> Tensor:
         kwargs["truncate_dim"] = self.truncate_dim
-        return model.encode(
+        embeddings = model.encode(
             sentences,
             prompt_name=prompt_name,
             prompt=prompt,
@@ -92,6 +92,8 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             save_on_cpu=True,
             **kwargs,
         )
+        logger.info(model.get_sparsity_stats(embeddings))
+        return embeddings
 
     def store_metrics_in_model_card_data(
         self, model: SparseEncoder, metrics: dict[str, Any], epoch: int = 0, step: int = 0

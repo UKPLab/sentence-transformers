@@ -5,11 +5,8 @@ import os
 
 from datasets import load_dataset
 
-from sentence_transformers import SimilarityFunction
 from sentence_transformers.sparse_encoder import (
-    MLMTransformer,
     SparseEncoder,
-    SpladePooling,
 )
 from sentence_transformers.sparse_encoder.evaluation.SparseNanoBEIREvaluator import SparseNanoBEIREvaluator
 from sentence_transformers.sparse_encoder.losses import SparseMultipleNegativesRankingLoss, SpladeLoss
@@ -22,15 +19,8 @@ logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:
 
 def main():
     # Initialize the SPLADE model
-    model_name = "answerdotai/ModernBERT-base"
-    model = SparseEncoder(
-        modules=[
-            MLMTransformer(model_name),
-            SpladePooling(pooling_strategy="max"),  # You can also use 'sum'
-        ],
-        device="cuda:0",
-        similarity_fn_name=SimilarityFunction.DOT_PRODUCT,
-    )
+    model_name = "sparse-embedding/splade-distilbert-base-uncased-init"
+    model = SparseEncoder(model_name)
     model.eval()
     # 2a. Load the NQ dataset: https://huggingface.co/datasets/sentence-transformers/natural-questions
     logging.info("Read the Natural Questions training dataset")
@@ -42,13 +32,16 @@ def main():
     logging.info(eval_dataset)
 
     # 3. Initialize the loss
+    lambda_query = 5e-5
+    lambda_corpus = 3e-5
+
     loss = SpladeLoss(
         model=model,
         main_loss=SparseMultipleNegativesRankingLoss(model=model, scale=20, similarity_fct=model.similarity),
-        lambda_query=0.1,  # Weight for query loss
-        lambda_corpus=0.08,
+        lambda_query=lambda_query,  # Weight for query loss
+        lambda_corpus=lambda_corpus,
     )  # Weight for document loss
-    run_name = "splade-ModernBERT-nq-fresh"
+    run_name = f"splade-distilbert-nq-fresh-lq{lambda_query}-lc{lambda_corpus}"
     os.makedirs(f"runs/{run_name}", exist_ok=True)
 
     dev_evaluator = SparseNanoBEIREvaluator(["msmarco", "nfcorpus", "nq"], show_progress_bar=True, batch_size=16)
@@ -58,7 +51,7 @@ def main():
     training_args = SparseEncoderTrainingArguments(
         output_dir=f"runs/{run_name}",
         num_train_epochs=1,
-        per_device_train_batch_size=8,
+        per_device_train_batch_size=12,
         per_device_eval_batch_size=16,
         bf16=True,
         logging_steps=200,
@@ -66,14 +59,9 @@ def main():
         eval_steps=2400,
         save_strategy="steps",
         save_steps=2400,
-        learning_rate=5e-6,
+        learning_rate=4e-5,
         optim="adamw_torch",
         run_name=run_name,
-        lr_scheduler_type="cosine",
-        warmup_steps=0,
-        lr_scheduler_kwargs={
-            "num_cycles": 0.5,
-        },
     )
 
     # Initialize trainer
@@ -96,7 +84,7 @@ def main():
     os.makedirs(f"runs/{run_name}/final", exist_ok=True)
     model.save_pretrained(f"runs/{run_name}/final")
 
-    model.push_to_hub(run_name)
+    model.push_to_hub(run_name, private=True)
 
 
 if __name__ == "__main__":
