@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-import json
-import os
+from typing import Self
 
 from torch import Tensor, nn
 
+from sentence_transformers.SentenceTransformer import Module
 
-class Dropout(nn.Module):
+
+class Dropout(Module):
     """Dropout layer.
 
     Args:
         dropout: Sets a dropout value for dense layer.
     """
+
+    config_keys: list[str] = ["dropout"]
 
     def __init__(self, dropout: float = 0.2):
         super().__init__()
@@ -22,14 +25,26 @@ class Dropout(nn.Module):
         features.update({"sentence_embedding": self.dropout_layer(features["sentence_embedding"])})
         return features
 
-    def save(self, output_path):
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump({"dropout": self.dropout}, fOut)
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        self.save_config(output_path)
 
-    @staticmethod
-    def load(input_path):
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-
-        model = Dropout(**config)
-        return model
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        directory: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        config = cls.load_config(
+            model_name_or_path,
+            directory=directory,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
+        return cls(**config)
