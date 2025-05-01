@@ -45,7 +45,7 @@ def main():
     run_name = f"splade-distilbert-nq-fresh-lq{lambda_query}-lc{lambda_corpus}"
     os.makedirs(f"runs/{run_name}", exist_ok=True)
 
-    dev_evaluator = SparseNanoBEIREvaluator(["msmarco", "nfcorpus", "nq"], show_progress_bar=True, batch_size=16)
+    dev_evaluator = SparseNanoBEIREvaluator(show_progress_bar=True, batch_size=16)
     os.makedirs(f"runs/{run_name}/eval", exist_ok=True)
 
     # Set up training arguments
@@ -86,7 +86,7 @@ def main():
     os.makedirs(f"runs/{run_name}/final", exist_ok=True)
     model.save_pretrained(f"runs/{run_name}/final")
 
-    model.push_to_hub(run_name, private=True)
+    model.push_to_hub(f"sparse-embedding/{run_name}", private=True)
 
 
 if __name__ == "__main__":
