@@ -22,7 +22,7 @@ def main():
     # Initialize the SPLADE model
     model_name = "sparse-embedding/splade-distilbert-base-uncased-init"
     model = SparseEncoder(model_name)
-    model.eval()
+
     # 2a. Load the NQ dataset: https://huggingface.co/datasets/sentence-transformers/natural-questions
     logging.info("Read the Natural Questions training dataset")
     full_dataset = load_dataset("sentence-transformers/natural-questions", split="train").select(range(100_000))
@@ -61,7 +61,6 @@ def main():
         save_strategy="steps",
         save_steps=1650,
         learning_rate=4e-5,
-        optim="adamw_torch",
         run_name=run_name,
         seed=42,
         batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
