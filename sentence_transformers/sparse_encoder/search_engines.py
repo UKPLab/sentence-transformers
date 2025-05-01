@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import numpy as np
 import torch
 from tqdm import tqdm
 
@@ -20,6 +21,7 @@ def semantic_search_qdrant(
     corpus_index: tuple[QdrantClient, str] | None = None,
     top_k: int = 10,
     output_index: bool = False,
+    **kwargs: Any,
 ) -> (
     tuple[list[list[dict[str, int | float]]], float]
     | tuple[list[list[dict[str, int | float]]], float, tuple[QdrantClient, str]]
@@ -42,8 +44,11 @@ def semantic_search_qdrant(
         - Time taken for search
         - (Optional) Tuple of (QdrantClient, collection_name) if output_index is True
     """
-    from qdrant_client import QdrantClient
-    from qdrant_client.http import models
+    try:
+        from qdrant_client import QdrantClient
+        from qdrant_client.http import models
+    except ImportError:
+        raise ImportError("Please install the Qdrant client with `pip install qdrant-client` to use this function.")
 
     # Validate input sparse tensors
     if not query_embeddings.is_sparse or query_embeddings.layout != torch.sparse_coo:
@@ -57,7 +62,7 @@ def semantic_search_qdrant(
             raise ValueError("Corpus embeddings must be a sparse COO tensor")
 
         # Create new Qdrant client and collection
-        client = QdrantClient(url="http://localhost:6333")
+        client = QdrantClient(url="http://localhost:6333", **kwargs)
         collection_name = f"sparse_collection_{int(time.time())}"
 
         client.create_collection(
@@ -66,33 +71,37 @@ def semantic_search_qdrant(
             sparse_vectors_config={"text": models.SparseVectorParams(index=models.SparseIndexParams(on_disk=False))},
         )
 
-        # Process and upload corpus embeddings
-        corpus_indices = corpus_embeddings.coalesce().indices().cpu().numpy()
-        corpus_values = corpus_embeddings.coalesce().values().cpu().numpy()
-
-        batch_size = 10000
+        corpus = corpus_embeddings.coalesce()
+        indices_arr = corpus.indices().cpu().numpy()
+        values_arr = corpus.values().cpu().numpy()
         num_vectors = corpus_embeddings.size(0)
+        batch_size = 10000
+        vectors_batch = []
+        insert_idx = 0
 
-        for start_idx in tqdm(range(0, num_vectors, batch_size)):
-            end_idx = min(start_idx + batch_size, num_vectors)
-            batch_points = []
+        # Precompute the start and end positions for each row.
+        # Since the indices are sorted by row, searchsorted can be used.
+        row_ids = indices_arr[0]
+        starts = np.searchsorted(row_ids, np.arange(num_vectors), side="left")
+        ends = np.searchsorted(row_ids, np.arange(num_vectors), side="right")
 
-            # Process batch
-            for i in range(start_idx, end_idx):
-                mask = corpus_indices[0] == i
-                vector_indices = corpus_indices[1][mask]
-                vector_values = corpus_values[mask]
+        for i in tqdm(range(num_vectors), desc="Processing and Upserting embeddings"):
+            start = starts[i]
+            end = ends[i]
+            vec_indices = indices_arr[1][start:end].tolist()
+            vec_values = values_arr[start:end].tolist()
 
-                batch_points.append(
-                    models.PointStruct(
-                        id=i,
-                        payload={},
-                        vector={"text": models.SparseVector(indices=vector_indices, values=vector_values)},
-                    )
+            vector_data = {"text": models.SparseVector(indices=vec_indices, values=vec_values)}
+            vectors_batch.append(vector_data)
+
+            if len(vectors_batch) >= batch_size or i == num_vectors - 1:
+                client.upload_collection(
+                    collection_name=collection_name,
+                    vectors=vectors_batch,
+                    ids=range(insert_idx, insert_idx + len(vectors_batch)),
                 )
-
-            # Upload batch
-            client.upsert(collection_name=collection_name, points=batch_points)
+                insert_idx += len(vectors_batch)
+                vectors_batch = []
 
         corpus_index = (client, collection_name)
 
@@ -120,10 +129,6 @@ def semantic_search_qdrant(
             query=models.SparseVector(indices=q_indices, values=q_values),
             limit=top_k,
             using="text",
-            search_params=models.SearchParams(
-                hnsw_ef=128,
-                exact=True,  # Use exact search for better results
-            ),
         ).points
 
         # Format results
@@ -144,6 +149,7 @@ def semantic_search_elasticsearch(
     corpus_index: tuple[Elasticsearch, str] | None = None,
     top_k: int = 10,
     output_index: bool = False,
+    **kwargs: Any,
 ) -> (
     tuple[list[list[dict[str, int | float]]], float]
     | tuple[list[list[dict[str, int | float]]], float, tuple[Elasticsearch, str]]
@@ -166,7 +172,12 @@ def semantic_search_elasticsearch(
         - Time taken for search
         - (Optional) Tuple of (Elasticsearch, collection_name) if output_index is True
     """
-    from elasticsearch import Elasticsearch, helpers
+    try:
+        from elasticsearch import Elasticsearch, helpers
+    except ImportError:
+        raise ImportError(
+            "Please install the Elasticsearch client with `pip install elasticsearch` to use this function."
+        )
 
     if not query_embeddings.is_sparse or query_embeddings.layout != torch.sparse_coo:
         raise ValueError("Query embeddings must be a sparse COO tensor")
@@ -178,7 +189,7 @@ def semantic_search_elasticsearch(
         if not corpus_embeddings.is_sparse or corpus_embeddings.layout != torch.sparse_coo:
             raise ValueError("Corpus embeddings must be a sparse COO tensor")
 
-        es = Elasticsearch("http://localhost:9200")
+        es = Elasticsearch("http://localhost:9200", **kwargs)
         index_name = f"sparse_index_{int(time.time())}"
 
         if es.indices.exists(index=index_name):
@@ -204,7 +215,7 @@ def semantic_search_elasticsearch(
         num_docs = corpus.size(0)
 
         batch_size = 1000
-        for start_idx in tqdm(range(0, num_docs, batch_size)):
+        for start_idx in tqdm(range(0, num_docs, batch_size), desc="Upserting embeddings"):
             end_idx = min(start_idx + batch_size, num_docs)
             actions = []
 
