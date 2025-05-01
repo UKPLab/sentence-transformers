@@ -150,11 +150,11 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 self.queries_ids.append(qid)
 
         self.queries = [queries[qid] for qid in self.queries_ids]
-        self.queries_info = {"lenght_of_queries": len(self.queries)}
+        self.queries_info = {"length_of_queries": len(self.queries)}
 
         self.corpus_ids = list(corpus.keys())
         self.corpus = [corpus[cid] for cid in self.corpus_ids]
-        self.corpus_info = {"lenght_of_corpus": len(self.corpus)}
+        self.corpus_info = {"length_of_corpus": len(self.corpus)}
 
         self.query_prompt = query_prompt
         self.query_prompt_name = query_prompt_name

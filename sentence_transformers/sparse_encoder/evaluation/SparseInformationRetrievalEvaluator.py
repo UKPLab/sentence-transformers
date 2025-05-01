@@ -93,7 +93,10 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             **kwargs,
         )
         sparsity_infos = model.get_sparsity_stats(embeddings)
-        if sparsity_infos["num_rows"] == self.queries_info["lenght_of_queries"]:
+        if (
+            sparsity_infos["num_rows"] == self.queries_info["length_of_queries"]
+            and "sparsity_infos" not in self.queries_info.keys()
+        ):
             self.queries_info["sparsity_infos"] = model.get_sparsity_stats(embeddings)
         else:
             self.corpus_info["sparsity_infos"] = model.get_sparsity_stats(embeddings)
