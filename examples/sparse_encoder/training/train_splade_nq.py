@@ -57,13 +57,16 @@ def main():
         bf16=True,
         logging_steps=200,
         eval_strategy="steps",
-        eval_steps=1400,
+        eval_steps=1650,
         save_strategy="steps",
-        save_steps=1400,
+        save_steps=1650,
         learning_rate=4e-5,
         optim="adamw_torch",
         run_name=run_name,
+        seed=42,
         batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_NanoBEIR_mean_dot_ndcg@10",
     )
 
     # Initialize trainer
