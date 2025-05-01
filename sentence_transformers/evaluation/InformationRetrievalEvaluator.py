@@ -150,9 +150,11 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 self.queries_ids.append(qid)
 
         self.queries = [queries[qid] for qid in self.queries_ids]
+        self.queries_info = {"lenght_of_queries": len(self.queries)}
 
         self.corpus_ids = list(corpus.keys())
         self.corpus = [corpus[cid] for cid in self.corpus_ids]
+        self.corpus_info = {"lenght_of_corpus": len(self.corpus)}
 
         self.query_prompt = query_prompt
         self.query_prompt_name = query_prompt_name
@@ -359,8 +361,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                     score, corpus_id = queries_result_list[name][query_itr][doc_itr]
                     queries_result_list[name][query_itr][doc_itr] = {"corpus_id": corpus_id, "score": score}
 
-        logger.info(f"Queries: {len(self.queries)}")
-        logger.info(f"Corpus: {len(self.corpus)}\n")
+        logger.info(f"Queries infos: {self.queries_info}")
+        logger.info(f"Corpus infos: {self.corpus_info}")
 
         # Compute scores
         scores = {name: self.compute_metrics(queries_result_list[name]) for name in self.score_functions}

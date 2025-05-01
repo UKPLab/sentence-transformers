@@ -92,7 +92,11 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             save_on_cpu=True,
             **kwargs,
         )
-        logger.info(model.get_sparsity_stats(embeddings))
+        sparsity_infos = model.get_sparsity_stats(embeddings)
+        if sparsity_infos["num_rows"] == self.queries_info["lenght_of_queries"]:
+            self.queries_info["sparsity_infos"] = model.get_sparsity_stats(embeddings)
+        else:
+            self.corpus_info["sparsity_infos"] = model.get_sparsity_stats(embeddings)
         return embeddings
 
     def store_metrics_in_model_card_data(
