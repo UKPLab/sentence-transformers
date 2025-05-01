@@ -1,3 +1,4 @@
+import logging
 import random
 
 from datasets import load_dataset
@@ -8,6 +9,8 @@ from sentence_transformers.sparse_encoder import (
     SparseInformationRetrievalEvaluator,
     SpladePooling,
 )
+
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 # Initialize the SPLADE model
 model_name = "naver/splade-cocondenser-ensembledistil"
@@ -50,17 +53,12 @@ ir_evaluator = SparseInformationRetrievalEvaluator(
     relevant_docs=relevant_docs,
     name="BeIR-touche2020-subset-test",
     show_progress_bar=True,
-    batch_size=32,
+    batch_size=16,
 )
 
 # Run evaluation
-print("Starting evaluation ")
 results = ir_evaluator(model)
 
+# Print the results
 print(f"Primary metric: {ir_evaluator.primary_metric}")
 print(f"Primary metric value: {results[ir_evaluator.primary_metric]:.4f}")
-
-# Print results for each dataset
-for key, value in results.items():
-    if key.startswith("Nano"):
-        print(f"{key}: {value:.4f}")

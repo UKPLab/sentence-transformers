@@ -1,3 +1,5 @@
+import logging
+
 from datasets import load_dataset
 
 from sentence_transformers.sparse_encoder import (
@@ -6,6 +8,8 @@ from sentence_transformers.sparse_encoder import (
     SparseTranslationEvaluator,
     SpladePooling,
 )
+
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 # Initialize the SPLADE model
 model_name = "naver/splade-cocondenser-ensembledistil"
@@ -26,7 +30,7 @@ translation_evaluator = SparseTranslationEvaluator(
     name="news-commentary-en-nl",
 )
 results = translation_evaluator(model)
-print(results)
 
-print(translation_evaluator.primary_metric)
-print(results[translation_evaluator.primary_metric])
+# Print the results
+print(f"Primary metric: {translation_evaluator.primary_metric}")
+print(f"Primary metric value: {results[translation_evaluator.primary_metric]:.4f}")

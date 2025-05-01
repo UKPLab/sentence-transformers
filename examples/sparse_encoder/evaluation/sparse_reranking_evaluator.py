@@ -1,3 +1,5 @@
+import logging
+
 from datasets import load_dataset
 
 from sentence_transformers.sparse_encoder import (
@@ -6,6 +8,8 @@ from sentence_transformers.sparse_encoder import (
     SparseRerankingEvaluator,
     SpladePooling,
 )
+
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 # Initialize the SPLADE model
 model_name = "naver/splade-cocondenser-ensembledistil"
@@ -18,7 +22,7 @@ model = SparseEncoder(
 )
 
 # Load a dataset with queries, positives, and negatives
-eval_dataset = load_dataset("microsoft/ms_marco", "v1.1", split="validation")
+eval_dataset = load_dataset("microsoft/ms_marco", "v1.1", split="validation").select(range(1000))
 
 samples = [
     {
@@ -47,7 +51,7 @@ reranking_evaluator = SparseRerankingEvaluator(
 )
 
 results = reranking_evaluator(model)
-print(results)
 
-print(reranking_evaluator.primary_metric)
-print(results[reranking_evaluator.primary_metric])
+# Print the results
+print(f"Primary metric: {reranking_evaluator.primary_metric}")
+print(f"Primary metric value: {results[reranking_evaluator.primary_metric]:.4f}")
