@@ -1,15 +1,20 @@
 from __future__ import annotations
 
-import json
 import os
+from pathlib import Path
+from typing import Self
 
 import torch
 from safetensors.torch import load_model as load_safetensors_model
 from safetensors.torch import save_model as save_safetensors_model
 from torch import Tensor, nn
 
+from sentence_transformers.models.Module import Module
 
-class LayerNorm(nn.Module):
+
+class LayerNorm(Module):
+    config_keys: list[str] = ["dimension"]
+
     def __init__(self, dimension: int):
         super().__init__()
         self.dimension = dimension
@@ -23,26 +28,52 @@ class LayerNorm(nn.Module):
         return self.dimension
 
     def save(self, output_path, safe_serialization: bool = True) -> None:
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump({"dimension": self.dimension}, fOut, indent=2)
+        self.save_config(output_path)
 
         if safe_serialization:
             save_safetensors_model(self, os.path.join(output_path, "model.safetensors"))
         else:
             torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
 
-    @staticmethod
-    def load(input_path):
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        directory: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        hub_kwargs = {
+            "token": token,
+            "cache_folder": cache_folder,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        config = cls.load_config(
+            model_name_or_path=model_name_or_path,
+            directory=directory,
+            **hub_kwargs,
+        )
+        model = cls(**config)
 
-        model = LayerNorm(**config)
-        if os.path.exists(os.path.join(input_path, "model.safetensors")):
-            load_safetensors_model(model, os.path.join(input_path, "model.safetensors"))
+        safetensors_path = cls.load_file_path(
+            model_name_or_path,
+            filename=Path(directory, "model.safetensors"),
+            **hub_kwargs,
+        )
+        if safetensors_path is not None:
+            load_safetensors_model(model, safetensors_path)
         else:
-            model.load_state_dict(
-                torch.load(
-                    os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
-                )
+            pytorch_model_path = cls.load_file_path(
+                model_name_or_path,
+                filename=Path(directory, "pytorch_model.bin"),
+                **hub_kwargs,
             )
+            if pytorch_model_path is None:
+                raise ValueError(f"Could not find 'model.safetensors' or 'pytorch_model.bin' in {model_name_or_path}.")
+
+            model.load_state_dict(torch.load(pytorch_model_path, map_location=torch.device("cpu"), weights_only=True))
         return model

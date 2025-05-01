@@ -107,8 +107,7 @@ class Dense(Module):
             **hub_kwargs,
         )
         config["activation_function"] = import_from_string(config["activation_function"])()
-
-        model = Dense(**config)
+        model = cls(**config)
 
         safetensors_path = cls.load_file_path(
             model_name_or_path,
