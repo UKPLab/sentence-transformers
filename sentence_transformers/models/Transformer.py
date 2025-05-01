@@ -518,8 +518,8 @@ class Transformer(ModuleWithTokenizer):
     def load(
         cls,
         model_name_or_path: str,
-        directory: str = "",
         # Loading arguments
+        subfolder: str = "",
         token: bool | str | None = None,
         cache_folder: str | None = None,
         revision: str | None = None,
@@ -534,7 +534,7 @@ class Transformer(ModuleWithTokenizer):
     ) -> Self:
         config = cls.load_config(
             model_name_or_path=model_name_or_path,
-            directory=directory,
+            subfolder=subfolder,
             token=token,
             cache_folder=cache_folder,
             revision=revision,
@@ -542,11 +542,13 @@ class Transformer(ModuleWithTokenizer):
         )
 
         hub_kwargs = {
+            "subfolder": subfolder,
             "token": token,
-            "trust_remote_code": trust_remote_code,
             "revision": revision,
             "local_files_only": local_files_only,
+            "trust_remote_code": trust_remote_code,
         }
+
         # 3rd priority: config file
         if "model_args" not in config:
             config["model_args"] = {}
@@ -568,23 +570,13 @@ class Transformer(ModuleWithTokenizer):
         if config_kwargs:
             config["config_args"].update(config_kwargs)
 
-        if directory:
-            config["model_args"]["subfolder"] = directory
-            config["tokenizer_args"]["subfolder"] = directory
-            config["config_args"]["subfolder"] = directory
-
-        return cls(
-            model_name_or_path=model_name_or_path,
-            **config,
-            cache_dir=cache_folder,
-            backend=backend,
-        )
+        return cls(model_name_or_path=model_name_or_path, **config, cache_dir=cache_folder, backend=backend)
 
     @classmethod
     def load_config(
         cls,
         model_name_or_path: str,
-        directory: str = "",
+        subfolder: str = "",
         config_filename: str | None = None,
         token: bool | str | None = None,
         cache_folder: str | None = None,
@@ -607,7 +599,7 @@ class Transformer(ModuleWithTokenizer):
         for config_filename in config_filenames:
             config = super().load_config(
                 model_name_or_path=model_name_or_path,
-                directory=directory,
+                subfolder=subfolder,
                 config_filename=config_filename,
                 token=token,
                 cache_folder=cache_folder,

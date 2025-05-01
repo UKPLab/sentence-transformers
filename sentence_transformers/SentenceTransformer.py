@@ -1751,8 +1751,8 @@ print(similarities)
             try:
                 module = module_class.load(
                     model_name_or_path,
-                    directory=module_config["path"],
-                    # Loading specific keyword arguments
+                    # Loading-specific keyword arguments
+                    subfolder=module_config["path"],
                     token=token,
                     cache_folder=cache_folder,
                     revision=revision,
@@ -1768,7 +1768,7 @@ print(similarities)
                 # Backwards compatibility
                 local_path = load_dir_path(
                     model_name_or_path=model_name_or_path,
-                    directory=module_config["path"],
+                    subfolder=module_config["path"],
                     token=token,
                     cache_folder=cache_folder,
                     revision=revision,

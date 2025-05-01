@@ -18,7 +18,7 @@ class Normalize(Module):
         features.update({"sentence_embedding": F.normalize(features["sentence_embedding"], p=2, dim=1)})
         return features
 
-    def save(self, output_path: str, **kwargs) -> None:
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
         return
 
     @classmethod

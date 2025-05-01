@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal, Self
+from typing import Literal
 
 import torch
 from torch import Tensor
@@ -85,24 +85,3 @@ class BoW(ModuleWithTokenizer):
 
     def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
         self.save_config(output_path)
-
-    @classmethod
-    def load(
-        cls,
-        model_name_or_path: str,
-        directory: str = "",
-        token: bool | str | None = None,
-        cache_folder: str | None = None,
-        revision: str | None = None,
-        local_files_only: bool = False,
-        **kwargs,
-    ) -> Self:
-        config = cls.load_config(
-            model_name_or_path,
-            directory=directory,
-            token=token,
-            cache_folder=cache_folder,
-            revision=revision,
-            local_files_only=local_files_only,
-        )
-        return cls(**config)

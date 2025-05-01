@@ -100,7 +100,7 @@ class CLIPModel(ModuleWithTokenizer):
     def load(
         cls,
         model_name_or_path: str,
-        directory: str = "",
+        subfolder: str = "",
         token: bool | str | None = None,
         cache_folder: str | None = None,
         revision: str | None = None,
@@ -109,7 +109,7 @@ class CLIPModel(ModuleWithTokenizer):
     ) -> Self:
         local_path = cls.load_dir_path(
             model_name_or_path=model_name_or_path,
-            directory=directory,
+            subfolder=subfolder,
             token=token,
             cache_folder=cache_folder,
             revision=revision,

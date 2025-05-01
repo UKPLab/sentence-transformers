@@ -1457,6 +1457,7 @@ def is_sentence_transformer_model(
 def load_file_path(
     model_name_or_path: str,
     filename: str | Path,
+    subfolder: str = "",  # <- Should this be 'subfolder' instead? To match huggingface_hub
     token: bool | str | None = None,
     cache_folder: str | None = None,
     revision: str | None = None,
@@ -1468,6 +1469,7 @@ def load_file_path(
     Args:
         model_name_or_path (str): The model name or path.
         filename (str): The name of the file to load.
+        subfolder (str): The subfolder within the model subfolder (if applicable).
         token (Optional[Union[bool, str]]): The token to access the remote file (if applicable).
         cache_folder (Optional[str]): The folder to cache the downloaded file (if applicable).
         revision (Optional[str], optional): The revision of the file (if applicable). Defaults to None.
@@ -1477,16 +1479,17 @@ def load_file_path(
         Optional[str]: The path to the loaded file, or None if the file could not be found or loaded.
     """
     # If file is local
-    file_path = Path(model_name_or_path, filename)
+    file_path = Path(model_name_or_path, subfolder, filename)
     if file_path.exists():
         return str(file_path)
 
     # If file is remote
+    file_path = Path(subfolder, filename)
     try:
         return hf_hub_download(
             model_name_or_path,
-            filename=Path(filename).name,
-            subfolder=Path(filename).parent.as_posix(),
+            filename=file_path.name,
+            subfolder=file_path.parent.as_posix(),
             revision=revision,
             library_name="sentence-transformers",
             token=token,
@@ -1499,38 +1502,38 @@ def load_file_path(
 
 def load_dir_path(
     model_name_or_path: str,
-    directory: str,
+    subfolder: str,
     token: bool | str | None = None,
     cache_folder: str | None = None,
     revision: str | None = None,
     local_files_only: bool = False,
 ) -> str | None:
     """
-    Loads the directory path for a given model name or path.
+    Loads the subfolder path for a given model name or path.
 
     Args:
         model_name_or_path (str): The name or path of the model.
-        directory (str): The directory to load.
+        subfolder (str): The subfolder to load.
         token (Optional[Union[bool, str]]): The token for authentication.
         cache_folder (Optional[str]): The folder to cache the downloaded files.
         revision (Optional[str], optional): The revision of the model. Defaults to None.
         local_files_only (bool, optional): Whether to only use local files. Defaults to False.
 
     Returns:
-        Optional[str]: The directory path if it exists, otherwise None.
+        Optional[str]: The subfolder path if it exists, otherwise None.
     """
-    if isinstance(directory, Path):
-        directory = directory.as_posix()
+    if isinstance(subfolder, Path):
+        subfolder = subfolder.as_posix()
 
     # If file is local
-    dir_path = Path(model_name_or_path, directory)
+    dir_path = Path(model_name_or_path, subfolder)
     if dir_path.exists():
         return str(dir_path)
 
     download_kwargs = {
         "repo_id": model_name_or_path,
         "revision": revision,
-        "allow_patterns": f"{directory}/**" if directory not in ["", "."] else None,
+        "allow_patterns": f"{subfolder}/**" if subfolder not in ["", "."] else None,
         "library_name": "sentence-transformers",
         "token": token,
         "cache_dir": cache_folder,
@@ -1544,7 +1547,7 @@ def load_dir_path(
         # Otherwise, try local (i.e. cache) only
         download_kwargs["local_files_only"] = True
         repo_path = snapshot_download(**download_kwargs)
-    return Path(repo_path, directory)
+    return Path(repo_path, subfolder)
 
 
 def save_to_hub_args_decorator(func):

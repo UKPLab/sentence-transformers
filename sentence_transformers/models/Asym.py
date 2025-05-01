@@ -154,43 +154,31 @@ class Asym(ModuleWithTokenizer, nn.Sequential):
     def load(
         cls,
         model_name_or_path: str,
-        directory: str = "",
+        subfolder: str = "",
         token: bool | str | None = None,
         cache_folder: str | None = None,
         revision: str | None = None,
         local_files_only: bool = False,
         **kwargs,
     ) -> Self:
-        config = cls.load_config(
-            model_name_or_path=model_name_or_path,
-            directory=directory,
-            token=token,
-            cache_folder=cache_folder,
-            revision=revision,
-            local_files_only=local_files_only,
-        )
+        hub_kwargs = {
+            "subfolder": subfolder,
+            "token": token,
+            "cache_folder": cache_folder,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        config = cls.load_config(model_name_or_path=model_name_or_path, **hub_kwargs)
         modules = {}
         for model_id, model_type in config["types"].items():
             module_class: Module = import_from_string(model_type)
             try:
                 module = module_class.load(
                     model_name_or_path,
-                    directory=model_id,
-                    token=token,
-                    cache_folder=cache_folder,
-                    revision=revision,
-                    local_files_only=local_files_only,
-                    **kwargs,
+                    **hub_kwargs**kwargs,
                 )
             except TypeError:
-                local_path = load_dir_path(
-                    model_name_or_path=model_name_or_path,
-                    directory=model_id,
-                    token=token,
-                    cache_folder=cache_folder,
-                    revision=revision,
-                    local_files_only=local_files_only,
-                )
+                local_path = load_dir_path(model_name_or_path=model_name_or_path, **hub_kwargs)
                 module = module_class.load(local_path)
             modules[model_id] = module
 

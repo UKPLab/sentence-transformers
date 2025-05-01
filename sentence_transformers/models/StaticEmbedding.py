@@ -7,7 +7,6 @@ from typing import Self
 
 import numpy as np
 import torch
-from safetensors.torch import load_file as load_safetensors_file
 from safetensors.torch import save_file as save_safetensors_file
 from tokenizers import Tokenizer
 from torch import nn
@@ -122,7 +121,7 @@ class StaticEmbedding(ModuleWithTokenizer):
     def load(
         cls,
         model_name_or_path: str,
-        directory: str = "",
+        subfolder: str = "",
         token: bool | str | None = None,
         cache_folder: str | None = None,
         revision: str | None = None,
@@ -130,35 +129,16 @@ class StaticEmbedding(ModuleWithTokenizer):
         **kwargs,
     ) -> Self:
         hub_kwargs = {
+            "subfolder": subfolder,
             "token": token,
             "cache_folder": cache_folder,
             "revision": revision,
             "local_files_only": local_files_only,
         }
-        tokenizer_path = cls.load_file_path(
-            model_name_or_path,
-            filename=Path(directory, "tokenizer.json"),
-            **hub_kwargs,
-        )
+        tokenizer_path = cls.load_file_path(model_name_or_path, filename="tokenizer.json", **hub_kwargs)
         tokenizer = Tokenizer.from_file(tokenizer_path)
 
-        safetensors_path = cls.load_file_path(
-            model_name_or_path,
-            filename=Path(directory, "model.safetensors"),
-            **hub_kwargs,
-        )
-        if safetensors_path is not None:
-            weights = load_safetensors_file(safetensors_path)
-        else:
-            pytorch_model_path = cls.load_file_path(
-                model_name_or_path,
-                filename=Path(directory, "pytorch_model.bin"),
-                **hub_kwargs,
-            )
-            if pytorch_model_path is None:
-                raise ValueError(f"Could not find 'model.safetensors' or 'pytorch_model.bin' in {model_name_or_path}.")
-            weights = torch.load(pytorch_model_path, map_location=torch.device("cpu"), weights_only=True)
-
+        weights = cls.load_torch_weights(model_name_or_path=model_name_or_path, **hub_kwargs)
         try:
             weights = weights["embedding.weight"]
         except KeyError:
