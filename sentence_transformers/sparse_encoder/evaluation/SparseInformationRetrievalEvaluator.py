@@ -93,13 +93,22 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             **kwargs,
         )
         sparsity_infos = model.get_sparsity_stats(embeddings)
-        if (
-            sparsity_infos["num_rows"] == self.queries_info["length_of_queries"]
-            and "sparsity_infos" not in self.queries_info.keys()
-        ):
-            self.queries_info["sparsity_infos"] = model.get_sparsity_stats(embeddings)
+        if sparsity_infos["num_rows"] == self.queries_info["num_rows"] and "num_cols" not in self.queries_info.keys():
+            self.queries_info.update(
+                {
+                    "num_cols": sparsity_infos["num_cols"],
+                    "row_non_zero_mean": sparsity_infos["row_non_zero_mean"],
+                    "row_sparsity_mean": sparsity_infos["row_sparsity_mean"],
+                }
+            )
         else:
-            self.corpus_info["sparsity_infos"] = model.get_sparsity_stats(embeddings)
+            self.corpus_info.update(
+                {
+                    "num_cols": sparsity_infos["num_cols"],
+                    "row_non_zero_mean": sparsity_infos["row_non_zero_mean"],
+                    "row_sparsity_mean": sparsity_infos["row_sparsity_mean"],
+                }
+            )
         return embeddings
 
     def store_metrics_in_model_card_data(
