@@ -9,11 +9,13 @@ import numpy.typing as npt
 import torch
 from torch import Tensor, nn
 from tqdm import trange
+from transformers import AutoConfig
 
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.models import Pooling, Transformer
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData
-from sentence_transformers.sparse_encoder.models import MLMTransformer, SpladePooling
+from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
 from sentence_transformers.util import batch_to_device, truncate_embeddings_for_sparse
 
 logger = logging.getLogger(__name__)
@@ -354,7 +356,9 @@ class SparseEncoder(SentenceTransformer):
         config_kwargs: dict[str, Any] | None = None,
     ) -> list[nn.Module]:
         """
-        Creates a simple MLMTransformer + SPladePooling model and returns the modules
+        Creates a simple transformer-based model and returns the modules.
+        For MLMTransformer (models ending with ForMaskedLM), uses SpladePooling with 'max' strategy.
+        For regular Transformer, uses CSR implementation by default.
 
         Args:
             model_name_or_path (str): The name or path of the pre-trained model.
@@ -368,11 +372,9 @@ class SparseEncoder(SentenceTransformer):
             config_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the config. Defaults to None.
 
         Returns:
-            List[nn.Module]: A list containing the MLMTransformer model and the spladepooling model.
+            List[nn.Module]: A list containing the transformer model and the pooling model.
         """
-        logger.warning(
-            f"No sparse-encoder model found with name {model_name_or_path}. Creating a new one with spladepooling."
-        )
+        logger.warning(f"No sparse-encoder model found with name {model_name_or_path}. Creating a new one.")
 
         shared_kwargs = {
             "token": token,
@@ -384,18 +386,55 @@ class SparseEncoder(SentenceTransformer):
         tokenizer_kwargs = shared_kwargs if tokenizer_kwargs is None else {**shared_kwargs, **tokenizer_kwargs}
         config_kwargs = shared_kwargs if config_kwargs is None else {**shared_kwargs, **config_kwargs}
 
-        mlmtransformer_model = MLMTransformer(
-            model_name_or_path,
-            cache_dir=cache_folder,
-            model_args=model_kwargs,
-            tokenizer_args=tokenizer_kwargs,
-            config_args=config_kwargs,
-            backend=self.backend,
-        )
-        splade_pooling_model = SpladePooling(pooling_strategy="max")
+        config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_folder, **config_kwargs)
+
+        # Check if the architecture ends with "ForMaskedLM"
+        is_mlm_model = False
+        if hasattr(config, "architectures") and config.architectures:
+            for architecture in config.architectures:
+                if architecture.endswith("ForMaskedLM"):
+                    is_mlm_model = True
+                    break
+
+        if is_mlm_model:
+            # For MLM models like BERT, RoBERTa, etc., use MLMTransformer with SpladePooling
+            logger.info(f"Detected MLM architecture: {config.architectures}, using SpladePooling")
+            transformer_model = MLMTransformer(
+                model_name_or_path,
+                cache_dir=cache_folder,
+                model_args=model_kwargs,
+                tokenizer_args=tokenizer_kwargs,
+                config_args=config_kwargs,
+                backend=self.backend,
+            )
+            pooling_model = SpladePooling(pooling_strategy="max")
+
+            modules = [transformer_model, pooling_model]
+        else:
+            # For other transformer models, use Transformer with CSR implementation
+            logger.info(
+                f"No MLM architecture detected in {getattr(config, 'architectures', [])}, using CSR implementation"
+            )
+            transformer_model = Transformer(
+                model_name_or_path,
+                cache_dir=cache_folder,
+                model_args=model_kwargs,
+                tokenizer_args=tokenizer_kwargs,
+                config_args=config_kwargs,
+                backend=self.backend,
+            )
+            pooling = Pooling(transformer_model.get_word_embedding_dimension(), pooling_mode="mean")
+            csr_sparsity = CSRSparsity(
+                input_dim=transformer_model.get_word_embedding_dimension(),
+                hidden_dim=4 * transformer_model.get_word_embedding_dimension(),
+                k=256,  # Number of top values to keep
+                k_aux=512,  # Number of top values for auxiliary loss
+            )
+            modules = [transformer_model, pooling, csr_sparsity]
+
         if not local_files_only:
             self.model_card_data.set_base_model(model_name_or_path, revision=revision)
-        return [mlmtransformer_model, splade_pooling_model]
+        return modules
 
     def _load_sbert_model(
         self,
