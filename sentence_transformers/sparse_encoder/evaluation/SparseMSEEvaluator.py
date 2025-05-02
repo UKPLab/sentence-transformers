@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class SparseMSEEvaluator(MSEEvaluator):
     """
-    This evaluator extends TranslationEvaluator but is specifically designed for sparse encoder models.
+    This evaluator extends :class:`MSEEvaluator' but is specifically designed for sparse encoder models.
 
     models but doesn't take benefit of the sparse tensor torch representation yet, Memory issues may occur.
 

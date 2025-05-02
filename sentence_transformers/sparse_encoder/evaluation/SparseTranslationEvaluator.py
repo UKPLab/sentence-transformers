@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class SparseTranslationEvaluator(TranslationEvaluator):
     """
-    This evaluator extends TranslationEvaluator but is specifically designed for sparse encoder models.
+    This evaluator extends :class:`TranslationEvaluator` but is specifically designed for sparse encoder models.
 
     Given two sets of sentences in different languages, e.g. (en_1, en_2, en_3...) and (fr_1, fr_2, fr_3, ...),
     and assuming that fr_i is the translation of en_i.
