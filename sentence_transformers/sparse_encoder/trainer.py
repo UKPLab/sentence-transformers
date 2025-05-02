@@ -12,10 +12,12 @@ from transformers import __version__ as transformers_version
 from transformers.integrations import WandbCallback
 
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
+from sentence_transformers.sparse_encoder.callbacks.splade_callbacks import SpladeLambdaSchedulerCallback
 from sentence_transformers.sparse_encoder.data_collator import SparseEncoderDataCollator
 from sentence_transformers.sparse_encoder.losses import (
     SparseMultipleNegativesRankingLoss,
 )
+from sentence_transformers.sparse_encoder.losses.SpladeLoss import SpladeLoss
 from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardCallback
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 from sentence_transformers.sparse_encoder.training_args import (
@@ -271,6 +273,27 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
                     )
         else:
             self.loss = self.prepare_loss(loss, model)
+
+        is_splade_loss = isinstance(loss, SpladeLoss) if loss is not None else False
+        has_splade_scheduler = (
+            any(isinstance(callback, SpladeLambdaSchedulerCallback) for callback in callbacks)
+            if callbacks is not None
+            else False
+        )
+
+        # If we're using SpladeLoss but don't have a scheduler callback, add one
+        if is_splade_loss and not has_splade_scheduler:
+            if callbacks is None:
+                callbacks = []
+
+            logger.warning(
+                "SpladeLoss detected without SpladeLambdaSchedulerCallback. "
+                "Adding default SpladeLambdaSchedulerCallback to gradually increase lambda values from 0 to their maximum."
+            )
+
+            # Create and insert the callback after the default callback informing the trainer when to log, evaluate, save, etc.
+            splade_callback = SpladeLambdaSchedulerCallback(loss=loss)
+            self.callback_handler.callbacks.insert(1, splade_callback)
 
         # If evaluator is a list, we wrap it in a SequentialEvaluator
         if evaluator is not None and not isinstance(evaluator, SentenceEvaluator):

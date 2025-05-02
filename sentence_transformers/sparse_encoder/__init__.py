@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from sentence_transformers.sparse_encoder.callbacks.splade_callbacks import (
+    SchedulerType,
+    SpladeLambdaSchedulerCallback,
+)
 from sentence_transformers.sparse_encoder.data_collator import SparseEncoderDataCollator
 from sentence_transformers.sparse_encoder.evaluation import (
     SparseBinaryClassificationEvaluator,
@@ -63,6 +67,9 @@ __all__ = [
     "SparseDistillKLDivLoss",
     "FlopsLoss",
     "SpladeLoss",
+    # Callbacks
+    "SpladeLambdaSchedulerCallback",
+    "SchedulerType",
     # Evaluators
     "SparseBinaryClassificationEvaluator",
     "SparseEmbeddingSimilarityEvaluator",

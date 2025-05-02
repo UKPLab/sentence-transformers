@@ -1,3 +1,16 @@
+"""
+This script contains an example how to perform semantic search with Qdrant.
+
+You need Qdrant up and running locally:
+https://qdrant.tech/documentation/quickstart/
+
+Further, you need the Python Qdrant Client installed: https://python-client.qdrant.tech/, e.g.:
+```
+pip install qdrant-client
+```
+This script was created for `qdrant-client` v1.0+.
+"""
+
 import time
 
 from datasets import load_dataset
@@ -5,27 +18,18 @@ from datasets import load_dataset
 from sentence_transformers import SparseEncoder
 from sentence_transformers.sparse_encoder.search_engines import semantic_search_qdrant
 
-# 1. Load the quora corpus with questions
-dataset = load_dataset("quora", split="train", trust_remote_code=True).map(
-    lambda batch: {"text": [text for sample in batch["questions"] for text in sample["text"]]},
-    batched=True,
-    remove_columns=["questions", "is_duplicate"],
-)
-max_corpus_size = 100_000
-corpus = dataset["text"][:max_corpus_size]
+# 1. Load the natural-questions dataset with 100K answers
+dataset = load_dataset("sentence-transformers/natural-questions", split="train", trust_remote_code=True)
+corpus = dataset["answer"]
 
 # 2. Come up with some queries
-queries = [
-    "How do I become a good programmer?",
-    "How do I become a good data scientist?",
-]
+queries = dataset["query"][:2]
 
 # 3. Load the model
-sparse_model = SparseEncoder("sparse-embedding/splade_example")
-
+sparse_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
 
 # 5. Encode the corpus
-corpus_embeddings = sparse_model.encode(corpus, convert_to_sparse_tensor=True, batch_size=32, show_progress_bar=True)
+corpus_embeddings = sparse_model.encode(corpus, convert_to_sparse_tensor=True, batch_size=16, show_progress_bar=True)
 
 # Initially, we don't have a qdrant index yet
 corpus_index = None
@@ -40,7 +44,7 @@ while True:
         query_embeddings,
         corpus_index=corpus_index,
         corpus_embeddings=corpus_embeddings if corpus_index is None else None,
-        top_k=10,
+        top_k=5,
         output_index=True,
     )
 

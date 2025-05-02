@@ -1,3 +1,5 @@
+import logging
+
 from datasets import load_dataset
 
 from sentence_transformers.sparse_encoder import (
@@ -6,6 +8,8 @@ from sentence_transformers.sparse_encoder import (
     SparseTripletEvaluator,
     SpladePooling,
 )
+
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 # Initialize the SPLADE model
 model_name = "naver/splade-cocondenser-ensembledistil"

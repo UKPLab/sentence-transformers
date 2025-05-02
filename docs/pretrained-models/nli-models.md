@@ -11,7 +11,7 @@ We train the models on the [SNLI](https://nlp.stanford.edu/projects/snli/) and o
 For a training example, see [examples/sentence_transformer/training/nli/training_nli.py](../../examples/sentence_transformer/training/nli/training_nli.py). 
 
 # Pretrained models
-We provide the various pre-trained models. The performance was evaluated on the test set of the [STS benchmark dataset](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) using Spearman rank correlation.
+We provide the various pre-trained models. The performance was evaluated on the test set of the STS benchmark dataset ([docs](https://web.archive.org/web/20231128064114/http://ixa2.si.ehu.eus/stswiki/index.php/STSbenchmark), [dataset](https://huggingface.co/datasets/sentence-transformers/stsb)) using Spearman rank correlation.
 
 [» Full List of NLI & STS Models](https://docs.google.com/spreadsheets/d/14QplCdTCDwEmTqrn1LH4yrbKvdogK4oQvYO1K1aPR5M/edit#gid=0)
 

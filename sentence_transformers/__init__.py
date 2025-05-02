@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-__version__ = "4.1.0.dev0"
+__version__ = "4.2.0.dev0"
 __MODEL_HUB_ORGANIZATION__ = "sentence-transformers"
 
 import importlib
 import os
+import warnings
 
 from sentence_transformers.backend import (
     export_dynamic_quantized_onnx_model,
@@ -38,6 +39,9 @@ from sentence_transformers.util import mine_hard_negatives
 # automatically overwrite the default to "error"
 if importlib.util.find_spec("codecarbon") and "CODECARBON_LOG_LEVEL" not in os.environ:
     os.environ["CODECARBON_LOG_LEVEL"] = "error"
+
+# Globally silence PyTorch sparse CSR tensor beta warning
+warnings.filterwarnings("ignore", message="Sparse CSR tensor support is in beta state")
 
 __all__ = [
     "LoggingHandler",

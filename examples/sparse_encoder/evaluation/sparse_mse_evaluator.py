@@ -1,3 +1,5 @@
+import logging
+
 from datasets import load_dataset
 
 from sentence_transformers.sparse_encoder import (
@@ -6,6 +8,8 @@ from sentence_transformers.sparse_encoder import (
     SparseMSEEvaluator,
     SpladePooling,
 )
+
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 # Initialize the SPLADE model
 student_model_name = "prithivida/Splade_PP_en_v1"
@@ -40,5 +44,6 @@ mse_evaluator = SparseMSEEvaluator(
 )
 results = mse_evaluator(student_model)
 
-print(mse_evaluator.primary_metric)
-print(results[mse_evaluator.primary_metric])
+# Print the results
+print(f"Primary metric: {mse_evaluator.primary_metric}")
+print(f"Primary metric value: {results[mse_evaluator.primary_metric]:.4f}")

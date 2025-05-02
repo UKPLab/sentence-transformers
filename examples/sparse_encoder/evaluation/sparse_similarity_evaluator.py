@@ -1,3 +1,5 @@
+import logging
+
 from datasets import load_dataset
 
 from sentence_transformers.sparse_encoder import (
@@ -6,6 +8,8 @@ from sentence_transformers.sparse_encoder import (
     SparseEncoder,
     SpladePooling,
 )
+
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 # Initialize the SPLADE model
 model_name = "naver/splade-cocondenser-ensembledistil"
@@ -29,5 +33,6 @@ dev_evaluator = SparseEmbeddingSimilarityEvaluator(
 )
 results = dev_evaluator(model)
 
-print(dev_evaluator.primary_metric)
-print(results[dev_evaluator.primary_metric])
+# Print the results
+print(f"Primary metric: {dev_evaluator.primary_metric}")
+print(f"Primary metric value: {results[dev_evaluator.primary_metric]:.4f}")

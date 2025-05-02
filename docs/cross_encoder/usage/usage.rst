@@ -74,3 +74,4 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
 
    Cross-Encoder vs Bi-Encoder <../../../examples/cross_encoder/applications/README>
    ../../../examples/sentence_transformer/applications/retrieve_rerank/README
+   efficiency

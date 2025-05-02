@@ -1,9 +1,13 @@
+import logging
+
 from sentence_transformers.sparse_encoder import (
     MLMTransformer,
     SparseEncoder,
     SparseNanoBEIREvaluator,
     SpladePooling,
 )
+
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 # Initialize the SPLADE model
 model_name = "naver/splade-cocondenser-ensembledistil"
@@ -22,13 +26,8 @@ evaluator = SparseNanoBEIREvaluator(
 )
 
 # Run evaluation
-print("Starting evaluation on all NanoBEIR datasets")
 results = evaluator(model)
 
+# Print the results
 print(f"Primary metric: {evaluator.primary_metric}")
 print(f"Primary metric value: {results[evaluator.primary_metric]:.4f}")
-
-# Print results for each dataset
-for key, value in results.items():
-    if key.startswith("Nano"):
-        print(f"{key}: {value:.4f}")

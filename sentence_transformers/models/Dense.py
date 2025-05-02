@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from typing import Callable
 
 import torch
 from safetensors.torch import load_model as load_safetensors_model
@@ -32,15 +33,15 @@ class Dense(nn.Module):
         in_features: int,
         out_features: int,
         bias: bool = True,
-        activation_function=nn.Tanh(),
-        init_weight: Tensor = None,
-        init_bias: Tensor = None,
+        activation_function: Callable[[Tensor], Tensor] | None = nn.Tanh(),
+        init_weight: Tensor | None = None,
+        init_bias: Tensor | None = None,
     ):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.bias = bias
-        self.activation_function = activation_function
+        self.activation_function = nn.Identity() if activation_function is None else activation_function
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
         if init_weight is not None:

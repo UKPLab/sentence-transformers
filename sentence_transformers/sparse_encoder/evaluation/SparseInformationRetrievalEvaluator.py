@@ -82,7 +82,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         **kwargs,
     ) -> Tensor:
         kwargs["truncate_dim"] = self.truncate_dim
-        return model.encode(
+        embeddings = model.encode(
             sentences,
             prompt_name=prompt_name,
             prompt=prompt,
@@ -92,6 +92,24 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             save_on_cpu=True,
             **kwargs,
         )
+        sparsity_infos = model.get_sparsity_stats(embeddings)
+        if sparsity_infos["num_rows"] == self.queries_info["num_rows"] and "num_cols" not in self.queries_info.keys():
+            self.queries_info.update(
+                {
+                    "num_cols": sparsity_infos["num_cols"],
+                    "row_non_zero_mean": sparsity_infos["row_non_zero_mean"],
+                    "row_sparsity_mean": sparsity_infos["row_sparsity_mean"],
+                }
+            )
+        else:
+            self.corpus_info.update(
+                {
+                    "num_cols": sparsity_infos["num_cols"],
+                    "row_non_zero_mean": sparsity_infos["row_non_zero_mean"],
+                    "row_sparsity_mean": sparsity_infos["row_sparsity_mean"],
+                }
+            )
+        return embeddings
 
     def store_metrics_in_model_card_data(
         self, model: SparseEncoder, metrics: dict[str, Any], epoch: int = 0, step: int = 0

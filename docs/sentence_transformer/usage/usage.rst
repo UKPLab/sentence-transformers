@@ -56,6 +56,6 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    ../../../examples/sentence_transformer/applications/parallel-sentence-mining/README
    ../../../examples/sentence_transformer/applications/image-search/README
    ../../../examples/sentence_transformer/applications/embedding-quantization/README
-   efficiency
    custom_models
+   efficiency
 

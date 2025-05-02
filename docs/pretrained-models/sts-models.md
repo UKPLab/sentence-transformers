@@ -1,8 +1,8 @@
 # STS Models
-The models were first trained on [NLI data](nli-models.md), then we fine-tuned them on the  [STS benchmark dataset](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark). This generate sentence embeddings that are especially suitable to measure the semantic similarity between sentence pairs.
+The models were first trained on [NLI data](nli-models.md), then we fine-tuned them on the STS benchmark dataset ([docs](https://web.archive.org/web/20231128064114/http://ixa2.si.ehu.eus/stswiki/index.php/STSbenchmark), [dataset](https://huggingface.co/datasets/sentence-transformers/stsb)). This generate sentence embeddings that are especially suitable to measure the semantic similarity between sentence pairs.
 
 # Datasets
-We use the training file from the  [STS benchmark dataset](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark).
+We use the training file from the [STS benchmark dataset](https://huggingface.co/datasets/sentence-transformers/stsb).
 
 For a training example, see:
 - [examples/sentence_transformer/training_stsbenchmark.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/training/sts/training_stsbenchmark.py) - Train directly on STS data

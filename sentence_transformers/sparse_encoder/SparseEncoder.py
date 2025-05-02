@@ -9,11 +9,13 @@ import numpy.typing as npt
 import torch
 from torch import Tensor, nn
 from tqdm import trange
+from transformers import AutoConfig
 
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.models import Pooling, Transformer
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData
-from sentence_transformers.sparse_encoder.models import MLMTransformer, SpladePooling
+from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
 from sentence_transformers.util import batch_to_device, truncate_embeddings_for_sparse
 
 logger = logging.getLogger(__name__)
@@ -354,7 +356,9 @@ class SparseEncoder(SentenceTransformer):
         config_kwargs: dict[str, Any] | None = None,
     ) -> list[nn.Module]:
         """
-        Creates a simple MLMTransformer + SPladePooling model and returns the modules
+        Creates a simple transformer-based model and returns the modules.
+        For MLMTransformer (models ending with ForMaskedLM), uses SpladePooling with 'max' strategy.
+        For regular Transformer, uses CSR implementation by default.
 
         Args:
             model_name_or_path (str): The name or path of the pre-trained model.
@@ -368,11 +372,9 @@ class SparseEncoder(SentenceTransformer):
             config_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the config. Defaults to None.
 
         Returns:
-            List[nn.Module]: A list containing the MLMTransformer model and the spladepooling model.
+            List[nn.Module]: A list containing the transformer model and the pooling model.
         """
-        logger.warning(
-            f"No sparse-encoder model found with name {model_name_or_path}. Creating a new one with spladepooling."
-        )
+        logger.warning(f"No sparse-encoder model found with name {model_name_or_path}. Creating a new one.")
 
         shared_kwargs = {
             "token": token,
@@ -384,18 +386,55 @@ class SparseEncoder(SentenceTransformer):
         tokenizer_kwargs = shared_kwargs if tokenizer_kwargs is None else {**shared_kwargs, **tokenizer_kwargs}
         config_kwargs = shared_kwargs if config_kwargs is None else {**shared_kwargs, **config_kwargs}
 
-        mlmtransformer_model = MLMTransformer(
-            model_name_or_path,
-            cache_dir=cache_folder,
-            model_args=model_kwargs,
-            tokenizer_args=tokenizer_kwargs,
-            config_args=config_kwargs,
-            backend=self.backend,
-        )
-        splade_pooling_model = SpladePooling(pooling_strategy="max")
+        config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_folder, **config_kwargs)
+
+        # Check if the architecture ends with "ForMaskedLM"
+        is_mlm_model = False
+        if hasattr(config, "architectures") and config.architectures:
+            for architecture in config.architectures:
+                if architecture.endswith("ForMaskedLM"):
+                    is_mlm_model = True
+                    break
+
+        if is_mlm_model:
+            # For MLM models like BERT, RoBERTa, etc., use MLMTransformer with SpladePooling
+            logger.info(f"Detected MLM architecture: {config.architectures}, using SpladePooling")
+            transformer_model = MLMTransformer(
+                model_name_or_path,
+                cache_dir=cache_folder,
+                model_args=model_kwargs,
+                tokenizer_args=tokenizer_kwargs,
+                config_args=config_kwargs,
+                backend=self.backend,
+            )
+            pooling_model = SpladePooling(pooling_strategy="max")
+
+            modules = [transformer_model, pooling_model]
+        else:
+            # For other transformer models, use Transformer with CSR implementation
+            logger.info(
+                f"No MLM architecture detected in {getattr(config, 'architectures', [])}, using CSR implementation"
+            )
+            transformer_model = Transformer(
+                model_name_or_path,
+                cache_dir=cache_folder,
+                model_args=model_kwargs,
+                tokenizer_args=tokenizer_kwargs,
+                config_args=config_kwargs,
+                backend=self.backend,
+            )
+            pooling = Pooling(transformer_model.get_word_embedding_dimension(), pooling_mode="mean")
+            csr_sparsity = CSRSparsity(
+                input_dim=transformer_model.get_word_embedding_dimension(),
+                hidden_dim=4 * transformer_model.get_word_embedding_dimension(),
+                k=256,  # Number of top values to keep
+                k_aux=512,  # Number of top values for auxiliary loss
+            )
+            modules = [transformer_model, pooling, csr_sparsity]
+
         if not local_files_only:
             self.model_card_data.set_base_model(model_name_or_path, revision=revision)
-        return [mlmtransformer_model, splade_pooling_model]
+        return modules
 
     def _load_sbert_model(
         self,
@@ -442,33 +481,6 @@ class SparseEncoder(SentenceTransformer):
     def load(input_path) -> SparseEncoder:
         return SparseEncoder(input_path)
 
-    def get_sparsity_stats(self, embeddings: torch.Tensor) -> dict[str, float]:
-        """
-        Calculate sparsity statistics for the given embeddings.
-
-        Args:
-            embeddings (torch.Tensor): The embeddings to analyze
-
-        Returns:
-            Dict[str, float]: Dictionary with sparsity statistics
-        """
-        if not isinstance(embeddings, torch.Tensor):
-            raise TypeError("Embeddings must be a torch.Tensor")
-
-        if embeddings.is_sparse or embeddings.is_sparse_csr:
-            # For sparse tensors, calculate directly
-            total_elements = np.prod(embeddings.shape)
-            non_zero = embeddings._nnz()
-        else:
-            # For dense tensors
-            non_zero = torch.count_nonzero(embeddings).item()
-            total_elements = embeddings.numel()
-
-        sparsity = 1.0 - (non_zero / total_elements)
-        density = 1.0 - sparsity
-
-        return {"sparsity": sparsity, "density": density, "non_zero_count": non_zero, "total_elements": total_elements}
-
     @property
     def similarity_fn_name(self) -> Literal["cosine", "dot", "euclidean", "manhattan"]:
         if self._similarity_fn_name is None:
@@ -495,3 +507,60 @@ class SparseEncoder(SentenceTransformer):
         if value is not None:
             self._similarity = SimilarityFunction.to_similarity_fn(value)
             self._similarity_pairwise = SimilarityFunction.to_similarity_pairwise_fn(value)
+
+    @staticmethod
+    def get_sparsity_stats(embeddings: torch.Tensor) -> dict[str, float]:
+        """
+        Calculate row-wise sparsity statistics for the given embeddings.
+
+        Args:
+            embeddings (torch.Tensor): The embeddings to analyze (2D tensor expected).
+
+        Returns:
+            dict[str, float]: Dictionary with row-wise sparsity statistics (mean and std).
+                            Includes 'num_rows', 'num_cols', 'row_non_zero_mean', 'row_sparsity_mean',.
+        """
+        if not isinstance(embeddings, torch.Tensor):
+            raise TypeError("Embeddings must be a torch.Tensor")
+        if embeddings.ndim != 2:
+            raise ValueError(f"Expected 2D tensor, but got {embeddings.ndim} dimensions")
+
+        num_rows, num_cols = embeddings.shape
+
+        if num_rows == 0:
+            # Handle empty tensor case
+            return {
+                "num_rows": 0,
+                "num_cols": num_cols,
+                "row_non_zero_mean": float("nan"),
+                "row_sparsity_mean": float("nan"),
+            }
+
+        if embeddings.is_sparse or embeddings.is_sparse_csr:
+            if embeddings.layout == torch.sparse_coo:
+                embeddings = embeddings.to_sparse_csr()  # Convert to CSR for easier row-wise ops
+
+            # is_sparse_csr path
+            indptr = embeddings.crow_indices()
+            non_zero_per_row = indptr[1:] - indptr[:-1]
+
+        else:  # Dense tensor
+            non_zero_per_row = torch.count_nonzero(embeddings, dim=1)
+
+        if num_cols == 0:
+            # Handle case with zero columns (all rows are empty)
+            density_per_row = torch.zeros(num_rows, device=embeddings.device, dtype=torch.float32)
+        else:
+            density_per_row = non_zero_per_row.float() / num_cols
+        sparsity_per_row = 1.0 - density_per_row
+
+        # Use torch.nanmean and torch.nanstd if NaN values are possible and should be ignored,
+        # but standard mean/std should be fine if inputs are handled (e.g. num_cols > 0).
+        # Calculate std only if num_rows > 1 to avoid NaN/errors.
+        results = {
+            "num_rows": num_rows,
+            "num_cols": num_cols,
+            "row_non_zero_mean": torch.mean(non_zero_per_row.float()).item(),
+            "row_sparsity_mean": torch.mean(sparsity_per_row).item(),
+        }
+        return results
