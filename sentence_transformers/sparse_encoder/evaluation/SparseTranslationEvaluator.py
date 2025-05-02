@@ -16,6 +16,66 @@ logger = logging.getLogger(__name__)
 
 
 class SparseTranslationEvaluator(TranslationEvaluator):
+    """
+    This evaluator extends TranslationEvaluator but is specifically designed for sparse encoder models.
+
+    Given two sets of sentences in different languages, e.g. (en_1, en_2, en_3...) and (fr_1, fr_2, fr_3, ...),
+    and assuming that fr_i is the translation of en_i.
+    Checks if vec(en_i) has the highest similarity to vec(fr_i). Computes the accuracy in both directions
+
+    The labels need to indicate the similarity between the sentences.
+
+    Args:
+        source_sentences (List[str]): List of sentences in the source language.
+        target_sentences (List[str]): List of sentences in the target language.
+        show_progress_bar (bool): Whether to show a progress bar when computing embeddings. Defaults to False.
+        batch_size (int): The batch size to compute sentence embeddings. Defaults to 16.
+        name (str): The name of the evaluator. Defaults to an empty string.
+        print_wrong_matches (bool): Whether to print incorrect matches. Defaults to False.
+        write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
+        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. If None, the model's
+            current truncation dimension will be used. Defaults to None.
+
+    Example:
+        ::
+
+            import logging
+
+            from datasets import load_dataset
+
+            from sentence_transformers.sparse_encoder import (
+                SparseEncoder,
+                SparseTranslationEvaluator,
+            )
+
+            logging.basicConfig(format="%(message)s", level=logging.INFO)
+
+            # Load a model, not mutilingual but hope to see some on the hub soon
+            model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+            # Load a parallel sentences dataset
+            dataset = load_dataset("sentence-transformers/parallel-sentences-news-commentary", "en-nl", split="train[:1000]")
+
+            # Initialize the TranslationEvaluator using the same texts from two languages
+            translation_evaluator = SparseTranslationEvaluator(
+                source_sentences=dataset["english"],
+                target_sentences=dataset["non_english"],
+                name="news-commentary-en-nl",
+            )
+            results = translation_evaluator(model)
+            '''
+            Evaluating translation matching Accuracy of the model on the news-commentary-en-nl dataset:
+            Accuracy src2trg: 41.40
+            Accuracy trg2src: 47.70
+            '''
+            # Print the results
+            print(f"Primary metric: {translation_evaluator.primary_metric}")
+            # => Primary metric: news-commentary-en-nl_mean_accuracy
+            print(f"Primary metric value: {results[translation_evaluator.primary_metric]:.4f}")
+            # => Primary metric value: 0.4455
+
+    """
+
     def __init__(
         self,
         source_sentences: list[str],

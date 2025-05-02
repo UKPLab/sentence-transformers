@@ -17,6 +17,68 @@ logger = logging.getLogger(__name__)
 
 
 class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
+    """
+    This evaluator extends TranslationEvaluator but is specifically designed for sparse encoder models.
+
+    Evaluate a model based on the similarity of the embeddings by calculating the Spearman and Pearson rank correlation
+    in comparison to the gold standard labels.
+    The metrics are the cosine similarity as well as euclidean and Manhattan distance
+    The returned score is the Spearman correlation with a specified metric.
+
+    Args:
+        sentences1 (List[str]): List with the first sentence in a pair.
+        sentences2 (List[str]): List with the second sentence in a pair.
+        scores (List[float]): Similarity score between sentences1[i] and sentences2[i].
+        batch_size (int, optional): The batch size for processing the sentences. Defaults to 16.
+        main_similarity (Optional[Union[str, SimilarityFunction]], optional): The main similarity function to use.
+            Can be a string (e.g. "cosine", "dot") or a SimilarityFunction object. Defaults to None.
+        similarity_fn_names (List[str], optional): List of similarity function names to use. If None, the
+            ``similarity_fn_name`` attribute of the model is used. Defaults to None.
+        name (str, optional): The name of the evaluator. Defaults to "".
+        show_progress_bar (bool, optional): Whether to show a progress bar during evaluation. Defaults to False.
+        write_csv (bool, optional): Whether to write the evaluation results to a CSV file. Defaults to True.
+        truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the
+            model's current truncation dimension. Defaults to None.
+
+    Example:
+        ::
+            import logging
+
+            from datasets import load_dataset
+
+            from sentence_transformers.sparse_encoder import (
+                SparseEmbeddingSimilarityEvaluator,
+                SparseEncoder,
+            )
+
+            logging.basicConfig(format="%(message)s", level=logging.INFO)
+
+            # Load a model
+            model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+            # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
+            eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
+
+            # Initialize the evaluator
+            dev_evaluator = SparseEmbeddingSimilarityEvaluator(
+                sentences1=eval_dataset["sentence1"],
+                sentences2=eval_dataset["sentence2"],
+                scores=eval_dataset["score"],
+                name="sts_dev",
+            )
+            results = dev_evaluator(model)
+            '''
+            EmbeddingSimilarityEvaluator: Evaluating the model on the sts_dev dataset:
+            Dot-Similarity :	Pearson: 0.7513	Spearman: 0.8010
+            '''
+            # Print the results
+            print(f"Primary metric: {dev_evaluator.primary_metric}")
+            # => Primary metric: sts_dev_spearman_dot
+            print(f"Primary metric value: {results[dev_evaluator.primary_metric]:.4f}")
+            # => Primary metric value: 0.8010
+
+    """
+
     def __init__(
         self,
         sentences1: list[str],

@@ -52,7 +52,7 @@ class MSEEvaluator(SentenceEvaluator):
             dataset = load_dataset("sentence-transformers/stsb", split="validation")
             sentences = dataset["sentence1"] + dataset["sentence2"]
 
-            # Given queries, a corpus and a mapping with relevant documents, the InformationRetrievalEvaluator computes different IR metrics.
+            # Given queries, a corpus and a mapping with relevant documents, the MSEEvaluator computes different MSE metrics.
             mse_evaluator = MSEEvaluator(
                 source_sentences=sentences,
                 target_sentences=sentences,

@@ -16,6 +16,90 @@ logger = logging.getLogger(__name__)
 
 
 class SparseRerankingEvaluator(RerankingEvaluator):
+    """
+    This evaluator extends TranslationEvaluator but is specifically designed for sparse encoder models.
+
+    This class evaluates a SparseEncoder model for the task of re-ranking.
+
+    Given a query and a list of documents, it computes the score [query, doc_i] for all possible
+    documents and sorts them in decreasing order. Then, MRR@10, NDCG@10 and MAP is compute to measure the quality of the ranking.
+
+    Args:
+        samples (list): A list of dictionaries, where each dictionary represents a sample and has the following keys:
+            - 'query': The search query.
+            - 'positive': A list of positive (relevant) documents.
+            - 'negative': A list of negative (irrelevant) documents.
+        at_k (int, optional): Only consider the top k most similar documents to each query for the evaluation. Defaults to 10.
+        name (str, optional): Name of the evaluator. Defaults to "".
+        write_csv (bool, optional): Write results to CSV file. Defaults to True.
+        similarity_fct (Callable[[torch.Tensor, torch.Tensor], torch.Tensor], optional): Similarity function between sentence embeddings. By default, cosine similarity. Defaults to cos_sim.
+        batch_size (int, optional): Batch size to compute sentence embeddings. Defaults to 64.
+        show_progress_bar (bool, optional): Show progress bar when computing embeddings. Defaults to False.
+        use_batched_encoding (bool, optional): Whether or not to encode queries and documents in batches for greater speed, or 1-by-1 to save memory. Defaults to True.
+        truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the model's current truncation dimension. Defaults to None.
+        mrr_at_k (Optional[int], optional): Deprecated parameter. Please use `at_k` instead. Defaults to None.
+
+    Example:
+        ::
+            import logging
+
+            from datasets import load_dataset
+
+            from sentence_transformers.sparse_encoder import (
+                SparseEncoder,
+                SparseRerankingEvaluator,
+            )
+
+            logging.basicConfig(format="%(message)s", level=logging.INFO)
+
+            # Load a model
+            model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+            # Load a dataset with queries, positives, and negatives
+            eval_dataset = load_dataset("microsoft/ms_marco", "v1.1", split="validation").select(range(1000))
+
+            samples = [
+                {
+                    "query": sample["query"],
+                    "positive": [
+                        text
+                        for is_selected, text in zip(sample["passages"]["is_selected"], sample["passages"]["passage_text"])
+                        if is_selected
+                    ],
+                    "negative": [
+                        text
+                        for is_selected, text in zip(sample["passages"]["is_selected"], sample["passages"]["passage_text"])
+                        if not is_selected
+                    ],
+                }
+                for sample in eval_dataset
+            ]
+
+
+            # Now evaluate using only the documents from the 1000 samples
+            reranking_evaluator = SparseRerankingEvaluator(
+                samples=samples,
+                name="ms-marco-dev-small",
+                show_progress_bar=True,
+                batch_size=32,
+            )
+
+            results = reranking_evaluator(model)
+            '''
+            RerankingEvaluator: Evaluating the model on the ms-marco-dev-small dataset:
+            Queries: 967 	 Positives: Min 1.0, Mean 1.1, Max 3.0 	 Negatives: Min 1.0, Mean 7.1, Max 9.0
+            MAP: 53.46
+            MRR@10: 54.18
+            NDCG@10: 65.10
+            '''
+            # Print the results
+            print(f"Primary metric: {reranking_evaluator.primary_metric}")
+            # => Primary metric: ms-marco-dev-small_ndcg@10
+            print(f"Primary metric value: {results[reranking_evaluator.primary_metric]:.4f}")
+            # => Primary metric value: 0.6510
+
+    """
+
     def __init__(
         self,
         samples: list[dict[str, str | list[str]]],

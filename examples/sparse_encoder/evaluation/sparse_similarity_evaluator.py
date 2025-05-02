@@ -3,23 +3,14 @@ import logging
 from datasets import load_dataset
 
 from sentence_transformers.sparse_encoder import (
-    MLMTransformer,
     SparseEmbeddingSimilarityEvaluator,
     SparseEncoder,
-    SpladePooling,
 )
 
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
+logging.basicConfig(format="%(message)s", level=logging.INFO)
 
-# Initialize the SPLADE model
-model_name = "naver/splade-cocondenser-ensembledistil"
-model = SparseEncoder(
-    modules=[
-        MLMTransformer(model_name),
-        SpladePooling(pooling_strategy="max"),  # You can also use 'sum'
-    ],
-    device="cuda:0",
-)
+# Load a model
+model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
 
 # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
 eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
@@ -32,7 +23,12 @@ dev_evaluator = SparseEmbeddingSimilarityEvaluator(
     name="sts_dev",
 )
 results = dev_evaluator(model)
-
+"""
+EmbeddingSimilarityEvaluator: Evaluating the model on the sts_dev dataset:
+Dot-Similarity :	Pearson: 0.7513	Spearman: 0.8010
+"""
 # Print the results
 print(f"Primary metric: {dev_evaluator.primary_metric}")
+# => Primary metric: sts_dev_spearman_dot
 print(f"Primary metric value: {results[dev_evaluator.primary_metric]:.4f}")
+# => Primary metric value: 0.8010
