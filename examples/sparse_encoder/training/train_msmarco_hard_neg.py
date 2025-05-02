@@ -3,13 +3,8 @@ import logging
 import torch
 from datasets import load_dataset, load_from_disk
 
-from sentence_transformers.sparse_encoder import (
-    SparseEncoder,
-)
-from sentence_transformers.sparse_encoder.evaluation.SparseNanoBEIREvaluator import SparseNanoBEIREvaluator
-from sentence_transformers.sparse_encoder.losses import SparseMarginMSELoss, SpladeLoss
-from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
-from sentence_transformers.sparse_encoder.training_args import SparseEncoderTrainingArguments
+from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments, losses
+from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator
 
 
 def main():
@@ -89,7 +84,9 @@ def main():
     logging.info(train_dataset)
 
     # 3. Define our training loss
-    loss = SpladeLoss(model, SparseMarginMSELoss(model), lambda_query=lambda_query, lambda_corpus=lambda_corpus)
+    loss = losses.SpladeLoss(
+        model, losses.SparseMarginMSELoss(model), lambda_query=lambda_query, lambda_corpus=lambda_corpus
+    )
 
     # 4. Define the evaluator. We use the SparseNanoBEIREvaluator, which is a light-weight evaluator for English
     evaluator = SparseNanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=train_batch_size)

@@ -4,14 +4,11 @@ import logging
 
 from datasets import load_dataset
 
+from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments, losses
 from sentence_transformers.evaluation import SequentialEvaluator
 from sentence_transformers.models import Pooling, Transformer
-from sentence_transformers.sparse_encoder import SparseEncoder
-from sentence_transformers.sparse_encoder.evaluation.SparseNanoBEIREvaluator import SparseNanoBEIREvaluator
-from sentence_transformers.sparse_encoder.losses import CSRLoss
+from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator
 from sentence_transformers.sparse_encoder.models import CSRSparsity
-from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
-from sentence_transformers.sparse_encoder.training_args import SparseEncoderTrainingArguments
 from sentence_transformers.training_args import BatchSamplers
 
 # Set up logging
@@ -44,7 +41,7 @@ def main():
     logging.info(eval_dataset)
 
     # 3. Initialize the loss
-    loss = CSRLoss(
+    loss = losses.CSRLoss(
         model=model,
         beta=0.1,  # Weight for auxiliary loss
         gamma=1,  # Weight for ranking loss

@@ -5,13 +5,8 @@ import os
 
 from datasets import load_dataset
 
-from sentence_transformers.sparse_encoder import (
-    SparseEncoder,
-)
-from sentence_transformers.sparse_encoder.evaluation.SparseNanoBEIREvaluator import SparseNanoBEIREvaluator
-from sentence_transformers.sparse_encoder.losses import SparseMultipleNegativesRankingLoss, SpladeLoss
-from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
-from sentence_transformers.sparse_encoder.training_args import SparseEncoderTrainingArguments
+from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments, losses
+from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator
 from sentence_transformers.training_args import BatchSamplers
 
 # Set up logging
@@ -36,9 +31,9 @@ def main():
     lambda_query = 5e-5
     lambda_corpus = 3e-5
 
-    loss = SpladeLoss(
+    loss = losses.SpladeLoss(
         model=model,
-        main_loss=SparseMultipleNegativesRankingLoss(model=model, scale=20, similarity_fct=model.similarity),
+        main_loss=losses.SparseMultipleNegativesRankingLoss(model=model, scale=20, similarity_fct=model.similarity),
         lambda_query=lambda_query,  # Weight for query loss
         lambda_corpus=lambda_corpus,
     )  # Weight for document loss
