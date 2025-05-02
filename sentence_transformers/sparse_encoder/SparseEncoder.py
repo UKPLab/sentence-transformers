@@ -374,7 +374,9 @@ class SparseEncoder(SentenceTransformer):
         Returns:
             List[nn.Module]: A list containing the transformer model and the pooling model.
         """
-        logger.warning(f"No sparse-encoder model found with name {model_name_or_path}. Creating a new one.")
+        logger.warning(
+            f"No sentence-encoder model found with name {model_name_or_path}. Creating a new one with defaults settings compatible to the based model."
+        )
 
         shared_kwargs = {
             "token": token,

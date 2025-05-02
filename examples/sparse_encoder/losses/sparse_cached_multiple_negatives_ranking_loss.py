@@ -1,39 +1,22 @@
 from datasets import Dataset
 
-from sentence_transformers.sparse_encoder import (
-    MLMTransformer,
-    SparseCachedMultipleNegativesRankingLoss,
-    SparseEncoder,
-    SparseEncoderTrainer,
-    SpladePooling,
-)
+from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
 # Initialize the SPLADE model
-model_name = "naver/splade-cocondenser-ensembledistil"
-model = SparseEncoder(
-    modules=[
-        MLMTransformer(model_name),
-        SpladePooling(pooling_strategy="max"),  # You can also use 'sum'
-    ],
-    device="cuda:0",
-)
-# Create a small toy dataset
+model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
 train_dataset = Dataset.from_dict(
     {
         "anchor": ["It's nice weather outside today.", "He drove to work."],
         "positive": ["It's so sunny.", "He took the car to the office."],
     }
 )
+loss = losses.SparseCachedMultipleNegativesRankingLoss(model, mini_batch_size=64)
 
-# Initialize the sparse loss with caching
-loss = SparseCachedMultipleNegativesRankingLoss(model, mini_batch_size=64)
-
-# Create the trainer
 trainer = SparseEncoderTrainer(
     model=model,
     train_dataset=train_dataset,
     loss=loss,
 )
-
-# Train the model
 trainer.train()
+
+# TODO: Investigate if it's working with a test
