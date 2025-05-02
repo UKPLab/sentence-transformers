@@ -13,7 +13,6 @@ from safetensors.torch import save_model as save_safetensors_model
 from sentence_transformers.util import load_dir_path, load_file_path
 
 
-# BaseModule? ModuleBase?
 class Module(ABC, torch.nn.Module):
     config_file_name: str = "config.json"
     config_keys: list[str] = []

@@ -10,9 +10,7 @@ from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 from sentence_transformers.models.Module import Module
 
 
-# TODO: BaseModule? ModuleBase?
-# TODO: "WithTokenizer" might be problematic if we're going multi-modal
-class ModuleWithTokenizer(Module):
+class InputModule(Module):
     save_in_root: bool = True
     tokenizer: PreTrainedTokenizerBase | Tokenizer
 

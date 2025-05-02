@@ -12,11 +12,11 @@ from tokenizers import Tokenizer
 from torch import nn
 from transformers import PreTrainedTokenizerFast
 
-from sentence_transformers.models.ModuleWithTokenizer import ModuleWithTokenizer
+from sentence_transformers.models.InputModule import InputModule
 from sentence_transformers.util import get_device_name
 
 
-class StaticEmbedding(ModuleWithTokenizer):
+class StaticEmbedding(InputModule):
     def __init__(
         self,
         tokenizer: Tokenizer | PreTrainedTokenizerFast,

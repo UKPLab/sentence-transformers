@@ -7,13 +7,13 @@ from typing import Self
 
 from torch import Tensor, nn
 
+from sentence_transformers.models.InputModule import InputModule
 from sentence_transformers.models.Module import Module
-from sentence_transformers.models.ModuleWithTokenizer import ModuleWithTokenizer
 from sentence_transformers.util import import_from_string, load_dir_path
 
 
-class Asym(ModuleWithTokenizer, nn.Sequential):
-    def __init__(self, sub_modules: dict[str, list[nn.Module]], allow_empty_key: bool = True):
+class Asym(InputModule, nn.Sequential):
+    def __init__(self, sub_modules: dict[str, list[Module]], allow_empty_key: bool = True):
         """
         This model allows to create asymmetric SentenceTransformer models, that apply different models depending on the specified input key.
 
@@ -173,10 +173,7 @@ class Asym(ModuleWithTokenizer, nn.Sequential):
         for model_id, model_type in config["types"].items():
             module_class: Module = import_from_string(model_type)
             try:
-                module = module_class.load(
-                    model_name_or_path,
-                    **hub_kwargs**kwargs,
-                )
+                module = module_class.load(model_name_or_path, **hub_kwargs, **kwargs)
             except TypeError:
                 local_path = load_dir_path(model_name_or_path=model_name_or_path, **hub_kwargs)
                 module = module_class.load(local_path)

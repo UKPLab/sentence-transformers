@@ -6,14 +6,14 @@ from typing import Literal
 import torch
 from torch import Tensor
 
-from sentence_transformers.models.ModuleWithTokenizer import ModuleWithTokenizer
+from sentence_transformers.models.InputModule import InputModule
 
 from .tokenizer import WhitespaceTokenizer
 
 logger = logging.getLogger(__name__)
 
 
-class BoW(ModuleWithTokenizer):
+class BoW(InputModule):
     """Implements a Bag-of-Words (BoW) model to derive sentence embeddings.
 
     A weighting can be added to allow the generation of tf-idf vectors. The output vector has the size of the vocab.

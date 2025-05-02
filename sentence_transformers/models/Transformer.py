@@ -13,7 +13,7 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, Pretra
 from transformers.utils.import_utils import is_peft_available
 from transformers.utils.peft_utils import find_adapter_config_file
 
-from sentence_transformers.models.ModuleWithTokenizer import ModuleWithTokenizer
+from sentence_transformers.models.InputModule import InputModule
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ def _save_pretrained_wrapper(_save_pretrained_fn: Callable, subfolder: str) -> C
     return wrapper
 
 
-class Transformer(ModuleWithTokenizer):
+class Transformer(InputModule):
     """Hugging Face AutoModel to generate token embeddings.
     Loads the correct class, e.g. BERT / RoBERTa etc.
 
