@@ -3,10 +3,8 @@ import random
 
 from datasets import load_dataset
 
-from sentence_transformers.sparse_encoder import (
-    SparseEncoder,
-    SparseInformationRetrievalEvaluator,
-)
+from sentence_transformers import SparseEncoder
+from sentence_transformers.sparse_encoder.evaluation import SparseInformationRetrievalEvaluator
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 

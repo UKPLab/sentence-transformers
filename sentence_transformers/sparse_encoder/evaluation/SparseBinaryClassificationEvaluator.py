@@ -45,10 +45,8 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
 
             from datasets import load_dataset
 
-            from sentence_transformers.sparse_encoder import (
-                SparseBinaryClassificationEvaluator,
-                SparseEncoder,
-            )
+            from sentence_transformers import SparseEncoder
+            from sentence_transformers.sparse_encoder.evaluation import SparseBinaryClassificationEvaluator
 
             logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 

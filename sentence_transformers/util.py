@@ -288,7 +288,6 @@ def pairwise_angle_sim(x: Tensor, y: Tensor) -> Tensor:
     Returns:
         Tensor: Vector with res[i] = angle_sim(a[i], b[i])
     """
-    # TODO Check  if it's actually possible to handle sparse tensors in an efficient way
     if x.is_sparse:
         logger.warning("Pairwise angle similarity does not support sparse tensors. Converting to dense.")
         x = x.coalesce().to_dense()

@@ -14,9 +14,7 @@ if TYPE_CHECKING:
     from torch import Tensor
 
     from sentence_transformers.evaluation import SimilarityFunction
-    from sentence_transformers.evaluation.NanoBEIREvaluator import (
-        DatasetNameType,
-    )
+    from sentence_transformers.evaluation.NanoBEIREvaluator import DatasetNameType
     from sentence_transformers.sparse_encoder import SparseEncoder
 
 logger = logging.getLogger(__name__)
@@ -56,10 +54,8 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
 
             import logging
 
-            from sentence_transformers.sparse_encoder import (
-                SparseEncoder,
-                SparseNanoBEIREvaluator,
-            )
+            from sentence_transformers import SparseEncoder
+            from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator
 
             logging.basicConfig(format="%(message)s", level=logging.INFO)
 

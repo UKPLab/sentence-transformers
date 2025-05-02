@@ -1,40 +1,20 @@
 from __future__ import annotations
 
-from sentence_transformers.sparse_encoder.losses.CSRLoss import CSRLoss
-from sentence_transformers.sparse_encoder.losses.CSRReconstructionLoss import (
-    CSRReconstructionLoss,
-)
-from sentence_transformers.sparse_encoder.losses.FlopsLoss import FlopsLoss
-from sentence_transformers.sparse_encoder.losses.SparseAnglELoss import SparseAnglELoss
-from sentence_transformers.sparse_encoder.losses.SparseCachedGISTEmbedLoss import (
-    SparseCachedGISTEmbedLoss,
-)
-from sentence_transformers.sparse_encoder.losses.SparseCachedMultipleNegativesRankingLoss import (
-    SparseCachedMultipleNegativesRankingLoss,
-)
-from sentence_transformers.sparse_encoder.losses.SparseCoSENTLoss import (
-    SparseCoSENTLoss,
-)
-from sentence_transformers.sparse_encoder.losses.SparseCosineSimilarityLoss import (
-    SparseCosineSimilarityLoss,
-)
-from sentence_transformers.sparse_encoder.losses.SparseDistillKLDivLoss import (
-    SparseDistillKLDivLoss,
-)
-from sentence_transformers.sparse_encoder.losses.SparseGISTEmbedLoss import (
-    SparseGISTEmbedLoss,
-)
-from sentence_transformers.sparse_encoder.losses.SparseMarginMSELoss import (
-    SparseMarginMSELoss,
-)
-from sentence_transformers.sparse_encoder.losses.SparseMSELoss import SparseMSELoss
-from sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss import (
-    SparseMultipleNegativesRankingLoss,
-)
-from sentence_transformers.sparse_encoder.losses.SparseTripletLoss import (
-    SparseTripletLoss,
-)
-from sentence_transformers.sparse_encoder.losses.SpladeLoss import SpladeLoss
+from .CSRLoss import CSRLoss
+from .CSRReconstructionLoss import CSRReconstructionLoss
+from .FlopsLoss import FlopsLoss
+from .SparseAnglELoss import SparseAnglELoss
+from .SparseCachedGISTEmbedLoss import SparseCachedGISTEmbedLoss
+from .SparseCachedMultipleNegativesRankingLoss import SparseCachedMultipleNegativesRankingLoss
+from .SparseCoSENTLoss import SparseCoSENTLoss
+from .SparseCosineSimilarityLoss import SparseCosineSimilarityLoss
+from .SparseDistillKLDivLoss import SparseDistillKLDivLoss
+from .SparseGISTEmbedLoss import SparseGISTEmbedLoss
+from .SparseMarginMSELoss import SparseMarginMSELoss
+from .SparseMSELoss import SparseMSELoss
+from .SparseMultipleNegativesRankingLoss import SparseMultipleNegativesRankingLoss
+from .SparseTripletLoss import SparseTripletLoss
+from .SpladeLoss import SpladeLoss
 
 __all__ = [
     "CSRLoss",

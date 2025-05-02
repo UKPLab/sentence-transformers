@@ -11,8 +11,8 @@ from torch import Tensor, nn
 from tqdm import trange
 from transformers import AutoConfig
 
-from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Pooling, Transformer
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData
 from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling

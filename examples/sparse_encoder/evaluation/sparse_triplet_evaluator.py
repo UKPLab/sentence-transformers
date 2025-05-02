@@ -2,10 +2,8 @@ import logging
 
 from datasets import load_dataset
 
-from sentence_transformers.sparse_encoder import (
-    SparseEncoder,
-    SparseTripletEvaluator,
-)
+from sentence_transformers import SparseEncoder
+from sentence_transformers.sparse_encoder.evaluation import SparseTripletEvaluator
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 

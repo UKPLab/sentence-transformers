@@ -14,15 +14,10 @@ from transformers.integrations import WandbCallback
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
 from sentence_transformers.sparse_encoder.callbacks.splade_callbacks import SpladeLambdaSchedulerCallback
 from sentence_transformers.sparse_encoder.data_collator import SparseEncoderDataCollator
-from sentence_transformers.sparse_encoder.losses import (
-    SparseMultipleNegativesRankingLoss,
-)
-from sentence_transformers.sparse_encoder.losses.SpladeLoss import SpladeLoss
+from sentence_transformers.sparse_encoder.losses import SparseMultipleNegativesRankingLoss, SpladeLoss
 from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardCallback
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
-from sentence_transformers.sparse_encoder.training_args import (
-    SparseEncoderTrainingArguments,
-)
+from sentence_transformers.sparse_encoder.training_args import SparseEncoderTrainingArguments
 from sentence_transformers.trainer import SentenceTransformerTrainer
 from sentence_transformers.util import is_datasets_available, is_training_available
 

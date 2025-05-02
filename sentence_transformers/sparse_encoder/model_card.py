@@ -5,10 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from sentence_transformers.model_card import (
-    SentenceTransformerModelCardCallback,
-    SentenceTransformerModelCardData,
-)
+from sentence_transformers.model_card import SentenceTransformerModelCardCallback, SentenceTransformerModelCardData
 from sentence_transformers.util import is_datasets_available
 
 if is_datasets_available():

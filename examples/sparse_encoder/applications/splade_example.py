@@ -1,6 +1,6 @@
 import numpy as np
 
-from sentence_transformers.sparse_encoder import SparseEncoder
+from sentence_transformers import SparseEncoder
 from sentence_transformers.sparse_encoder.models import MLMTransformer, SpladePooling
 
 

@@ -45,10 +45,8 @@ class SparseRerankingEvaluator(RerankingEvaluator):
 
             from datasets import load_dataset
 
-            from sentence_transformers.sparse_encoder import (
-                SparseEncoder,
-                SparseRerankingEvaluator,
-            )
+            from sentence_transformers import SparseEncoder
+            from sentence_transformers.sparse_encoder.evaluation import SparseRerankingEvaluator
 
             logging.basicConfig(format="%(message)s", level=logging.INFO)
 

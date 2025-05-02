@@ -1,9 +1,7 @@
 import logging
 
-from sentence_transformers.sparse_encoder import (
-    SparseEncoder,
-    SparseNanoBEIREvaluator,
-)
+from sentence_transformers import SparseEncoder
+from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 
