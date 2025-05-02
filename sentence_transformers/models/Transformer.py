@@ -532,6 +532,39 @@ class Transformer(ModuleWithTokenizer):
         backend: str = "torch",
         **kwargs,
     ) -> Self:
+        init_kwargs = cls._load_init_kwargs(
+            model_name_or_path=model_name_or_path,
+            subfolder=subfolder,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+            trust_remote_code=trust_remote_code,
+            model_kwargs=model_kwargs,
+            tokenizer_kwargs=tokenizer_kwargs,
+            config_kwargs=config_kwargs,
+            backend=backend,
+        )
+        return cls(model_name_or_path=model_name_or_path, **init_kwargs)
+
+    @classmethod
+    def _load_init_kwargs(
+        cls,
+        model_name_or_path: str,
+        # Loading arguments
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        # Module-specific arguments
+        trust_remote_code: bool = False,
+        model_kwargs: dict[str, Any] | None = None,
+        tokenizer_kwargs: dict[str, Any] | None = None,
+        config_kwargs: dict[str, Any] | None = None,
+        backend: str = "torch",
+        **kwargs,
+    ) -> dict[str, Any]:
         config = cls.load_config(
             model_name_or_path=model_name_or_path,
             subfolder=subfolder,
@@ -570,7 +603,7 @@ class Transformer(ModuleWithTokenizer):
         if config_kwargs:
             config["config_args"].update(config_kwargs)
 
-        return cls(model_name_or_path=model_name_or_path, **config, cache_dir=cache_folder, backend=backend)
+        return {**config, "cache_dir": cache_folder, "backend": backend}
 
     @classmethod
     def load_config(

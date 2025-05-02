@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import importlib
+import inspect
 import json
 import logging
 import math
@@ -1745,10 +1746,49 @@ print(similarities)
                 class_ref, model_name_or_path, trust_remote_code, revision, model_kwargs
             )
 
-            # Try to use the load method with many keyword arguments
-            # If the module is older and doesn't support this, we fall back to the old method
-            # with only a path to a local directory containing the module files
-            try:
+            # Backwards compatibility: if the module is older and its `load` method only supports one parameter,
+            # a path to a local directory containing the module files, then we load it with the old style
+            load_signature = inspect.signature(module_class.load)
+            if len(load_signature.parameters) == 1:
+                signature = inspect.signature(module_class.__init__)
+                # If the module is likely Transformer-based, we try to load it with __init__ with common Transformer
+                # keyword arguments (model_args, config_args, tokenizer_args, etc.)
+                # E.g. models with custom modules on the Hub, like https://huggingface.co/jinaai/jina-embeddings-v3
+                if {"model_args", "config_args"} <= set(signature.parameters):
+                    common_transformer_init_kwargs = Transformer._load_init_kwargs(
+                        model_name_or_path,
+                        # Loading-specific keyword arguments
+                        subfolder=module_config["path"],
+                        token=token,
+                        cache_folder=cache_folder,
+                        revision=revision,
+                        local_files_only=local_files_only,
+                        # Module-specific keyword arguments
+                        trust_remote_code=trust_remote_code,
+                        model_kwargs=model_kwargs,
+                        tokenizer_kwargs=tokenizer_kwargs,
+                        config_kwargs=config_kwargs,
+                        backend=self.backend,
+                    )
+                    module = module_class(model_name_or_path, **common_transformer_init_kwargs)
+
+                else:
+                    # Old modules that don't support the new loading method and don't seem Transformer-based
+                    # are loaded by downloading the full directories and calling .load() with the old style
+                    # (i.e. only a path to the local directory)
+                    local_path = load_dir_path(
+                        model_name_or_path=model_name_or_path,
+                        subfolder=module_config["path"],
+                        token=token,
+                        cache_folder=cache_folder,
+                        revision=revision,
+                        local_files_only=local_files_only,
+                    )
+                    module = module_class.load(local_path)
+
+            else:
+                # Newer modules that support the new loading method are loaded with the new style
+                # i.e. with many keyword arguments that can optionally be used by the modules
                 module = module_class.load(
                     model_name_or_path,
                     # Loading-specific keyword arguments
@@ -1764,17 +1804,6 @@ print(similarities)
                     config_kwargs=config_kwargs,
                     backend=self.backend,
                 )
-            except TypeError:
-                # Backwards compatibility
-                local_path = load_dir_path(
-                    model_name_or_path=model_name_or_path,
-                    subfolder=module_config["path"],
-                    token=token,
-                    cache_folder=cache_folder,
-                    revision=revision,
-                    local_files_only=local_files_only,
-                )
-                module = module_class.load(local_path)
 
             modules[module_config["name"]] = module
             module_kwargs[module_config["name"]] = module_config.get("kwargs", [])
