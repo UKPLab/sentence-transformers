@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import tempfile
 import traceback
-from typing import Callable, Literal, overload
+from fnmatch import fnmatch
+from pathlib import Path
+from typing import Any, Callable, Literal, overload
 
+import huggingface_hub
 import numpy as np
 import torch
 from huggingface_hub import HfApi
@@ -18,6 +22,7 @@ from transformers import (
     AutoTokenizer,
     PretrainedConfig,
     PreTrainedModel,
+    PreTrainedTokenizer,
 )
 from transformers.utils import PushToHubMixin
 from typing_extensions import deprecated
@@ -32,6 +37,14 @@ from sentence_transformers.cross_encoder.util import (
 from sentence_transformers.util import fullname, get_device_name, import_from_string, load_file_path
 
 logger = logging.getLogger(__name__)
+
+
+def _save_pretrained_wrapper(_save_pretrained_fn: Callable, subfolder: str) -> Callable[..., None]:
+    def wrapper(save_directory: str | Path, **kwargs) -> None:
+        os.makedirs(Path(save_directory) / subfolder, exist_ok=True)
+        return _save_pretrained_fn(Path(save_directory) / subfolder, **kwargs)
+
+    return wrapper
 
 
 class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
@@ -99,6 +112,9 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         model_card_data (:class:`~sentence_transformers.model_card.SentenceTransformerModelCardData`, optional): A model
             card data object that contains information about the model. This is used to generate a model card when saving
             the model. If not set, a default model card data object is created.
+        backend (str): The backend to use for inference. Can be one of "torch" (default), "onnx", or "openvino".
+            See https://sbert.net/docs/cross_encoder/usage/efficiency.html for benchmarking information
+            on the different backends.
     """
 
     @cross_encoder_init_args_decorator
@@ -118,6 +134,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         tokenizer_kwargs: dict = None,
         config_kwargs: dict = None,
         model_card_data: CrossEncoderModelCardData | None = None,
+        backend: Literal["torch", "onnx", "openvino"] = "torch",
     ) -> None:
         super().__init__()
         if tokenizer_kwargs is None:
@@ -129,6 +146,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         self.model_card_data = model_card_data or CrossEncoderModelCardData()
         self.trust_remote_code = trust_remote_code
         self._model_card_text = None
+        self.backend = backend
 
         config: PretrainedConfig = AutoConfig.from_pretrained(
             model_name_or_path,
@@ -157,9 +175,10 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
 
         if num_labels is not None:
             config.num_labels = num_labels
-        self.model: PreTrainedModel = AutoModelForSequenceClassification.from_pretrained(
+        self._load_model(
             model_name_or_path,
             config=config,
+            backend=backend,
             cache_dir=cache_folder,
             trust_remote_code=trust_remote_code,
             revision=revision,
@@ -167,10 +186,10 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             token=token,
             **model_kwargs,
         )
+
         if "model_max_length" not in tokenizer_kwargs and max_length is not None:
             tokenizer_kwargs["model_max_length"] = max_length
-
-        self.tokenizer = AutoTokenizer.from_pretrained(
+        self.tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
             model_name_or_path,
             cache_dir=cache_folder,
             trust_remote_code=trust_remote_code,
@@ -208,6 +227,229 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         # Pass the model to the model card data for later use in generating a model card upon saving this model
         self.model_card_data.register_model(self)
         self.model_card_data.set_base_model(model_name_or_path, revision=revision)
+
+    def _load_model(
+        self,
+        model_name_or_path: str,
+        config: PretrainedConfig,
+        backend: str,
+        **model_kwargs,
+    ) -> None:
+        if backend == "torch":
+            self.model: PreTrainedModel = AutoModelForSequenceClassification.from_pretrained(
+                model_name_or_path,
+                config=config,
+                **model_kwargs,
+            )
+        elif backend == "onnx":
+            self._load_onnx_model(model_name_or_path, config, **model_kwargs)
+        elif backend == "openvino":
+            self._load_openvino_model(model_name_or_path, config, **model_kwargs)
+        else:
+            raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, or `openvino`.")
+
+    def _load_openvino_model(self, model_name_or_path: str, config: PretrainedConfig, **model_kwargs) -> None:
+        try:
+            from optimum.intel import OVModelForSequenceClassification
+            from optimum.intel.openvino import OV_XML_FILE_NAME
+        except ModuleNotFoundError:
+            raise Exception(
+                "Using the OpenVINO backend requires installing Optimum and OpenVINO. "
+                "You can install them with pip: `pip install optimum[openvino]`."
+            )
+
+        load_path = Path(model_name_or_path)
+        is_local = load_path.exists()
+        backend_name = "OpenVINO"
+        target_file_glob = "openvino*.xml"
+
+        # Determine whether the model should be exported or whether we can load it directly
+        export, model_kwargs = self._backend_should_export(
+            load_path, is_local, model_kwargs, OV_XML_FILE_NAME, target_file_glob, backend_name
+        )
+
+        # If we're exporting, then there's no need for a file_name to load the model from
+        if export:
+            model_kwargs.pop("file_name", None)
+
+        # ov_config can be either a dictionary, or point to a json file with an OpenVINO config
+        if "ov_config" in model_kwargs:
+            ov_config = model_kwargs["ov_config"]
+            if not isinstance(ov_config, dict):
+                if not Path(ov_config).exists():
+                    raise ValueError(
+                        "ov_config should be a dictionary or a path to a .json file containing an OpenVINO config"
+                    )
+                with open(ov_config, encoding="utf-8") as f:
+                    model_kwargs["ov_config"] = json.load(f)
+        else:
+            model_kwargs["ov_config"] = {}
+
+        # Either load an exported model, or export the model to OpenVINO
+        self.model: OVModelForSequenceClassification = OVModelForSequenceClassification.from_pretrained(
+            model_name_or_path,
+            config=config,
+            export=export,
+            **model_kwargs,
+        )
+        # Wrap the save_pretrained method to save the model in the correct subfolder
+        self.model._save_pretrained = _save_pretrained_wrapper(self.model._save_pretrained, self.backend)
+
+        # Warn the user to save the model if they haven't already
+        if export:
+            self._backend_warn_to_save(model_name_or_path, is_local, backend_name)
+
+    def _load_onnx_model(self, model_name_or_path: str, config: PretrainedConfig, **model_kwargs) -> None:
+        try:
+            import onnxruntime as ort
+            from optimum.onnxruntime import ONNX_WEIGHTS_NAME, ORTModelForSequenceClassification
+        except ModuleNotFoundError:
+            raise Exception(
+                "Using the ONNX backend requires installing Optimum and ONNX Runtime. "
+                "You can install them with pip: `pip install optimum[onnxruntime]` "
+                "or `pip install optimum[onnxruntime-gpu]`"
+            )
+
+        # Default to the highest priority available provider if not specified
+        # E.g. Tensorrt > CUDA > CPU
+        model_kwargs["provider"] = model_kwargs.pop("provider", ort.get_available_providers()[0])
+
+        load_path = Path(model_name_or_path)
+        is_local = load_path.exists()
+        backend_name = "ONNX"
+        target_file_glob = "*.onnx"
+
+        # Determine whether the model should be exported or whether we can load it directly
+        export, model_kwargs = self._backend_should_export(
+            load_path, is_local, model_kwargs, ONNX_WEIGHTS_NAME, target_file_glob, backend_name
+        )
+
+        # If we're exporting, then there's no need for a file_name to load the model from
+        if export:
+            model_kwargs.pop("file_name", None)
+
+        # Either load an exported model, or export the model to ONNX
+        self.model: ORTModelForSequenceClassification = ORTModelForSequenceClassification.from_pretrained(
+            model_name_or_path,
+            config=config,
+            export=export,
+            **model_kwargs,
+        )
+        # Wrap the save_pretrained method to save the model in the correct subfolder
+        self.model._save_pretrained = _save_pretrained_wrapper(self.model._save_pretrained, self.backend)
+
+        # Warn the user to save the model if they haven't already
+        if export:
+            self._backend_warn_to_save(model_name_or_path, is_local, backend_name)
+
+    def _backend_should_export(
+        self,
+        load_path: Path,
+        is_local: bool,
+        model_kwargs: dict[str, Any],
+        target_file_name: str,
+        target_file_glob: str,
+        backend_name: str,
+    ) -> tuple[bool, dict[str, Any]]:
+        """
+        Determines whether the model should be exported to the backend, or if it can be loaded directly.
+        Also update the `file_name` and `subfolder` model_args if necessary.
+
+        These are the cases:
+
+        1. If export is set in model_args, just return export
+        2. If `<subfolder>/<file_name>` exists; set export to False
+        3. If `<backend>/<file_name>` exists; set export to False and set subfolder to the backend (e.g. "onnx")
+        4. If `<file_name>` contains a folder, add those folders to the subfolder and set the file_name to the last part
+
+        We will warn if:
+
+        1. The expected file does not exist in the model directory given the optional file_name and subfolder.
+           If there are valid files for this backend, but they're don't align with file_name, then we give a useful warning.
+        2. Multiple files are found in the model directory that match the target file name and the user did not
+           specify the desired file name via `model_kwargs={"file_name": "<file_name>"}`
+
+        Args:
+            load_path: The model repository or directory, as a Path instance
+            is_local: Whether the model is local or remote, i.e. whether load_path is a local directory
+            model_args: The model_args dictionary. Notable keys are "export", "file_name", and "subfolder"
+            target_file_name: The expected file name in the model directory, e.g. "model.onnx" or "openvino_model.xml"
+            target_file_glob: The glob pattern to match the target file name, e.g. "*.onnx" or "openvino*.xml"
+            backend_name: The human-readable name of the backend for use in warnings, e.g. "ONNX" or "OpenVINO"
+
+        Returns:
+            Tuple[bool, dict[str, Any]]: A tuple of the export boolean and the updated model_args dictionary.
+        """
+
+        export = model_kwargs.pop("export", None)
+        if export:
+            return export, model_kwargs
+
+        file_name = model_kwargs.get("file_name", target_file_name)
+        subfolder = model_kwargs.get("subfolder", None)
+        primary_full_path = Path(subfolder, file_name).as_posix() if subfolder else Path(file_name).as_posix()
+        secondary_full_path = (
+            Path(subfolder, self.backend, file_name).as_posix()
+            if subfolder
+            else Path(self.backend, file_name).as_posix()
+        )
+        glob_pattern = f"{subfolder}/**/{target_file_glob}" if subfolder else f"**/{target_file_glob}"
+
+        # Get the list of files in the model directory that match the target file name
+        if is_local:
+            model_file_names = [path.relative_to(load_path).as_posix() for path in load_path.glob(glob_pattern)]
+        else:
+            all_files = huggingface_hub.list_repo_files(
+                load_path.as_posix(),
+                repo_type="model",
+                revision=model_kwargs.get("revision", None),
+                token=model_kwargs.get("token", None),
+            )
+            model_file_names = [fname for fname in all_files if fnmatch(fname, glob_pattern)]
+
+        # First check if the expected file exists in the root of the model directory
+        # If it doesn't, check if it exists in the backend subfolder.
+        # If it does, set the subfolder to include the backend
+        model_found = primary_full_path in model_file_names
+        if not model_found and "subfolder" not in model_kwargs:
+            model_found = secondary_full_path in model_file_names
+            if model_found:
+                if len(model_file_names) > 1 and "file_name" not in model_kwargs:
+                    logger.warning(
+                        f"Multiple {backend_name} files found in {load_path.as_posix()!r}: {model_file_names}, defaulting to {secondary_full_path!r}. "
+                        f'Please specify the desired file name via `model_kwargs={{"file_name": "<file_name>"}}`.'
+                    )
+                model_kwargs["subfolder"] = self.backend
+                model_kwargs["file_name"] = file_name
+        if export is None:
+            export = not model_found
+
+        # If the file_name contains subfolders, set it as the subfolder instead
+        file_name_parts = Path(file_name).parts
+        if len(file_name_parts) > 1:
+            model_kwargs["file_name"] = file_name_parts[-1]
+            model_kwargs["subfolder"] = Path(model_kwargs.get("subfolder", ""), *file_name_parts[:-1]).as_posix()
+
+        if export:
+            logger.warning(
+                f"No {file_name!r} found in {load_path.as_posix()!r}. Exporting the model to {backend_name}."
+            )
+
+            if model_file_names:
+                logger.warning(
+                    f"If you intended to load one of the {model_file_names} {backend_name} files, "
+                    f'please specify the desired file name via `model_kwargs={{"file_name": "{model_file_names[0]}"}}`.'
+                )
+
+        return export, model_kwargs
+
+    def _backend_warn_to_save(self, model_name_or_path: str, is_local: str, backend_name: str) -> None:
+        to_log = f"Saving the exported {backend_name} model is heavily recommended to avoid having to export it again."
+        if is_local:
+            to_log += f" Do so with `model.save_pretrained({model_name_or_path!r})`."
+        else:
+            to_log += f" Do so with `model.push_to_hub({model_name_or_path!r}, create_pr=True)`."
+        logger.warning(to_log)
 
     def set_activation_fn(self, activation_fn: Callable | None, set_default: bool = True) -> None:
         if activation_fn is not None:
@@ -396,7 +638,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             self.set_activation_fn(activation_fn, set_default=False)
 
         pred_scores = []
-        self.model.eval()
+        self.eval()
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
             batch = sentences[start_index : start_index + batch_size]
             features = self.tokenizer(
@@ -534,7 +776,16 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
 
     def save_pretrained(self, path: str, *, safe_serialization: bool = True, **kwargs) -> None:
         """
-        Saves the model and tokenizer to path; identical to `save`
+        Save the model and tokenizer to the specified path.
+
+        Args:
+            path (str): Directory where the model should be saved
+            safe_serialization (bool, optional): Whether to save using `safetensors` or the traditional
+                PyTorch way. Defaults to True.
+            **kwargs: Additional arguments passed to the underlying save methods of the model and tokenizer.
+
+        Returns:
+            None
         """
         return self.save(path, safe_serialization=safe_serialization, **kwargs)
 
@@ -653,9 +904,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             return folder_url.pr_url
         return folder_url.commit_url
 
-    def to(self, device: int | str | torch.device | None = None) -> None:
-        return self.model.to(device)
-
     @property
     def _target_device(self) -> torch.device:
         logger.warning(
@@ -670,3 +918,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
     @property
     def device(self) -> torch.device:
         return self.model.device
+
+    def gradient_checkpointing_enable(self, gradient_checkpointing_kwargs=None) -> None:
+        # Propagate the gradient checkpointing to the transformer model
+        return self.model.gradient_checkpointing_enable(gradient_checkpointing_kwargs)

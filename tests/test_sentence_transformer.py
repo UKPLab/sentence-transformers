@@ -32,7 +32,7 @@ from sentence_transformers.models import (
     WeightedLayerPooling,
 )
 from sentence_transformers.similarity_functions import SimilarityFunction
-from tests.utils import SafeTemporaryDirectory
+from tests.utils import SafeTemporaryDirectory, is_ci
 
 
 def test_load_with_safetensors() -> None:
@@ -374,6 +374,27 @@ def test_save_load_prompts() -> None:
         fresh_model = SentenceTransformer(str(model_path))
         assert fresh_model.prompts == {"query": "query: "}
         assert fresh_model.default_prompt_name == "query"
+
+
+def test_prompt_output_value_None(stsb_bert_tiny_model_reused) -> None:
+    model = stsb_bert_tiny_model_reused
+    outputs = model.encode(
+        ["Text one", "Text two"],
+        prompt="query: ",
+        output_value=None,
+    )
+    assert len(outputs) == 2
+    assert isinstance(outputs, list)
+    expected_keys = {
+        "input_ids",
+        "token_type_ids",
+        "attention_mask",
+        "sentence_embedding",
+        "token_embeddings",
+        "prompt_length",
+    }
+    assert set(outputs[0].keys()) == expected_keys
+    assert set(outputs[1].keys()) == expected_keys
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
@@ -720,6 +741,9 @@ def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
 
 
 @pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test adapter methods.")
+@pytest.mark.skipif(
+    is_ci(), reason="huggingface_hub & PEFT incorrectly set the user agent in the CI, leading to failures."
+)
 def test_multiple_adapters() -> None:
     text = "Hello, World!"
     model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
@@ -785,6 +809,9 @@ def test_multiple_adapters() -> None:
 
 
 @pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test loading PEFT models.")
+@pytest.mark.skipif(
+    is_ci(), reason="huggingface_hub & PEFT incorrectly set the user agent in the CI, leading to failures."
+)
 def test_load_adapter_with_revision():
     model = SentenceTransformer(
         "sentence-transformers-testing/stsb-bert-tiny-lora", revision="3b4f75bcb3dec36a7e05da8c44ee2f7f1d023b1a"

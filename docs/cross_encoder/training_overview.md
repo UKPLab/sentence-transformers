@@ -193,7 +193,8 @@ The strongest CrossEncoder models are generally trained to recognize hard negati
         range_min=10,  # Skip the x most similar samples
         range_max=100,  # Consider only the x most similar samples
         max_score=0.8,  # Only consider samples with a similarity score of at most x
-        margin=0.1,  # Similarity between query and negative samples should be x lower than query-positive similarity
+        absolute_margin=0.1,  # Anchor-negative similarity is at least x lower than anchor-positive similarity
+        relative_margin=0.1,  # Anchor-negative similarity is at most 1-x times the anchor-positive similarity, e.g. 90%
         sampling_strategy="top",  # Sample the top negatives from the range
         batch_size=4096,  # Use a batch size of 4096 for the embedding model
         output_format="labeled-pair",  # The output format is (query, passage, label), as required by BinaryCrossEntropyLoss
@@ -212,9 +213,9 @@ Dataset({
     num_rows: 100000
 })
 
-Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 22/22 [00:01<00:00, 13.74it/s]
-Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 25/25 [00:00<00:00, 36.49it/s]
-Querying FAISS index: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 7/7 [00:19<00:00,  2.80s/it]
+Batches: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████| 22/22 [00:01<00:00, 12.74it/s]
+Batches: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████| 25/25 [00:00<00:00, 37.50it/s]
+Querying FAISS index: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████| 7/7 [00:18<00:00,  2.66s/it]
 Metric       Positive       Negative     Difference
 Count         100,000        436,925
 Mean           0.5882         0.4040         0.2157
@@ -225,9 +226,9 @@ Min           -0.0514         0.1405         0.1014
 50%            0.5989         0.4024         0.1836
 75%            0.6888         0.4681         0.2699
 Max            0.9748         0.7486         0.7545
-Skipped 2420871 potential negatives (23.97%) due to the margin of 0.1.
-Skipped 43 potential negatives (0.00%) due to the maximum score of 0.8.
-Could not find enough negatives for 63075 samples (12.62%). Consider adjusting the range_max, range_min, margin and max_score parameters if you'd like to find more valid negatives.
+Skipped 2,420,871 potential negatives (23.97%) due to the absolute_margin of 0.1.
+Skipped 43 potential negatives (0.00%) due to the max_score of 0.8.
+Could not find enough negatives for 63075 samples (12.62%). Consider adjusting the range_max, range_min, absolute_margin, relative_margin and max_score parameters if you'd like to find more valid negatives.
 Dataset({
     features: ['question', 'answer', 'label'],
     num_rows: 536925
