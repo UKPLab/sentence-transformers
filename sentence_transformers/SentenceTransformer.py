@@ -190,7 +190,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         self.module_kwargs = None
         self._model_card_vars = {}
         self._model_card_text = None
-        self._model_config = {}
+        self._model_config = {"model_type": self.__class__.__name__}
         self.backend = backend
         if use_auth_token is not None:
             warnings.warn(
@@ -299,12 +299,22 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                     # A model from sentence-transformers
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
 
-            if is_sentence_transformer_model(
-                model_name_or_path,
-                token,
-                cache_folder=cache_folder,
-                revision=revision,
-                local_files_only=local_files_only,
+            if (
+                is_sentence_transformer_model(
+                    model_name_or_path,
+                    token,
+                    cache_folder=cache_folder,
+                    revision=revision,
+                    local_files_only=local_files_only,
+                )
+                and self._get_model_type(
+                    model_name_or_path,
+                    token,
+                    cache_folder=cache_folder,
+                    revision=revision,
+                    local_files_only=local_files_only,
+                )
+                == self._model_config["model_type"]
             ):
                 modules, self.module_kwargs = self._load_sbert_model(
                     model_name_or_path,
@@ -1709,6 +1719,8 @@ print(similarities)
                 self.prompts = self._model_config.get("prompts", {})
             if not self.default_prompt_name:
                 self.default_prompt_name = self._model_config.get("default_prompt_name", None)
+            if "model_type" not in self._model_config.keys():
+                self._model_config["model_type"] = self.__class__.__name__
 
         # Check if a readme exists
         model_card_path = load_file_path(
@@ -1939,3 +1951,44 @@ print(similarities)
         for child in self.modules():
             if isinstance(child, PreTrainedModel):
                 return child.gradient_checkpointing_enable(gradient_checkpointing_kwargs)
+
+    def _get_model_type(
+        self,
+        model_name_or_path: str,
+        token: bool | str | None,
+        cache_folder: str | None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+    ) -> str | None:
+        """
+        Retrieves the model_type from the config_sentence_transformers.json file.
+
+        This is used to determine the appropriate loading method:
+        - SentenceTransformer: These models should be loaded with _load_sbert_model when used with SentenceTransformer class
+        - SparseEncoder: These models should be loaded with _load_auto_model when used with SentenceTransformer class
+
+        When a model type doesn't match the class being used to load it, we switch loading methods
+        to ensure compatibility.
+
+        Args:
+            model_name_or_path (str): The name or path of the pre-trained model.
+            token (Optional[Union[bool, str]]): The token to use for the model.
+            cache_folder (Optional[str]): The folder to cache the model.
+            revision (Optional[str], optional): The revision of the model. Defaults to None.
+            local_files_only (bool, optional): Whether to use only local files. Defaults to False.
+
+        Returns:
+            Optional[str]: The model type (SentenceTransformer or SparseEncoder) if available, None otherwise.
+        """
+        config_sentence_transformers_json_path = load_file_path(
+            model_name_or_path,
+            "config_sentence_transformers.json",
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
+
+        with open(config_sentence_transformers_json_path) as fIn:
+            config = json.load(fIn)
+            return config.get("model_type", "SentenceTransformer")  # Default to "SentenceTransformer" if not specified
