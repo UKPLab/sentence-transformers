@@ -29,13 +29,24 @@ class TiedTranspose(nn.Module):
 
 
 class CSRSparsity(nn.Module):
-    forward_kwargs = {"truncate_dim"}
     """
-    CSR (Contrastive Sparse Representation) Sparsity module.
-
     This module implements the Sparse AutoEncoder architecture based on the paper:
     Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation, https://arxiv.org/abs/2503.01776
+
+    This module transforms dense embeddings into sparse representations by:
+    1. Applying a multi-layer feed-forward network
+    2. Applying top-k sparsification to keep only the largest values
+    3. Supporting auxiliary losses for training stability (via k_aux parameter)
+
+    Args:
+        input_dim: Dimension of the input embeddings.
+        hidden_dim: Dimension of the hidden layers.
+        k: Number of top values to keep in the final sparse representation.
+        k_aux: Number of top values to keep for auxiliary loss calculation.
+            If None, no auxiliary loss is used. Defaults to None.
     """
+
+    forward_kwargs = {"truncate_dim"}
 
     def __init__(
         self,

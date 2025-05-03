@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from typing import Any
 
@@ -8,22 +9,38 @@ import torch
 from torch import nn
 from transformers import AutoConfig, AutoModelForMaskedLM, AutoTokenizer
 
+logger = logging.getLogger(__name__)
+
 
 class MLMTransformer(nn.Module):
-    """A minimal Transformer model that uses MLM (Masked Language Modeling).
+    """
+    MLMTransformer adapts a Masked Language Model (MLM) for sparse encoding applications.
 
-    This model implements only the essential functionality needed for MLM,
-    without inheriting from the base Transformer class.
+    This class extends the Transformer class to work specifically with models that have a
+    MLM head (like BERT, RoBERTa, etc.) and is designed to be used with SpladePooling
+    for creating SPLADE sparse representations.
+
+    MLMTransformer accesses the MLM prediction head to get vocabulary logits for each token,
+    which are later used by SpladePooling to create sparse lexical representations.
 
     Args:
         model_name_or_path: Hugging Face models name
+            (https://huggingface.co/models)
         max_seq_length: Truncate any inputs longer than max_seq_length
-        model_args: Keyword arguments passed to the Hugging Face Transformers model
-        tokenizer_args: Keyword arguments passed to the Hugging Face Transformers tokenizer
-        config_args: Keyword arguments passed to the Hugging Face Transformers config
-        cache_dir: Cache dir for Hugging Face Transformers to store/load models
-        do_lower_case: If true, lowercases the input
-        tokenizer_name_or_path: Name or path of the tokenizer
+        model_args: Keyword arguments passed to the Hugging Face
+            MLMTransformers model
+        tokenizer_args: Keyword arguments passed to the Hugging Face
+            MLMTransformers tokenizer
+        config_args: Keyword arguments passed to the Hugging Face
+            MLMTransformers config
+        cache_dir: Cache dir for Hugging Face MLMTransformers to store/load
+            models
+        do_lower_case: If true, lowercases the input (independent if the
+            model is cased or not)
+        tokenizer_name_or_path: Name or path of the tokenizer. When
+            None, then model_name_or_path is used
+        backend: Backend used for model inference. Can be `torch`, `onnx`,
+            or `openvino`. Default is `torch`.
     """
 
     save_in_root: bool = True
@@ -100,14 +117,7 @@ class MLMTransformer(nn.Module):
         return cls(model_name_or_path=input_path, **config)
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        """Forward pass of the model.
-
-        Args:
-            features: Dictionary containing input features
-
-        Returns:
-            Dictionary containing token embeddings
-        """
+        """Returns the MLM head logits for the input features as token embeddings."""
         trans_features = {
             key: value
             for key, value in features.items()

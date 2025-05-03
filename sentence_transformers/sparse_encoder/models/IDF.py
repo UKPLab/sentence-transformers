@@ -14,6 +14,24 @@ if TYPE_CHECKING:
 
 
 class IDF(torch.nn.Module):
+    """
+    IDF (Inverse Document Frequency) module for efficient sparse representations.
+
+    This lightweight module applies IDF weights to token representations, emphasizing
+    rare terms while downweighting common ones. It creates sparse vectors where non-zero
+    values correspond to the IDF weights of tokens in the text.
+
+    Key benefits:
+    - Computationally efficient for both encoding and search
+    - Compatible with traditional inverted indices
+    - Can be used for inference-free query encoding when paired with pre-computed document embeddings
+
+    Args:
+        weight: IDF weights for vocabulary tokens
+        tokenizer:  PreTrainedTokenizer to convert tokens to IDs
+        frozen: If True, weights are fixed. Defaults to False.
+    """
+
     def __init__(
         self,
         weight: torch.Tensor,
@@ -64,6 +82,17 @@ class IDF(torch.nn.Module):
 
     @classmethod
     def from_json(cls, json_path: str, tokenizer: PreTrainedTokenizer, **config):
+        """
+        Create an IDF model from a JSON file containing token to IDF weight mappings.
+
+        Args:
+            json_path (str): Path to the JSON file containing token to IDF weight mappings.
+            tokenizer (PreTrainedTokenizer): Tokenizer to use for converting tokens to IDs.
+            **config: Additional configuration options for the IDF model.
+
+        Returns:
+            IDF: An initialized IDF model.
+        """
         with open(json_path) as fIn:
             idf = json.load(fIn)
 
@@ -80,7 +109,15 @@ class IDF(torch.nn.Module):
 
     @classmethod
     def load(cls, input_path: str):
-        """Load the IDF model with its tokenizer if available"""
+        """
+        Load the IDF model with its tokenizer.
+
+        Args:
+            input_path (str): Path to the directory containing the saved model.
+
+        Returns:
+            IDF: The loaded IDF model.
+        """
         with open(os.path.join(input_path, "config.json")) as fIn:
             config: dict = json.load(fIn)
 

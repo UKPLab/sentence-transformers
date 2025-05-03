@@ -9,15 +9,21 @@ from torch import nn
 
 
 class SpladePooling(nn.Module):
-    """SPLADE pooling layer that aggregates MLM logits using max or sum pooling.
+    """
+    SPLADE Pooling module for creating the sparse embeddings.
 
-    This pooling layer takes MLM logits (shape: batch_size, seq_length, vocab_size)
-    and applies SPLADE transformation (ReLU + log) followed by pooling across the
-    sequence length dimension.
+    This module implements the SPLADE pooling mechanism that:
+    1. Takes token logits from a masked language model (MLM)
+    2. Applies a sparse transformation using the RELU(log(1 + exp(MLM logits)))
+    3. Applies a pooling strategy (max or sum) to produce sparse embeddings
+
+    The resulting embeddings are highly sparse and capture lexical information,
+    making them suitable for efficient information retrieval.
 
     Args:
-        pooling_strategy: Either 'max' or 'sum' for SPLADE pooling
-
+        pooling_strategy (str): The pooling strategy to use, either "max" or "sum".
+            "max" takes the maximum value across all tokens.
+            "sum" adds the values across all tokens.
     """
 
     SPLADE_POOLING_MODES = ("sum", "max")
