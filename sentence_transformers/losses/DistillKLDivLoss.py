@@ -9,9 +9,120 @@ from sentence_transformers import SentenceTransformer, util
 
 
 class DistillKLDivLoss(nn.Module):
-    # TODO
-
     def __init__(self, model: SentenceTransformer, similarity_fct=util.pairwise_dot_score) -> None:
+        """
+        Compute the KL divergence loss between probability distributions derived from student and teacher models' similarity scores.
+        By default, similarity is calculated using the dot-product. This loss is designed for knowledge distillation
+        where a smaller student model learns from a more powerful teacher model.
+
+        The loss computes softmax probabilities from the teacher similarity scores and log-softmax probabilities
+        from the student model, then calculates the KL divergence between these distributions.
+
+        Args:
+            model: SentenceTransformer model (student model)
+            similarity_fct: Which similarity function to use for the student model
+
+        References:
+            - For more details, please refer to https://arxiv.org/abs/2010.11386
+
+        Requirements:
+            1. (query, positive, negative_1, ..., negative_n) examples
+            2. Labels containing teacher model's scores between query-positive and query-negative pairs
+
+        Inputs:
+            +------------------------------------------------+------------------------------------------------------------+
+            | Texts                                          | Labels                                                     |
+            +================================================+============================================================+
+            | (query, positive, negative)                    | [Teacher(query, positive), Teacher(query, negative)]       |
+            +------------------------------------------------+------------------------------------------------------------+
+            | (query, positive, negative_1, ..., negative_n) | [Teacher(query, positive), Teacher(query, negative_i)...]  |
+            +------------------------------------------------+------------------------------------------------------------+
+
+        Relations:
+            - Similar to :class:`~sentence_transformers.losses.MarginMSELoss` but uses KL divergence instead of MSE
+            - More suited for distillation tasks where preserving ranking is important
+
+        Example:
+
+            Using a teacher model to compute similarity scores for distillation:
+
+            ::
+
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
+
+                student_model = SentenceTransformer("microsoft/mpnet-base")
+                teacher_model = SentenceTransformer("all-mpnet-base-v2")
+                train_dataset = Dataset.from_dict({
+                    "query": ["It's nice weather outside today.", "He drove to work."],
+                    "positive": ["It's so sunny.", "He took the car to work."],
+                    "negative": ["It's very cold.", "She walked to the store."],
+                })
+
+                def compute_labels(batch):
+                    import torch
+
+                    emb_queries = teacher_model.encode(batch["query"])
+                    emb_positives = teacher_model.encode(batch["positive"])
+                    emb_negatives = teacher_model.encode(batch["negative"])
+
+                    pos_scores = teacher_model.similarity_pairwise(emb_queries, emb_positives)
+                    neg_scores = teacher_model.similarity_pairwise(emb_queries, emb_negatives)
+
+                    # Stack the scores for positive and negative pairs
+                    return {
+                        "label": torch.stack([pos_scores, neg_scores], dim=1)
+                    }
+
+                train_dataset = train_dataset.map(compute_labels, batched=True)
+                loss = losses.DistillKLDivLoss(student_model)
+
+                trainer = SentenceTransformerTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
+                trainer.train()
+
+            With multiple negatives:
+
+            ::
+
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
+
+                student_model = SentenceTransformer("microsoft/mpnet-base")
+                teacher_model = SentenceTransformer("all-mpnet-base-v2")
+
+                train_dataset = Dataset.from_dict(
+                    {
+                        "query": ["It's nice weather outside today.", "He drove to work."],
+                        "positive": ["It's so sunny.", "He took the car to work."],
+                        "negative1": ["It's very cold.", "She walked to the store."],
+                        "negative2": ["Its rainy", "She took the bus"],
+                    }
+                )
+
+
+                def compute_labels(batch):
+                    import torch
+
+                    emb_queries = teacher_model.encode(batch["query"])
+                    emb_positives = teacher_model.encode(batch["positive"])
+                    emb_negatives1 = teacher_model.encode(batch["negative1"])
+                    emb_negatives2 = teacher_model.encode(batch["negative2"])
+
+                    pos_scores = teacher_model.similarity_pairwise(emb_queries, emb_positives)
+                    neg_scores1 = teacher_model.similarity_pairwise(emb_queries, emb_negatives1)
+                    neg_scores2 = teacher_model.similarity_pairwise(emb_queries, emb_negatives2)
+
+                    # Stack the scores for positive and multiple negative pairs
+                    return {
+                        "label": torch.stack([pos_scores, neg_scores1, neg_scores2], dim=1)
+                    }
+
+                train_dataset = train_dataset.map(compute_labels, batched=True)
+                loss = losses.DistillKLDivLoss(student_model)
+
+                trainer = SentenceTransformerTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
+                trainer.train()
+        """
         super().__init__()
         self.model = model
         self.similarity_fct = similarity_fct

@@ -20,15 +20,36 @@ def normalized_mean_squared_error(reconstruction: torch.Tensor, original_input: 
 
 class CSRReconstructionLoss(nn.Module):
     """
-    CSRReconstruction Loss module for Sparse AutoEncoder.
+    CSRReconstructionLoss implements the reconstruction loss component for Contrastive Sparse Representation (CSR) models.
 
-    This module computes the reconstruction loss according to the formula:
-    L_recon = L(k) + L(4k)/8 + β*L_aux
+    This loss ensures that the sparse encoding can accurately reconstruct the original model embeddings through
+    three components:
 
-    where:
-    - L(k) = ||f(x) - f(dx)_k||₂²
-    - L(4k) = ||f(x) - f(dx)_4k||₂²
-    - L_aux = ||e - ê||₂², e = f(x) - f(dx), ê = W_dec*z
+    1. A primary reconstruction loss (L_k) that measures the error between the original embedding and its
+       reconstruction using the top-k sparse components.
+    2. A secondary reconstruction loss (L_4k) that measures the error using the top-4k sparse components.
+    3. An auxiliary loss (L_aux) that helps to learn residual information.
+
+
+    Args:
+        model: SparseEncoder model with autoencoder components
+        beta: Weight for the auxiliary loss component (L_aux)
+
+    References:
+        - For more details, see the paper "Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation"
+          https://arxiv.org/abs/2503.01776
+
+    Requirements:
+        1. The model must be configured to output the necessary reconstruction components
+        2. Used with SparseEncoder models that implement compositional sparse autoencoding
+
+    Relations:
+        - Used as a component within :class:`CSRLoss` combined with a contrastive loss
+
+    Example:
+        ::
+            This loss is typically used within the :class:`CSRLoss` class, which combines it with other loss components.
+
     """
 
     def __init__(self, model: SparseEncoder, beta: float = 1.0) -> None:
@@ -80,7 +101,7 @@ class CSRReconstructionLoss(nn.Module):
             # L(4k) = ||f(x) - f(dx)_4k||₂²
             L_4k = F.mse_loss(x, recons_4k)
 
-            # L_aux = ||e - ê||₂²
+            # L_aux = ||e - ê||₂²
             L_aux = normalized_mean_squared_error(recons_aux, x - reconsk_pre_bias)
 
             # Accumulate losses

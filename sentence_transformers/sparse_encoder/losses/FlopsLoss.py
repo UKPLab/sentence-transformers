@@ -10,6 +10,27 @@ from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
 class FlopsLoss(nn.Module):
     def __init__(self, model: SparseEncoder) -> None:
+        """
+        FlopsLoss implements a regularization technique to promote sparsity in sparse encoder models.
+        It calculates the squared L2 norm of the mean embedding vector, which helps reduce the number of floating-point
+        operations (FLOPs) required during inference by encouraging more zero values in the embeddings.
+
+        This loss is used as a regularization component within other losses like it's done in SpladeLoss rather than
+        as a standalone loss function.
+
+        Args:
+            model: SparseEncoder model to be regularized
+
+        References:
+            - For further details, see: https://arxiv.org/abs/2004.05665
+
+        Relations:
+            - Used as a component within :class:`SpladeLoss` to regularize both query and document embeddings
+
+        Example:
+            This loss is typically used within the :class:`SpladeLoss` class, which combines it with other loss components.
+
+        """
         super().__init__()
         self.model = model
 
