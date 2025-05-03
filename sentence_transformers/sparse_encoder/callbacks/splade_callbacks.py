@@ -25,6 +25,11 @@ class SpladeLambdaSchedulerCallback(TrainerCallback):
 
     The scheduler gradually increases the lambda values from 0 to their max value
     within the specified warmup ratio of the total training steps.
+
+     Args:
+            loss: SpladeLoss instance to be updated
+            scheduler_type: Type of scheduler ('linear' or 'quadratic')
+            warmup_ratio: Ratio of total steps to reach max lambda values (default: 1/3)
     """
 
     def __init__(
@@ -33,12 +38,6 @@ class SpladeLambdaSchedulerCallback(TrainerCallback):
         scheduler_type: str | SchedulerType = SchedulerType.QUADRATIC,
         warmup_ratio: float = 1 / 3,
     ):
-        """
-        Args:
-            loss: SpladeLoss instance to be updated
-            scheduler_type: Type of scheduler ('linear' or 'quadratic')
-            warmup_ratio: Ratio of total steps to reach max lambda values (default: 1/3)
-        """
         super().__init__()
 
         if isinstance(scheduler_type, str):
@@ -142,6 +141,5 @@ class SpladeLambdaSchedulerCallback(TrainerCallback):
 
     def on_log(self, args, state, control, model=None, logs=None, **kwargs):
         """Log the current lambda values."""
-        # TODO: Fix that in wandb log it but not appear in the dashboard
         logs["lambda_query"] = self._current_lambda_query
         logs["lambda_corpus"] = self._current_lambda_corpus
