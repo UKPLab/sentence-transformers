@@ -3,8 +3,8 @@ import logging
 import torch
 from datasets import load_dataset, load_from_disk
 
-from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments, losses
-from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator
+from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments
+from sentence_transformers.sparse_encoder import evaluation, losses
 
 
 def main():
@@ -89,7 +89,9 @@ def main():
     )
 
     # 4. Define the evaluator. We use the SparseNanoBEIREvaluator, which is a light-weight evaluator for English
-    evaluator = SparseNanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=train_batch_size)
+    evaluator = evaluation.SparseNanoBEIREvaluator(
+        dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=train_batch_size
+    )
 
     # 5. Define the training arguments
     short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]

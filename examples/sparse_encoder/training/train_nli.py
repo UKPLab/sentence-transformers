@@ -4,11 +4,10 @@ import logging
 
 from datasets import load_dataset
 
-from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments, losses
+from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments
 from sentence_transformers.evaluation import SequentialEvaluator, SimilarityFunction
 from sentence_transformers.models import Pooling, Transformer
-from sentence_transformers.sparse_encoder.evaluation import SparseEmbeddingSimilarityEvaluator
-from sentence_transformers.sparse_encoder.models import CSRSparsity
+from sentence_transformers.sparse_encoder import evaluation, losses, models
 from sentence_transformers.training_args import BatchSamplers
 
 # Set up logging
@@ -22,7 +21,7 @@ def main():
     transformer = Transformer(model_name)
     transformer.requires_grad_(False)  # Freeze the transformer model
     pooling = Pooling(transformer.get_word_embedding_dimension(), pooling_mode="mean")
-    csr_sparsity = CSRSparsity(
+    csr_sparsity = models.CSRSparsity(
         input_dim=transformer.get_word_embedding_dimension(),
         hidden_dim=4 * transformer.get_word_embedding_dimension(),
         k=256,  # Number of top values to keep
@@ -51,7 +50,7 @@ def main():
     evaluators = []
     for k_dim in [16, 32, 64, 128, 256]:
         evaluators.append(
-            SparseEmbeddingSimilarityEvaluator(
+            evaluation.SparseEmbeddingSimilarityEvaluator(
                 sentences1=stsb_eval_dataset["sentence1"],
                 sentences2=stsb_eval_dataset["sentence2"],
                 scores=stsb_eval_dataset["score"],
@@ -102,7 +101,7 @@ def main():
     evaluators = []
     for k_dim in [16, 32, 64, 128, 256]:
         evaluators.append(
-            SparseEmbeddingSimilarityEvaluator(
+            evaluation.SparseEmbeddingSimilarityEvaluator(
                 sentences1=test_dataset["sentence1"],
                 sentences2=test_dataset["sentence2"],
                 scores=test_dataset["score"],

@@ -5,8 +5,8 @@ import os
 
 from datasets import load_dataset
 
-from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments, losses
-from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator
+from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments
+from sentence_transformers.sparse_encoder import evaluation, losses
 from sentence_transformers.training_args import BatchSamplers
 
 # Set up logging
@@ -40,7 +40,7 @@ def main():
     run_name = f"splade-distilbert-nq-fresh-lq{lambda_query}-lc{lambda_corpus}"
     os.makedirs(f"runs/{run_name}", exist_ok=True)
 
-    dev_evaluator = SparseNanoBEIREvaluator(show_progress_bar=True, batch_size=16)
+    dev_evaluator = evaluation.SparseNanoBEIREvaluator(show_progress_bar=True, batch_size=16)
     os.makedirs(f"runs/{run_name}/eval", exist_ok=True)
 
     # Set up training arguments
