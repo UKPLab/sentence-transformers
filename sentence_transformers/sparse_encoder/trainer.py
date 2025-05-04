@@ -28,7 +28,6 @@ logger = logging.getLogger(__name__)
 
 
 class SparseEncoderTrainer(SentenceTransformerTrainer):
-    # TODO: Check if there is no other things we need to overwrite and if the ones we did are correct + the docstring associated in the class
     """
     SparseEncoderTrainer is a simple but feature-complete training and eval loop for PyTorch
     based on the SentenceTransformerTrainer that based on 🤗 Transformers :class:`~transformers.Trainer`.
