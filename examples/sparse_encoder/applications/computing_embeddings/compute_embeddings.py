@@ -1,0 +1,52 @@
+"""
+This is a simple application for sparse encoder: Computing embeddings.
+
+we have multiple sentences and we want to compute their embeddings.
+The embeddings are sparse, meaning that most of the values are zero.
+The embeddings are stored in a sparse matrix format, which is more efficient for storage and computation.
+we can also visualize the top tokens for each text."""
+
+import numpy as np
+
+from sentence_transformers import SparseEncoder
+
+# Initialize the SPLADE model
+model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+# Embed a list of sentences
+sentences = [
+    "This framework generates embeddings for each input sentence",
+    "Sentences are passed as a list of string.",
+    "The quick brown fox jumps over the lazy dog.",
+]
+
+# Generate embeddings
+embeddings = model.encode(sentences)
+
+# Print embedding sim and sparsity
+print(f"Embedding dim: {model.get_sentence_embedding_dimension()}")
+
+print(f"Embedding sparsity: {model.get_sparsity_stats(embeddings)}")
+
+"""
+Embedding dim: 30522
+Embedding sparsity: {'num_rows': 3, 'num_cols': 30522, 'row_non_zero_mean': 56.66666793823242, 'row_sparsity_mean': 0.9981433749198914}
+"""
+# Visualize top tokens for each text
+top_k = 10
+
+print(f"\nTop tokens {top_k} for each text:")
+# The result is a list of sentence embeddings as numpy arrays
+for i, sentence in enumerate(sentences):
+    top_indices = np.argsort(-embeddings[i].to_dense().cpu().numpy())[:top_k]
+    top_values = embeddings[i].to_dense().cpu().numpy()[top_indices]
+    top_tokens = [model.tokenizer.decode([idx]) for idx in top_indices]
+    token_scores = ", ".join([f'("{token.strip()}", {value:.2f})' for token, value in zip(top_tokens, top_values)])
+    print(f"{i}: {sentence} -> Top tokens:  {token_scores}")
+
+"""
+Top tokens 10 for each text:
+0: This framework generates embeddings for each input sentence -> Top tokens:  ("framework", 2.19), ("##bed", 2.12), ("input", 1.99), ("each", 1.60), ("em", 1.58), ("sentence", 1.49), ("generate", 1.42), ("##ding", 1.33), ("sentences", 1.10), ("create", 0.93)
+1: Sentences are passed as a list of string. -> Top tokens:  ("string", 2.72), ("pass", 2.24), ("sentences", 2.15), ("passed", 2.07), ("sentence", 1.90), ("strings", 1.86), ("list", 1.84), ("lists", 1.49), ("as", 1.18), ("passing", 0.73)
+2: The quick brown fox jumps over the lazy dog. -> Top tokens:  ("lazy", 2.18), ("fox", 1.67), ("brown", 1.56), ("over", 1.52), ("dog", 1.50), ("quick", 1.49), ("jump", 1.39), ("dogs", 1.25), ("foxes", 0.99), ("jumping", 0.84)
+"""
