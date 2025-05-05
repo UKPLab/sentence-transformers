@@ -11,8 +11,8 @@ class SparseCachedMultipleNegativesRankingLoss(CachedMultipleNegativesRankingLos
     def __init__(
         self,
         model: SparseEncoder,
-        scale: float = 20.0,
-        similarity_fct: callable[[Tensor, Tensor], Tensor] = util.cos_sim,
+        scale: float = 1.0,
+        similarity_fct: callable[[Tensor, Tensor], Tensor] = util.dot_score,
         mini_batch_size: int = 32,
         show_progress_bar: bool = False,
     ) -> None:
@@ -38,8 +38,8 @@ class SparseCachedMultipleNegativesRankingLoss(CachedMultipleNegativesRankingLos
         Args:
             model: SparseEncoder model
             scale: Output of similarity function is multiplied by scale value
-            similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot
-                product (and then set scale to 1)
+            similarity_fct: similarity function between sentence embeddings.
+            By default, dot product. Can also be set to cosine similarity (and then set scale to 20)
             mini_batch_size: Mini-batch size for the forward pass, this denotes how much memory is actually used during
                 training and evaluation. The larger the mini-batch size, the more memory efficient the training is, but
                 the slower the training will be. It's recommended to set it as high as your GPU memory allows. The default
@@ -77,8 +77,32 @@ class SparseCachedMultipleNegativesRankingLoss(CachedMultipleNegativesRankingLos
         Example:
             ::
 
-                # TODO: Add example but need to be sure it works first
+                from datasets import Dataset
 
+                from sentence_transformers.sparse_encoder import (
+                    SparseEncoder,
+                    SparseEncoderTrainer,
+                    SparseEncoderTrainingArguments,
+                    losses,
+                )
+
+                model = SparseEncoder("distilbert/distilbert-base-uncased")
+                train_dataset = Dataset.from_dict(
+                    {
+                        "anchor": ["It's nice weather outside today.", "He drove to work."] * 20,
+                        "positive": ["It's so sunny.", "He took the car to the office."] * 20,
+                    }
+                )
+                loss = losses.SparseCachedMultipleNegativesRankingLoss(model, mini_batch_size=8, show_progress_bar=True)
+
+
+                trainer = SparseEncoderTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                    args=SparseEncoderTrainingArguments(per_device_train_batch_size=32),
+                )
+                trainer.train()
         """
         super().__init__(
             model,

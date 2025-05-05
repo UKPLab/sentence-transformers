@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from sentence_transformers.losses.GISTEmbedLoss import GISTEmbedLoss
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
@@ -10,6 +12,8 @@ class SparseGISTEmbedLoss(GISTEmbedLoss):
         model: SparseEncoder,
         guide: SparseEncoder,
         temperature: float = 0.1,
+        margin_strategy: Literal["absolute", "relative"] = "absolute",
+        margin: float = 0.0,
     ) -> None:
         """
         This loss is used to train a SparseEncoder model using the GISTEmbed algorithm.
@@ -80,4 +84,6 @@ class SparseGISTEmbedLoss(GISTEmbedLoss):
                 trainer.train()
         """
 
-        return super().__init__(model, guide=guide, temperature=temperature)
+        return super().__init__(
+            model, guide=guide, temperature=temperature, margin_strategy=margin_strategy, margin=margin
+        )
