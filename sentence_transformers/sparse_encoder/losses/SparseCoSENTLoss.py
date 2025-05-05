@@ -54,7 +54,7 @@ class SparseCoSENTLoss(CoSENTLoss):
 
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+                model = SparseEncoder("distilbert/distilbert-base-uncased")
                 train_dataset = Dataset.from_dict(
                     {
                         "sentence1": ["It's nice weather outside today.", "He drove to work."],

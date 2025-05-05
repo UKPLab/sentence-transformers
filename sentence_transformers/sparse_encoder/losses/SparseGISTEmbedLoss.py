@@ -9,7 +9,7 @@ class SparseGISTEmbedLoss(GISTEmbedLoss):
         self,
         model: SparseEncoder,
         guide: SparseEncoder,
-        temperature: float = 0.01,
+        temperature: float = 0.1,
     ) -> None:
         """
         This loss is used to train a SparseEncoder model using the GISTEmbed algorithm.
@@ -26,7 +26,8 @@ class SparseGISTEmbedLoss(GISTEmbedLoss):
         Args:
             model: SparseEncoder model based on a `transformers` model.
             guide: SparseEncoder model to guide the in-batch negative sample selection.
-            temperature: Temperature parameter to scale the cosine similarities.
+            temperature: Temperature parameter to scale the cosine similarities, default is 0.1 here adapted for Sparse embeddings,
+            might need some adaptations.
             margin_strategy: Strategy used for false negative filtering. One of {"absolute", "relative"}.
             margin: The margin value for filtering negatives. Defaults to 0.0, together with the "absolute" strategy,
                 this only removes negatives that are more similar to the query than the positive is to the query.
@@ -59,8 +60,24 @@ class SparseGISTEmbedLoss(GISTEmbedLoss):
         Example:
             ::
 
-                # TODO: Add example but need to be sure it works first
+                from datasets import Dataset
 
+                from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
+
+                # Initialize the SPLADE model
+                model = SparseEncoder("distilbert/distilbert-base-uncased")
+                guide = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+                train_dataset = Dataset.from_dict(
+                    {
+                        "anchor": ["It's nice weather outside today.", "He drove to work."],
+                        "positive": ["It's so sunny.", "He took the car to the office."],
+                    }
+                )
+                loss = losses.SparseGISTEmbedLoss(model, guide=guide)
+
+                trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
+                trainer.train()
         """
 
         return super().__init__(model, guide=guide, temperature=temperature)

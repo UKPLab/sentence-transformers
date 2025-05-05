@@ -6,7 +6,7 @@ from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
 
 class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
-    def __init__(self, model: SparseEncoder, scale: float = 20.0, similarity_fct=util.dot_score) -> None:
+    def __init__(self, model: SparseEncoder, scale: float = 1.0, similarity_fct=util.dot_score) -> None:
         """
         Given a list of (anchor, positive) pairs or (anchor, positive, negative) triplets, this loss optimizes the following:
 
@@ -28,8 +28,8 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
             scale: Output of similarity function is multiplied by scale
                 value
             similarity_fct: similarity function between sentence
-                embeddings. By default, cos_sim. Can also be set to dot
-                product (and then set scale to 1)
+                embeddings. By default, dot product. Can also be set to cosine
+                similarity (and then set scale to 20)
 
         References:
         # TODO: Add actual references that are used in the code for SparseEncoder

@@ -53,7 +53,7 @@ class SparseCosineSimilarityLoss(CosineSimilarityLoss):
 
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+                model = SparseEncoder("distilbert/distilbert-base-uncased")
                 train_dataset = Dataset.from_dict(
                     {
                         "sentence1": ["It's nice weather outside today.", "He drove to work."],
@@ -65,6 +65,5 @@ class SparseCosineSimilarityLoss(CosineSimilarityLoss):
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
-
         """
         return super().__init__(model, loss_fct=loss_fct, cos_score_transformation=cos_score_transformation)
