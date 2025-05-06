@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
     """
-    This evaluator extends :class:`BinaryClassificationEvaluator` but is specifically designed for sparse encoder models.
+    This evaluator extends :class:`~sentence_transformers.evaluation.BinaryClassificationEvaluator` but is specifically designed for sparse encoder models.
 
     Evaluate a model based on the similarity of the embeddings by calculating the accuracy of identifying similar and
     dissimilar sentences.
@@ -41,6 +41,7 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
 
     Example:
         ::
+
             import logging
 
             from datasets import load_dataset
@@ -146,7 +147,7 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_sparse_tensor=True,
-            save_on_cpu=True,
+            save_to_cpu=True,
             **kwargs,
         )
 

@@ -40,10 +40,11 @@ class CSRSparsity(nn.Module):
 
     Args:
         input_dim: Dimension of the input embeddings.
-        hidden_dim: Dimension of the hidden layers.
-        k: Number of top values to keep in the final sparse representation.
-        k_aux: Number of top values to keep for auxiliary loss calculation.
-            If None, no auxiliary loss is used. Defaults to None.
+        hidden_dim: Dimension of the hidden layers. Defaults to 512.
+        k: Number of top values to keep in the final sparse representation. Defaults to 8.
+        k_aux: Number of top values to keep for auxiliary loss calculation. Defaults to 512.
+        normalize: Whether to apply layer normalization to the input embeddings. Defaults to False.
+        dead_threshold: Threshold for dead neurons. Neurons with non-zero activations below this threshold are considered dead. Defaults to 30.
     """
 
     forward_kwargs = {"truncate_dim"}

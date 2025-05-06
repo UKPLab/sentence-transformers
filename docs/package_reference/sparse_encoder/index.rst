@@ -7,7 +7,8 @@ Sparse Encoder
    trainer
    training_args
    losses
-   sampler
+   ../sentence_transformer/sampler
    evaluation
    models
+   callbacks
    search_engines

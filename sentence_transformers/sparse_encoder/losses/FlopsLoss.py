@@ -15,8 +15,8 @@ class FlopsLoss(nn.Module):
         It calculates the squared L2 norm of the mean embedding vector, which helps reduce the number of floating-point
         operations (FLOPs) required during inference by encouraging more zero values in the embeddings.
 
-        This loss is used as a regularization component within other losses like it's done in SpladeLoss rather than
-        as a standalone loss function.
+        This loss is used as a regularization component within other losses like :class:`SpladeLoss` rather than
+        being used as a standalone loss function.
 
         Args:
             model: SparseEncoder model to be regularized
@@ -28,7 +28,7 @@ class FlopsLoss(nn.Module):
             - Used as a component within :class:`SpladeLoss` to regularize both query and document embeddings
 
         Example:
-            This loss is typically used within the :class:`SpladeLoss` class, which combines it with other loss components.
+            - This loss is typically used within the :class:`SpladeLoss` class, which combines it with other loss components.
 
         """
         super().__init__()

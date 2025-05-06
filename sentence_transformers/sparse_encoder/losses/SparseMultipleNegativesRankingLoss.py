@@ -11,7 +11,7 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
         Given a list of (anchor, positive) pairs or (anchor, positive, negative) triplets, this loss optimizes the following:
 
         1. Given an anchor (e.g. a question), assign the highest similarity to the corresponding positive (i.e. answer)
-            out of every single positive and negative (e.g. all answers) in the batch.
+           out of every single positive and negative (e.g. all answers) in the batch.
 
         If you provide the optional negatives, they will all be used as extra options from which the model must pick the
         correct positive. Within reason, the harder this "picking" is, the stronger the model will become. Because of
@@ -70,7 +70,6 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
             ::
 
                 from datasets import Dataset
-
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
                 model = SparseEncoder("naver/splade-cocondenser-ensembledistil")

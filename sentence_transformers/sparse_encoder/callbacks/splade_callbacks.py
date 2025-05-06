@@ -19,25 +19,24 @@ class SchedulerType(Enum):
 
 
 class SpladeLambdaSchedulerCallback(TrainerCallback):
-    """
-    Callback that updates the lambda_query and lambda_corpus parameters of SpladeLoss
-    based on a schedule.
-
-    The scheduler gradually increases the lambda values from 0 to their max value
-    within the specified warmup ratio of the total training steps.
-
-     Args:
-            loss: SpladeLoss instance to be updated
-            scheduler_type: Type of scheduler ('linear' or 'quadratic')
-            warmup_ratio: Ratio of total steps to reach max lambda values (default: 1/3)
-    """
-
     def __init__(
         self,
         loss: SpladeLoss,
         scheduler_type: str | SchedulerType = SchedulerType.QUADRATIC,
         warmup_ratio: float = 1 / 3,
     ):
+        """
+        Callback that updates the lambda_query and lambda_corpus parameters of SpladeLoss
+        based on a schedule.
+
+        The scheduler gradually increases the lambda values from 0 to their max value
+        within the specified warmup ratio of the total training steps.
+
+         Args:
+                loss: SpladeLoss instance to be updated
+                scheduler_type: Type of scheduler ('linear' or 'quadratic')
+                warmup_ratio: Ratio of total steps to reach max lambda values (default: 1/3)
+        """
         super().__init__()
 
         if isinstance(scheduler_type, str):

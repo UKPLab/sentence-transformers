@@ -59,7 +59,6 @@ class SparseMarginMSELoss(MarginMSELoss):
             ::
 
                 from datasets import Dataset
-
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
                 model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
@@ -82,7 +81,6 @@ class SparseMarginMSELoss(MarginMSELoss):
             ::
 
                 from datasets import Dataset
-
                 from sentence_transformers import SentenceTransformer
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
@@ -117,8 +115,8 @@ class SparseMarginMSELoss(MarginMSELoss):
 
             ::
 
+                import torch
                 from datasets import Dataset
-
                 from sentence_transformers import SentenceTransformer
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
@@ -135,7 +133,6 @@ class SparseMarginMSELoss(MarginMSELoss):
 
 
                 def compute_labels(batch):
-                    import torch
 
                     emb_queries = teacher_model.encode(batch["query"])
                     emb_passages1 = teacher_model.encode(batch["passage1"])

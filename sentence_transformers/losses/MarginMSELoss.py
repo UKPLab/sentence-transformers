@@ -113,12 +113,13 @@ class MarginMSELoss(nn.Module):
                 )
                 trainer.train()
 
-            We  can also use multiple negatives during the knowledge distillation.
+            We can also use multiple negatives during the knowledge distillation.
 
             ::
 
                 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
                 from datasets import Dataset
+                import torch
 
                 student_model = SentenceTransformer("microsoft/mpnet-base")
                 teacher_model = SentenceTransformer("all-mpnet-base-v2")
@@ -134,8 +135,6 @@ class MarginMSELoss(nn.Module):
 
 
                 def compute_labels(batch):
-                    import torch
-
                     emb_queries = teacher_model.encode(batch["query"])
                     emb_passages1 = teacher_model.encode(batch["passage1"])
                     emb_passages2 = teacher_model.encode(batch["passage2"])

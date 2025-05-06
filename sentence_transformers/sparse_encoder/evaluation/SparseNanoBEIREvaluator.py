@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 class SparseNanoBEIREvaluator(NanoBEIREvaluator):
     """
-    This evaluator extends :class:`NanoBEIREvaluator' but is specifically designed for sparse encoder models.
+    This evaluator extends :class:`~sentence_transformers.evaluation.NanoBEIREvaluator` but is specifically designed for sparse encoder models.
 
     This class evaluates the performance of a SparseEncoder Model on the NanoBEIR collection of Information Retrieval datasets.
 

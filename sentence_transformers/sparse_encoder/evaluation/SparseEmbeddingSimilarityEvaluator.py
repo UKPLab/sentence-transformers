@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
     """
-    This evaluator extends :class:`EmbeddingSimilarityEvaluator` but is specifically designed for sparse encoder models.
+    This evaluator extends :class:`~sentence_transformers.evaluation.EmbeddingSimilarityEvaluator` but is specifically designed for sparse encoder models.
 
     Evaluate a model based on the similarity of the embeddings by calculating the Spearman and Pearson rank correlation
     in comparison to the gold standard labels.
@@ -42,6 +42,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
 
     Example:
         ::
+
             import logging
 
             from datasets import load_dataset
@@ -121,7 +122,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_sparse_tensor=True,
-            save_on_cpu=True,
+            save_to_cpu=True,
             **kwargs,
         )
 

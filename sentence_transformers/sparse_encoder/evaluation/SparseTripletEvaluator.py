@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class SparseTripletEvaluator(TripletEvaluator):
     """
-    This evaluator extends :class:`TripletEvaluator` but is specifically designed for sparse encoder models.
+    This evaluator extends :class:`~sentence_transformers.evaluation.TripletEvaluator` but is specifically designed for sparse encoder models.
 
     Evaluate a model based on a triplet: (sentence, positive_example, negative_example).
     Checks if ``similarity(sentence, positive_example) < similarity(sentence, negative_example) + margin``.
@@ -135,7 +135,7 @@ class SparseTripletEvaluator(TripletEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_sparse_tensor=True,
-            save_on_cpu=True,
+            save_to_cpu=True,
             **kwargs,
         )
 

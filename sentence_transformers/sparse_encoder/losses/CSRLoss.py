@@ -18,6 +18,7 @@ class CSRLoss(nn.Module):
         CSRLoss implements a combined loss function for Contrastive Sparse Representation (CSR) models.
 
         This loss combines two components:
+
         1. A reconstruction loss :class:`CSRReconstructionLoss` that ensures the sparse representation can faithfully
            reconstruct the original embedding.
         2. A contrastive learning component :class:`SparseMultipleNegativesRankingLoss` that ensures semantically
@@ -47,7 +48,6 @@ class CSRLoss(nn.Module):
             ::
 
                 from datasets import Dataset
-
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
                 model = SparseEncoder("sentence-transformers/all-MiniLM-L6-v2")
@@ -76,17 +76,6 @@ class CSRLoss(nn.Module):
     def forward(
         self, sentence_features: Iterable[dict[str, torch.Tensor]], labels: torch.Tensor = None
     ) -> dict[str, torch.Tensor]:
-        """
-        Forward pass of the CSR Loss module.
-        This method is used when the loss is computed as part of the model's forward pass.
-
-        Args:
-            sentence_features: Iterable of dictionaries containing sentence embeddings
-            labels: Optional tensor of labels (not used in this implementation)
-
-        Returns:
-            Dictionary containing the total loss and individual loss components
-        """
         # Compute embeddings using the model
         outputs = [self.model(sentence_feature) for sentence_feature in sentence_features]
         sentence_embedding = [output["sentence_embedding"] for output in outputs]

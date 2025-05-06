@@ -31,7 +31,6 @@ class CSRReconstructionLoss(nn.Module):
         2. A secondary reconstruction loss (L_4k) that measures the error using the top-4k sparse components.
         3. An auxiliary loss (L_aux) that helps to learn residual information.
 
-
         Args:
             model: SparseEncoder model with autoencoder components
             beta: Weight for the auxiliary loss component (L_aux)
@@ -49,24 +48,13 @@ class CSRReconstructionLoss(nn.Module):
 
         Example:
             ::
-                This loss is typically used within the :class:`CSRLoss` class, which combines it with other loss components.
-
+                - This loss is never used standalone, but instead used within the :class:`CSRLoss` class. See that loss for more details.
         """
         super().__init__()
         self.model = model
         self.beta = beta
 
     def forward(self, sentence_features: Iterable[dict[str, torch.Tensor]]) -> dict[str, torch.Tensor]:
-        """
-        Forward pass of the CSRReconstruction Loss module.
-        This method is used when the loss is computed as part of the model's forward pass.
-
-        Args:
-            sentence_features: Iterable of dictionaries containing sentence embeddings and their sparse representations
-
-        Returns:
-            Dictionary containing the total loss and individual loss components
-        """
         # Compute embeddings using the model
         outputs = [self.model(sentence_feature) for sentence_feature in sentence_features]
         return self.compute_loss_from_embeddings(outputs)
@@ -79,7 +67,7 @@ class CSRReconstructionLoss(nn.Module):
             outputs: List of dictionaries containing sentence embeddings and their sparse representations
 
         Returns:
-            Dictionary containing the total loss and individual loss components
+            total_loss: The total reconstruction loss value
         """
         # Initialize loss components
         total_L_k = 0.0

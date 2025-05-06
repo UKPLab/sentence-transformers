@@ -30,8 +30,8 @@ class SparseGISTEmbedLoss(GISTEmbedLoss):
         Args:
             model: SparseEncoder model based on a `transformers` model.
             guide: SparseEncoder model to guide the in-batch negative sample selection.
-            temperature: Temperature parameter to scale the cosine similarities, default is 0.1 here adapted for Sparse embeddings,
-            might need some adaptations.
+            temperature: Temperature parameter to scale the cosine similarities. Defaults to 0.1, adapted for Sparse embeddings. 
+                Experimentation is recommended.
             margin_strategy: Strategy used for false negative filtering. One of {"absolute", "relative"}.
             margin: The margin value for filtering negatives. Defaults to 0.0, together with the "absolute" strategy,
                 this only removes negatives that are more similar to the query than the positive is to the query.
@@ -58,14 +58,13 @@ class SparseGISTEmbedLoss(GISTEmbedLoss):
 
         Relations:
             - :class:`SparseMultipleNegativesRankingLoss` is similar to this loss, but it does not use
-              a guide model to guide the in-batch negative sample selection. `SparseGISTEmbedLoss` yields
+              a guide model to guide the in-batch negative sample selection. :class:`SparseGISTEmbedLoss` yields
               a stronger training signal at the cost of some training overhead.
 
         Example:
             ::
 
                 from datasets import Dataset
-
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
                 # Initialize the SPLADE model

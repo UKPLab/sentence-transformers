@@ -36,7 +36,7 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
             +------------------------------------------------+------------------------------------------------------------+
 
         Relations:
-            - Similar to :class:`~sentence_transformers.sparse_encoder.losses.MarginMSELoss` but uses KL divergence instead of MSE
+            - Similar to :class:`~sentence_transformers.sparse_encoder.losses.SparseMarginMSELoss` but uses KL divergence instead of MSE
             - More suited for distillation tasks where preserving ranking is important
 
         Example:
@@ -45,8 +45,8 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
             ::
 
+                import torch
                 from datasets import Dataset
-
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
                 student_model = SparseEncoder("prithivida/Splade_PP_en_v1")
@@ -61,8 +61,6 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
 
                 def compute_labels(batch):
-                    import torch
-
                     emb_queries = teacher_model.encode(batch["query"])
                     emb_positives = teacher_model.encode(batch["positive"])
                     emb_negatives = teacher_model.encode(batch["negative"])
@@ -84,6 +82,7 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
             ::
 
+                import torch
                 from datasets import Dataset
 
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
@@ -101,8 +100,6 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
 
                 def compute_labels(batch):
-                    import torch
-
                     emb_queries = teacher_model.encode(batch["query"])
                     emb_positives = teacher_model.encode(batch["positive"])
                     emb_negatives1 = teacher_model.encode(batch["negative1"])
