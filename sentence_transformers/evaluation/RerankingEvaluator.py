@@ -32,6 +32,7 @@ class RerankingEvaluator(SentenceEvaluator):
 
     Args:
         samples (list): A list of dictionaries, where each dictionary represents a sample and has the following keys:
+
             - 'query': The search query.
             - 'positive': A list of positive (relevant) documents.
             - 'negative': A list of negative (irrelevant) documents.
