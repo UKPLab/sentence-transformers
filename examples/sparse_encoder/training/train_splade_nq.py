@@ -33,7 +33,7 @@ def main():
 
     loss = losses.SpladeLoss(
         model=model,
-        main_loss=losses.SparseMultipleNegativesRankingLoss(model=model, scale=20, similarity_fct=model.similarity),
+        loss=losses.SparseMultipleNegativesRankingLoss(model=model, scale=20, similarity_fct=model.similarity),
         lambda_query=lambda_query,  # Weight for query loss
         lambda_corpus=lambda_corpus,
     )  # Weight for document loss

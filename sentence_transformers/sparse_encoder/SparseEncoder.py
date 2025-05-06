@@ -261,7 +261,7 @@ class SparseEncoder(SentenceTransformer):
                 Defaults to True.
             save_to_cpu (bool, optional):  Whether the output should be moved to cpu or stay on the device it has been computed on.
                 Defaults to False
-            device (str, optional): Which :class:`torch.device` to use for the computation. Defaults to None.
+            device (str, optional): Which :class:`torch.device` to use for the computation, if None current device will be use. Defaults to None.
 
         Returns:
             Union[List[Tensor], ndarray, Tensor]: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned.
