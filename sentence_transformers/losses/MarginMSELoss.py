@@ -113,7 +113,7 @@ class MarginMSELoss(nn.Module):
                 )
                 trainer.train()
 
-            We  can also use multiple negatives during the knowledge distillation.
+            We can also use multiple negatives during the knowledge distillation.
 
             ::
 
