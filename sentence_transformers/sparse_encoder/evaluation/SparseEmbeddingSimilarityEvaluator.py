@@ -42,6 +42,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
 
     Example:
         ::
+
             import logging
 
             from datasets import load_dataset
