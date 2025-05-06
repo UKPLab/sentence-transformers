@@ -5,6 +5,7 @@ from collections.abc import Iterable
 import torch
 import torch.nn as nn
 
+from sentence_transformers import util
 from sentence_transformers.sparse_encoder.losses.CSRReconstructionLoss import CSRReconstructionLoss
 from sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss import (
     SparseMultipleNegativesRankingLoss,
@@ -13,7 +14,14 @@ from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
 
 class CSRLoss(nn.Module):
-    def __init__(self, model: SparseEncoder, beta: float = 0.1, gamma: float = 1.0, scale: float = 20.0):
+    def __init__(
+        self,
+        model: SparseEncoder,
+        beta: float = 0.1,
+        gamma: float = 1.0,
+        scale: float = 1.0,
+        similarity_fct=util.dot_score,
+    ):
         """
         CSRLoss implements a combined loss function for Contrastive Sparse Representation (CSR) models.
 
@@ -28,9 +36,10 @@ class CSRLoss(nn.Module):
 
         Args:
             model: SparseEncoder model
-            beta: Weight for the L_aux component in the reconstruction loss
-            gamma: Weight for the contrastive MRL loss component
-            scale: Scale factor for the similarity scores in the MRL loss
+            beta: Weight for the L_aux component in the reconstruction loss. Default is 0.1.
+            gamma: Weight for the contrastive MRL loss component. Default is 1.0.
+            scale: Scale factor for the similarity scores in the MRL loss. Default is 1.0.
+            similarity_fct: Similarity function to use for the MRL loss. Default is dot product.
 
         References:
             - For more details, see the paper "Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation"
@@ -70,8 +79,8 @@ class CSRLoss(nn.Module):
         self.scale = scale
 
         # Initialize the component losses
-        self.reconstruction_loss = CSRReconstructionLoss(model, beta)
-        self.ranking_loss = SparseMultipleNegativesRankingLoss(model, scale)
+        self.reconstruction_loss = CSRReconstructionLoss(model=model, beta=beta)
+        self.ranking_loss = SparseMultipleNegativesRankingLoss(model=model, scale=scale, similarity_fct=similarity_fct)
 
     def forward(
         self, sentence_features: Iterable[dict[str, torch.Tensor]], labels: torch.Tensor = None
