@@ -54,7 +54,6 @@ class SpladeLoss(nn.Module):
             ::
 
                 from datasets import Dataset
-
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
                 student_model = SparseEncoder("prithivida/Splade_PP_en_v1")
