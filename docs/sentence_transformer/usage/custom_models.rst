@@ -181,9 +181,7 @@ For example, we can create a custom pooling method by implementing a custom Modu
            self.dimension = dimension
            self.decay = decay
 
-       def forward(
-           self, features: dict[str, torch.Tensor], **kwargs
-       ) -> dict[str, torch.Tensor]:
+       def forward(self, features: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
            # This module is expected to be used after some modules that provide "token_embeddings"
            # and "attention_mask" in the features dictionary.
            token_embeddings = features["token_embeddings"]
@@ -203,7 +201,7 @@ For example, we can create a custom pooling method by implementing a custom Modu
        def get_sentence_embedding_dimension(self) -> int:
            return self.dimension
 
-       def save(self, output_path, *args, safe_serialization=True, **kwargs):
+       def save(self, output_path, *args, safe_serialization=True, **kwargs) -> None:
            self.save_config(output_path)
 
        # The `load` method by default loads the config.json file from the model directory
@@ -328,7 +326,7 @@ Then, you can access the ``task_type`` keyword argument in the ``forward`` metho
    from sentence_transformers.models import Transformer
 
    class CustomTransformer(Transformer):
-       def forward(self, features: dict[str, torch.Tensor], task_type: Optional[str] = None) -> dict[str, torch.Tensor]:
+       def forward(self, features: dict[str, torch.Tensor], task_type: Optional[str] = None, **kwargs) -> dict[str, torch.Tensor]:
            if task_type == "default":
                # Do something
            else:
