@@ -6,23 +6,19 @@ Note that models from `sentence_transformers.models` can be used to such as `sen
 ## SPLADE Pooling
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.models.SpladePooling
-   :members:
 ```
 
 ## MLM Transformer
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.models.MLMTransformer
-   :members:
 ```
 
 ## CSR Sparsity
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.models.CSRSparsity
-   :members:
 ```
 
 ## IDF
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.models.IDF
-   :members:
 ``` 

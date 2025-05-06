@@ -13,57 +13,56 @@ from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
 
 class CSRLoss(nn.Module):
-    """
-    CSRLoss implements a combined loss function for Contrastive Sparse Representation (CSR) models.
-
-    This loss combines two components:
-    1. A reconstruction loss :class:`CSRReconstructionLoss` that ensures the sparse representation can faithfully
-       reconstruct the original embedding.
-    2. A contrastive learning component :class:`SparseMultipleNegativesRankingLoss` that ensures semantically
-       similar sentences have similar representations.
-
-    The total loss is linear combination of the two losses.
-
-    Args:
-        model: SparseEncoder model
-        beta: Weight for the L_aux component in the reconstruction loss
-        gamma: Weight for the contrastive MRL loss component
-        scale: Scale factor for the similarity scores in the MRL loss
-
-    References:
-        - For more details, see the paper "Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation"
-          https://arxiv.org/abs/2503.01776
-
-    Requirements:
-        1. Sentence pairs or triplets for the MRL component
-        2. Uses autoencoder components of the SparseEncoder model
-
-    Relations:
-        - Uses :class:`CSRReconstructionLoss` for the reconstruction component
-        - Uses :class:`SparseMultipleNegativesRankingLoss` for the contrastive component
-
-    Example:
-        ::
-
-            from datasets import Dataset
-
-            from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
-
-            model = SparseEncoder("sentence-transformers/all-MiniLM-L6-v2")
-            train_dataset = Dataset.from_dict(
-                {
-                    "anchor": ["It's nice weather outside today.", "He drove to work."],
-                    "positive": ["It's so sunny.", "He took the car to the office."],
-                    "negative": ["It's quite rainy, sadly.", "She walked to the store."],
-                }
-            )
-            loss = losses.CSRLoss(model, beta=0.1, gamma=1.0, scale=20.0)
-
-            trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
-            trainer.train()
-    """
-
     def __init__(self, model: SparseEncoder, beta: float = 0.1, gamma: float = 1.0, scale: float = 20.0):
+        """
+        CSRLoss implements a combined loss function for Contrastive Sparse Representation (CSR) models.
+
+        This loss combines two components:
+        1. A reconstruction loss :class:`CSRReconstructionLoss` that ensures the sparse representation can faithfully
+           reconstruct the original embedding.
+        2. A contrastive learning component :class:`SparseMultipleNegativesRankingLoss` that ensures semantically
+           similar sentences have similar representations.
+
+        The total loss is linear combination of the two losses.
+
+        Args:
+            model: SparseEncoder model
+            beta: Weight for the L_aux component in the reconstruction loss
+            gamma: Weight for the contrastive MRL loss component
+            scale: Scale factor for the similarity scores in the MRL loss
+
+        References:
+            - For more details, see the paper "Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation"
+              https://arxiv.org/abs/2503.01776
+
+        Requirements:
+            1. Sentence pairs or triplets for the MRL component
+            2. Uses autoencoder components of the SparseEncoder model
+
+        Relations:
+            - Uses :class:`CSRReconstructionLoss` for the reconstruction component
+            - Uses :class:`SparseMultipleNegativesRankingLoss` for the contrastive component
+
+        Example:
+            ::
+
+                from datasets import Dataset
+
+                from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
+
+                model = SparseEncoder("sentence-transformers/all-MiniLM-L6-v2")
+                train_dataset = Dataset.from_dict(
+                    {
+                        "anchor": ["It's nice weather outside today.", "He drove to work."],
+                        "positive": ["It's so sunny.", "He took the car to the office."],
+                        "negative": ["It's quite rainy, sadly.", "She walked to the store."],
+                    }
+                )
+                loss = losses.CSRLoss(model, beta=0.1, gamma=1.0, scale=20.0)
+
+                trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
+                trainer.train()
+        """
         super().__init__()
         self.model = model
         self.beta = beta
