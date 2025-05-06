@@ -259,7 +259,7 @@ class SparseEncoder(SentenceTransformer):
                 Defaults to False.
             convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse tensor
                 Defaults to True.
-            save_on_cpu (bool, optional):  Whether the output should be move on cpu or stay on the device it have been compute on.
+            save_to_cpu (bool, optional):  Whether the output should be moved to cpu or stay on the device it has been computed on.
                 Defaults to False
             device (str, optional): Which :class:`torch.device` to use for the computation. Defaults to None.
 
