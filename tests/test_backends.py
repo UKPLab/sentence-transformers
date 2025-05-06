@@ -17,6 +17,11 @@ try:
 except ImportError:
     pytest.skip("OpenVINO and ONNX backends are not available", allow_module_level=True)
 
+try:
+    from optimum.intel import IPEXModel
+except ImportError:
+    pytest.skip("IPEX backend is not available", allow_module_level=True)
+
 from sentence_transformers import SentenceTransformer
 
 if is_ci():
@@ -26,10 +31,7 @@ if is_ci():
 ## Testing exporting:
 @pytest.mark.parametrize(
     ["backend", "expected_auto_model_class"],
-    [
-        ("onnx", ORTModelForFeatureExtraction),
-        ("openvino", OVModelForFeatureExtraction),
-    ],
+    [("onnx", ORTModelForFeatureExtraction), ("openvino", OVModelForFeatureExtraction), ("ipex", IPEXModel)],
 )
 @pytest.mark.parametrize(
     "model_kwargs", [{}, {"file_name": "wrong_file_name"}]
