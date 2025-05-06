@@ -50,7 +50,6 @@ class SparseCosineSimilarityLoss(CosineSimilarityLoss):
             ::
 
                 from datasets import Dataset
-
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
                 model = SparseEncoder("distilbert/distilbert-base-uncased")

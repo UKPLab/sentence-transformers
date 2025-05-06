@@ -41,6 +41,7 @@ class SparseRerankingEvaluator(RerankingEvaluator):
 
     Example:
         ::
+
             import logging
 
             from datasets import load_dataset

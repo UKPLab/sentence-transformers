@@ -37,18 +37,18 @@ class SpladeLoss(nn.Module):
 
         Args:
             model: SparseEncoder model
-            main_loss: The principal loss function to use (can be SparseMarginMSELoss, SparseDistillKLDivLoss,
-                       or SparseMultipleNegativesRankingLoss)
+            main_loss: The principal loss function to use (can be :class:`~sentence_transformers.sparse_encoder.losses.SparseMarginMSELoss`, :class:`~sentence_transformers.sparse_encoder.losses.SparseDistillKLDivLoss`,
+                       or :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`)
             lambda_corpus: Regularization weight for corpus (document) embeddings
             lambda_query: Regularization weight for query embeddings
 
         References:
             - For more details, see the paper "From Distillation to Hard Negative Sampling: Making Sparse Neural IR Models More Effective"
-                https://arxiv.org/abs/2205.04733
+              https://arxiv.org/abs/2205.04733
 
         Requirements:
             1. Input requirements depend on the chosen main_loss
-            2. Usually used with a teacher model in a knowledge distillation setup and associate main_loss
+            2. Usually used with a teacher model in a knowledge distillation setup and an associated main_loss
 
         Example:
             ::

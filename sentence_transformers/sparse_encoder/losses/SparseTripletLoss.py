@@ -42,7 +42,6 @@ class SparseTripletLoss(TripletLoss):
             ::
 
                 from datasets import Dataset
-
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
                 model = SparseEncoder("naver/splade-cocondenser-ensembledistil")

@@ -36,7 +36,7 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
             +------------------------------------------------+------------------------------------------------------------+
 
         Relations:
-            - Similar to :class:`~sentence_transformers.sparse_encoder.losses.MarginMSELoss` but uses KL divergence instead of MSE
+            - Similar to :class:`~sentence_transformers.sparse_encoder.losses.SparseMarginMSELoss` but uses KL divergence instead of MSE
             - More suited for distillation tasks where preserving ranking is important
 
         Example:
@@ -46,7 +46,6 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
             ::
 
                 from datasets import Dataset
-
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
                 student_model = SparseEncoder("prithivida/Splade_PP_en_v1")

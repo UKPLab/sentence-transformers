@@ -80,7 +80,7 @@ class SparseEncoder(SentenceTransformer):
 
     Args:
         model_name_or_path (str, optional): If it is a filepath on disc, it loads the model from that path. If it is not a path,
-            it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model
+            it first tries to download a pre-trained SparseEncoder model. If that fails, tries to construct a model
             from the Hugging Face Hub with that name.
         modules (Iterable[nn.Module], optional): A list of torch Modules that should be called sequentially, can be used to create custom
             SentenceTransformer models from scratch.
@@ -257,7 +257,7 @@ class SparseEncoder(SentenceTransformer):
                 to get all output values. Defaults to "sentence_embedding".
             convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
                 Defaults to False.
-            convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse tensor
+            convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse tensor.
                 Defaults to True.
             save_to_cpu (bool, optional):  Whether the output should be moved to cpu or stay on the device it has been computed on.
                 Defaults to False

@@ -31,7 +31,6 @@ class CSRReconstructionLoss(nn.Module):
         2. A secondary reconstruction loss (L_4k) that measures the error using the top-4k sparse components.
         3. An auxiliary loss (L_aux) that helps to learn residual information.
 
-
         Args:
             model: SparseEncoder model with autoencoder components
             beta: Weight for the auxiliary loss component (L_aux)

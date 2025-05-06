@@ -39,7 +39,7 @@ class SparseCachedMultipleNegativesRankingLoss(CachedMultipleNegativesRankingLos
             model: SparseEncoder model
             scale: Output of similarity function is multiplied by scale value
             similarity_fct: similarity function between sentence embeddings.
-            By default, dot product. Can also be set to cosine similarity (and then set scale to 20)
+                By default, dot product. Can also be set to cosine similarity (and then set scale to 20)
             mini_batch_size: Mini-batch size for the forward pass, this denotes how much memory is actually used during
                 training and evaluation. The larger the mini-batch size, the more memory efficient the training is, but
                 the slower the training will be. It's recommended to set it as high as your GPU memory allows. The default
@@ -78,7 +78,6 @@ class SparseCachedMultipleNegativesRankingLoss(CachedMultipleNegativesRankingLos
             ::
 
                 from datasets import Dataset
-
                 from sentence_transformers.sparse_encoder import (
                     SparseEncoder,
                     SparseEncoderTrainer,

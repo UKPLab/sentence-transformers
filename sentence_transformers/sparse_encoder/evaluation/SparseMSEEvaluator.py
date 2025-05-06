@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 class SparseMSEEvaluator(MSEEvaluator):
     """
-    This evaluator extends :class:`MSEEvaluator' but is specifically designed for sparse encoder models.
+    This evaluator extends :class:`~sentence_transformers.evaluation.MSEEvaluator` but is specifically designed for sparse encoder models.
 
-    models but doesn't take benefit of the sparse tensor torch representation yet, Memory issues may occur.
+    Note that this evaluator doesn't take benefit of the sparse tensor torch representation yet, so memory issues may occur.
 
     Computes the mean squared error (x100) between the computed sentence embedding
     and some target sentence embedding.
 
-    The MSE is computed between ||teacher.encode(source_sentences) - student.encode(target_sentences)||.
+    The MSE is computed between ``||teacher.encode(source_sentences) - student.encode(target_sentences)||``.
 
     For multilingual knowledge distillation (https://arxiv.org/abs/2004.09813), source_sentences are in English
     and target_sentences are in a different language like German, Chinese, Spanish...

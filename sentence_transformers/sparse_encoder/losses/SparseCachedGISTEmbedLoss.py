@@ -80,7 +80,6 @@ class SparseCachedGISTEmbedLoss(CachedGISTEmbedLoss):
             ::
 
                 from datasets import Dataset
-
                 from sentence_transformers.sparse_encoder import (
                     SparseEncoder,
                     SparseEncoderTrainer,
