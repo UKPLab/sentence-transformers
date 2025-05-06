@@ -156,10 +156,10 @@ Sparse Encoder
 
 Characteristics of Sparse Encoder models:
 
-1. Calculates **sparse vector representations** where most dimensions are zero
-2. Provides **efficiency benefits** for large-scale retrieval systems due to the sparse nature of embeddings
-3. Often **more interpretable** than dense embeddings, with non-zero dimensions corresponding to specific tokens
-4. **Complementary to dense embeddings**, enabling hybrid search systems that combine the strengths of both approaches
+1. Calculates **sparse vector representations** where most dimensions are zero.
+2. Provides **efficiency benefits** for large-scale retrieval systems due to the sparse nature of embeddings.
+3. Often **more interpretable** than dense embeddings, with non-zero dimensions corresponding to specific tokens.
+4. **Complementary to dense embeddings**, enabling hybrid search systems that combine the strengths of both approaches.
 
 The usage for Sparse Encoder models follows a similar pattern to Sentence Transformers:
 
