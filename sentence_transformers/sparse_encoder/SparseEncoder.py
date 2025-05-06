@@ -238,7 +238,7 @@ class SparseEncoder(SentenceTransformer):
         **kwargs: Any,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
-        Computes sentence embeddings.
+        Computes sparse sentence embeddings.
 
         Args:
             sentences (Union[str, List[str]]): The sentences to embed.
