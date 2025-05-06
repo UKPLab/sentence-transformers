@@ -85,7 +85,8 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             (3) A 2nd embedding step with gradients/computation graphs and connect the cached gradients into the backward chain.
 
         Notes: All steps are done with mini-batches. In the original implementation of GradCache, (2) is not done in mini-batches and
-        requires a lot memory when batch size large. One drawback is about the speed. GradCache will sacrifice around 20% computation time according to the paper.
+        requires a lot memory when the batch size is large. One drawback is about the speed. Gradient caching will sacrifice
+        around 20% computation time according to the paper.
 
         Args:
             model: SentenceTransformer model
@@ -104,7 +105,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
         Requirements:
             1. (anchor, positive) pairs or (anchor, positive, negative pairs)
-            2. Should be used with large batch sizes for superior performance, but has slower training time than :class:`MultipleNegativesRankingLoss`
+            2. Should be used with large `per_device_train_batch_size` and low `mini_batch_size` for superior performance, but slower training time than :class:`MultipleNegativesRankingLoss`.
 
         Inputs:
             +-------------------------------------------------+--------+
@@ -137,7 +138,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
                     "anchor": ["It's nice weather outside today.", "He drove to work."],
                     "positive": ["It's so sunny.", "He took the car to the office."],
                 })
-                loss = losses.CachedGISTEmbedLoss(model, mini_batch_size=64)
+                loss = losses.CachedMultipleNegativesRankingLoss(model, mini_batch_size=64)
 
                 trainer = SentenceTransformerTrainer(
                     model=model,
@@ -213,15 +214,14 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
     def calculate_loss_and_cache_gradients(self, reps: list[list[Tensor]]) -> Tensor:
         """Calculate the cross-entropy loss and cache the gradients wrt. the embeddings."""
-        loss = self.calculate_loss(reps)
-        loss.backward()
+        loss = self.calculate_loss(reps, with_backward=True)
         loss = loss.detach().requires_grad_()
 
         self.cache = [[r.grad for r in rs] for rs in reps]  # e.g. 3 * bsz/mbsz * (mbsz, hdim)
 
         return loss
 
-    def calculate_loss(self, reps: list[list[Tensor]]) -> Tensor:
+    def calculate_loss(self, reps: list[list[Tensor]], with_backward: bool = False) -> Tensor:
         """Calculate the cross-entropy loss. No need to cache the gradients."""
         embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
         embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
@@ -241,6 +241,9 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             e = b + self.mini_batch_size
             scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
             loss_mbatch: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e]) * len(scores) / batch_size
+            if with_backward:
+                loss_mbatch.backward()
+                loss_mbatch = loss_mbatch.detach()
             losses.append(loss_mbatch)
 
         loss = sum(losses)
@@ -276,7 +279,11 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         return loss
 
     def get_config_dict(self) -> dict[str, Any]:
-        return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
+        return {
+            "scale": self.scale,
+            "similarity_fct": self.similarity_fct.__name__,
+            "mini_batch_size": self.mini_batch_size,
+        }
 
     @property
     def citation(self) -> str:

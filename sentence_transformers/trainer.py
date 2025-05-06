@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Callable
 import torch
 from packaging.version import parse as parse_version
 from torch import nn
-from torch.utils.data import BatchSampler, ConcatDataset, DataLoader, SubsetRandomSampler
+from torch.utils.data import BatchSampler, ConcatDataset, DataLoader, RandomSampler
 from transformers import EvalPrediction, PreTrainedTokenizerBase, Trainer, TrainerCallback
 from transformers import __version__ as transformers_version
 from transformers.data.data_collator import DataCollator
@@ -21,7 +21,7 @@ from transformers.trainer_utils import EvalLoopOutput
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
 from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
-from sentence_transformers.model_card import ModelCardCallback
+from sentence_transformers.model_card import SentenceTransformerModelCardCallback
 from sentence_transformers.models import Pooling
 from sentence_transformers.models.Transformer import Transformer
 from sentence_transformers.sampler import (
@@ -146,10 +146,12 @@ class SentenceTransformerTrainer(Trainer):
 
         if args is None:
             output_dir = "tmp_trainer"
-            logger.info(f"No `TrainingArguments` passed, using `output_dir={output_dir}`.")
+            logger.info(f"No `SentenceTransformerTrainingArguments` passed, using `output_dir={output_dir}`.")
             args = SentenceTransformerTrainingArguments(output_dir=output_dir)
         elif not isinstance(args, SentenceTransformerTrainingArguments):
-            raise ValueError("Please use `TrainingArguments` imported from `sentence_transformers`.")
+            raise ValueError(
+                "Please use `SentenceTransformerTrainingArguments` imported from `sentence_transformers`."
+            )
 
         if model is None:
             if model_init is not None:
@@ -206,6 +208,10 @@ class SentenceTransformerTrainer(Trainer):
             train_dataset = DatasetDict(train_dataset)
         if isinstance(eval_dataset, dict) and not isinstance(eval_dataset, DatasetDict):
             eval_dataset = DatasetDict(eval_dataset)
+
+        # Transformers v4.46.0 introduced a ValueError if `eval_dataset` is None while eval_strategy is not "no",
+        # but in Sentence Transformers you can also evaluate without an eval_dataset via an evaluator, so we set
+        # it to "dummy" in that case to avoid the ValueError
         super_kwargs = {
             "model": None if self.model_init else model,
             "args": args,
@@ -223,10 +229,18 @@ class SentenceTransformerTrainer(Trainer):
             super_kwargs["processing_class"] = tokenizer
         else:
             super_kwargs["tokenizer"] = tokenizer
+
+        # super.__init__() will still raise a ValueError if `eval_dataset` is None, `evaluator` is None,
+        # while eval_strategy is not "no", so let's get ahead of it with a more useful ST-specific error message
+        if eval_dataset is None and evaluator is None and args.eval_strategy != "no":
+            raise ValueError(
+                f"You have set `args.eval_strategy` to {args.eval_strategy}, but you didn't provide an `eval_dataset` or an `evaluator`. "
+                "Either provide an `eval_dataset` or an `evaluator` to `SentenceTransformerTrainer`, "
+                "or set `args.eval_strategy='no'` to skip evaluation."
+            )
+
         super().__init__(**super_kwargs)
-        # Transformers v4.46.0 introduced a ValueError if `eval_dataset` is None while eval_strategy is not "no",
-        # but in Sentence Transformers you can also evaluate without an eval_dataset via an evaluator, so we set
-        # it to "dummy" in that case to avoid the ValueError
+        # If the eval_dataset is "dummy", then we set it back to None
         if self.eval_dataset == "dummy":
             self.eval_dataset = None
 
@@ -295,9 +309,9 @@ class SentenceTransformerTrainer(Trainer):
             This method can be overriden by subclassing the trainer to remove/customize this callback in custom uses cases
         """
 
-        model_card_callback = ModelCardCallback(self, default_args_dict)
+        model_card_callback = SentenceTransformerModelCardCallback(default_args_dict)
         self.add_callback(model_card_callback)
-        model_card_callback.on_init_end(self.args, self.state, self.control, self.model)
+        model_card_callback.on_init_end(self.args, self.state, self.control, model=self.model, trainer=self)
 
     def call_model_init(self, trial=None) -> SentenceTransformer:
         model = super().call_model_init(trial=trial)
@@ -385,7 +399,6 @@ class SentenceTransformerTrainer(Trainer):
         # if the loss stores the model. Only called once per process
         if (
             model == self.model_wrapped
-            and model != self.model  # Only if the model is wrapped
             and hasattr(loss_fn, "model")  # Only if the loss stores the model
             and loss_fn.model != model  # Only if the wrapped model is not already stored
         ):
@@ -585,7 +598,7 @@ class SentenceTransformerTrainer(Trainer):
 
         if self.args.batch_sampler == BatchSamplers.BATCH_SAMPLER:
             return DefaultBatchSampler(
-                SubsetRandomSampler(range(len(dataset)), generator=generator),
+                RandomSampler(dataset, generator=generator),
                 batch_size=batch_size,
                 drop_last=drop_last,
             )

@@ -1,7 +1,7 @@
 [project]
 name = "sentence-transformers"
-version = "3.4.0.dev0"
-description = "State-of-the-Art Text Embeddings"
+version = "4.2.0.dev0"
+description = "Embeddings, Retrieval, and Reranking"
 license = { text = "Apache 2.0" }
 readme = "README.md"
 authors = [
@@ -38,7 +38,8 @@ dependencies = [
     "scikit-learn",
     "scipy",
     "huggingface-hub>=0.20.0",
-    "Pillow"
+    "Pillow",
+    "typing_extensions>=4.5.0",
 ]
 
 [project.urls]

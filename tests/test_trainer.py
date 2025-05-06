@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 import torch
-from datasets.dataset_dict import DatasetDict
 
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
@@ -18,7 +17,7 @@ from sentence_transformers.util import is_datasets_available, is_training_availa
 from tests.utils import SafeTemporaryDirectory
 
 if is_datasets_available():
-    from datasets import Dataset, DatasetDict, IterableDatasetDict, load_dataset
+    from datasets import Dataset, DatasetDict, IterableDatasetDict
 
 if not is_training_available():
     pytest.skip(
@@ -182,7 +181,7 @@ def test_model_card_reuse(stsb_bert_tiny_model: SentenceTransformer):
         model_path = Path(tmp_folder) / "tiny_model_local"
         stsb_bert_tiny_model.save(str(model_path))
 
-        with open(model_path / "README.md") as f:
+        with open(model_path / "README.md", encoding="utf8") as f:
             model_card_text = f.read()
         assert model_card_text == stsb_bert_tiny_model._model_card_text
 
@@ -193,7 +192,7 @@ def test_model_card_reuse(stsb_bert_tiny_model: SentenceTransformer):
         model_path = Path(tmp_folder) / "tiny_model_local"
         stsb_bert_tiny_model.save(str(model_path))
 
-        with open(model_path / "README.md") as f:
+        with open(model_path / "README.md", encoding="utf8") as f:
             model_card_text = f.read()
         assert model_card_text != stsb_bert_tiny_model._model_card_text
 
@@ -203,7 +202,12 @@ def test_model_card_reuse(stsb_bert_tiny_model: SentenceTransformer):
 @pytest.mark.parametrize("eval_dict", [False, True])
 @pytest.mark.parametrize("loss_dict", [False, True])
 def test_trainer(
-    stsb_bert_tiny_model: SentenceTransformer, streaming: bool, train_dict: bool, eval_dict: bool, loss_dict: bool
+    stsb_bert_tiny_model: SentenceTransformer,
+    stsb_dataset_dict: DatasetDict,
+    streaming: bool,
+    train_dict: bool,
+    eval_dict: bool,
+    loss_dict: bool,
 ) -> None:
     """
     Some cases are not allowed:
@@ -233,8 +237,8 @@ def test_trainer(
 
     model = stsb_bert_tiny_model
     original_model = deepcopy(model)
-    train_dataset = load_dataset("sentence-transformers/stsb", split="train[:10]")
-    eval_dataset = load_dataset("sentence-transformers/stsb", split="validation[:10]")
+    train_dataset = stsb_dataset_dict["train"].select(range(10))
+    eval_dataset = stsb_dataset_dict["validation"].select(range(10))
     loss = losses.CosineSimilarityLoss(model=model)
 
     if streaming:
@@ -645,7 +649,14 @@ def test_trainer_no_eval_dataset_with_eval_strategy(
         kwargs["evaluator"] = evaluator
 
     if not use_eval_dataset and not use_evaluator:
-        context = pytest.raises(ValueError, match=".*`args.eval_strategy`.*")
+        context = pytest.raises(
+            ValueError,
+            match=(
+                "You have set `args.eval_strategy` to (IntervalStrategy.STEPS|steps), but you didn't provide an "
+                "`eval_dataset` or an `evaluator`. Either provide an `eval_dataset` or an `evaluator` "
+                "to `SentenceTransformerTrainer`, or set `args.eval_strategy='no'` to skip evaluation."
+            ),
+        )
     else:
         context = nullcontext()
 

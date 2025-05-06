@@ -120,7 +120,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         # Return negative score as SentenceTransformers maximizes the performance
         metrics = {"negative_mse": -np.mean(mse_scores).item()}
         metrics = self.prefix_name_to_metrics(metrics, self.name)
-        self.store_metrics_in_model_card_data(model, metrics)
+        self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
 
     @property

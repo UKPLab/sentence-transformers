@@ -28,7 +28,7 @@ class OnlineContrastiveLoss(nn.Module):
                 of at least the margin value.
 
         References:
-            - `Training Examples > Quora Duplicate Questions <../../examples/training/quora_duplicate_questions/README.html>`_
+            - `Training Examples > Quora Duplicate Questions <../../../examples/sentence_transformer/training/quora_duplicate_questions/README.html>`_
 
         Requirements:
             1. (anchor, positive/negative) pairs

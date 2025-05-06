@@ -212,7 +212,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             self.primary_metric = f"{self.similarity_fn_names[0]}_ap"
 
         metrics = self.prefix_name_to_metrics(metrics, self.name)
-        self.store_metrics_in_model_card_data(model, metrics)
+        self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
 
     def compute_metrices(self, model: SentenceTransformer) -> dict[str, dict[str, float]]:
@@ -223,14 +223,18 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                 sentences = list(set(self.sentences1 + self.sentences2))
             except TypeError:
                 # Otherwise we just embed everything, e.g. if the sentences are images for evaluating a CLIP model
-                embeddings = model.encode(
-                    self.sentences1 + self.sentences2,
+                embeddings1 = model.encode(
+                    self.sentences1,
                     batch_size=self.batch_size,
                     show_progress_bar=self.show_progress_bar,
                     convert_to_numpy=True,
                 )
-                embeddings1 = embeddings[: len(self.sentences1)]
-                embeddings2 = embeddings[len(self.sentences1) :]
+                embeddings2 = model.encode(
+                    self.sentences2,
+                    batch_size=self.batch_size,
+                    show_progress_bar=self.show_progress_bar,
+                    convert_to_numpy=True,
+                )
             else:
                 embeddings = model.encode(
                     sentences,
@@ -362,3 +366,9 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
                     threshold = (rows[i][0] + rows[i + 1][0]) / 2
 
         return best_f1, best_precision, best_recall, threshold
+
+    def get_config_dict(self):
+        config_dict = {}
+        if self.truncate_dim is not None:
+            config_dict["truncate_dim"] = self.truncate_dim
+        return config_dict

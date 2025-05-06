@@ -8,9 +8,9 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import TripletEvaluator
 
 
-def test_TripletEvaluator(stsb_bert_tiny_model_reused: SentenceTransformer) -> None:
+def test_TripletEvaluator(stsb_bert_tiny_model: SentenceTransformer) -> None:
     """Tests that the TripletEvaluator can be loaded & used"""
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     anchors = [
         "A person on a horse jumps over a broken down airplane.",
         "Children smiling and waving at camera",

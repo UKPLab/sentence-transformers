@@ -120,6 +120,7 @@ class Transformer(nn.Module):
         if (
             find_adapter_config_file(
                 model_name_or_path,
+                cache_dir=cache_dir,
                 token=config_args.get("token"),
                 revision=config_args.get("revision"),
                 local_files_only=config_args.get("local_files_only", False),
@@ -454,12 +455,15 @@ class Transformer(nn.Module):
 
     def forward(self, features: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
         """Returns token_embeddings, cls_token"""
-        trans_features = {"input_ids": features["input_ids"], "attention_mask": features["attention_mask"]}
-        if "token_type_ids" in features:
-            trans_features["token_type_ids"] = features["token_type_ids"]
+        trans_features = {
+            key: value
+            for key, value in features.items()
+            if key in ["input_ids", "attention_mask", "token_type_ids", "inputs_embeds"]
+        }
 
-        output_states = self.auto_model(**trans_features, **kwargs, return_dict=False)
-        output_tokens = output_states[0]
+        outputs = self.auto_model(**trans_features, **kwargs, return_dict=True)
+        token_embeddings = outputs[0]
+        features["token_embeddings"] = token_embeddings
 
         # If the AutoModel is wrapped with a PeftModelForFeatureExtraction, then it may have added virtual tokens
         # We need to extend the attention mask to include these virtual tokens, or the pooling will fail
@@ -470,22 +474,15 @@ class Transformer(nn.Module):
                 isinstance(self.auto_model, PeftModelForFeatureExtraction)
                 and self.auto_model.active_peft_config.is_prompt_learning
             ):
-                batch_size = output_tokens.size(0)
+                batch_size = token_embeddings.size(0)
                 attention_mask = features["attention_mask"]
                 prefix_attention_mask = torch.ones(
                     batch_size, self.auto_model.active_peft_config.num_virtual_tokens, device=attention_mask.device
                 )
                 features["attention_mask"] = torch.cat((prefix_attention_mask, attention_mask), dim=1)
 
-        features["token_embeddings"] = output_tokens
-
-        if self.auto_model.config.output_hidden_states and len(output_states) > 2:
-            all_layer_idx = 2  # I.e. after last_hidden_states and pooler_output
-            if len(output_states) < 3:  # Some models only output last_hidden_states and all_hidden_states
-                all_layer_idx = 1
-
-            hidden_states = output_states[all_layer_idx]
-            features["all_layer_embeddings"] = hidden_states
+        if self.auto_model.config.output_hidden_states and "hidden_states" in outputs:
+            features["all_layer_embeddings"] = outputs["hidden_states"]
 
         return features
 

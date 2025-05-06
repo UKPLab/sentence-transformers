@@ -138,9 +138,15 @@ class MSEEvaluator(SentenceEvaluator):
         # Return negative score as SentenceTransformers maximizes the performance
         metrics = {"negative_mse": -mse}
         metrics = self.prefix_name_to_metrics(metrics, self.name)
-        self.store_metrics_in_model_card_data(model, metrics)
+        self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
 
     @property
     def description(self) -> str:
         return "Knowledge Distillation"
+
+    def get_config_dict(self):
+        config_dict = {}
+        if self.truncate_dim is not None:
+            config_dict["truncate_dim"] = self.truncate_dim
+        return config_dict

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import numpy as np
 import pytest
 from tokenizers import Tokenizer
 
+from sentence_transformers import SentenceTransformer
 from sentence_transformers.models.StaticEmbedding import StaticEmbedding
 
 try:
@@ -16,7 +18,7 @@ except ImportError:
 skip_if_no_model2vec = pytest.mark.skipif(model2vec is None, reason="The model2vec library is not installed.")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def tokenizer() -> Tokenizer:
     return Tokenizer.from_pretrained("bert-base-uncased")
 
@@ -74,3 +76,15 @@ def test_from_distillation() -> None:
 def test_from_model2vec() -> None:
     model = StaticEmbedding.from_model2vec("minishlab/M2V_base_output")
     assert model.embedding.weight.shape == (29528, 256)
+
+
+def test_loading_model2vec() -> None:
+    model = SentenceTransformer("minishlab/potion-base-8M")
+    assert model.get_sentence_embedding_dimension() == 256
+    assert model.max_seq_length == math.inf
+
+    test_sentences = ["It's so sunny outside!", "The sun is shining outside!"]
+    embeddings = model.encode(test_sentences)
+    assert embeddings.shape == (2, 256)
+    similarity = model.similarity(embeddings[0], embeddings[1])
+    assert similarity.item() > 0.7

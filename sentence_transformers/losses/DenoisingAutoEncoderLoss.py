@@ -35,7 +35,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
 
         References:
             * TSDAE paper: https://arxiv.org/pdf/2104.06979.pdf
-            * `Unsupervised Learning > TSDAE <../../examples/unsupervised_learning/TSDAE/README.html>`_
+            * `Unsupervised Learning > TSDAE <../../../examples/sentence_transformer/unsupervised_learning/TSDAE/README.html>`_
 
         Requirements:
             1. The decoder should have a class called XXXLMHead (in the context of Hugging Face's Transformers)
