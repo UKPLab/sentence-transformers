@@ -836,6 +836,13 @@ class SparseEncoder(SentenceTransformer):
         """
         return super().max_seq_length
 
+    @max_seq_length.setter
+    def max_seq_length(self, value) -> None:
+        """
+        Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
+        """
+        self._first_module().max_seq_length = value
+
     @contextmanager
     def truncate_sentence_embeddings(self, truncate_dim: int | None) -> Iterator[None]:
         """
