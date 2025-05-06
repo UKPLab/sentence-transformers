@@ -132,9 +132,7 @@ The advantages of Sparse Vectors for search are:
 
 ## Qdrant Integration
 
-```{eval-rst}
-This example demonstrates how to set up Qdrant for sparse vector search by showing how to efficiently encode and index documents with sparse encoders, formulating search queries with sparse vectors, and providing an interactive query interface. See `semantic_search_qdrant.py <semantic_search_qdrant.py>`_ or below: 
-```
+This example demonstrates how to set up Qdrant for sparse vector search by showing how to efficiently encode and index documents with sparse encoders, formulating search queries with sparse vectors, and providing an interactive query interface. See [semantic_search_qdrant.py](semantic_search_qdrant.py) or below: 
 
 ### Prerequisites:
 - Qdrant running locally (or accessible), see the [Qdrant Quickstart](https://qdrant.tech/documentation/quickstart/) for more details.
@@ -208,9 +206,7 @@ This example demonstrates how to set up Qdrant for sparse vector search by showi
 
 ## Elasticsearch Integration
 
-```{eval-rst}
-This example demonstrates how to set up Elasticsearch for sparse vector search by showing how to efficiently encode and index documents with sparse encoders, formulating search queries with sparse vectors, and providing an interactive query interface. See `semantic_search_elasticsearch.py <semantic_search_elasticsearch.py>`_ or below:
-```
+This example demonstrates how to set up Elasticsearch for sparse vector search by showing how to efficiently encode and index documents with sparse encoders, formulating search queries with sparse vectors, and providing an interactive query interface. See [semantic_search_elasticsearch.py](semantic_search_elasticsearch.py) or below:
 
 ### Prerequisites:
 - Elasticsearch running locally (or accessible), see [Elasticsearch locally](https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html) for more details.
@@ -281,4 +277,3 @@ This example demonstrates how to set up Elasticsearch for sparse vector search b
         # 10. Prompt for more queries
         queries = [input("Please enter a question: ")]
 ```
-
