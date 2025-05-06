@@ -61,7 +61,7 @@ The model will automatically be placed on the most performant available device, 
 Calculating Embeddings
 ----------------------
 
-The method to calculate embeddings is :meth:`SentenceTransformer.encode< sentence_transformers.SentenceTransformer.encode>`.
+The method to calculate embeddings is :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>`.
 
 
 Prompt Templates
