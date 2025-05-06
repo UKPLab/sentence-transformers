@@ -207,7 +207,7 @@ The usage for Sparse Encoder models follows a similar pattern to Sentence Transf
    # 4. Check sparsity statistics
    stats = SparseEncoder.get_sparsity_stats(embeddings)
    print(f"Sparsity: {stats['row_sparsity_mean']:.2%}")  # Typically >99% zeros
-   print(f"Avg non-zeros per embedding: {stats['row_non_zero_mean']}")
+   print(f"Avg non-zero dimensions per embedding: {stats['row_non_zero_mean']:.2f}")
 
 With ``SparseEncoder("naver/splade-cocondenser-ensembledistil")`` we load a pretrained SPLADE model that generates sparse embeddings. SPLADE (SParse Lexical AnD Expansion) models use MLM prediction mechanisms to create sparse representations that are particularly effective for information retrieval tasks.
 
