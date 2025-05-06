@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from .CSRLoss import CSRLoss
-from .CSRReconstructionLoss import CSRReconstructionLoss
+from .CSRLoss import CSRLoss, CSRReconstructionLoss
 from .FlopsLoss import FlopsLoss
 from .SparseAnglELoss import SparseAnglELoss
 from .SparseCachedGISTEmbedLoss import SparseCachedGISTEmbedLoss
