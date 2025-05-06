@@ -177,6 +177,9 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
+        for key in ["num_cols", "row_non_zero_mean", "row_sparsity_mean"]:
+            self.queries_info.pop(key, None)
+            self.corpus_info.pop(key, None)
         return super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps, *args, **kwargs)
 
     def compute_metrices(
