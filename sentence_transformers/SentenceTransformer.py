@@ -1749,12 +1749,19 @@ print(similarities)
             # Backwards compatibility: if the module is older and its `load` method only supports one parameter,
             # a path to a local directory containing the module files, then we load it with the old style
             load_signature = inspect.signature(module_class.load)
+            # Check if the `load` method only accepts a single parameter (the path to the local directory).
+            # This indicates an older module that does not support the newer loading method with multiple arguments.
             if len(load_signature.parameters) == 1:
                 signature = inspect.signature(module_class.__init__)
-                # If the module is likely Transformer-based, we try to load it with __init__ with common Transformer
-                # keyword arguments (model_args, config_args, tokenizer_args, etc.)
-                # E.g. models with custom modules on the Hub, like https://huggingface.co/jinaai/jina-embeddings-v3
+                # If the module's `__init__` method contains specific keyword arguments like `model_args` and `config_args`,
+                # it is likely Transformer-based. These arguments are commonly used in Transformer models to configure
+                # the model and tokenizer during initialization.
+                # Example: Models with custom modules on the Hugging Face Hub like
+                # https://huggingface.co/jinaai/jina-embeddings-v3 may use this logic.
                 if {"model_args", "config_args"} <= set(signature.parameters):
+                    # Load initialization arguments specific to Transformer-based modules. This includes
+                    # arguments for loading the model, tokenizer, and configuration, as well as any
+                    # additional module-specific keyword arguments.
                     common_transformer_init_kwargs = Transformer._load_init_kwargs(
                         model_name_or_path,
                         # Loading-specific keyword arguments
