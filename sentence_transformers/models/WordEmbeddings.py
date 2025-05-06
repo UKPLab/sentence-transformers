@@ -3,7 +3,11 @@ from __future__ import annotations
 import gzip
 import logging
 import os
-from typing import Self
+
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 import numpy as np
 import torch

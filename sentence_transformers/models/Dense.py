@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from typing import Callable, Self
+from typing import Callable
+
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 from torch import Tensor, nn
 

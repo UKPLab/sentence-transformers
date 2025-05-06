@@ -5,7 +5,12 @@ import logging
 import os
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Self
+from typing import TYPE_CHECKING, Any, Callable
+
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 import huggingface_hub
 import torch

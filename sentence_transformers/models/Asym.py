@@ -3,7 +3,11 @@ from __future__ import annotations
 import json
 import os
 from collections import OrderedDict
-from typing import Self
+
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 from torch import Tensor, nn
 

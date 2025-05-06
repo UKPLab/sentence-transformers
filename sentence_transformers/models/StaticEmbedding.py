@@ -3,7 +3,11 @@ from __future__ import annotations
 import math
 import os
 from pathlib import Path
-from typing import Self
+
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 import numpy as np
 import torch
