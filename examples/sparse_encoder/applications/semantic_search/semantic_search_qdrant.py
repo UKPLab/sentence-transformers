@@ -19,8 +19,9 @@ from sentence_transformers import SparseEncoder
 from sentence_transformers.sparse_encoder.search_engines import semantic_search_qdrant
 
 # 1. Load the natural-questions dataset with 100K answers
-dataset = load_dataset("sentence-transformers/natural-questions", split="train", trust_remote_code=True)
-corpus = dataset["answer"]
+dataset = load_dataset("sentence-transformers/natural-questions", split="train")
+num_docs = 10_000
+corpus = dataset["answer"][:num_docs]
 
 # 2. Come up with some queries
 queries = dataset["query"][:2]
