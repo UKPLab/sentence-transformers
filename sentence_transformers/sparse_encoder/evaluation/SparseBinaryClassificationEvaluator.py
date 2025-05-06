@@ -41,6 +41,7 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
 
     Example:
         ::
+
             import logging
 
             from datasets import load_dataset
