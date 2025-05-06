@@ -95,7 +95,6 @@ class SparseCachedMultipleNegativesRankingLoss(CachedMultipleNegativesRankingLos
                 )
                 loss = losses.SparseCachedMultipleNegativesRankingLoss(model, mini_batch_size=8, show_progress_bar=True)
 
-
                 trainer = SparseEncoderTrainer(
                     model=model,
                     train_dataset=train_dataset,
