@@ -63,10 +63,10 @@ class SpladeLambdaSchedulerCallback(TrainerCallback):
             )
             raise ValueError("loss must be an instance of SpladeLoss")
         self.loss = loss
-        self.max_lambda_query = self.loss.lambda_query
         self.max_lambda_corpus = self.loss.lambda_corpus
+        self.max_lambda_query = self.loss.lambda_query
         self.warmup_ratio = warmup_ratio
-        self._current_lambda_query = 0.0
+        self._current_lambda_query = 0.0 if self.max_lambda_query is not None else None
         self._current_lambda_corpus = 0.0
         self.total_steps = None
         self.warmup_steps = None
@@ -98,7 +98,7 @@ class SpladeLambdaSchedulerCallback(TrainerCallback):
 
     def _calculate_lambda_value(self, step: int, max_value: float) -> float:
         """Calculate the lambda value based on the current step and scheduler type."""
-        if self.warmup_steps is None or step >= self.warmup_steps:
+        if self.warmup_steps is None or step >= self.warmup_steps or max_value is None:
             return max_value
 
         ratio = step / max(self.warmup_steps, 1)  # Avoid division by zero
@@ -140,5 +140,6 @@ class SpladeLambdaSchedulerCallback(TrainerCallback):
 
     def on_log(self, args, state, control, model=None, logs=None, **kwargs):
         """Log the current lambda values."""
-        logs["lambda_query"] = self._current_lambda_query
         logs["lambda_corpus"] = self._current_lambda_corpus
+        if self._current_lambda_query is not None:
+            logs["lambda_query"] = self._current_lambda_query

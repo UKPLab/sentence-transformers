@@ -10,6 +10,27 @@ Sadly, there is no "one size fits all" loss function. Which loss function is sui
 .. autoclass:: sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss
 ```
 
+## SparseMarginMSELoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.sparse_encoder.losses.SparseMarginMSELoss
+```
+
+## SparseDistillKLDivLoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.sparse_encoder.losses.SparseDistillKLDivLoss
+``` 
+
+## SpladeLoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.sparse_encoder.losses.SpladeLoss
+```
+
+## RegularizerLoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.sparse_encoder.losses.FlopsLoss
+.. autoclass:: sentence_transformers.sparse_encoder.losses.IDFFlopsLoss
+```
+
 ## SparseCachedMultipleNegativesRankingLoss
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.losses.SparseCachedMultipleNegativesRankingLoss
@@ -25,16 +46,6 @@ Sadly, there is no "one size fits all" loss function. Which loss function is sui
 .. autoclass:: sentence_transformers.sparse_encoder.losses.SparseMSELoss
 ```
 
-## SparseMarginMSELoss
-```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.SparseMarginMSELoss
-```
-
-## SpladeLoss
-```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.SpladeLoss
-```
-
 ## CSRLoss
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.losses.CSRLoss
@@ -43,11 +54,6 @@ With associated ReconstructionLoss :
 
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.losses.CSRReconstructionLoss
-```
-
-## FlopsLoss
-```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.FlopsLoss
 ```
 
 ## SparseCosineSimilarityLoss
@@ -74,8 +80,3 @@ With associated ReconstructionLoss :
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.losses.SparseCachedGISTEmbedLoss
 ```
-
-## SparseDistillKLDivLoss
-```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.SparseDistillKLDivLoss
-``` 

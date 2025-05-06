@@ -188,7 +188,7 @@ if __name__ == "__main__":
 
     # Create IDF model with tokenizer
     idf_model = IDF.from_json(
-        "runs/opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill/idf.json",
+        "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill/idf.json",
         tokenizer=doc_encoder.tokenizer,
         frozen=True,
     )

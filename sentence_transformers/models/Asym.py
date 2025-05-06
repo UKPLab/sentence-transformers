@@ -115,12 +115,11 @@ class Asym(nn.Sequential):
             tokenizer_types = {
                 key: type(tokenizer).__name__ for key, tokenizer in self.tokenizers.items() if tokenizer is not None
             }
-            tokenizer_vocebularies = {
-                key: tokenizer.get_vocab() if tokenizer is not None else None
-                for key, tokenizer in self.tokenizers.items()
+            tokenizer_vocabularies = {
+                key: len(tokenizer.get_vocab()) for key, tokenizer in self.tokenizers.items() if tokenizer is not None
             }
 
-            if len(set(tokenizer_types.values())) > 1 or len(set(tokenizer_vocebularies.values())) > 1:
+            if len(set(tokenizer_types.values())) > 1 or len(set(tokenizer_vocabularies.values())) > 1:
                 logger.warning(
                     f"Different tokenizer types detected across modules: {tokenizer_types}. "
                     "This may cause issues when processing mixed batches."

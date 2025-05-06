@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .CSRLoss import CSRLoss, CSRReconstructionLoss
-from .FlopsLoss import FlopsLoss
+from .RegularizerLoss import FlopsLoss, IDFFlopsLoss
 from .SparseAnglELoss import SparseAnglELoss
 from .SparseCachedGISTEmbedLoss import SparseCachedGISTEmbedLoss
 from .SparseCachedMultipleNegativesRankingLoss import SparseCachedMultipleNegativesRankingLoss
@@ -30,6 +30,7 @@ __all__ = [
     "SparseAnglELoss",
     "SparseDistillKLDivLoss",
     "FlopsLoss",
+    "IDFFlopsLoss",
     "SpladeLoss",
 ]
 # TODO: Test cached losses
