@@ -1,5 +1,5 @@
-SparseEncoder
-============
+Sparse Encoder
+=============
 
 .. toctree::
 
