@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
     """
-    This evaluator extends :class:`InformationRetrievalEvaluator` but is specifically designed for sparse encoder models.
+    This evaluator extends :class:`~sentence_transformers.evaluation.InformationRetrievalEvaluator` but is specifically designed for sparse encoder models.
 
     This class evaluates an Information Retrieval (IR) setting.
 
