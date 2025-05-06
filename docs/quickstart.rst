@@ -200,10 +200,9 @@ The usage for Sparse Encoder models follows a similar pattern to Sentence Transf
    # 3. Calculate the embedding similarities (using dot product by default)
    similarities = model.similarity(embeddings, embeddings)
    print(similarities)
-   # tensor([[3.5629e+01, 9.1541e+00, 1.1269e-01],
-   #         [9.1541e+00, 2.7478e+01, 1.9061e-02],
-   #         [1.1269e-01, 1.9061e-02, 2.9612e+01]], device='cuda:0')
-
+   # tensor([[   35.6293,     9.1541,     0.1127],
+   #         [    9.1541,    27.4778,     0.0191],
+   #         [    0.1127,     0.0191,    29.6122]], device='cuda:0')
 
    # 4. Check sparsity statistics
    stats = SparseEncoder.get_sparsity_stats(embeddings)
