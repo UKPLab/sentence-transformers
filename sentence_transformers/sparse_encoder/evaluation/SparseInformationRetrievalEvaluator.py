@@ -203,7 +203,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_sparse_tensor=True,
-            save_on_cpu=True,
+            save_to_cpu=True,
             **kwargs,
         )
         sparsity_infos = model.get_sparsity_stats(embeddings)

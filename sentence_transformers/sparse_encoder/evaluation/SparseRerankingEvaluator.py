@@ -152,7 +152,7 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             show_progress_bar=show_progress_bar,
             convert_to_sparse_tensor=True,
             convert_to_tensor=False,  # as we are using slicing on sparse tensors that is not supported so we want to keep a list of sparse tensors
-            save_on_cpu=True,
+            save_to_cpu=True,
             **kwargs,
         )
 
