@@ -1,4 +1,4 @@
-# Sampler
+# Samplers
 
 SparseEncoder supports the same sampler classes as SentenceTransformer.
 
