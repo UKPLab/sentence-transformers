@@ -45,6 +45,7 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
             ::
 
+                import torch
                 from datasets import Dataset
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
@@ -60,8 +61,6 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
 
                 def compute_labels(batch):
-                    import torch
-
                     emb_queries = teacher_model.encode(batch["query"])
                     emb_positives = teacher_model.encode(batch["positive"])
                     emb_negatives = teacher_model.encode(batch["negative"])
@@ -83,6 +82,7 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
             ::
 
+                import torch
                 from datasets import Dataset
 
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
@@ -100,8 +100,6 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
 
                 def compute_labels(batch):
-                    import torch
-
                     emb_queries = teacher_model.encode(batch["query"])
                     emb_positives = teacher_model.encode(batch["positive"])
                     emb_negatives1 = teacher_model.encode(batch["negative1"])
