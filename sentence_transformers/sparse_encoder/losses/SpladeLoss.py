@@ -23,12 +23,6 @@ class PrincipalLoss(Enum):
     MRL = SparseMultipleNegativesRankingLoss
 
 
-class RegularizerLoss(Enum):
-    """The regularizer loss types for the model"""
-
-    FLOPS = FlopsLoss
-
-
 class SpladeLoss(nn.Module):
     def __init__(
         self,
@@ -53,8 +47,8 @@ class SpladeLoss(nn.Module):
                        or :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`)
             lambda_corpus: Regularization weight for corpus (document) embeddings
             lambda_query: Regularization weight for query embeddings
-            corpus_regulizer: The RegularizerLoss that will be used for the corpus. If not specify will be a FlopLoss.
-            query_regularizer: The RegularizerLoss that will be used for the query. If lambda_query is not 0 or None and this isn't specified, it will be a FlopLoss.
+            corpus_regulizer: The loss that will be used for the corpus. If not specify will be a FlopLoss.
+            query_regularizer: The loss that will be used for the query. If lambda_query is not 0 or None and this isn't specified, it will be a FlopLoss.
 
         References:
             - For more details, see the paper "From Distillation to Hard Negative Sampling: Making Sparse Neural IR Models More Effective"
@@ -111,9 +105,9 @@ class SpladeLoss(nn.Module):
             )
 
         self.corpus_regularizer = corpus_regularizer if corpus_regularizer is not None else FlopsLoss(model)
-        if self.corpus_regularizer.__class__.__name__ not in RegularizerLoss.__members__:
+        if not isinstance(self.corpus_regularizer, FlopsLoss):
             raise ValueError(
-                f"Corpus regularizer must be one of {list(RegularizerLoss.__members__.keys())}, but got {self.corpus_regularizer.__class__.__name__}"
+                f"Corpus regularizer must be an instance of FlopsLoss, but got {self.corpus_regularizer.__class__.__name__}"
             )
         if lambda_query == 0 or lambda_query is None:
             self.query_regularizer = None
@@ -121,9 +115,9 @@ class SpladeLoss(nn.Module):
             self.query_regularizer = FlopsLoss(model)
         else:
             self.query_regularizer = query_regularizer
-            if self.query_regularizer.__class__.__name__ not in RegularizerLoss.__members__:
+            if not isinstance(self.query_regularizer, FlopsLoss):
                 raise ValueError(
-                    f"Query regularizer must be one of {list(RegularizerLoss.__members__.keys())}, but got {self.query_regularizer.__class__.__name__}"
+                    f"Query regularizer must be an instance of FlopsLoss, but got {self.query_regularizer.__class__.__name__}"
                 )
 
     def forward(

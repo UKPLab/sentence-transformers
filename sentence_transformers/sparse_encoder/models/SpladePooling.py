@@ -13,20 +13,24 @@ class SpladePooling(nn.Module):
     SPLADE Pooling module for creating the sparse embeddings.
 
     This module implements the SPLADE pooling mechanism that:
-    1. Takes token logits from a masked language model (MLM)
-    2. Applies a sparse transformation using the activation function like this log(1 + activation(MLM_logits))
-    3. Applies a pooling strategy (max or sum) to produce sparse embeddings
+
+    1. Takes token logits from a masked language model (MLM).
+    2. Applies a sparse transformation using an activation function followed by log1p (i.e., log(1 + activation(MLM_logits))).
+    3. Applies a pooling strategy `max` or `sum` to produce sparse embeddings.
 
     The resulting embeddings are highly sparse and capture lexical information,
     making them suitable for efficient information retrieval.
 
     Args:
-        pooling_strategy (str): The pooling strategy to use, either "max" or "sum".
-            "max" takes the maximum value across all tokens.
-            "sum" adds the values across all tokens.
-        activation_function (str): The activation function to use, either "relu" or "log1p_relu".
-            "relu" applies the ReLU activation function.
-            "log1p_relu" applies the log(1 + exp(x)) transformation.
+        pooling_strategy (str): Pooling method across token dimensions.
+            Choices:
+                - `sum`: Sum pooling (used in original SPLADE see https://arxiv.org/pdf/2107.05720).
+                - `max`: Max pooling (used in SPLADEv2 and later models see https://arxiv.org/pdf/2109.10086 or https://arxiv.org/pdf/2205.04733).
+        activation_function (str): Activation function applied before log1p transformation.
+            Choices:
+                - `relu`: ReLU activation (standard in all Splade models).
+                - `log1p_relu`: log(1 + ReLU(x)) variant used in Opensearch Splade models see arxiv.org/pdf/2504.14839.
+        word_embedding_dimension (int, optional): Dimensionality of the output embeddings (if needed).
     """
 
     SPLADE_POOLING_MODES = ("sum", "max")
@@ -48,7 +52,7 @@ class SpladePooling(nn.Module):
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         """Forward pass of the model.
         Args:
-            features: Dictionary containing input features with 'mlm_logits' key
+            features: Dictionary containing input features with 'token_embeddings' key as MLM logits.
         Returns:
             Dictionary containing SPLADE pooled embeddings
         """

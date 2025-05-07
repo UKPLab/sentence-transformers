@@ -21,9 +21,12 @@ class FlopsLoss(nn.Module):
 
         Args:
             model: SparseEncoder model to be regularized
+            threshold: Optional threshold for the number of non-zero elements in the embeddings.
+                If specified, only embeddings with more than this number of non-zero elements will be considered.
+                This can help to ignore embeddings that are too sparse and may not contribute meaningfully to the loss.
 
         References:
-            - For further details, see: https://arxiv.org/abs/2004.05665 and on masking https://arxiv.org/pdf/2504.14839
+            - For further details, see: https://arxiv.org/pdf/2004.05665 for the general FLOPS loss and https://arxiv.org/pdf/2504.14839 for FLOPS with thresholds, a.k.a. FLOPS with l0 masking.
 
         Relations:
             - Used as a component within :class:`SpladeLoss` to regularize both query and document embeddings
