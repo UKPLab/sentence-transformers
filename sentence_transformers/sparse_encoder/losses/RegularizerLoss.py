@@ -5,8 +5,6 @@ from collections.abc import Iterable
 import torch
 from torch import Tensor, nn
 
-from sentence_transformers.models.Asym import Asym
-from sentence_transformers.sparse_encoder.models.IDF import IDF
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
 
@@ -63,21 +61,18 @@ class FlopsLoss(nn.Module):
     """
 
 
-class IDFFlopsLoss(nn.Module):
+class L0FlopsLoss(nn.Module):
     def __init__(self, model: SparseEncoder, treshold: float = 0) -> None:
         """
-        IDFFlopsLoss implements a regularization technique to promote sparsity in document embeddings by incorporating
-        inverse document frequency (IDF) information. It extends the basic FLOPs loss by weighting each dimension of
-        the embeddings according to its IDF score, encouraging sparsity especially on less informative features.
-
-        The loss is computed as the squared L2 norm of the mean masked and IDF-normalized candidate embeddings.
+        L0FlopsLoss implements a regularization technique to promote sparsity in sparse encoder models.
+        The loss is computed as the squared L2 norm of the mean masked candidate embeddings.
         Only embeddings with sufficient non-zero elements (above the specified threshold) contribute to the loss.
 
         This loss is designed to be used as a regularization component within other losses like :class:`SpladeLoss`
         and is specifically applied to document embeddings rather than query embeddings.
 
         Args:
-            model: SparseEncoder model to be regularized. Must contain an :class:`Asym` module with an :class:`IDF` submodule.
+            model: SparseEncoder model to be regularized.
             threshold: Minimum number of non-zero elements required for an embedding to be considered in the loss computation.
 
         References:
@@ -93,21 +88,6 @@ class IDFFlopsLoss(nn.Module):
         super().__init__()
         self.model = model
         self.threshold = treshold
-        self.idf_weights = None
-        # Check if it's the good format so if in modules of the model we have an Asym with an IDF
-        for module in model.modules():
-            if isinstance(module, Asym):
-                for submodule in module.modules():
-                    if isinstance(submodule, IDF):
-                        self.idf_weights = submodule.weight
-
-            if self.idf_weights is not None:
-                break
-        if self.idf_weights is None:
-            raise ValueError(
-                "The model must contain an Asym module with an IDF submodule to use IDFFlopsLoss. "
-                "Please check the model architecture."
-            )
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Compute the embeddings and distribute them to anchor and candidates (positive and optionally negatives)
@@ -122,9 +102,7 @@ class IDFFlopsLoss(nn.Module):
 
         mask = (l0_norm > self.threshold).float()
 
-        weighted_candidates = candidates / self.idf_weights
-
-        masked_candidates = weighted_candidates * mask.unsqueeze(1)
+        masked_candidates = candidates * mask.unsqueeze(1)
 
         return torch.sum(masked_candidates.mean(dim=0) ** 2)
 

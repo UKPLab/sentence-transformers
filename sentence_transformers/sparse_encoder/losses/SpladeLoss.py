@@ -8,7 +8,7 @@ import torch.nn as nn
 
 from sentence_transformers.sparse_encoder.losses import (
     FlopsLoss,
-    IDFFlopsLoss,
+    L0FlopsLoss,
     SparseDistillKLDivLoss,
     SparseMarginMSELoss,
     SparseMultipleNegativesRankingLoss,
@@ -28,7 +28,7 @@ class RegularizerLoss(Enum):
     """The regularizer loss types for the model"""
 
     FLOPS = FlopsLoss
-    IDFFLOPS = IDFFlopsLoss
+    L0FlopsLoss = L0FlopsLoss
 
 
 class SpladeLoss(nn.Module):
@@ -55,6 +55,8 @@ class SpladeLoss(nn.Module):
                        or :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`)
             lambda_corpus: Regularization weight for corpus (document) embeddings
             lambda_query: Regularization weight for query embeddings
+            corpus_regulizer: The RegularizerLoss that will be used for the corpus. If not specify will be a FlopLoss.
+            query_regularizer: The RegularizerLoss that will be used for the query. If lambda_query is not 0 or None and this isn't specified, it will be a FlopLoss.
 
         References:
             - For more details, see the paper "From Distillation to Hard Negative Sampling: Making Sparse Neural IR Models More Effective"
@@ -95,7 +97,7 @@ class SpladeLoss(nn.Module):
                     loss=losses.SparseMarginMSELoss(student_model),
                     lambda_corpus=5e-3,
                     lambda_query=0.1,
-                )
+                ) # Here the regularizer aren't specified, but the two lambdas are non-zero so the default FlopsLoss will be used for both.
 
                 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
@@ -115,7 +117,7 @@ class SpladeLoss(nn.Module):
             raise ValueError(
                 f"Corpus regularizer must be one of {list(RegularizerLoss.__members__.keys())}, but got {self.corpus_regularizer.__class__.__name__}"
             )
-        if self.corpus_regularizer.__class__.__name__ == "IDFFlopsLoss" or lambda_query == 0:
+        if self.corpus_regularizer.__class__.__name__ == "IDFFlopsLoss" or lambda_query == 0 or lambda_query is None:
             self.query_regularizer = None
         elif query_regularizer is None:
             self.query_regularizer = FlopsLoss(model)

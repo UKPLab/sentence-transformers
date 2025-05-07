@@ -28,7 +28,7 @@ Sadly, there is no "one size fits all" loss function. Which loss function is sui
 ## RegularizerLoss
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.losses.FlopsLoss
-.. autoclass:: sentence_transformers.sparse_encoder.losses.IDFFlopsLoss
+.. autoclass:: sentence_transformers.sparse_encoder.losses.L0FlopsLoss
 ```
 
 ## SparseCachedMultipleNegativesRankingLoss

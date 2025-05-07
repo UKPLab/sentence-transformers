@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from typing import TYPE_CHECKING, Any
 
@@ -11,6 +12,8 @@ from transformers import AutoTokenizer
 
 if TYPE_CHECKING:
     from transformers import PreTrainedTokenizer
+
+logger = logging.getLogger(__name__)
 
 
 class IDF(torch.nn.Module):
@@ -131,8 +134,11 @@ class IDF(torch.nn.Module):
         # Load model weights
         if os.path.exists(os.path.join(input_path, "model.safetensors")):
             weight = load_safetensors_file(os.path.join(input_path, "model.safetensors"))["weight"]
-        else:
+        elif os.path.exists(os.path.join(input_path, "pytorch_model.bin")):
             weight = torch.load(os.path.join(input_path, "pytorch_model.bin"))["weight"]
+        else:
+            logger.info("Model weights not found. Using a default IDF of ones.")
+            weight = torch.ones(config["word_embedding_dimension"], dtype=torch.float32)
 
         model = cls(weight=weight, tokenizer=tokenizer, **config)
         return model
