@@ -8,7 +8,6 @@ import torch.nn as nn
 
 from sentence_transformers.sparse_encoder.losses import (
     FlopsLoss,
-    L0FlopsLoss,
     SparseDistillKLDivLoss,
     SparseMarginMSELoss,
     SparseMultipleNegativesRankingLoss,
@@ -28,7 +27,6 @@ class RegularizerLoss(Enum):
     """The regularizer loss types for the model"""
 
     FLOPS = FlopsLoss
-    L0FlopsLoss = L0FlopsLoss
 
 
 class SpladeLoss(nn.Module):
@@ -117,7 +115,7 @@ class SpladeLoss(nn.Module):
             raise ValueError(
                 f"Corpus regularizer must be one of {list(RegularizerLoss.__members__.keys())}, but got {self.corpus_regularizer.__class__.__name__}"
             )
-        if self.corpus_regularizer.__class__.__name__ == "IDFFlopsLoss" or lambda_query == 0 or lambda_query is None:
+        if lambda_query == 0 or lambda_query is None:
             self.query_regularizer = None
         elif query_regularizer is None:
             self.query_regularizer = FlopsLoss(model)

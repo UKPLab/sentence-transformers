@@ -14,7 +14,7 @@ class SpladePooling(nn.Module):
 
     This module implements the SPLADE pooling mechanism that:
     1. Takes token logits from a masked language model (MLM)
-    2. Applies a sparse transformation using the RELU(log(1 + exp(MLM logits)))
+    2. Applies a sparse transformation using the activation function like this log(1 + activation(MLM_logits))
     3. Applies a pooling strategy (max or sum) to produce sparse embeddings
 
     The resulting embeddings are highly sparse and capture lexical information,
@@ -24,16 +24,25 @@ class SpladePooling(nn.Module):
         pooling_strategy (str): The pooling strategy to use, either "max" or "sum".
             "max" takes the maximum value across all tokens.
             "sum" adds the values across all tokens.
+        activation_function (str): The activation function to use, either "relu" or "log1p_relu".
+            "relu" applies the ReLU activation function.
+            "log1p_relu" applies the log(1 + exp(x)) transformation.
     """
 
     SPLADE_POOLING_MODES = ("sum", "max")
+    SPLADE_ACTIVATION = ["relu", "log1p_relu"]
 
-    def __init__(self, pooling_strategy: str = "max", word_embedding_dimension: int = None) -> None:
+    def __init__(
+        self, pooling_strategy: str = "max", activation_function="relu", word_embedding_dimension: int = None
+    ) -> None:
         super().__init__()
         self.pooling_strategy = pooling_strategy
         if pooling_strategy not in self.SPLADE_POOLING_MODES:
             raise ValueError("pooling_strategy must be either 'max' or 'sum'")
-        self.config_keys = ["pooling_strategy", "word_embedding_dimension"]
+        self.activation_function = activation_function
+        if activation_function not in self.SPLADE_ACTIVATION:
+            raise ValueError("activation_function must be either 'relu' or 'log1p_relu'")
+        self.config_keys = ["pooling_strategy", "activation_function", "word_embedding_dimension"]
         self.word_embedding_dimension = word_embedding_dimension  # This will be set in the forward method
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
@@ -47,7 +56,12 @@ class SpladePooling(nn.Module):
         mlm_logits = features["token_embeddings"]
 
         # Apply ReLU and log transformation for SPLADE
-        splade_scores = torch.log1p(torch.relu(mlm_logits))
+        if self.activation_function == "relu":
+            splade_scores = torch.log1p(torch.relu(mlm_logits))
+        elif self.activation_function == "log1p_relu":
+            splade_scores = torch.log1p(torch.log1p(torch.relu(mlm_logits)))
+        else:
+            raise ValueError("activation_function must be either 'relu' or 'log1p_relu'")
 
         # Pool across sequence length dimension
         if self.pooling_strategy == "max":

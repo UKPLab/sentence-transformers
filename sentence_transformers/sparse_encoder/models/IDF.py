@@ -96,6 +96,14 @@ class IDF(torch.nn.Module):
         Returns:
             IDF: An initialized IDF model.
         """
+        if not os.path.exists(json_path):
+            try:
+                from huggingface_hub import hf_hub_download
+
+                json_path = hf_hub_download(repo_id=json_path, filename="idf.json")
+            except ValueError:
+                raise ValueError(f"IDF JSON file not found at {json_path}. Please provide a valid path.")
+
         with open(json_path) as fIn:
             idf = json.load(fIn)
 
