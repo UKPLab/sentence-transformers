@@ -31,6 +31,7 @@ from torch import Tensor, device, nn
 from tqdm.autonotebook import trange
 from transformers import is_torch_npu_available
 from transformers.dynamic_module_utils import get_class_from_dynamic_module, get_relative_import_files
+from typing_extensions import deprecated
 
 from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
 from sentence_transformers.models.Module import Module
@@ -1825,7 +1826,7 @@ print(similarities)
             self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return modules, module_kwargs
 
-    # TODO: Should we also update this?
+    @deprecated("SentenceTransformer.load(...) is deprecated, use SentenceTransformer(...) instead.")
     @staticmethod
     def load(input_path) -> SentenceTransformer:
         return SentenceTransformer(input_path)
