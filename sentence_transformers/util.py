@@ -1457,7 +1457,7 @@ def is_sentence_transformer_model(
 def load_file_path(
     model_name_or_path: str,
     filename: str | Path,
-    subfolder: str = "",  # <- Should this be 'subfolder' instead? To match huggingface_hub
+    subfolder: str = "",
     token: bool | str | None = None,
     cache_folder: str | None = None,
     revision: str | None = None,
