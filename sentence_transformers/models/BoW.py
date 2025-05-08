@@ -1,23 +1,26 @@
 from __future__ import annotations
 
-import json
 import logging
-import os
 from typing import Literal
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor
+
+from sentence_transformers.models.InputModule import InputModule
 
 from .tokenizer import WhitespaceTokenizer
 
 logger = logging.getLogger(__name__)
 
 
-class BoW(nn.Module):
+class BoW(InputModule):
     """Implements a Bag-of-Words (BoW) model to derive sentence embeddings.
 
     A weighting can be added to allow the generation of tf-idf vectors. The output vector has the size of the vocab.
     """
+
+    save_in_root: bool = False
+    config_keys: list[str] = ["vocab", "word_weights", "unknown_word_weight", "cumulative_term_frequency"]
 
     def __init__(
         self,
@@ -27,8 +30,7 @@ class BoW(nn.Module):
         cumulative_term_frequency: bool = True,
     ):
         super().__init__()
-        vocab = list(set(vocab))  # Ensure vocab is unique
-        self.config_keys = ["vocab", "word_weights", "unknown_word_weight", "cumulative_term_frequency"]
+        vocab = list(dict.fromkeys(vocab))  # Ensure vocab is unique
         self.vocab = vocab
         self.word_weights = word_weights
         self.unknown_word_weight = unknown_word_weight
@@ -81,16 +83,5 @@ class BoW(nn.Module):
 
         return {"sentence_embedding": torch.stack(vectors)}
 
-    def get_config_dict(self):
-        return {key: self.__dict__[key] for key in self.config_keys}
-
-    def save(self, output_path):
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut, indent=2)
-
-    @staticmethod
-    def load(input_path):
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-
-        return BoW(**config)
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        self.save_config(output_path)

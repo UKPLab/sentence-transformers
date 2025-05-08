@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 import gzip
-import json
 import logging
 import os
 
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+
 import numpy as np
 import torch
-from safetensors.torch import load_file as load_safetensors_file
-from safetensors.torch import save_file as save_safetensors_file
 from torch import nn
 from tqdm import tqdm
 
+from sentence_transformers.models.Module import Module
 from sentence_transformers.util import fullname, http_get, import_from_string
 
 from .tokenizer import WhitespaceTokenizer, WordTokenizer
@@ -19,7 +22,10 @@ from .tokenizer import WhitespaceTokenizer, WordTokenizer
 logger = logging.getLogger(__name__)
 
 
-class WordEmbeddings(nn.Module):
+class WordEmbeddings(Module):
+    config_keys: list[str] = ["tokenizer_class", "update_embeddings", "max_seq_length"]
+    config_file_name: str = "wordembedding_config.json"
+
     def __init__(
         self,
         tokenizer: WordTokenizer,
@@ -79,13 +85,8 @@ class WordEmbeddings(nn.Module):
         return self.embeddings_dimension
 
     def save(self, output_path: str, safe_serialization: bool = True):
-        with open(os.path.join(output_path, "wordembedding_config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut, indent=2)
-
-        if safe_serialization:
-            save_safetensors_file(self.state_dict(), os.path.join(output_path, "model.safetensors"))
-        else:
-            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
+        self.save_config(output_path)
+        self.save_torch_weights(output_path, safe_serialization=safe_serialization)
         self.tokenizer.save(output_path)
 
     def get_config_dict(self):
@@ -95,27 +96,36 @@ class WordEmbeddings(nn.Module):
             "max_seq_length": self.max_seq_length,
         }
 
-    @staticmethod
-    def load(input_path: str):
-        with open(os.path.join(input_path, "wordembedding_config.json")) as fIn:
-            config = json.load(fIn)
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        hub_kwargs = {
+            "subfolder": subfolder,
+            "token": token,
+            "cache_folder": cache_folder,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        config = cls.load_config(model_name_or_path=model_name_or_path, **hub_kwargs)
+        tokenizer_class = import_from_string(config.pop("tokenizer_class"))
+        tokenizer_local_path = cls.load_dir_path(model_name_or_path=model_name_or_path, **hub_kwargs)
+        tokenizer = tokenizer_class.load(tokenizer_local_path)
 
-        tokenizer_class = import_from_string(config["tokenizer_class"])
-        tokenizer = tokenizer_class.load(input_path)
-        if os.path.exists(os.path.join(input_path, "model.safetensors")):
-            weights = load_safetensors_file(os.path.join(input_path, "model.safetensors"))
-        else:
-            weights = torch.load(
-                os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
-            )
-        embedding_weights = weights["emb_layer.weight"]
-        model = WordEmbeddings(
-            tokenizer=tokenizer, embedding_weights=embedding_weights, update_embeddings=config["update_embeddings"]
-        )
+        weights = cls.load_torch_weights(model_name_or_path=model_name_or_path, **hub_kwargs)
+        model = cls(tokenizer=tokenizer, embedding_weights=weights["emb_layer.weight"], **config)
         return model
 
-    @staticmethod
+    @classmethod
     def from_text_file(
+        cls,
         embeddings_file_path: str,
         update_embeddings: bool = False,
         item_separator: str = " ",
@@ -174,6 +184,4 @@ class WordEmbeddings(nn.Module):
             embeddings = np.asarray(embeddings)
 
             tokenizer.set_vocab(vocab)
-            return WordEmbeddings(
-                tokenizer=tokenizer, embedding_weights=embeddings, update_embeddings=update_embeddings
-            )
+            return cls(tokenizer=tokenizer, embedding_weights=embeddings, update_embeddings=update_embeddings)
