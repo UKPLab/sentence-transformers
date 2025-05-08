@@ -71,7 +71,8 @@ def test_save_and_load(tmp_path: Path, static_embedding: StaticEmbedding) -> Non
 @skip_if_no_model2vec()
 def test_from_distillation() -> None:
     model = StaticEmbedding.from_distillation("sentence-transformers-testing/stsb-bert-tiny-safetensors", pca_dims=32)
-    assert model.embedding.weight.shape == (29525 if parse(M2V_VERSION) >= Version("0.5.0") else 29528, 32)
+    expected_shape = (29525 if parse(M2V_VERSION) >= Version("0.5.0") else 29528, 32)
+    assert model.embedding.weight.shape == expected_shape
 
 
 @skip_if_no_model2vec()
