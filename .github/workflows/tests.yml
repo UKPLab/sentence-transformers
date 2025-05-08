@@ -63,6 +63,8 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # The --break-system-packages flag is used to allow pip to upgrade or install packages
+          # even in environments where system-managed packages might otherwise block such operations.
           python -m pip install --upgrade pip --break-system-packages
           python -m pip install '.[train, onnx, openvino, dev]'
           python -m pip install --upgrade 'huggingface_hub[hf_xet]'
