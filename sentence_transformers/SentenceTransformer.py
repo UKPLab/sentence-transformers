@@ -1908,6 +1908,13 @@ print(similarities)
         self.to(device)
 
     @property
+    def dtype(self) -> torch.dtype | None:
+        for child in self.modules():
+            if child is not self and hasattr(child, "dtype"):
+                return child.dtype
+        return None
+
+    @property
     def _no_split_modules(self) -> list[str]:
         try:
             return self._first_module()._no_split_modules
