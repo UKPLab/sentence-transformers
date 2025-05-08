@@ -4,6 +4,7 @@ import torch
 import transformers
 from PIL import Image
 from torch import nn
+from ..util import ImageChannelDimension
 
 
 class CLIPModel(nn.Module):
@@ -61,10 +62,11 @@ class CLIPModel(nn.Module):
 
         return features
 
-    def tokenize(self, texts, padding: str | bool = True) -> dict[str, torch.Tensor]:
+    def tokenize(self, texts, padding: str | bool = True, **kwargs) -> dict[str, torch.Tensor]:
         images = []
         texts_values = []
         image_text_info = []
+        image_channel_dimension = kwargs.get("image_channel_dimension", ImageChannelDimension.LAST)
 
         for idx, data in enumerate(texts):
             if isinstance(data, Image.Image):  # An Image
@@ -79,7 +81,7 @@ class CLIPModel(nn.Module):
             encoding = self.processor.tokenizer(texts_values, padding=padding, truncation=True, return_tensors="pt")
 
         if len(images):
-            image_features = self.processor.image_processor(images, return_tensors="pt")
+            image_features = self.processor.image_processor(images, return_tensors="pt", input_data_format=image_channel_dimension)
             encoding["pixel_values"] = image_features.pixel_values
 
         encoding["image_text_info"] = image_text_info
