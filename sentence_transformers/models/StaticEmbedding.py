@@ -35,6 +35,12 @@ class StaticEmbedding(nn.Module):
             embedding_dim (int | None, optional): Dimension of the embeddings. Required if embedding_weights
                 is not provided. Defaults to None.
 
+        .. tip::
+
+            Due to the extremely efficient nature of this module architecture, the overhead for moving inputs to the
+            GPU can be larger than the actual computation time. Therefore, consider using a CPU device for inference
+            and training.
+
         Example::
 
             from sentence_transformers import SentenceTransformer
