@@ -1826,8 +1826,8 @@ print(similarities)
             self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return modules, module_kwargs
 
-    @deprecated("SentenceTransformer.load(...) is deprecated, use SentenceTransformer(...) instead.")
     @staticmethod
+    @deprecated("SentenceTransformer.load(...) is deprecated, use SentenceTransformer(...) instead.")
     def load(input_path) -> SentenceTransformer:
         return SentenceTransformer(input_path)
 
