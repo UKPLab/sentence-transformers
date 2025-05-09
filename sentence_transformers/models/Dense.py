@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-import json
-import os
 from typing import Callable
 
-import torch
-from safetensors.torch import load_model as load_safetensors_model
-from safetensors.torch import save_model as save_safetensors_model
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+
 from torch import Tensor, nn
 
+from sentence_transformers.models.Module import Module
 from sentence_transformers.util import fullname, import_from_string
 
 
-class Dense(nn.Module):
+class Dense(Module):
     """
     Feed-forward function with activation function.
 
@@ -27,6 +28,13 @@ class Dense(nn.Module):
         init_weight: Initial value for the matrix of the linear layer
         init_bias: Initial value for the bias of the linear layer
     """
+
+    config_keys: list[str] = [
+        "in_features",
+        "out_features",
+        "bias",
+        "activation_function",
+    ]
 
     def __init__(
         self,
@@ -65,31 +73,33 @@ class Dense(nn.Module):
             "activation_function": fullname(self.activation_function),
         }
 
-    def save(self, output_path, safe_serialization: bool = True) -> None:
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut)
-
-        if safe_serialization:
-            save_safetensors_model(self, os.path.join(output_path, "model.safetensors"))
-        else:
-            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        self.save_config(output_path)
+        self.save_torch_weights(output_path, safe_serialization=safe_serialization)
 
     def __repr__(self):
         return f"Dense({self.get_config_dict()})"
 
-    @staticmethod
-    def load(input_path):
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        hub_kwargs = {
+            "subfolder": subfolder,
+            "token": token,
+            "cache_folder": cache_folder,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        config = cls.load_config(model_name_or_path=model_name_or_path, **hub_kwargs)
         config["activation_function"] = import_from_string(config["activation_function"])()
-        model = Dense(**config)
-        if os.path.exists(os.path.join(input_path, "model.safetensors")):
-            load_safetensors_model(model, os.path.join(input_path, "model.safetensors"))
-        else:
-            model.load_state_dict(
-                torch.load(
-                    os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
-                )
-            )
+        model = cls(**config)
+        model = cls.load_torch_weights(model_name_or_path=model_name_or_path, model=model, **hub_kwargs)
         return model

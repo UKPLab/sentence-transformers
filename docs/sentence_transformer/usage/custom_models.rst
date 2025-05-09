@@ -24,7 +24,7 @@ For example, the popular `all-MiniLM-L6-v2 <https://huggingface.co/sentence-tran
    model = SentenceTransformer(modules=[transformer, pooling, normalize])
 
 Saving Sentence Transformer Models
-++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Whenever a Sentence Transformer model is saved, three types of files are generated:
 
@@ -102,7 +102,7 @@ And a ``config_sentence_transformers.json`` with these contents:
 Additionally, the ``1_Pooling`` directory contains the configuration file for the :class:`~sentence_transformers.models.Pooling` module, while the ``2_Normalize`` directory is empty because the :class:`~sentence_transformers.models.Normalize` module does not require any configuration. The ``sentence_bert_config.json`` file contains the configuration of the :class:`~sentence_transformers.models.Transformer` module, and this module also saved a lot of files related to the tokenizer and the model itself in the root directory.
 
 Loading Sentence Transformer Models
-+++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To load a Sentence Transformer model from a saved model directory, the ``modules.json`` is read to determine the modules that make up the model. Each module is initialized with the configuration stored in the corresponding module directory, after which the SentenceTransformer class is instantiated with the loaded modules.
 
@@ -126,71 +126,91 @@ To be specific, these two snippets are identical::
    model = SentenceTransformer(modules=[transformer, pooling])
 
 Advanced: Custom Modules
-++++++++++++++++++++++++
+------------------------
 
-To create custom Sentence Transformer models, you can implement your own modules by subclassing PyTorch's :class:`torch.nn.Module` class and implementing these methods:
+Input Modules
+^^^^^^^^^^^^^
 
-* A :meth:`torch.nn.Module.forward` method that accepts a ``features`` dictionary with keys like ``input_ids``, ``attention_mask``, ``token_type_ids``, ``token_embeddings``, and ``sentence_embedding``, depending on where the module is in the model pipeline.
-* A ``save`` method that accepts a ``save_dir`` argument and saves the module's configuration to that directory.
-* A ``load`` static method that accepts a ``load_dir`` argument and initializes the Module given the module's configuration from that directory.
-* (If 1st module) A ``get_max_seq_length`` method that returns the maximum sequence length the module can process. Only required if the module processes input text.
-* (If 1st module) A ``tokenize`` method that accepts a list of inputs and returns a dictionary with keys like ``input_ids``, ``attention_mask``, ``token_type_ids``, ``pixel_values``, etc. This dictionary will be passed along to the module's ``forward`` method.
-* (Optional) A ``get_sentence_embedding_dimension`` method that returns the dimensionality of the sentence embeddings produced by the module. Only required if the module generated the embeddings or updates the embeddings' dimensionality.
-* (Optional) A ``get_config_dict`` method that returns a dictionary with the module's configuration. This method can be used to save the module's configuration to disk and to save the module config in a model card.
+The first module in a pipeline is called the input module. It is responsible for tokenizing the input text and generating the input features for the subsequent modules. The input module can be any module that implements the :class:`~sentence_transformers.models.InputModule` class, which is a subclass of the :class:`~sentence_transformers.models.Module` class.
+
+It has three abstract methods that you need to implement:
+
+* A :meth:`~sentence_transformers.models.Module.forward` method that accepts a ``features`` dictionary with keys like ``input_ids``, ``attention_mask``, ``token_type_ids``, ``token_embeddings``, and ``sentence_embedding``, depending on where the module is in the model pipeline.
+* A :meth:`~sentence_transformers.models.Module.save` method that saves the module's configuration and optionally weights to a provided directory.
+* A :meth:`~sentence_transformers.models.InputModule.tokenize` method that accepts a list of inputs and returns a dictionary with keys like ``input_ids``, ``attention_mask``, ``token_type_ids``, ``pixel_values``, etc. This dictionary will be passed along to the module's ``forward`` method.
+
+Optionally, you can also implement the following methods:
+
+* A :meth:`~sentence_transformers.models.Module.load` static method that accepts a ``model_name_or_path`` argument, keyword arguments for loading from Hugging Face (``subfolder``, ``token``, ``cache_folder``, etc.) and module kwargs (``model_kwargs``, ``trust_remote_code``, ``backend``, etc.) and initializes the Module given the module's configuration from that directory or model name.
+* A :meth:`~sentence_transformers.models.Module.get_sentence_embedding_dimension` method that returns the dimensionality of the sentence embeddings produced by the module. This is required if the module generates the embeddings or updates the embeddings' dimensionality.
+* A :meth:`~sentence_transformers.models.InputModule.get_max_seq_length` method that returns the maximum sequence length the module can process. Only required if the module processes input text.
+
+Subsequent Modules
+^^^^^^^^^^^^^^^^^^
+
+Subsequent modules in the pipeline are called non-input modules. They are responsible for processing the input features generated by the input module and generating the final sentence embeddings. Non-input modules can be any module that implements the :class:`~sentence_transformers.models.Module` class.
+
+It has two abstract methods that you need to implement:
+
+* A :meth:`~sentence_transformers.models.Module.forward` method that accepts a ``features`` dictionary with keys like ``input_ids``, ``attention_mask``, ``token_type_ids``, ``token_embeddings``, and ``sentence_embedding``, depending on where the module is in the model pipeline.
+* A :meth:`~sentence_transformers.models.Module.save` method that saves the module's configuration and optionally weights to a provided directory.
+
+Optionally, you can also implement the following methods:
+
+* A :meth:`~sentence_transformers.models.Module.load` static method that accepts a ``model_name_or_path`` argument, keyword arguments for loading from Hugging Face (``subfolder``, ``token``, ``cache_folder``, etc.) and module kwargs (``model_kwargs``, ``trust_remote_code``, ``backend``, etc.) and initializes the Module given the module's configuration from that directory or model name.
+* A :meth:`~sentence_transformers.models.Module.get_sentence_embedding_dimension` method that returns the dimensionality of the sentence embeddings produced by the module. This is required if the module generates the embeddings or updates the embeddings' dimensionality.
+
+Example Module
+^^^^^^^^^^^^^^
 
 For example, we can create a custom pooling method by implementing a custom Module.
 
 .. code-block:: python
 
    # decay_pooling.py
-   
-   import json
-   import os
+
    import torch
-   import torch.nn as nn
-   
-   class DecayMeanPooling(nn.Module):
-       def __init__(self, dimension: int, decay: float = 0.95) -> None:
+   from sentence_transformers.models import Module
+
+
+   class DecayMeanPooling(Module):
+       config_keys: list[str] = ["dimension", "decay"]
+
+       def __init__(self, dimension: int, decay: float = 0.95, **kwargs) -> None:
            super(DecayMeanPooling, self).__init__()
            self.dimension = dimension
            self.decay = decay
-   
-       def forward(self, features: dict[str, torch.Tensor], **kwargs) -> dict   [str, torch.Tensor]:
+
+       def forward(self, features: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
+           # This module is expected to be used after some modules that provide "token_embeddings"
+           # and "attention_mask" in the features dictionary.
            token_embeddings = features["token_embeddings"]
            attention_mask = features["attention_mask"].unsqueeze(-1)
-   
+
            # Apply the attention mask to filter away padding tokens
            token_embeddings = token_embeddings * attention_mask
            # Calculate mean of token embeddings
            sentence_embeddings = token_embeddings.sum(1) / attention_mask.sum(1)
            # Apply exponential decay
-           importance_per_dim = self.decay ** torch.arange(sentence_embeddings.   size(1), device=sentence_embeddings.device)
-           features["sentence_embedding"] = sentence_embeddings *    importance_per_dim
+           importance_per_dim = self.decay ** torch.arange(
+               sentence_embeddings.size(1), device=sentence_embeddings.device
+           )
+           features["sentence_embedding"] = sentence_embeddings * importance_per_dim
            return features
-   
-       def get_config_dict(self) -> dict[str, float]:
-           return {"dimension": self.dimension, "decay": self.decay}
-   
+
        def get_sentence_embedding_dimension(self) -> int:
            return self.dimension
-   
-       def save(self, save_dir: str, **kwargs) -> None:
-           with open(os.path.join(save_dir, "config.json"), "w") as fOut:
-               json.dump(self.get_config_dict(), fOut, indent=4)
-   
-       def load(load_dir: str, **kwargs) -> "DecayMeanPooling":
-           with open(os.path.join(load_dir, "config.json")) as fIn:
-               config = json.load(fIn)
-   
-           return DecayMeanPooling(**config)
+
+       def save(self, output_path, *args, safe_serialization=True, **kwargs) -> None:
+           self.save_config(output_path)
+
+       # The `load` method by default loads the config.json file from the model directory
+       # and initializes the class with the loaded parameters, i.e. the `config_keys`.
+       # This works for us, so no need to override it.
 
 .. note::
 
-   Adding ``**kwargs`` to the ``__init__``, ``forward``, ``save``, ``load``, and ``tokenize`` methods is recommended to ensure that the methods are compatible with future updates to the Sentence Transformers library.
-
-.. note::
-
-   If your module is the first module, then you can set ``save_in_root = True`` in the module's class definition if you want your module to be saved in the root directory upon save. Do note that unlike the subdirectories, the root directory is not downloaded from the Hugging Face Hub before loading the module. As a result, the module should first check if the required files exist locally and otherwise use :func:`huggingface_hub.hf_hub_download` to download them.
+   Adding ``**kwargs`` to the ``__init__``, ``forward``, ``save``, ``load``, and ``tokenize`` methods is recommended to ensure that the methods reemain compatible with future updates to the Sentence Transformers library.
 
 This can now be used as a module in a Sentence Transformer model::
    
@@ -220,7 +240,7 @@ This can now be used as a module in a Sentence Transformer model::
    ]
    embeddings = model.encode(texts)
    print(embeddings.shape)
-   # [5, 384]
+   # [5, 768]
 
 You can save this model with :meth:`SentenceTransformer.save_pretrained <sentence_transformers.SentenceTransformer.save_pretrained>`, resulting in a ``modules.json`` of::
 
@@ -275,7 +295,7 @@ If you have your models and custom modelling code on the Hugging Face Hub, then 
    ]
 
 Advanced: Keyword argument passthrough in Custom Modules
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you want your users to be able to specify custom keyword arguments via the :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>` method, then you can add their names to the ``modules.json`` file. For example, if my module should behave differently if your users specify a ``task_type`` keyword argument, then your ``modules.json`` might look like::
 
@@ -306,7 +326,7 @@ Then, you can access the ``task_type`` keyword argument in the ``forward`` metho
    from sentence_transformers.models import Transformer
 
    class CustomTransformer(Transformer):
-       def forward(self, features: dict[str, torch.Tensor], task_type: Optional[str] = None) -> dict[str, torch.Tensor]:
+       def forward(self, features: dict[str, torch.Tensor], task_type: Optional[str] = None, **kwargs) -> dict[str, torch.Tensor]:
            if task_type == "default":
                # Do something
            else:

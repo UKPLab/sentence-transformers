@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+
 import torch.nn.functional as F
-from torch import Tensor, nn
+from torch import Tensor
+
+from sentence_transformers.models.Module import Module
 
 
-class Normalize(nn.Module):
+class Normalize(Module):
     """This layer normalizes embeddings to unit length"""
 
     def __init__(self) -> None:
@@ -14,9 +21,9 @@ class Normalize(nn.Module):
         features.update({"sentence_embedding": F.normalize(features["sentence_embedding"], p=2, dim=1)})
         return features
 
-    def save(self, output_path) -> None:
-        pass
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        return
 
-    @staticmethod
-    def load(input_path) -> Normalize:
-        return Normalize()
+    @classmethod
+    def load(cls, *args, **kwargs) -> Self:
+        return cls()
