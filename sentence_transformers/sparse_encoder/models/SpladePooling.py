@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import json
-import os
-from typing import Any
-
 import torch
-from torch import nn
+
+from sentence_transformers.models.Module import Module
 
 
-class SpladePooling(nn.Module):
+class SpladePooling(Module):
     """
     SPLADE Pooling module for creating the sparse embeddings.
 
@@ -35,6 +32,7 @@ class SpladePooling(nn.Module):
 
     SPLADE_POOLING_MODES = ("sum", "max")
     SPLADE_ACTIVATION = ["relu", "log1p_relu"]
+    config_keys: list[str] = ["pooling_strategy", "activation_function", "word_embedding_dimension"]
 
     def __init__(
         self, pooling_strategy: str = "max", activation_function="relu", word_embedding_dimension: int = None
@@ -46,7 +44,6 @@ class SpladePooling(nn.Module):
         self.activation_function = activation_function
         if activation_function not in self.SPLADE_ACTIVATION:
             raise ValueError("activation_function must be either 'relu' or 'log1p_relu'")
-        self.config_keys = ["pooling_strategy", "activation_function", "word_embedding_dimension"]
         self.word_embedding_dimension = word_embedding_dimension  # This will be set in the forward method
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
@@ -79,19 +76,8 @@ class SpladePooling(nn.Module):
         features["sentence_embedding"] = pooled_scores
         return features
 
-    def get_config_dict(self) -> dict[str, Any]:
-        return {key: self.__dict__[key] for key in self.config_keys}
-
-    def save(self, output_path) -> None:
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut, indent=2)
-
-    @staticmethod
-    def load(input_path) -> SpladePooling:
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-
-        return SpladePooling(**config)
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        self.save_config(output_path)
 
     def __repr__(self) -> str:
         return f"SpladePooling({self.get_config_dict()})"

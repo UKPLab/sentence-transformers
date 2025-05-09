@@ -12,7 +12,7 @@ model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
 
-inputs = processor(texts=["a cat", "a dog"], images=[image], return_tensors="pt", padding=True)
+inputs = processor(text=["a cat", "a dog"], images=[image], return_tensors="pt", padding=True)
 output = model(**inputs)
 # vision_outputs = model.vision_model(pixel_values=inputs['pixel_values'])
 # image_embeds = model.visual_projection(vision_outputs[1])

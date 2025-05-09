@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import importlib
+import inspect
 import json
 import logging
 import math
@@ -30,14 +31,16 @@ from torch import Tensor, device, nn
 from tqdm.autonotebook import trange
 from transformers import PreTrainedModel, is_torch_npu_available
 from transformers.dynamic_module_utils import get_class_from_dynamic_module, get_relative_import_files
+from typing_extensions import deprecated
 
 from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
+from sentence_transformers.models.Module import Module
 from sentence_transformers.similarity_functions import SimilarityFunction
 
 from . import __MODEL_HUB_ORGANIZATION__, __version__
 from .evaluation import SentenceEvaluator
 from .fit_mixin import FitMixin
-from .models import Normalize, Pooling, Transformer
+from .models import Pooling, Transformer
 from .peft_mixin import PeftAdapterMixin
 from .quantization import quantize_embeddings
 from .util import (
@@ -1244,8 +1247,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         # Save modules
         for idx, name in enumerate(self._modules):
-            module = self._modules[name]
-            if idx == 0 and hasattr(module, "save_in_root"):  # Save first module in the main folder
+            module: Module = self._modules[name]
+            if (
+                idx == 0 and hasattr(module, "save_in_root") and module.save_in_root
+            ):  # Save first module in the main folder
                 model_path = path + "/"
             else:
                 model_path = os.path.join(path, str(idx) + "_" + type(module).__name__)
@@ -1760,90 +1765,75 @@ print(similarities)
         module_kwargs = OrderedDict()
         for module_config in modules_config:
             class_ref = module_config["type"]
-            module_class = self._load_module_class_from_ref(
+            module_class: Module = self._load_module_class_from_ref(
                 class_ref, model_name_or_path, trust_remote_code, revision, model_kwargs
             )
 
-            # For Transformer, don't load the full directory, rely on `transformers` instead
-            # But, do load the config file first.
-            if module_config["path"] == "":
-                kwargs = {}
-                for config_name in [
-                    "sentence_bert_config.json",
-                    "sentence_roberta_config.json",
-                    "sentence_distilbert_config.json",
-                    "sentence_camembert_config.json",
-                    "sentence_albert_config.json",
-                    "sentence_xlm-roberta_config.json",
-                    "sentence_xlnet_config.json",
-                ]:
-                    config_path = load_file_path(
+            # Backwards compatibility: if the module is older and its `load` method only supports one parameter,
+            # a path to a local directory containing the module files, then we load it with the old style
+            load_signature = inspect.signature(module_class.load)
+            # Check if the `load` method only accepts a single parameter (the path to the local directory).
+            # This indicates an older module that does not support the newer loading method with multiple arguments.
+            if len(load_signature.parameters) == 1:
+                signature = inspect.signature(module_class.__init__)
+                # If the module's `__init__` method contains specific keyword arguments like `model_args` and `config_args`,
+                # it is likely Transformer-based. These arguments are commonly used in Transformer models to configure
+                # the model and tokenizer during initialization.
+                # Example: Models with custom modules on the Hugging Face Hub like
+                # https://huggingface.co/jinaai/jina-embeddings-v3 may use this logic.
+                if {"model_args", "config_args"} <= set(signature.parameters):
+                    # Load initialization arguments specific to Transformer-based modules. This includes
+                    # arguments for loading the model, tokenizer, and configuration, as well as any
+                    # additional module-specific keyword arguments.
+                    common_transformer_init_kwargs = Transformer._load_init_kwargs(
                         model_name_or_path,
-                        config_name,
+                        # Loading-specific keyword arguments
+                        subfolder=module_config["path"],
                         token=token,
                         cache_folder=cache_folder,
                         revision=revision,
                         local_files_only=local_files_only,
+                        # Module-specific keyword arguments
+                        trust_remote_code=trust_remote_code,
+                        model_kwargs=model_kwargs,
+                        tokenizer_kwargs=tokenizer_kwargs,
+                        config_kwargs=config_kwargs,
+                        backend=self.backend,
                     )
-                    if config_path is not None:
-                        with open(config_path) as fIn:
-                            kwargs = json.load(fIn)
-                            # Don't allow configs to set trust_remote_code
-                            if "model_args" in kwargs and "trust_remote_code" in kwargs["model_args"]:
-                                kwargs["model_args"].pop("trust_remote_code")
-                            if "tokenizer_args" in kwargs and "trust_remote_code" in kwargs["tokenizer_args"]:
-                                kwargs["tokenizer_args"].pop("trust_remote_code")
-                            if "config_args" in kwargs and "trust_remote_code" in kwargs["config_args"]:
-                                kwargs["config_args"].pop("trust_remote_code")
-                        break
+                    module = module_class(model_name_or_path, **common_transformer_init_kwargs)
 
-                hub_kwargs = {
-                    "token": token,
-                    "trust_remote_code": trust_remote_code,
-                    "revision": revision,
-                    "local_files_only": local_files_only,
-                }
-                # 3rd priority: config file
-                if "model_args" not in kwargs:
-                    kwargs["model_args"] = {}
-                if "tokenizer_args" not in kwargs:
-                    kwargs["tokenizer_args"] = {}
-                if "config_args" not in kwargs:
-                    kwargs["config_args"] = {}
-
-                # 2nd priority: hub_kwargs
-                kwargs["model_args"].update(hub_kwargs)
-                kwargs["tokenizer_args"].update(hub_kwargs)
-                kwargs["config_args"].update(hub_kwargs)
-
-                # 1st priority: kwargs passed to SentenceTransformer
-                if model_kwargs:
-                    kwargs["model_args"].update(model_kwargs)
-                if tokenizer_kwargs:
-                    kwargs["tokenizer_args"].update(tokenizer_kwargs)
-                if config_kwargs:
-                    kwargs["config_args"].update(config_kwargs)
-
-                # Try to initialize the module with a lot of kwargs, but only if the module supports them
-                # Otherwise we fall back to the load method
-                try:
-                    module = module_class(model_name_or_path, cache_dir=cache_folder, backend=self.backend, **kwargs)
-                except TypeError:
-                    module = module_class.load(model_name_or_path)
-            else:
-                # Normalize does not require any files to be loaded
-                if module_class == Normalize:
-                    module_path = None
                 else:
-                    module_path = load_dir_path(
-                        model_name_or_path,
-                        module_config["path"],
+                    # Old modules that don't support the new loading method and don't seem Transformer-based
+                    # are loaded by downloading the full directories and calling .load() with the old style
+                    # (i.e. only a path to the local directory)
+                    local_path = load_dir_path(
+                        model_name_or_path=model_name_or_path,
+                        subfolder=module_config["path"],
                         token=token,
                         cache_folder=cache_folder,
                         revision=revision,
                         local_files_only=local_files_only,
                     )
-                module = module_class.load(module_path)
+                    module = module_class.load(local_path)
+
+            else:
+                # Newer modules that support the new loading method are loaded with the new style
+                # i.e. with many keyword arguments that can optionally be used by the modules
+                module = module_class.load(
+                    model_name_or_path,
+                    # Loading-specific keyword arguments
+                    subfolder=module_config["path"],
+                    token=token,
+                    cache_folder=cache_folder,
+                    revision=revision,
+                    local_files_only=local_files_only,
+                    # Module-specific keyword arguments
+                    trust_remote_code=trust_remote_code,
+                    model_kwargs=model_kwargs,
+                    tokenizer_kwargs=tokenizer_kwargs,
+                    config_kwargs=config_kwargs,
+                    backend=self.backend,
+                )
 
             modules[module_config["name"]] = module
             module_kwargs[module_config["name"]] = module_config.get("kwargs", [])
@@ -1859,6 +1849,7 @@ print(similarities)
         return modules, module_kwargs
 
     @staticmethod
+    @deprecated("SentenceTransformer.load(...) is deprecated, use SentenceTransformer(...) instead.")
     def load(input_path) -> SentenceTransformer:
         return SentenceTransformer(input_path)
 

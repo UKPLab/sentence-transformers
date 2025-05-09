@@ -3,12 +3,17 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 import torch
-from safetensors.torch import load_file as load_safetensors_file
-from safetensors.torch import save_model as save_safetensors_model
 from transformers import AutoTokenizer
+
+from sentence_transformers.models.InputModule import InputModule
 
 if TYPE_CHECKING:
     from transformers import PreTrainedTokenizer
@@ -16,7 +21,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class IDF(torch.nn.Module):
+class IDF(InputModule):
     """
     IDF (Inverse Document Frequency) module for efficient sparse representations.
 
@@ -35,18 +40,23 @@ class IDF(torch.nn.Module):
         frozen: If True, weights are fixed. Defaults to False.
     """
 
+    config_keys: list[str] = ["frozen"]
+
     def __init__(
         self,
-        weight: torch.Tensor,
         tokenizer: PreTrainedTokenizer,
+        weight: torch.Tensor | None,
         frozen: bool = False,
     ):
         super().__init__()
-        self.weight = torch.nn.Parameter(weight, requires_grad=not frozen)
+        self.tokenizer = tokenizer
+
+        if weight is not None:
+            self.weight = torch.nn.Parameter(weight, requires_grad=not frozen)
+        else:
+            self.weight = torch.nn.Parameter(torch.ones(len(self.tokenizer.get_vocab())), requires_grad=not frozen)
         self.frozen = frozen
         self.word_embedding_dimension = self.weight.size(0)
-        self.tokenizer = tokenizer
-        self.config_keys = ["frozen"]
         self.max_seq_length = self.tokenizer.model_max_length
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
@@ -64,24 +74,10 @@ class IDF(torch.nn.Module):
         features["sentence_embedding"] = sentence_embedding
         return features
 
-    def save(self, output_path, safe_serialization: bool = True) -> None:
-        """Save both the IDF model and its tokenizer if available"""
-        os.makedirs(output_path, exist_ok=True)
-
-        # Save the model weights
-        if safe_serialization:
-            save_safetensors_model(self, os.path.join(output_path, "model.safetensors"))
-        else:
-            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
-
-        # Save config with tokenizer info
-        config_dict = self.get_config_dict()
-
-        # Save tokenizer
-        self.tokenizer.save_pretrained(output_path)
-
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump(config_dict, fOut)
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        self.save_tokenizer(output_path)
+        self.save_torch_weights(output_path, safe_serialization=safe_serialization)
+        self.save_config(output_path)
 
     @classmethod
     def from_json(cls, json_path: str, tokenizer: PreTrainedTokenizer, **config):
@@ -119,36 +115,66 @@ class IDF(torch.nn.Module):
         return cls(weight=weight, tokenizer=tokenizer, **config)
 
     @classmethod
-    def load(cls, input_path: str):
+    def load(
+        cls,
+        model_name_or_path: str,
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
         """
         Load the IDF model with its tokenizer.
 
         Args:
-            input_path (str): Path to the directory containing the saved model.
+            model_name_or_path (str): Path to the directory containing the saved model.
+            subfolder (str): Subfolder within the model directory
+            token (bool | str | None): Token for Hugging Face authentication
+            cache_folder (str | None): Cache folder for Hugging Face
+            revision (str | None): Model revision
+            local_files_only (bool): Whether to only load local files
+            **kwargs: Additional keyword arguments
 
         Returns:
             IDF: The loaded IDF model.
         """
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config: dict = json.load(fIn)
+        config = cls.load_config(
+            model_name_or_path=model_name_or_path,
+            subfolder=subfolder,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
 
-        tokenizer = AutoTokenizer.from_pretrained(input_path)
+        # Load tokenizer
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name_or_path,
+            subfolder=subfolder,
+            token=token,
+            cache_dir=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
 
+        # Check if we have a JSON path in config
         path = config.pop("path", None)
-
         if path is not None and path.endswith(".json"):
             return cls.from_json(path, tokenizer, **config)
 
         # Load model weights
-        if os.path.exists(os.path.join(input_path, "model.safetensors")):
-            weight = load_safetensors_file(os.path.join(input_path, "model.safetensors"))["weight"]
-        elif os.path.exists(os.path.join(input_path, "pytorch_model.bin")):
-            weight = torch.load(os.path.join(input_path, "pytorch_model.bin"))["weight"]
-        else:
-            logger.info("Model weights not found. Using a default IDF of ones.")
-            weight = torch.ones(config["word_embedding_dimension"], dtype=torch.float32)
-
-        model = cls(weight=weight, tokenizer=tokenizer, **config)
+        model = cls(weight=None, tokenizer=tokenizer, **config)
+        model = cls.load_torch_weights(
+            model_name_or_path=model_name_or_path,
+            subfolder=subfolder,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+            model=model,
+        )
         return model
 
     def __repr__(self) -> str:
@@ -157,9 +183,6 @@ class IDF(torch.nn.Module):
 
     def get_sentence_embedding_dimension(self) -> int:
         return self.word_embedding_dimension
-
-    def get_config_dict(self) -> dict[str, Any]:
-        return {key: getattr(self, key) for key in self.config_keys}
 
     def tokenize(
         self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True
@@ -191,30 +214,3 @@ class IDF(torch.nn.Module):
             )
         )
         return output
-
-
-# TODO: Remember to remove this before merge/release
-if __name__ == "__main__":
-    from sentence_transformers.sparse_encoder import MLMTransformer
-
-    # Example usage
-    doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill")
-
-    # Create IDF model with tokenizer
-    idf_model = IDF.from_json(
-        "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill/idf.json",
-        tokenizer=doc_encoder.tokenizer,
-        frozen=True,
-    )
-
-    # Save model with tokenizer
-    idf_model.save("runs/idf_complete")
-
-    # Load model with tokenizer
-    loaded_model = IDF.load("runs/idf_complete")
-    print(f"Model loaded: {loaded_model}")
-
-    # Use the loaded model's tokenizer
-    if loaded_model.tokenizer:
-        tokens = loaded_model.tokenizer("Example text to encode")
-        print(f"Tokenized: {tokens}")
