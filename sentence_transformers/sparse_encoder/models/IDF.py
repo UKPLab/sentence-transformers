@@ -154,7 +154,7 @@ class IDF(InputModule):
             model_name_or_path,
             subfolder=subfolder,
             token=token,
-            cache_folder=cache_folder,
+            cache_dir=cache_folder,
             revision=revision,
             local_files_only=local_files_only,
         )
