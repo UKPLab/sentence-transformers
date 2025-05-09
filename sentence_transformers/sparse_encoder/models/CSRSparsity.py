@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from safetensors.torch import load_model as load_safetensors_model
-from safetensors.torch import save_model as save_safetensors_model
+
+from sentence_transformers.models.Module import Module
 
 
 class TiedTranspose(nn.Module):
@@ -28,7 +30,7 @@ class TiedTranspose(nn.Module):
         return self.linear.bias
 
 
-class CSRSparsity(nn.Module):
+class CSRSparsity(Module):
     """
     This module implements the Sparse AutoEncoder architecture based on the paper:
     Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation, https://arxiv.org/abs/2503.01776
@@ -181,28 +183,31 @@ class CSRSparsity(nn.Module):
         return features
 
     def save(self, output_path, safe_serialization: bool = True) -> None:
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut)
+        self.save_config(output_path)
+        self.save_torch_weights(output_path, safe_serialization=safe_serialization)
 
-        if safe_serialization:
-            save_safetensors_model(self, os.path.join(output_path, "model.safetensors"))
-        else:
-            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
-
-    @staticmethod
-    def load(input_path):
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-        module = CSRSparsity(**config)
-        if os.path.exists(os.path.join(input_path, "model.safetensors")):
-            load_safetensors_model(module, os.path.join(input_path, "model.safetensors"))
-        else:
-            module.load_state_dict(
-                torch.load(
-                    os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
-                )
-            )
-        return module
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        hub_kwargs = {
+            "subfolder": subfolder,
+            "token": token,
+            "cache_folder": cache_folder,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        config = cls.load_config(model_name_or_path=model_name_or_path, **hub_kwargs)
+        model = cls(**config)
+        model = cls.load_torch_weights(model_name_or_path=model_name_or_path, model=model, **hub_kwargs)
+        return model
 
     def __repr__(self):
         return f"CSRSparsity({self.get_config_dict()})"

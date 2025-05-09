@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 class Asym(InputModule, nn.Sequential):
     def __init__(self, sub_modules: dict[str, list[Module]], allow_empty_key: bool = True):
-        # save_in_root: bool = True # TODO: need to be changed when loading method of Tom merged
         """
         This model allows to create asymmetric SentenceTransformer models, that apply different models depending on the specified input key.
 
@@ -273,20 +272,19 @@ class Asym(InputModule, nn.Sequential):
         **kwargs,
     ) -> Self:
         hub_kwargs = {
-            "subfolder": subfolder,
             "token": token,
             "cache_folder": cache_folder,
             "revision": revision,
             "local_files_only": local_files_only,
         }
-        config = cls.load_config(model_name_or_path=model_name_or_path, **hub_kwargs)
+        config = cls.load_config(model_name_or_path=model_name_or_path, subfolder=subfolder, **hub_kwargs)
         modules = {}
         for model_id, model_type in config["types"].items():
             module_class: Module = import_from_string(model_type)
             try:
-                module = module_class.load(model_name_or_path, **hub_kwargs, **kwargs)
+                module = module_class.load(model_name_or_path, subfolder=model_id, **hub_kwargs, **kwargs)
             except TypeError:
-                local_path = load_dir_path(model_name_or_path=model_name_or_path, **hub_kwargs)
+                local_path = load_dir_path(model_name_or_path=model_name_or_path, subfolder=model_id, **hub_kwargs)
                 module = module_class.load(local_path)
             modules[model_id] = module
 
@@ -342,17 +340,17 @@ class Asym(InputModule, nn.Sequential):
         # Check which modules have max_seq_length
         has_max_seq_length_keys = []
         for key, models in self.sub_modules.items():
-            if models and hasattr(models[0], "get_max_seq_length"):
+            if models and hasattr(models[0], "max_seq_length"):
                 has_max_seq_length_keys.append(key)
 
         if len(has_max_seq_length_keys) == 0:
             return None
         elif len(has_max_seq_length_keys) == 1:
             # Only one module has max_seq_length, return it
-            return self.sub_modules[has_max_seq_length_keys[0]][0].get_max_seq_length()
+            return self.sub_modules[has_max_seq_length_keys[0]][0].max_seq_length
         else:
             # Both modules have max_seq_length
-            max_seq_lengths = {key: self.sub_modules[key][0].get_max_seq_length() for key in has_max_seq_length_keys}
+            max_seq_lengths = {key: self.sub_modules[key][0].max_seq_length for key in has_max_seq_length_keys}
 
             if len(set(max_seq_lengths.values())) > 1:
                 # Different max_seq_lengths, warn and return the first one
@@ -385,89 +383,58 @@ class Asym(InputModule, nn.Sequential):
 
 # TODO: Remove this before release/merging
 if __name__ == "__main__":
-    from datasets import Dataset
+    from sentence_transformers import models
+    from sentence_transformers.sparse_encoder import SparseEncoder
+    from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
 
-    from sentence_transformers.sparse_encoder import (
-        SparseEncoder,
-        SparseEncoderTrainer,
-        SparseMultipleNegativesRankingLoss,
-    )
-
-    # doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill")
-    # asym = models.Asym(
-    #     {
-    #         "query": [
-    #             IDF.from_json(
-    #                 "runs/opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill/idf.json",
-    #                 tokenizer=doc_encoder.tokenizer,
-    #                 frozen=True,
-    #             )
-    #         ],
-    #         "doc": [
-    #             doc_encoder,
-    #             SpladePooling("max"),
-    #         ],
-    #     }
-    # )
-
-    # model = SparseEncoder(modules=[asym], similarity_fn_name="dot")
-    # model.push_to_hub(
-    #     "sparse-embedding/SparseEncodder_format_opensearch-neural-sparse-encoding-doc-v2-distill", private=True
-    # )
-    model = SparseEncoder("sparse-embedding/SparseEncodder_format_opensearch-neural-sparse-encoding-doc-v2-distill")
-
-    # doc_encoder = MLMTransformer("naver/efficient-splade-VI-BT-large-doc")
-    # query_encoder = MLMTransformer("naver/efficient-splade-VI-BT-large-query")
-
-    # asym = models.Asym(
-    #     {
-    #         "query": [
-    #             query_encoder,
-    #             SpladePooling("max"),
-    #         ],
-    #         "doc": [
-    #             doc_encoder,
-    #             SpladePooling("max"),
-    #         ],
-    #     }
-    # )
-
-    # model = SparseEncoder(modules=[asym], similarity_fn_name="dot")
-
-    # model.push_to_hub(
-    #     "arthurbresnu/SparseEncodder_format_efficient-splade-VI-BT-large-doc-and-query",
-    #     private=True,
-    # )
-
-    train_dataset = Dataset.from_dict(
+    doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill")
+    asym = models.Asym(
         {
             "query": [
-                "is toprol xl the same as metoprolol?",
-                "are eyes always the same size?",
+                IDF.from_json(
+                    "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill",
+                    tokenizer=doc_encoder.tokenizer,
+                    frozen=True,
+                )
             ],
-            "answer": [
-                "Metoprolol succinate is also known by the brand name Toprol XL.",
-                "The eyes are always the same size from birth to death.",
+            "doc": [
+                doc_encoder,
+                SpladePooling("max"),
             ],
         }
     )
 
-    # This mapper turns normal texts into a dictionary mapping Asym keys to the text
-    def mapper(sample):
-        return {
-            "query": {"query": sample["query"]},
-            "answer": {"doc": sample["answer"]},
-        }
-
-    train_dataset = train_dataset.map(mapper)
-    loss = SparseMultipleNegativesRankingLoss(model)
-
-    trainer = SparseEncoderTrainer(
-        model=model,
-        train_dataset=train_dataset,
-        loss=loss,
+    model = SparseEncoder(modules=[asym], similarity_fn_name="dot")
+    # For inference, you can pass dictionaries with the Asym keys:
+    res = model.encode(
+        [
+            {"doc": "Currently New York is rainy."},
+            {"query": "What's the weather in ny now?"},
+            {"doc": 'The definition of <3 is "Love".'},
+        ]
     )
-    # trainer.train()
+    model.encode(
+        [
+            "how long do you have to wait to apply for cerb?",
+            "<3 what does this symbol mean?",
+            'The definition of <3 is "Love".',
+        ]
+    )
+    sim = model.similarity(res[0], res[1])
+    print(f"Similarity: {sim}")
+    query = "What's the weather in ny now?"
+    document = "Currently New York is rainy."
+
+    query_embed = model.encode([{"query": query}])
+    document_embed = model.encode([{"doc": document}])
+
+    sim = model.similarity(query_embed, document_embed)
+    print(f"Similarity: {sim}")
+
+    model.push_to_hub(
+        "arthurbresnu/SparseEncodder_format_opensearch-neural-sparse-encoding-doc-v2-distill", private=True
+    )
+    model = SparseEncoder("arthurbresnu/SparseEncodder_format_opensearch-neural-sparse-encoding-doc-v2-distill")
 
     # For inference, you can pass dictionaries with the Asym keys:
     res = model.encode(
@@ -494,68 +461,48 @@ if __name__ == "__main__":
 
     sim = model.similarity(query_embed, document_embed)
     print(f"Similarity: {sim}")
-    # -----------------------------------------------------------------------------------------------------
 
-    # from datasets import Dataset
+    doc_encoder = MLMTransformer("naver/efficient-splade-VI-BT-large-doc")
+    query_encoder = MLMTransformer("naver/efficient-splade-VI-BT-large-query")
 
-    # from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses, models
+    asym = models.Asym(
+        {
+            "query": [
+                query_encoder,
+                SpladePooling("max"),
+            ],
+            "doc": [
+                doc_encoder,
+                SpladePooling("max"),
+            ],
+        }
+    )
 
-    # # # Load a SentenceTransformer model (pretrained or not), and add an Asym module
-    # model = SentenceTransformer("microsoft/mpnet-base")
-    # dim = model.get_sentence_embedding_dimension()
-    # asym_model = models.Asym({"query": [models.Dense(dim, dim)], "doc": [models.Dense(dim, dim)]})
-    # model.add_module("asym", asym_model)
+    model = SparseEncoder(modules=[asym], similarity_fn_name="dot")
 
-    # # asym = models.Asym(
-    # #     {
-    # #         "query": [
-    # #             models.Transformer("microsoft/mpnet-base"),
-    # #             models.Pooling("cls"),
-    # #             models.Dense(dim, dim),
-    # #         ],
-    # #         "doc": [
-    # #             models.Transformer("microsoft/mpnet-base"),
-    # #             models.Pooling("cls"),
-    # #             models.Dense(dim, dim),
-    # #         ],
-    # #     }
-    # # )
-    # # model = SentenceTransformer(modules=[asym])
-    # # model.push_to_hub("sparse-embedding/ST_model_with_asym_first_in_root", private=True)
-    # # model = SentenceTransformer("sparse-embedding/ST_model_with_asym_first_in_root")
+    query = "What's the weather in ny now?"
+    document = "Currently New York is rainy."
 
-    # train_dataset = Dataset.from_dict(
-    #     {
-    #         "query": ["is toprol xl the same as metoprolol?", "are eyes always the same size?"],
-    #         "answer": [
-    #             "Metoprolol succinate is also known by the brand name Toprol XL.",
-    #             "The eyes are always the same size from birth to death.",
-    #         ],
-    #     }
-    # )
+    query_embed = model.encode([{"query": query}])
+    document_embed = model.encode([{"doc": document}])
 
-    # # This mapper turns normal texts into a dictionary mapping Asym keys to the text
-    # def mapper(sample):
-    #     return {
-    #         "query": {"query": sample["query"]},
-    #         "answer": {"doc": sample["answer"]},
-    #     }
+    sim = model.similarity(query_embed, document_embed)
+    print(f"Similarity: {sim}")
 
-    # train_dataset = train_dataset.map(mapper)
-    # loss = losses.MultipleNegativesRankingLoss(model)
+    model.push_to_hub(
+        "arthurbresnu/SparseEncodder_format_efficient-splade-VI-BT-large-doc-and-query",
+        private=True,
+    )
 
-    # trainer = SentenceTransformerTrainer(
-    #     model=model,
-    #     train_dataset=train_dataset,
-    #     loss=loss,
-    # )
-    # # trainer.train()
+    model = SparseEncoder(
+        "arthurbresnu/SparseEncodder_format_efficient-splade-VI-BT-large-doc-and-query",
+    )
 
-    # # For inference, you can pass dictionaries with the Asym keys:
-    # model.encode(
-    #     [
-    #         {"query": "how long do you have to wait to apply for cerb?"},
-    #         {"query": "<3 what does this symbol mean?"},
-    #         {"doc": 'The definition of <3 is "Love".'},
-    #     ]
-    # )
+    query = "What's the weather in ny now?"
+    document = "Currently New York is rainy."
+
+    query_embed = model.encode([{"query": query}])
+    document_embed = model.encode([{"doc": document}])
+
+    sim = model.similarity(query_embed, document_embed)
+    print(f"Similarity: {sim}")
