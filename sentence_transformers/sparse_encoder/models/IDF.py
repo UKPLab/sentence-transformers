@@ -10,8 +10,7 @@ try:
 except ImportError:
     from typing_extensions import Self
 
-import torch  # noqa: I001
-
+import torch
 from transformers import AutoTokenizer
 
 from sentence_transformers.models.InputModule import InputModule
