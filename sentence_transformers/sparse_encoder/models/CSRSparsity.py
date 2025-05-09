@@ -49,6 +49,8 @@ class CSRSparsity(Module):
         dead_threshold: Threshold for dead neurons. Neurons with non-zero activations below this threshold are considered dead. Defaults to 30.
     """
 
+    config_keys = ["input_dim", "hidden_dim", "k", "k_aux", "normalize", "dead_threshold"]
+
     forward_kwargs = {"truncate_dim"}
 
     def __init__(
@@ -211,22 +213,6 @@ class CSRSparsity(Module):
 
     def __repr__(self):
         return f"CSRSparsity({self.get_config_dict()})"
-
-    def get_config_dict(self):
-        """
-        Get the configuration dictionary.
-
-        Returns:
-            Dictionary containing the configuration parameters
-        """
-        return {
-            "input_dim": self.input_dim,
-            "hidden_dim": self.hidden_dim,
-            "k": self.k,
-            "k_aux": self.k_aux,
-            "normalize": self.normalize,
-            "dead_threshold": self.dead_threshold,
-        }
 
     def get_sentence_embedding_dimension(self) -> int:
         """
