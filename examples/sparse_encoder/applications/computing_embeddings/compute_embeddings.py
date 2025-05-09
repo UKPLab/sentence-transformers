@@ -6,8 +6,6 @@ The embeddings are sparse, meaning that most of the values are zero.
 The embeddings are stored in a sparse matrix format, which is more efficient for storage and computation.
 we can also visualize the top tokens for each text."""
 
-import numpy as np
-
 from sentence_transformers import SparseEncoder
 
 # Initialize the SPLADE model
@@ -35,13 +33,12 @@ Embedding sparsity: {'num_rows': 3, 'num_cols': 30522, 'row_non_zero_mean': 56.6
 # Visualize top tokens for each text
 top_k = 10
 
+token_weights = model.decode(embeddings, top_k=top_k)["decoded_1"]
+
 print(f"\nTop tokens {top_k} for each text:")
 # The result is a list of sentence embeddings as numpy arrays
 for i, sentence in enumerate(sentences):
-    top_indices = np.argsort(-embeddings[i].to_dense().cpu().numpy())[:top_k]
-    top_values = embeddings[i].to_dense().cpu().numpy()[top_indices]
-    top_tokens = [model.tokenizer.decode([idx]) for idx in top_indices]
-    token_scores = ", ".join([f'("{token.strip()}", {value:.2f})' for token, value in zip(top_tokens, top_values)])
+    token_scores = ", ".join([f'("{token.strip()}", {value:.2f})' for token, value in token_weights[i]])
     print(f"{i}: {sentence} -> Top tokens:  {token_scores}")
 
 """
