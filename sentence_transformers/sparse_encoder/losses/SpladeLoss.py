@@ -99,7 +99,7 @@ class SpladeLoss(nn.Module):
         self.lambda_corpus = lambda_corpus
         self.lambda_query = lambda_query
         self.loss = loss
-        if self.loss.__class__.__name__ not in PrincipalLoss.__members__:
+        if not isinstance(self.loss, tuple(loss_type.value for loss_type in PrincipalLoss)):
             raise ValueError(
                 f"Principal loss must be one of {list(PrincipalLoss.__members__.keys())}, but got {self.loss.__class__.__name__}"
             )
@@ -128,14 +128,14 @@ class SpladeLoss(nn.Module):
 
         loss_value = self.loss.compute_loss_from_embeddings(embeddings, labels)
 
-        corpus_loss = self.corpus_regularizer(embeddings, "corpus")
+        corpus_loss = self.corpus_regularizer.compute_loss_from_embeddings(embeddings, "corpus")
 
         # Compute total loss
         total_loss = loss_value + self.lambda_corpus * corpus_loss
 
         # Add query regularization if enabled
         if self.query_regularizer is not None:
-            query_loss = self.query_regularizer(embeddings, "query")
+            query_loss = self.query_regularizer.compute_loss_from_embeddings(embeddings, "query")
             total_loss = total_loss + self.lambda_query * query_loss
 
         return total_loss

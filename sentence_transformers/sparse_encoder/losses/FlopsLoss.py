@@ -51,7 +51,7 @@ class FlopsLoss(nn.Module):
         else:
             embeddings_to_use = torch.cat(embeddings[1:])  # (batch_size * (1 + num_negatives), embedding_dim)
 
-        if self.treshold is not None:
+        if self.threshold is not None:
             l0_norm = (embeddings_to_use != 0).sum(dim=1)
             mask = (l0_norm > self.threshold).float()
             embeddings_to_use = embeddings_to_use * mask.unsqueeze(1)

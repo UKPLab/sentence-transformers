@@ -269,24 +269,25 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
             self.loss = self.prepare_loss(loss, model)
 
         is_splade_loss = isinstance(loss, SpladeLoss) if loss is not None else False
-        has_splade_scheduler = (
-            any(isinstance(callback, SpladeLambdaSchedulerCallback) for callback in callbacks)
-            if callbacks is not None
-            else False
-        )
+        splade_scheduler_callback_index = None
+        for idx, callback in enumerate(self.callback_handler.callbacks):
+            if isinstance(callback, SpladeLambdaSchedulerCallback):
+                splade_scheduler_callback_index = idx
+                break
 
-        # If we're using SpladeLoss but don't have a scheduler callback, add one
-        if is_splade_loss and not has_splade_scheduler:
-            if callbacks is None:
-                callbacks = []
+        # If we're using SpladeLoss but don't have a scheduler callback, add one or if it's not the second one in the list
+        if is_splade_loss and (splade_scheduler_callback_index is None or splade_scheduler_callback_index > 1):
+            if splade_scheduler_callback_index is not None:
+                splade_callback = self.callback_handler.callbacks.pop(splade_scheduler_callback_index)
 
-            logger.warning(
-                "SpladeLoss detected without SpladeLambdaSchedulerCallback. "
-                "Adding default SpladeLambdaSchedulerCallback to gradually increase lambda values from 0 to their maximum."
-            )
+            else:
+                logger.warning(
+                    "SpladeLoss detected without SpladeLambdaSchedulerCallback. "
+                    "Adding default SpladeLambdaSchedulerCallback to gradually increase lambda values from 0 to their maximum."
+                )
 
-            # Create and insert the callback after the default callback informing the trainer when to log, evaluate, save, etc.
-            splade_callback = SpladeLambdaSchedulerCallback(loss=loss)
+                # Create and insert the callback after the default callback informing the trainer when to log, evaluate, save, etc.
+                splade_callback = SpladeLambdaSchedulerCallback(loss=loss)
             self.callback_handler.callbacks.insert(1, splade_callback)
 
         # If evaluator is a list, we wrap it in a SequentialEvaluator
