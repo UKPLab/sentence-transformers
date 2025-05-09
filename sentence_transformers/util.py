@@ -1746,3 +1746,43 @@ def disable_datasets_caching():
     finally:
         if is_originally_enabled:
             enable_caching()
+
+
+def get_top_k_token_weight(
+    row: torch.Tensor, tokenizer, top_k: int
+) -> list[tuple[str, float]] | list[list[tuple[str, float]]]:
+    """
+    Given a tensor (1D or 2D; sparse or dense), return the top k (token, value) pairs.
+
+    For a 1D tensor, returns a list of (token, value) tuples.
+    For a 2D tensor, returns a list (one per row) of lists of (token, value) tuples.
+
+    Args:
+        row (torch.Tensor): 1D or 2D tensor (sparse or dense)
+        tokenizer: Tokenizer with a method convert_ids_to_tokens.
+        top_k (int): Number of top elements to return per row.
+
+    Returns:
+        Union[List[Tuple[str, float]], List[List[Tuple[str, float]]]]:
+            List for 1D tensor or list of lists for 2D tensor.
+    """
+    if row.dim() == 2:
+        return [get_top_k_token_weight(row[i], tokenizer, top_k) for i in range(row.size(0))]
+    elif row.dim() == 1:
+        if row.is_sparse or getattr(row, "is_sparse_csr", False):
+            row = row.coalesce() if row.is_sparse else row
+            values = row.values()
+            indices = row.indices().squeeze()
+            if values.numel() == 0:
+                return []
+            topk = min(top_k, indices.numel())
+            top_values, top_idx = torch.topk(values, topk)
+            # Convert indices to tokens
+            top_tokens = tokenizer.convert_ids_to_tokens(indices[top_idx].tolist())
+            return list(zip(top_tokens, top_values.tolist()))
+        else:
+            top_values, top_indices = torch.topk(row, top_k)
+            top_tokens = tokenizer.convert_ids_to_tokens(top_indices.tolist())
+            return list(zip(top_tokens, top_values.tolist()))
+    else:
+        raise ValueError("Input tensor must be 1D or 2D.")
