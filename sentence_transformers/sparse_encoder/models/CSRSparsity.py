@@ -36,6 +36,7 @@ class CSRSparsity(Module):
     Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation, https://arxiv.org/abs/2503.01776
 
     This module transforms dense embeddings into sparse representations by:
+
     1. Applying a multi-layer feed-forward network
     2. Applying top-k sparsification to keep only the largest values
     3. Supporting auxiliary losses for training stability (via k_aux parameter)

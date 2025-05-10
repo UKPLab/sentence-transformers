@@ -244,6 +244,7 @@ If you use the code for `data augmentation <https://github.com/UKPLab/sentence-t
    docs/sparse_encoder/usage/usage
    docs/sparse_encoder/pretrained_models
    docs/sparse_encoder/training_overview
+   docs/sentence_transformer/dataset_overview
    docs/sparse_encoder/loss_overview
    docs/sparse_encoder/training/examples
 

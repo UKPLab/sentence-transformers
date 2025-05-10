@@ -31,6 +31,7 @@ Manually performing semantic search with sparse encoders is straightforward, and
 ::
 
     import torch
+
     from sentence_transformers import SparseEncoder
 
     # 1. Load a pretrained SparseEncoder model
@@ -60,8 +61,8 @@ Manually performing semantic search with sparse encoders is straightforward, and
     ]
     query_embeddings = model.encode(queries, convert_to_tensor=True)
 
-    # 4. Use the similarity function between the query and corpus embeddings
-    top_k = min(5, len(corpus)) # Find at most 5 sentences of the corpus for each query sentence
+    # 4. Use the similarity function to compute the similarity scores between the query and corpus embeddings
+    top_k = min(5, len(corpus))  # Find at most 5 sentences of the corpus for each query sentence
     similarity_scores = model.similarity(query_embeddings, corpus_embeddings)
     scores, indices = torch.topk(similarity_scores, k=top_k)
 
@@ -71,14 +72,11 @@ Manually performing semantic search with sparse encoders is straightforward, and
         for corpus_id, score in zip(indices[query_id].tolist(), scores[query_id]):
             sentence = corpus[corpus_id]
 
-            # Retrieve the top 10 tokens contributing most to the similarity score
-            product = (query_embeddings[query_id] * corpus_embeddings[corpus_id]).to_dense()
-            top_values, token_ids = torch.topk(product, k=10)
+            pointwise_score = model.decode(query_embeddings[query_id], corpus_embeddings[corpus_id])["pointwise_scores"]
 
-            # 6. Convert token IDs to tokens using the embedder’s tokenizer
-            top_tokens = model.tokenizer.batch_decode(token_ids)
-            top_tokens = [(token, round(value, 2)) for token, value in zip(top_tokens, top_values)]
-            print(f"Score: {score:.4f} - Sentence: {sentence} - Top influential tokens: {top_tokens}")
+            token_scores = ", ".join([f'("{token.strip()}", {value:.2f})' for token, value in pointwise_score])
+
+            print(f"Score: {score:.4f} - Sentence: {sentence} - Top influential tokens: {token_scores}")
         print("")
 ```
 
