@@ -35,12 +35,13 @@ class WordEmbeddings(Module):
         update_embeddings: bool = False,
         max_seq_length: int = 1000000,
     ):  
+        nn.Module.__init__(self)
         if isinstance(tokenizer, (PreTrainedTokenizerFast, PreTrainedTokenizer)):
             tokenizer = WordTokenizer.WordTokenizerWrapper(tokenizer)
         elif not isinstance(tokenizer, WordTokenizer):
             raise ValueError(
                 "tokenizer must be a WordTokenizer or a HuggingFace tokenizer. "
-        nn.Module.__init__(self)
+            )
         if isinstance(embedding_weights, list):
             embedding_weights = np.asarray(embedding_weights)
 
