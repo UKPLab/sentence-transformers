@@ -417,15 +417,16 @@ class WordTokenizer(ABC):
     def load(input_path: str):
         pass
 
+
 class WordTokenizerWrapper(WordTokenizer):
     def __init__(self, tokenizer):
         super().__init__()
         self.tokenizer = tokenizer
 
-    def tokenize(self, sentence:str):
+    def tokenize(self, sentence: str):
         encoded = self.tokenizer(sentence, padding=True, truncation=True, return_tensors="pt")
         return encoded["input_ids"].tolist()[0]
-    
+
     def set_vocab(self, vocab: Iterable[str]):
         pass
 
@@ -434,8 +435,7 @@ class WordTokenizerWrapper(WordTokenizer):
 
     def save(self, output_path: str):
         self.tokenizer.save_pretrained(output_path)
-    
+
     @staticmethod
     def load(input_path: str):
         return WordTokenizerWrapper(AutoTokenizer.from_pretrained(input_path, use_fast=True))
-    

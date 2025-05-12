@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from transformers import PreTrainedTokenizerFast, PreTrainedTokenizer
 import gzip
 import logging
 import os
+
+from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
 try:
     from typing import Self
@@ -33,14 +34,12 @@ class WordEmbeddings(Module):
         embedding_weights,
         update_embeddings: bool = False,
         max_seq_length: int = 1000000,
-    ):  
+    ):
         nn.Module.__init__(self)
         if isinstance(tokenizer, (PreTrainedTokenizerFast, PreTrainedTokenizer)):
             tokenizer = WordTokenizer.WordTokenizerWrapper(tokenizer)
         elif not isinstance(tokenizer, WordTokenizer):
-            raise ValueError(
-                "tokenizer must be a WordTokenizer or a HuggingFace tokenizer. "
-            )
+            raise ValueError("tokenizer must be a WordTokenizer or a HuggingFace tokenizer. ")
         if isinstance(embedding_weights, list):
             embedding_weights = np.asarray(embedding_weights)
 
