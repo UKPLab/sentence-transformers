@@ -1,5 +1,7 @@
 from __future__ import annotations
+from typing import Union
 
+from transformers import PreTrainedTokenizerFast, PreTrainedTokenizer
 import gzip
 import logging
 import os
@@ -28,11 +30,16 @@ class WordEmbeddings(Module):
 
     def __init__(
         self,
-        tokenizer: WordTokenizer,
+        tokenizer: Union[WordTokenizer, PreTrainedTokenizerFast, PreTrainedTokenizer],
         embedding_weights,
         update_embeddings: bool = False,
         max_seq_length: int = 1000000,
-    ):
+    ):  
+        if isinstance(tokenizer, (PreTrainedTokenizerFast, PreTrainedTokenizer)):
+            tokenizer = WordTokenizer.WordTokenizerWrapper(tokenizer)
+        elif not isinstance(tokenizer, WordTokenizer):
+            raise ValueError(
+                "tokenizer must be a WordTokenizer or a HuggingFace tokenizer. "
         nn.Module.__init__(self)
         if isinstance(embedding_weights, list):
             embedding_weights = np.asarray(embedding_weights)
