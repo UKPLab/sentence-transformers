@@ -438,4 +438,4 @@ class TransformersTokenizerWrapper(WordTokenizer):
 
     @staticmethod
     def load(input_path: str):
-        return WordTokenizerWrapper(AutoTokenizer.from_pretrained(input_path, use_fast=True))
+        return TransformersTokenizerWrapper(AutoTokenizer.from_pretrained(input_path, use_fast=True))
