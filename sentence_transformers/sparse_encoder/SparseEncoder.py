@@ -222,9 +222,9 @@ class SparseEncoder(SentenceTransformer):
                 of active dimensions and can be slow or memory-intensive if your model wasn't (yet) finetuned to high sparsity.
 
         Returns:
-            Union[List[Tensor], ndarray, Tensor]: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned.
-            If only one string input is provided, then the output is a 1d array with shape [output_dimension]. If ``convert_to_tensor``,
-            a torch Tensor is returned instead. If ``self.truncate_dim <= output_dimension`` then output_dimension is ``self.truncate_dim``.
+            Union[List[Tensor], ndarray, Tensor]: By default, a 2d torch sparse tensor with shape [num_inputs, output_dimension] is returned.
+            If only one string input is provided, then the output is a 1d array with shape [output_dimension]. If save_to_cpu is True,
+            the embeddings are moved to the CPU.
 
         Example:
             ::
