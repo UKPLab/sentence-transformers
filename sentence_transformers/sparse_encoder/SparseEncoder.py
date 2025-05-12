@@ -132,6 +132,8 @@ class SparseEncoder(SentenceTransformer):
             #         [0.11269, 0.019061, 29.612]])
     """
 
+    model_card_data_class = SparseEncoderModelCardData
+
     def __init__(
         self,
         model_name_or_path: str | None = None,
@@ -174,8 +176,6 @@ class SparseEncoder(SentenceTransformer):
             backend=backend,
         )
         self.max_active_dims = max_active_dims
-        self.model_card_data = model_card_data or SparseEncoderModelCardData()
-        self.model_card_data.register_model(self)
 
     def encode(
         self,

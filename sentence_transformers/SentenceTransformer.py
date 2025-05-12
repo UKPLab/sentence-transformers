@@ -161,6 +161,8 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             #         [0.0492, 0.0421, 1.0000]])
     """
 
+    model_card_data_class = SentenceTransformerModelCardData
+
     def __init__(
         self,
         model_name_or_path: str | None = None,
@@ -188,7 +190,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         self.similarity_fn_name = similarity_fn_name
         self.trust_remote_code = trust_remote_code
         self.truncate_dim = truncate_dim
-        self.model_card_data = model_card_data or SentenceTransformerModelCardData()
+        self.model_card_data = model_card_data or self.model_card_data_class()
         self.module_kwargs = None
         self._model_card_vars = {}
         self._model_card_text = None
