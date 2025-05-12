@@ -56,7 +56,7 @@ def main():
                 scores=stsb_eval_dataset["score"],
                 main_similarity=SimilarityFunction.COSINE,
                 name=f"sts-dev-{k_dim}",
-                truncate_dim=k_dim,
+                max_active_dims=k_dim,
             )
         )
     dev_evaluator = SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[-1])

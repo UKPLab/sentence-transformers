@@ -294,6 +294,8 @@ class SparseEncoder(SentenceTransformer):
         self.to(device)
 
         max_active_dims = max_active_dims if max_active_dims is not None else self.max_active_dims
+        if max_active_dims is not None:
+            kwargs["max_active_dims"] = max_active_dims
 
         all_embeddings = []
         length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
