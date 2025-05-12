@@ -418,7 +418,7 @@ class WordTokenizer(ABC):
         pass
 
 
-class WordTokenizerWrapper(WordTokenizer):
+class TransformersTokenizerWrapper(WordTokenizer):
     def __init__(self, tokenizer):
         super().__init__()
         self.tokenizer = tokenizer
