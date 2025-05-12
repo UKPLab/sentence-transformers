@@ -94,7 +94,6 @@ class SparseTranslationEvaluator(TranslationEvaluator):
             name=name,
             print_wrong_matches=print_wrong_matches,
             write_csv=write_csv,
-            truncate_dim=None,
         )
 
     def __call__(

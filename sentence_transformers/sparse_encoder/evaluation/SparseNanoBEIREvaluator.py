@@ -174,7 +174,6 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             show_progress_bar=show_progress_bar,
             batch_size=batch_size,
             write_csv=write_csv,
-            truncate_dim=None,
             score_functions=score_functions,
             main_score_function=main_score_function,
             aggregate_fn=aggregate_fn,

@@ -124,7 +124,6 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             batch_size=batch_size,
             show_progress_bar=show_progress_bar,
             use_batched_encoding=use_batched_encoding,
-            truncate_dim=None,
             mrr_at_k=mrr_at_k,
         )
 

@@ -114,7 +114,6 @@ class SparseTripletEvaluator(TripletEvaluator):
             batch_size=batch_size,
             show_progress_bar=show_progress_bar,
             write_csv=write_csv,
-            truncate_dim=None,
             similarity_fn_names=similarity_fn_names,
             main_distance_function=main_distance_function,
         )

@@ -103,7 +103,6 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             show_progress_bar=show_progress_bar,
             write_csv=write_csv,
             precision=None,
-            truncate_dim=None,
         )
 
     def __call__(

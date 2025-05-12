@@ -98,7 +98,6 @@ class SparseMSEEvaluator(MSEEvaluator):
             batch_size=batch_size,
             name=name,
             write_csv=write_csv,
-            truncate_dim=None,
         )
         logger.warning(
             "The SparseMSEEvaluator is not handling the mse compute with sparse tensors yet. Memory issues may occur."

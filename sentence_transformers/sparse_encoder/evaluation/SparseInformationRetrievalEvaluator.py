@@ -167,7 +167,6 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             batch_size=batch_size,
             name=name,
             write_csv=write_csv,
-            truncate_dim=None,
             score_functions=score_functions,
             main_score_function=main_score_function,
             query_prompt=query_prompt,
