@@ -43,8 +43,7 @@ class MLMTransformer(InputModule):
             model is cased or not)
         tokenizer_name_or_path: Name or path of the tokenizer. When
             None, then model_name_or_path is used
-        backend: Backend used for model inference. Can be `torch`, `onnx`,
-            or `openvino`. Default is `torch`.
+        backend: Backend used for model inference. Can be only `torch` for now for this class.
     """
 
     config_file_name: str = "sentence_bert_config.json"
@@ -66,6 +65,11 @@ class MLMTransformer(InputModule):
         super().__init__()
         self.do_lower_case = do_lower_case
         self.backend = backend
+        if self.backend != "torch":
+            logger.warning(
+                f"MLMTransformer only supports torch backend. The provided backend '{self.backend}' will be ignored."
+            )
+            self.backend = "torch"
 
         if model_args is None:
             model_args = {}
