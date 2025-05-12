@@ -154,8 +154,19 @@ class CSRLoss(nn.Module):
               https://arxiv.org/abs/2503.01776
 
         Requirements:
-            1. Sentence pairs or triplets for the MRL component
+            1. (anchor, positive) pairs or (anchor, positive, negative) triplets
             2. Uses autoencoder components of the SparseEncoder model
+
+        Inputs:
+            +-------------------------------------------------+--------+
+            | Texts                                           | Labels |
+            +=================================================+========+
+            | (anchor, positive) pairs                        | none   |
+            +-------------------------------------------------+--------+
+            | (anchor, positive, negative) triplets           | none   |
+            +-------------------------------------------------+--------+
+            | (anchor, positive, negative_1, ..., negative_n) | none   |
+            +-------------------------------------------------+--------+
 
         Relations:
             - Uses :class:`CSRReconstructionLoss` for the reconstruction component
