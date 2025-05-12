@@ -307,7 +307,7 @@ class SparseEncoder(SentenceTransformer):
             with torch.no_grad():
                 out_features = self.forward(features, **kwargs)
 
-                if self.max_active_dims:
+                if max_active_dims:
                     out_features["sentence_embedding"] = select_max_active_dims(
                         out_features["sentence_embedding"], max_active_dims=max_active_dims
                     )

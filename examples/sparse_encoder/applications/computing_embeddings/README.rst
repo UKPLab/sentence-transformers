@@ -92,6 +92,98 @@ Each model has a maximum sequence length under ``model.max_seq_length``, which i
 
    You cannot increase the length higher than what is maximally supported by the respective transformer model. Also note that if a model was trained on short texts, the representations for long texts might not be that good.
 
+Controlling Sparsity with max_active_dims
+-----------------------------------------
+
+For sparse models, you can control the maximum number of active dimensions (non-zero values) in the output embeddings using the ``max_active_dims`` parameter. This is particularly useful for:
+
+1. Reducing memory usage and storage requirements
+2. Improving search efficiency in production systems
+3. Controlling the trade-off between accuracy and performance
+
+You can specify ``max_active_dims`` either when initializing the model or during encoding:
+
+::
+
+   from sentence_transformers import SparseEncoder
+
+   # Initialize the SPLADE model
+   model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+   # Embed a list of sentences
+   sentences = [
+      "This framework generates embeddings for each input sentence",
+      "Sentences are passed as a list of string.",
+      "The quick brown fox jumps over the lazy dog.",
+   ]
+
+   # Generate embeddings
+   embeddings = model.encode(sentences)
+
+   # Print embedding sim and sparsity
+   print(f"Embedding dim: {model.get_sentence_embedding_dimension()}")
+
+   stats = model.get_sparsity_stats(embeddings)
+   print(f"Embedding sparsity: {stats}")
+   print(f"Average non-zero dimensions: {stats['row_non_zero_mean']:.2f}")
+   print(f"Sparsity percentage: {stats['row_sparsity_mean']:.2%}")
+
+
+   """
+   Embedding dim: 30522
+   Embedding sparsity: {'num_rows': 3, 'num_cols': 30522, 'row_non_zero_mean': 56.66666793823242, 'row_sparsity_mean': 0.9981433749198914}
+   Average non-zero dimensions: 56.67
+   Sparsity percentage: 99.81%
+   """
+   
+   # Example of using max_active_dims during encoding
+   print("\n--- Using max_active_dims during encoding ---")
+   # Generate embeddings with limited active dimensions
+   embeddings_limited = model.encode(sentences, max_active_dims=32)
+   stats_limited = model.get_sparsity_stats(embeddings_limited)
+   print(f"Limited embedding sparsity: {stats_limited}")
+   print(f"Average non-zero dimensions: {stats_limited['row_non_zero_mean']:.2f}")
+   print(f"Sparsity percentage: {stats_limited['row_sparsity_mean']:.2%}")
+
+   """
+   --- Using max_active_dims during encoding ---
+   Limited embedding sparsity: {'num_rows': 3, 'num_cols': 30522, 'row_non_zero_mean': 32.0, 'row_sparsity_mean': 0.9989516139030457}
+   Average non-zero dimensions: 32.00
+   Sparsity percentage: 99.90%
+   """
+
+When you set ``max_active_dims``, the model will keep only the top-K dimensions with the highest values and set all other values to zero. This ensures your embeddings maintain a controlled level of sparsity while preserving the most important semantic information.
+
+.. note::
+
+   Setting a very low ``max_active_dims`` value may reduce the quality of search results. The optimal value depends on your specific use case and dataset. Common values range from 128 to 512 dimensions, like dense embeddings dimensions.
+
+
+One of the key benefits of controlling sparsity with ``max_active_dims`` is reduced memory usage. Here's an example showing the memory savings:
+
+::
+
+   # Compare memory usage between default and limited active dimensions
+   print("\n--- Comparing memory usage ---")
+   def get_memory_size(tensor):
+       if tensor.is_sparse:
+           # For sparse tensors, only count non-zero elements
+           return (tensor._values().element_size() * tensor._values().nelement() + 
+                  tensor._indices().element_size() * tensor._indices().nelement())
+       else:
+           return tensor.element_size() * tensor.nelement()
+
+   print(f"Original embeddings memory: {get_memory_size(embeddings) / 1024:.2f} KB")
+   print(f"Embeddings with max_active_dims=32 memory: {get_memory_size(embeddings_limited) / 1024:.2f} KB")
+
+   """
+   --- Comparing memory usage ---
+   Original embeddings memory: 3.32 KB
+   Embeddings with max_active_dims=32 memory: 1.88 KB
+   """
+
+As shown in the example, limiting active dimensions to 32 reduced memory usage by approximately 43%. This efficiency becomes even more significant when working with large document collections but need to be put in balance with the possible loss of quality of the embeddings representations.
+
 Interpretability with SPLADE Models
 ----------------------------------
 

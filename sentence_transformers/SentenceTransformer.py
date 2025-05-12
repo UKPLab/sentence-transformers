@@ -711,7 +711,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 if self.device.type == "hpu":
                     out_features = copy.deepcopy(out_features)
 
-                if self.truncate_dim:
+                if truncate_dim:
                     out_features["sentence_embedding"] = truncate_embeddings(
                         out_features["sentence_embedding"], truncate_dim
                     )
