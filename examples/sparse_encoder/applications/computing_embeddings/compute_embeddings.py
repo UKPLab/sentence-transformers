@@ -33,7 +33,7 @@ Embedding sparsity: {'num_rows': 3, 'num_cols': 30522, 'row_non_zero_mean': 56.6
 # Visualize top tokens for each text
 top_k = 10
 
-token_weights = model.decode(embeddings, top_k=top_k)["decoded_1"]
+token_weights = model.decode(embeddings, top_k=top_k)
 
 print(f"\nTop tokens {top_k} for each text:")
 # The result is a list of sentence embeddings as numpy arrays

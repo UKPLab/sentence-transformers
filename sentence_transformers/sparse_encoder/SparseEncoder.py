@@ -12,12 +12,12 @@ from torch import Tensor, nn
 from tqdm import trange
 from transformers import AutoConfig
 
-from sentence_transformers.models import Asym, Pooling, Transformer
+from sentence_transformers.models import Pooling, Transformer
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData
-from sentence_transformers.sparse_encoder.models import IDF, CSRSparsity, MLMTransformer, SpladePooling
-from sentence_transformers.util import batch_to_device, get_top_k_token_weight, truncate_embeddings_for_sparse
+from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
+from sentence_transformers.util import batch_to_device, truncate_embeddings_for_sparse
 
 logger = logging.getLogger(__name__)
 
@@ -877,91 +877,81 @@ class SparseEncoder(SentenceTransformer):
         finally:
             self.truncate_dim = original_output_dim
 
-    def decode(
+    def intersection(
         self,
         embeddings_1: torch.Tensor,
-        embeddings_2: torch.Tensor = None,
-        top_k: int = 10,
-    ) -> dict:
+        embeddings_2: torch.Tensor,
+    ):
         """
-        Decode top K tokens and weights from one or two sparse embeddings, and optionally compute pointwise scores.
+        Compute the intersection of two sparse embeddings.
 
         Args:
-            embeddings_1 (torch.Tensor): First embedding tensor (batch_1, vocab) or (vocab,) if we have a second embedding.
-            embeddings_2 (torch.Tensor, optional): Second embedding tensor (batch_2, vocab) or (vocab,)
-            top_k (int): Number of top tokens to return per embedding.
-        returns:
-            dict: Dictionary with decoded tokens and weights. If embeddings_2 is provided, also includes pointwise scores.
+            embeddings_1 (torch.Tensor): First embedding tensor (batch_1, vocab).
+            embeddings_2 (torch.Tensor): Second embedding tensor (batch_2, vocab).
 
+        Returns:
+            torch.Tensor: Intersection of the two embeddings.
         """
         if not embeddings_1.is_sparse:
             embeddings_1 = embeddings_1.to_sparse()
-        if embeddings_2 is not None and not embeddings_2.is_sparse:
+        if not embeddings_2.is_sparse:
             embeddings_2 = embeddings_2.to_sparse()
 
-        # Check for sparse interpretable output
-        interpretable_output = False
-        for module in self._modules.values():
-            if isinstance(module, SpladePooling) or isinstance(module, IDF):
-                interpretable_output = True
-                break
-            if isinstance(module, Asym):
-                for submodule in module._modules.values():
-                    if isinstance(submodule, SpladePooling) or isinstance(submodule, IDF):
-                        interpretable_output = True
-                        break
-        if not interpretable_output:
-            raise RuntimeError("decode is only available for models with a SpladePooling or IDF module.")
+        if embeddings_1.ndim != 1:
+            raise ValueError(f"Expected 1D tensor for embeddings_1, but got {embeddings_1.shape} shape.")
+
+        if embeddings_2.ndim == 1:
+            intersection = embeddings_1 * embeddings_2
+        elif embeddings_2.ndim == 2:
+            intersection = torch.stack([embeddings_1 * embedding for embedding in embeddings_2])
+        else:
+            raise ValueError(f"Expected 1D tensor or 2D tensor for embeddings_2, but got {embeddings_2.shape} shape.")
+
+        # Cheaply remove zero values
+        intersection = intersection.coalesce()
+        active_dims = intersection.values() > 0
+        intersection = torch.sparse_coo_tensor(
+            intersection.indices()[:, active_dims],
+            intersection.values()[active_dims],
+            size=intersection.size(),
+            device=intersection.device,
+        )
+
+        return intersection
+
+    def decode(self, embeddings: torch.Tensor, top_k: int = 10) -> dict:
+        """
+        Decode top K tokens and weights from a sparse embedding.
+
+        Args:
+            embeddings (torch.Tensor): Sparse embedding tensor (batch, vocab).
+            top_k (int): Number of top tokens to return.
+
+        Returns:
+            dict: Dictionary with decoded tokens and weights.
+        """
+        if not embeddings.is_sparse:
+            embeddings = embeddings.to_sparse()
 
         tokenizer = self.tokenizer
 
-        # Handle embeddings_1
-        result = {"decoded_1": get_top_k_token_weight(embeddings_1, tokenizer, top_k=top_k)}
-
-        if embeddings_2 is not None:
-            result["decoded_2"] = get_top_k_token_weight(embeddings_2, tokenizer, top_k=top_k)
-
-            if embeddings_1.ndim != 1:
-                if embeddings_1.shape[0] == 1:
-                    embeddings_1 = embeddings_1[0]
-                else:
-                    raise ValueError(
-                        f"Expected 1D tensor or 2D with first dim 1 for embeddings_1, but got {embeddings_1.shape} dimensions."
-                    )
-
-            if embeddings_2.ndim == 1:
-                embeddings_2 = torch.sparse_coo_tensor(
-                    torch.cat(
-                        [
-                            torch.zeros(
-                                1,
-                                embeddings_2.coalesce().indices().size(1),
-                                dtype=embeddings_2.coalesce().indices().dtype,
-                                device=embeddings_2.device,
-                            ),
-                            embeddings_2.coalesce().indices(),
-                        ],
-                        dim=0,
-                    ),
-                    embeddings_2.coalesce().values(),
-                    size=(1, embeddings_2.size(0)),
-                )
-            elif embeddings_2.ndim != 2:
-                raise ValueError(
-                    f"Expected 2D tensor with first dim 1 for embeddings_2, but got {embeddings_2.shape} dimensions."
-                )
-            if embeddings_1.shape[0] != embeddings_2.shape[1]:
-                raise ValueError(
-                    f"Expected embeddings_1 and embeddings_2 to have the same number of columns, but got {embeddings_1.shape[1]} and {embeddings_2.shape[1]}."
-                )
-            if embeddings_2.shape[0] == 1:
-                result["pointwise_scores"] = get_top_k_token_weight(
-                    embeddings_1 * embeddings_2[0], tokenizer, top_k=top_k
-                )
-
+        if embeddings.dim() == 2:
+            return [self.decode(embeddings[i], top_k=top_k) for i in range(embeddings.size(0))]
+        elif embeddings.dim() == 1:
+            if embeddings.is_sparse or getattr(embeddings, "is_sparse_csr", False):
+                embeddings = embeddings.coalesce() if embeddings.is_sparse else embeddings
+                values = embeddings.values()
+                indices = embeddings.indices().squeeze()
+                if values.numel() == 0:
+                    return []
+                topk = min(top_k, indices.numel())
+                top_values, top_idx = torch.topk(values, topk)
+                # Convert indices to tokens
+                top_tokens = tokenizer.convert_ids_to_tokens(indices[top_idx].tolist())
+                return list(zip(top_tokens, top_values.tolist()))
             else:
-                result["pointwise_scores"] = [
-                    get_top_k_token_weight(embeddings_1 * embeddings_2[i], tokenizer, top_k=top_k)
-                    for i in range(embeddings_2.shape[0])
-                ]
-        return result
+                top_values, top_indices = torch.topk(embeddings, top_k)
+                top_tokens = tokenizer.convert_ids_to_tokens(top_indices.tolist())
+                return list(zip(top_tokens, top_values.tolist()))
+        else:
+            raise ValueError("Input tensor must be 1D or 2D.")
