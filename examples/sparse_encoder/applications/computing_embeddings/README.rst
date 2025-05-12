@@ -217,16 +217,11 @@ When using SPLADE models, a key advantage is interpretability. You can easily vi
       token_scores = ", ".join([f'("{token.strip()}", {value:.2f})' for token, value in token_weights[i]])
       print(f"{i}: {sentence} -> Top tokens:  {token_scores}")
 
-Example output:
-
-::
-
    """
    Top tokens 10 for each text:
       0: This framework generates embeddings for each input sentence -> Top tokens:  ("framework", 2.19), ("##bed", 2.12), ("input", 1.99), ("each", 1.60), ("em", 1.58), ("sentence", 1.49), ("generate", 1.42), ("##ding", 1.33), ("sentences", 1.10), ("create", 0.93)
       1: Sentences are passed as a list of string. -> Top tokens:  ("string", 2.72), ("pass", 2.24), ("sentences", 2.15), ("passed", 2.07), ("sentence", 1.90), ("strings", 1.86), ("list", 1.84), ("lists", 1.49), ("as", 1.18), ("passing", 0.73)
       2: The quick brown fox jumps over the lazy dog. -> Top tokens:  ("lazy", 2.18), ("fox", 1.67), ("brown", 1.56), ("over", 1.52), ("dog", 1.50), ("quick", 1.49), ("jump", 1.39), ("dogs", 1.25), ("foxes", 0.99), ("jumping", 0.84)
    """
-
    
 This interpretability helps in understanding why certain documents match or don't match in search applications, and provides transparency into the model's behavior.
