@@ -652,7 +652,7 @@ class SparseEncoder(SentenceTransformer):
     def truncate_sentence_embeddings(self, truncate_dim: int | None) -> Iterator[None]:
         raise NotImplementedError(
             "SparseEncoder does not support truncating sentence embeddings. "
-            "Use the `max_active_dims` parameter in the encode method instead."
+            "Use the `max_active_dims` parameter in the encode method instead if you want to limit the embedding memory usage."
         )
 
     def save(
