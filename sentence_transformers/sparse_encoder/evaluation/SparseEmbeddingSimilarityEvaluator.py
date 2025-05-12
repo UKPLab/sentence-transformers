@@ -37,8 +37,8 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
         name (str, optional): The name of the evaluator. Defaults to "".
         show_progress_bar (bool, optional): Whether to show a progress bar during evaluation. Defaults to False.
         write_csv (bool, optional): Whether to write the evaluation results to a CSV file. Defaults to True.
-        truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the
-            model's current truncation dimension. Defaults to None.
+        max_active_dims (Optional[int], optional): The maximum number of active dimensions to use.
+            `None` uses the model's current `max_active_dims`. Defaults to None.
 
     Example:
         ::
@@ -89,8 +89,9 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
         name: str = "",
         show_progress_bar: bool = False,
         write_csv: bool = True,
-        truncate_dim: int | None = None,
+        max_active_dims: int | None = None,
     ):
+        self.max_active_dims = max_active_dims
         return super().__init__(
             sentences1=sentences1,
             sentences2=sentences2,
@@ -102,7 +103,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             show_progress_bar=show_progress_bar,
             write_csv=write_csv,
             precision=None,
-            truncate_dim=truncate_dim,
+            truncate_dim=None,
         )
 
     def __call__(
@@ -116,13 +117,13 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
         sentences: str | list[str] | np.ndarray,
         **kwargs,
     ) -> Tensor:
-        kwargs["truncate_dim"] = self.truncate_dim
         return model.encode(
             sentences,
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_sparse_tensor=True,
             save_to_cpu=True,
+            max_active_dims=self.max_active_dims,
             **kwargs,
         )
 

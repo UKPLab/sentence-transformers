@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import logging
 import os
-from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -115,9 +114,8 @@ class TranslationEvaluator(SentenceEvaluator):
 
         logger.info(f"Evaluating translation matching Accuracy of the model on the {self.name} dataset{out_txt}:")
 
-        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            embeddings1 = torch.stack(self.embed_inputs(model, self.source_sentences))
-            embeddings2 = torch.stack(self.embed_inputs(model, self.target_sentences))
+        embeddings1 = torch.stack(self.embed_inputs(model, self.source_sentences))
+        embeddings2 = torch.stack(self.embed_inputs(model, self.target_sentences))
 
         cos_sims = pytorch_cos_sim(embeddings1, embeddings2).detach().cpu().numpy()
 
@@ -182,6 +180,7 @@ class TranslationEvaluator(SentenceEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_numpy=False,
+            truncate_dim=self.truncate_dim,
             **kwargs,
         )
 

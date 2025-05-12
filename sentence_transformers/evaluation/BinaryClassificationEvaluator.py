@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import logging
 import os
-from contextlib import nullcontext
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -221,20 +220,19 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         return metrics
 
     def compute_metrices(self, model: SentenceTransformer) -> dict[str, dict[str, float]]:
-        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            try:
-                # If the sentences are hashable, then we can use a set to avoid embedding the same sentences multiple
-                # times
-                sentences = list(set(self.sentences1 + self.sentences2))
-            except TypeError:
-                # Otherwise we just embed everything, e.g. if the sentences are images for evaluating a CLIP model
-                embeddings1 = self.embed_inputs(model, self.sentences1)
-                embeddings2 = self.embed_inputs(model, self.sentences2)
-            else:
-                embeddings = self.embed_inputs(model, sentences)
-                emb_dict = {sent: emb for sent, emb in zip(sentences, embeddings)}
-                embeddings1 = [emb_dict[sent] for sent in self.sentences1]
-                embeddings2 = [emb_dict[sent] for sent in self.sentences2]
+        try:
+            # If the sentences are hashable, then we can use a set to avoid embedding the same sentences multiple
+            # times
+            sentences = list(set(self.sentences1 + self.sentences2))
+        except TypeError:
+            # Otherwise we just embed everything, e.g. if the sentences are images for evaluating a CLIP model
+            embeddings1 = self.embed_inputs(model, self.sentences1)
+            embeddings2 = self.embed_inputs(model, self.sentences2)
+        else:
+            embeddings = self.embed_inputs(model, sentences)
+            emb_dict = {sent: emb for sent, emb in zip(sentences, embeddings)}
+            embeddings1 = [emb_dict[sent] for sent in self.sentences1]
+            embeddings2 = [emb_dict[sent] for sent in self.sentences2]
 
         similarity_fns = {
             SimilarityFunction.COSINE.value: {
@@ -305,6 +303,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_numpy=True,
+            truncate_dim=self.truncate_dim,
             **kwargs,
         )
 

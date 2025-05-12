@@ -37,7 +37,8 @@ class SparseRerankingEvaluator(RerankingEvaluator):
         batch_size (int, optional): Batch size to compute sentence embeddings. Defaults to 64.
         show_progress_bar (bool, optional): Show progress bar when computing embeddings. Defaults to False.
         use_batched_encoding (bool, optional): Whether or not to encode queries and documents in batches for greater speed, or 1-by-1 to save memory. Defaults to True.
-        truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the model's current truncation dimension. Defaults to None.
+        max_active_dims (Optional[int], optional): The maximum number of active dimensions to use.
+            `None` uses the model's current `max_active_dims`. Defaults to None.
         mrr_at_k (Optional[int], optional): Deprecated parameter. Please use `at_k` instead. Defaults to None.
 
     Example:
@@ -110,9 +111,10 @@ class SparseRerankingEvaluator(RerankingEvaluator):
         batch_size: int = 64,
         show_progress_bar: bool = False,
         use_batched_encoding: bool = True,
-        truncate_dim: int | None = None,
+        max_active_dims: int | None = None,
         mrr_at_k: int | None = None,
     ):
+        self.max_active_dims = max_active_dims
         return super().__init__(
             samples=samples,
             at_k=at_k,
@@ -122,7 +124,7 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             batch_size=batch_size,
             show_progress_bar=show_progress_bar,
             use_batched_encoding=use_batched_encoding,
-            truncate_dim=truncate_dim,
+            truncate_dim=None,
             mrr_at_k=mrr_at_k,
         )
 
@@ -155,6 +157,7 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             convert_to_sparse_tensor=True,
             convert_to_tensor=False,  # as we are using slicing on sparse tensors that is not supported so we want to keep a list of sparse tensors
             save_to_cpu=True,
+            max_active_dims=self.max_active_dims,
             **kwargs,
         )
 

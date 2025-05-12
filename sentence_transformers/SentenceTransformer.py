@@ -419,6 +419,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         convert_to_tensor: bool = ...,
         device: str | None = ...,
         normalize_embeddings: bool = ...,
+        truncate_dim: int | None = ...,
         **kwargs,
     ) -> Tensor: ...
 
@@ -438,6 +439,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         convert_to_tensor: Literal[False] = ...,
         device: str | None = ...,
         normalize_embeddings: bool = ...,
+        truncate_dim: int | None = ...,
         **kwargs,
     ) -> np.ndarray: ...
 
@@ -457,6 +459,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         convert_to_tensor: Literal[True] = ...,
         device: str | None = ...,
         normalize_embeddings: bool = ...,
+        truncate_dim: int | None = ...,
         **kwargs,
     ) -> Tensor: ...
 
@@ -475,6 +478,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         convert_to_tensor: bool = ...,
         device: str | None = ...,
         normalize_embeddings: bool = ...,
+        truncate_dim: int | None = ...,
         **kwargs,
     ) -> list[Tensor]: ...
 
@@ -493,6 +497,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         convert_to_tensor: bool = ...,
         device: str | None = ...,
         normalize_embeddings: bool = ...,
+        truncate_dim: int | None = ...,
         **kwargs,
     ) -> list[dict[str, Tensor]]: ...
 
@@ -511,6 +516,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         convert_to_tensor: bool = ...,
         device: str | None = ...,
         normalize_embeddings: bool = ...,
+        truncate_dim: int | None = ...,
         **kwargs,
     ) -> dict[str, Tensor]: ...
 
@@ -529,6 +535,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         convert_to_tensor: bool = ...,
         device: str | None = ...,
         normalize_embeddings: bool = ...,
+        truncate_dim: int | None = ...,
         **kwargs,
     ) -> Tensor: ...
 
@@ -545,6 +552,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         convert_to_tensor: bool = False,
         device: str | None = None,
         normalize_embeddings: bool = False,
+        truncate_dim: int | None = None,
         **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
@@ -576,6 +584,8 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             device (str, optional): Which :class:`torch.device` to use for the computation. Defaults to None.
             normalize_embeddings (bool, optional): Whether to normalize returned vectors to have length 1. In that case,
                 the faster dot-product (util.dot_score) instead of cosine similarity can be used. Defaults to False.
+            truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` means we will used the value of the
+                model's config. Defaults to None.
 
         Returns:
             Union[List[Tensor], ndarray, Tensor]: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned.
@@ -657,6 +667,8 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         self.to(device)
 
+        truncate_dim = truncate_dim if truncate_dim is not None else self.truncate_dim
+
         all_embeddings = []
         length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
@@ -699,9 +711,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 if self.device.type == "hpu":
                     out_features = copy.deepcopy(out_features)
 
-                out_features["sentence_embedding"] = truncate_embeddings(
-                    out_features["sentence_embedding"], self.truncate_dim
-                )
+                if self.truncate_dim:
+                    out_features["sentence_embedding"] = truncate_embeddings(
+                        out_features["sentence_embedding"], truncate_dim
+                    )
 
                 if output_value == "token_embeddings":
                     embeddings = []
@@ -985,6 +998,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         show_progress_bar: bool | None = None,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         normalize_embeddings: bool = False,
+        truncate_dim: int | None = None,
     ) -> np.ndarray:
         """
         Encodes a list of sentences using multiple processes and GPUs via
@@ -1015,6 +1029,8 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 semantic search, among other tasks. Defaults to "float32".
             normalize_embeddings (bool): Whether to normalize returned vectors to have length 1. In that case,
                 the faster dot-product (util.dot_score) instead of cosine similarity can be used. Defaults to False.
+            truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` means we will used the value of the
+                model's config. Defaults to None.
 
         Returns:
             np.ndarray: A 2D numpy array with shape [num_inputs, output_dimension].
@@ -1055,13 +1071,24 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
                 input_queue.put(
-                    [last_chunk_id, batch_size, chunk, prompt_name, prompt, precision, normalize_embeddings]
+                    [
+                        last_chunk_id,
+                        batch_size,
+                        chunk,
+                        prompt_name,
+                        prompt,
+                        precision,
+                        normalize_embeddings,
+                        truncate_dim,
+                    ]
                 )
                 last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, precision, normalize_embeddings])
+            input_queue.put(
+                [last_chunk_id, batch_size, chunk, prompt_name, prompt, precision, normalize_embeddings, truncate_dim]
+            )
             last_chunk_id += 1
 
         output_queue = pool["output"]
@@ -1081,7 +1108,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         """
         while True:
             try:
-                chunk_id, batch_size, sentences, prompt_name, prompt, precision, normalize_embeddings = (
+                chunk_id, batch_size, sentences, prompt_name, prompt, precision, normalize_embeddings, truncate_dim = (
                     input_queue.get()
                 )
                 embeddings = model.encode(
@@ -1094,6 +1121,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                     convert_to_numpy=True,
                     batch_size=batch_size,
                     normalize_embeddings=normalize_embeddings,
+                    truncate_dim=model.truncate_dim,
                 )
 
                 results_queue.put([chunk_id, embeddings])

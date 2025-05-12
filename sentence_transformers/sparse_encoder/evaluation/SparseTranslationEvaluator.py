@@ -33,8 +33,8 @@ class SparseTranslationEvaluator(TranslationEvaluator):
         name (str): The name of the evaluator. Defaults to an empty string.
         print_wrong_matches (bool): Whether to print incorrect matches. Defaults to False.
         write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
-        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. If None, the model's
-            current truncation dimension will be used. Defaults to None.
+        max_active_dims (Optional[int], optional): The maximum number of active dimensions to use.
+            `None` uses the model's current `max_active_dims`. Defaults to None.
 
     Example:
         ::
@@ -83,8 +83,9 @@ class SparseTranslationEvaluator(TranslationEvaluator):
         name: str = "",
         print_wrong_matches: bool = False,
         write_csv: bool = True,
-        truncate_dim: int | None = None,
+        max_active_dims: int | None = None,
     ):
+        self.max_active_dims = max_active_dims
         return super().__init__(
             source_sentences,
             target_sentences,
@@ -93,7 +94,7 @@ class SparseTranslationEvaluator(TranslationEvaluator):
             name=name,
             print_wrong_matches=print_wrong_matches,
             write_csv=write_csv,
-            truncate_dim=truncate_dim,
+            truncate_dim=None,
         )
 
     def __call__(
@@ -107,7 +108,6 @@ class SparseTranslationEvaluator(TranslationEvaluator):
         sentences: str | list[str] | np.ndarray,
         **kwargs,
     ) -> list[Tensor]:
-        kwargs["truncate_dim"] = self.truncate_dim
         return model.encode(
             sentences,
             batch_size=self.batch_size,
@@ -115,6 +115,7 @@ class SparseTranslationEvaluator(TranslationEvaluator):
             convert_to_tensor=False,
             convert_to_sparse_tensor=True,
             save_to_cpu=True,
+            max_active_dims=self.max_active_dims,
             **kwargs,
         )
 
