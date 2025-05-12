@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 
 from transformers import PreTrainedTokenizerFast, PreTrainedTokenizer
 import gzip
@@ -30,7 +29,7 @@ class WordEmbeddings(Module):
 
     def __init__(
         self,
-        tokenizer: Union[WordTokenizer, PreTrainedTokenizerFast, PreTrainedTokenizer],
+        tokenizer: WordTokenizer | PreTrainedTokenizerFast | PreTrainedTokenizer,
         embedding_weights,
         update_embeddings: bool = False,
         max_seq_length: int = 1000000,
