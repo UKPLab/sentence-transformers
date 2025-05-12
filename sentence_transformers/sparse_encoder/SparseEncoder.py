@@ -626,7 +626,13 @@ class SparseEncoder(SentenceTransformer):
         Returns:
             Optional[int]: The number of dimensions in the output of `encode`. If it's not known, it's `None`.
         """
-        return super().get_sentence_embedding_dimension()
+        output_dim = None
+        for mod in reversed(self._modules.values()):
+            sent_embedding_dim_method = getattr(mod, "get_sentence_embedding_dimension", None)
+            if callable(sent_embedding_dim_method):
+                output_dim = sent_embedding_dim_method()
+                break
+        return output_dim
 
     @contextmanager
     def truncate_sentence_embeddings(self, truncate_dim: int | None) -> Iterator[None]:
