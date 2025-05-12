@@ -1011,7 +1011,7 @@ class SparseEncoder(SentenceTransformer):
         Compute the intersection of two sparse embeddings.
 
         Args:
-            embeddings_1 (torch.Tensor): First embedding tensor (batch_1, vocab).
+            embeddings_1 (torch.Tensor): First embedding tensor (vocab).
             embeddings_2 (torch.Tensor): Second embedding tensor (batch_2, vocab).
 
         Returns:
