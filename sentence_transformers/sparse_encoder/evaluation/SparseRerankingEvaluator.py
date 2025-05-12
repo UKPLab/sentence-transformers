@@ -148,7 +148,6 @@ class SparseRerankingEvaluator(RerankingEvaluator):
         show_progress_bar: bool | None = None,
         **kwargs,
     ) -> Tensor:
-        kwargs["truncate_dim"] = self.truncate_dim
         return model.encode(
             sentences,
             batch_size=self.batch_size,

@@ -196,7 +196,6 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         prompt: str | None = None,
         **kwargs,
     ) -> Tensor:
-        kwargs["truncate_dim"] = self.truncate_dim
         embeddings = model.encode(
             sentences,
             prompt_name=prompt_name,

@@ -168,7 +168,6 @@ class SparseEncoder(SentenceTransformer):
             local_files_only=local_files_only,
             token=token,
             use_auth_token=use_auth_token,
-            truncate_dim=None,
             model_kwargs=model_kwargs,
             tokenizer_kwargs=tokenizer_kwargs,
             config_kwargs=config_kwargs,
