@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 import logging
+import math
+import queue
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
+from multiprocessing import Queue
 from typing import Any, Callable, Literal
 
 import numpy as np
 import numpy.typing as npt
 import torch
+import torch.multiprocessing as mp
 from torch import Tensor, nn
 from tqdm import trange
-from transformers import AutoConfig
+from transformers import AutoConfig, is_torch_npu_available
+from typing_extensions import deprecated
 
 from sentence_transformers.models import Pooling, Transformer
 from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -23,60 +28,6 @@ logger = logging.getLogger(__name__)
 
 
 class SparseEncoder(SentenceTransformer):
-    # TODO: Add the proper description with associate example + docstring to all the functions
-    # TODO: Check the last three functions not done
-
-    # NOTE: Function available in SparseEvaluator:
-    # ---------------------------------------------Not done---------------------------------------------
-    # - start_multi_process_pool
-    # - encode_multi_process
-    # - _encode_multi_process_worker
-
-    # --------------------------------------Done-----------------------------------------------------------
-    # - __init__ (make sure nothing else need to be overrided)
-    # - encode (clean the implementation)
-
-    # - save (just for the docstring)
-    # - save_pretrained (just for the docstring)
-    # - push_to_hub (just for the docstring)
-    # - _load_auto_model (to have a default splade model loaded)
-    # - _load_sbert_model (just for the docstring)
-    # - _update_default_model_id
-    # - load
-    # - similarity_fn_name (to have default of dot product)
-    # - similarity_pairwise (to have a default of dot product)
-
-    # -----------------------------------In my opinion shouldn't be done ------------------------------------
-    # - get_backend
-    # - forward
-    # - similarity_fn_name
-    # - similarity
-    # - similarity_pairwise
-    # - stop_multi_process_pool
-    # - set_pooling_include_prompt
-    # - get_max_seq_length
-    # - tokenize
-    # - get_sentence_features
-    # - get_sentence_embedding_dimension
-    # - truncate_sentence_embeddings
-    # - _first_module
-    # - _last_module
-    # - _create_model_card
-    # - save_to_hub
-    # - _text_length
-    # - evaluate
-    # - _load_module_class_from_ref
-    # - device
-    # - tokenizer
-    # - max_seq_length
-    # - _target_device
-    # - _no_split_modules
-    # - _keys_to_ignore_on_save
-    # - gradient_checkpointing_enable
-
-    # -----------------------------------Added------------------------------------
-    # - get_sparsity_stats
-    # - decode_top_k_tokens
     """
     Loads or creates a SparseEncoder model that can be used to map sentences / text to sparse embeddings.
 
@@ -386,6 +337,330 @@ class SparseEncoder(SentenceTransformer):
 
         return all_embeddings
 
+    @property
+    def similarity_fn_name(self) -> Literal["cosine", "dot", "euclidean", "manhattan"]:
+        """Return the name of the similarity function used by :meth:`SparseEncoder.similarity` and :meth:`SparseEncoder.similarity_pairwise`.
+
+        Returns:
+            Optional[str]: The name of the similarity function. Can be None if not set, in which case it will
+                default to "cosine" when first called.
+
+        Example:
+            >>> model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+            >>> model.similarity_fn_name
+            'dot'
+        """
+        if self._similarity_fn_name is None:
+            self.similarity_fn_name = SimilarityFunction.DOT
+        return self._similarity_fn_name
+
+    @similarity_fn_name.setter
+    def similarity_fn_name(
+        self,
+        value: Literal["cosine", "dot", "euclidean", "manhattan"] | SimilarityFunction,
+    ) -> None:
+        if isinstance(value, SimilarityFunction):
+            value = value.value
+        self._similarity_fn_name = value
+
+        if value is not None:
+            self._similarity = SimilarityFunction.to_similarity_fn(value)
+            self._similarity_pairwise = SimilarityFunction.to_similarity_pairwise_fn(value)
+
+    @property
+    def similarity(self) -> Callable[[Tensor | npt.NDArray[np.float32], Tensor | npt.NDArray[np.float32]], Tensor]:
+        """
+        Compute the similarity between two collections of embeddings. The output will be a matrix with the similarity
+        scores between all embeddings from the first parameter and all embeddings from the second parameter. This
+        differs from `similarity_pairwise` which computes the similarity between each pair of embeddings.
+        This method supports only embeddings with fp32 precision and does not accommodate quantized embeddings.
+
+        Args:
+            embeddings1 (Union[Tensor, ndarray]): [num_embeddings_1, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+            embeddings2 (Union[Tensor, ndarray]): [num_embeddings_2, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+
+        Returns:
+            Tensor: A [num_embeddings_1, num_embeddings_2]-shaped torch tensor with similarity scores.
+
+        Example:
+            ::
+
+                >>> model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+                >>> sentences = [
+                ...     "The weather is so nice!",
+                ...     "It's so sunny outside.",
+                ...     "He's driving to the movie theater.",
+                ...     "She's going to the cinema.",
+                ... ]
+                >>> embeddings = model.encode(sentences, normalize_embeddings=True)
+                >>> model.similarity(embeddings, embeddings)
+                tensor([[   30.9529,    12.9143,     0.0000,     0.0106],
+                        [   12.9143,    27.5256,     0.5829,     0.5958],
+                        [    0.0000,     0.5829,    36.0683,    15.3007],
+                        [    0.0106,     0.5958,    15.3007,    39.4664]], device='cuda:0')
+                >>> model.similarity_fn_name
+                "dot"
+                >>> model.similarity_fn_name = "cosine"
+                >>> model.similarity(embeddings, embeddings)
+                tensor([[    1.0000,     0.4424,     0.0000,     0.0003],
+                        [    0.4424,     1.0000,     0.0185,     0.0181],
+                        [    0.0000,     0.0185,     1.0000,     0.4055],
+                        [    0.0003,     0.0181,     0.4055,     1.0000]], device='cuda:0')
+        """
+        if self.similarity_fn_name is None:
+            self.similarity_fn_name = SimilarityFunction.DOT
+        return self._similarity
+
+    @property
+    def similarity_pairwise(
+        self,
+    ) -> Callable[[Tensor | npt.NDArray[np.float32], Tensor | npt.NDArray[np.float32]], Tensor]:
+        """
+        Compute the similarity between two collections of embeddings. The output will be a vector with the similarity
+        scores between each pair of embeddings.
+        This method supports only embeddings with fp32 precision and does not accommodate quantized embeddings.
+
+        Args:
+            embeddings1 (Union[Tensor, ndarray]): [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+            embeddings2 (Union[Tensor, ndarray]): [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
+
+        Returns:
+            Tensor: A [num_embeddings]-shaped torch tensor with pairwise similarity scores.
+
+        Example:
+            ::
+
+                >>> model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+                >>> sentences = [
+                ...     "The weather is so nice!",
+                ...     "It's so sunny outside.",
+                ...     "He's driving to the movie theater.",
+                ...     "She's going to the cinema.",
+                ... ]
+                >>> embeddings = model.encode(sentences, convert_to_sparse_tensor=False)
+                >>> model.similarity_pairwise(embeddings[::2], embeddings[1::2])
+                tensor([12.9143, 15.3007], device='cuda:0')
+                >>> model.similarity_fn_name
+                "dot"
+                >>> model.similarity_fn_name = "cosine"
+                >>> model.similarity_pairwise(embeddings[::2], embeddings[1::2])
+                tensor([0.4424, 0.4055], device='cuda:0')
+        """
+        if self.similarity_fn_name is None:
+            self.similarity_fn_name = SimilarityFunction.DOT
+        return self._similarity_pairwise
+
+    def start_multi_process_pool(
+        self, target_devices: list[str] = None
+    ) -> dict[Literal["input", "output", "processes"], Any]:
+        """
+        Starts a multi-process pool to process the encoding with several independent processes
+        via :meth:`SparseEncoder.encode_multi_process <sentence_transformers.sparse_encoder.SparseEncoder.encode_multi_process>`.
+
+        This method is recommended if you want to encode on multiple GPUs or CPUs. It is advised
+        to start only one process per GPU. This method works together with encode_multi_process
+        and stop_multi_process_pool.
+
+        Args:
+            target_devices (List[str], optional): PyTorch target devices, e.g. ["cuda:0", "cuda:1", ...],
+                ["npu:0", "npu:1", ...], or ["cpu", "cpu", "cpu", "cpu"]. If target_devices is None and CUDA/NPU
+                is available, then all available CUDA/NPU devices will be used. If target_devices is None and
+                CUDA/NPU is not available, then 4 CPU devices will be used.
+
+        Returns:
+            Dict[str, Any]: A dictionary with the target processes, an input queue, and an output queue.
+        """
+        if target_devices is None:
+            if torch.cuda.is_available():
+                target_devices = [f"cuda:{i}" for i in range(torch.cuda.device_count())]
+            elif is_torch_npu_available():
+                target_devices = [f"npu:{i}" for i in range(torch.npu.device_count())]
+            else:
+                logger.info("CUDA/NPU is not available. Starting 4 CPU workers")
+                target_devices = ["cpu"] * 4
+
+        logger.info("Start multi-process pool on devices: {}".format(", ".join(map(str, target_devices))))
+
+        self.to("cpu")
+        self.share_memory()
+        ctx = mp.get_context("spawn")
+        input_queue = ctx.Queue()
+        output_queue = ctx.Queue()
+        processes = []
+
+        for device_id in target_devices:
+            p = ctx.Process(
+                target=SparseEncoder._encode_multi_process_worker,
+                args=(device_id, self, input_queue, output_queue),
+                daemon=True,
+            )
+            p.start()
+            processes.append(p)
+
+        return {"input": input_queue, "output": output_queue, "processes": processes}
+
+    def encode_multi_process(
+        self,
+        sentences: list[str],
+        pool: dict[Literal["input", "output", "processes"], Any],
+        prompt_name: str | None = None,
+        prompt: str | None = None,
+        batch_size: int = 32,
+        chunk_size: int = None,
+        show_progress_bar: bool | None = None,
+    ) -> Tensor:
+        """
+        Encodes a list of sentences using multiple processes and GPUs via
+        :meth:`SparseEncoder.encode <sentence_transformers.sparse_encoder.SparseEncoder.encode>`.
+        The sentences are chunked into smaller packages and sent to individual processes, which encode them on different
+        GPUs or CPUs. This method is only suitable for encoding large sets of sentences.
+
+        Args:
+            sentences (List[str]): List of sentences to encode.
+            pool (Dict[Literal["input", "output", "processes"], Any]): A pool of workers started with
+                :meth:`SparseEncoder.start_multi_process_pool <sentence_transformers.sparse_encoder.SparseEncoder.start_multi_process_pool>`.
+            prompt_name (Optional[str], optional): The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
+                which is either set in the constructor or loaded from the model configuration. For example if
+                ``prompt_name`` is "query" and the ``prompts`` is {"query": "query: ", ...}, then the sentence "What
+                is the capital of France?" will be encoded as "query: What is the capital of France?" because the sentence
+                is appended to the prompt. If ``prompt`` is also set, this argument is ignored. Defaults to None.
+            prompt (Optional[str], optional): The prompt to use for encoding. For example, if the prompt is "query: ", then the
+                sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?"
+                because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
+            batch_size (int): Encode sentences with batch size. (default: 32)
+            chunk_size (int): Sentences are chunked and sent to the individual processes. If None, it determines a
+                sensible size. Defaults to None.
+            show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
+
+        Returns:
+            Tensor: A 2D tensor with shape [num_inputs, output_dimension].
+
+        Example:
+            ::
+
+                from sentence_transformers import SparseEncoder
+
+                def main():
+                    model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+                    sentences = [
+                        "The weather is so nice!",
+                        "It's so sunny outside.",
+                        "He's driving to the movie theater.",
+                        "She's going to the cinema.",
+                    ] * 1000
+
+                    pool = model.start_multi_process_pool()
+                    embeddings = model.encode_multi_process(sentences, pool)
+                    model.stop_multi_process_pool(pool)
+
+                    print(embeddings.shape)
+                    # => (4000, 30522)
+
+
+                if __name__ == "__main__":
+                    main()
+        """
+
+        if chunk_size is None:
+            chunk_size = min(math.ceil(len(sentences) / len(pool["processes"]) / 10), 5000)
+
+        if show_progress_bar is None:
+            show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
+
+        logger.debug(f"Chunk data into {math.ceil(len(sentences) / chunk_size)} packages of size {chunk_size}")
+
+        input_queue = pool["input"]
+        last_chunk_id = 0
+        chunk = []
+
+        for sentence in sentences:
+            chunk.append(sentence)
+            if len(chunk) >= chunk_size:
+                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt])
+                last_chunk_id += 1
+                chunk = []
+
+        if len(chunk) > 0:
+            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt])
+            last_chunk_id += 1
+
+        output_queue = pool["output"]
+        results_list = sorted(
+            [output_queue.get() for _ in trange(last_chunk_id, desc="Chunks", disable=not show_progress_bar)],
+            key=lambda x: x[0],
+        )
+        embeddings = torch.concatenate([result[1] for result in results_list])
+        return embeddings
+
+    @staticmethod
+    def _encode_multi_process_worker(
+        target_device: str, model: SparseEncoder, input_queue: Queue, results_queue: Queue
+    ) -> None:
+        """
+        Internal working process to encode sentences in multi-process setup
+        """
+        while True:
+            try:
+                chunk_id, batch_size, sentences, prompt_name, prompt = input_queue.get()
+                embeddings = model.encode(
+                    sentences,
+                    prompt_name=prompt_name,
+                    prompt=prompt,
+                    device=target_device,
+                    show_progress_bar=False,
+                    batch_size=batch_size,
+                    convert_to_sparse_tensor=True,
+                    save_to_cpu=True,
+                )
+
+                results_queue.put([chunk_id, embeddings])
+            except queue.Empty:
+                break
+
+    def get_sentence_embedding_dimension(self) -> int | None:
+        """
+        Returns the number of dimensions in the output of :meth:`SparseEncoder.encode <sentence_transformers.sparse_encoder.SparseEncoder.encode>`.
+        We override the function without updating regarding the truncate dim as for sparse model the dimension of the output
+        is the same, only the active dimensions number changes.
+
+        Returns:
+            Optional[int]: The number of dimensions in the output of `encode`. If it's not known, it's `None`.
+        """
+        return super().get_sentence_embedding_dimension()
+
+    @contextmanager
+    def truncate_sentence_embeddings(self, truncate_dim: int | None) -> Iterator[None]:
+        """
+        In this context, :meth:`SparseEncoder.encode <sentence_transformers.sparse_encoder.SparseEncoder.encode>` outputs
+        sentence embeddings with at most ``truncate_dim`` number of active dimensions.
+
+        This may be useful when you are using a model but want to have a treshold for the number of active dimensions
+        in the output to control the size of the embeddings you want to index.
+
+        Args:
+            truncate_dim (int, optional): The dimension to truncate sentence embeddings to. ``None`` does no truncation.
+
+        Example:
+            ::
+
+                from sentence_transformers import SparseEncoder
+
+                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+                with model.truncate_sentence_embeddings(truncate_dim=16):
+                    embeddings_truncated = model.encode(["hello there", "hiya"])
+
+                for i in range(embeddings_truncated.shape[0]):
+                    num_nonzero = embeddings_truncated[i].coalesce().indices().shape[1]
+                    assert num_nonzero <= 16, f"Embedding {i} has {num_nonzero} non-zero elements"
+        """
+        original_output_dim = self.truncate_dim
+        try:
+            self.truncate_dim = truncate_dim
+            yield
+        finally:
+            self.truncate_dim = original_output_dim
+
     def save(
         self,
         path: str,
@@ -634,121 +909,9 @@ class SparseEncoder(SentenceTransformer):
         )
 
     @staticmethod
+    @deprecated("SparseEncoder.load(...) is deprecated, use SparseEncoder(...) instead.")
     def load(input_path) -> SparseEncoder:
         return SparseEncoder(input_path)
-
-    @property
-    def similarity_fn_name(self) -> Literal["cosine", "dot", "euclidean", "manhattan"]:
-        """Return the name of the similarity function used by :meth:`SparseEncoder.similarity` and :meth:`SparseEncoder.similarity_pairwise`.
-
-        Returns:
-            Optional[str]: The name of the similarity function. Can be None if not set, in which case it will
-                default to "cosine" when first called.
-
-        Example:
-            >>> model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
-            >>> model.similarity_fn_name
-            'dot'
-        """
-        if self._similarity_fn_name is None:
-            self.similarity_fn_name = SimilarityFunction.DOT
-        return self._similarity_fn_name
-
-    @property
-    def similarity_pairwise(
-        self,
-    ) -> Callable[[Tensor | npt.NDArray[np.float32], Tensor | npt.NDArray[np.float32]], Tensor]:
-        """
-        Compute the similarity between two collections of embeddings. The output will be a vector with the similarity
-        scores between each pair of embeddings.
-        This method supports only embeddings with fp32 precision and does not accommodate quantized embeddings.
-
-        Args:
-            embeddings1 (Union[Tensor, ndarray]): [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
-            embeddings2 (Union[Tensor, ndarray]): [num_embeddings, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
-
-        Returns:
-            Tensor: A [num_embeddings]-shaped torch tensor with pairwise similarity scores.
-
-        Example:
-            ::
-
-                >>> model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
-                >>> sentences = [
-                ...     "The weather is so nice!",
-                ...     "It's so sunny outside.",
-                ...     "He's driving to the movie theater.",
-                ...     "She's going to the cinema.",
-                ... ]
-                >>> embeddings = model.encode(sentences, convert_to_sparse_tensor=False)
-                >>> model.similarity_pairwise(embeddings[::2], embeddings[1::2])
-                tensor([12.9143, 15.3007], device='cuda:0')
-                >>> model.similarity_fn_name
-                "dot"
-                >>> model.similarity_fn_name = "cosine"
-                >>> model.similarity_pairwise(embeddings[::2], embeddings[1::2])
-                tensor([0.4424, 0.4055], device='cuda:0')
-        """
-        if self.similarity_fn_name is None:
-            self.similarity_fn_name = SimilarityFunction.DOT
-        return self._similarity_pairwise
-
-    @property
-    def similarity(self) -> Callable[[Tensor | npt.NDArray[np.float32], Tensor | npt.NDArray[np.float32]], Tensor]:
-        """
-        Compute the similarity between two collections of embeddings. The output will be a matrix with the similarity
-        scores between all embeddings from the first parameter and all embeddings from the second parameter. This
-        differs from `similarity_pairwise` which computes the similarity between each pair of embeddings.
-        This method supports only embeddings with fp32 precision and does not accommodate quantized embeddings.
-
-        Args:
-            embeddings1 (Union[Tensor, ndarray]): [num_embeddings_1, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
-            embeddings2 (Union[Tensor, ndarray]): [num_embeddings_2, embedding_dim] or [embedding_dim]-shaped numpy array or torch tensor.
-
-        Returns:
-            Tensor: A [num_embeddings_1, num_embeddings_2]-shaped torch tensor with similarity scores.
-
-        Example:
-            ::
-
-                >>> model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
-                >>> sentences = [
-                ...     "The weather is so nice!",
-                ...     "It's so sunny outside.",
-                ...     "He's driving to the movie theater.",
-                ...     "She's going to the cinema.",
-                ... ]
-                >>> embeddings = model.encode(sentences, normalize_embeddings=True)
-                >>> model.similarity(embeddings, embeddings)
-                tensor([[   30.9529,    12.9143,     0.0000,     0.0106],
-                        [   12.9143,    27.5256,     0.5829,     0.5958],
-                        [    0.0000,     0.5829,    36.0683,    15.3007],
-                        [    0.0106,     0.5958,    15.3007,    39.4664]], device='cuda:0')
-                >>> model.similarity_fn_name
-                "dot"
-                >>> model.similarity_fn_name = "cosine"
-                >>> model.similarity(embeddings, embeddings)
-                tensor([[    1.0000,     0.4424,     0.0000,     0.0003],
-                        [    0.4424,     1.0000,     0.0185,     0.0181],
-                        [    0.0000,     0.0185,     1.0000,     0.4055],
-                        [    0.0003,     0.0181,     0.4055,     1.0000]], device='cuda:0')
-        """
-        if self.similarity_fn_name is None:
-            self.similarity_fn_name = SimilarityFunction.DOT
-        return self._similarity
-
-    @similarity_fn_name.setter
-    def similarity_fn_name(
-        self,
-        value: Literal["cosine", "dot", "euclidean", "manhattan"] | SimilarityFunction,
-    ) -> None:
-        if isinstance(value, SimilarityFunction):
-            value = value.value
-        self._similarity_fn_name = value
-
-        if value is not None:
-            self._similarity = SimilarityFunction.to_similarity_fn(value)
-            self._similarity_pairwise = SimilarityFunction.to_similarity_pairwise_fn(value)
 
     @staticmethod
     def get_sparsity_stats(embeddings: torch.Tensor) -> dict[str, float]:
@@ -807,17 +970,6 @@ class SparseEncoder(SentenceTransformer):
         }
         return results
 
-    def get_sentence_embedding_dimension(self) -> int | None:
-        """
-        Returns the number of dimensions in the output of :meth:`SparseEncoder.encode <sentence_transformers.sparse_encoder.SparseEncoder.encode>`.
-        We override the function without updating regarding the truncate dim as for sparse model the dimension of the output
-        is the same, only the active dimensions number changes.
-
-        Returns:
-            Optional[int]: The number of dimensions in the output of `encode`. If it's not known, it's `None`.
-        """
-        return super().get_sentence_embedding_dimension()
-
     @property
     def max_seq_length(self) -> int:
         """
@@ -843,39 +995,6 @@ class SparseEncoder(SentenceTransformer):
         Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
         """
         self._first_module().max_seq_length = value
-
-    @contextmanager
-    def truncate_sentence_embeddings(self, truncate_dim: int | None) -> Iterator[None]:
-        """
-        In this context, :meth:`SparseEncoder.encode <sentence_transformers.sparse_encoder.SparseEncoder.encode>` outputs
-        sentence embeddings with at most ``truncate_dim`` number of active dimensions.
-
-        This may be useful when you are using a model but want to have a treshold for the number of active dimensions
-        in the output to control the size of the embeddings you want to index.
-
-        Args:
-            truncate_dim (int, optional): The dimension to truncate sentence embeddings to. ``None`` does no truncation.
-
-        Example:
-            ::
-
-                from sentence_transformers import SparseEncoder
-
-                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
-
-                with model.truncate_sentence_embeddings(truncate_dim=16):
-                    embeddings_truncated = model.encode(["hello there", "hiya"])
-
-                for i in range(embeddings_truncated.shape[0]):
-                    num_nonzero = embeddings_truncated[i].coalesce().indices().shape[1]
-                    assert num_nonzero <= 16, f"Embedding {i} has {num_nonzero} non-zero elements"
-        """
-        original_output_dim = self.truncate_dim
-        try:
-            self.truncate_dim = truncate_dim
-            yield
-        finally:
-            self.truncate_dim = original_output_dim
 
     def intersection(
         self,
