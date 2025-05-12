@@ -87,8 +87,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         local_files_only (bool, optional): Whether or not to only look at local files (i.e., do not try to download the model).
         token (bool or str, optional): Hugging Face authentication token to download private models.
         use_auth_token (bool or str, optional): Deprecated argument. Please use `token` instead.
-        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
-            only applicable during inference when :meth:`SentenceTransformer.encode` is called.
+        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. Defaults to None.
         model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers model.
             Particularly useful options are:
 
@@ -584,8 +583,12 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             device (str, optional): Which :class:`torch.device` to use for the computation. Defaults to None.
             normalize_embeddings (bool, optional): Whether to normalize returned vectors to have length 1. In that case,
                 the faster dot-product (util.dot_score) instead of cosine similarity can be used. Defaults to False.
-            truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` means we will used the value of the
-                model's config. Defaults to None.
+            truncate_dim (int, optional): The dimension to truncate sentence embeddings to.
+                Truncation is especially interesting for `Matryoshka models <https://sbert.net/examples/sentence_transformer/training/matryoshka/README.html>`_,
+                i.e. models that are trained to still produce useful embeddings even if the embedding dimension is reduced.
+                Truncated embeddings require less memory and are faster to perform retrieval with, but note that inference
+                is just as fast, and the embedding performance is worse than the full embeddings. If None, the ``truncate_dim``
+                from the model initialization is used. Defaults to None.
 
         Returns:
             Union[List[Tensor], ndarray, Tensor]: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned.
@@ -1029,8 +1032,12 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 semantic search, among other tasks. Defaults to "float32".
             normalize_embeddings (bool): Whether to normalize returned vectors to have length 1. In that case,
                 the faster dot-product (util.dot_score) instead of cosine similarity can be used. Defaults to False.
-            truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` means we will used the value of the
-                model's config. Defaults to None.
+            truncate_dim (int, optional): The dimension to truncate sentence embeddings to.
+                Truncation is especially interesting for `Matryoshka models <https://sbert.net/examples/sentence_transformer/training/matryoshka/README.html>`_,
+                i.e. models that are trained to still produce useful embeddings even if the embedding dimension is reduced.
+                Truncated embeddings require less memory and are faster to perform retrieval with, but note that inference
+                is just as fast, and the embedding performance is worse than the full embeddings. If None, the ``truncate_dim``
+                from the model initialization is used. Defaults to None.
 
         Returns:
             np.ndarray: A 2D numpy array with shape [num_inputs, output_dimension].
@@ -1121,7 +1128,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                     convert_to_numpy=True,
                     batch_size=batch_size,
                     normalize_embeddings=normalize_embeddings,
-                    truncate_dim=model.truncate_dim,
+                    truncate_dim=truncate_dim,
                 )
 
                 results_queue.put([chunk_id, embeddings])

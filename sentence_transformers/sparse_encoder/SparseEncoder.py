@@ -57,8 +57,8 @@ class SparseEncoder(SentenceTransformer):
         local_files_only (bool, optional): Whether or not to only look at local files (i.e., do not try to download the model).
         token (bool or str, optional): Hugging Face authentication token to download private models.
         use_auth_token (bool or str, optional): Deprecated argument. Please use `token` instead.
-        max_active_dims (int, optional): The maximum number of active dimensions in the output of the model. Defaults to None. This mean there will be no
-            limit on the number of active dimensions and can be risky when indexing the embeddings.
+        max_active_dims (int, optional): The maximum number of active (non-zero) dimensions in the output of the model. Defaults to None. This means there will be no
+            limit on the number of active dimensions and can be slow or memory-intensive if your model wasn't (yet) finetuned to high sparsity.
         model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers model.
             Particularly useful options are:
 
@@ -217,8 +217,9 @@ class SparseEncoder(SentenceTransformer):
             save_to_cpu (bool, optional):  Whether the output should be moved to cpu or stay on the device it has been computed on.
                 Defaults to False
             device (str, optional): Which :class:`torch.device` to use for the computation, if None current device will be use. Defaults to None.
-            max_active_dims (int, optional): The maximum number of active dimensions in the output of the model. `None` means we will used the value of the
-                model's config. Defaults to None.
+            max_active_dims (int, optional): The maximum number of active (non-zero) dimensions in the output of the model. `None` means we will
+                used the value of the model's config. Defaults to None. If None in model's config it means there will be no limit on the number
+                of active dimensions and can be slow or memory-intensive if your model wasn't (yet) finetuned to high sparsity.
 
         Returns:
             Union[List[Tensor], ndarray, Tensor]: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned.
@@ -540,8 +541,9 @@ class SparseEncoder(SentenceTransformer):
             chunk_size (int): Sentences are chunked and sent to the individual processes. If None, it determines a
                 sensible size. Defaults to None.
             show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
-            max_active_dims (int, optional): The maximum number of active dimensions in the output of the model. `None` means we will used the value of the
-                model's config. Defaults to None.
+            max_active_dims (int, optional): The maximum number of active (non-zero) dimensions in the output of the model. `None` means we will
+                used the value of the model's config. Defaults to None. If None in model's config it means there will be no limit on the number
+                of active dimensions and can be slow or memory-intensive if your model wasn't (yet) finetuned to high sparsity.
 
         Returns:
             Tensor: A 2D tensor with shape [num_inputs, output_dimension].

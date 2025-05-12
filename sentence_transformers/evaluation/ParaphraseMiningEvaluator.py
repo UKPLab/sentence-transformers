@@ -172,12 +172,12 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         pairs_list = paraphrase_mining(
             model,
             self.sentences,
-            self.show_progress_bar,
-            self.batch_size,
-            self.query_chunk_size,
-            self.corpus_chunk_size,
-            self.max_pairs,
-            self.top_k,
+            show_progress_bar=self.show_progress_bar,
+            batch_size=self.batch_size,
+            query_chunk_size=self.query_chunk_size,
+            corpus_chunk_size=self.corpus_chunk_size,
+            max_pairs=self.max_pairs,
+            top_k=self.top_k,
             truncate_dim=self.truncate_dim,
         )
 
