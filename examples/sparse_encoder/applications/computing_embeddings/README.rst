@@ -146,7 +146,7 @@ When you set ``max_active_dims``, the model will keep only the top-K dimensions 
 
 .. note::
 
-   Setting a very low ``max_active_dims`` value may reduce the quality of search results. The optimal value depends on your specific use case and dataset. Common values range from 128 to 512 dimensions, like dense embeddings dimensions.
+   Setting a very low ``max_active_dims`` value may reduce the quality of search results. The optimal value depends on your specific use case and dataset.
 
 
 One of the key benefits of controlling sparsity with ``max_active_dims`` is reduced memory usage. Here's an example showing the memory savings:
