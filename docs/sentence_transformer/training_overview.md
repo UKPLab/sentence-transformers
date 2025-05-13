@@ -410,7 +410,7 @@ The :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` is where 
     #. :class:`SentenceTransformer.save_pretrained <sentence_transformers.SentenceTransformer.save_pretrained>`
     #. :class:`SentenceTransformer.push_to_hub <sentence_transformers.SentenceTransformer.push_to_hub>`
 
-    - `Training Examples <training/examples>`_
+    - `Training Examples <training/examples.html>`_
 
 ::
 
