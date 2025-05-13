@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import logging
 import os
-from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
@@ -93,12 +92,7 @@ class MSEEvaluator(SentenceEvaluator):
         self.write_csv = write_csv
         self.primary_metric = "negative_mse"
 
-        with (
-            nullcontext()
-            if self.truncate_dim is None
-            else teacher_model.truncate_sentence_embeddings(self.truncate_dim)
-        ):
-            self.source_embeddings = self.embed_inputs(teacher_model, source_sentences)
+        self.source_embeddings = self.embed_inputs(teacher_model, source_sentences)
 
     def __call__(self, model: SentenceTransformer, output_path: str = None, epoch=-1, steps=-1) -> dict[str, float]:
         if epoch != -1:
@@ -111,8 +105,7 @@ class MSEEvaluator(SentenceEvaluator):
         if self.truncate_dim is not None:
             out_txt += f" (truncated to {self.truncate_dim})"
 
-        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            target_embeddings = self.embed_inputs(model, self.target_sentences)
+        target_embeddings = self.embed_inputs(model, self.target_sentences)
 
         mse = ((self.source_embeddings - target_embeddings) ** 2).mean()
         mse = mse * 100
@@ -147,6 +140,7 @@ class MSEEvaluator(SentenceEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_numpy=True,
+            truncate_dim=self.truncate_dim,
             **kwargs,
         )
 

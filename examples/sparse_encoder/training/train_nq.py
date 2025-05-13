@@ -5,6 +5,7 @@ import logging
 from datasets import load_dataset
 
 from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments
+from sentence_transformers.evaluation import SequentialEvaluator
 from sentence_transformers.models import Pooling, Transformer
 from sentence_transformers.sparse_encoder import evaluation, losses, models
 from sentence_transformers.training_args import BatchSamplers
@@ -49,8 +50,8 @@ def main():
     # 4. Define an evaluator for use during training. This is useful to keep track of alongside the evaluation loss.
     evaluators = []
     for k_dim in [16, 32, 64, 128, 256]:
-        evaluators.append(evaluation.SparseNanoBEIREvaluator(["msmarco", "nfcorpus", "nq"], truncate_dim=k_dim))
-    dev_evaluator = evaluation.SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[-1])
+        evaluators.append(evaluation.SparseNanoBEIREvaluator(["msmarco", "nfcorpus", "nq"], max_active_dims=k_dim))
+    dev_evaluator = SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[-1])
     dev_evaluator(model)
 
     # Set up training arguments

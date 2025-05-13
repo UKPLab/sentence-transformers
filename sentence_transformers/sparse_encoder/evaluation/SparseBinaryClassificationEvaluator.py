@@ -36,7 +36,7 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
         batch_size (int, optional): Batch size used to compute embeddings. Defaults to 32.
         show_progress_bar (bool, optional): If true, prints a progress bar. Defaults to False.
         write_csv (bool, optional): Write results to a CSV file. Defaults to True.
-        truncate_dim (Optional[int], optional): The dimension to truncate sentence embeddings to. `None` uses the model's current truncation dimension. Defaults to None.
+        max_active_dims (Optional[int], optional): The maximum number of active dimensions to use. `None` uses the model's current `max_active_dims`. Defaults to None.
         similarity_fn_names (Optional[List[Literal["cosine", "dot", "euclidean", "manhattan"]]], optional): The similarity functions to use. If not specified, defaults to the ``similarity_fn_name`` attribute of the model. Defaults to None.
 
     Example:
@@ -112,9 +112,10 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
         batch_size: int = 32,
         show_progress_bar: bool = False,
         write_csv: bool = True,
-        truncate_dim: int | None = None,
+        max_active_dims: int | None = None,
         similarity_fn_names: list[Literal["cosine", "dot", "euclidean", "manhattan"]] | None = None,
     ):
+        self.max_active_dims = max_active_dims
         return super().__init__(
             sentences1=sentences1,
             sentences2=sentences2,
@@ -123,7 +124,6 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
             batch_size=batch_size,
             show_progress_bar=show_progress_bar,
             write_csv=write_csv,
-            truncate_dim=truncate_dim,
             similarity_fn_names=similarity_fn_names,
         )
 
@@ -141,13 +141,13 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
         sentences: str | list[str] | np.ndarray,
         **kwargs,
     ) -> Tensor:
-        kwargs["truncate_dim"] = self.truncate_dim
         return model.encode(
             sentences,
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_sparse_tensor=True,
             save_to_cpu=True,
+            max_active_dims=self.max_active_dims,
             **kwargs,
         )
 

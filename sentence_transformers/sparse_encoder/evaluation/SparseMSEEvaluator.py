@@ -36,8 +36,8 @@ class SparseMSEEvaluator(MSEEvaluator):
         batch_size (int, optional): Batch size to compute sentence embeddings. Defaults to 32.
         name (str, optional): Name of the evaluator. Defaults to "".
         write_csv (bool, optional): Write results to CSV file. Defaults to True.
-        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` uses the model's current truncation
-            dimension. Defaults to None.
+        max_active_dims (Optional[int], optional): The maximum number of active dimensions to use.
+            `None` uses the model's current `max_active_dims`. Defaults to None.
 
     Example:
         ::
@@ -87,8 +87,9 @@ class SparseMSEEvaluator(MSEEvaluator):
         batch_size: int = 32,
         name: str = "",
         write_csv: bool = True,
-        truncate_dim: int | None = None,
+        max_active_dims: int | None = None,
     ):
+        self.max_active_dims = max_active_dims
         super().__init__(
             source_sentences=source_sentences,
             target_sentences=target_sentences,
@@ -97,7 +98,6 @@ class SparseMSEEvaluator(MSEEvaluator):
             batch_size=batch_size,
             name=name,
             write_csv=write_csv,
-            truncate_dim=truncate_dim,
         )
         logger.warning(
             "The SparseMSEEvaluator is not handling the mse compute with sparse tensors yet. Memory issues may occur."
@@ -118,13 +118,13 @@ class SparseMSEEvaluator(MSEEvaluator):
         sentences: str | list[str] | np.ndarray,
         **kwargs,
     ) -> Tensor:
-        kwargs["truncate_dim"] = self.truncate_dim
         return model.encode(
             sentences,
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_sparse_tensor=False,
             save_to_cpu=True,
+            max_active_dims=self.max_active_dims,
             **kwargs,
         )
 

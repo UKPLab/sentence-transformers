@@ -39,7 +39,8 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         batch_size (int): The batch size for evaluation. Defaults to 32.
         name (str): A name for the evaluation. Defaults to "".
         write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
-        truncate_dim (int, optional): The dimension to truncate the embeddings to. Defaults to None.
+        max_active_dims (Optional[int], optional): The maximum number of active dimensions to use.
+            `None` uses the model's current `max_active_dims`. Defaults to None.
         score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to the ``similarity`` function from the ``model``.
         main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
         query_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
@@ -143,7 +144,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         batch_size: int = 32,
         name: str = "",
         write_csv: bool = True,
-        truncate_dim: int | None = None,
+        max_active_dims: int | None = None,
         score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] | None = None,
         main_score_function: str | SimilarityFunction | None = None,
         query_prompt: str | None = None,
@@ -151,6 +152,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         corpus_prompt: str | None = None,
         corpus_prompt_name: str | None = None,
     ) -> None:
+        self.max_active_dims = max_active_dims
         return super().__init__(
             queries=queries,
             corpus=corpus,
@@ -165,7 +167,6 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             batch_size=batch_size,
             name=name,
             write_csv=write_csv,
-            truncate_dim=truncate_dim,
             score_functions=score_functions,
             main_score_function=main_score_function,
             query_prompt=query_prompt,
@@ -195,7 +196,6 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         prompt: str | None = None,
         **kwargs,
     ) -> Tensor:
-        kwargs["truncate_dim"] = self.truncate_dim
         embeddings = model.encode(
             sentences,
             prompt_name=prompt_name,
@@ -204,6 +204,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             show_progress_bar=self.show_progress_bar,
             convert_to_sparse_tensor=True,
             save_to_cpu=True,
+            max_active_dims=self.max_active_dims,
             **kwargs,
         )
         sparsity_infos = model.get_sparsity_stats(embeddings)

@@ -22,7 +22,7 @@ from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData
 from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
-from sentence_transformers.util import batch_to_device, truncate_embeddings_for_sparse
+from sentence_transformers.util import batch_to_device, select_max_active_dims
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +57,8 @@ class SparseEncoder(SentenceTransformer):
         local_files_only (bool, optional): Whether or not to only look at local files (i.e., do not try to download the model).
         token (bool or str, optional): Hugging Face authentication token to download private models.
         use_auth_token (bool or str, optional): Deprecated argument. Please use `token` instead.
-        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. `None` does no truncation. Truncation is
-            only applicable during inference when :meth:`SparseEncoder.encode` is called.
+        max_active_dims (int, optional): The maximum number of active (non-zero) dimensions in the output of the model. Defaults to None. This means there will be no
+            limit on the number of active dimensions and can be slow or memory-intensive if your model wasn't (yet) finetuned to high sparsity.
         model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers model.
             Particularly useful options are:
 
@@ -132,6 +132,8 @@ class SparseEncoder(SentenceTransformer):
             #         [0.11269, 0.019061, 29.612]])
     """
 
+    model_card_data_class = SparseEncoderModelCardData
+
     def __init__(
         self,
         model_name_or_path: str | None = None,
@@ -146,7 +148,7 @@ class SparseEncoder(SentenceTransformer):
         local_files_only: bool = False,
         token: bool | str | None = None,
         use_auth_token: bool | str | None = None,
-        truncate_dim: int | None = None,
+        max_active_dims: int | None = None,
         model_kwargs: dict[str, Any] | None = None,
         tokenizer_kwargs: dict[str, Any] | None = None,
         config_kwargs: dict[str, Any] | None = None,
@@ -166,15 +168,13 @@ class SparseEncoder(SentenceTransformer):
             local_files_only=local_files_only,
             token=token,
             use_auth_token=use_auth_token,
-            truncate_dim=truncate_dim,
             model_kwargs=model_kwargs,
             tokenizer_kwargs=tokenizer_kwargs,
             config_kwargs=config_kwargs,
             model_card_data=model_card_data,
             backend=backend,
         )
-        self.model_card_data = model_card_data or SparseEncoderModelCardData()
-        self.model_card_data.register_model(self)
+        self.max_active_dims = max_active_dims
 
     def encode(
         self,
@@ -188,6 +188,7 @@ class SparseEncoder(SentenceTransformer):
         convert_to_sparse_tensor: bool = True,
         save_to_cpu: bool = False,
         device: str | None = None,
+        max_active_dims: int | None = None,
         **kwargs: Any,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
@@ -215,11 +216,14 @@ class SparseEncoder(SentenceTransformer):
             save_to_cpu (bool, optional):  Whether the output should be moved to cpu or stay on the device it has been computed on.
                 Defaults to False
             device (str, optional): Which :class:`torch.device` to use for the computation, if None current device will be use. Defaults to None.
+            max_active_dims (int, optional): The maximum number of active (non-zero) dimensions in the output of the model. `None` means we will
+                used the value of the model's config. Defaults to None. If None in model's config it means there will be no limit on the number
+                of active dimensions and can be slow or memory-intensive if your model wasn't (yet) finetuned to high sparsity.
 
         Returns:
-            Union[List[Tensor], ndarray, Tensor]: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned.
-            If only one string input is provided, then the output is a 1d array with shape [output_dimension]. If ``convert_to_tensor``,
-            a torch Tensor is returned instead. If ``self.truncate_dim <= output_dimension`` then output_dimension is ``self.truncate_dim``.
+            Union[List[Tensor], ndarray, Tensor]: By default, a 2d torch sparse tensor with shape [num_inputs, output_dimension] is returned.
+            If only one string input is provided, then the output is a 1d array with shape [output_dimension]. If save_to_cpu is True,
+            the embeddings are moved to the CPU.
 
         Example:
             ::
@@ -288,6 +292,10 @@ class SparseEncoder(SentenceTransformer):
 
         self.to(device)
 
+        max_active_dims = max_active_dims if max_active_dims is not None else self.max_active_dims
+        if max_active_dims is not None:
+            kwargs["max_active_dims"] = max_active_dims
+
         all_embeddings = []
         length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
@@ -300,9 +308,11 @@ class SparseEncoder(SentenceTransformer):
 
             with torch.no_grad():
                 out_features = self.forward(features, **kwargs)
-                out_features["sentence_embedding"] = truncate_embeddings_for_sparse(
-                    out_features["sentence_embedding"], truncate_dim=self.truncate_dim
-                )
+
+                if max_active_dims:
+                    out_features["sentence_embedding"] = select_max_active_dims(
+                        out_features["sentence_embedding"], max_active_dims=max_active_dims
+                    )
 
                 if output_value == "token_embeddings":
                     embeddings = []
@@ -508,6 +518,7 @@ class SparseEncoder(SentenceTransformer):
         batch_size: int = 32,
         chunk_size: int = None,
         show_progress_bar: bool | None = None,
+        max_active_dims: int | None = None,
     ) -> Tensor:
         """
         Encodes a list of sentences using multiple processes and GPUs via
@@ -531,6 +542,9 @@ class SparseEncoder(SentenceTransformer):
             chunk_size (int): Sentences are chunked and sent to the individual processes. If None, it determines a
                 sensible size. Defaults to None.
             show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
+            max_active_dims (int, optional): The maximum number of active (non-zero) dimensions in the output of the model. `None` means we will
+                used the value of the model's config. Defaults to None. If None in model's config it means there will be no limit on the number
+                of active dimensions and can be slow or memory-intensive if your model wasn't (yet) finetuned to high sparsity.
 
         Returns:
             Tensor: A 2D tensor with shape [num_inputs, output_dimension].
@@ -576,12 +590,12 @@ class SparseEncoder(SentenceTransformer):
         for sentence in sentences:
             chunk.append(sentence)
             if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt])
+                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, max_active_dims])
                 last_chunk_id += 1
                 chunk = []
 
         if len(chunk) > 0:
-            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt])
+            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, max_active_dims])
             last_chunk_id += 1
 
         output_queue = pool["output"]
@@ -601,7 +615,7 @@ class SparseEncoder(SentenceTransformer):
         """
         while True:
             try:
-                chunk_id, batch_size, sentences, prompt_name, prompt = input_queue.get()
+                chunk_id, batch_size, sentences, prompt_name, prompt, max_active_dims = input_queue.get()
                 embeddings = model.encode(
                     sentences,
                     prompt_name=prompt_name,
@@ -611,6 +625,7 @@ class SparseEncoder(SentenceTransformer):
                     batch_size=batch_size,
                     convert_to_sparse_tensor=True,
                     save_to_cpu=True,
+                    max_active_dims=max_active_dims,
                 )
 
                 results_queue.put([chunk_id, embeddings])
@@ -636,36 +651,10 @@ class SparseEncoder(SentenceTransformer):
 
     @contextmanager
     def truncate_sentence_embeddings(self, truncate_dim: int | None) -> Iterator[None]:
-        """
-        In this context, :meth:`SparseEncoder.encode <sentence_transformers.sparse_encoder.SparseEncoder.encode>` outputs
-        sentence embeddings with at most ``truncate_dim`` number of active dimensions.
-
-        This may be useful when you are using a model but want to have a treshold for the number of active dimensions
-        in the output to control the size of the embeddings you want to index.
-
-        Args:
-            truncate_dim (int, optional): The dimension to truncate sentence embeddings to. ``None`` does no truncation.
-
-        Example:
-            ::
-
-                from sentence_transformers import SparseEncoder
-
-                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
-
-                with model.truncate_sentence_embeddings(truncate_dim=16):
-                    embeddings_truncated = model.encode(["hello there", "hiya"])
-
-                for i in range(embeddings_truncated.shape[0]):
-                    num_nonzero = embeddings_truncated[i].coalesce().indices().shape[1]
-                    assert num_nonzero <= 16, f"Embedding {i} has {num_nonzero} non-zero elements"
-        """
-        original_output_dim = self.truncate_dim
-        try:
-            self.truncate_dim = truncate_dim
-            yield
-        finally:
-            self.truncate_dim = original_output_dim
+        raise NotImplementedError(
+            "SparseEncoder does not support truncating sentence embeddings. "
+            "Use the `max_active_dims` parameter in the encode method instead if you want to limit the embedding memory usage."
+        )
 
     def save(
         self,

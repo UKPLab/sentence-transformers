@@ -52,7 +52,7 @@ class CSRSparsity(Module):
 
     config_keys = ["input_dim", "hidden_dim", "k", "k_aux", "normalize", "dead_threshold"]
 
-    forward_kwargs = {"truncate_dim"}
+    forward_kwargs = {"max_active_dims"}
 
     def __init__(
         self,
@@ -154,8 +154,8 @@ class CSRSparsity(Module):
             ret = ret * info["std"] + info["mu"]
         return ret
 
-    def forward(self, features: torch.Tensor, truncate_dim: int | None = None) -> torch.Tensor:
-        k = truncate_dim if truncate_dim is not None else self.k
+    def forward(self, features: torch.Tensor, max_active_dims: int | None = None) -> torch.Tensor:
+        k = max_active_dims if max_active_dims is not None else self.k
         x = features["sentence_embedding"]
 
         x, info = self.preprocess(x)

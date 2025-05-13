@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import logging
 import os
-from contextlib import nullcontext
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -163,9 +162,8 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
         logger.info(f"EmbeddingSimilarityEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
 
-        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            embeddings1 = self.embed_inputs(model, self.sentences1)
-            embeddings2 = self.embed_inputs(model, self.sentences2)
+        embeddings1 = self.embed_inputs(model, self.sentences1)
+        embeddings2 = self.embed_inputs(model, self.sentences2)
         # Binary and ubinary embeddings are packed, so we need to unpack them for the distance metrics
         if self.precision == "binary":
             embeddings1 = (embeddings1 + 128).astype(np.uint8)
@@ -253,6 +251,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             convert_to_numpy=True,
             precision=self.precision,
             normalize_embeddings=bool(self.precision),
+            truncate_dim=self.truncate_dim,
             **kwargs,
         )
 

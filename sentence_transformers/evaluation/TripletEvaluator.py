@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import logging
 import os
-from contextlib import nullcontext
 from typing import TYPE_CHECKING, Literal
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
@@ -177,10 +176,9 @@ class TripletEvaluator(SentenceEvaluator):
 
         logger.info(f"TripletEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
 
-        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            embeddings_anchors = self.embed_inputs(model, self.anchors)
-            embeddings_positives = self.embed_inputs(model, self.positives)
-            embeddings_negatives = self.embed_inputs(model, self.negatives)
+        embeddings_anchors = self.embed_inputs(model, self.anchors)
+        embeddings_positives = self.embed_inputs(model, self.positives)
+        embeddings_negatives = self.embed_inputs(model, self.negatives)
 
         if not self.similarity_fn_names:
             self.similarity_fn_names = [model.similarity_fn_name]
@@ -259,6 +257,7 @@ class TripletEvaluator(SentenceEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_numpy=True,
+            truncate_dim=self.truncate_dim,
             **kwargs,
         )
 

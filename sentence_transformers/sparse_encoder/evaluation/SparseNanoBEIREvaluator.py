@@ -41,7 +41,8 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         show_progress_bar (bool): Whether to show a progress bar during evaluation. Defaults to False.
         batch_size (int): The batch size for evaluation. Defaults to 32.
         write_csv (bool): Whether to write the evaluation results to a CSV file. Defaults to True.
-        truncate_dim (int, optional): The dimension to truncate the embeddings to. Defaults to None.
+        max_active_dims (Optional[int], optional): The maximum number of active dimensions to use.
+            `None` uses the model's current `max_active_dims`. Defaults to None.
         score_functions (Dict[str, Callable[[Tensor, Tensor], Tensor]]): A dictionary mapping score function names to score functions. Defaults to {SimilarityFunction.COSINE.value: cos_sim, SimilarityFunction.DOT_PRODUCT.value: dot_score}.
         main_score_function (Union[str, SimilarityFunction], optional): The main score function to use for evaluation. Defaults to None.
         aggregate_fn (Callable[[list[float]], float]): The function to aggregate the scores. Defaults to np.mean.
@@ -154,7 +155,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         show_progress_bar: bool = False,
         batch_size: int = 32,
         write_csv: bool = True,
-        truncate_dim: int | None = None,
+        max_active_dims: int | None = None,
         score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = None,
         main_score_function: str | SimilarityFunction | None = None,
         aggregate_fn: Callable[[list[float]], float] = np.mean,
@@ -162,6 +163,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         query_prompts: str | dict[str, str] | None = None,
         corpus_prompts: str | dict[str, str] | None = None,
     ):
+        self.max_active_dims = max_active_dims
         super().__init__(
             dataset_names=dataset_names,
             mrr_at_k=mrr_at_k,
@@ -172,7 +174,6 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             show_progress_bar=show_progress_bar,
             batch_size=batch_size,
             write_csv=write_csv,
-            truncate_dim=truncate_dim,
             score_functions=score_functions,
             main_score_function=main_score_function,
             aggregate_fn=aggregate_fn,
@@ -189,4 +190,6 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
     def _load_dataset(
         self, dataset_name: DatasetNameType, **ir_evaluator_kwargs
     ) -> SparseInformationRetrievalEvaluator:
+        ir_evaluator_kwargs["max_active_dims"] = self.max_active_dims
+        ir_evaluator_kwargs.pop("truncate_dim", None)
         return super()._load_dataset(dataset_name, **ir_evaluator_kwargs)

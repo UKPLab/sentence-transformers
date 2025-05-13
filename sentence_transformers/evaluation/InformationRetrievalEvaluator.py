@@ -3,7 +3,6 @@ from __future__ import annotations
 import heapq
 import logging
 import os
-from contextlib import nullcontext
 from typing import TYPE_CHECKING, Callable
 
 import numpy as np
@@ -294,13 +293,12 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         )
 
         # Compute embedding for the queries
-        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            query_embeddings = self.embed_inputs(
-                model,
-                self.queries,
-                prompt_name=self.query_prompt_name,
-                prompt=self.query_prompt,
-            )
+        query_embeddings = self.embed_inputs(
+            model,
+            self.queries,
+            prompt_name=self.query_prompt_name,
+            prompt=self.query_prompt,
+        )
 
         queries_result_list = {}
         for name in self.score_functions:
@@ -314,17 +312,12 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
             # Encode chunk of corpus
             if corpus_embeddings is None:
-                with (
-                    nullcontext()
-                    if self.truncate_dim is None
-                    else corpus_model.truncate_sentence_embeddings(self.truncate_dim)
-                ):
-                    sub_corpus_embeddings = self.embed_inputs(
-                        corpus_model,
-                        self.corpus[corpus_start_idx:corpus_end_idx],
-                        prompt_name=self.corpus_prompt_name,
-                        prompt=self.corpus_prompt,
-                    )
+                sub_corpus_embeddings = self.embed_inputs(
+                    corpus_model,
+                    self.corpus[corpus_start_idx:corpus_end_idx],
+                    prompt_name=self.corpus_prompt_name,
+                    prompt=self.corpus_prompt,
+                )
             else:
                 sub_corpus_embeddings = corpus_embeddings[corpus_start_idx:corpus_end_idx]
 
@@ -389,6 +382,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
             convert_to_tensor=True,
+            truncate_dim=self.truncate_dim,
             **kwargs,
         )
 

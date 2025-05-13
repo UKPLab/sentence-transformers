@@ -384,18 +384,18 @@ def truncate_embeddings(embeddings: np.ndarray | torch.Tensor, truncate_dim: int
     return embeddings[..., :truncate_dim]
 
 
-def truncate_embeddings_for_sparse(embeddings: np.ndarray | torch.Tensor, truncate_dim: int | None) -> torch.Tensor:
+def select_max_active_dims(embeddings: np.ndarray | torch.Tensor, max_active_dims: int | None) -> torch.Tensor:
     """
     Keeps only the top-k values (in absolute terms) for each embedding and creates a sparse tensor.
 
     Args:
         embeddings (Union[np.ndarray, torch.Tensor]): Embeddings to sparsify by keeping only top_k values.
-        truncate_dim (int): Number of values to keep per embedding.
+        max_active_dims (int): Number of values to keep as non-zeros per embedding.
 
     Returns:
         torch.Tensor: A sparse tensor containing only the top-k values per embedding.
     """
-    if truncate_dim is None:
+    if max_active_dims is None:
         return embeddings
     # Convert to tensor if numpy array
     if isinstance(embeddings, np.ndarray):
@@ -405,11 +405,11 @@ def truncate_embeddings_for_sparse(embeddings: np.ndarray | torch.Tensor, trunca
     device = embeddings.device
 
     # Get the top-k indices for each embedding (by absolute value)
-    _, top_indices = torch.topk(torch.abs(embeddings), k=min(truncate_dim, dim), dim=1)
+    _, top_indices = torch.topk(torch.abs(embeddings), k=min(max_active_dims, dim), dim=1)
 
     # Create a mask of zeros, then set the top-k positions to 1
     mask = torch.zeros_like(embeddings, dtype=torch.bool)
-    batch_indices = torch.arange(batch_size, device=device).unsqueeze(1).expand(-1, min(truncate_dim, dim))
+    batch_indices = torch.arange(batch_size, device=device).unsqueeze(1).expand(-1, min(max_active_dims, dim))
     mask[batch_indices.flatten(), top_indices.flatten()] = True
 
     # Create a sparse tensor with only the top values
@@ -428,6 +428,7 @@ def paraphrase_mining(
     max_pairs: int = 500000,
     top_k: int = 100,
     score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
+    truncate_dim: int | None = None,
 ) -> list[list[float | int]]:
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
@@ -443,6 +444,7 @@ def paraphrase_mining(
         max_pairs (int, optional): Maximal number of text pairs returned. Defaults to 500000.
         top_k (int, optional): For each sentence, we retrieve up to top_k other sentences. Defaults to 100.
         score_function (Callable[[Tensor, Tensor], Tensor], optional): Function for computing scores. By default, cosine similarity. Defaults to cos_sim.
+        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. If None, uses the model's ones. Defaults to None.
 
     Returns:
         List[List[Union[float, int]]]: Returns a list of triplets with the format [score, id1, id2]
@@ -450,7 +452,11 @@ def paraphrase_mining(
 
     # Compute embedding for the sentences
     embeddings = model.encode(
-        sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True
+        sentences,
+        show_progress_bar=show_progress_bar,
+        batch_size=batch_size,
+        convert_to_tensor=True,
+        truncate_dim=truncate_dim,
     )
 
     return paraphrase_mining_embeddings(
