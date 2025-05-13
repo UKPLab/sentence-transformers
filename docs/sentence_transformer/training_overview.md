@@ -15,7 +15,7 @@ Also see [**Training Examples**](training/examples) for numerous training script
 
 
 ## Training Components
-Training Sentence Transformer models involves between 3 to 5 components:
+Training Sentence Transformer models involves between 4 to 6 components:
 
 <div class="components">
     <a href="#model" class="box">
