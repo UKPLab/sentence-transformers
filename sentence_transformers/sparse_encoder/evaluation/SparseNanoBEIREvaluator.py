@@ -191,5 +191,5 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         self, dataset_name: DatasetNameType, **ir_evaluator_kwargs
     ) -> SparseInformationRetrievalEvaluator:
         ir_evaluator_kwargs["max_active_dims"] = self.max_active_dims
-        ir_evaluator_kwargs.pop("truncate_dim")
+        ir_evaluator_kwargs.pop("truncate_dim", None)
         return super()._load_dataset(dataset_name, **ir_evaluator_kwargs)

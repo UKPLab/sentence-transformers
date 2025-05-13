@@ -23,7 +23,7 @@ def main():
     csr_sparsity = models.CSRSparsity(
         input_dim=transformer.get_word_embedding_dimension(),
         hidden_dim=4 * transformer.get_word_embedding_dimension(),
-        k=8,  # Number of top values to keep
+        k=256,  # Number of top values to keep
         k_aux=512,  # Number of top values for auxiliary loss
     )
 
