@@ -170,18 +170,18 @@ This example demonstrates how to set up Qdrant for sparse vector search by showi
     # 3. Load the model
     sparse_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
 
-    # 5. Encode the corpus
+    # 4. Encode the corpus
     corpus_embeddings = sparse_model.encode(corpus, convert_to_sparse_tensor=True, show_progress_bar=True)
 
     # Initially, we don't have a qdrant index yet
     corpus_index = None
     while True:
-        # 6. Encode the queries using the full precision
+        # 5. Encode the queries using the full precision
         start_time = time.time()
         query_embeddings = sparse_model.encode(queries, convert_to_sparse_tensor=True)
         print(f"Encoding time: {time.time() - start_time:.6f} seconds")
 
-        # 7. Perform semantic search using qdrant
+        # 6. Perform semantic search using qdrant
         results, search_time, corpus_index = semantic_search_qdrant(
             query_embeddings,
             corpus_index=corpus_index,
@@ -190,7 +190,7 @@ This example demonstrates how to set up Qdrant for sparse vector search by showi
             output_index=True,
         )
 
-        # 8. Output the results
+        # 7. Output the results
         print(f"Search time: {search_time:.6f} seconds")
         for query, result in zip(queries, results):
             print(f"Query: {query}")
@@ -200,7 +200,7 @@ This example demonstrates how to set up Qdrant for sparse vector search by showi
                 print(f"(Score: {score:.4f}) {corpus[corpus_id]}, corpus_id: {corpus_id}")
             print("")
 
-        # 10. Prompt for more queries
+        # 8. Prompt for more queries
         queries = [input("Please enter a question: ")]
 ```
 
@@ -245,17 +245,17 @@ This example demonstrates how to set up Elasticsearch for sparse vector search b
     # 3. Load the model
     sparse_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
 
-    # 5. Encode the corpus
+    # 4. Encode the corpus
     corpus_embeddings = sparse_model.encode(corpus, convert_to_sparse_tensor=True, show_progress_bar=True)
 
     corpus_index = None
     while True:
-        # 6. Encode the queries using the full precision
+        # 5. Encode the queries using the full precision
         start_time = time.time()
         query_embeddings = sparse_model.encode(queries, convert_to_sparse_tensor=True)
         print(f"Encoding time: {time.time() - start_time:.6f} seconds")
 
-        # 7. Perform semantic search using qdrant
+        # 6. Perform semantic search using Elasticsearch
         results, search_time, corpus_index = semantic_search_elasticsearch(
             query_embeddings,
             corpus_index=corpus_index,
@@ -264,7 +264,7 @@ This example demonstrates how to set up Elasticsearch for sparse vector search b
             output_index=True,
         )
 
-        # 8. Output the results
+        # 7. Output the results
         print(f"Search time: {search_time:.6f} seconds")
         for query, result in zip(queries, results):
             print(f"Query: {query}")
@@ -274,6 +274,79 @@ This example demonstrates how to set up Elasticsearch for sparse vector search b
                 print(f"(Score: {score:.4f}) {corpus[corpus_id]}, corpus_id: {corpus_id}")
             print("")
 
-        # 10. Prompt for more queries
+        # 8. Prompt for more queries
+        queries = [input("Please enter a question: ")]
+```
+
+## Seismic Integration
+
+This example demonstrates how to use [Seismic](https://github.com/TusKANNy/seismic) for extremely performant sparse vector search. It does not require running a separate client, but instead performs search directly in memory. The Seismic library was introduced in [Bruch et al. (2024)](https://arxiv.org/abs/2404.18812), where it's shown to outperform the common inverted file (IVF) approach by an order of magnitude. See [semantic_search_seismic.py](semantic_search_seismic.py) or below:
+
+### Prerequisites:
+- The Seismic Python package installed:
+  ```bash
+  pip install pyseismic-lsr
+  ```
+
+```{eval-rst}
+
+.. sidebar:: Documentation
+
+   1. :class:`SparseEncoder <sentence_transformers.sparse_encoder.SparseEncoder>`
+   2. :meth:`SparseEncoder.encode <sentence_transformers.sparse_encoder.SparseEncoder.encode>`
+   3. :meth:`semantic_search_seismic <sentence_transformers.sparse_encoder.search_engines.semantic_search_seismic>`
+   4. `naver/splade-cocondenser-ensembledistil <https://huggingface.co/naver/splade-cocondenser-ensembledistil>`_
+   5. `sentence-transformers/natural-questions <https://huggingface.co/datasets/sentence-transformers/natural-questions>`_
+
+::
+
+    import time
+
+    from datasets import load_dataset
+
+    from sentence_transformers import SparseEncoder
+    from sentence_transformers.sparse_encoder.search_engines import semantic_search_seismic
+
+    # 1. Load the natural-questions dataset with 100K answers
+    dataset = load_dataset("sentence-transformers/natural-questions", split="train")
+    num_docs = 10_000
+    corpus = dataset["answer"][:num_docs]
+
+    # 2. Come up with some queries
+    queries = dataset["query"][:2]
+
+    # 3. Load the model
+    sparse_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+    # 4. Encode the corpus
+    corpus_embeddings = sparse_model.encode(corpus, convert_to_sparse_tensor=True, show_progress_bar=True)
+
+    corpus_index = None
+    while True:
+        # 5. Encode the queries using the full precision
+        start_time = time.time()
+        query_embeddings = sparse_model.encode(queries, convert_to_sparse_tensor=True)
+        print(f"Encoding time: {time.time() - start_time:.6f} seconds")
+
+        # 6. Perform semantic search using Seismic
+        results, search_time, corpus_index = semantic_search_seismic(
+            query_embeddings,
+            corpus_index=corpus_index,
+            corpus_embeddings=corpus_embeddings if corpus_index is None else None,
+            top_k=5,
+            output_index=True,
+        )
+
+        # 7. Output the results
+        print(f"Search time: {search_time:.6f} seconds")
+        for query, result in zip(queries, results):
+            print(f"Query: {query}")
+            for entry in result:
+                score = entry["score"]
+                corpus_id = entry["corpus_id"]
+                print(f"(Score: {score:.4f}) {corpus[corpus_id]}, corpus_id: {corpus_id}")
+            print("")
+
+        # 8. Prompt for more queries
         queries = [input("Please enter a question: ")]
 ```
