@@ -3,6 +3,7 @@ from __future__ import annotations
 import gc
 import json
 import os
+import platform
 import tempfile
 from pathlib import Path
 
@@ -37,6 +38,9 @@ if is_ci():
     "model_kwargs", [{}, {"file_name": "wrong_file_name"}]
 )  # <- Using a file_name is fine when exporting
 def test_backend_export(backend, expected_auto_model_class, model_kwargs) -> None:
+    if backend == "ipex" and platform.system() != "Linux":
+        pytest.skip("IPEX backend is only available on Linux")
+
     model = SentenceTransformer(
         "sentence-transformers-testing/stsb-bert-tiny-safetensors", backend=backend, model_kwargs=model_kwargs
     )
