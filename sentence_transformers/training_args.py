@@ -43,7 +43,9 @@ class BatchSamplers(ExplicitEnum):
     :class:`~sentence_transformers.sampler.DefaultBatchSampler` and pass the class (not an instance) to the
     ``batch_sampler`` argument in :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`
     (or :class:`~sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments`, etc.).
-    Alternatively, you can pass a function that returns a batch sampler.
+    Alternatively, you can pass a function that accepts ``dataset``, ``batch_size``, ``drop_last``,
+    ``valid_label_columns``, ``generator``, and ``seed`` and returns a
+    :class:`~sentence_transformers.sampler.DefaultBatchSampler` instance.
 
     Usage:
         ::
@@ -96,7 +98,9 @@ class MultiDatasetBatchSamplers(ExplicitEnum):
     :class:`~sentence_transformers.sampler.MultiDatasetDefaultBatchSampler` and pass the class (not an instance) to the
     ``multi_dataset_batch_sampler`` argument in :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`.
     (or :class:`~sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments`, etc.). Alternatively,
-    you can pass a function that returns a multi-dataset batch sampler.
+    you can pass a function that accepts ``dataset`` (a :class:`~torch.utils.data.ConcatDataset`), ``batch_samplers``
+    (i.e. a list of batch sampler for each of the datasets in the :class:`~torch.utils.data.ConcatDataset`), ``generator``,
+    and ``seed`` and returns a :class:`~sentence_transformers.sampler.MultiDatasetDefaultBatchSampler` instance.
 
     Usage:
         ::
@@ -169,10 +173,10 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
                prompts. This should only be used if your training/evaluation/test datasets are a
                :class:`datasets.DatasetDict` or a dictionary of :class:`datasets.Dataset`.
 
-        batch_sampler (Union[:class:`~sentence_transformers.training_args.BatchSamplers`, `str`], *optional*):
+        batch_sampler (Union[:class:`~sentence_transformers.training_args.BatchSamplers`, `str`, :class:`~sentence_transformers.sampler.DefaultBatchSampler`, Callable[[...], :class:`~sentence_transformers.sampler.DefaultBatchSampler`]], *optional*):
             The batch sampler to use. See :class:`~sentence_transformers.training_args.BatchSamplers` for valid options.
             Defaults to ``BatchSamplers.BATCH_SAMPLER``.
-        multi_dataset_batch_sampler (Union[:class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers`, `str`], *optional*):
+        multi_dataset_batch_sampler (Union[:class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers`, `str`, :class:`~sentence_transformers.sampler.MultiDatasetDefaultBatchSampler`, Callable[[...], :class:`~sentence_transformers.sampler.MultiDatasetDefaultBatchSampler`]]], *optional*):
             The multi-dataset batch sampler to use. See :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers`
             for valid options. Defaults to ``MultiDatasetBatchSamplers.PROPORTIONAL``.
     """
