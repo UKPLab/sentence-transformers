@@ -6,7 +6,10 @@ import sklearn
 import torch
 
 from sentence_transformers import SentenceTransformer, util
-from sentence_transformers.util import community_detection
+from sentence_transformers.util import community_detection, is_datasets_available
+
+if is_datasets_available():
+    from datasets import Dataset
 
 
 def test_normalize_embeddings() -> None:
@@ -277,6 +280,7 @@ def test_community_detection_gpu_support():
     assert sorted([sorted(community) for community in result]) == sorted([sorted(community) for community in expected])
 
 
+@pytest.mark.skipif(not is_datasets_available(), reason="datasets library is not available")
 def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model: SentenceTransformer) -> None:
     """
     Tests that mine_hard_negatives runs with and without a prompt.
@@ -307,52 +311,67 @@ def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model:
         ],
     }
 
-    from datasets import Dataset
-
     dataset = Dataset.from_dict(data)
     corpus = data["positive"] + data["negative_pool"]  # Corpus includes positives and other docs
 
     prompt = "query: "
     num_negatives = 1
 
-    # 2. Run without prompt
-    try:
-        result_no_prompt = util.mine_hard_negatives(
-            dataset=dataset,
-            model=model,
-            anchor_column_name="anchor",
-            positive_column_name="positive",
-            corpus=corpus,
-            num_negatives=num_negatives,
-            batch_size=4,
-            verbose=False,
-            output_format="triplet",
-        )
-        # Assert basic success criteria
-        assert isinstance(result_no_prompt, Dataset)
-        assert "negative" in result_no_prompt.column_names
-        assert len(result_no_prompt) > 0  # Check that some negatives were found
+    # Set up monkeypatching to verify prompt usage
+    original_tokenize = model.tokenize
+    tokenize_calls = []
 
-    except Exception as e:
-        pytest.fail(f"mine_hard_negatives failed without prompt: {e}")
+    def mock_tokenize(texts):
+        tokenize_calls.append(texts)
+        return original_tokenize(texts)
 
-    # 3. Run with prompt
-    try:
-        result_with_prompt = util.mine_hard_negatives(
-            dataset=dataset,
-            model=model,
-            anchor_column_name="anchor",
-            positive_column_name="positive",
-            corpus=corpus,
-            num_negatives=num_negatives,
-            batch_size=4,
-            verbose=False,
-            prompt=prompt,
-            output_format="triplet",
-        )
-        assert isinstance(result_with_prompt, Dataset)
-        assert "negative" in result_with_prompt.column_names
-        assert len(result_with_prompt) > 0
+    # 2. Run without prompt - check that no prompt is added
+    model.tokenize = mock_tokenize
+    tokenize_calls.clear()
 
-    except Exception as e:
-        pytest.fail(f"mine_hard_negatives failed with prompt: {e}")
+    result_no_prompt = util.mine_hard_negatives(
+        dataset=dataset,
+        model=model,
+        anchor_column_name="anchor",
+        positive_column_name="positive",
+        corpus=corpus,
+        num_negatives=num_negatives,
+        batch_size=4,
+        verbose=False,
+        output_format="triplet",
+    )
+
+    # Verify that tokenize was called without prompts
+    assert any(data["anchor"][0] in str(calls) for calls in tokenize_calls)
+    assert not any(prompt + data["anchor"][0] in str(calls) for calls in tokenize_calls)
+
+    # Assert basic success criteria
+    assert isinstance(result_no_prompt, Dataset)
+    assert "negative" in result_no_prompt.column_names
+    assert len(result_no_prompt) > 0  # Check that some negatives were found
+
+    # 3. Run with prompt - check that prompt is actually added
+    tokenize_calls.clear()
+
+    result_with_prompt = util.mine_hard_negatives(
+        dataset=dataset,
+        model=model,
+        anchor_column_name="anchor",
+        positive_column_name="positive",
+        corpus=corpus,
+        num_negatives=num_negatives,
+        batch_size=4,
+        verbose=False,
+        prompt=prompt,
+        output_format="triplet",
+    )
+
+    # Verify that tokenize was called with prompts
+    assert any(prompt + data["anchor"][0] in str(calls) for calls in tokenize_calls)
+
+    assert isinstance(result_with_prompt, Dataset)
+    assert "negative" in result_with_prompt.column_names
+    assert len(result_with_prompt) > 0
+
+    # Restore original tokenize function
+    model.tokenize = original_tokenize
