@@ -382,6 +382,12 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
         # You can run evaluation like so:
         # results = dev_evaluator(model)
 
+.. tip::
+
+    When evaluating frequently during training with a small ``eval_steps``, consider using a tiny ``eval_dataset`` to minimize evaluation overhead. If you're concerned about the evaluation set size, a 90-1-9 train-eval-test split can provide a balance, reserving a reasonably sized test set for final evaluations. After training, you can assess your model's performance using ``trainer.evaluate(test_dataset)`` for test loss or initialize a testing evaluator with ``test_evaluator(model)`` for detailed test metrics.
+
+    If you evaluate after training, but before saving the model, your automatically generated model card will still include the test results.
+
 .. warning::
 
     When using `Distributed Training <training/distributed.html>`_, the evaluator only runs on the first device, unlike the training and evaluation datasets, which are shared across all devices. 
