@@ -302,15 +302,15 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 if "/" not in model_name_or_path and model_name_or_path.lower() not in basic_transformer_models:
                     # A model from sentence-transformers
                     model_name_or_path = __MODEL_HUB_ORGANIZATION__ + "/" + model_name_or_path
-
+            has_modules = is_sentence_transformer_model(
+                model_name_or_path,
+                token,
+                cache_folder=cache_folder,
+                revision=revision,
+                local_files_only=local_files_only,
+            )
             if (
-                is_sentence_transformer_model(
-                    model_name_or_path,
-                    token,
-                    cache_folder=cache_folder,
-                    revision=revision,
-                    local_files_only=local_files_only,
-                )
+                has_modules
                 and self._get_model_type(
                     model_name_or_path,
                     token,
@@ -342,6 +342,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                     model_kwargs=model_kwargs,
                     tokenizer_kwargs=tokenizer_kwargs,
                     config_kwargs=config_kwargs,
+                    has_modules=has_modules,
                 )
 
         if modules is not None and not isinstance(modules, OrderedDict):
@@ -1633,6 +1634,7 @@ print(similarities)
         model_kwargs: dict[str, Any] | None = None,
         tokenizer_kwargs: dict[str, Any] | None = None,
         config_kwargs: dict[str, Any] | None = None,
+        has_modules: bool = False,
     ) -> list[nn.Module]:
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
@@ -1647,6 +1649,7 @@ print(similarities)
             model_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the model. Defaults to None.
             tokenizer_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the tokenizer. Defaults to None.
             config_kwargs (Optional[Dict[str, Any]], optional): Additional keyword arguments for the config. Defaults to None.
+            has_modules (bool, optional): Whether the model has modules.json. Defaults to False.
 
         Returns:
             List[nn.Module]: A list containing the transformer model and the pooling model.
