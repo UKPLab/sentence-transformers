@@ -342,18 +342,15 @@ def paraphrase_mining(
         top_k (int, optional): For each sentence, we retrieve up to top_k other sentences. Defaults to 100.
         score_function (Callable[[Tensor, Tensor], Tensor], optional): Function for computing scores. By default, cosine similarity. Defaults to cos_sim.
         prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the sentence.
-            It must match a key in the `prompts` dictionary, which can be set during model initialization
+            It must match a key in the model `prompts` dictionary, which can be set during model initialization
             or loaded from the model configuration.
 
             Ignored if `prompt` is provided. Defaults to None.
 
         prompt (Optional[str], optional): A raw prompt string to prepend directly to the input sentence during encoding.
 
-            For instance, `prompt="query: "` transforms the sentence
-            "What is the capital of France?" into:
-                "query: What is the capital of France?"
-
-            Use this to override the prompt logic entirely and supply your own prefix.
+            For instance, `prompt="query: "` transforms the sentence "What is the capital of France?" into:
+            "query: What is the capital of France?". Use this to override the prompt logic entirely and supply your own prefix.
             This takes precedence over `prompt_name`. Defaults to None.
 
     Returns:
@@ -713,28 +710,20 @@ def mine_hard_negatives(
         verbose (bool): Whether to print statistics and logging. Defaults to True.
         as_triplets (bool, optional): Deprecated. Use `output_format` instead. Defaults to None.
         margin (float, optional): Deprecated. Use `absolute_margin` or `relative_margin` instead. Defaults to None.
-        prompt_name (Optional[str], optional):
-            The name of a predefined prompt to use when encoding the sentence.
-            It must match a key in the `prompts` dictionary, which can be set during model initialization
+        prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the sentence.
+            It must match a key in the model `prompts` dictionary, which can be set during model initialization
             or loaded from the model configuration.
 
-            For example, if `prompt_name="query"` and the prompts dictionary includes {"query": "query: "},
-            then the sentence "What is the capital of France?" is transformed into:
-                "query: What is the capital of France?"
-            before encoding.
-
-            This is useful for models that were trained or fine-tuned with specific prompt formats.
+            For example, if `prompt_name="query"` and the model prompts dictionary includes {"query": "query: "},
+            then the sentence "What is the capital of France?" is transformed into: "query: What is the capital of France?"
+            before encoding. This is useful for models that were trained or fine-tuned with specific prompt formats.
 
             Ignored if `prompt` is provided. Defaults to None.
 
-        prompt (Optional[str], optional):
-            A raw prompt string to prepend directly to the input sentence during encoding.
+        prompt (Optional[str], optional): A raw prompt string to prepend directly to the input sentence during encoding.
 
-            For instance, `prompt="query: "` transforms the sentence
-            "What is the capital of France?" into:
-                "query: What is the capital of France?"
-
-            Use this to override the prompt logic entirely and supply your own prefix.
+            For instance, `prompt="query: "` transforms the sentence "What is the capital of France?" into:
+            "query: What is the capital of France?". Use this to override the prompt logic entirely and supply your own prefix.
             This takes precedence over `prompt_name`. Defaults to None.
 
 
