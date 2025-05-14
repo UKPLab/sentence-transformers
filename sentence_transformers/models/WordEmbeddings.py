@@ -4,7 +4,7 @@ import gzip
 import logging
 import os
 
-from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
+from transformers import PreTrainedTokenizer
 
 try:
     from typing import Self
@@ -19,7 +19,7 @@ from tqdm import tqdm
 from sentence_transformers.models.Module import Module
 from sentence_transformers.util import fullname, http_get, import_from_string
 
-from .tokenizer import WhitespaceTokenizer, WordTokenizer
+from .tokenizer import TransformersTokenizerWrapper, WhitespaceTokenizer, WordTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +30,14 @@ class WordEmbeddings(Module):
 
     def __init__(
         self,
-        tokenizer: WordTokenizer | PreTrainedTokenizerFast | PreTrainedTokenizer,
+        tokenizer: WordTokenizer | PreTrainedTokenizer,
         embedding_weights,
         update_embeddings: bool = False,
         max_seq_length: int = 1000000,
     ):
         nn.Module.__init__(self)
-        if isinstance(tokenizer, (PreTrainedTokenizerFast, PreTrainedTokenizer)):
-            tokenizer = WordTokenizer.WordTokenizerWrapper(tokenizer)
+        if isinstance(tokenizer, PreTrainedTokenizer):
+            tokenizer = TransformersTokenizerWrapper(tokenizer)
         elif not isinstance(tokenizer, WordTokenizer):
             raise ValueError("tokenizer must be a WordTokenizer or a HuggingFace tokenizer. ")
         if isinstance(embedding_weights, list):
