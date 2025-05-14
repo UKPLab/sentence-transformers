@@ -550,6 +550,8 @@ def mine_hard_negatives(
     relative_margin: float | None = None,
     num_negatives: int = 3,
     sampling_strategy: Literal["random", "top"] = "top",
+    prompt_name: str | None = None,
+    prompt: str | None = None,
     include_positives: bool = False,
     output_format: Literal["triplet", "n-tuple", "labeled-pair", "labeled-list"] = "triplet",
     batch_size: int = 32,
@@ -559,8 +561,6 @@ def mine_hard_negatives(
     verbose: bool = True,
     as_triplets: bool | None = None,
     margin: float | None = None,
-    prompt_name: str | None = None,
-    prompt: str | None = None,
 ) -> Dataset:
     """
     Add hard negatives to a dataset of (anchor, positive) pairs to create (anchor, positive, negative) triplets or
@@ -689,6 +689,21 @@ def mine_hard_negatives(
             95% as similar to the anchor as the positive. Defaults to None.
         num_negatives (int): Number of negatives to sample. Defaults to 3.
         sampling_strategy (Literal["random", "top"]): Sampling strategy for negatives: "top" or "random". Defaults to "top".
+        prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the sentence.
+            It must match a key in the model `prompts` dictionary, which can be set during model initialization
+            or loaded from the model configuration.
+
+            For example, if `prompt_name="query"` and the model prompts dictionary includes {"query": "query: "},
+            then the sentence "What is the capital of France?" is transformed into: "query: What is the capital of France?"
+            before encoding. This is useful for models that were trained or fine-tuned with specific prompt formats.
+
+            Ignored if `prompt` is provided. Defaults to None.
+
+        prompt (Optional[str], optional): A raw prompt string to prepend directly to the input sentence during encoding.
+
+            For instance, `prompt="query: "` transforms the sentence "What is the capital of France?" into:
+            "query: What is the capital of France?". Use this to override the prompt logic entirely and supply your own prefix.
+            This takes precedence over `prompt_name`. Defaults to None.
         include_positives (bool): Whether to include the positives in the negative candidates.
             Setting this to True is primarily useful for creating Reranking evaluation datasets for CrossEncoder models,
             where it can be useful to get a full ranking (including the positives) from a first-stage retrieval model.
@@ -710,21 +725,6 @@ def mine_hard_negatives(
         verbose (bool): Whether to print statistics and logging. Defaults to True.
         as_triplets (bool, optional): Deprecated. Use `output_format` instead. Defaults to None.
         margin (float, optional): Deprecated. Use `absolute_margin` or `relative_margin` instead. Defaults to None.
-        prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the sentence.
-            It must match a key in the model `prompts` dictionary, which can be set during model initialization
-            or loaded from the model configuration.
-
-            For example, if `prompt_name="query"` and the model prompts dictionary includes {"query": "query: "},
-            then the sentence "What is the capital of France?" is transformed into: "query: What is the capital of France?"
-            before encoding. This is useful for models that were trained or fine-tuned with specific prompt formats.
-
-            Ignored if `prompt` is provided. Defaults to None.
-
-        prompt (Optional[str], optional): A raw prompt string to prepend directly to the input sentence during encoding.
-
-            For instance, `prompt="query: "` transforms the sentence "What is the capital of France?" into:
-            "query: What is the capital of France?". Use this to override the prompt logic entirely and supply your own prefix.
-            This takes precedence over `prompt_name`. Defaults to None.
 
 
     Returns:
