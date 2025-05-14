@@ -95,6 +95,8 @@ But if instead you want to train from another checkpoint, or from scratch, then 
         - `sentence similarity models <https://huggingface.co/models?pipeline_tag=sentence-similarity>`_ - trained for text embeddings
         - `feature-extraction models <https://huggingface.co/models?pipeline_tag=feature-extraction>`_ - trained for text embeddings
 
+        Consider looking for base models that are designed on your language and/or domain of interest. For example, `FacebookAI/xlm-roberta-base <https://huggingface.co/FacebookAI/xlm-roberta-base>`_ will work better than `google-bert/bert-base-uncased <https://huggingface.co/google-bert/bert-base-uncased>`_ for Turkish.
+
 .. tab:: Static
 
     Static Embedding models (`blogpost <https://huggingface.co/blog/static-embeddings>`_) use the :class:`~sentence_transformers.models.StaticEmbedding` module, and are encoder models that don't use slow transformers or attention mechanisms. For these models, computing embeddings is simply: given the input token, return the pre-computed token embedding. These models are orders of magnitude faster, but cannot capture complex semantics as token embeddings are computed separate from the context.

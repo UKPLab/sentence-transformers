@@ -67,6 +67,8 @@ Cross Encoder models are initialized by loading a pretrained `transformers <http
     - `sentence similarity models <https://huggingface.co/models?pipeline_tag=sentence-similarity>`_ - trained for text embeddings
     - `feature-extraction models <https://huggingface.co/models?pipeline_tag=feature-extraction>`_ - trained for text embeddings
 
+    Consider looking for base models that are designed on your language and/or domain of interest. For example, `klue/bert-base <https://huggingface.co/klue/bert-base>`_ will work much better than `google-bert/bert-base-uncased <https://huggingface.co/google-bert/bert-base-uncased>`_ for Korean.
+
 ```
 
 ## Dataset
