@@ -330,6 +330,11 @@ def semantic_search_seismic(
     except ImportError:
         raise ImportError("Please install Seismic with `pip install pyseismic-lsr` to use this function.")
 
+    if index_kwargs is None:
+        index_kwargs = {}
+    if search_kwargs is None:
+        search_kwargs = {}
+
     string_type = get_seismic_string()
 
     # Validate input sparse tensors
