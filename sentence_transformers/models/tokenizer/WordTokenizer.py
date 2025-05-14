@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 ENGLISH_STOP_WORDS = [
     "!",
@@ -419,7 +419,7 @@ class WordTokenizer(ABC):
 
 
 class TransformersTokenizerWrapper(WordTokenizer):
-    def __init__(self, tokenizer):
+    def __init__(self, tokenizer: PreTrainedTokenizerBase):
         super().__init__()
         self.tokenizer = tokenizer
 
