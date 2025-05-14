@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
+from transformers import AutoTokenizer, PreTrainedTokenizerBase
+
 ENGLISH_STOP_WORDS = [
     "!",
     '"',
@@ -414,3 +416,26 @@ class WordTokenizer(ABC):
     @abstractmethod
     def load(input_path: str):
         pass
+
+
+class TransformersTokenizerWrapper(WordTokenizer):
+    def __init__(self, tokenizer: PreTrainedTokenizerBase):
+        super().__init__()
+        self.tokenizer = tokenizer
+
+    def tokenize(self, sentence: str):
+        encoded = self.tokenizer(sentence)
+        return encoded["input_ids"][0]
+
+    def set_vocab(self, vocab: Iterable[str]):
+        pass
+
+    def get_vocab(self, vocab: Iterable[str]):
+        return self.tokenizer.get_vocab()
+
+    def save(self, output_path: str):
+        self.tokenizer.save_pretrained(output_path)
+
+    @staticmethod
+    def load(input_path: str):
+        return TransformersTokenizerWrapper(AutoTokenizer.from_pretrained(input_path, use_fast=True))
