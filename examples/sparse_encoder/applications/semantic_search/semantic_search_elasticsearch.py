@@ -29,17 +29,17 @@ queries = dataset["query"][:2]
 # 3. Load the model
 sparse_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
 
-# 5. Encode the corpus
+# 4. Encode the corpus
 corpus_embeddings = sparse_model.encode(corpus, convert_to_sparse_tensor=True, batch_size=32, show_progress_bar=True)
 
 corpus_index = None
 while True:
-    # 6. Encode the queries using the full precision
+    # 5. Encode the queries using the full precision
     start_time = time.time()
     query_embeddings = sparse_model.encode(queries, convert_to_sparse_tensor=True)
     print(f"Encoding time: {time.time() - start_time:.6f} seconds")
 
-    # 7. Perform semantic search using qdrant
+    # 6. Perform semantic search using Elasticsearch
     results, search_time, corpus_index = semantic_search_elasticsearch(
         query_embeddings,
         corpus_index=corpus_index,
@@ -48,7 +48,7 @@ while True:
         output_index=True,
     )
 
-    # 8. Output the results
+    # 7. Output the results
     print(f"Search time: {search_time:.6f} seconds")
     for query, result in zip(queries, results):
         print(f"Query: {query}")
@@ -56,5 +56,5 @@ while True:
             print(f"(Score: {entry['score']:.4f}) {corpus[entry['corpus_id']]}, corpus_id: {entry['corpus_id']}")
         print("")
 
-    # 10. Prompt for more queries
+    # 8. Prompt for more queries
     queries = [input("Please enter a question: ")]

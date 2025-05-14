@@ -1,14 +1,10 @@
 """
-This script contains an example how to perform semantic search with Qdrant.
+This script contains an example how to perform semantic search with Seismic.
 
-You need Qdrant up and running locally:
-https://qdrant.tech/documentation/quickstart/
-
-Further, you need the Python Qdrant Client installed: https://python-client.qdrant.tech/, e.g.:
+All you need is installing the `pyseismic-lsr` package:
 ```
-pip install qdrant-client
+pip install pyseismic-lsr
 ```
-This script was created for `qdrant-client` v1.0+.
 """
 
 import time
@@ -16,7 +12,7 @@ import time
 from datasets import load_dataset
 
 from sentence_transformers import SparseEncoder
-from sentence_transformers.sparse_encoder.search_engines import semantic_search_qdrant
+from sentence_transformers.sparse_encoder.search_engines import semantic_search_seismic
 
 # 1. Load the natural-questions dataset with 100K answers
 dataset = load_dataset("sentence-transformers/natural-questions", split="train")
@@ -30,9 +26,8 @@ queries = dataset["query"][:2]
 sparse_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
 
 # 4. Encode the corpus
-corpus_embeddings = sparse_model.encode(corpus, convert_to_sparse_tensor=True, batch_size=16, show_progress_bar=True)
+corpus_embeddings = sparse_model.encode(corpus, convert_to_sparse_tensor=True, batch_size=32, show_progress_bar=True)
 
-# Initially, we don't have a qdrant index yet
 corpus_index = None
 while True:
     # 5. Encode the queries using the full precision
@@ -41,7 +36,7 @@ while True:
     print(f"Encoding time: {time.time() - start_time:.6f} seconds")
 
     # 6. Perform semantic search using qdrant
-    results, search_time, corpus_index = semantic_search_qdrant(
+    results, search_time, corpus_index = semantic_search_seismic(
         query_embeddings,
         corpus_index=corpus_index,
         corpus_embeddings=corpus_embeddings if corpus_index is None else None,

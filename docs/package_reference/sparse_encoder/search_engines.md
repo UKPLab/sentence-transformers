@@ -4,5 +4,5 @@
 
 ```{eval-rst}
 .. automodule:: sentence_transformers.sparse_encoder.search_engines
-   :members: semantic_search_qdrant, semantic_search_elasticsearch
+   :members: semantic_search_qdrant, semantic_search_elasticsearch, semantic_search_seismic
 ```
