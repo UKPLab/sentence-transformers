@@ -29,6 +29,11 @@
 ```
 
 ```{eval-rst}
+.. autoclass:: sentence_transformers.sampler.MultiDatasetDefaultBatchSampler
+    :members:
+```
+
+```{eval-rst}
 .. autoclass:: sentence_transformers.sampler.RoundRobinBatchSampler
     :members:
 ```
