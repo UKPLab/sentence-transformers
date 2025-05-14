@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterator
 from itertools import accumulate, cycle
@@ -247,11 +248,11 @@ class NoDuplicatesBatchSampler(DefaultBatchSampler):
             return (len(self.dataset) + self.batch_size - 1) // self.batch_size
 
 
-class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
+class MultiDatasetDefaultBatchSampler(SetEpochMixin, BatchSampler, ABC):
     """
-    Batch sampler that yields batches in a round-robin fashion from multiple batch samplers, until one is exhausted.
-    With this sampler, it's unlikely that all samples from each dataset are used, but we do ensure that each dataset
-    is sampled from equally.
+    Abstract base batch sampler that yields batches from multiple batch samplers.
+    This class must be subclassed to implement specific sampling strategies, and
+    cannot be used directly.
 
     Args:
         dataset (ConcatDataset): A concatenation of multiple datasets.
@@ -275,6 +276,30 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
         self.generator = generator
         self.seed = seed
 
+    @abstractmethod
+    def __iter__(self) -> Iterator[list[int]]:
+        """Yield batches from the underlying datasets in a specific order."""
+        pass
+
+    @abstractmethod
+    def __len__(self) -> int:
+        """Return the number of batches in the sampler."""
+        pass
+
+
+class RoundRobinBatchSampler(MultiDatasetDefaultBatchSampler):
+    """
+    Batch sampler that yields batches in a round-robin fashion from multiple batch samplers, until one is exhausted.
+    With this sampler, it's unlikely that all samples from each dataset are used, but we do ensure that each dataset
+    is sampled from equally.
+
+    Args:
+        dataset (ConcatDataset): A concatenation of multiple datasets.
+        batch_samplers (List[BatchSampler]): A list of batch samplers, one for each dataset in the ConcatDataset.
+        generator (torch.Generator, optional): A generator for reproducible sampling. Defaults to None.
+        seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
+    """
+
     def __iter__(self) -> Iterator[list[int]]:
         if self.generator and self.seed is not None:
             self.generator.manual_seed(self.seed + self.epoch)
@@ -295,29 +320,17 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
         return min(len(sampler) for sampler in self.batch_samplers) * len(self.batch_samplers)
 
 
-class ProportionalBatchSampler(SetEpochMixin, BatchSampler):
-    def __init__(
-        self,
-        dataset: ConcatDataset,
-        batch_samplers: list[BatchSampler],
-        generator: torch.Generator,
-        seed: int = 0,
-    ) -> None:
-        """
-        Batch sampler that samples from each dataset in proportion to its size, until all are exhausted simultaneously.
-        With this sampler, all samples from each dataset are used and larger datasets are sampled from more frequently.
+class ProportionalBatchSampler(MultiDatasetDefaultBatchSampler):
+    """
+    Batch sampler that samples from each dataset in proportion to its size, until all are exhausted simultaneously.
+    With this sampler, all samples from each dataset are used and larger datasets are sampled from more frequently.
 
-        Args:
-            dataset (ConcatDataset): A concatenation of multiple datasets.
-            batch_samplers (List[BatchSampler]): A list of batch samplers, one for each dataset in the ConcatDataset.
-            generator (torch.Generator, optional): A generator for reproducible sampling. Defaults to None.
-            seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
-        """
-        super().__init__(dataset, batch_size=batch_samplers[0].batch_size, drop_last=batch_samplers[0].drop_last)
-        self.dataset = dataset
-        self.batch_samplers = batch_samplers
-        self.generator = generator
-        self.seed = seed
+    Args:
+        dataset (ConcatDataset): A concatenation of multiple datasets.
+        batch_samplers (List[BatchSampler]): A list of batch samplers, one for each dataset in the ConcatDataset.
+        generator (torch.Generator, optional): A generator for reproducible sampling. Defaults to None.
+        seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
+    """
 
     def __iter__(self) -> Iterator[list[int]]:
         self.generator.manual_seed(self.seed + self.epoch)

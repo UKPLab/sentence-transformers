@@ -58,7 +58,9 @@ def distilbert_base_uncased_model() -> SentenceTransformer:
 
 @pytest.fixture(scope="session")
 def stsb_dataset_dict() -> DatasetDict:
-    return load_dataset("mteb/stsbenchmark-sts")
+    dataset_dict = load_dataset("mteb/stsbenchmark-sts")
+    dataset_dict = dataset_dict.select_columns(["sentence1", "sentence2", "score"])
+    return dataset_dict
 
 
 @pytest.fixture()

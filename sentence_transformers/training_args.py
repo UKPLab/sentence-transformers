@@ -38,11 +38,11 @@ class BatchSamplers(ExplicitEnum):
         - :class:`~sentence_transformers.losses.BatchHardTripletLoss`
         - :class:`~sentence_transformers.losses.BatchSemiHardTripletLoss`
 
-    If you want to use a custom batch sampler, you can create a new Trainer class that inherits from
-    :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` and overrides the
-    :meth:`~sentence_transformers.trainer.SentenceTransformerTrainer.get_batch_sampler` method. The
-    method must return a class instance that supports ``__iter__`` and ``__len__`` methods. The former
-    should yield a list of indices for each batch, and the latter should return the number of batches.
+    If you want to use a custom batch sampler, then you can subclass
+    :class:`~sentence_transformers.sampler.DefaultBatchSampler` and pass the class (not an instance) to the
+    ``batch_sampler`` argument in :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`
+    (or :class:`~sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments`, etc.).
+    Alternatively, you can pass a function that returns a batch sampler.
 
     Usage:
         ::
@@ -90,6 +90,12 @@ class MultiDatasetBatchSamplers(ExplicitEnum):
     - ``MultiDatasetBatchSamplers.PROPORTIONAL``: **[default]** Uses :class:`~sentence_transformers.sampler.ProportionalBatchSampler`,
       which samples from each dataset in proportion to its size.
       With this strategy, all samples from each dataset are used and larger datasets are sampled from more frequently.
+
+    If you want to use a custom multi-dataset batch sampler, then you can subclass
+    :class:`~sentence_transformers.sampler.MultiDatasetDefaultBatchSampler` and pass the class (not an instance) to the
+    ``multi_dataset_batch_sampler`` argument in :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`.
+    (or :class:`~sentence_transformers.cross_encoder.training_args.CrossEncoderTrainingArguments`, etc.). Alternatively,
+    you can pass a function that returns a multi-dataset batch sampler.
 
     Usage:
         ::
@@ -181,8 +187,14 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
     def __post_init__(self):
         super().__post_init__()
 
-        self.batch_sampler = BatchSamplers(self.batch_sampler)
-        self.multi_dataset_batch_sampler = MultiDatasetBatchSamplers(self.multi_dataset_batch_sampler)
+        self.batch_sampler = (
+            BatchSamplers(self.batch_sampler) if isinstance(self.batch_sampler, str) else self.batch_sampler
+        )
+        self.multi_dataset_batch_sampler = (
+            MultiDatasetBatchSamplers(self.multi_dataset_batch_sampler)
+            if isinstance(self.multi_dataset_batch_sampler, str)
+            else self.multi_dataset_batch_sampler
+        )
 
         # The `compute_loss` method in `SentenceTransformerTrainer` is overridden to only compute the prediction loss,
         # so we set `prediction_loss_only` to `True` here to avoid
@@ -210,3 +222,11 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
                     "Setting `dataloader_drop_last=True`."
                 )
             self.dataloader_drop_last = True
+
+    def to_dict(self):
+        training_args_dict = super().to_dict()
+        if callable(training_args_dict["batch_sampler"]):
+            del training_args_dict["batch_sampler"]
+        if callable(training_args_dict["multi_dataset_batch_sampler"]):
+            del training_args_dict["multi_dataset_batch_sampler"]
+        return training_args_dict

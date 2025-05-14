@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 import os
 from collections import OrderedDict
@@ -27,6 +28,7 @@ from sentence_transformers.models.Transformer import Transformer
 from sentence_transformers.sampler import (
     DefaultBatchSampler,
     GroupByLabelBatchSampler,
+    MultiDatasetDefaultBatchSampler,
     NoDuplicatesBatchSampler,
     ProportionalBatchSampler,
     RoundRobinBatchSampler,
@@ -98,7 +100,6 @@ class SentenceTransformerTrainer(Trainer):
         optimizers (`Tuple[:class:`torch.optim.Optimizer`, :class:`torch.optim.lr_scheduler.LambdaLR`]`, *optional*, defaults to `(None, None)`):
             A tuple containing the optimizer and the scheduler to use. Will default to an instance of :class:`torch.optim.AdamW`
             on your model and a scheduler given by :func:`transformers.get_linear_schedule_with_warmup` controlled by `args`.
-        batch_sampler: (:class:`~sentence_transformers.sampler.DefaultBatchSampler`, *optional*): A custom batch sampler to use for training.
 
     Important attributes:
 
@@ -137,7 +138,6 @@ class SentenceTransformerTrainer(Trainer):
         callbacks: list[TrainerCallback] | None = None,
         optimizers: tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
         preprocess_logits_for_metrics: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None = None,
-        batch_sampler: DefaultBatchSampler | None = None,
     ) -> None:
         if not is_training_available():
             raise RuntimeError(
@@ -292,9 +292,6 @@ class SentenceTransformerTrainer(Trainer):
                 eval_dataset, args.prompts, dataset_name="eval"
             )
         self.add_model_card_callback(default_args_dict)
-
-        # internal - use `self.get_batch_sampler` to get the batch sampler
-        self._batch_sampler = batch_sampler
 
     def add_model_card_callback(self, default_args_dict: dict[str, Any]) -> None:
         """
@@ -558,6 +555,7 @@ class SentenceTransformerTrainer(Trainer):
         drop_last: bool,
         valid_label_columns: list[str] | None = None,
         generator: torch.Generator | None = None,
+        seed: int = 0,
     ) -> BatchSampler | None:
         """
         Returns the appropriate batch sampler based on the ``batch_sampler`` argument in ``self.args``.
@@ -577,38 +575,42 @@ class SentenceTransformerTrainer(Trainer):
                 be used as the label column.
             generator (torch.Generator, optional): Optional random number generator for shuffling
                 the indices.
+            seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
         """
+
+        batch_sampler_kwargs = {
+            "batch_size": batch_size,
+            "drop_last": drop_last,
+            "valid_label_columns": valid_label_columns,
+            "generator": generator,
+            "seed": seed,
+        }
+        # If the batch sampler is a DefaultBatchSampler subclass, initialize it
+        if inspect.isclass(self.args.batch_sampler) and issubclass(self.args.batch_sampler, DefaultBatchSampler):
+            return self.args.batch_sampler(dataset, **batch_sampler_kwargs)
+
+        # If it's a callable, call it
+        if callable(self.args.batch_sampler):
+            return self.args.batch_sampler(dataset, **batch_sampler_kwargs)
+
+        # Otherwise it's a BatchSamplers enum. None of those work with IterableDatasets, so we
+        # don't use them in that case
         if isinstance(dataset, IterableDataset):
-            if self.args.batch_sampler != BatchSamplers.BATCH_SAMPLER and self._batch_sampler is not None:
+            if self.args.batch_sampler != BatchSamplers.BATCH_SAMPLER:
                 logger.warning("When using an IterableDataset, you cannot specify a batch sampler.")
             return None
 
-        # If a batch sampler has been explicitly set, we return that
-        if self._batch_sampler:
-            return self._batch_sampler
-
+        # Lastly, use the samplers that match the enum values
         if self.args.batch_sampler == BatchSamplers.NO_DUPLICATES:
-            return NoDuplicatesBatchSampler(
-                dataset=dataset,
-                batch_size=batch_size,
-                drop_last=drop_last,
-                valid_label_columns=valid_label_columns,
-                generator=generator,
-            )
+            return NoDuplicatesBatchSampler(dataset, **batch_sampler_kwargs)
 
         if self.args.batch_sampler == BatchSamplers.GROUP_BY_LABEL:
-            return GroupByLabelBatchSampler(
-                dataset=dataset,
-                batch_size=batch_size,
-                drop_last=drop_last,
-                valid_label_columns=valid_label_columns,
-            )
+            return GroupByLabelBatchSampler(dataset, **batch_sampler_kwargs)
 
         if self.args.batch_sampler == BatchSamplers.BATCH_SAMPLER:
             return DefaultBatchSampler(
                 SubsetRandomSampler(range(len(dataset)), generator=generator),
-                batch_size=batch_size,
-                drop_last=drop_last,
+                **batch_sampler_kwargs,
             )
 
     def get_multi_dataset_batch_sampler(
@@ -632,21 +634,28 @@ class SentenceTransformerTrainer(Trainer):
             generator (torch.Generator, optional): Optional random number generator for shuffling the indices.
             seed (int, optional): Optional seed for the random number generator
         """
+
+        multi_batch_sampler_kwargs = {
+            "batch_samplers": batch_samplers,
+            "generator": generator,
+            "seed": seed,
+        }
+        # If the multi-dataset batch sampler is a DefaultBatchSampler subclass, initialize it
+        if inspect.isclass(self.args.multi_dataset_batch_sampler) and issubclass(
+            self.args.multi_dataset_batch_sampler, MultiDatasetDefaultBatchSampler
+        ):
+            return self.args.multi_dataset_batch_sampler(dataset, **multi_batch_sampler_kwargs)
+
+        # If it's a callable, call it
+        if callable(self.args.multi_dataset_batch_sampler):
+            return self.args.multi_dataset_batch_sampler(dataset, **multi_batch_sampler_kwargs)
+
+        # Otherwise, it's an MultiDatasetBatchSamplers instance and we use the samplers that match the enum values
         if self.args.multi_dataset_batch_sampler == MultiDatasetBatchSamplers.ROUND_ROBIN:
-            return RoundRobinBatchSampler(
-                dataset=dataset,
-                batch_samplers=batch_samplers,
-                generator=generator,
-                seed=seed,
-            )
+            return RoundRobinBatchSampler(dataset=dataset, **multi_batch_sampler_kwargs)
 
         if self.args.multi_dataset_batch_sampler == MultiDatasetBatchSamplers.PROPORTIONAL:
-            return ProportionalBatchSampler(
-                dataset=dataset,
-                batch_samplers=batch_samplers,
-                generator=generator,
-                seed=seed,
-            )
+            return ProportionalBatchSampler(dataset=dataset, **multi_batch_sampler_kwargs)
 
     def get_train_dataloader(self) -> DataLoader:
         """
