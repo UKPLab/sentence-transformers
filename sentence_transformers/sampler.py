@@ -59,7 +59,7 @@ class DefaultBatchSampler(SetEpochMixin, BatchSampler):
         generator: torch.Generator | None = None,
         seed: int = 0,
     ) -> None:
-        super().__init__(dataset, batch_size, drop_last)
+        super().__init__(dataset, batch_size=batch_size, drop_last=drop_last)
         self.valid_label_columns = valid_label_columns
         self.generator = generator
         self.seed = seed
@@ -100,7 +100,14 @@ class GroupByLabelBatchSampler(DefaultBatchSampler):
         generator: torch.Generator | None = None,
         seed: int = 0,
     ) -> None:
-        super().__init__(dataset, batch_size, drop_last, valid_label_columns, generator, seed)
+        super().__init__(
+            dataset,
+            batch_size=batch_size,
+            drop_last=drop_last,
+            valid_label_columns=valid_label_columns,
+            generator=generator,
+            seed=seed,
+        )
         self.dataset = dataset
 
         if self.batch_size % 2 == 1:
@@ -181,7 +188,14 @@ class NoDuplicatesBatchSampler(DefaultBatchSampler):
                 the indices.
             seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
         """
-        super().__init__(dataset, batch_size, drop_last, valid_label_columns, generator, seed)
+        super().__init__(
+            dataset,
+            batch_size=batch_size,
+            drop_last=drop_last,
+            valid_label_columns=valid_label_columns,
+            generator=generator,
+            seed=seed,
+        )
         if label_columns := set(dataset.column_names) & set(self.valid_label_columns or []):
             dataset = dataset.remove_columns(list(label_columns))
         self.dataset = dataset
@@ -255,7 +269,7 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
     ) -> None:
         if len(dataset.datasets) != len(batch_samplers):
             raise ValueError("The number of batch samplers must match the number of datasets in the ConcatDataset.")
-        super().__init__(dataset, batch_samplers[0].batch_size, batch_samplers[0].drop_last)
+        super().__init__(dataset, batch_size=batch_samplers[0].batch_size, drop_last=batch_samplers[0].drop_last)
         self.dataset = dataset
         self.batch_samplers = batch_samplers
         self.generator = generator
@@ -299,7 +313,7 @@ class ProportionalBatchSampler(SetEpochMixin, BatchSampler):
             generator (torch.Generator, optional): A generator for reproducible sampling. Defaults to None.
             seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
         """
-        super().__init__(dataset, batch_samplers[0].batch_size, batch_samplers[0].drop_last)
+        super().__init__(dataset, batch_size=batch_samplers[0].batch_size, drop_last=batch_samplers[0].drop_last)
         self.dataset = dataset
         self.batch_samplers = batch_samplers
         self.generator = generator
