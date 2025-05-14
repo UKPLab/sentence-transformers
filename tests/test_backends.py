@@ -9,6 +9,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from tests.utils import is_ci
+
 try:
     from optimum.intel import OVModelForFeatureExtraction
     from optimum.onnxruntime import ORTModelForFeatureExtraction
@@ -16,6 +18,9 @@ except ImportError:
     pytest.skip("OpenVINO and ONNX backends are not available", allow_module_level=True)
 
 from sentence_transformers import SentenceTransformer
+
+if is_ci():
+    pytest.skip("Skip test in CI to try and avoid 429 Client Error", allow_module_level=True)
 
 
 ## Testing exporting:

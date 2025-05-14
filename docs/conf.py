@@ -45,6 +45,7 @@ extensions = [
     "sphinx.ext.linkcode",
     "sphinx_inline_tabs",
     "sphinxcontrib.mermaid",
+    "sphinx_toolbox.collapse",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -65,6 +66,7 @@ intersphinx_mapping = {
     "transformers": ("https://huggingface.co/docs/transformers/main/en/", None),
     "huggingface_hub": ("https://huggingface.co/docs/huggingface_hub/main/en/", None),
     "optimum": ("https://huggingface.co/docs/optimum/main/en/", None),
+    "peft": ("https://huggingface.co/docs/peft/main/en/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
 }
 
@@ -87,6 +89,10 @@ html_theme_options = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static", "img/hf-logo.svg"]
+
+# Add any paths that contain "extra" files, such as .htaccess or
+# robots.txt.
+html_extra_path = [".htaccess"]
 
 html_css_files = [
     "css/custom.css",

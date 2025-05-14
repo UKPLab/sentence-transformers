@@ -23,6 +23,12 @@ from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import InputExample
 from sentence_transformers.util import is_training_available
 
+if not is_training_available():
+    pytest.skip(
+        reason='Sentence Transformers was not installed with the `["train"]` extra.',
+        allow_module_level=True,
+    )
+
 
 @pytest.fixture()
 def sts_resource() -> Generator[tuple[list[InputExample], list[InputExample]], None, None]:

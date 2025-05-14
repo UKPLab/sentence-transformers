@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Callable
 import torch
 from packaging.version import parse as parse_version
 from torch import nn
-from torch.utils.data import BatchSampler, ConcatDataset, DataLoader, SubsetRandomSampler
+from torch.utils.data import BatchSampler, ConcatDataset, DataLoader, RandomSampler
 from transformers import EvalPrediction, PreTrainedTokenizerBase, Trainer, TrainerCallback
 from transformers import __version__ as transformers_version
 from transformers.data.data_collator import DataCollator
@@ -22,9 +22,8 @@ from transformers.trainer_utils import EvalLoopOutput
 from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
 from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
-from sentence_transformers.model_card import ModelCardCallback
+from sentence_transformers.model_card import SentenceTransformerModelCardCallback
 from sentence_transformers.models import Pooling
-from sentence_transformers.models.Transformer import Transformer
 from sentence_transformers.sampler import (
     DefaultBatchSampler,
     GroupByLabelBatchSampler,
@@ -148,10 +147,12 @@ class SentenceTransformerTrainer(Trainer):
 
         if args is None:
             output_dir = "tmp_trainer"
-            logger.info(f"No `TrainingArguments` passed, using `output_dir={output_dir}`.")
+            logger.info(f"No `SentenceTransformerTrainingArguments` passed, using `output_dir={output_dir}`.")
             args = SentenceTransformerTrainingArguments(output_dir=output_dir)
         elif not isinstance(args, SentenceTransformerTrainingArguments):
-            raise ValueError("Please use `TrainingArguments` imported from `sentence_transformers`.")
+            raise ValueError(
+                "Please use `SentenceTransformerTrainingArguments` imported from `sentence_transformers`."
+            )
 
         if model is None:
             if model_init is not None:
@@ -309,9 +310,9 @@ class SentenceTransformerTrainer(Trainer):
             This method can be overriden by subclassing the trainer to remove/customize this callback in custom uses cases
         """
 
-        model_card_callback = ModelCardCallback(default_args_dict)
+        model_card_callback = SentenceTransformerModelCardCallback(default_args_dict)
         self.add_callback(model_card_callback)
-        model_card_callback.on_init_end(self.args, self.state, self.control, self.model, trainer=self)
+        model_card_callback.on_init_end(self.args, self.state, self.control, model=self.model, trainer=self)
 
     def call_model_init(self, trial=None) -> SentenceTransformer:
         model = super().call_model_init(trial=trial)
@@ -399,7 +400,6 @@ class SentenceTransformerTrainer(Trainer):
         # if the loss stores the model. Only called once per process
         if (
             model == self.model_wrapped
-            and model != self.model  # Only if the model is wrapped
             and hasattr(loss_fn, "model")  # Only if the loss stores the model
             and loss_fn.model != model  # Only if the wrapped model is not already stored
         ):
@@ -512,12 +512,18 @@ class SentenceTransformerTrainer(Trainer):
         return output
 
     def _load_best_model(self) -> None:
-        # We want to ensure that this does not fail, and it may change if transformers updates how checkpoints are saved
-        # Loading the best model is only supported for `transformers`-based models
-        if not isinstance(self.model[0], Transformer):
-            logger.info("Could not load best model, as the model is not a `transformers`-based model.")
+        # Attempt to load the model from self.state.best_model_checkpoint
+        logger.info(f"Loading best model from {self.state.best_model_checkpoint} (score: {self.state.best_metric}).")
+        try:
+            dummy_model = self.model.__class__(
+                self.state.best_model_checkpoint,
+                trust_remote_code=self.model.trust_remote_code,
+            )
+        except Exception as exc:
+            logger.error(f"Could not load the best model from {self.state.best_model_checkpoint}. Error: {str(exc)}")
             return
 
+        # Store the best model checkpoint in the model card
         try:
             if checkpoint := self.state.best_model_checkpoint:
                 step = checkpoint.rsplit("-", 1)[-1]
@@ -525,16 +531,9 @@ class SentenceTransformerTrainer(Trainer):
         except Exception:
             pass
 
-        # Override the model with the `transformers`-based auto_model, and restore the original SentenceTransformers
-        # model with the loaded `transformers` model
-        full_model = self.model
-        self.model = self.model[0].auto_model
-        try:
-            return super()._load_best_model()
-        finally:
-            loaded_auto_model = self.model
-            self.model = full_model
-            self.model[0].auto_model = loaded_auto_model
+        # Ideally, the only changes between self.model and the dummy model are the weights
+        # so we should be able to just copy the state dict
+        self.model.load_state_dict(dummy_model.state_dict())
 
     def validate_column_names(self, dataset: Dataset, dataset_name: str | None = None) -> None:
         if isinstance(dataset, dict):
@@ -608,10 +607,7 @@ class SentenceTransformerTrainer(Trainer):
             return GroupByLabelBatchSampler(dataset, **batch_sampler_kwargs)
 
         if self.args.batch_sampler == BatchSamplers.BATCH_SAMPLER:
-            return DefaultBatchSampler(
-                SubsetRandomSampler(range(len(dataset)), generator=generator),
-                **batch_sampler_kwargs,
-            )
+            return DefaultBatchSampler(RandomSampler(dataset, generator=generator), **batch_sampler_kwargs)
 
     def get_multi_dataset_batch_sampler(
         self,

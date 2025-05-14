@@ -7,12 +7,18 @@ from fnmatch import fnmatch
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+
 import huggingface_hub
 import torch
-from torch import nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer, MT5Config, PretrainedConfig, T5Config
 from transformers.utils.import_utils import is_peft_available
 from transformers.utils.peft_utils import find_adapter_config_file
+
+from sentence_transformers.models.InputModule import InputModule
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +34,7 @@ def _save_pretrained_wrapper(_save_pretrained_fn: Callable, subfolder: str) -> C
     return wrapper
 
 
-class Transformer(nn.Module):
+class Transformer(InputModule):
     """Hugging Face AutoModel to generate token embeddings.
     Loads the correct class, e.g. BERT / RoBERTa etc.
 
@@ -52,6 +58,8 @@ class Transformer(nn.Module):
             or `openvino`. Default is `torch`.
     """
 
+    config_file_name: str = "sentence_bert_config.json"
+    config_keys: list[str] = ["max_seq_length", "do_lower_case"]
     save_in_root: bool = True
 
     def __init__(
@@ -67,7 +75,6 @@ class Transformer(nn.Module):
         backend: str = "torch",
     ) -> None:
         super().__init__()
-        self.config_keys = ["max_seq_length", "do_lower_case"]
         self.do_lower_case = do_lower_case
         self.backend = backend
         if model_args is None:
@@ -120,6 +127,7 @@ class Transformer(nn.Module):
         if (
             find_adapter_config_file(
                 model_name_or_path,
+                cache_dir=cache_dir,
                 token=config_args.get("token"),
                 revision=config_args.get("revision"),
                 local_files_only=config_args.get("local_files_only", False),
@@ -369,7 +377,7 @@ class Transformer(nn.Module):
         # If it doesn't, check if it exists in the backend subfolder.
         # If it does, set the subfolder to include the backend
         model_found = primary_full_path in model_file_names
-        if not model_found and "subfolder" not in model_args:
+        if not model_found:
             model_found = secondary_full_path in model_file_names
             if model_found:
                 if len(model_file_names) > 1 and "file_name" not in model_args:
@@ -377,7 +385,7 @@ class Transformer(nn.Module):
                         f"Multiple {backend_name} files found in {load_path.as_posix()!r}: {model_file_names}, defaulting to {secondary_full_path!r}. "
                         f'Please specify the desired file name via `model_kwargs={{"file_name": "<file_name>"}}`.'
                     )
-                model_args["subfolder"] = self.backend
+                model_args["subfolder"] = Path(subfolder, self.backend).as_posix() if subfolder else self.backend
                 model_args["file_name"] = file_name
         if export is None:
             export = not model_found
@@ -438,8 +446,9 @@ class Transformer(nn.Module):
             if key in ["input_ids", "attention_mask", "token_type_ids", "inputs_embeds"]
         }
 
-        output_states = self.auto_model(**trans_features, **kwargs, return_dict=False)
-        output_tokens = output_states[0]
+        outputs = self.auto_model(**trans_features, **kwargs, return_dict=True)
+        token_embeddings = outputs[0]
+        features["token_embeddings"] = token_embeddings
 
         # If the AutoModel is wrapped with a PeftModelForFeatureExtraction, then it may have added virtual tokens
         # We need to extend the attention mask to include these virtual tokens, or the pooling will fail
@@ -450,22 +459,15 @@ class Transformer(nn.Module):
                 isinstance(self.auto_model, PeftModelForFeatureExtraction)
                 and self.auto_model.active_peft_config.is_prompt_learning
             ):
-                batch_size = output_tokens.size(0)
+                batch_size = token_embeddings.size(0)
                 attention_mask = features["attention_mask"]
                 prefix_attention_mask = torch.ones(
                     batch_size, self.auto_model.active_peft_config.num_virtual_tokens, device=attention_mask.device
                 )
                 features["attention_mask"] = torch.cat((prefix_attention_mask, attention_mask), dim=1)
 
-        features["token_embeddings"] = output_tokens
-
-        if self.auto_model.config.output_hidden_states and len(output_states) > 2:
-            all_layer_idx = 2  # I.e. after last_hidden_states and pooler_output
-            if len(output_states) < 3:  # Some models only output last_hidden_states and all_hidden_states
-                all_layer_idx = 1
-
-            hidden_states = output_states[all_layer_idx]
-            features["all_layer_embeddings"] = hidden_states
+        if self.auto_model.config.output_hidden_states and "hidden_states" in outputs:
+            features["all_layer_embeddings"] = outputs["hidden_states"]
 
         return features
 
@@ -512,34 +514,139 @@ class Transformer(nn.Module):
         )
         return output
 
-    def get_config_dict(self) -> dict[str, Any]:
-        return {key: self.__dict__[key] for key in self.config_keys}
-
-    def save(self, output_path: str, safe_serialization: bool = True) -> None:
+    def save(self, output_path: str, safe_serialization: bool = True, **kwargs) -> None:
         self.auto_model.save_pretrained(output_path, safe_serialization=safe_serialization)
         self.tokenizer.save_pretrained(output_path)
-
-        with open(os.path.join(output_path, "sentence_bert_config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut, indent=2)
+        self.save_config(output_path)
 
     @classmethod
-    def load(cls, input_path: str) -> Transformer:
-        # Old classes used other config names than 'sentence_bert_config.json'
-        for config_name in [
-            "sentence_bert_config.json",
-            "sentence_roberta_config.json",
-            "sentence_distilbert_config.json",
-            "sentence_camembert_config.json",
-            "sentence_albert_config.json",
-            "sentence_xlm-roberta_config.json",
-            "sentence_xlnet_config.json",
-        ]:
-            sbert_config_path = os.path.join(input_path, config_name)
-            if os.path.exists(sbert_config_path):
+    def load(
+        cls,
+        model_name_or_path: str,
+        # Loading arguments
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        # Module-specific arguments
+        trust_remote_code: bool = False,
+        model_kwargs: dict[str, Any] | None = None,
+        tokenizer_kwargs: dict[str, Any] | None = None,
+        config_kwargs: dict[str, Any] | None = None,
+        backend: str = "torch",
+        **kwargs,
+    ) -> Self:
+        init_kwargs = cls._load_init_kwargs(
+            model_name_or_path=model_name_or_path,
+            subfolder=subfolder,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+            trust_remote_code=trust_remote_code,
+            model_kwargs=model_kwargs,
+            tokenizer_kwargs=tokenizer_kwargs,
+            config_kwargs=config_kwargs,
+            backend=backend,
+        )
+        return cls(model_name_or_path=model_name_or_path, **init_kwargs)
+
+    @classmethod
+    def _load_init_kwargs(
+        cls,
+        model_name_or_path: str,
+        # Loading arguments
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        # Module-specific arguments
+        trust_remote_code: bool = False,
+        model_kwargs: dict[str, Any] | None = None,
+        tokenizer_kwargs: dict[str, Any] | None = None,
+        config_kwargs: dict[str, Any] | None = None,
+        backend: str = "torch",
+        **kwargs,
+    ) -> dict[str, Any]:
+        config = cls.load_config(
+            model_name_or_path=model_name_or_path,
+            subfolder=subfolder,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
+
+        hub_kwargs = {
+            "subfolder": subfolder,
+            "token": token,
+            "revision": revision,
+            "local_files_only": local_files_only,
+            "trust_remote_code": trust_remote_code,
+        }
+
+        # 3rd priority: config file
+        if "model_args" not in config:
+            config["model_args"] = {}
+        if "tokenizer_args" not in config:
+            config["tokenizer_args"] = {}
+        if "config_args" not in config:
+            config["config_args"] = {}
+
+        # 2nd priority: hub_kwargs
+        config["model_args"].update(hub_kwargs)
+        config["tokenizer_args"].update(hub_kwargs)
+        config["config_args"].update(hub_kwargs)
+
+        # 1st priority: kwargs passed to SentenceTransformer
+        if model_kwargs:
+            config["model_args"].update(model_kwargs)
+        if tokenizer_kwargs:
+            config["tokenizer_args"].update(tokenizer_kwargs)
+        if config_kwargs:
+            config["config_args"].update(config_kwargs)
+
+        return {**config, "cache_dir": cache_folder, "backend": backend}
+
+    @classmethod
+    def load_config(
+        cls,
+        model_name_or_path: str,
+        subfolder: str = "",
+        config_filename: str | None = None,
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+    ) -> dict[str, Any]:
+        config_filenames = (
+            [config_filename]
+            if config_filename
+            else [
+                "sentence_bert_config.json",
+                "sentence_roberta_config.json",
+                "sentence_distilbert_config.json",
+                "sentence_camembert_config.json",
+                "sentence_albert_config.json",
+                "sentence_xlm-roberta_config.json",
+                "sentence_xlnet_config.json",
+            ]
+        )
+        for config_filename in config_filenames:
+            config = super().load_config(
+                model_name_or_path=model_name_or_path,
+                subfolder=subfolder,
+                config_filename=config_filename,
+                token=token,
+                cache_folder=cache_folder,
+                revision=revision,
+                local_files_only=local_files_only,
+            )
+            if config:
                 break
 
-        with open(sbert_config_path) as fIn:
-            config = json.load(fIn)
         # Don't allow configs to set trust_remote_code
         if "model_args" in config and "trust_remote_code" in config["model_args"]:
             config["model_args"].pop("trust_remote_code")
@@ -547,4 +654,4 @@ class Transformer(nn.Module):
             config["tokenizer_args"].pop("trust_remote_code")
         if "config_args" in config and "trust_remote_code" in config["config_args"]:
             config["config_args"].pop("trust_remote_code")
-        return cls(model_name_or_path=input_path, **config)
+        return config

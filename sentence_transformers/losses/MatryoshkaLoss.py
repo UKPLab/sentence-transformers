@@ -124,6 +124,9 @@ class MatryoshkaLoss(nn.Module):
         different embedding dimensions. This is useful for when you want to train a model where users have the option
         to lower the embedding dimension to improve their embedding comparison speed and costs.
 
+        This loss is also compatible with the Cached... losses, which are in-batch negative losses that allow for
+        higher batch sizes. The higher batch sizes allow for more negatives, and often result in a stronger model.
+
         Args:
             model: SentenceTransformer model
             loss: The loss function to be used, e.g.
@@ -141,10 +144,7 @@ class MatryoshkaLoss(nn.Module):
 
         References:
             - The concept was introduced in this paper: https://arxiv.org/abs/2205.13147
-            - `Matryoshka Embeddings <../../examples/training/matryoshka/README.html>`_
-
-        Requirements:
-            1. The base loss cannot be :class:`CachedMultipleNegativesRankingLoss` or :class:`CachedGISTEmbedLoss`.
+            - `Matryoshka Embeddings <../../../examples/sentence_transformer/training/matryoshka/README.html>`_
 
         Inputs:
             +---------------------------------------+--------+
@@ -218,6 +218,7 @@ class MatryoshkaLoss(nn.Module):
             dim_indices = range(len(self.matryoshka_dims))
             if self.n_dims_per_step > 0 and self.n_dims_per_step < len(dim_indices):
                 dim_indices = random.sample(dim_indices, self.n_dims_per_step)
+                dim_indices.sort()
 
             loss = 0.0
             for idx in dim_indices:

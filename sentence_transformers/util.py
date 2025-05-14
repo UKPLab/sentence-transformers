@@ -10,6 +10,7 @@ import random
 import sys
 from contextlib import contextmanager
 from importlib.metadata import PackageNotFoundError, metadata
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, overload
 
 import numpy as np
@@ -450,12 +451,12 @@ def semantic_search(
     It can be used for Information Retrieval / Semantic Search for corpora up to about 1 Million entries.
 
     Args:
-        query_embeddings (Tensor): A 2 dimensional tensor with the query embeddings.
-        corpus_embeddings (Tensor): A 2 dimensional tensor with the corpus embeddings.
+        query_embeddings (:class:`~torch.Tensor`): A 2 dimensional tensor with the query embeddings.
+        corpus_embeddings (:class:`~torch.Tensor`): A 2 dimensional tensor with the corpus embeddings.
         query_chunk_size (int, optional): Process 100 queries simultaneously. Increasing that value increases the speed, but requires more memory. Defaults to 100.
         corpus_chunk_size (int, optional): Scans the corpus 100k entries at a time. Increasing that value increases the speed, but requires more memory. Defaults to 500000.
         top_k (int, optional): Retrieve top k matching entries. Defaults to 10.
-        score_function (Callable[[Tensor, Tensor], Tensor], optional): Function for computing scores. By default, cosine similarity.
+        score_function (Callable[[:class:`~torch.Tensor`, :class:`~torch.Tensor`], :class:`~torch.Tensor`], optional): Function for computing scores. By default, cosine similarity.
 
     Returns:
         List[List[Dict[str, Union[int, float]]]]: A list with one entry for each query. Each entry is a list of dictionaries with the keys 'corpus_id' and 'score', sorted by decreasing cosine similarity scores.
@@ -528,15 +529,19 @@ def mine_hard_negatives(
     range_max: int | None = None,
     max_score: float | None = None,
     min_score: float | None = None,
-    margin: float | None = None,
+    absolute_margin: float | None = None,
+    relative_margin: float | None = None,
     num_negatives: int = 3,
     sampling_strategy: Literal["random", "top"] = "top",
-    as_triplets: bool = True,
+    include_positives: bool = False,
+    output_format: Literal["triplet", "n-tuple", "labeled-pair", "labeled-list"] = "triplet",
     batch_size: int = 32,
     faiss_batch_size: int = 16384,
     use_faiss: bool = False,
     use_multi_process: list[str] | bool = False,
     verbose: bool = True,
+    as_triplets: bool | None = None,
+    margin: float | None = None,
 ) -> Dataset:
     """
     Add hard negatives to a dataset of (anchor, positive) pairs to create (anchor, positive, negative) triplets or
@@ -559,12 +564,33 @@ def mine_hard_negatives(
       satisfy the margin or max_score conditions.
     - **max_score**: Maximum score to consider as a negative: useful to skip candidates that are too similar to the anchor.
     - **min_score**: Minimum score to consider as a negative: useful to skip candidates that are too dissimilar to the anchor.
-    - **margin**: Margin for hard negative mining: useful to skip candidates negatives whose similarity to the anchor is
-      within a certain margin of the positive pair. A value of 0 can be used to enforce that the negative is always
-      further away from the anchor than the positive.
+    - **absolute_margin**: Absolute margin for hard negative mining: useful to skip candidate negatives whose similarity
+      to the anchor is within a certain margin of the positive pair. A value of 0 can be used to enforce that the negative
+      is always further away from the anchor than the positive.
+    - **relative_margin**: Relative margin for hard negative mining: useful to skip candidate negatives whose similarity
+      to the anchor is within a certain margin of the positive pair. A value of 0.05 means that the negative is at most 95%
+      as similar to the anchor as the positive.
     - **sampling_strategy**: Sampling strategy for negatives: "top" or "random". "top" will always sample the top n
       candidates as negatives, while "random" will sample n negatives randomly from the candidates that satisfy the
       margin or max_score conditions.
+
+    .. tip::
+
+        The excellent `NV-Retriever paper <https://arxiv.org/abs/2407.15831>`_ is a great resource for understanding the
+        details of hard negative mining and how to use it effectively. Notably, it reaches the strongest performance using
+        these settings::
+
+            dataset = mine_hard_negatives(
+                dataset=dataset,
+                model=model,
+                relative_margin=0.05,         # 0.05 means that the negative is at most 95% as similar to the anchor as the positive
+                num_negatives=num_negatives,  # 10 or less is recommended
+                sampling_strategy="top",      # "top" means that we sample the top candidates as negatives
+                batch_size=batch_size,        # Adjust as needed
+                use_faiss=True,               # Optional: Use faiss/faiss-gpu for faster similarity search
+            )
+
+        This corresponds with the `TopK-PercPos (95%)` mining method.
 
     Example:
 
@@ -587,33 +613,32 @@ def mine_hard_negatives(
         ...     range_min=10,
         ...     range_max=50,
         ...     max_score=0.8,
-        ...     margin=0.1,
+        ...     relative_margin=0.05,
         ...     num_negatives=5,
         ...     sampling_strategy="random",
         ...     batch_size=128,
         ...     use_faiss=True,
         ... )
-        Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 784/784 [00:43<00:00, 17.83it/s]
-        Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 784/784 [00:07<00:00, 99.60it/s]
-        Querying FAISS index: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████| 784/784 [00:00<00:00, 884.99it/s]
+        Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████| 588/588 [00:32<00:00, 18.07it/s]
+        Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████| 784/784 [00:08<00:00, 96.41it/s]
+        Querying FAISS index: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████| 7/7 [00:06<00:00,  1.06it/s]
         Metric       Positive       Negative     Difference
-        Count         100,231        431,255        431,255
-        Mean           0.6866         0.4289         0.2804
-        Median         0.7010         0.4193         0.2740
-        Std            0.1125         0.0754         0.0999
-        Min            0.0303         0.1720         0.1001
-        25%            0.6221         0.3747         0.1991
-        50%            0.7010         0.4193         0.2740
-        75%            0.7667         0.4751         0.3530
-        Max            0.9584         0.7743         0.7003
-        Skipped 1289492 potential negatives (25.23%) due to the margin of 0.1.
-        Skipped 39 potential negatives (0.00%) due to the maximum score of 0.8.
-        Could not find enough negatives for 69900 samples (13.95%). Consider adjusting the range_max, range_min, margin and max_score parameters if you'd like to find more valid negatives.
-        >>> # Note: The minimum similarity difference is 0.1001 due to our margin of 0.1
+        Count         100,231        487,865
+        Mean           0.6866         0.4194         0.2752
+        Median         0.7010         0.4102         0.2760
+        Std            0.1125         0.0719         0.1136
+        Min            0.0303         0.1702         0.0209
+        25%            0.6221         0.3672         0.1899
+        50%            0.7010         0.4102         0.2760
+        75%            0.7667         0.4647         0.3590
+        Max            0.9584         0.7621         0.7073
+        Skipped 427,503 potential negatives (8.36%) due to the relative_margin of 0.05.
+        Skipped 978 potential negatives (0.02%) due to the max_score of 0.8.
+        Could not find enough negatives for 13290 samples (2.65%). Consider adjusting the range_max, range_min, relative_margin and max_score parameters if you'd like to find more valid negatives.
         >>> dataset
         Dataset({
             features: ['query', 'answer', 'negative'],
-            num_rows: 431255
+            num_rows: 487865
         })
         >>> dataset[0]
         {
@@ -636,11 +661,25 @@ def mine_hard_negatives(
         range_max (int, optional): Maximum rank of the closest matches to consider as negatives. Defaults to None.
         max_score (float, optional): Maximum score to consider as a negative. Defaults to None.
         min_score (float, optional): Minimum score to consider as a negative. Defaults to None.
-        margin (float, optional): Margin for hard negative mining. Defaults to None.
+        absolute_margin (float, optional): Absolute margin for hard negative mining, i.e. the minimum distance between
+            the positive similarity and the negative similarity. Defaults to None.
+        relative_margin (float, optional): Relative margin for hard negative mining, i.e. the maximum ratio between
+            the positive similarity and the negative similarity. A value of 0.05 means that the negative is at most
+            95% as similar to the anchor as the positive. Defaults to None.
         num_negatives (int): Number of negatives to sample. Defaults to 3.
         sampling_strategy (Literal["random", "top"]): Sampling strategy for negatives: "top" or "random". Defaults to "top".
-        as_triplets (bool): If True, returns up to `num_negatives` (anchor, positive, negative) triplets for each input sample.
-            If False, returns 1 (anchor, positive, negative_1, ..., negative_n) tuple for each input sample. Defaults to True.
+        include_positives (bool): Whether to include the positives in the negative candidates.
+            Setting this to True is primarily useful for creating Reranking evaluation datasets for CrossEncoder models,
+            where it can be useful to get a full ranking (including the positives) from a first-stage retrieval model.
+            Defaults to False.
+        output_format (Literal["triplet", "n-tuple", "labeled-pair", "labeled-list"]): Output format for the `datasets.Dataset`. Options are:
+
+            - "triplet": (anchor, positive, negative) triplets, i.e. 3 columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss`.
+            - "n-tuple": (anchor, positive, negative_1, ..., negative_n) tuples, i.e. 2 + num_negatives columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss`.
+            - "labeled-pair": (anchor, passage, label) text tuples with a label of 0 for negative and 1 for positive, i.e. 3 columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss`.
+            - "labeled-list": (anchor, [doc1, doc2, ..., docN], [label1, label2, ..., labelN]) triplets with labels of 0 for negative and 1 for positive, i.e. 3 columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.LambdaLoss`.
+
+            Defaults to "triplet".
         batch_size (int): Batch size for encoding the dataset. Defaults to 32.
         faiss_batch_size (int): Batch size for FAISS top-k search. Defaults to 16384.
         use_faiss (bool): Whether to use FAISS for similarity search. May be recommended for large datasets. Defaults to False.
@@ -648,9 +687,12 @@ def mine_hard_negatives(
             is available, and 4 CPU processes if it's not available. You can also pass a list of PyTorch devices like
             ["cuda:0", "cuda:1", ...] or ["cpu", "cpu", "cpu", "cpu"].
         verbose (bool): Whether to print statistics and logging. Defaults to True.
+        as_triplets (bool, optional): Deprecated. Use `output_format` instead. Defaults to None.
+        margin (float, optional): Deprecated. Use `absolute_margin` or `relative_margin` instead. Defaults to None.
 
     Returns:
-        Dataset: A dataset containing (anchor, positive, negative) triplets or (anchor, positive, negative_1, ..., negative_n) tuples.
+        Dataset: A dataset containing (anchor, positive, negative) triplets, (anchor, passage, label) text tuples with
+        a label, or (anchor, positive, negative_1, ..., negative_n) tuples.
     """
     if not is_datasets_available():
         raise ImportError("Please install `datasets` to use this function: `pip install datasets`.")
@@ -669,6 +711,38 @@ def mine_hard_negatives(
     if not anchor_column_name and not positive_column_name and len(columns) != 2:
         raise ValueError("Dataset must contain exactly two columns.")
 
+    if as_triplets is not None:
+        output_format = "triplet" if as_triplets else "n-tuple"
+        logger.warning(
+            "The `as_triplets` parameter is deprecated. Use the `output_format` parameter instead. "
+            f"Setting `output_format` to `{output_format}`."
+        )
+
+    if include_positives:
+        if (
+            range_min != 0
+            or range_max is not None
+            or max_score is not None
+            or margin is not None
+            or sampling_strategy != "top"
+        ):
+            logger.warning(
+                "When using `include_positives=True`, updating `range_min`, `range_max`, `max_score`, `margin`, or "
+                "`sampling_strategy` from the default values may still discard the positive values."
+            )
+        if output_format != "n-tuple":
+            logger.warning(
+                'When using `include_positives=True`, `output_format` will be set to `"n-tuple"` to ensure that the ranking order is preserved.'
+            )
+            output_format = "n-tuple"
+
+    if margin is not None:
+        absolute_margin = margin
+        logger.warning(
+            "The `margin` parameter is deprecated. Use the `absolute_margin` and/or `relative_margin` parameter instead. "
+            f"Setting `absolute_margin` to `{absolute_margin}`."
+        )
+
     # To avoid re-embedding the same query multiple times, we keep a counter of the number of positives per query
     positives_per_query = list(
         dataset.to_pandas().groupby(anchor_column_name).count().to_dict()[positive_column_name].values()
@@ -676,7 +750,7 @@ def mine_hard_negatives(
     max_positives = max(positives_per_query)
 
     if range_max is None:
-        if margin is not None or max_score is not None:
+        if absolute_margin is not None or relative_margin is not None or max_score is not None:
             # max_positives + 10 * num_negatives negatives because some might be skipped, and range_min skipped
             range_max = range_min + (num_negatives * 10) + max_positives
         else:
@@ -808,7 +882,9 @@ def mine_hard_negatives(
     del corpus_embeddings
 
     # Rescore with cross_encoder
-    if cross_encoder is not None and (margin is not None or max_score is not None):
+    if cross_encoder is not None and (
+        absolute_margin is not None or relative_margin is not None or max_score is not None
+    ):
         for idx, candidate_idx in tqdm(enumerate(indices), desc="Rescoring with CrossEncoder", total=len(indices)):
             query = queries[idx]
             candidate_passages = [corpus[_idx] for _idx in candidate_idx]
@@ -824,17 +900,20 @@ def mine_hard_negatives(
             convert_to_tensor=True,
         )
 
-    # for each query, create a mask that is True for the positives and False for the negatives in the indices
-    positive_mask = torch.stack([torch.isin(indices[q_idx], positive_indices[q_idx]) for q_idx in range(n_queries)])
+    if not include_positives:
+        # for each query, create a mask that is True for the positives and False for the negatives in the indices
+        positive_mask = torch.stack(
+            [torch.isin(indices[q_idx], positive_indices[q_idx]) for q_idx in range(n_queries)]
+        )
 
-    # Scores is a [num_queries, range_max] tensor, where we set the values to -inf to disqualify the corresponding
-    # positive candidates
-    scores[positive_mask] = -float("inf")
+        # Scores is a [num_queries, range_max] tensor, where we set the values to -inf to disqualify the corresponding
+        # positive candidates
+        scores[positive_mask] = -float("inf")
 
     num_candidates = scores.numel()
 
     # Remove based on margin
-    if margin is not None:
+    if absolute_margin is not None or relative_margin is not None:
         # If we have a margin, we will remove candidates that are too close to the positive pair
         # If there are multiple positives, we need to define which one to use for the margin
         # To be on the safe side, we will use the _minimum_ positive score (i.e., harder positive) for the margin
@@ -844,16 +923,23 @@ def mine_hard_negatives(
             max_positive_scores[q_idx] = torch.min(positive_scores[start_idx : start_idx + n_positives[q_idx]])
             start_idx += n_positives[q_idx - 1]
 
-        removed_indices = scores + margin > max_positive_scores.repeat(scores.size(1), 1).T
-        scores[removed_indices] = -float("inf")
+        if absolute_margin is not None:
+            removed_indices = scores + absolute_margin > max_positive_scores.repeat(scores.size(1), 1).T
+            scores[removed_indices] = -float("inf")
 
-        num_skipped = removed_indices.sum().item()
-        if num_skipped:
-            log_counters["margin"] = {
-                "skipped": num_skipped,
-                "ratio": num_skipped / num_candidates,
-            }
-            num_candidates -= num_skipped
+            num_skipped = removed_indices.sum().item()
+            if num_skipped:
+                log_counters["absolute_margin"] = {"skipped": num_skipped, "ratio": num_skipped / num_candidates}
+                num_candidates -= num_skipped
+
+        if relative_margin is not None:
+            removed_indices = scores > max_positive_scores.repeat(scores.size(1), 1).T * (1 - relative_margin)
+            scores[removed_indices] = -float("inf")
+
+            num_skipped = removed_indices.sum().item()
+            if num_skipped:
+                log_counters["relative_margin"] = {"skipped": num_skipped, "ratio": num_skipped / num_candidates}
+                num_candidates -= num_skipped
 
     # Remove based on max_score
     if max_score is not None:
@@ -908,7 +994,7 @@ def mine_hard_negatives(
     indices = torch.cat([indices[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
     negative_scores = torch.cat([negative_scores[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
 
-    if as_triplets:
+    if output_format == "triplet":
         # If calling as triples and there are multiple positives per query, we will explode the dataset into triplets.
         indices_to_keep = negative_scores != -float("inf")
         anchor_indices = torch.empty_like(indices)
@@ -931,25 +1017,49 @@ def mine_hard_negatives(
         anchor_indices = anchor_indices[indices_to_keep]
         positive_indices = pos_indices[indices_to_keep]
 
-        triplets_data = {
+        dataset_data = {
             anchor_column_name: [],
             positive_column_name: [],
             "negative": [],
         }
 
-        for anchor_idx, negative_idx, positive_idx in zip(anchor_indices, indices, positive_indices):
-            triplets_data[anchor_column_name].append(queries[anchor_idx])
-            triplets_data[positive_column_name].append(corpus[positive_idx])
-            triplets_data["negative"].append(corpus[negative_idx])
+        for anchor_idx, positive_idx, negative_idx in zip(anchor_indices, positive_indices, indices):
+            dataset_data[anchor_column_name].append(queries[anchor_idx])
+            dataset_data[positive_column_name].append(corpus[positive_idx])
+            dataset_data["negative"].append(corpus[negative_idx])
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
 
-    else:
+    elif output_format == "labeled-pair":
+        indices_to_keep = negative_scores != -float("inf")
+
+        dataset_data = {
+            anchor_column_name: [],
+            positive_column_name: [],  # Note, this is not strictly positives
+            "label": [],
+        }
+
+        for query_idx in range(n_queries):
+            for positive_idx in positive_indices[query_idx]:
+                dataset_data[anchor_column_name].append(queries[query_idx])
+                dataset_data[positive_column_name].append(corpus[positive_idx])
+                dataset_data["label"].append(1)
+            for negative_idx, negative_score in zip(indices[query_idx], negative_scores[query_idx]):
+                if negative_score == -float("inf"):
+                    continue
+                dataset_data[anchor_column_name].append(queries[query_idx])
+                dataset_data[positive_column_name].append(corpus[negative_idx])
+                dataset_data["label"].append(0)
+
+        negative_scores = negative_scores[indices_to_keep]
+        difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
+
+    elif output_format == "n-tuple":
         # Keep only indices where num_negative negatives were found
         indices_to_keep = (negative_scores != -float("inf")).all(dim=1)
         negative_scores = negative_scores[indices_to_keep]
         indices = indices[indices_to_keep]
 
-        triplets_data = {
+        dataset_data = {
             anchor_column_name: [all_queries[idx] for idx, keep in enumerate(indices_to_keep) if keep],
             positive_column_name: [positives[idx] for idx, keep in enumerate(indices_to_keep) if keep],
             **{
@@ -960,9 +1070,24 @@ def mine_hard_negatives(
         negative_scores = negative_scores.flatten()
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep].flatten() - negative_scores
 
-    if len(triplets_data) == 0:
+    elif output_format == "labeled-list":
+        indices_to_keep = negative_scores != -float("inf")
+
+        dataset_data = {
+            anchor_column_name: [all_queries[idx] for idx, keep_row in enumerate(indices_to_keep) if keep_row.any()],
+            positive_column_name: [
+                [positives[idx]] + [corpus[index] for keep, index in zip(keep_row, indices_row) if keep]
+                for idx, (keep_row, indices_row) in enumerate(zip(indices_to_keep, indices))
+                if keep_row.any()
+            ],
+            "labels": [[1] + [0] * sum(keep_row) for keep_row in indices_to_keep if keep_row.any()],
+        }
+        negative_scores = negative_scores[indices_to_keep]
+        difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
+
+    if len(dataset_data) == 0:
         raise ValueError("No triplets could be generated. Please check the parameters and dataset.")
-    triplets_dataset = Dataset.from_dict(triplets_data)
+    output_dataset = Dataset.from_dict(dataset_data)
 
     # Report some statistics
     if verbose:
@@ -996,26 +1121,28 @@ def mine_hard_negatives(
                 )
             )
 
-        if "margin" in log_counters:
-            print(
-                f"Skipped {log_counters['margin']['skipped']} potential negatives ({log_counters['margin']['ratio']:.2%}) due to the margin of {margin}."
-            )
-        if "max_score" in log_counters:
-            print(
-                f"Skipped {log_counters['max_score']['skipped']} potential negatives ({log_counters['max_score']['ratio']:.2%}) due to the maximum score of {max_score}."
-            )
-        if "min_score" in log_counters:
-            print(
-                f"Skipped {log_counters['min_score']['skipped']} potential negatives ({log_counters['min_score']['ratio']:.2%}) due to the minimum score of {min_score}."
-            )
+        for param_name, param_value in [
+            ("absolute_margin", absolute_margin),
+            ("relative_margin", relative_margin),
+            ("max_score", max_score),
+            ("min_score", min_score),
+        ]:
+            if param_name in log_counters:
+                skipped = log_counters[param_name]["skipped"]
+                ratio = log_counters[param_name]["ratio"]
+                print(
+                    f"Skipped {skipped:,} potential negatives ({ratio:.2%}) due to the {param_name} of {param_value}."
+                )
 
         missing_negatives = (num_negatives * len(dataset)) - len(negative_scores)
         if missing_negatives > 0:
             solutions = ["range_max"]
             if range_min > 0:
                 solutions.append("range_min")
-            if margin is not None:
-                solutions.append("margin")
+            if absolute_margin is not None:
+                solutions.append("absolute_margin")
+            if relative_margin is not None:
+                solutions.append("relative_margin")
             if max_score is not None:
                 solutions.append("max_score")
             considerations = ", ".join(solutions[:-1])
@@ -1027,7 +1154,7 @@ def mine_hard_negatives(
                 f" Consider adjusting the {considerations} parameter{'s' if len(solutions) > 1 else ''} if you'd like to find more valid negatives."
             )
 
-    return triplets_dataset
+    return output_dataset
 
 
 def http_get(url: str, path: str) -> None:
@@ -1329,7 +1456,8 @@ def is_sentence_transformer_model(
 
 def load_file_path(
     model_name_or_path: str,
-    filename: str,
+    filename: str | Path,
+    subfolder: str = "",
     token: bool | str | None = None,
     cache_folder: str | None = None,
     revision: str | None = None,
@@ -1341,6 +1469,7 @@ def load_file_path(
     Args:
         model_name_or_path (str): The model name or path.
         filename (str): The name of the file to load.
+        subfolder (str): The subfolder within the model subfolder (if applicable).
         token (Optional[Union[bool, str]]): The token to access the remote file (if applicable).
         cache_folder (Optional[str]): The folder to cache the downloaded file (if applicable).
         revision (Optional[str], optional): The revision of the file (if applicable). Defaults to None.
@@ -1350,15 +1479,17 @@ def load_file_path(
         Optional[str]: The path to the loaded file, or None if the file could not be found or loaded.
     """
     # If file is local
-    file_path = os.path.join(model_name_or_path, filename)
-    if os.path.exists(file_path):
-        return file_path
+    file_path = Path(model_name_or_path, subfolder, filename)
+    if file_path.exists():
+        return str(file_path)
 
     # If file is remote
+    file_path = Path(subfolder, filename)
     try:
         return hf_hub_download(
             model_name_or_path,
-            filename=filename,
+            filename=file_path.name,
+            subfolder=file_path.parent.as_posix(),
             revision=revision,
             library_name="sentence-transformers",
             token=token,
@@ -1371,35 +1502,38 @@ def load_file_path(
 
 def load_dir_path(
     model_name_or_path: str,
-    directory: str,
+    subfolder: str,
     token: bool | str | None = None,
     cache_folder: str | None = None,
     revision: str | None = None,
     local_files_only: bool = False,
 ) -> str | None:
     """
-    Loads the directory path for a given model name or path.
+    Loads the subfolder path for a given model name or path.
 
     Args:
         model_name_or_path (str): The name or path of the model.
-        directory (str): The directory to load.
+        subfolder (str): The subfolder to load.
         token (Optional[Union[bool, str]]): The token for authentication.
         cache_folder (Optional[str]): The folder to cache the downloaded files.
         revision (Optional[str], optional): The revision of the model. Defaults to None.
         local_files_only (bool, optional): Whether to only use local files. Defaults to False.
 
     Returns:
-        Optional[str]: The directory path if it exists, otherwise None.
+        Optional[str]: The subfolder path if it exists, otherwise None.
     """
+    if isinstance(subfolder, Path):
+        subfolder = subfolder.as_posix()
+
     # If file is local
-    dir_path = os.path.join(model_name_or_path, directory)
-    if os.path.exists(dir_path):
-        return dir_path
+    dir_path = Path(model_name_or_path, subfolder)
+    if dir_path.exists():
+        return str(dir_path)
 
     download_kwargs = {
         "repo_id": model_name_or_path,
         "revision": revision,
-        "allow_patterns": f"{directory}/**",
+        "allow_patterns": f"{subfolder}/**" if subfolder not in ["", "."] else None,
         "library_name": "sentence-transformers",
         "token": token,
         "cache_dir": cache_folder,
@@ -1413,7 +1547,7 @@ def load_dir_path(
         # Otherwise, try local (i.e. cache) only
         download_kwargs["local_files_only"] = True
         repo_path = snapshot_download(**download_kwargs)
-    return os.path.join(repo_path, directory)
+    return Path(repo_path, subfolder)
 
 
 def save_to_hub_args_decorator(func):
@@ -1436,18 +1570,22 @@ def save_to_hub_args_decorator(func):
     return wrapper
 
 
-def get_device_name() -> Literal["mps", "cuda", "npu", "hpu", "cpu"]:
+def get_device_name() -> str:
     """
     Returns the name of the device where this module is running on.
 
-    It's a simple implementation that doesn't cover cases when more powerful GPUs are available and
-    not a primary device ('cuda:0') or MPS device is available, but not configured properly.
+    This function only supports single device or basic distributed training setups.
+    In distributed mode for cuda device, it uses the rank to assign a specific CUDA device.
 
     Returns:
-        str: Device name, like 'cuda' or 'cpu'
+        str: Device name, like 'cuda:2', 'mps', 'npu', 'hpu', or 'cpu'
     """
     if torch.cuda.is_available():
-        return "cuda"
+        if torch.distributed.is_initialized():
+            local_rank = torch.distributed.get_rank()
+        else:
+            local_rank = int(os.environ.get("LOCAL_RANK", 0))
+        return f"cuda:{local_rank}"
     elif torch.backends.mps.is_available():
         return "mps"
     elif is_torch_npu_available():

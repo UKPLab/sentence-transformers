@@ -13,11 +13,11 @@ class MarginMSELoss(nn.Module):
         Compute the MSE loss between the ``|sim(Query, Pos) - sim(Query, Neg)|`` and ``|gold_sim(Query, Pos) - gold_sim(Query, Neg)|``.
         By default, sim() is the dot-product. The gold_sim is often the similarity score from a teacher model.
 
-        In contrast to :class:`MultipleNegativesRankingLoss`, the two passages do not have to be strictly positive and negative,
-        both can be relevant or not relevant for a given query. This can be an advantage of MarginMSELoss over
-        MultipleNegativesRankingLoss, but note that the MarginMSELoss is much slower to train. With MultipleNegativesRankingLoss,
-        with a batch size of 64, we compare one query against 128 passages. With MarginMSELoss, we compare a query only
-        against two passages.
+        In contrast to :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, the two passages do not
+        have to be strictly positive and negative, both can be relevant or not relevant for a given query. This can be
+        an advantage of MarginMSELoss over MultipleNegativesRankingLoss, but note that the MarginMSELoss is much slower
+        to train. With MultipleNegativesRankingLoss, with a batch size of 64, we compare one query against 128 passages.
+        With MarginMSELoss, we compare a query only against two passages.
 
         Args:
             model: SentenceTransformerModel
@@ -25,8 +25,8 @@ class MarginMSELoss(nn.Module):
 
         References:
             - For more details, please refer to https://arxiv.org/abs/2010.02666.
-            - `Training Examples > MS MARCO <../../examples/training/ms_marco/README.html>`_
-            - `Unsupervised Learning > Domain Adaptation <../../examples/domain_adaptation/README.html>`_
+            - `Training Examples > MS MARCO <../../../examples/sentence_transformer/training/ms_marco/README.html>`_
+            - `Unsupervised Learning > Domain Adaptation <../../../examples/sentence_transformer/domain_adaptation/README.html>`_
 
         Requirements:
             1. (query, passage_one, passage_two) triplets
@@ -40,7 +40,7 @@ class MarginMSELoss(nn.Module):
             +-----------------------------------------------+-----------------------------------------------+
 
         Relations:
-            - :class:`MSELoss` is equivalent to this loss, but without a margin through the negative pair.
+            - :class:`MSELoss` is similar to this loss, but without a margin through the negative pair.
 
         Example:
 

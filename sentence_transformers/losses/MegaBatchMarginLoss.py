@@ -36,7 +36,7 @@ class MegaBatchMarginLoss(nn.Module):
                 down the large batch into smaller batches with fewer
                 examples.
             mini_batch_size: Size for the mini-batches. Should be a
-                devisor for the batch size in your data loader.
+                divisor for the batch size in your data loader.
 
         References:
             - This loss function was inspired by the ParaNMT paper: https://www.aclweb.org/anthology/P18-1042/

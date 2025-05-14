@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+
 import torch
 import transformers
 from PIL import Image
-from torch import nn
+
+from sentence_transformers.models.Asym import InputModule
 
 
-class CLIPModel(nn.Module):
+class CLIPModel(InputModule):
     save_in_root: bool = True
 
     def __init__(self, model_name: str = "openai/clip-vit-base-patch32", processor_name=None) -> None:
@@ -20,6 +26,14 @@ class CLIPModel(nn.Module):
 
     def __repr__(self) -> str:
         return "CLIPModel()"
+
+    @property
+    def max_seq_length(self) -> int:
+        return self.processor.tokenizer.model_max_length
+
+    @max_seq_length.setter
+    def max_seq_length(self, value: int) -> None:
+        self.processor.tokenizer.model_max_length = value
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         image_embeds = []
@@ -68,7 +82,7 @@ class CLIPModel(nn.Module):
 
         encoding = {}
         if len(texts_values):
-            encoding = self.processor.tokenizer(texts_values, return_tensors="pt", padding=padding)
+            encoding = self.processor.tokenizer(texts_values, padding=padding, truncation=True, return_tensors="pt")
 
         if len(images):
             image_features = self.processor.image_processor(images, return_tensors="pt")
@@ -81,10 +95,27 @@ class CLIPModel(nn.Module):
     def tokenizer(self) -> transformers.CLIPProcessor:
         return self.processor
 
-    def save(self, output_path: str) -> None:
-        self.model.save_pretrained(output_path)
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        self.model.save_pretrained(output_path, safe_serialization=safe_serialization)
         self.processor.save_pretrained(output_path)
 
-    @staticmethod
-    def load(input_path: str) -> CLIPModel:
-        return CLIPModel(model_name=input_path)
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        local_path = cls.load_dir_path(
+            model_name_or_path=model_name_or_path,
+            subfolder=subfolder,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
+        return cls(local_path)

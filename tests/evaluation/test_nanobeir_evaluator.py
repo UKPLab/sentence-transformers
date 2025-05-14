@@ -6,9 +6,23 @@ import pytest
 
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import NanoBEIREvaluator
+from sentence_transformers.util import is_datasets_available
+from tests.utils import is_ci
+
+if not is_datasets_available():
+    pytest.skip(
+        reason="Datasets are not installed. Please install `datasets` with `pip install datasets`",
+        allow_module_level=True,
+    )
+
+if is_ci():
+    pytest.skip(
+        reason="Skip test in CI to try and avoid 429 Client Error",
+        allow_module_level=True,
+    )
 
 
-def test_nanobeir_evaluator():
+def test_nanobeir_evaluator(stsb_bert_tiny_model_reused: SentenceTransformer):
     """Tests that the NanoBERTEvaluator can be loaded and produces expected metrics"""
     datasets = ["QuoraRetrieval", "MSMARCO"]
     query_prompts = {
@@ -16,7 +30,7 @@ def test_nanobeir_evaluator():
         "MSMARCO": "Instruct: Given a web search query, retrieve relevant passages that answer the query\\nQuery: ",
     }
 
-    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    model = stsb_bert_tiny_model_reused
 
     evaluator = NanoBEIREvaluator(
         dataset_names=datasets,

@@ -4,13 +4,20 @@ import json
 import os
 from collections import OrderedDict
 
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+
 from torch import Tensor, nn
 
-from sentence_transformers.util import import_from_string
+from sentence_transformers.models.InputModule import InputModule
+from sentence_transformers.models.Module import Module
+from sentence_transformers.util import import_from_string, load_dir_path
 
 
-class Asym(nn.Sequential):
-    def __init__(self, sub_modules: dict[str, list[nn.Module]], allow_empty_key: bool = True):
+class Asym(InputModule, nn.Sequential):
+    def __init__(self, sub_modules: dict[str, list[Module]], allow_empty_key: bool = True):
         """
         This model allows to create asymmetric SentenceTransformer models, that apply different models depending on the specified input key.
 
@@ -19,17 +26,53 @@ class Asym(nn.Sequential):
 
         Note, that when you call encode(), that only inputs of the same type can be encoded. Mixed-Types cannot be encoded.
 
-        Example::
-            word_embedding_model = models.Transformer(model_name)
-            pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension())
-            asym_model = models.Asym({'query': [models.Dense(word_embedding_model.get_word_embedding_dimension(), 128)], 'doc': [models.Dense(word_embedding_model.get_word_embedding_dimension(), 128)]})
-            model = SentenceTransformer(modules=[word_embedding_model, pooling_model, asym_model])
+        Example:
+            ::
 
-            model.encode([{'query': 'Q1'}, {'query': 'Q2'}]
-            model.encode([{'doc': 'Doc1'}, {'doc': 'Doc2'}]
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from datasets import Dataset
 
-            #You can train it with InputExample like this. Note, that the order must always be the same:
-            train_example = InputExample(texts=[{'query': 'Train query'}, {'doc': 'Document'}], label=1)
+                # Load a SentenceTransformer model (pretrained or not), and add an Asym module
+                model = SentenceTransformer("microsoft/mpnet-base")
+                dim = model.get_sentence_embedding_dimension()
+                asym_model = models.Asym({
+                    'query': [models.Dense(dim, dim)],
+                    'doc': [models.Dense(dim, dim)]
+                })
+                model.add_module("asym", asym_model)
+
+                train_dataset = Dataset.from_dict({
+                    "query": ["is toprol xl the same as metoprolol?", "are eyes always the same size?"],
+                    "answer": ["Metoprolol succinate is also known by the brand name Toprol XL.", "The eyes are always the same size from birth to death."],
+                })
+
+                # This mapper turns normal texts into a dictionary mapping Asym keys to the text
+                def mapper(sample):
+                    return {
+                        "question": {"query": sample["question"]},
+                        "answer": {"doc": sample["answer"]},
+                    }
+
+                train_dataset = train_dataset.map(mapper)
+                loss = losses.MultipleNegativesRankingLoss(model)
+
+                trainer = SentenceTransformerTrainer(
+                    model=model,
+                    train_dataset=train_dataset,
+                    loss=loss,
+                )
+                trainer.train()
+
+                # For inference, you can pass dictionaries with the Asym keys:
+                model.encode([
+                    {'query': 'how long do you have to wait to apply for cerb?'},
+                    {'query': '<3 what does this symbol mean?'},
+                    {'doc': 'The definition of <3 is "Love".'}]
+                )
+
+        Note:
+            These models are not necessarily stronger than non-asymmetric models. Rudimentary experiments indicate
+            that non-Asym models perform better in most cases.
 
         Args:
             sub_modules: Dict in the format str -> List[models]. The
@@ -111,15 +154,33 @@ class Asym(nn.Sequential):
             assert text_key == module_key  # Mixed batches are not allowed
         return self.sub_modules[module_key][0].tokenize(texts, **kwargs)
 
-    @staticmethod
-    def load(input_path):
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        hub_kwargs = {
+            "subfolder": subfolder,
+            "token": token,
+            "cache_folder": cache_folder,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        config = cls.load_config(model_name_or_path=model_name_or_path, **hub_kwargs)
         modules = {}
         for model_id, model_type in config["types"].items():
-            module_class = import_from_string(model_type)
-            module = module_class.load(os.path.join(input_path, model_id))
+            module_class: Module = import_from_string(model_type)
+            try:
+                module = module_class.load(model_name_or_path, **hub_kwargs, **kwargs)
+            except TypeError:
+                local_path = load_dir_path(model_name_or_path=model_name_or_path, **hub_kwargs)
+                module = module_class.load(local_path)
             modules[model_id] = module
 
         model_structure = {}

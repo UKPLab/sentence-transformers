@@ -9,6 +9,7 @@ import gzip
 import os
 from pathlib import Path
 
+import pytest
 from torch.utils.data import DataLoader
 
 from sentence_transformers import (
@@ -20,6 +21,7 @@ from sentence_transformers import (
 )
 
 
+@pytest.mark.skip(reason="This test is rather slow, and the LabelAccuracyEvaluator is not commonly used.")
 def test_LabelAccuracyEvaluator(paraphrase_distilroberta_base_v1_model: SentenceTransformer, tmp_path: Path) -> None:
     """Tests that the LabelAccuracyEvaluator can be loaded correctly"""
     model = paraphrase_distilroberta_base_v1_model

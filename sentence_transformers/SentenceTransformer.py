@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import importlib
+import inspect
 import json
 import logging
 import math
@@ -25,18 +26,21 @@ import torch
 import torch.multiprocessing as mp
 import transformers
 from huggingface_hub import HfApi
+from packaging import version
 from torch import Tensor, device, nn
 from tqdm.autonotebook import trange
 from transformers import is_torch_npu_available
 from transformers.dynamic_module_utils import get_class_from_dynamic_module, get_relative_import_files
+from typing_extensions import deprecated
 
 from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
+from sentence_transformers.models.Module import Module
 from sentence_transformers.similarity_functions import SimilarityFunction
 
 from . import __MODEL_HUB_ORGANIZATION__, __version__
 from .evaluation import SentenceEvaluator
 from .fit_mixin import FitMixin
-from .models import Normalize, Pooling, Transformer
+from .models import Pooling, Transformer
 from .peft_mixin import PeftAdapterMixin
 from .quantization import quantize_embeddings
 from .util import (
@@ -292,7 +296,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             if not os.path.exists(model_name_or_path):
                 # Not a path, load from hub
                 if "\\" in model_name_or_path or model_name_or_path.count("/") > 1:
-                    raise ValueError(f"Path {model_name_or_path} not found")
+                    raise FileNotFoundError(f"Path {model_name_or_path} not found")
 
                 if "/" not in model_name_or_path and model_name_or_path.lower() not in basic_transformer_models:
                     # A model from sentence-transformers
@@ -390,6 +394,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         """
         return self.backend
 
+    # Return a single tensor because we're passing a single sentence.
     @overload
     def encode(
         self,
@@ -398,49 +403,54 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         prompt: str | None = ...,
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
+        output_value: Literal["sentence_embedding", "token_embeddings"] = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: Literal[False] = ...,
-        convert_to_tensor: Literal[False] = ...,
-        device: str = ...,
+        convert_to_tensor: bool = ...,
+        device: str | None = ...,
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> Tensor: ...
 
+    # Return a single array, because convert_to_numpy is True
+    # and "sentence_embeddings" is passed
     @overload
     def encode(
         self,
-        sentences: str | list[str],
+        sentences: str | list[str] | np.ndarray,
         prompt_name: str | None = ...,
         prompt: str | None = ...,
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
+        output_value: Literal["sentence_embedding"] = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: Literal[True] = ...,
         convert_to_tensor: Literal[False] = ...,
-        device: str = ...,
+        device: str | None = ...,
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> np.ndarray: ...
 
+    # Return a single tensor, because convert_to_tensor is True
+    # and "sentence_embeddings" is passed
     @overload
     def encode(
         self,
-        sentences: str | list[str],
+        sentences: str | list[str] | np.ndarray,
         prompt_name: str | None = ...,
         prompt: str | None = ...,
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
+        output_value: Literal["sentence_embedding"] = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: bool = ...,
         convert_to_tensor: Literal[True] = ...,
-        device: str = ...,
+        device: str | None = ...,
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> Tensor: ...
 
+    # Return a list of tensors. Value of convert_ doesn't matter.
     @overload
     def encode(
         self,
@@ -449,18 +459,72 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         prompt: str | None = ...,
         batch_size: int = ...,
         show_progress_bar: bool | None = ...,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = ...,
+        output_value: Literal["sentence_embedding", "token_embeddings"] = ...,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
-        convert_to_numpy: Literal[False] = ...,
-        convert_to_tensor: Literal[False] = ...,
-        device: str = ...,
+        convert_to_numpy: bool = ...,
+        convert_to_tensor: bool = ...,
+        device: str | None = ...,
         normalize_embeddings: bool = ...,
         **kwargs,
     ) -> list[Tensor]: ...
 
+    # Return a list of dict of features, ignore the conversion args.
+    @overload
     def encode(
         self,
-        sentences: str | list[str],
+        sentences: list[str] | np.ndarray,
+        prompt_name: str | None = ...,
+        prompt: str | None = ...,
+        batch_size: int = ...,
+        show_progress_bar: bool | None = ...,
+        output_value: None = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: bool = ...,
+        convert_to_tensor: bool = ...,
+        device: str | None = ...,
+        normalize_embeddings: bool = ...,
+        **kwargs,
+    ) -> list[dict[str, Tensor]]: ...
+
+    # Return a dict of features, ignore the conversion args.
+    @overload
+    def encode(
+        self,
+        sentences: str,
+        prompt_name: str | None = ...,
+        prompt: str | None = ...,
+        batch_size: int = ...,
+        show_progress_bar: bool | None = ...,
+        output_value: None = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: bool = ...,
+        convert_to_tensor: bool = ...,
+        device: str | None = ...,
+        normalize_embeddings: bool = ...,
+        **kwargs,
+    ) -> dict[str, Tensor]: ...
+
+    # If "token_embeddings" is True, then the output is a single tensor.
+    @overload
+    def encode(
+        self,
+        sentences: str,
+        prompt_name: str | None = ...,
+        prompt: str | None = ...,
+        batch_size: int = ...,
+        show_progress_bar: bool | None = ...,
+        output_value: Literal["token_embeddings"] = ...,
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
+        convert_to_numpy: bool = ...,
+        convert_to_tensor: bool = ...,
+        device: str | None = ...,
+        normalize_embeddings: bool = ...,
+        **kwargs,
+    ) -> Tensor: ...
+
+    def encode(
+        self,
+        sentences: str | list[str] | np.ndarray,
         prompt_name: str | None = None,
         prompt: str | None = None,
         batch_size: int = 32,
@@ -469,10 +533,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-        device: str = None,
+        device: str | None = None,
         normalize_embeddings: bool = False,
         **kwargs,
-    ) -> list[Tensor] | np.ndarray | Tensor:
+    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
         Computes sentence embeddings.
 
@@ -529,8 +593,9 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         if self.device.type == "hpu" and not self.is_hpu_graph_enabled:
             import habana_frameworks.torch as ht
 
-            ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
-            self.is_hpu_graph_enabled = True
+            if hasattr(ht, "hpu") and hasattr(ht.hpu, "wrap_in_hpu_graph"):
+                ht.hpu.wrap_in_hpu_graph(self, disable_tensor_cache=True)
+                self.is_hpu_graph_enabled = True
 
         self.eval()
         if show_progress_bar is None:
@@ -638,9 +703,15 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                         embeddings.append(token_emb[0 : last_mask_id + 1])
                 elif output_value is None:  # Return all outputs
                     embeddings = []
-                    for sent_idx in range(len(out_features["sentence_embedding"])):
-                        row = {name: out_features[name][sent_idx] for name in out_features}
-                        embeddings.append(row)
+                    for idx in range(len(out_features["sentence_embedding"])):
+                        batch_item = {}
+                        for name, value in out_features.items():
+                            try:
+                                batch_item[name] = value[idx]
+                            except TypeError:
+                                # Handle non-indexable values (like prompt_length)
+                                batch_item[name] = value
+                        embeddings.append(batch_item)
                 else:  # Sentence embeddings
                     embeddings = out_features[output_value]
                     embeddings = embeddings.detach()
@@ -1159,8 +1230,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         # Save modules
         for idx, name in enumerate(self._modules):
-            module = self._modules[name]
-            if idx == 0 and hasattr(module, "save_in_root"):  # Save first module in the main folder
+            module: Module = self._modules[name]
+            if (
+                idx == 0 and hasattr(module, "save_in_root") and module.save_in_root
+            ):  # Save first module in the main folder
                 model_path = path + "/"
             else:
                 model_path = os.path.join(path, str(idx) + "_" + type(module).__name__)
@@ -1544,7 +1617,8 @@ print(similarities)
             backend=self.backend,
         )
         pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
-        self.model_card_data.set_base_model(model_name_or_path, revision=revision)
+        if not local_files_only:
+            self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return [transformer_model, pooling_model]
 
     def _load_module_class_from_ref(
@@ -1620,12 +1694,13 @@ print(similarities)
             if (
                 "__version__" in self._model_config
                 and "sentence_transformers" in self._model_config["__version__"]
-                and self._model_config["__version__"]["sentence_transformers"] > __version__
+                and version.parse(self._model_config["__version__"]["sentence_transformers"])
+                > version.parse(__version__)
             ):
                 logger.warning(
-                    "You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(
-                        self._model_config["__version__"]["sentence_transformers"], __version__
-                    )
+                    f'You are trying to use a model that was created with Sentence Transformers version {self._model_config["__version__"]["sentence_transformers"]}, '
+                    f"but you're currently using version {__version__}. This might cause unexpected behavior or errors. "
+                    "In that case, try to update to the latest version."
                 )
 
             # Set score functions & prompts if not already overridden by the __init__ calls
@@ -1668,90 +1743,75 @@ print(similarities)
         module_kwargs = OrderedDict()
         for module_config in modules_config:
             class_ref = module_config["type"]
-            module_class = self._load_module_class_from_ref(
+            module_class: Module = self._load_module_class_from_ref(
                 class_ref, model_name_or_path, trust_remote_code, revision, model_kwargs
             )
 
-            # For Transformer, don't load the full directory, rely on `transformers` instead
-            # But, do load the config file first.
-            if module_config["path"] == "":
-                kwargs = {}
-                for config_name in [
-                    "sentence_bert_config.json",
-                    "sentence_roberta_config.json",
-                    "sentence_distilbert_config.json",
-                    "sentence_camembert_config.json",
-                    "sentence_albert_config.json",
-                    "sentence_xlm-roberta_config.json",
-                    "sentence_xlnet_config.json",
-                ]:
-                    config_path = load_file_path(
+            # Backwards compatibility: if the module is older and its `load` method only supports one parameter,
+            # a path to a local directory containing the module files, then we load it with the old style
+            load_signature = inspect.signature(module_class.load)
+            # Check if the `load` method only accepts a single parameter (the path to the local directory).
+            # This indicates an older module that does not support the newer loading method with multiple arguments.
+            if len(load_signature.parameters) == 1:
+                signature = inspect.signature(module_class.__init__)
+                # If the module's `__init__` method contains specific keyword arguments like `model_args` and `config_args`,
+                # it is likely Transformer-based. These arguments are commonly used in Transformer models to configure
+                # the model and tokenizer during initialization.
+                # Example: Models with custom modules on the Hugging Face Hub like
+                # https://huggingface.co/jinaai/jina-embeddings-v3 may use this logic.
+                if {"model_args", "config_args"} <= set(signature.parameters):
+                    # Load initialization arguments specific to Transformer-based modules. This includes
+                    # arguments for loading the model, tokenizer, and configuration, as well as any
+                    # additional module-specific keyword arguments.
+                    common_transformer_init_kwargs = Transformer._load_init_kwargs(
                         model_name_or_path,
-                        config_name,
+                        # Loading-specific keyword arguments
+                        subfolder=module_config["path"],
                         token=token,
                         cache_folder=cache_folder,
                         revision=revision,
                         local_files_only=local_files_only,
+                        # Module-specific keyword arguments
+                        trust_remote_code=trust_remote_code,
+                        model_kwargs=model_kwargs,
+                        tokenizer_kwargs=tokenizer_kwargs,
+                        config_kwargs=config_kwargs,
+                        backend=self.backend,
                     )
-                    if config_path is not None:
-                        with open(config_path) as fIn:
-                            kwargs = json.load(fIn)
-                            # Don't allow configs to set trust_remote_code
-                            if "model_args" in kwargs and "trust_remote_code" in kwargs["model_args"]:
-                                kwargs["model_args"].pop("trust_remote_code")
-                            if "tokenizer_args" in kwargs and "trust_remote_code" in kwargs["tokenizer_args"]:
-                                kwargs["tokenizer_args"].pop("trust_remote_code")
-                            if "config_args" in kwargs and "trust_remote_code" in kwargs["config_args"]:
-                                kwargs["config_args"].pop("trust_remote_code")
-                        break
+                    module = module_class(model_name_or_path, **common_transformer_init_kwargs)
 
-                hub_kwargs = {
-                    "token": token,
-                    "trust_remote_code": trust_remote_code,
-                    "revision": revision,
-                    "local_files_only": local_files_only,
-                }
-                # 3rd priority: config file
-                if "model_args" not in kwargs:
-                    kwargs["model_args"] = {}
-                if "tokenizer_args" not in kwargs:
-                    kwargs["tokenizer_args"] = {}
-                if "config_args" not in kwargs:
-                    kwargs["config_args"] = {}
-
-                # 2nd priority: hub_kwargs
-                kwargs["model_args"].update(hub_kwargs)
-                kwargs["tokenizer_args"].update(hub_kwargs)
-                kwargs["config_args"].update(hub_kwargs)
-
-                # 1st priority: kwargs passed to SentenceTransformer
-                if model_kwargs:
-                    kwargs["model_args"].update(model_kwargs)
-                if tokenizer_kwargs:
-                    kwargs["tokenizer_args"].update(tokenizer_kwargs)
-                if config_kwargs:
-                    kwargs["config_args"].update(config_kwargs)
-
-                # Try to initialize the module with a lot of kwargs, but only if the module supports them
-                # Otherwise we fall back to the load method
-                try:
-                    module = module_class(model_name_or_path, cache_dir=cache_folder, backend=self.backend, **kwargs)
-                except TypeError:
-                    module = module_class.load(model_name_or_path)
-            else:
-                # Normalize does not require any files to be loaded
-                if module_class == Normalize:
-                    module_path = None
                 else:
-                    module_path = load_dir_path(
-                        model_name_or_path,
-                        module_config["path"],
+                    # Old modules that don't support the new loading method and don't seem Transformer-based
+                    # are loaded by downloading the full directories and calling .load() with the old style
+                    # (i.e. only a path to the local directory)
+                    local_path = load_dir_path(
+                        model_name_or_path=model_name_or_path,
+                        subfolder=module_config["path"],
                         token=token,
                         cache_folder=cache_folder,
                         revision=revision,
                         local_files_only=local_files_only,
                     )
-                module = module_class.load(module_path)
+                    module = module_class.load(local_path)
+
+            else:
+                # Newer modules that support the new loading method are loaded with the new style
+                # i.e. with many keyword arguments that can optionally be used by the modules
+                module = module_class.load(
+                    model_name_or_path,
+                    # Loading-specific keyword arguments
+                    subfolder=module_config["path"],
+                    token=token,
+                    cache_folder=cache_folder,
+                    revision=revision,
+                    local_files_only=local_files_only,
+                    # Module-specific keyword arguments
+                    trust_remote_code=trust_remote_code,
+                    model_kwargs=model_kwargs,
+                    tokenizer_kwargs=tokenizer_kwargs,
+                    config_kwargs=config_kwargs,
+                    backend=self.backend,
+                )
 
             modules[module_config["name"]] = module
             module_kwargs[module_config["name"]] = module_config.get("kwargs", [])
@@ -1762,10 +1822,12 @@ print(similarities)
                 revision_path_part = Path(modules_json_path).parts[-2]
                 if len(revision_path_part) == 40:
                     revision = revision_path_part
-        self.model_card_data.set_base_model(model_name_or_path, revision=revision)
+        if not local_files_only:
+            self.model_card_data.set_base_model(model_name_or_path, revision=revision)
         return modules, module_kwargs
 
     @staticmethod
+    @deprecated("SentenceTransformer.load(...) is deprecated, use SentenceTransformer(...) instead.")
     def load(input_path) -> SentenceTransformer:
         return SentenceTransformer(input_path)
 
@@ -1844,6 +1906,13 @@ print(similarities)
     @_target_device.setter
     def _target_device(self, device: int | str | torch.device | None = None) -> None:
         self.to(device)
+
+    @property
+    def dtype(self) -> torch.dtype | None:
+        for child in self.modules():
+            if child is not self and hasattr(child, "dtype"):
+                return child.dtype
+        return None
 
     @property
     def _no_split_modules(self) -> list[str]:
