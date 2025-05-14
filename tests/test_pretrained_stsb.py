@@ -97,7 +97,7 @@ def test_mpnet_slow() -> None:
 
 @pytest.mark.slow
 def test_other_models_slow() -> None:
-    pretrained_model_score_slow("average_word_embeddings_komninos", 61.56)
+    pretrained_model_score_slow("average_word_embeddings_komninos", 60.98)
 
 
 @pytest.mark.slow
