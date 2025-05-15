@@ -63,18 +63,19 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
                 sentences1=eval_dataset["sentence1"],
                 sentences2=eval_dataset["sentence2"],
                 scores=eval_dataset["score"],
+                main_similarity=SimilarityFunction.COSINE, # even though the model is trained with dot, we need to set it to cosine for evaluation as the score in the dataset is cosine similarity
                 name="sts_dev",
             )
             results = dev_evaluator(model)
             '''
             EmbeddingSimilarityEvaluator: Evaluating the model on the sts_dev dataset:
-            Dot-Similarity :	Pearson: 0.7513	Spearman: 0.8010
+            Cosine-Similarity :     Pearson: 0.8430 Spearman: 0.8368
             '''
             # Print the results
             print(f"Primary metric: {dev_evaluator.primary_metric}")
-            # => Primary metric: sts_dev_spearman_dot
+            # => Primary metric: sts_dev_spearman_cosine
             print(f"Primary metric value: {results[dev_evaluator.primary_metric]:.4f}")
-            # => Primary metric value: 0.8010
+            # => Primary metric value: 0.8368
 
     """
 

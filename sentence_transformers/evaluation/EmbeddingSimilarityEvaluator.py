@@ -106,6 +106,9 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
         self.main_similarity = SimilarityFunction(main_similarity) if main_similarity else None
         self.similarity_fn_names = similarity_fn_names or []
+        if self.similarity_fn_names == [] and self.main_similarity is not None:
+            self.similarity_fn_names = [self.main_similarity.value]
+
         self.name = name
 
         self.batch_size = batch_size

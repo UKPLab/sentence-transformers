@@ -9,6 +9,7 @@ logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 # Load a model
 model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+model.similarity_fn_name = "cosine"  # even though the model is trained with dot, we need to set it to cosine for evaluation as the score in the dataset is cosine similarity
 
 # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
 eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
@@ -23,10 +24,10 @@ dev_evaluator = SparseEmbeddingSimilarityEvaluator(
 results = dev_evaluator(model)
 """
 EmbeddingSimilarityEvaluator: Evaluating the model on the sts_dev dataset:
-Dot-Similarity :	Pearson: 0.7513	Spearman: 0.8010
+Cosine-Similarity :     Pearson: 0.8430 Spearman: 0.8368
 """
 # Print the results
 print(f"Primary metric: {dev_evaluator.primary_metric}")
-# => Primary metric: sts_dev_spearman_dot
+# => Primary metric: sts_dev_spearman_cosine
 print(f"Primary metric value: {results[dev_evaluator.primary_metric]:.4f}")
-# => Primary metric value: 0.8010
+# => Primary metric value: 0.8368
