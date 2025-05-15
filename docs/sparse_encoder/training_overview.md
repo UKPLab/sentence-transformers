@@ -58,7 +58,7 @@ But if instead you want to train from another checkpoint, or from scratch, then 
 
 .. tab:: Splade
 
-    Splade models use the :class:`~sentence_transformers.sparse_encoder.models.MLMTransformer` followed by a :class:`~sentence_transformers.sparse_encoder.models.SpladePooling` modules. The former loads a pretrained Masked Language Model transformer model (e.g. `BERT <https://huggingface.co/google-bert/bert-base-uncased>`_, `RoBERTa <https://huggingface.co/FacebookAI/roberta-base>`_, `DistilBERT <https://huggingface.co/distilbert/distilbert-base-uncased>`_, `ModernBERT <https://huggingface.co/answerdotai/ModernBERT-base>`_, etc.) and the latter pools the output of the MLMHead to produce a single vector representation of the size of the vocabularies.
+    Splade models use the :class:`~sentence_transformers.sparse_encoder.models.MLMTransformer` followed by a :class:`~sentence_transformers.sparse_encoder.models.SpladePooling` modules. The former loads a pretrained `Masked Language Modeling transformer model <https://huggingface.co/models?pipeline_tag=fill-mask>`_ (e.g. `BERT <https://huggingface.co/google-bert/bert-base-uncased>`_, `RoBERTa <https://huggingface.co/FacebookAI/roberta-base>`_, `DistilBERT <https://huggingface.co/distilbert/distilbert-base-uncased>`_, `ModernBERT <https://huggingface.co/answerdotai/ModernBERT-base>`_, etc.) and the latter pools the output of the MLMHead to produce a single sparse embedding of the size of the vocabulary.
     
     .. raw:: html
 
@@ -84,18 +84,26 @@ But if instead you want to train from another checkpoint, or from scratch, then 
         # Create the Splade model
         model = SparseEncoder(modules=[mlm_transformer, splade_pooling])
     
-    This architecture is the default if you provide a fill-mask model architecture to SparseEncoder, so it's easier to use the shortcut:.
+    This architecture is the default if you provide a fill-mask model architecture to SparseEncoder, so it's easier to use the shortcut:
 
     ::
 
         from sentence_transformers import SparseEncoder
 
         model = SparseEncoder("google-bert/bert-base-uncased")
-
+        # SparseEncoder(
+        #   (0): MLMTransformer({'max_seq_length': 512, 'do_lower_case': False}) with MLMTransformer model: BertForMaskedLM
+        #   (1): SpladePooling({'pooling_strategy': 'max', 'activation_function': 'relu', 'word_embedding_dimension': None})
+        # )
 
 .. tab:: Contrastive Sparse Representation (CSR) 
 
-    Contrastive Sparse Representation (CSR) models use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` modules to create sparse representations on top of an already trained encoder with Sentence Transfortmer.
+    .. 
+        Contrastive Sparse Representation (CSR) models usually use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` modules to create sparse representations on top of an already trained dense Sentence Transformer model.
+    Contrastive Sparse Representation (CSR) models apply a :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` module on top of a dense Sentence Transformer model, which usually consist of a :class:`~sentence_transformers.models.Transformer` followed by a :class:`~sentence_transformers.models.Pooling` module. You can initialize one from scratch like so:
+    
+    .. 
+        usually use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` modules to create sparse representations on top of an already trained dense Sentence Transformer model.
 
     .. raw:: html
 
@@ -129,22 +137,28 @@ But if instead you want to train from another checkpoint, or from scratch, then 
         # Create the CSR model
         model = SparseEncoder(modules=[transformer, pooling, csr_sparsity])
     
-    If a Transformer model is passed, it will automatically be loaded and a mean pooling and a CSRSparsity module will be added. As well for a Sentence Transformer, it will auto-loaded it and then add a default CSRSparsity on top of it, so it's easier to use the shortcut:
+    Or if your base model is 1) a dense Sentence Transformer model or 2) a non-MLM Transformer model (those are loaded as Splade models by default), then this shortcut will automatically initialize the CSR model for you:
 
     ::
 
         from sentence_transformers import SparseEncoder
 
-        model = SparseEncoder("nvidia/NV-Embed-v2")
+        model = SparseEncoder("mixedbread-ai/mxbai-embed-large-v1")
+        # SparseEncoder(
+        #   (0): Transformer({'max_seq_length': 512, 'do_lower_case': False}) with Transformer model: BertModel
+        #   (1): Pooling({'word_embedding_dimension': 1024, 'pooling_mode_cls_token': True, 'pooling_mode_mean_tokens': False, 'pooling_mode_max_tokens': False, 'pooling_mode_mean_sqrt_len_tokens': False, 'pooling_mode_weightedmean_tokens': False, 'pooling_mode_lasttoken': False, 'include_prompt': True})
+        #   (2): CSRSparsity({'input_dim': 1024, 'hidden_dim': 4096, 'k': 256, 'k_aux': 512, 'normalize': False, 'dead_threshold': 30})
+        # )
 
-    
-    .. tip::
+    .. warning::
 
-        CSR Sparsity can work on top of any dense encoder models but probably more useful fo the ones with high dimension representation like 4096 to try to improve the efficiency of the representation. 
+        Unlike (Inference-free) Splade models, sparse embeddings by CSR models don't have the same size as the vocabulary of the base model. This means you can't directly interpret which words are activated in your embedding like you can with Splade models, where each dimension corresponds to a specific token in the vocabulary.
 
-.. tab:: Splade Inference-free
+        Beyond that, CSR models are most effective on dense encoder models that use high-dimensional representations (e.g. 1024-4096 dimensions).
 
-    Splade Inference-free uses an :class:`~sentence_transformers.models.Asym` module with different modules for queries and documents. Usually for this type of architecture, the documents part is a traditional splade architecture (with a :class:`~sentence_transformers.sparse_encoder.models.MLMTransformer` followed by a :class:`~sentence_transformers.sparse_encoder.models.SpladePooling` modules) and the query one is an :class:`~sentence_transformers.sparse_encoder.models.IDF` modules.
+.. tab:: Inference-free Splade
+
+    Inference-free Splade uses an :class:`~sentence_transformers.models.Asym` module with different modules for queries and documents. Usually for this type of architecture, the documents part is a traditional Splade architecture (a :class:`~sentence_transformers.sparse_encoder.models.MLMTransformer` followed by a :class:`~sentence_transformers.sparse_encoder.models.SpladePooling` module) and the query part is an :class:`~sentence_transformers.sparse_encoder.models.IDF` module, which just returns a pre-computed score for every token in the query.
 
     .. raw:: html
 
@@ -179,17 +193,24 @@ But if instead you want to train from another checkpoint, or from scratch, then 
         )
 
         # Create the inference-free model
-        model = SparseEncoder(
-            modules=[asym],
-            similarity_fn_name="dot",
-        )
-
+        model = SparseEncoder(modules=[asym], similarity_fn_name="dot")
+        # SparseEncoder(
+        #   (0): Asym(
+        #     (query_0_IDF): IDF ({'frozen': False}, dim:30522, tokenizer: BertTokenizerFast)
+        #     (doc_0_MLMTransformer): MLMTransformer({'max_seq_length': 512, 'do_lower_case': False}) with MLMTransformer model: BertForMaskedLM
+        #     (doc_1_SpladePooling): SpladePooling({'pooling_strategy': 'max', 'activation_function': 'relu', 'word_embedding_dimension': None})
+        #   )
+        # )
     
     This architecture allows for fast query-time processing using the lightweight IDF approach, that can be trained and seen as a linear weights, while documents are processed with the full MLM transformer and SpladePooling.
 
     .. tip::
 
-        Splade Inference-free is particularly useful for search applications where query latency is critical, as it shifts the computational complexity to the document indexing phase.
+        Inference-free Splade is particularly useful for search applications where query latency is critical, as it shifts the computational complexity to the document indexing phase which can be done offline.
+    
+    .. note::
+
+        When training models with the :class:`~sentence_transformers.models.Asym` module, each non-label column in your training and evaluation datasets must not be regular strings, but instead a dictionary of :class:`~sentence_transformers.models.Asym` path keys to regular strings. So, assume that ``"What is the capital of France?"`` is an element in the `"questions"` training column, then that should be transformed into ``{"query": "What is the capital of France?"}`` before being passed to the model. The same applies to an e.g. `"documents"` column, which should be transformed into ``{"doc": "Paris is the capital of France."}`` for the document ``"Paris is the capital of France."``.
 ```
 
 ## Dataset
@@ -215,14 +236,14 @@ The :class:`SparseEncoderTrainer` trains and evaluates using :class:`datasets.Da
 
         from datasets import load_dataset
 
-        train_dataset = load_dataset("sentence-transformers/all-nli", "pair-class", split="train")
-        eval_dataset = load_dataset("sentence-transformers/all-nli", "pair-class", split="dev")
+        train_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="train")
+        eval_dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="dev")
 
         print(train_dataset)
         """
         Dataset({
-            features: ['premise', 'hypothesis', 'label'],
-            num_rows: 942069
+            features: ['anchor', 'positive', 'negative'],
+            num_rows: 557850
         })
         """
 
@@ -230,7 +251,7 @@ The :class:`SparseEncoderTrainer` trains and evaluates using :class:`datasets.Da
 
     .. note::
 
-        Many Hugging Face datasets that work out of the box with Sentence Transformers have been tagged with `sentence-transformers`, allowing you to easily find them by browsing to `https://huggingface.co/datasets?other=sentence-transformers <https://huggingface.co/datasets?other=sentence-transformers>`_. We strongly recommend that you browse these datasets to find training datasets that might be useful for your tasks.
+        Many Hugging Face datasets that work out of the box with Sentence Transformers have been tagged with ``sentence-transformers``, allowing you to easily find them by browsing to `https://huggingface.co/datasets?other=sentence-transformers <https://huggingface.co/datasets?other=sentence-transformers>`_. We strongly recommend that you browse these datasets to find training datasets that might be useful for your tasks.
 
 .. tab:: Local Data (CSV, JSON, Parquet, Arrow, SQL)
 
@@ -333,9 +354,9 @@ Most loss functions can be initialized with just the :class:`~sentence_transform
 
     # Initialize the SpladeLoss with a SparseMultipleNegativesRankingLoss
     # This loss requires pairs of related texts or triplets
-    loss = losses.SpladeLoss(
+    loss = SpladeLoss(
         model=model,
-        loss=losses.SparseMultipleNegativesRankingLoss(model=model),
+        loss=SparseMultipleNegativesRankingLoss(model=model),
         lambda_query=5e-5,  # Weight for query loss
         lambda_corpus=3e-5,
     ) 
@@ -433,13 +454,14 @@ args = SparseEncoderTrainingArguments(
 
 ## Evaluator
 
-You can provide the [`SparseEncoderTrainer`](https://sbert.net/docs/package_reference/sparse_encoder/trainer.html#sparse_encoder.trainer.SparseEncoderTrainer) with an `eval_dataset` to get the evaluation loss during training, but it may be useful to get more concrete metrics during training, too. For this, you can use evaluators to assess the model's performance with useful metrics before, during, or after training. You can use both an `eval_dataset` and an evaluator, one or the other, or neither. They evaluate based on the `eval_strategy` and `eval_steps` [Training Arguments](#training-arguments).
+```{eval-rst}
+You can provide the :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` with an ``eval_dataset`` to get the evaluation loss during training, but it may be useful to get more concrete metrics during training, too. For this, you can use evaluators to assess the model's performance with useful metrics before, during, or after training. You can use both an ``eval_dataset`` and an evaluator, one or the other, or neither. They evaluate based on the ``eval_strategy`` and ``eval_steps`` `Training Arguments <#training-arguments>`_.
 
 Here are the implemented Evaluators that come with Sentence Transformers for Sparse Encoder models:
-```{eval-rst}
-========================================================================  ===========================================================================================================================
-Evaluator                                                                 Required Data
-========================================================================  ===========================================================================================================================
+
+=============================================================================================  ===========================================================================================================================
+Evaluator                                                                                      Required Data
+=============================================================================================  ===========================================================================================================================
 :class:`~sentence_transformers.sparse_encoder.evaluation.SparseBinaryClassificationEvaluator`  Pairs with class labels.
 :class:`~sentence_transformers.sparse_encoder.evaluation.SparseEmbeddingSimilarityEvaluator`   Pairs with similarity scores.
 :class:`~sentence_transformers.sparse_encoder.evaluation.SparseInformationRetrievalEvaluator`  Queries (qid => question), Corpus (cid => document), and relevant documents (qid => set[cid]).
@@ -448,7 +470,7 @@ Evaluator                                                                 Requir
 :class:`~sentence_transformers.sparse_encoder.evaluation.SparseRerankingEvaluator`             List of ``{'query': '...', 'positive': [...], 'negative': [...]}`` dictionaries.
 :class:`~sentence_transformers.sparse_encoder.evaluation.SparseTranslationEvaluator`           Pairs of sentences in two separate languages.
 :class:`~sentence_transformers.sparse_encoder.evaluation.SparseTripletEvaluator`               (anchor, positive, negative) pairs.
-========================================================================  ===========================================================================================================================
+=============================================================================================  ===========================================================================================================================
 
 Additionally, :class:`~sentence_transformers.evaluation.SequentialEvaluator` should be used to combine multiple evaluators into one Evaluator that can be passed to the :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer`.
 
@@ -492,13 +514,13 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
 
         from datasets import load_dataset
         from sentence_transformers.evaluation import SimilarityFunction
-        from sentence_transformers.sparse_encoder.evaluation import EmbeddingSimilarityEvaluator
+        from sentence_transformers.sparse_encoder.evaluation import SparseEmbeddingSimilarityEvaluator
 
         # Load the STSB dataset (https://huggingface.co/datasets/sentence-transformers/stsb)
         eval_dataset = load_dataset("sentence-transformers/stsb", split="validation")
 
         # Initialize the evaluator
-        dev_evaluator = EmbeddingSimilarityEvaluator(
+        dev_evaluator = SparseEmbeddingSimilarityEvaluator(
             sentences1=eval_dataset["sentence1"],
             sentences2=eval_dataset["sentence2"],
             scores=eval_dataset["score"],
@@ -550,7 +572,7 @@ Sometimes you don't have the required evaluation data to prepare one of these ev
 
 .. warning::
 
-    When using `Distributed Training <training/distributed.html>`_, the evaluator only runs on the first device, unlike the training and evaluation datasets, which are shared across all devices. 
+    When using `Distributed Training <../sentence_transformer/training/distributed.html>`_, the evaluator only runs on the first device, unlike the training and evaluation datasets, which are shared across all devices. 
 ```
 
 ## Trainer 
@@ -581,30 +603,30 @@ The :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` 
         SparseEncoderTrainingArguments,
         SparseEncoderModelCardData,
     )
-    from sentence_transformers.sparse_encoder.losses import SparseMultipleNegativesRankingLoss
+    from sentence_transformers.sparse_encoder.losses import SpladeLoss, SparseMultipleNegativesRankingLoss
     from sentence_transformers.training_args import BatchSamplers
-    from sentence_transformers.sparse_encoder.evaluation import SparseTripletEvaluator
+    from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator
 
     # 1. Load a model to finetune with 2. (Optional) model card data
-    model = SentenceTransformer(
+    model = SparseEncoder(
         "distilbert/distilbert-base-uncased",
         model_card_data=SparseEncoderModelCardData(
             language="en",
             license="apache-2.0",
-            model_name="Distilbert base trained on AllNLI triplets",
+            model_name="Distilbert base trained on Natural-Questions tuples",
         )
     )
 
     # 3. Load a dataset to finetune on
-    dataset = load_dataset("sentence-transformers/all-nli", "triplet")
-    train_dataset = dataset["train"].select(range(100_000))
-    eval_dataset = dataset["dev"]
-    test_dataset = dataset["test"]
+    full_dataset = load_dataset("sentence-transformers/natural-questions", split="train").select(range(100_000))
+    dataset_dict = full_dataset.train_test_split(test_size=1_000, seed=12)
+    train_dataset = dataset_dict["train"]
+    eval_dataset = dataset_dict["test"]
 
     # 4. Define a loss function
-    loss = losses.SpladeLoss(
+    loss = SpladeLoss(
         model=model,
-        loss=losses.SparseMultipleNegativesRankingLoss(model=model),
+        loss=SparseMultipleNegativesRankingLoss(model=model),
         lambda_query=5e-5,
         lambda_corpus=3e-5,
     )
@@ -624,21 +646,16 @@ The :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` 
         batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
-        eval_steps=100,
+        eval_steps=1000,
         save_strategy="steps",
-        save_steps=100,
+        save_steps=1000,
         save_total_limit=2,
         logging_steps=100,
         run_name="splade-distilbert-base-uncased-nq",  # Will be used in W&B if `wandb` is installed
     )
 
     # 6. (Optional) Create an evaluator & evaluate the base model
-    dev_evaluator = SparseTripletEvaluator(
-        anchors=eval_dataset["anchor"],
-        positives=eval_dataset["positive"],
-        negatives=eval_dataset["negative"],
-        name="all-nli-dev",
-    )
+    dev_evaluator = SparseNanoBEIREvaluator(dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=16)
 
     # 7. Create a trainer & train
     trainer = SparseEncoderTrainer(
@@ -651,19 +668,13 @@ The :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` 
     )
     trainer.train()
 
-    # (Optional) Evaluate the trained model on the test set
-    test_evaluator = SparseTripletEvaluator(
-        anchors=test_dataset["anchor"],
-        positives=test_dataset["positive"],
-        negatives=test_dataset["negative"],
-        name="all-nli-test",
-    )
-    test_evaluator(model)
+    # 8. Evaluate the model performance again after training
+    dev_evaluator(model)
 
-    # 8. Save the trained model
+    # 9. Save the trained model
     model.save_pretrained("models/splade-distilbert-base-uncased-nq/final")
-    
-    # 9. (Optional) Push it to the Hugging Face Hub
+
+    # 10. (Optional) Push it to the Hugging Face Hub
     model.push_to_hub("splade-distilbert-base-uncased-nq")
 
 ```
@@ -673,6 +684,8 @@ The :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` 
 ```{eval-rst}
 This Sparse Encoder trainer integrates support for various :class:`transformers.TrainerCallback` subclasses, such as:
 
+- :class:`~sentence_transformers.sparse_encoder.callbacks.splade_callbacks.SpladeLambdaSchedulerCallback` to schedule
+  the lambda parameters of the :class:`~sentence_transformers.sparse_encoder.losses.SpladeLoss` loss during training.
 - :class:`~transformers.integrations.WandbCallback` to automatically log training metrics to W&B if ``wandb`` is installed
 - :class:`~transformers.integrations.TensorBoardCallback` to log training metrics to TensorBoard if ``tensorboard`` is accessible.
 - :class:`~transformers.integrations.CodeCarbonCallback` to track the carbon emissions of your model during training if ``codecarbon`` is installed.
@@ -680,9 +693,7 @@ This Sparse Encoder trainer integrates support for various :class:`transformers.
     - Note: These carbon emissions will be included in your automatically generated model card.
 
 See the Transformers `Callbacks <https://huggingface.co/docs/transformers/main/en/main_classes/callback>`_
-documentation for more information on the integrated callbacks and how to write your own callbacks.
-
-It also integrates support to custom Callbacks, such as the one use in trainings of Splade models :class:`~sentence_transformers.sparse_encoder.callbacks.splade_callbacks.SpladeLambdaSchedulerCallback`
+documentation for more information on the integrated callbacks and how to write your own callbacks. 
 
 ```
 
@@ -700,6 +711,7 @@ Each training/evaluation batch will only contain samples from one of the dataset
 - ``MultiDatasetBatchSamplers.PROPORTIONAL`` (default): Sample from each dataset in proportion to its size. With this strategy, all samples from each dataset are used and larger datasets are sampled from more frequently.
 ```
 
+<!--
 ## Comparisons with SentenceTransformer Training
 
 ```{eval-rst}
@@ -708,3 +720,4 @@ Training :class:`~sentence_transformers.sparse_encoder.SparseEncoder` models is 
 See the `Sentence Transformer > Training Overview <../sentence_transformer/training_overview.html>`_ documentation for more details on training :class:`~sentence_transformers.SentenceTransformer` models.
 
 ```
+-->
