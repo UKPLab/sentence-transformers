@@ -86,7 +86,7 @@ dl.class > dt {
     border-width: 1px;
     border-radius: 0.5rem;
     border-color: rgb(55 65 81);
-    padding: 0.5rem;
+    padding: 0.5rem 0.2rem;
     text-align: center;
     margin-bottom: 0.5rem;
     font-weight: bold;

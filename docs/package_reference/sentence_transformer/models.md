@@ -1,4 +1,4 @@
-# Models
+# Modules
 `sentence_transformers.models` defines different building blocks, a.k.a. Modules, that can be used to create SentenceTransformer models from scratch. For more details, see [Creating Custom Models](../../sentence_transformer/usage/custom_models.rst).
 
 ## Main Modules
