@@ -165,7 +165,7 @@ The :class:`SentenceTransformerTrainer` trains and evaluates using :class:`datas
 
     .. note::
 
-        Many Hugging Face datasets that work out of the box with Sentence Transformers have been tagged with `sentence-transformers`, allowing you to easily find them by browsing to `https://huggingface.co/datasets?other=sentence-transformers <https://huggingface.co/datasets?other=sentence-transformers>`_. We strongly recommend that you browse these datasets to find training datasets that might be useful for your tasks.
+        Many Hugging Face datasets that work out of the box with Sentence Transformers have been tagged with ``sentence-transformers``, allowing you to easily find them by browsing to `https://huggingface.co/datasets?other=sentence-transformers <https://huggingface.co/datasets?other=sentence-transformers>`_. We strongly recommend that you browse these datasets to find training datasets that might be useful for your tasks.
 
 .. tab:: Local Data (CSV, JSON, Parquet, Arrow, SQL)
 
@@ -360,10 +360,11 @@ args = SentenceTransformerTrainingArguments(
 
 ## Evaluator
 
-You can provide the [`SentenceTransformerTrainer`](https://sbert.net/docs/package_reference/sentence_transformer/trainer.html#sentence_transformers.trainer.SentenceTransformerTrainer) with an `eval_dataset` to get the evaluation loss during training, but it may be useful to get more concrete metrics during training, too. For this, you can use evaluators to assess the model's performance with useful metrics before, during, or after training. You can use both an `eval_dataset` and an evaluator, one or the other, or neither. They evaluate based on the `eval_strategy` and `eval_steps` [Training Arguments](#training-arguments).
+```{eval-rst}
+You can provide the :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` with an ``eval_dataset`` to get the evaluation loss during training, but it may be useful to get more concrete metrics during training, too. For this, you can use evaluators to assess the model's performance with useful metrics before, during, or after training. You can use both an ``eval_dataset`` and an evaluator, one or the other, or neither. They evaluate based on the ``eval_strategy`` and ``eval_steps`` `Training Arguments <#training-arguments>`_.
 
 Here are the implemented Evaluators that come with Sentence Transformers:
-```{eval-rst}
+
 ========================================================================  ===========================================================================================================================
 Evaluator                                                                 Required Data
 ========================================================================  ===========================================================================================================================
