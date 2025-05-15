@@ -40,10 +40,9 @@ class FlopsLoss(nn.Module):
         self.threshold = threshold
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
-        # Compute the embeddings and distribute them to anchor and candidates (positive and optionally negatives)
-        embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
-
-        return self.compute_loss_from_embeddings(embeddings)
+        raise NotImplementedError(
+            "FlopsLoss is not intended to be used directly. Use it as a component within other loss functions."
+        )
 
     def compute_loss_from_embeddings(self, embeddings: list[torch.Tensor]) -> torch.Tensor:
         if self.threshold is not None:
