@@ -56,10 +56,7 @@ class FlopsLoss(nn.Module):
             mask = (l0_norm > self.threshold).float()
             embeddings_to_use = embeddings_to_use * mask.unsqueeze(1)
 
-        if embeddings_type == "query":
-            return torch.sum(torch.mean(embeddings_to_use, dim=0) ** 2)
-        else:
-            return torch.sum(torch.mean(embeddings_to_use, dim=0) ** 2)
+        return torch.sum(torch.mean(embeddings_to_use, dim=0) ** 2)
 
     @property
     def citation(self) -> str:
