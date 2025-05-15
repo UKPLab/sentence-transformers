@@ -1,5 +1,5 @@
 """
-This example trains a SparseEncoder for the Natural Questions (NQ) task.
+This example trains a SparseEncoder for the Natural Questions (NQ) dataset.
 The training script fine-tunes a SparseEncoder using the Splade loss function for retrieval.
 It loads a subset of the Natural Questions dataset, splits it into training and evaluation subsets,
 and trains the model as a retriever. After training, the model is evaluated and saved locally,
