@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import inspect
+import logging
 import math
 import os
 from pathlib import Path
+from typing import Any
 
 try:
     from typing import Self
@@ -18,6 +21,8 @@ from transformers import PreTrainedTokenizerFast
 
 from sentence_transformers.models.InputModule import InputModule
 from sentence_transformers.util import get_device_name
+
+logger = logging.getLogger(__name__)
 
 
 class StaticEmbedding(InputModule):
@@ -164,9 +169,13 @@ class StaticEmbedding(InputModule):
         device: str | None = None,
         pca_dims: int | None = 256,
         apply_zipf: bool = True,
+        sif_coefficient: float | None = 1e-4,
+        token_remove_pattern: str | None = r"\[unused\d+\]",
+        quantize_to: str = "float32",
         use_subword: bool = True,
+        **kwargs: Any,
     ) -> StaticEmbedding:
-        """
+        r"""
         Creates a StaticEmbedding instance from a distillation process using the `model2vec` package.
 
         Args:
@@ -176,6 +185,10 @@ class StaticEmbedding(InputModule):
                 the strongest device is automatically detected. Defaults to None.
             pca_dims (int | None, optional): The number of dimensions for PCA reduction. Defaults to 256.
             apply_zipf (bool): Whether to apply Zipf's law during distillation. Defaults to True.
+            sif_coefficient (float | None, optional): The coefficient for SIF weighting. Defaults to 1e-4.
+            token_remove_pattern (str | None, optional): A regex pattern to remove tokens from the vocabulary.
+                Defaults to r"\[unused\d+\]".
+            quantize_to (str): The data type to quantize the weights to. Defaults to 'float32'.
             use_subword (bool): Whether to use subword tokenization. Defaults to True.
 
         Returns:
@@ -193,15 +206,28 @@ class StaticEmbedding(InputModule):
                 "To use this method, please install the `model2vec` package: `pip install model2vec[distill]`"
             )
 
+        distill_signature = inspect.signature(distill)
+        distill_kwargs = set(distill_signature.parameters.keys()) - {"model_name"}
+        kwargs = {
+            "vocabulary": vocabulary,
+            "device": device,
+            "pca_dims": pca_dims,
+            "apply_zipf": apply_zipf,
+            "use_subword": use_subword,
+            "quantize_to": quantize_to,
+            "sif_coefficient": sif_coefficient,
+            "token_remove_pattern": token_remove_pattern,
+            **kwargs,
+        }
+        if leftovers := set(kwargs.keys()) - distill_kwargs:
+            logger.warning(
+                f"Your version of `model2vec` does not support the {', '.join(map(repr, leftovers))} arguments for the `distill` method. "
+                "Consider updating `model2vec` to take advantage of these arguments."
+            )
+            kwargs = {key: value for key, value in kwargs.items() if key in distill_kwargs}
+
         device = get_device_name()
-        static_model = distill(
-            model_name,
-            vocabulary=vocabulary,
-            device=device,
-            pca_dims=pca_dims,
-            apply_zipf=apply_zipf,
-            use_subword=use_subword,
-        )
+        static_model = distill(model_name, **kwargs)
         if isinstance(static_model.embedding, np.ndarray):
             embedding_weights = torch.from_numpy(static_model.embedding)
         else:
