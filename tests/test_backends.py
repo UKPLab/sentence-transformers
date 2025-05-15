@@ -21,6 +21,7 @@ except ImportError:
 BACKENDS = [("onnx", ORTModelForFeatureExtraction), ("openvino", OVModelForFeatureExtraction)]
 try:
     from optimum.intel import IPEXModel
+
     BACKENDS.append(("ipex", IPEXModel))
 except ImportError:
     pass
