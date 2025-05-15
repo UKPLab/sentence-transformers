@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from sentence_transformers import SentenceTransformer
 from tests.utils import is_ci
 
 try:
@@ -26,7 +27,6 @@ try:
 except ImportError:
     pass
 
-from sentence_transformers import SentenceTransformer
 
 if is_ci():
     pytest.skip("Skip test in CI to try and avoid 429 Client Error", allow_module_level=True)
