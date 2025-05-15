@@ -22,6 +22,8 @@ This is a [Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage
     <!-- - **Base model:** [Unknown](https://huggingface.co/unknown) -->
 {%- endif %}
 - **Maximum Sequence Length:** {{ model_max_length }} tokens
+- **Output Dimensionality:** {{ output_dimensionality }} dimensions
+- **Similarity Function:** {{ similarity_fn_name }}
 {% if train_datasets | selectattr("name") | list -%}
     - **Training Dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}:**
     {%- for dataset in (train_datasets | selectattr("name")) %}
@@ -56,6 +58,12 @@ This is a [Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage
 - **Documentation:** [Sparse Encoder Documentation](https://www.sbert.net/docs/sparse_encoder/usage/usage.html)
 - **Repository:** [Sentence Transformers on GitHub](https://github.com/UKPLab/sentence-transformers)
 - **Hugging Face:** [Sparse Encoders on Hugging Face](https://huggingface.co/models?library=sentence-transformers&other=sparse-encoder)
+
+### Full Model Architecture
+
+```
+{{ model_string }}
+```
 
 ## Usage
 
