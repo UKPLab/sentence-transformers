@@ -43,6 +43,7 @@ class SpladeLoss(nn.Module):
             threshold: Optional threshold for the number of non-zero elements in the embeddings to be considered in the FlopsLoss.
                 If specified, only embeddings with more than this number of non-zero elements will be considered.
                 This can help to ignore embeddings that are too sparse and may not contribute meaningfully to the loss.
+
         References:
             - For more details, see the paper "From Distillation to Hard Negative Sampling: Making Sparse Neural IR Models More Effective"
               https://arxiv.org/abs/2205.04733
