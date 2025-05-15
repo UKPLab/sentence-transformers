@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
+from torch import Tensor
+
 from sentence_transformers import util
 from sentence_transformers.losses.MultipleNegativesRankingLoss import MultipleNegativesRankingLoss
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
@@ -42,7 +46,8 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
             - `Unsupervised Learning > GenQ <../../../examples/sentence_transformer/unsupervised_learning/query_generation/README.html>`_
 
         Requirements:
-            1. (anchor, positive) pairs or (anchor, positive, negative) triplets
+            1. Need to be used in SpladeLoss or CSRLoss as a loss function.
+            2. (anchor, positive) pairs or (anchor, positive, negative) triplets
 
         Inputs:
             +-------------------------------------------------+--------+
@@ -88,3 +93,8 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
                 trainer.train()
         """
         return super().__init__(model, scale=scale, similarity_fct=similarity_fct)
+
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+        raise AttributeError(
+            "SparseMultipleNegativesRankingLoss should not be used alone. Use it with SpladeLoss or CSRLoss."
+        )

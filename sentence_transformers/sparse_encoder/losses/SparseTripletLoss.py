@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
+from torch import Tensor
+
 from sentence_transformers.losses.TripletLoss import TripletDistanceMetric, TripletLoss
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
@@ -29,7 +33,8 @@ class SparseTripletLoss(TripletLoss):
             - For further details, see: https://en.wikipedia.org/wiki/Triplet_loss
 
         Requirements:
-            1. (anchor, positive, negative) triplets
+            1. Need to be used in SpladeLoss or CSRLoss as a loss function.
+            2. (anchor, positive, negative) triplets
 
         Inputs:
             +---------------------------------------+--------+
@@ -59,3 +64,6 @@ class SparseTripletLoss(TripletLoss):
                 trainer.train()
         """
         super().__init__(model, distance_metric=distance_metric, triplet_margin=triplet_margin)
+
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+        raise AttributeError("SparseTripletLoss shold not be used alone. Use it with SpladeLoss or CSRLoss.")

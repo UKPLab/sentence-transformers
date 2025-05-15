@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
+from torch import Tensor
+
 from sentence_transformers import util
 from sentence_transformers.losses.MarginMSELoss import MarginMSELoss
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
@@ -29,8 +33,9 @@ class SparseMarginMSELoss(MarginMSELoss):
             - `Unsupervised Learning > Domain Adaptation <../../../examples/sentence_transformer/domain_adaptation/README.html>`_
 
         Requirements:
-            1. (query, passage_one, passage_two) triplets or (query, positive, negative_1, ..., negative_n)
-            2. Usually used with a finetuned teacher M in a knowledge distillation setup
+            1. Need to be used in SpladeLoss or CSRLoss as a loss function.
+            2. (query, passage_one, passage_two) triplets or (query, positive, negative_1, ..., negative_n)
+            3. Usually used with a finetuned teacher M in a knowledge distillation setup
 
         Inputs:
             +------------------------------------------------+------------------------------------------------------------+
@@ -159,3 +164,6 @@ class SparseMarginMSELoss(MarginMSELoss):
                 trainer.train()
         """
         return super().__init__(model, similarity_fct=similarity_fct)
+
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+        raise AttributeError("SparseMarginMSELoss should not be used alone. Use it with SpladeLoss or CSRLoss.")

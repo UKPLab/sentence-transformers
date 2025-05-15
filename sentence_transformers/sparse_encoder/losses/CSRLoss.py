@@ -57,9 +57,9 @@ class CSRReconstructionLoss(nn.Module):
         self.beta = beta
 
     def forward(self, sentence_features: Iterable[dict[str, torch.Tensor]]) -> dict[str, torch.Tensor]:
-        # Compute embeddings using the model
-        outputs = [self.model(sentence_feature) for sentence_feature in sentence_features]
-        return self.compute_loss_from_embeddings(outputs)
+        raise NotImplementedError(
+            "CSRReconstructionLoss is not intended to be used standalone. Use it within CSRLoss instead."
+        )
 
     def compute_loss_from_embeddings(self, outputs: list[dict[str, torch.Tensor]]) -> dict[str, torch.Tensor]:
         """
