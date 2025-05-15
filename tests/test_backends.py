@@ -39,7 +39,8 @@ if is_ci():
 )  # <- Using a file_name is fine when exporting
 def test_backend_export(backend, expected_auto_model_class, model_kwargs) -> None:
     if backend == "ipex" and platform.system() != "Linux":
-        pytest.skip("IPEX backend is only available on Linux")
+        # CPU IPEX does not support Windows
+        return
 
     model = SentenceTransformer(
         "sentence-transformers-testing/stsb-bert-tiny-safetensors", backend=backend, model_kwargs=model_kwargs
