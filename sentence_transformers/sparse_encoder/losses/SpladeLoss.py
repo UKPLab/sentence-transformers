@@ -39,7 +39,7 @@ class SpladeLoss(nn.Module):
                 If None, no query regularization will be applied, it's not a problem if you are in an inference-free setup or
                 if you are having all_docs=True. Else you should have a lambda_query > 0.
             all_docs: If True, all input embeddings are treated as documents and regularized together with lambda_corpus.
-                Espacially useful when training with input likes sentence pairs or more.
+                Especially useful when training with symmetric texts (e.g. pairs of documents) or more.
             threshold: Optional threshold for the number of non-zero elements in the embeddings to be considered in the FlopsLoss.
                 If specified, only embeddings with more than this number of non-zero elements will be considered.
                 This can help to ignore embeddings that are too sparse and may not contribute meaningfully to the loss.
