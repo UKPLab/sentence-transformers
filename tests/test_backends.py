@@ -3,7 +3,6 @@ from __future__ import annotations
 import gc
 import json
 import os
-import platform
 import tempfile
 from pathlib import Path
 
@@ -18,10 +17,13 @@ try:
 except ImportError:
     pytest.skip("OpenVINO and ONNX backends are not available", allow_module_level=True)
 
+
+BACKENDS = [("onnx", ORTModelForFeatureExtraction), ("openvino", OVModelForFeatureExtraction)]
 try:
     from optimum.intel import IPEXModel
+    BACKENDS.append(("ipex", IPEXModel))
 except ImportError:
-    pytest.skip("IPEX backend is not available", allow_module_level=True)
+    pass
 
 from sentence_transformers import SentenceTransformer
 
@@ -32,16 +34,12 @@ if is_ci():
 ## Testing exporting:
 @pytest.mark.parametrize(
     ["backend", "expected_auto_model_class"],
-    [("onnx", ORTModelForFeatureExtraction), ("openvino", OVModelForFeatureExtraction), ("ipex", IPEXModel)],
+    BACKENDS,
 )
 @pytest.mark.parametrize(
     "model_kwargs", [{}, {"file_name": "wrong_file_name"}]
 )  # <- Using a file_name is fine when exporting
 def test_backend_export(backend, expected_auto_model_class, model_kwargs) -> None:
-    if backend == "ipex" and platform.system() != "Linux":
-        # CPU IPEX does not support Windows
-        return
-
     model = SentenceTransformer(
         "sentence-transformers-testing/stsb-bert-tiny-safetensors", backend=backend, model_kwargs=model_kwargs
     )
