@@ -64,6 +64,7 @@ class SparseMarginMSELoss(MarginMSELoss):
             ::
 
                 from datasets import Dataset
+
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
                 model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
@@ -75,8 +76,8 @@ class SparseMarginMSELoss(MarginMSELoss):
                         "label": [0.1, 0.8],
                     }
                 )
-                loss = losses.SparseMarginMSELoss(model)
 
+                loss = losses.SpladeLoss(model, losses.SparseMarginMSELoss(model), lambda_corpus=3e-5, lambda_query=5e-5)
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
 
@@ -86,11 +87,11 @@ class SparseMarginMSELoss(MarginMSELoss):
             ::
 
                 from datasets import Dataset
-                from sentence_transformers import SentenceTransformer
+
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                student_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
-                teacher_model = SentenceTransformer("all-mpnet-base-v2")
+                student_model = SparseEncoder("distilbert/distilbert-base-uncased")
+                teacher_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
                 train_dataset = Dataset.from_dict(
                     {
                         "query": ["It's nice weather outside today.", "He drove to work."],
@@ -111,7 +112,9 @@ class SparseMarginMSELoss(MarginMSELoss):
 
 
                 train_dataset = train_dataset.map(compute_labels, batched=True)
-                loss = losses.SparseMarginMSELoss(student_model)
+                loss = losses.SpladeLoss(
+                    student_model, losses.SparseMarginMSELoss(student_model), lambda_corpus=3e-5, lambda_query=5e-5
+                )
 
                 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
@@ -123,11 +126,10 @@ class SparseMarginMSELoss(MarginMSELoss):
                 import torch
                 from datasets import Dataset
 
-                from sentence_transformers import SentenceTransformer
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                student_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
-                teacher_model = SentenceTransformer("all-mpnet-base-v2")
+                student_model = SparseEncoder("distilbert/distilbert-base-uncased")
+                teacher_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
                 train_dataset = Dataset.from_dict(
                     {
                         "query": ["It's nice weather outside today.", "He drove to work."],

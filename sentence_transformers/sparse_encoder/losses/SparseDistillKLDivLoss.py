@@ -52,9 +52,10 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
                 import torch
                 from datasets import Dataset
+
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                student_model = SparseEncoder("prithivida/Splade_PP_en_v1")
+                student_model = SparseEncoder("distilbert/distilbert-base-uncased")
                 teacher_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
                 train_dataset = Dataset.from_dict(
                     {
@@ -78,10 +79,13 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
 
                 train_dataset = train_dataset.map(compute_labels, batched=True)
-                loss = losses.SparseDistillKLDivLoss(student_model, similarity_fct=student_model.similarity_pairwise)
+                loss = losses.SpladeLoss(
+                    student_model, loss=losses.SparseDistillKLDivLoss(student_model), lambda_corpus=3e-5, lambda_query=5e-5
+                )
 
                 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
+
 
             With multiple negatives:
 
