@@ -15,9 +15,13 @@ Also see [**Training Examples**](training/examples) for numerous training script
 
 
 ## Training Components
-Training Sparse Encoder models involves between 3 to 5 components just like [training Sentence Transformer models](../sentence_transformer/training_overview.md):
+Training Sparse Encoder models involves between 4 to 6 components:
 
 <div class="components">
+    <a href="#model" class="box">
+        <div class="header">Model</div>
+        Learn how to initialize the <b>model</b> for training.
+    </a>
     <a href="#dataset" class="box">
         <div class="header">Dataset</div>
         Learn how to prepare the <b>data</b> for training.
@@ -40,6 +44,153 @@ Training Sparse Encoder models involves between 3 to 5 components just like [tra
     </a>
 </div>
 <p></p>
+
+## Model
+```{eval-rst}
+
+Sparse Encoder models consist of a sequence of `Modules <../package_reference/sentence_transformer/models.html>`_,  `Sparse Encoder specific ones <../package_reference/sparse_encoder/models.html>`_ or `Custom Modules <../sentence_transformer/usage/custom_models.html#advanced-custom-modules>`_, allowing for a lot of flexibility. If you want to further finetune a SparseEncoder model (e.g. it has a `modules.json file <https://huggingface.co/naver/splade-cocondenser-ensembledistil/tree/main/modules.json>`_), then you don't have to worry about which modules are used::
+
+    from sentence_transformers import SparseEncoder
+
+    model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+But if instead you want to train from another checkpoint, or from scratch, then these are the most common architectures you can use:
+
+.. tab:: Splade
+
+    Splade models use the :class:`~sentence_transformers.sparse_encoder.models.MLMTransformer` followed by a :class:`~sentence_transformers.sparse_encoder.models.SpladePooling` modules. The former loads a pretrained Masked Language Model transformer model (e.g. `BERT <https://huggingface.co/google-bert/bert-base-uncased>`_, `RoBERTa <https://huggingface.co/FacebookAI/roberta-base>`_, `DistilBERT <https://huggingface.co/distilbert/distilbert-base-uncased>`_, `ModernBERT <https://huggingface.co/answerdotai/ModernBERT-base>`_, etc.) and the latter pools the output of the MLMHead to produce a single vector representation of the size of the vocabularies.
+    
+    .. raw:: html
+
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.MLMTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.MLMTransformer</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.SpladePooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.SpladePooling</span></code></a></li>
+            </ul>
+        </div>
+
+    ::
+
+        from sentence_transformers import models, SparseEncoder
+        from sentence_transformers.sparse_encoder.models import MLMTransformer, SpladePooling
+
+        # Initialize MLM Transformer (use a fill-mask model)
+        mlm_transformer = MLMTransformer("google-bert/bert-base-uncased")
+        
+        # Initialize SpladePooling module
+        splade_pooling = SpladePooling(pooling_strategy="max")
+
+        # Create the Splade model
+        model = SparseEncoder(modules=[mlm_transformer, splade_pooling])
+    
+    This architecture is the default if you provide a fill-mask model architecture to SparseEncoder, so it's easier to use the shortcut:.
+
+    ::
+
+        from sentence_transformers import SparseEncoder
+
+        model = SparseEncoder("google-bert/bert-base-uncased")
+
+
+.. tab:: Contrastive Sparse Representation (CSR) 
+
+    Contrastive Sparse Representation (CSR) models use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` modules to create sparse representations on top of an already trained encoder with Sentence Transfortmer.
+
+    .. raw:: html
+
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Transformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Transformer</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Pooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Pooling</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.CSRSparsity"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.CSRSparsity</span></code></a></li>
+            </ul>
+        </div>
+
+    ::
+
+        from sentence_transformers import models, SparseEncoder
+        from sentence_transformers.sparse_encoder.models import CSRSparsity
+
+        # Initialize transformer (can be any dense encoder model)
+        transformer = models.Transformer("google-bert/bert-base-uncased")
+        
+        # Initialize pooling
+        pooling = models.Pooling(transformer.get_word_embedding_dimension(), pooling_mode="mean")
+        
+        # Initialize CSRSparsity module
+        csr_sparsity = CSRSparsity(
+            input_dim=transformer.get_word_embedding_dimension(),
+            hidden_dim=4 * transformer.get_word_embedding_dimension(),
+            k=256,  # Number of top values to keep
+            k_aux=512,  # Number of top values for auxiliary loss
+        )
+        # Create the CSR model
+        model = SparseEncoder(modules=[transformer, pooling, csr_sparsity])
+    
+    If a Transformer model is passed, it will automatically be loaded and a mean pooling and a CSRSparsity module will be added. As well for a Sentence Transformer, it will auto-loaded it and then add a default CSRSparsity on top of it, so it's easier to use the shortcut:
+
+    ::
+
+        from sentence_transformers import SparseEncoder
+
+        model = SparseEncoder("nvidia/NV-Embed-v2")
+
+    
+    .. tip::
+
+        CSR Sparsity can work on top of any dense encoder models but probably more useful fo the ones with high dimension representation like 4096 to try to improve the efficiency of the representation. 
+
+.. tab:: Splade Inference-free
+
+    Splade Inference-free uses an :class:`~sentence_transformers.models.Asym` module with different modules for queries and documents. Usually for this type of architecture, the documents part is a traditional splade architecture (with a :class:`~sentence_transformers.sparse_encoder.models.MLMTransformer` followed by a :class:`~sentence_transformers.sparse_encoder.models.SpladePooling` modules) and the query one is an :class:`~sentence_transformers.sparse_encoder.models.IDF` modules.
+
+    .. raw:: html
+
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Asym"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Asym</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.IDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.IDF</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.MLMTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.MLMTransformer</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.SpladePooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.SpladePooling</span></code></a></li>
+            </ul>
+        </div>
+
+    ::
+
+        from sentence_transformers import models, SparseEncoder
+        from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
+
+        # Initialize MLM Transformer for document encoding
+        doc_encoder = MLMTransformer("google-bert/bert-base-uncased")
+
+        # Create an asymmetric model with different paths for queries and documents
+        asym = models.Asym(
+            {
+                "query": [IDF(tokenizer=doc_encoder.tokenizer, frozen=False)],
+                "doc": [
+                    # Document path: full MLM transformer + pooling
+                    doc_encoder,
+                    SpladePooling("max"),
+                ],
+            }
+        )
+
+        # Create the inference-free model
+        model = SparseEncoder(
+            modules=[asym],
+            similarity_fn_name="dot",
+        )
+
+    
+    This architecture allows for fast query-time processing using the lightweight IDF approach, that can be trained and seen as a linear weights, while documents are processed with the full MLM transformer and SpladePooling.
+
+    .. tip::
+
+        Splade Inference-free is particularly useful for search applications where query latency is critical, as it shifts the computational complexity to the document indexing phase.
+```
 
 ## Dataset
 ```{eval-rst}
@@ -545,7 +696,7 @@ The top performing models are trained using many datasets at once. Normally, thi
 
 Each training/evaluation batch will only contain samples from one of the datasets. The order in which batches are samples from the multiple datasets is defined by the :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers` enum, which can be passed to the :class:`~sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments` via ``multi_dataset_batch_sampler``. Valid options are:
 
-- ``MultiDatasetBatchSamplers.ROUND_ROBIN``: Round-robin sampling from each dataset until one is exhausted. With this strategy, it’s likely that not all samples from each dataset are used, but each dataset is sampled from equally.
+- ``MultiDatasetBatchSamplers.ROUND_ROBIN``: Round-robin sampling from each dataset until one is exhausted. With this strategy, it's likely that not all samples from each dataset are used, but each dataset is sampled from equally.
 - ``MultiDatasetBatchSamplers.PROPORTIONAL`` (default): Sample from each dataset in proportion to its size. With this strategy, all samples from each dataset are used and larger datasets are sampled from more frequently.
 ```
 

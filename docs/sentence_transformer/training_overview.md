@@ -15,9 +15,13 @@ Also see [**Training Examples**](training/examples) for numerous training script
 
 
 ## Training Components
-Training Sentence Transformer models involves between 3 to 5 components:
+Training Sentence Transformer models involves between 4 to 6 components:
 
 <div class="components">
+    <a href="#model" class="box">
+        <div class="header">Model</div>
+        Learn how to initialize the <b>model</b> for training.
+    </a>
     <a href="#dataset" class="box">
         <div class="header">Dataset</div>
         Learn how to prepare the <b>data</b> for training.
@@ -41,6 +45,88 @@ Training Sentence Transformer models involves between 3 to 5 components:
 </div>
 <p></p>
 
+## Model
+```{eval-rst}
+
+Sentence Transformer models consist of a sequence of `Modules <../package_reference/sentence_transformer/models.html>`_ or `Custom Modules <usage/custom_models.html#advanced-custom-modules>`_, allowing for a lot of flexibility. If you want to further finetune a SentenceTransformer model (e.g. it has a `modules.json file <https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/blob/main/modules.json>`_), then you don't have to worry about which modules are used::
+
+    from sentence_transformers import SentenceTransformer
+
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
+But if instead you want to train from another checkpoint, or from scratch, then these are the most common architectures you can use:
+
+.. tab:: Transformers
+
+    Most Sentence Transformer models use the :class:`~sentence_transformers.models.Transformer` and :class:`~sentence_transformers.models.Pooling` modules. The former loads a pretrained transformer model (e.g. `BERT <https://huggingface.co/google-bert/bert-base-uncased>`_, `RoBERTa <https://huggingface.co/FacebookAI/roberta-base>`_, `DistilBERT <https://huggingface.co/distilbert/distilbert-base-uncased>`_, `ModernBERT <https://huggingface.co/answerdotai/ModernBERT-base>`_, etc.) and the latter pools the output of the transformer to produce a single vector representation for each input sentence.
+
+    .. raw:: html
+
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Transformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Transformer</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Pooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Pooling</span></code></a></li>
+            </ul>
+        </div>
+
+    ::
+
+        from sentence_transformers import models, SentenceTransformer
+
+        transformer = models.Transformer("google-bert/bert-base-uncased")
+        pooling = models.Pooling(transformer.get_word_embedding_dimension(), pooling_mode="mean")
+
+        model = SentenceTransformer(modules=[transformer, pooling])
+    
+    This is the default option in Sentence Transformers, so it's easier to use the shortcut:
+
+    ::
+
+        from sentence_transformers import SentenceTransformer
+
+        model = SentenceTransformer("google-bert/bert-base-uncased")
+
+    .. tip::
+
+        The strongest base models are often "encoder models", i.e. models that are trained to produce a meaningful token embedding for inputs. You can find strong candidates here:
+
+        - `fill-mask models <https://huggingface.co/models?pipeline_tag=fill-mask>`_ - trained for token embeddings
+        - `sentence similarity models <https://huggingface.co/models?pipeline_tag=sentence-similarity>`_ - trained for text embeddings
+        - `feature-extraction models <https://huggingface.co/models?pipeline_tag=feature-extraction>`_ - trained for text embeddings
+
+        Consider looking for base models that are designed on your language and/or domain of interest. For example, `FacebookAI/xlm-roberta-base <https://huggingface.co/FacebookAI/xlm-roberta-base>`_ will work better than `google-bert/bert-base-uncased <https://huggingface.co/google-bert/bert-base-uncased>`_ for Turkish.
+
+.. tab:: Static
+
+    Static Embedding models (`blogpost <https://huggingface.co/blog/static-embeddings>`_) use the :class:`~sentence_transformers.models.StaticEmbedding` module, and are encoder models that don't use slow transformers or attention mechanisms. For these models, computing embeddings is simply: given the input token, return the pre-computed token embedding. These models are orders of magnitude faster, but cannot capture complex semantics as token embeddings are computed separate from the context.
+
+    .. raw:: html
+
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference external" href="https://huggingface.co/blog/static-embeddings">Static Embedding Models</a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.StaticEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.StaticEmbedding</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.StaticEmbedding.from_model2vec"><code class="xref py py-meth docutils literal notranslate"><span class="pre">sentence_transformers.models.StaticEmbedding.from_model2vec</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.StaticEmbedding.from_distillation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">sentence_transformers.models.StaticEmbedding.from_distillation</span></code></a></li>
+            </ul>
+        </div>
+
+    ::
+
+        from sentence_transformers import models, SentenceTransformer
+        from tokenizers import Tokenizer
+
+        # Load any Tokenizer from Hugging Face
+        tokenizer = Tokenizer.from_pretrained("google-bert/bert-base-uncased")
+        # The `embedding_dim` is the dimensionality (size) of the token embeddings
+        static_embedding = StaticEmbedding(tokenizer, embedding_dim=512)
+
+        model = SentenceTransformer(modules=[static_embedding])
+
+```
+
 ## Dataset
 ```{eval-rst}
 The :class:`SentenceTransformerTrainer` trains and evaluates using :class:`datasets.Dataset` (one dataset) or :class:`datasets.DatasetDict` instances (multiple datasets, see also `Multi-dataset training <#multi-dataset-training>`_). 
@@ -55,7 +141,7 @@ The :class:`SentenceTransformerTrainer` trains and evaluates using :class:`datas
             <p class="sidebar-title">Documentation</p>
             <ul class="simple">
                 <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/loading#hugging-face-hub">Datasets, Loading from the Hugging Face Hub</a></li>
-                <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/package_reference/loading_methods#datasets.load_dataset" title="(in datasets vmain)"><code class="xref py py-func docutils literal notranslate"><span class="pre">datasets.load_dataset()</span></code></a></li>
+                <li><a class="reference external" href="https://huggingface.co/docs/datasets/main/en/package_reference/loading_methods#datasets.load_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">datasets.load_dataset()</span></code></a></li>
                 <li><a class="reference external" href="https://huggingface.co/datasets/sentence-transformers/all-nli">sentence-transformers/all-nli</a></li>
             </ul>
         </div>

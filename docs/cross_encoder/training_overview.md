@@ -9,9 +9,13 @@ See [**Training Examples**](training/examples) for numerous training scripts for
 
 
 ## Training Components
-Training Cross Encoder models involves between 3 to 5 components, just like [training Sentence Transformer models](../sentence_transformer/training_overview.md):
+Training Cross Encoder models involves between 4 to 6 components, just like [training Sentence Transformer models](../sentence_transformer/training_overview.md):
 
 <div class="components">
+    <a href="#model" class="box">
+        <div class="header">Model</div>
+        Learn how to initialize the <b>model</b> for training.
+    </a>
     <a href="#dataset" class="box">
         <div class="header">Dataset</div>
         Learn how to prepare the <b>data</b> for training.
@@ -34,6 +38,38 @@ Training Cross Encoder models involves between 3 to 5 components, just like [tra
     </a>
 </div>
 <p></p>
+
+## Model
+```{eval-rst}
+
+Cross Encoder models are initialized by loading a pretrained `transformers <https://huggingface.co/docs/transformers>`_ model using a sequence classification head. If the model itself does not have such a head, then it will be added automatically. Consequently, initializing a Cross Encoder model is rather simple:
+
+.. sidebar:: Documentation
+
+    - :class:`sentence_transformers.cross_encoder.CrossEncoder`
+
+::
+
+    from sentence_transformers import CrossEncoder
+
+    # This model already has a sequence classification head
+    model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
+    # And this model does not, so it will be added automatically
+    model = CrossEncoder("google-bert/bert-base-uncased")
+
+.. tip::
+
+    You can find pretrained reranker models in the `Cross Encoder > Pretrained Models <pretrained_models.html>`_ documentation.
+
+    For other models, the strongest pretrained models are often "encoder models", i.e. models that are trained to produce a meaningful token embedding for inputs. You can find strong candidates here:
+
+    - `fill-mask models <https://huggingface.co/models?pipeline_tag=fill-mask>`_ - trained for token embeddings
+    - `sentence similarity models <https://huggingface.co/models?pipeline_tag=sentence-similarity>`_ - trained for text embeddings
+    - `feature-extraction models <https://huggingface.co/models?pipeline_tag=feature-extraction>`_ - trained for text embeddings
+
+    Consider looking for base models that are designed on your language and/or domain of interest. For example, `klue/bert-base <https://huggingface.co/klue/bert-base>`_ will work much better than `google-bert/bert-base-uncased <https://huggingface.co/google-bert/bert-base-uncased>`_ for Korean.
+
+```
 
 ## Dataset
 ```{eval-rst}
