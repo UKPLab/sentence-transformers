@@ -1,5 +1,7 @@
 """
 This script contains an example how to perform semantic search with Seismic.
+For more information, please refer to the documentation:
+https://github.com/TusKANNy/seismic/blob/main/docs/Guidelines.md
 
 All you need is installing the `pyseismic-lsr` package:
 ```

@@ -405,7 +405,7 @@ def semantic_search_seismic(
         query_values.append(query_values_arr[start:end])
 
     if "query_cut" not in search_kwargs:
-        search_kwargs["query_cut"] = 20
+        search_kwargs["query_cut"] = 10
     if "heap_factor" not in search_kwargs:
         search_kwargs["heap_factor"] = 0.7
     results = corpus_index.batch_search(
