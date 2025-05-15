@@ -510,12 +510,18 @@ class SentenceTransformerTrainer(Trainer):
         return output
 
     def _load_best_model(self) -> None:
-        # We want to ensure that this does not fail, and it may change if transformers updates how checkpoints are saved
-        # Loading the best model is only supported for `transformers`-based models
-        if not hasattr(self.model[0], "auto_model"):
-            logger.info("Could not load best model, as the model is not a `transformers`-based model.")
+        # Attempt to load the model from self.state.best_model_checkpoint
+        logger.info(f"Loading best model from {self.state.best_model_checkpoint} (score: {self.state.best_metric}).")
+        try:
+            dummy_model = self.model.__class__(
+                self.state.best_model_checkpoint,
+                trust_remote_code=self.model.trust_remote_code,
+            )
+        except Exception as exc:
+            logger.error(f"Could not load the best model from {self.state.best_model_checkpoint}. Error: {str(exc)}")
             return
 
+        # Store the best model checkpoint in the model card
         try:
             if checkpoint := self.state.best_model_checkpoint:
                 step = checkpoint.rsplit("-", 1)[-1]
@@ -523,16 +529,9 @@ class SentenceTransformerTrainer(Trainer):
         except Exception:
             pass
 
-        # Override the model with the `transformers`-based auto_model, and restore the original SentenceTransformers
-        # model with the loaded `transformers` model
-        full_model = self.model
-        self.model = self.model[0].auto_model
-        try:
-            return super()._load_best_model()
-        finally:
-            loaded_auto_model = self.model
-            self.model = full_model
-            self.model[0].auto_model = loaded_auto_model
+        # Ideally, the only changes between self.model and the dummy model are the weights
+        # so we should be able to just copy the state dict
+        self.model.load_state_dict(dummy_model.state_dict())
 
     def validate_column_names(self, dataset: Dataset, dataset_name: str | None = None) -> None:
         if isinstance(dataset, dict):
