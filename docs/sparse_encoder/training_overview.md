@@ -334,12 +334,15 @@ Loss functions quantify how well a model performs for a given batch of data, all
 Sadly, there is no single loss function that works best for all use-cases. Instead, which loss function to use greatly depends on your available data and on your target task. See [Dataset Format](#dataset-format) to learn what datasets are valid for which loss functions. Additionally, the [Loss Overview](loss_overview) will be your best friend to learn about the options.
 
 ```{eval-rst}
+
+To train a :class:`~sentence_transformers.sparse_encoder.SparseEncoder`, you need either :class:`~sentence_transformers.sparse_encoder.losses.SpladeLoss` or :class:`~sentence_transformers.sparse_encoder.losses.CSRLoss`, depending on the architecture. These are wrapper losses that add sparsity regularization on top of a main loss function, which must be provided as a parameter. The only loss that can be used independently is :class:`~sentence_transformers.sparse_encoder.losses.SparseMSELoss`, as it performs embedding-level distillation, ensuring sparsity by directly copying the teacher's sparse embedding.
+
 Most loss functions can be initialized with just the :class:`~sentence_transformers.sparse_encoder.SparseEncoder` that you're training, alongside some optional parameters, e.g.:
 
 .. sidebar:: Documentation
 
     - :class:`sentence_transformers.sparse_encoder.losses.SpladeLoss`
-    - :class:`sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`
+    - :class:`sentence_transformers.sparse_encoder.losses.CSRLoss`
     - `Losses API Reference <../package_reference/sparse_encoder/losses.html>`_
     - `Loss Overview <loss_overview.html>`_
 
