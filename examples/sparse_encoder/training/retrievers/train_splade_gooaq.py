@@ -1,12 +1,12 @@
 """
-This example trains a SparseEncoder for the Natural Questions (NQ) dataset.
+This example trains a SparseEncoder for the GooAQ dataset.
 The training script fine-tunes a SparseEncoder using the Splade loss function for retrieval.
-It loads a subset of the Natural Questions dataset, splits it into training and evaluation subsets,
+It loads a subset of the GooAQ dataset, splits it into training and evaluation subsets,
 and trains the model as a retriever. After training, the model is evaluated and saved locally,
 with an optional step to push the trained model to the Hugging Face Hub.
 
 Usage:
-python train_splade_nq.py
+python train_splade_gooaq.py
 """
 
 import logging
@@ -39,15 +39,15 @@ def main():
         model_card_data=SparseEncoderModelCardData(
             language="en",
             license="apache-2.0",
-            model_name="splade-distilbert-base-uncased trained on Natural Questions",
+            model_name="splade-distilbert-base-uncased trained on GooAQ",
         ),
     )
     model.max_seq_length = 256  # Set the max sequence length to 256 for the training
     print("Model max length:", model.max_seq_length)
 
-    # 2. Load the NQ dataset: https://huggingface.co/datasets/sentence-transformers/natural-questions
-    logging.info("Read the Natural Questions training dataset")
-    full_dataset = load_dataset("sentence-transformers/natural-questions", split="train").select(range(100_000))
+    # 2a. Load the GooAQ dataset: https://huggingface.co/datasets/sentence-transformers/gooaq
+    logging.info("Read the gooaq training dataset")
+    full_dataset = load_dataset("sentence-transformers/gooaq", split="train").select(range(100_000))
     dataset_dict = full_dataset.train_test_split(test_size=1_000, seed=12)
     train_dataset = dataset_dict["train"]
     eval_dataset = dataset_dict["test"]
@@ -72,7 +72,7 @@ def main():
 
     # 5. Define the training arguments
     short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
-    run_name = f"splade-{short_model_name}-nq"
+    run_name = f"splade-{short_model_name}-gooaq"
     training_args = SparseEncoderTrainingArguments(
         # Required parameter:
         output_dir=f"models/{run_name}",
