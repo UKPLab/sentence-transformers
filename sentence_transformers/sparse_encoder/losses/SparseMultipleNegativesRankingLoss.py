@@ -70,16 +70,19 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
             ::
 
                 from datasets import Dataset
+
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+                model = SparseEncoder("distilbert/distilbert-base-uncased")
                 train_dataset = Dataset.from_dict(
                     {
                         "anchor": ["It's nice weather outside today.", "He drove to work."],
                         "positive": ["It's so sunny.", "He took the car to the office."],
                     }
                 )
-                loss = losses.SparseMultipleNegativesRankingLoss(model)
+                loss = losses.SpladeLoss(
+                    model=model, loss=losses.SparseMultipleNegativesRankingLoss(model), lambda_corpus=3e-5, lambda_query=5e-5
+                )
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()

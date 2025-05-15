@@ -6,7 +6,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from sentence_transformers import util
 from sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss import (
     SparseMultipleNegativesRankingLoss,
 )
@@ -122,55 +121,36 @@ class CSRReconstructionLoss(nn.Module):
 
 
 class CSRLoss(nn.Module):
-    def __init__(
-        self,
-        model: SparseEncoder,
-        beta: float = 0.1,
-        gamma: float = 1.0,
-        scale: float = 1.0,
-        similarity_fct=util.dot_score,
-    ):
+    def __init__(self, model: SparseEncoder, loss: nn.Module = None, beta: float = 0.1, gamma: float = 1.0):
         """
         CSRLoss implements a combined loss function for Contrastive Sparse Representation (CSR) models.
 
         This loss combines two components:
 
         1. A reconstruction loss :class:`CSRReconstructionLoss` that ensures the sparse representation can faithfully
-           reconstruct the original embedding.
-        2. A contrastive learning component :class:`SparseMultipleNegativesRankingLoss` that ensures semantically
-           similar sentences have similar representations.
+            reconstruct the original embedding.
+        2. A main loss, which in the paper is a :class:`SparseMultipleNegativesRankingLoss` that ensures semantically
+            similar sentences have similar representations.
 
         The total loss is linear combination of the two losses.
 
         Args:
             model: SparseEncoder model
+            loss: The principal loss function to use can be any of the SparseEncoder losses except flops loss and CSRReconstruction loss.
+                If None, the default loss is used, which is the SparseMultipleNegativesRankingLoss.
             beta: Weight for the L_aux component in the reconstruction loss. Default is 0.1.
-            gamma: Weight for the contrastive MRL loss component. Default is 1.0.
-            scale: Scale factor for the similarity scores in the MRL loss. Default is 1.0.
-            similarity_fct: Similarity function to use for the MRL loss. Default is dot product.
+            gamma: Weight for the main loss component (MRL by default). Default is 1.0.
 
         References:
             - For more details, see the paper "Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation"
-              https://arxiv.org/abs/2503.01776
+            https://arxiv.org/abs/2503.01776
 
         Requirements:
-            1. (anchor, positive) pairs or (anchor, positive, negative) triplets
+            1. Input requirements depend on the chosen loss
             2. Uses autoencoder components of the SparseEncoder model
-
-        Inputs:
-            +-------------------------------------------------+--------+
-            | Texts                                           | Labels |
-            +=================================================+========+
-            | (anchor, positive) pairs                        | none   |
-            +-------------------------------------------------+--------+
-            | (anchor, positive, negative) triplets           | none   |
-            +-------------------------------------------------+--------+
-            | (anchor, positive, negative_1, ..., negative_n) | none   |
-            +-------------------------------------------------+--------+
 
         Relations:
             - Uses :class:`CSRReconstructionLoss` for the reconstruction component
-            - Uses :class:`SparseMultipleNegativesRankingLoss` for the contrastive component
 
         Example:
             ::
@@ -186,7 +166,7 @@ class CSRLoss(nn.Module):
                         "negative": ["It's quite rainy, sadly.", "She walked to the store."],
                     }
                 )
-                loss = losses.CSRLoss(model, beta=0.1, gamma=1.0, scale=20.0)
+                loss = losses.CSRLoss(model, beta=0.1, gamma=1.0)
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
@@ -195,11 +175,10 @@ class CSRLoss(nn.Module):
         self.model = model
         self.beta = beta
         self.gamma = gamma
-        self.scale = scale
 
         # Initialize the component losses
         self.reconstruction_loss = CSRReconstructionLoss(model=model, beta=beta)
-        self.ranking_loss = SparseMultipleNegativesRankingLoss(model=model, scale=scale, similarity_fct=similarity_fct)
+        self.loss = loss if loss is not None else SparseMultipleNegativesRankingLoss(model=model)
 
     def forward(
         self, sentence_features: Iterable[dict[str, torch.Tensor]], labels: torch.Tensor = None
@@ -210,7 +189,7 @@ class CSRLoss(nn.Module):
 
         recon_loss = self.reconstruction_loss.compute_loss_from_embeddings(outputs)
 
-        ranking_loss = self.ranking_loss.compute_loss_from_embeddings(sentence_embedding, labels)
+        ranking_loss = self.loss.compute_loss_from_embeddings(sentence_embedding, labels)
 
         # Compute total loss: L_CSR = L_recon + γ * L_MRL
         total_loss = recon_loss + self.gamma * ranking_loss
@@ -224,7 +203,7 @@ class CSRLoss(nn.Module):
         Returns:
             Dictionary containing the configuration parameters
         """
-        return {"beta": self.beta, "gamma": self.gamma, "scale": self.scale}
+        return {"beta": self.beta, "gamma": self.gamma, "loss": self.loss}
 
     @property
     def citation(self) -> str:

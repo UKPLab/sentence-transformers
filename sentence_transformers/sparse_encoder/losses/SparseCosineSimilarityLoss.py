@@ -60,9 +60,10 @@ class SparseCosineSimilarityLoss(CosineSimilarityLoss):
                         "score": [1.0, 0.3],
                     }
                 )
-                loss = losses.SparseCosineSimilarityLoss(model)
+                loss = losses.SpladeLoss(model=model, loss=losses.SparseCosineSimilarityLoss(model), lambda_corpus=5e-5, all_docs=True)
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
         """
+        model.similarity_fn_name = "cosine"
         return super().__init__(model, loss_fct=loss_fct, cos_score_transformation=cos_score_transformation)

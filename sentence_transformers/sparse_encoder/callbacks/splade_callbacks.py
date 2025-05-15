@@ -141,5 +141,5 @@ class SpladeLambdaSchedulerCallback(TrainerCallback):
     def on_log(self, args, state, control, model=None, logs=None, **kwargs):
         """Log the current lambda values."""
         logs["lambda_corpus"] = self._current_lambda_corpus
-        if self._current_lambda_query is not None or self.max_lambda_query != 0:
+        if self._current_lambda_query is not None:
             logs["lambda_query"] = self._current_lambda_query

@@ -21,6 +21,7 @@ class SpladeLoss(nn.Module):
         lambda_query: float = None,
         all_docs: bool = False,
         threshold: int = None,
+        regularizer: nn.modules = None,
     ):
         """
         SpladeLoss implements the loss function for the SPLADE (Sparse Lexical and Expansion) model,
@@ -43,6 +44,7 @@ class SpladeLoss(nn.Module):
             threshold: Optional threshold for the number of non-zero elements in the embeddings to be considered in the FlopsLoss.
                 If specified, only embeddings with more than this number of non-zero elements will be considered.
                 This can help to ignore embeddings that are too sparse and may not contribute meaningfully to the loss.
+            regularizer: Optional regularizer to use instead of the default FlopsLoss. This can be useful for custom regularization strategies.
 
         References:
             - For more details, see the paper "From Distillation to Hard Negative Sampling: Making Sparse Neural IR Models More Effective"
@@ -56,9 +58,10 @@ class SpladeLoss(nn.Module):
             ::
 
                 from datasets import Dataset
+
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                student_model = SparseEncoder("prithivida/Splade_PP_en_v1")
+                student_model = SparseEncoder("distilbert/distilbert-base-uncased")
                 teacher_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
                 train_dataset = Dataset.from_dict(
                     {
@@ -79,10 +82,7 @@ class SpladeLoss(nn.Module):
 
                 train_dataset = train_dataset.map(compute_labels, batched=True)
                 loss = losses.SpladeLoss(
-                    student_model,
-                    loss=losses.SparseMarginMSELoss(student_model),
-                    lambda_corpus=3e-5,
-                    lambda_query=5e-5,
+                    student_model, loss=losses.SparseMarginMSELoss(student_model), lambda_corpus=3e-5, lambda_query=5e-5
                 )
 
                 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
@@ -91,7 +91,7 @@ class SpladeLoss(nn.Module):
         super().__init__()
         self.model = model
         self.loss = loss
-        self.regularizer = FlopsLoss(model, threshold=threshold)
+        self.regularizer = regularizer if regularizer is not None else FlopsLoss(model, threshold=threshold)
         self.lambda_corpus = lambda_corpus
         self.lambda_query = lambda_query
 
@@ -115,16 +115,16 @@ class SpladeLoss(nn.Module):
         loss_value = self.loss.compute_loss_from_embeddings(embeddings, labels)
         if self.all_docs:
             # If all_docs is True, we consider all the input to be of the same type and so under the same regularization
-            corpus_loss = self.regularizer.compute_loss_from_embeddings(embeddings)
+            corpus_loss = self.regularizer.compute_loss_from_embeddings(torch.cat(embeddings))
         else:
-            corpus_loss = self.regularizer.compute_loss_from_embeddings(embeddings[1:])
+            corpus_loss = self.regularizer.compute_loss_from_embeddings(torch.cat(embeddings[1:]))
 
         # Compute total loss
         total_loss = loss_value + self.lambda_corpus * corpus_loss
 
         # Add query regularization if enabled
         if self.lambda_query is not None:
-            query_loss = self.regularizer.compute_loss_from_embeddings(embeddings[:1])
+            query_loss = self.regularizer.compute_loss_from_embeddings(embeddings[0])
             total_loss = total_loss + self.lambda_query * query_loss
 
         return total_loss
@@ -142,7 +142,7 @@ class SpladeLoss(nn.Module):
         }
         if self.lambda_query is not None:
             config_dict["lambda_query"] = self.lambda_query
-        if self.threshold is not None:
+        if self.regularizer.threshold is not None:
             config_dict["threshold"] = self.regularizer.threshold
         return config_dict
 
