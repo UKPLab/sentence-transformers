@@ -93,7 +93,7 @@ class SpladeLoss(nn.Module):
         self.loss = loss
         self.regularizer = FlopsLoss(model, threshold=threshold)
         self.lambda_corpus = lambda_corpus
-        self.lambda_query = lambda_corpus
+        self.lambda_query = lambda_query
 
         if self.lambda_query is None and not all_docs:
             logging.warning(
