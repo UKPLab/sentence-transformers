@@ -45,7 +45,7 @@ class IDF(InputModule):
     def __init__(
         self,
         tokenizer: PreTrainedTokenizer,
-        weight: torch.Tensor | None,
+        weight: torch.Tensor | None = None,
         frozen: bool = False,
     ):
         super().__init__()

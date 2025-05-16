@@ -303,6 +303,7 @@ class SentenceTransformerModelCardData(CardData):
             "sentence-transformers",
             "sentence-similarity",
             "feature-extraction",
+            "dense",
         ]
     )
     generate_widget_examples: Literal["deprecated"] = "deprecated"
@@ -330,7 +331,7 @@ class SentenceTransformerModelCardData(CardData):
     pipeline_tag: str = field(default="sentence-similarity", init=False)
     library_name: str = field(default="sentence-transformers", init=False)
     version: dict[str, str] = field(default_factory=get_versions, init=False)
-    template_path: Path = field(default=Path(__file__).parent / "model_card_template.md", init=False)
+    template_path: Path = field(default=Path(__file__).parent / "model_card_template.md", init=False, repr=False)
 
     # Passed via `register_model` only
     model: SentenceTransformer | None = field(default=None, init=False, repr=False)
@@ -489,6 +490,12 @@ class SentenceTransformerModelCardData(CardData):
 
                 if len(sentences) < 4:
                     continue
+
+                # When training with an Asym module, you might be using a dictionary with a mapping of Asym keys to texts,
+                # So let's grab the texts
+                sentences = [
+                    list(sentence.values())[0] if isinstance(sentence, dict) else sentence for sentence in sentences
+                ]
 
                 self.widget.append(
                     {"source_sentence": sentences[0], "sentences": random.sample(sentences[1:], k=len(sentences) - 1)}
@@ -1003,6 +1010,12 @@ class SentenceTransformerModelCardData(CardData):
             "similarity_fn_name": similarity_fn_name,
         }
 
+    def get_default_model_name(self) -> None:
+        if self.base_model:
+            return f"{self.model.__class__.__name__} based on {self.base_model}"
+        else:
+            return self.model.__class__.__name__
+
     def to_dict(self) -> dict[str, Any]:
         # Try to set the base model
         if self.first_save and not self.base_model:
@@ -1013,10 +1026,7 @@ class SentenceTransformerModelCardData(CardData):
 
         # Set the model name
         if not self.model_name:
-            if self.base_model:
-                self.model_name = f"{self.model.__class__.__name__} based on {self.base_model}"
-            else:
-                self.model_name = self.model.__class__.__name__
+            self.model_name = self.get_default_model_name()
 
         super_dict = {field.name: getattr(self, field.name) for field in fields(self)}
 
