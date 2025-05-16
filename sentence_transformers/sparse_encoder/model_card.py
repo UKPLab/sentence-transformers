@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sentence_transformers.model_card import SentenceTransformerModelCardCallback, SentenceTransformerModelCardData
+from sentence_transformers.models import Asym, Module
+from sentence_transformers.sparse_encoder.models import IDF, CSRSparsity, SpladePooling
 from sentence_transformers.util import is_datasets_available
 
 if is_datasets_available():
@@ -67,6 +69,7 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
         default_factory=lambda: [
             "sentence-transformers",
             "sparse-encoder",
+            "sparse",
         ]
     )
 
@@ -75,7 +78,8 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
 
     # Computed once, always unchanged
     pipeline_tag: str = field(default=None, init=False)
-    template_path: Path = field(default=Path(__file__).parent / "model_card_template.md", init=False)
+    template_path: Path = field(default=Path(__file__).parent / "model_card_template.md", init=False, repr=False)
+    model_type: str = field(default="Sparse Encoder", init=False, repr=False)
 
     # Passed via `register_model` only
     model: SparseEncoder | None = field(default=None, init=False, repr=False)
@@ -88,8 +92,26 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
         if self.pipeline_tag is None:
             self.pipeline_tag = "feature-extraction"
 
+        all_modules = [module.__class__ for module in model.modules() if isinstance(module, Module)]
+        model_type = []
+        if Asym in all_modules:
+            model_type += ["Asymmetric"]
+
+        if IDF in all_modules:
+            model_type += ["Inference-free"]
+
+        if SpladePooling in all_modules:
+            model_type += ["SPLADE"]
+
+        if CSRSparsity in all_modules:
+            model_type += ["CSR"]
+
+        self.add_tags(map(str.lower, model_type))
+        model_type += ["Sparse Encoder"]
+        self.model_type = " ".join(model_type)
+
     def tokenize(self, text: str | list[str]) -> dict[str, Any]:
-        return self.model.tokenizer(text)
+        return dict(self.model.tokenizer(text, padding=True, truncation=True, return_tensors="pt"))
 
     def get_model_specific_metadata(self) -> dict[str, Any]:
         similarity_fn_name = "Dot Product"
@@ -106,3 +128,6 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
             "model_string": str(self.model),
             "similarity_fn_name": similarity_fn_name,
         }
+
+    def get_default_model_name(self) -> None:
+        return self.model_type
