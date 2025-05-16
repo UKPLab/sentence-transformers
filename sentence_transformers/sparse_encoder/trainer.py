@@ -247,9 +247,16 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
 
         if loss is None:
             logger.info(
-                "No `loss` passed, using `sparse_encoder.losses.SparseMultipleNegativesRankingLoss` as a default option."
+                "No `loss` passed, using `sparse_encoder.losses.SpladeLoss` as a default option. with "
+                "`SparseMultipleNegativesRankingLoss` as the default loss function."
+                "Be careful we also set the `lambda_query` and `lambda_corpus` but this are really sensitive parameters and should be tuned for your task."
             )
-            loss = SparseMultipleNegativesRankingLoss(self.model)
+            loss = SpladeLoss(
+                model=model,
+                loss=SparseMultipleNegativesRankingLoss(model=model),
+                lambda_query=5e-5,  # Weight for query loss
+                lambda_corpus=3e-5,  # Weight for document loss
+            )
 
         if isinstance(loss, dict):
             self.loss = {dataset_name: self.prepare_loss(loss_fn, model) for dataset_name, loss_fn in loss.items()}
@@ -267,28 +274,6 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
                     )
         else:
             self.loss = self.prepare_loss(loss, model)
-
-        is_splade_loss = isinstance(loss, SpladeLoss) if loss is not None else False
-        splade_scheduler_callback_index = None
-        for idx, callback in enumerate(self.callback_handler.callbacks):
-            if isinstance(callback, SpladeLambdaSchedulerCallback):
-                splade_scheduler_callback_index = idx
-                break
-
-        # If we're using SpladeLoss but don't have a scheduler callback, add one or if it's not the second one in the list
-        if is_splade_loss and (splade_scheduler_callback_index is None or splade_scheduler_callback_index > 1):
-            if splade_scheduler_callback_index is not None:
-                splade_callback = self.callback_handler.callbacks.pop(splade_scheduler_callback_index)
-
-            else:
-                logger.warning(
-                    "SpladeLoss detected without SpladeLambdaSchedulerCallback. "
-                    "Adding default SpladeLambdaSchedulerCallback to gradually increase lambda values from 0 to their maximum."
-                )
-
-                # Create and insert the callback after the default callback informing the trainer when to log, evaluate, save, etc.
-                splade_callback = SpladeLambdaSchedulerCallback(loss=loss)
-            self.callback_handler.callbacks.insert(1, splade_callback)
 
         # If evaluator is a list, we wrap it in a SequentialEvaluator
         if evaluator is not None and not isinstance(evaluator, SentenceEvaluator):
@@ -339,7 +324,34 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         loss: Callable[[SparseEncoder], torch.nn.Module] | torch.nn.Module,
         model: SparseEncoder,
     ) -> torch.nn.Module:
-        return super().prepare_loss(loss=loss, model=model)
+        if isinstance(loss, torch.nn.Module):
+            loss = loss.to(model.device)
+        else:
+            loss = loss(model).to(model.device)
+
+        is_splade_loss = isinstance(loss, SpladeLoss) if loss is not None else False
+        splade_scheduler_callback_index = None
+        for idx, callback in enumerate(self.callback_handler.callbacks):
+            if isinstance(callback, SpladeLambdaSchedulerCallback):
+                splade_scheduler_callback_index = idx
+                break
+
+        # If we're using SpladeLoss but don't have a scheduler callback, add one or if it's not the second one in the list
+        if is_splade_loss and (splade_scheduler_callback_index is None or splade_scheduler_callback_index > 1):
+            if splade_scheduler_callback_index is not None:
+                splade_callback = self.callback_handler.callbacks.pop(splade_scheduler_callback_index)
+
+            else:
+                logger.warning(
+                    "SpladeLoss detected without SpladeLambdaSchedulerCallback. "
+                    "Adding default SpladeLambdaSchedulerCallback to gradually increase lambda values from 0 to their maximum."
+                )
+
+                # Create and insert the callback after the default callback informing the trainer when to log, evaluate, save, etc.
+                splade_callback = SpladeLambdaSchedulerCallback(loss=loss)
+            self.callback_handler.callbacks.insert(1, splade_callback)
+
+        return loss
 
     def compute_loss(
         self,
