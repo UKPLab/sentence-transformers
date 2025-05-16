@@ -120,7 +120,7 @@ def main():
     except Exception:
         logging.error(
             f"Error uploading model to the Hugging Face Hub:\n{traceback.format_exc()}To upload it manually, you can run "
-            f"`huggingface-cli login`, followed by loading the model using `model = CrossEncoder({final_output_dir!r})` "
+            f"`huggingface-cli login`, followed by loading the model using `model = SparseEncoder({final_output_dir!r})` "
             f"and saving it using `model.push_to_hub('{run_name}')`."
         )
 
