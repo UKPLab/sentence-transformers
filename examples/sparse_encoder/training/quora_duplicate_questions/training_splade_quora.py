@@ -136,7 +136,11 @@ def main():
     )
     trainer.train()
 
-    # 7. Save the final model
+    # 7. Evaluate the final model, using the complete NanoBEIR dataset
+    test_evaluator = evaluation.SparseNanoBEIREvaluator(show_progress_bar=True, batch_size=train_batch_size)
+    test_evaluator(model)
+
+    # 8. Save the final model
     final_output_dir = f"models/{run_name}/final"
     model.save_pretrained(final_output_dir)
 
