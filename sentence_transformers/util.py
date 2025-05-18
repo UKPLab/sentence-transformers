@@ -1647,3 +1647,42 @@ def disable_datasets_caching():
     finally:
         if is_originally_enabled:
             enable_caching()
+
+
+def find_pretrained_model_class(model):
+    """
+    Find the class of a pretrained model in a SentenceTransformer model.
+
+    Args:
+        model: The model to search for the pretrained model class.
+
+    Returns:
+        The class of the pretrained model if found, otherwise None.
+    """
+    from transformers.modeling_utils import PreTrainedModel
+
+    from sentence_transformers.models import Transformer
+
+    # Check if the model is a PreTrainedModel
+    if isinstance(model, PreTrainedModel):
+        return type(model)
+
+    # Check if the model is a Transformer
+    if isinstance(model, Transformer) and hasattr(model, "auto_model"):
+        return type(model.auto_model)
+
+    # Check if the model has a modules attribute
+    if hasattr(model, "modules"):
+        for module in model.modules():  # Nutze die offizielle PyTorch-Methode
+            if isinstance(module, Transformer) and hasattr(module, "auto_model"):
+                return type(module.auto_model)
+
+    # Check if the model has _modules attribute
+    if hasattr(model, "_modules"):
+        for module in model._modules.values():
+            result = find_pretrained_model_class(module)
+            if result is not None:
+                return result
+
+    # Else, return None
+    return None
