@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import TYPE_CHECKING, Any, Literal
 
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+from sentence_transformers.util import append_to_last_row
 
 if TYPE_CHECKING:
     import numpy as np
@@ -93,6 +95,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
         max_active_dims: int | None = None,
     ):
         self.max_active_dims = max_active_dims
+        self.sparsity_stats = {"row_non_zero_mean": 0, "row_sparsity_mean": 0}
         return super().__init__(
             sentences1=sentences1,
             sentences2=sentences2,
@@ -106,10 +109,28 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             precision=None,
         )
 
+    def _append_csv_headers(self, similarity_fn_names: list[str]) -> None:
+        super()._append_csv_headers(similarity_fn_names)
+        for sparsity_stat in self.sparsity_stats.keys():
+            self.csv_headers.append(f"{sparsity_stat}")
+
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        return super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
+        metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
+
+        metrics.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
+        self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
+        logger.info(
+            f"Model Sparsity Stats: Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean']}"
+        )
+        if output_path is not None and self.write_csv:
+            append_to_last_row(
+                os.path.join(output_path, self.csv_file),
+                [self.sparsity_stats["row_non_zero_mean"], self.sparsity_stats["row_sparsity_mean"]],
+            )
+
+        return metrics
 
     def embed_inputs(
         self,
@@ -127,9 +148,8 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             **kwargs,
         )
         stat = model.get_sparsity_stats(embeddings)
-        logger.info(
-            f"Model Sparsity Stats: num_rows: {stat['num_rows']}, num_cols: {stat['num_cols']}, row_non_zero_mean: {stat['row_non_zero_mean']}, row_sparsity_mean: {stat['row_sparsity_mean']}"
-        )
+        for key in self.sparsity_stats.keys():
+            self.sparsity_stats[key] += stat[key] / 2
         return embeddings
 
     def store_metrics_in_model_card_data(

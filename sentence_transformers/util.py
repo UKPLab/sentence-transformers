@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import functools
 import heapq
 import importlib
@@ -1752,3 +1753,21 @@ def disable_datasets_caching():
     finally:
         if is_originally_enabled:
             enable_caching()
+
+
+def append_to_last_row(csv_path, additional_data):
+    # Read the entire CSV file
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    if len(rows) > 1:  # Make sure there's at least one data row (after the header)
+        # Append the additional data to the last row
+        rows[-1].extend(additional_data)
+
+        # Write the entire file back
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
+        return True
+    return False
