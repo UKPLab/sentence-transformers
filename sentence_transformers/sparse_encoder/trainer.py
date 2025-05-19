@@ -247,9 +247,9 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
 
         if loss is None:
             logger.info(
-                "No `loss` passed, using `sparse_encoder.losses.SpladeLoss` as a default option. with "
+                "No `loss` passed, using `sentence_transformers.sparse_encoder.losses.SpladeLoss` as a default option. with "
                 "`SparseMultipleNegativesRankingLoss` as the default loss function."
-                "Be careful we also set the `lambda_query` and `lambda_corpus` but this are really sensitive parameters and should be tuned for your task."
+                "Be careful, we also set the `lambda_query` and `lambda_corpus`, but this are really sensitive parameters and should be tuned for your task."
             )
             loss = SpladeLoss(
                 model=model,
