@@ -24,6 +24,7 @@ results = translation_evaluator(model)
 Evaluating translation matching Accuracy of the model on the news-commentary-en-nl dataset:
 Accuracy src2trg: 41.40
 Accuracy trg2src: 47.70
+Model Sparsity Stats: Row Non-Zero Mean: 113.6150016784668, Row Sparsity Mean: 0.9962776005268097
 """
 # Print the results
 print(f"Primary metric: {translation_evaluator.primary_metric}")

@@ -72,6 +72,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             '''
             EmbeddingSimilarityEvaluator: Evaluating the model on the sts_dev dataset:
             Cosine-Similarity :     Pearson: 0.8430 Spearman: 0.8368
+            Model Sparsity Stats: Row Non-Zero Mean: 81.0629997253418, Row Sparsity Mean: 0.997344046831131
             '''
             # Print the results
             print(f"Primary metric: {dev_evaluator.primary_metric}")
@@ -117,6 +118,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
+        self.sparsity_stats = {"row_non_zero_mean": 0, "row_sparsity_mean": 0}
         metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
 
         metrics.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
@@ -148,8 +150,13 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             **kwargs,
         )
         stat = model.get_sparsity_stats(embeddings)
-        for key in self.sparsity_stats.keys():
-            self.sparsity_stats[key] += stat[key] / 2
+        if self.sparsity_stats["row_non_zero_mean"] == 0:
+            for key in self.sparsity_stats.keys():
+                self.sparsity_stats[key] = stat[key]
+        else:
+            for key in self.sparsity_stats.keys():
+                self.sparsity_stats[key] += stat[key]
+                self.sparsity_stats[key] /= 2
         return embeddings
 
     def store_metrics_in_model_card_data(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import TYPE_CHECKING, Callable
 
 import numpy as np
@@ -9,6 +10,7 @@ from sentence_transformers.evaluation.NanoBEIREvaluator import NanoBEIREvaluator
 from sentence_transformers.sparse_encoder.evaluation.SparseInformationRetrievalEvaluator import (
     SparseInformationRetrievalEvaluator,
 )
+from sentence_transformers.util import append_to_last_row
 
 if TYPE_CHECKING:
     from torch import Tensor
@@ -76,8 +78,9 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             '''
             Evaluating NanoQuoraRetrieval
             Information Retrieval Evaluation of the model on the NanoQuoraRetrieval dataset:
-            Query info: num_rows: 50, num_cols: 30522, row_non_zero_mean: 62.97999954223633, row_sparsity_mean: 0.9979365468025208 1/1 [00:04<00:00,  4.12s/it]
-            Corpus info: num_rows: 5046, num_cols: 30522, row_non_zero_mean: 63.394371032714844, row_sparsity_mean: 0.9979230165481567
+            Queries: 50
+            Corpus: 5046
+
             Score-Function: dot
             Accuracy@1: 92.00%
             Accuracy@3: 96.00%
@@ -94,11 +97,13 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             MRR@10: 0.9439
             NDCG@10: 0.9339
             MAP@100: 0.9072
+            Model Sparsity Stats  Query : Row Non-Zero Mean: 62.97999954223633, Row Sparsity Mean: 0.9979365468025208
+            Model Sparsity Stats  Corpus : Row Non-Zero Mean: 63.39932632446289, Row Sparsity Mean: 0.9979228377342224
 
-            Evaluating NanoMSMARCO
             Information Retrieval Evaluation of the model on the NanoMSMARCO dataset:
-            Query info: num_rows: 50, num_cols: 30522, row_non_zero_mean: 48.099998474121094, row_sparsity_mean: 0.99842399358749391/1 [00:19<00:00, 19.40s/it]
-            Corpus info: num_rows: 5043, num_cols: 30522, row_non_zero_mean: 125.38131713867188, row_sparsity_mean: 0.9958921670913696
+            Queries: 50
+            Corpus: 5043
+
             Score-Function: dot
             Accuracy@1: 48.00%
             Accuracy@3: 74.00%
@@ -115,9 +120,11 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             MRR@10: 0.6211
             NDCG@10: 0.6838
             MAP@100: 0.6277
+            Model Sparsity Stats  Query : Row Non-Zero Mean: 48.08000183105469, Row Sparsity Mean: 0.9984247088432312
+            Model Sparsity Stats  Corpus : Row Non-Zero Mean: 125.3604965209961, Row Sparsity Mean: 0.9958928227424622
 
-            Average Querie: num_rows: 50.0, num_cols: 30522.0, row_non_zero_mean: 55.53999900817871, row_sparsity_mean: 0.9981802701950073
-            Average Corpus: num_rows: 5044.5, num_cols: 30522.0, row_non_zero_mean: 94.38784408569336, row_sparsity_mean: 0.9969075918197632
+            Average Queries: 50.0
+            Average Corpus: 5044.5
             Aggregated for Score Function: dot
             Accuracy@1: 70.00%
             Accuracy@3: 85.00%
@@ -133,6 +140,8 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             Recall@10: 93.13%
             MRR@10: 0.7825
             NDCG@10: 0.8089
+            Model Sparsity Stats  Query : Row Non-Zero Mean: 55.53000068664551, Row Sparsity Mean: 0.998180627822876
+            Model Sparsity Stats  Corpus : Row Non-Zero Mean: 94.37991142272949, Row Sparsity Mean: 0.9969078302383423
             '''
             # Print the results
             print(f"Primary metric: {evaluator.primary_metric}")
@@ -164,6 +173,12 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         corpus_prompts: str | dict[str, str] | None = None,
     ):
         self.max_active_dims = max_active_dims
+        self.sparsity_stats = {
+            "row_non_zero_mean_query": 0,
+            "row_sparsity_mean_query": 0,
+            "row_non_zero_mean_corpus": 0,
+            "row_sparsity_mean_corpus": 0,
+        }
         super().__init__(
             dataset_names=dataset_names,
             mrr_at_k=mrr_at_k,
@@ -182,10 +197,47 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             corpus_prompts=corpus_prompts,
         )
 
+    def _append_csv_headers(self, similarity_fn_names):
+        super()._append_csv_headers(similarity_fn_names)
+        for sparsity_stat in self.sparsity_stats.keys():
+            self.csv_headers.append(f"{sparsity_stat}")
+
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
-        return super().__call__(model, output_path=output_path, epoch=epoch, steps=steps, *args, **kwargs)
+        self.sparsity_stats = {
+            "row_non_zero_mean_query": 0,
+            "row_sparsity_mean_query": 0,
+            "row_non_zero_mean_corpus": 0,
+            "row_sparsity_mean_corpus": 0,
+        }
+        per_dataset_results = super().__call__(
+            model, output_path=output_path, epoch=epoch, steps=steps, *args, **kwargs
+        )
+        for evaluator in self.evaluators:
+            for key in self.sparsity_stats.keys():
+                self.sparsity_stats[key] += evaluator.sparsity_stats[key]
+        for key in self.sparsity_stats.keys():
+            self.sparsity_stats[key] /= len(self.evaluators)
+
+        per_dataset_results.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
+        aggregated_results = {
+            key: value for key, value in per_dataset_results.items() if key.startswith(self.name) and key != self.name
+        }
+        self.store_metrics_in_model_card_data(model, aggregated_results, epoch, steps)
+        logger.info(
+            f"Model Sparsity Stats  Query : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_query']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_query']}"
+        )
+        logger.info(
+            f"Model Sparsity Stats  Corpus : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_corpus']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_corpus']}"
+        )
+        if output_path is not None and self.write_csv:
+            append_to_last_row(
+                os.path.join(output_path, self.csv_file),
+                self.sparsity_stats.values(),
+            )
+
+        return per_dataset_results
 
     def _load_dataset(
         self, dataset_name: DatasetNameType, **ir_evaluator_kwargs

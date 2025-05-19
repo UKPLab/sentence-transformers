@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import TYPE_CHECKING, Any, Callable
 
+import torch
+
 from sentence_transformers.evaluation import RerankingEvaluator
-from sentence_transformers.util import cos_sim
+from sentence_transformers.util import append_to_last_row, cos_sim
 
 if TYPE_CHECKING:
     import numpy as np
-    from torch import Tensor
 
     from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
@@ -92,6 +94,8 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             MAP: 53.46
             MRR@10: 54.18
             NDCG@10: 65.10
+            Model Sparsity Stats  Query : Row Non-Zero Mean: 43.89658737182617, Row Sparsity Mean: 0.9985617995262146
+            Model Sparsity Stats  Corpus : Row Non-Zero Mean: 128.37216186523438, Row Sparsity Mean: 0.9957940578460693
             '''
             # Print the results
             print(f"Primary metric: {reranking_evaluator.primary_metric}")
@@ -107,7 +111,7 @@ class SparseRerankingEvaluator(RerankingEvaluator):
         at_k: int = 10,
         name: str = "",
         write_csv: bool = True,
-        similarity_fct: Callable[[Tensor, Tensor], Tensor] = cos_sim,
+        similarity_fct: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = cos_sim,
         batch_size: int = 64,
         show_progress_bar: bool = False,
         use_batched_encoding: bool = True,
@@ -115,7 +119,13 @@ class SparseRerankingEvaluator(RerankingEvaluator):
         mrr_at_k: int | None = None,
     ):
         self.max_active_dims = max_active_dims
-        return super().__init__(
+        self.sparsity_stats = {
+            "row_non_zero_mean_query": 0,
+            "row_sparsity_mean_query": 0,
+            "row_non_zero_mean_corpus": 0,
+            "row_sparsity_mean_corpus": 0,
+        }
+        super().__init__(
             samples=samples,
             at_k=at_k,
             name=name,
@@ -126,11 +136,35 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             use_batched_encoding=use_batched_encoding,
             mrr_at_k=mrr_at_k,
         )
+        for sparsity_stat in self.sparsity_stats.keys():
+            self.csv_headers.append(f"{sparsity_stat}")
 
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        return super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
+        self.sparsity_stats = {
+            "row_non_zero_mean_query": 0,
+            "row_sparsity_mean_query": 0,
+            "row_non_zero_mean_corpus": 0,
+            "row_sparsity_mean_corpus": 0,
+        }
+        metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
+
+        metrics.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
+        self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
+        logger.info(
+            f"Model Sparsity Stats Query : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_query']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_query']}"
+        )
+        logger.info(
+            f"Model Sparsity Stats Corpus : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_corpus']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_corpus']}"
+        )
+        if output_path is not None and self.write_csv:
+            append_to_last_row(
+                os.path.join(output_path, self.csv_file),
+                self.sparsity_stats.values(),
+            )
+
+        return metrics
 
     def compute_metrices(self, model: SparseEncoder):
         return super().compute_metrices(model)
@@ -147,8 +181,8 @@ class SparseRerankingEvaluator(RerankingEvaluator):
         sentences: str | list[str] | np.ndarray,
         show_progress_bar: bool | None = None,
         **kwargs,
-    ) -> Tensor:
-        return model.encode(
+    ) -> torch.Tensor:
+        embeddings = model.encode(
             sentences,
             batch_size=self.batch_size,
             show_progress_bar=show_progress_bar,
@@ -158,6 +192,14 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             max_active_dims=self.max_active_dims,
             **kwargs,
         )
+        stat = model.get_sparsity_stats(torch.stack(embeddings))
+        if len(self.samples) == len(sentences):
+            self.sparsity_stats["row_non_zero_mean_query"] = stat["row_non_zero_mean"]
+            self.sparsity_stats["row_sparsity_mean_query"] = stat["row_sparsity_mean"]
+        else:
+            self.sparsity_stats["row_non_zero_mean_corpus"] = stat["row_non_zero_mean"]
+            self.sparsity_stats["row_sparsity_mean_corpus"] = stat["row_sparsity_mean"]
+        return embeddings
 
     def store_metrics_in_model_card_data(
         self, model: SparseEncoder, metrics: dict[str, Any], epoch: int = 0, step: int = 0

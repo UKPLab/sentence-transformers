@@ -21,8 +21,9 @@ results = evaluator(model)
 """
 Evaluating NanoQuoraRetrieval
 Information Retrieval Evaluation of the model on the NanoQuoraRetrieval dataset:
-Query info: num_rows: 50, num_cols: 30522, row_non_zero_mean: 62.97999954223633, row_sparsity_mean: 0.9979365468025208 1/1 [00:04<00:00,  4.12s/it]
-Corpus info: num_rows: 5046, num_cols: 30522, row_non_zero_mean: 63.394371032714844, row_sparsity_mean: 0.9979230165481567
+Queries: 50
+Corpus: 5046
+
 Score-Function: dot
 Accuracy@1: 92.00%
 Accuracy@3: 96.00%
@@ -39,11 +40,13 @@ Recall@10: 98.27%
 MRR@10: 0.9439
 NDCG@10: 0.9339
 MAP@100: 0.9072
+Model Sparsity Stats  Query : Row Non-Zero Mean: 62.97999954223633, Row Sparsity Mean: 0.9979365468025208
+Model Sparsity Stats  Corpus : Row Non-Zero Mean: 63.39932632446289, Row Sparsity Mean: 0.9979228377342224
 
-Evaluating NanoMSMARCO
 Information Retrieval Evaluation of the model on the NanoMSMARCO dataset:
-Query info: num_rows: 50, num_cols: 30522, row_non_zero_mean: 48.099998474121094, row_sparsity_mean: 0.99842399358749391/1 [00:19<00:00, 19.40s/it]
-Corpus info: num_rows: 5043, num_cols: 30522, row_non_zero_mean: 125.38131713867188, row_sparsity_mean: 0.9958921670913696
+Queries: 50
+Corpus: 5043
+
 Score-Function: dot
 Accuracy@1: 48.00%
 Accuracy@3: 74.00%
@@ -60,9 +63,11 @@ Recall@10: 88.00%
 MRR@10: 0.6211
 NDCG@10: 0.6838
 MAP@100: 0.6277
+Model Sparsity Stats  Query : Row Non-Zero Mean: 48.08000183105469, Row Sparsity Mean: 0.9984247088432312
+Model Sparsity Stats  Corpus : Row Non-Zero Mean: 125.3604965209961, Row Sparsity Mean: 0.9958928227424622
 
-Average Querie: num_rows: 50.0, num_cols: 30522.0, row_non_zero_mean: 55.53999900817871, row_sparsity_mean: 0.9981802701950073
-Average Corpus: num_rows: 5044.5, num_cols: 30522.0, row_non_zero_mean: 94.38784408569336, row_sparsity_mean: 0.9969075918197632
+Average Queries: 50.0
+Average Corpus: 5044.5
 Aggregated for Score Function: dot
 Accuracy@1: 70.00%
 Accuracy@3: 85.00%
@@ -78,6 +83,8 @@ Precision@10: 11.00%
 Recall@10: 93.13%
 MRR@10: 0.7825
 NDCG@10: 0.8089
+Model Sparsity Stats  Query : Row Non-Zero Mean: 55.53000068664551, Row Sparsity Mean: 0.998180627822876
+Model Sparsity Stats  Corpus : Row Non-Zero Mean: 94.37991142272949, Row Sparsity Mean: 0.9969078302383423
 """
 # Print the results
 print(f"Primary metric: {evaluator.primary_metric}")

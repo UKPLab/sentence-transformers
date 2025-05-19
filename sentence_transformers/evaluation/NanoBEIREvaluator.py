@@ -355,14 +355,11 @@ class NanoBEIREvaluator(SentenceEvaluator):
                 self.primary_metric = f"{score_function}_ndcg@{max(self.ndcg_at_k)}"
             else:
                 self.primary_metric = f"{self.main_score_function.value}_ndcg@{max(self.ndcg_at_k)}"
-        avg_queries_info = {
-            k: np.mean([e.queries_info[k] for e in self.evaluators]) for k in self.evaluators[0].queries_info
-        }
-        avg_corpus_info = {
-            k: np.mean([e.corpus_info[k] for e in self.evaluators]) for k in self.evaluators[0].corpus_info
-        }
-        logger.info("Average Querie: " + ", ".join(f"{k}: {v}" for k, v in avg_queries_info.items()))
-        logger.info("Average Corpus: " + ", ".join(f"{k}: {v}" for k, v in avg_corpus_info.items()))
+
+        avg_queries = np.mean([len(evaluator.queries) for evaluator in self.evaluators])
+        avg_corpus = np.mean([len(evaluator.corpus) for evaluator in self.evaluators])
+        logger.info(f"Average Queries: {avg_queries}")
+        logger.info(f"Average Corpus: {avg_corpus}\n")
 
         for name in self.score_function_names:
             logger.info(f"Aggregated for Score Function: {name}")

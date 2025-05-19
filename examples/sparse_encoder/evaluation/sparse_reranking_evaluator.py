@@ -46,6 +46,8 @@ Queries: 967 	 Positives: Min 1.0, Mean 1.1, Max 3.0 	 Negatives: Min 1.0, Mean 
 MAP: 53.46
 MRR@10: 54.18
 NDCG@10: 65.10
+Model Sparsity Stats  Query : Row Non-Zero Mean: 43.89658737182617, Row Sparsity Mean: 0.9985617995262146
+Model Sparsity Stats  Corpus : Row Non-Zero Mean: 128.37216186523438, Row Sparsity Mean: 0.9957940578460693
 """
 # Print the results
 print(f"Primary metric: {reranking_evaluator.primary_metric}")

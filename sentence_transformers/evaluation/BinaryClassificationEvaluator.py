@@ -183,7 +183,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         file_output_data = [epoch, steps]
 
         for header_name in self.csv_headers:
-            if "_" in header_name:
+            if header_name.count("_") == 1:
                 sim_fct, metric = header_name.split("_", maxsplit=1)
                 file_output_data.append(scores[sim_fct][metric])
 

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import TYPE_CHECKING, Any
 
+import torch
+
 from sentence_transformers.evaluation import TranslationEvaluator
+from sentence_transformers.util import append_to_last_row
 
 if TYPE_CHECKING:
     import numpy as np
@@ -65,6 +69,7 @@ class SparseTranslationEvaluator(TranslationEvaluator):
             Evaluating translation matching Accuracy of the model on the news-commentary-en-nl dataset:
             Accuracy src2trg: 41.40
             Accuracy trg2src: 47.70
+            Model Sparsity Stats: Row Non-Zero Mean: 113.6150016784668, Row Sparsity Mean: 0.9962776005268097
             '''
             # Print the results
             print(f"Primary metric: {translation_evaluator.primary_metric}")
@@ -86,7 +91,8 @@ class SparseTranslationEvaluator(TranslationEvaluator):
         max_active_dims: int | None = None,
     ):
         self.max_active_dims = max_active_dims
-        return super().__init__(
+        self.sparsity_stats = {"row_non_zero_mean": 0, "row_sparsity_mean": 0}
+        super().__init__(
             source_sentences,
             target_sentences,
             show_progress_bar=show_progress_bar,
@@ -95,11 +101,27 @@ class SparseTranslationEvaluator(TranslationEvaluator):
             print_wrong_matches=print_wrong_matches,
             write_csv=write_csv,
         )
+        for sparsity_stat in self.sparsity_stats.keys():
+            self.csv_headers.append(f"{sparsity_stat}")
 
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        return super().__call__(model, output_path=output_path, epoch=epoch, steps=steps)
+        self.sparsity_stats = {"row_non_zero_mean": 0, "row_sparsity_mean": 0}
+        metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
+
+        metrics.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
+        self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
+        logger.info(
+            f"Model Sparsity Stats: Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean']}"
+        )
+        if output_path is not None and self.write_csv:
+            append_to_last_row(
+                os.path.join(output_path, self.csv_file),
+                [self.sparsity_stats["row_non_zero_mean"], self.sparsity_stats["row_sparsity_mean"]],
+            )
+
+        return metrics
 
     def embed_inputs(
         self,
@@ -107,7 +129,7 @@ class SparseTranslationEvaluator(TranslationEvaluator):
         sentences: str | list[str] | np.ndarray,
         **kwargs,
     ) -> list[Tensor]:
-        return model.encode(
+        embeddings = model.encode(
             sentences,
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
@@ -117,6 +139,15 @@ class SparseTranslationEvaluator(TranslationEvaluator):
             max_active_dims=self.max_active_dims,
             **kwargs,
         )
+        stat = model.get_sparsity_stats(torch.stack(embeddings))
+        if self.sparsity_stats["row_non_zero_mean"] == 0:
+            for key in self.sparsity_stats.keys():
+                self.sparsity_stats[key] = stat[key]
+        else:
+            for key in self.sparsity_stats.keys():
+                self.sparsity_stats[key] += stat[key]
+                self.sparsity_stats[key] /= 2
+        return embeddings
 
     def store_metrics_in_model_card_data(
         self, model: SparseEncoder, metrics: dict[str, Any], epoch: int = 0, step: int = 0
