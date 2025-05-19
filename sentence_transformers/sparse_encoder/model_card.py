@@ -127,6 +127,7 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
             "output_dimensionality": self.model.get_sentence_embedding_dimension(),
             "model_string": str(self.model),
             "similarity_fn_name": similarity_fn_name,
+            "max_active_dims": getattr(self.model, "max_active_dims", None),
         }
 
     def get_default_model_name(self) -> None:

@@ -22,7 +22,7 @@ This is a [{{ model_type or "Sparse Encoder" }}](https://www.sbert.net/docs/spar
     <!-- - **Base model:** [Unknown](https://huggingface.co/unknown) -->
 {%- endif %}
 - **Maximum Sequence Length:** {{ model_max_length }} tokens
-- **Output Dimensionality:** {{ output_dimensionality }} dimensions
+- **Output Dimensionality:** {{ output_dimensionality }} dimensions{% if max_active_dims %} (trained with {{ max_active_dims }} maximum active dimensions){% endif %}
 - **Similarity Function:** {{ similarity_fn_name }}
 {% if train_datasets | selectattr("name") | list -%}
     - **Training Dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}:**
