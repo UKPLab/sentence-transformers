@@ -35,16 +35,6 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
                 embeddings. By default, dot product. Can also be set to cosine
                 similarity (and then set scale to 20)
 
-        References:
-        # TODO: Add actual references that are used in the code for SparseEncoder
-            - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
-            - `Training Examples > Natural Language Inference <../../../examples/sentence_transformer/training/nli/README.html>`_
-            - `Training Examples > Paraphrase Data <../../../examples/sentence_transformer/training/paraphrases/README.html>`_
-            - `Training Examples > Quora Duplicate Questions <../../../examples/sentence_transformer/training/quora_duplicate_questions/README.html>`_
-            - `Training Examples > MS MARCO <../../../examples/sentence_transformer/training/ms_marco/README.html>`_
-            - `Unsupervised Learning > SimCSE <../../../examples/sentence_transformer/unsupervised_learning/SimCSE/README.html>`_
-            - `Unsupervised Learning > GenQ <../../../examples/sentence_transformer/unsupervised_learning/query_generation/README.html>`_
-
         Requirements:
             1. Need to be used in SpladeLoss or CSRLoss as a loss function.
             2. (anchor, positive) pairs or (anchor, positive, negative) triplets

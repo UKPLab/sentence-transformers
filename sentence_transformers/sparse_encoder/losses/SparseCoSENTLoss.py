@@ -22,10 +22,6 @@ class SparseCoSENTLoss(CoSENTLoss):
         batch such that the expected similarity of ``(i,j)`` is greater than ``(k,l)``. The summation is over all possible
         pairs of input pairs in the batch that match this condition.
 
-        Anecdotal experiments show that this loss function produces a more powerful training signal than :class:`SparseCosineSimilarityLoss`,
-        resulting in faster convergence and a final model with superior performance. Consequently, SparseCoSENTLoss may be used
-        as a drop-in replacement for :class:`SparseCosineSimilarityLoss` in any training script.
-
         Args:
             model: SparseEncoder
             similarity_fct: Function to compute the PAIRWISE similarity
@@ -50,7 +46,6 @@ class SparseCoSENTLoss(CoSENTLoss):
 
         Relations:
             - :class:`SparseAnglELoss` is SparseCoSENTLoss with ``pairwise_angle_sim`` as the metric, rather than ``pairwise_cos_sim``.
-            - :class:`SparseCosineSimilarityLoss` seems to produce a weaker training signal than SparseCoSENTLoss. In our experiments, SparseCoSENTLoss is recommended.
 
         Example:
             ::

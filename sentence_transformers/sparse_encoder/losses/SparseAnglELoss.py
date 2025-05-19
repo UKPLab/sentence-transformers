@@ -49,7 +49,6 @@ class SparseAnglELoss(SparseCoSENTLoss):
 
         Relations:
             - :class:`SparseCoSENTLoss` is AnglELoss with ``pairwise_cos_sim`` as the metric, rather than ``pairwise_angle_sim``.
-            - :class:`SparseCosineSimilarityLoss` seems to produce a weaker training signal than ``SparseCoSENTLoss`` or ``SparseAnglELoss``.
 
         Example:
             ::

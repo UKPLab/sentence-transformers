@@ -31,10 +31,6 @@ class SparseCosineSimilarityLoss(CosineSimilarityLoss):
                 function is applied on top of cosine_similarity. By
                 default, the identify function is used (i.e. no change).
 
-        References:
-        # TODO: Not yet for sparse might want it ?
-            - `Training Examples > Semantic Textual Similarity <../../../examples/sentence_transformer/training/sts/README.html>`_
-
         Requirements:
             - Need to be used in SpladeLoss or CSRLoss as a loss function.
             - Sentence pairs with corresponding similarity scores in range `[0, 1]`
@@ -47,8 +43,7 @@ class SparseCosineSimilarityLoss(CosineSimilarityLoss):
             +--------------------------------+------------------------+
 
         Relations:
-            - :class:`SparseCoSENTLoss` seems to produce a stronger training signal than CosineSimilarityLoss. In our experiments, SparseCoSENTLoss is recommended.
-            - :class:`SparseAnglELoss` is :class:`SparseCoSENTLoss` with ``pairwise_angle_sim`` as the metric, rather than ``pairwise_cos_sim``. It also produces a stronger training signal than SparseCosineSimilarityLoss.
+            - :class:`SparseAnglELoss` is :class:`SparseCoSENTLoss` with ``pairwise_angle_sim`` as the metric, rather than ``pairwise_cos_sim``.
 
         Example:
             ::
