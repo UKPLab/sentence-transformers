@@ -21,7 +21,7 @@ class SpladeLoss(nn.Module):
         lambda_query: float = None,
         all_docs: bool = False,
         threshold: int = None,
-        regularizer: nn.modules = None,
+        regularizer: nn.Module = None,
     ):
         """
         SpladeLoss implements the loss function for the SPLADE (Sparse Lexical and Expansion) model,
