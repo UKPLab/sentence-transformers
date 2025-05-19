@@ -9,6 +9,7 @@ from copy import copy
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from platform import python_version
+from pprint import pformat
 from textwrap import indent
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -704,10 +705,33 @@ class SentenceTransformerModelCardData(CardData):
         }
         if hasattr(loss, "get_config_dict"):
             config = loss.get_config_dict()
+
+            def format_config_value(value: Any) -> str:
+                if not isinstance(value, nn.Module):
+                    return value
+                module_name = value.__class__.__name__
+                module_args_str = []
+
+                # E.g. SentenceTransformer, SparseEncoder, etc.
+                if hasattr(value, "model_card_data") and hasattr(value.model_card_data, "base_model"):
+                    module_args_str.append(repr(value.model_card_data.base_model))
+                if hasattr(value, "trust_remote_code") and value.trust_remote_code:
+                    module_args_str.append("trust_remote_code=True")
+                # E.g. MultipleNegativesRankingLoss, CosineSimilarityLoss, etc.
+                if hasattr(value, "get_config_dict"):
+                    for key, val in value.get_config_dict().items():
+                        module_args_str.append(f"{key}={repr(val)}")
+
+                if module_args_str:
+                    return f"{module_name}({', '.join(module_args_str)})"
+                return module_name
+
+            config = {key: format_config_value(value) for key, value in config.items()}
+
             try:
                 str_config = json.dumps(config, indent=4)
             except TypeError:
-                str_config = str(config)
+                str_config = pformat(config, indent=4)
             dataset_info["loss"]["config_code"] = indent(f"```json\n{str_config}\n```", "  ")
         return dataset_info
 
