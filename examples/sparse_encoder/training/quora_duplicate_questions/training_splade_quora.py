@@ -44,7 +44,7 @@ def main():
         ),
     )
     model.max_seq_length = 256  # Set the max sequence length to 256 for the training
-    logging.info("Model max length:", model.max_seq_length)
+    logging.info("Model max length: %s", model.max_seq_length)
 
     # 2a. Load the Quora Duplicate Questions dataset:  https://huggingface.co/datasets/sentence-transformers/quora-duplicates
     logging.info("Read the Quora Duplicate Questions training dataset")
