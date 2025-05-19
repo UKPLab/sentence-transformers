@@ -80,9 +80,21 @@ class TripletLoss(nn.Module):
         self.triplet_margin = triplet_margin
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
-        reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
+        embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
-        rep_anchor, rep_pos, rep_neg = reps
+        return self.compute_loss_from_embeddings(embeddings, labels)
+
+    def compute_loss_from_embeddings(self, embeddings: list[Tensor], labels: Tensor) -> Tensor:
+        """
+        Compute the CoSENT loss from embeddings.
+
+        Args:
+            embeddings: List of embeddings
+
+        Returns:
+            Loss value
+        """
+        rep_anchor, rep_pos, rep_neg = embeddings
         distance_pos = self.distance_metric(rep_anchor, rep_pos)
         distance_neg = self.distance_metric(rep_anchor, rep_neg)
 

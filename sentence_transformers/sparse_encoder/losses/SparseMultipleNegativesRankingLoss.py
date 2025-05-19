@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
+from torch import Tensor
+
 from sentence_transformers import util
 from sentence_transformers.losses.MultipleNegativesRankingLoss import MultipleNegativesRankingLoss
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
@@ -42,7 +46,8 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
             - `Unsupervised Learning > GenQ <../../../examples/sentence_transformer/unsupervised_learning/query_generation/README.html>`_
 
         Requirements:
-            1. (anchor, positive) pairs or (anchor, positive, negative) triplets
+            1. Need to be used in SpladeLoss or CSRLoss as a loss function.
+            2. (anchor, positive) pairs or (anchor, positive, negative) triplets
 
         Inputs:
             +-------------------------------------------------+--------+
@@ -70,18 +75,26 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
             ::
 
                 from datasets import Dataset
+
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+                model = SparseEncoder("distilbert/distilbert-base-uncased")
                 train_dataset = Dataset.from_dict(
                     {
                         "anchor": ["It's nice weather outside today.", "He drove to work."],
                         "positive": ["It's so sunny.", "He took the car to the office."],
                     }
                 )
-                loss = losses.SparseMultipleNegativesRankingLoss(model)
+                loss = losses.SpladeLoss(
+                    model=model, loss=losses.SparseMultipleNegativesRankingLoss(model), lambda_corpus=3e-5, lambda_query=5e-5
+                )
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
         """
         return super().__init__(model, scale=scale, similarity_fct=similarity_fct)
+
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+        raise AttributeError(
+            "SparseMultipleNegativesRankingLoss should not be used alone. Use it with SpladeLoss or CSRLoss."
+        )

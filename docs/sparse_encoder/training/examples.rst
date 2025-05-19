@@ -18,6 +18,5 @@ This page provides examples showing how to train Sparse Encoder models for vario
    :maxdepth: 1
    :caption: Advanced Usage
 
-   ../../../examples/sparse_encoder/training/hpo/README
    ../../sentence_transformer/training/distributed
 

@@ -1,26 +1,15 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
-from enum import Enum
 
 import torch
 import torch.nn as nn
 
-from sentence_transformers.sparse_encoder.losses import (
-    FlopsLoss,
-    SparseDistillKLDivLoss,
-    SparseMarginMSELoss,
-    SparseMultipleNegativesRankingLoss,
-)
+from sentence_transformers.sparse_encoder.losses import FlopsLoss
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
-
-class PrincipalLoss(Enum):
-    """The principal loss types for the model"""
-
-    MMSE = SparseMarginMSELoss
-    KL = SparseDistillKLDivLoss
-    MRL = SparseMultipleNegativesRankingLoss
+logger = logging.getLogger(__name__)
 
 
 class SpladeLoss(nn.Module):
@@ -28,10 +17,11 @@ class SpladeLoss(nn.Module):
         self,
         model: SparseEncoder,
         loss: nn.Module,
-        lambda_corpus: float = 0.1,
-        lambda_query: float = 0.1,
-        corpus_regularizer: nn.Module = None,
-        query_regularizer: nn.Module = None,
+        lambda_corpus: float,
+        lambda_query: float = None,
+        all_docs: bool = False,
+        threshold: int = None,
+        regularizer: nn.modules = None,
     ):
         """
         SpladeLoss implements the loss function for the SPLADE (Sparse Lexical and Expansion) model,
@@ -43,12 +33,18 @@ class SpladeLoss(nn.Module):
 
         Args:
             model: SparseEncoder model
-            loss: The principal loss function to use (can be :class:`~sentence_transformers.sparse_encoder.losses.SparseMarginMSELoss`, :class:`~sentence_transformers.sparse_encoder.losses.SparseDistillKLDivLoss`,
-                       or :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`)
-            lambda_corpus: Regularization weight for corpus (document) embeddings
-            lambda_query: Regularization weight for query embeddings
-            corpus_regulizer: The loss that will be used for the corpus. If not specify will be a FlopLoss.
-            query_regularizer: The loss that will be used for the query. If lambda_query is not 0 or None and this isn't specified, it will be a FlopLoss.
+            loss: The principal loss function to use can be any of the SparseEncoder losses except CSR related losses and flops loss.
+            lambda_corpus: Weight for the corpus regularization term. This term encourages sparsity in the document embeddings.
+                Will be applied to positive documents and all negatives one if some are provided.
+            lambda_query: Weight for the query regularization term. This term encourages sparsity in the query embeddings.
+                If None, no query regularization will be applied, it's not a problem if you are in an inference-free setup or
+                if you are having all_docs=True. Else you should have a lambda_query > 0.
+            all_docs: If True, all input embeddings are treated as documents and regularized together with lambda_corpus.
+                Especially useful when training with symmetric texts (e.g. pairs of documents) or more.
+            threshold: Optional threshold for the number of non-zero elements in the embeddings to be considered in the FlopsLoss.
+                If specified, only embeddings with more than this number of non-zero elements will be considered.
+                This can help to ignore embeddings that are too sparse and may not contribute meaningfully to the loss.
+            regularizer: Optional regularizer to use instead of the default FlopsLoss. This can be useful for custom regularization strategies.
 
         References:
             - For more details, see the paper "From Distillation to Hard Negative Sampling: Making Sparse Neural IR Models More Effective"
@@ -62,9 +58,10 @@ class SpladeLoss(nn.Module):
             ::
 
                 from datasets import Dataset
+
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                student_model = SparseEncoder("prithivida/Splade_PP_en_v1")
+                student_model = SparseEncoder("distilbert/distilbert-base-uncased")
                 teacher_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
                 train_dataset = Dataset.from_dict(
                     {
@@ -85,40 +82,29 @@ class SpladeLoss(nn.Module):
 
                 train_dataset = train_dataset.map(compute_labels, batched=True)
                 loss = losses.SpladeLoss(
-                    student_model,
-                    loss=losses.SparseMarginMSELoss(student_model),
-                    lambda_corpus=5e-3,
-                    lambda_query=0.1,
-                ) # Here the regularizer aren't specified, but the two lambdas are non-zero so the default FlopsLoss will be used for both.
+                    student_model, loss=losses.SparseMarginMSELoss(student_model), lambda_corpus=3e-5, lambda_query=5e-5
+                )
 
                 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
         """
         super().__init__()
         self.model = model
+        self.loss = loss
+        self.regularizer = regularizer if regularizer is not None else FlopsLoss(model, threshold=threshold)
         self.lambda_corpus = lambda_corpus
         self.lambda_query = lambda_query
-        self.loss = loss
-        if not isinstance(self.loss, tuple(loss_type.value for loss_type in PrincipalLoss)):
-            raise ValueError(
-                f"Principal loss must be one of {list(PrincipalLoss.__members__.keys())}, but got {self.loss.__class__.__name__}"
-            )
 
-        self.corpus_regularizer = corpus_regularizer if corpus_regularizer is not None else FlopsLoss(model)
-        if not isinstance(self.corpus_regularizer, FlopsLoss):
-            raise ValueError(
-                f"Corpus regularizer must be an instance of FlopsLoss, but got {self.corpus_regularizer.__class__.__name__}"
+        if self.lambda_query is None and not all_docs:
+            logging.warning(
+                "lambda_query is None. This means that the query regularization will not be applied. If you are in an inference free set up it's fine else you should have a lambda_query > 0."
             )
-        if lambda_query == 0 or lambda_query is None:
-            self.query_regularizer = None
-        elif query_regularizer is None:
-            self.query_regularizer = FlopsLoss(model)
-        else:
-            self.query_regularizer = query_regularizer
-            if not isinstance(self.query_regularizer, FlopsLoss):
-                raise ValueError(
-                    f"Query regularizer must be an instance of FlopsLoss, but got {self.query_regularizer.__class__.__name__}"
-                )
+        self.all_docs = all_docs
+        if self.all_docs and self.lambda_query is not None:
+            logging.warning(
+                "lambda_query should be None when all_docs is True. all_docs mean we consider all the input to be of the same type and so under the same regularization. lambda_query will be ignored."
+            )
+            self.lambda_query = None
 
     def forward(
         self, sentence_features: Iterable[dict[str, torch.Tensor]], labels: torch.Tensor = None
@@ -127,15 +113,18 @@ class SpladeLoss(nn.Module):
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
         loss_value = self.loss.compute_loss_from_embeddings(embeddings, labels)
-
-        corpus_loss = self.corpus_regularizer.compute_loss_from_embeddings(embeddings, "corpus")
+        if self.all_docs:
+            # If all_docs is True, we consider all the input to be of the same type and so under the same regularization
+            corpus_loss = self.regularizer.compute_loss_from_embeddings(torch.cat(embeddings))
+        else:
+            corpus_loss = self.regularizer.compute_loss_from_embeddings(torch.cat(embeddings[1:]))
 
         # Compute total loss
         total_loss = loss_value + self.lambda_corpus * corpus_loss
 
         # Add query regularization if enabled
-        if self.query_regularizer is not None:
-            query_loss = self.query_regularizer.compute_loss_from_embeddings(embeddings, "query")
+        if self.lambda_query is not None:
+            query_loss = self.regularizer.compute_loss_from_embeddings(embeddings[0])
             total_loss = total_loss + self.lambda_query * query_loss
 
         return total_loss
@@ -147,13 +136,15 @@ class SpladeLoss(nn.Module):
         Returns:
             Dictionary containing the configuration parameters
         """
-        return {
+        config_dict = {
             "loss": self.loss,
             "lambda_corpus": self.lambda_corpus,
-            "lambda_query": self.lambda_query,
-            "corpus_regularizer": self.corpus_regularizer,
-            "query_regularizer": self.query_regularizer,
         }
+        if self.lambda_query is not None:
+            config_dict["lambda_query"] = self.lambda_query
+        if self.regularizer.threshold is not None:
+            config_dict["threshold"] = self.regularizer.threshold
+        return config_dict
 
     @property
     def citation(self) -> str:

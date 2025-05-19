@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
+from torch import Tensor
+
 from sentence_transformers import util
 from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
@@ -34,6 +38,7 @@ class SparseCoSENTLoss(CoSENTLoss):
             - For further details, see: https://kexue.fm/archives/8847
 
         Requirements:
+            - Need to be used in SpladeLoss or CSRLoss as a loss function.
             - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
 
         Inputs:
@@ -62,9 +67,13 @@ class SparseCoSENTLoss(CoSENTLoss):
                         "score": [1.0, 0.3],
                     }
                 )
-                loss = losses.SparseCoSENTLoss(model)
+                loss = losses.SpladeLoss(model=model, loss=losses.SparseCoSENTLoss(model), lambda_corpus=5e-5, all_docs=True)
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
         """
+        model.similarity_fn_name = "cosine"
         return super().__init__(model, scale=scale, similarity_fct=similarity_fct)
+
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+        raise AttributeError("SparseCoSENTLoss should not be used alone. Use it with SpladeLoss or CSRLoss.")

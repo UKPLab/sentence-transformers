@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import torch.nn as nn
+from torch import Tensor
 
 from sentence_transformers.losses.CosineSimilarityLoss import CosineSimilarityLoss
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
@@ -33,7 +36,8 @@ class SparseCosineSimilarityLoss(CosineSimilarityLoss):
             - `Training Examples > Semantic Textual Similarity <../../../examples/sentence_transformer/training/sts/README.html>`_
 
         Requirements:
-            1. Sentence pairs with corresponding similarity scores in range `[0, 1]`
+            - Need to be used in SpladeLoss or CSRLoss as a loss function.
+            - Sentence pairs with corresponding similarity scores in range `[0, 1]`
 
         Inputs:
             +--------------------------------+------------------------+
@@ -60,9 +64,13 @@ class SparseCosineSimilarityLoss(CosineSimilarityLoss):
                         "score": [1.0, 0.3],
                     }
                 )
-                loss = losses.SparseCosineSimilarityLoss(model)
+                loss = losses.SpladeLoss(model=model, loss=losses.SparseCosineSimilarityLoss(model), lambda_corpus=5e-5, all_docs=True)
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
         """
+        model.similarity_fn_name = "cosine"
         return super().__init__(model, loss_fct=loss_fct, cos_score_transformation=cos_score_transformation)
+
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+        raise AttributeError("SparseCosineSimilarityLoss should not be used alone. Use it with SpladeLoss or CSRLoss.")

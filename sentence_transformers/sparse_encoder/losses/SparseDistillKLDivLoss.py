@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
+from torch import Tensor
+
 from sentence_transformers import util
 from sentence_transformers.losses.DistillKLDivLoss import DistillKLDivLoss
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
@@ -23,8 +27,9 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
             - For more details, please refer to https://arxiv.org/abs/2010.11386
 
         Requirements:
-            1. (query, positive, negative_1, ..., negative_n) examples
-            2. Labels containing teacher model's scores between query-positive and query-negative pairs
+            1. Need to be used in SpladeLoss or CSRLoss as a loss function.
+            2. (query, positive, negative_1, ..., negative_n) examples
+            3. Labels containing teacher model's scores between query-positive and query-negative pairs
 
         Inputs:
             +------------------------------------------------+------------------------------------------------------------+
@@ -47,9 +52,10 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
                 import torch
                 from datasets import Dataset
+
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                student_model = SparseEncoder("prithivida/Splade_PP_en_v1")
+                student_model = SparseEncoder("distilbert/distilbert-base-uncased")
                 teacher_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
                 train_dataset = Dataset.from_dict(
                     {
@@ -73,10 +79,13 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
 
                 train_dataset = train_dataset.map(compute_labels, batched=True)
-                loss = losses.SparseDistillKLDivLoss(student_model, similarity_fct=student_model.similarity_pairwise)
+                loss = losses.SpladeLoss(
+                    student_model, loss=losses.SparseDistillKLDivLoss(student_model), lambda_corpus=3e-5, lambda_query=5e-5
+                )
 
                 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
+
 
             With multiple negatives:
 
@@ -87,7 +96,7 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                student_model = SparseEncoder("prithivida/Splade_PP_en_v1")
+                student_model = SparseEncoder("distilbert/distilbert-base-uncased")
                 teacher_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
                 train_dataset = Dataset.from_dict(
                     {
@@ -114,9 +123,14 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
 
                 train_dataset = train_dataset.map(compute_labels, batched=True)
-                loss = losses.SparseDistillKLDivLoss(student_model, similarity_fct=student_model.similarity_pairwise)
+                loss = losses.SpladeLoss(
+                    student_model, loss=losses.SparseDistillKLDivLoss(student_model), lambda_corpus=3e-5, lambda_query=5e-5
+                )
 
                 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
         """
         super().__init__(model, similarity_fct=similarity_fct)
+
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+        raise AttributeError("SparseDistillKLDivLoss should not be used alone. Use it with SpladeLoss or CSRLoss.")

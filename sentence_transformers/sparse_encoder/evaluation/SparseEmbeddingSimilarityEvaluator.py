@@ -117,7 +117,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
         sentences: str | list[str] | np.ndarray,
         **kwargs,
     ) -> Tensor:
-        return model.encode(
+        embeddings = model.encode(
             sentences,
             batch_size=self.batch_size,
             show_progress_bar=self.show_progress_bar,
@@ -126,8 +126,13 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             max_active_dims=self.max_active_dims,
             **kwargs,
         )
+        stat = model.get_sparsity_stats(embeddings)
+        logger.info(
+            f"Model Sparsity Stats: num_rows: {stat['num_rows']}, num_cols: {stat['num_cols']}, row_non_zero_mean: {stat['row_non_zero_mean']}, row_sparsity_mean: {stat['row_sparsity_mean']}"
+        )
+        return embeddings
 
     def store_metrics_in_model_card_data(
         self, model: SparseEncoder, metrics: dict[str, Any], epoch: int = 0, step: int = 0
     ) -> None:
-        model.model_card_data.set_evaluation_metrics(self.name, metrics, epoch=epoch, step=step)
+        model.model_card_data.set_evaluation_metrics(self, metrics, epoch=epoch, step=step)

@@ -23,6 +23,8 @@ dev_evaluator = SparseEmbeddingSimilarityEvaluator(
 )
 results = dev_evaluator(model)
 """
+Model Sparsity Stats: num_rows: 1500, num_cols: 30522, row_non_zero_mean: 80.34333038330078, row_sparsity_mean: 0.9973676204681396
+Model Sparsity Stats: num_rows: 1500, num_cols: 30522, row_non_zero_mean: 81.78266906738281, row_sparsity_mean: 0.9973204731941223
 EmbeddingSimilarityEvaluator: Evaluating the model on the sts_dev dataset:
 Cosine-Similarity :     Pearson: 0.8430 Spearman: 0.8368
 """

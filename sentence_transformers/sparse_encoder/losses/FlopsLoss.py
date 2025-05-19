@@ -40,23 +40,17 @@ class FlopsLoss(nn.Module):
         self.threshold = threshold
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
-        # Compute the embeddings and distribute them to anchor and candidates (positive and optionally negatives)
-        embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
+        raise NotImplementedError(
+            "FlopsLoss is not intended to be used directly. Use it as a regulizer within the SpladeLoss class."
+        )
 
-        return self.compute_loss_from_embeddings(embeddings)
-
-    def compute_loss_from_embeddings(self, embeddings: list[torch.Tensor], embeddings_type: str) -> torch.Tensor:
-        if embeddings_type == "query":
-            embeddings_to_use = embeddings[0]  # (batch_size, embedding_dim)
-        else:
-            embeddings_to_use = torch.cat(embeddings[1:])  # (batch_size * (1 + num_negatives), embedding_dim)
-
+    def compute_loss_from_embeddings(self, embeddings: list[torch.Tensor]) -> torch.Tensor:
         if self.threshold is not None:
-            l0_norm = (embeddings_to_use != 0).sum(dim=1)
+            l0_norm = (embeddings != 0).sum(dim=1)
             mask = (l0_norm > self.threshold).float()
-            embeddings_to_use = embeddings_to_use * mask.unsqueeze(1)
+            embeddings = embeddings * mask.unsqueeze(1)
 
-        return torch.sum(torch.mean(embeddings_to_use, dim=0) ** 2)
+        return torch.sum(torch.mean(embeddings, dim=0) ** 2)
 
     @property
     def citation(self) -> str:

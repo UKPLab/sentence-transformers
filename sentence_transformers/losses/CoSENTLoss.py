@@ -81,6 +81,20 @@ class CoSENTLoss(nn.Module):
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
+        return self.compute_loss_from_embeddings(embeddings, labels)
+
+    def compute_loss_from_embeddings(self, embeddings: list[Tensor], labels: Tensor) -> Tensor:
+        """
+        Compute the CoSENT loss from embeddings.
+
+        Args:
+            embeddings: List of embeddings
+            labels: Labels indicating the similarity scores of the pairs
+
+        Returns:
+            Loss value
+        """
+
         scores = self.similarity_fct(embeddings[0], embeddings[1])
         scores = scores * self.scale
         scores = scores[:, None] - scores[None, :]

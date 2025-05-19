@@ -4,6 +4,33 @@
 
 Sadly, there is no "one size fits all" loss function. Which loss function is suitable depends on the available training data and on the target task. Consider checking out the [Loss Overview](../../sparse_encoder/loss_overview.md) to help narrow down your choice of loss function(s).
 
+```{eval-rst}
+.. warning:: 
+    To train a :class:`~sentence_transformers.sparse_encoder.SparseEncoder`, you need either :class:`~sentence_transformers.sparse_encoder.losses.SpladeLoss` or :class:`~sentence_transformers.sparse_encoder.losses.CSRLoss`, depending on the architecture. These are wrapper losses that add sparsity regularization on top of a main loss function, which must be provided as a parameter. The only loss that can be used independently is :class:`~sentence_transformers.sparse_encoder.losses.SparseMSELoss`, as it performs embedding-level distillation, ensuring sparsity by directly copying the teacher's sparse embedding.
+
+```
+
+## SpladeLoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.sparse_encoder.losses.SpladeLoss
+```
+
+## FlopsLoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.sparse_encoder.losses.FlopsLoss
+```
+
+## CSRLoss
+
+```{eval-rst}
+.. autoclass:: sentence_transformers.sparse_encoder.losses.CSRLoss
+```
+
+## CSRReconstructionLoss
+
+```{eval-rst}
+.. autoclass:: sentence_transformers.sparse_encoder.losses.CSRReconstructionLoss
+```
 
 ## SparseMultipleNegativesRankingLoss
 ```{eval-rst}
@@ -20,39 +47,9 @@ Sadly, there is no "one size fits all" loss function. Which loss function is sui
 .. autoclass:: sentence_transformers.sparse_encoder.losses.SparseDistillKLDivLoss
 ``` 
 
-## SpladeLoss
-```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.SpladeLoss
-```
-
-## FlopsLoss
-```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.FlopsLoss
-```
-
-## SparseCachedMultipleNegativesRankingLoss
-```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.SparseCachedMultipleNegativesRankingLoss
-```
-
 ## SparseTripletLoss
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.losses.SparseTripletLoss
-```
-
-## SparseMSELoss
-```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.SparseMSELoss
-```
-
-## CSRLoss
-```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.CSRLoss
-```
-With associated ReconstructionLoss :
-
-```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.CSRReconstructionLoss
 ```
 
 ## SparseCosineSimilarityLoss
@@ -70,12 +67,7 @@ With associated ReconstructionLoss :
 .. autoclass:: sentence_transformers.sparse_encoder.losses.SparseAnglELoss
 ```
 
-## SparseGISTEmbedLoss
+## SparseMSELoss
 ```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.SparseGISTEmbedLoss
-```
-
-## SparseCachedGISTEmbedLoss
-```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.losses.SparseCachedGISTEmbedLoss
+.. autoclass:: sentence_transformers.sparse_encoder.losses.SparseMSELoss
 ```

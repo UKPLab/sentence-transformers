@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
+from torch import Tensor
+
 from sentence_transformers import util
 from sentence_transformers.sparse_encoder.losses.SparseCoSENTLoss import SparseCoSENTLoss
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
@@ -33,6 +37,7 @@ class SparseAnglELoss(SparseCoSENTLoss):
             - For further details, see: https://arxiv.org/abs/2309.12871v1
 
         Requirements:
+            - Need to be used in SpladeLoss or CSRLoss as a loss function.
             - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
 
         Inputs:
@@ -61,9 +66,12 @@ class SparseAnglELoss(SparseCoSENTLoss):
                         "score": [1.0, 0.3],
                     }
                 )
-                loss = losses.SparseAnglELoss(model)
+                loss = losses.SpladeLoss(model=model, loss=losses.SparseAnglELoss(model), lambda_corpus=5e-5, all_docs=True)
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
         """
         return super().__init__(model, scale, similarity_fct=util.pairwise_angle_sim)
+
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+        raise AttributeError("SparseAngleLoss should not be used alone. Use it with SpladeLoss or CSRLoss.")

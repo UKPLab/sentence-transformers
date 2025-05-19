@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
+from torch import Tensor
+
 from sentence_transformers.losses.TripletLoss import TripletDistanceMetric, TripletLoss
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
@@ -29,7 +33,8 @@ class SparseTripletLoss(TripletLoss):
             - For further details, see: https://en.wikipedia.org/wiki/Triplet_loss
 
         Requirements:
-            1. (anchor, positive, negative) triplets
+            1. Need to be used in SpladeLoss or CSRLoss as a loss function.
+            2. (anchor, positive, negative) triplets
 
         Inputs:
             +---------------------------------------+--------+
@@ -42,9 +47,10 @@ class SparseTripletLoss(TripletLoss):
             ::
 
                 from datasets import Dataset
+
                 from sentence_transformers.sparse_encoder import SparseEncoder, SparseEncoderTrainer, losses
 
-                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+                model = SparseEncoder("distilbert/distilbert-base-uncased")
                 train_dataset = Dataset.from_dict(
                     {
                         "anchor": ["It's nice weather outside today.", "He drove to work."],
@@ -52,9 +58,12 @@ class SparseTripletLoss(TripletLoss):
                         "negative": ["It's quite rainy, sadly.", "She walked to the store."],
                     }
                 )
-                loss = losses.SparseTripletLoss(model)
+                loss = losses.SpladeLoss(model=model, loss=losses.SparseTripletLoss(model), lambda_corpus=3e-5, lambda_query=5e-5)
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
         """
         super().__init__(model, distance_metric=distance_metric, triplet_margin=triplet_margin)
+
+    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+        raise AttributeError("SparseTripletLoss shold not be used alone. Use it with SpladeLoss or CSRLoss.")

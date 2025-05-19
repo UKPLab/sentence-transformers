@@ -3,12 +3,9 @@ from __future__ import annotations
 from .CSRLoss import CSRLoss, CSRReconstructionLoss
 from .FlopsLoss import FlopsLoss
 from .SparseAnglELoss import SparseAnglELoss
-from .SparseCachedGISTEmbedLoss import SparseCachedGISTEmbedLoss
-from .SparseCachedMultipleNegativesRankingLoss import SparseCachedMultipleNegativesRankingLoss
 from .SparseCoSENTLoss import SparseCoSENTLoss
 from .SparseCosineSimilarityLoss import SparseCosineSimilarityLoss
 from .SparseDistillKLDivLoss import SparseDistillKLDivLoss
-from .SparseGISTEmbedLoss import SparseGISTEmbedLoss
 from .SparseMarginMSELoss import SparseMarginMSELoss
 from .SparseMSELoss import SparseMSELoss
 from .SparseMultipleNegativesRankingLoss import SparseMultipleNegativesRankingLoss
@@ -21,10 +18,7 @@ __all__ = [
     "SparseMultipleNegativesRankingLoss",
     "SparseCoSENTLoss",
     "SparseTripletLoss",
-    "SparseCachedMultipleNegativesRankingLoss",
     "SparseMarginMSELoss",
-    "SparseGISTEmbedLoss",
-    "SparseCachedGISTEmbedLoss",
     "SparseCosineSimilarityLoss",
     "SparseMSELoss",
     "SparseAnglELoss",
