@@ -43,7 +43,7 @@ def main():
         ),
     )
     model.max_seq_length = 256  # Set the max sequence length to 256 for the training
-    print("Model max length:", model.max_seq_length)
+    logging.info("Model max length:", model.max_seq_length)
 
     # 2. Load the MS MARCO dataset: https://huggingface.co/datasets/sentence-transformers/msmarco-bm25
     logging.info("Read the MS MARCO training dataset")
