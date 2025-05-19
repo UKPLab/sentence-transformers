@@ -823,8 +823,31 @@ class SparseEncoder(SentenceTransformer):
                 if architecture.endswith("ForMaskedLM"):
                     is_mlm_model = True
                     break
+        if has_modules:
+            logger.info(
+                "A SentenceTransformer model found, using Sentence Transformer modules with CSR sparsity modules on Top"
+            )
+            modules, self.module_kwargs = self._load_sbert_model(
+                model_name_or_path,
+                token=token,
+                cache_folder=cache_folder,
+                revision=revision,
+                trust_remote_code=trust_remote_code,
+                local_files_only=local_files_only,
+                model_kwargs=model_kwargs,
+                tokenizer_kwargs=tokenizer_kwargs,
+                config_kwargs=config_kwargs,
+            )
+            modules = [modules[str(i)] for i in range(len(modules.keys()))]
+            csr_sparsity = CSRSparsity(
+                input_dim=modules[0].get_word_embedding_dimension(),
+                hidden_dim=4 * modules[0].get_word_embedding_dimension(),
+                k=256,  # Number of top values to keep
+                k_aux=512,  # Number of top values for auxiliary loss
+            )
+            modules.append(csr_sparsity)
 
-        if is_mlm_model:
+        elif is_mlm_model:
             # For MLM models like BERT, RoBERTa, etc., use MLMTransformer with SpladePooling
             logger.info(f"Detected MLM architecture: {config.architectures}, using SpladePooling")
             transformer_model = MLMTransformer(
@@ -838,45 +861,27 @@ class SparseEncoder(SentenceTransformer):
             pooling_model = SpladePooling(pooling_strategy="max")
 
             modules = [transformer_model, pooling_model]
-        else:
-            if has_modules:
-                logger.info(
-                    "No MLM model found and a sentence transformer model found, using sentence transformer model with CSR sparsity"
-                )
-                modules, self.module_kwargs = self._load_sbert_model(
-                    model_name_or_path,
-                    token=token,
-                    cache_folder=cache_folder,
-                    revision=revision,
-                    trust_remote_code=trust_remote_code,
-                    local_files_only=local_files_only,
-                    model_kwargs=model_kwargs,
-                    tokenizer_kwargs=tokenizer_kwargs,
-                    config_kwargs=config_kwargs,
-                )
-                modules = [modules[str(i)] for i in range(len(modules.keys()))]
-            else:
-                logger.info(
-                    "No MLM model found and no sentence transformer model found, using default transformer model and mean pooling with CSR sparsity"
-                )
-                transformer_model = Transformer(
-                    model_name_or_path,
-                    cache_dir=cache_folder,
-                    model_args=model_kwargs,
-                    tokenizer_args=tokenizer_kwargs,
-                    config_args=config_kwargs,
-                    backend=self.backend,
-                )
-                pooling = Pooling(transformer_model.get_word_embedding_dimension(), pooling_mode="mean")
-                modules = [transformer_model, pooling]
 
+        else:
+            logger.info(
+                "No MLM model found and no SentenceTransformer model found, using default transformer modules and mean pooling with CSR sparsity modules on Top"
+            )
+            transformer_model = Transformer(
+                model_name_or_path,
+                cache_dir=cache_folder,
+                model_args=model_kwargs,
+                tokenizer_args=tokenizer_kwargs,
+                config_args=config_kwargs,
+                backend=self.backend,
+            )
+            pooling = Pooling(transformer_model.get_word_embedding_dimension(), pooling_mode="mean")
             csr_sparsity = CSRSparsity(
-                input_dim=modules[0].get_word_embedding_dimension(),
-                hidden_dim=4 * modules[0].get_word_embedding_dimension(),
+                input_dim=pooling.get_sentence_embedding_dimension(),
+                hidden_dim=4 * pooling.get_sentence_embedding_dimension(),
                 k=256,  # Number of top values to keep
                 k_aux=512,  # Number of top values for auxiliary loss
             )
-            modules.append(csr_sparsity)
+            modules = [transformer_model, pooling, csr_sparsity]
 
         if not local_files_only:
             self.model_card_data.set_base_model(model_name_or_path, revision=revision)
