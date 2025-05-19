@@ -4,14 +4,10 @@ import logging
 
 from datasets import load_dataset
 
+from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments
 from sentence_transformers.evaluation import SequentialEvaluator
 from sentence_transformers.models import Pooling, Transformer
-from sentence_transformers.sparse_encoder import SparseEncoder
-from sentence_transformers.sparse_encoder.evaluation.SparseNanoBEIREvaluator import SparseNanoBEIREvaluator
-from sentence_transformers.sparse_encoder.losses import CSRLoss
-from sentence_transformers.sparse_encoder.models import CSRSparsity
-from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
-from sentence_transformers.sparse_encoder.training_args import SparseEncoderTrainingArguments
+from sentence_transformers.sparse_encoder import evaluation, losses, models
 from sentence_transformers.training_args import BatchSamplers
 
 # Set up logging
@@ -24,7 +20,7 @@ def main():
     transformer = Transformer(model_name)
     # transformer.requires_grad_(False)  # Freeze the transformer model
     pooling = Pooling(transformer.get_word_embedding_dimension(), pooling_mode="mean")
-    csr_sparsity = CSRSparsity(
+    csr_sparsity = models.CSRSparsity(
         input_dim=transformer.get_word_embedding_dimension(),
         hidden_dim=4 * transformer.get_word_embedding_dimension(),
         k=256,  # Number of top values to keep
@@ -44,7 +40,7 @@ def main():
     logging.info(eval_dataset)
 
     # 3. Initialize the loss
-    loss = CSRLoss(
+    loss = losses.CSRLoss(
         model=model,
         beta=0.1,  # Weight for auxiliary loss
         gamma=1,  # Weight for ranking loss
@@ -54,7 +50,7 @@ def main():
     # 4. Define an evaluator for use during training. This is useful to keep track of alongside the evaluation loss.
     evaluators = []
     for k_dim in [16, 32, 64, 128, 256]:
-        evaluators.append(SparseNanoBEIREvaluator(["msmarco", "nfcorpus", "nq"], truncate_dim=k_dim))
+        evaluators.append(evaluation.SparseNanoBEIREvaluator(["msmarco", "nfcorpus", "nq"], max_active_dims=k_dim))
     dev_evaluator = SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[-1])
     dev_evaluator(model)
 

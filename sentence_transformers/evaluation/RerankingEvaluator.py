@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import logging
 import os
-from contextlib import nullcontext
 from typing import TYPE_CHECKING, Callable
 
 import numpy as np
@@ -32,6 +31,7 @@ class RerankingEvaluator(SentenceEvaluator):
 
     Args:
         samples (list): A list of dictionaries, where each dictionary represents a sample and has the following keys:
+
             - 'query': The search query.
             - 'positive': A list of positive (relevant) documents.
             - 'negative': A list of negative (irrelevant) documents.
@@ -227,18 +227,18 @@ class RerankingEvaluator(SentenceEvaluator):
         all_ndcg_scores = []
         all_ap_scores = []
 
-        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            all_query_embs = self.embed_inputs(
-                model, [sample["query"] for sample in self.samples], show_progress_bar=self.show_progress_bar
-            )
+        all_query_embs = self.embed_inputs(
+            model, [sample["query"] for sample in self.samples], show_progress_bar=self.show_progress_bar
+        )
 
-            all_docs = []
+        all_docs = []
 
-            for sample in self.samples:
-                all_docs.extend(sample["positive"])
-                all_docs.extend(sample["negative"])
+        for sample in self.samples:
+            all_docs.extend(sample["positive"])
+            all_docs.extend(sample["negative"])
 
-            all_docs_embs = self.embed_inputs(model, all_docs, show_progress_bar=self.show_progress_bar)
+        all_docs_embs = self.embed_inputs(model, all_docs, show_progress_bar=self.show_progress_bar)
+
         # Compute scores
         query_idx, docs_idx = 0, 0
         for instance in self.samples:
@@ -306,9 +306,8 @@ class RerankingEvaluator(SentenceEvaluator):
             docs = positive + negative
             is_relevant = [1] * len(positive) + [0] * len(negative)
 
-            with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-                query_emb = self.embed_inputs(model, [query], show_progress_bar=False)
-                docs_emb = self.embed_inputs(model, docs, show_progress_bar=False)
+            query_emb = self.embed_inputs(model, [query], show_progress_bar=False)
+            docs_emb = self.embed_inputs(model, docs, show_progress_bar=False)
 
             pred_scores = self.similarity_fct(query_emb, docs_emb)
             if len(pred_scores.shape) > 1:
@@ -349,6 +348,7 @@ class RerankingEvaluator(SentenceEvaluator):
             batch_size=self.batch_size,
             show_progress_bar=show_progress_bar,
             convert_to_tensor=True,
+            truncate_dim=self.truncate_dim,
             **kwargs,
         )
 

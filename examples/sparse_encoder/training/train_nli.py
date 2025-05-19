@@ -4,18 +4,10 @@ import logging
 
 from datasets import load_dataset
 
+from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments
 from sentence_transformers.evaluation import SequentialEvaluator, SimilarityFunction
 from sentence_transformers.models import Pooling, Transformer
-from sentence_transformers.sparse_encoder import SparseEncoder
-from sentence_transformers.sparse_encoder.evaluation import (
-    SparseEmbeddingSimilarityEvaluator,
-)
-from sentence_transformers.sparse_encoder.losses import CSRLoss
-from sentence_transformers.sparse_encoder.models import CSRSparsity
-from sentence_transformers.sparse_encoder.trainer import SparseEncoderTrainer
-from sentence_transformers.sparse_encoder.training_args import (
-    SparseEncoderTrainingArguments,
-)
+from sentence_transformers.sparse_encoder import evaluation, losses, models
 from sentence_transformers.training_args import BatchSamplers
 
 # Set up logging
@@ -29,7 +21,7 @@ def main():
     transformer = Transformer(model_name)
     transformer.requires_grad_(False)  # Freeze the transformer model
     pooling = Pooling(transformer.get_word_embedding_dimension(), pooling_mode="mean")
-    csr_sparsity = CSRSparsity(
+    csr_sparsity = models.CSRSparsity(
         input_dim=transformer.get_word_embedding_dimension(),
         hidden_dim=4 * transformer.get_word_embedding_dimension(),
         k=256,  # Number of top values to keep
@@ -46,7 +38,7 @@ def main():
     logging.info(train_dataset)
 
     # 3. Initialize the loss
-    loss = CSRLoss(
+    loss = losses.CSRLoss(
         model=model,
         beta=0.1,  # Weight for auxiliary loss
         gamma=1,  # Weight for ranking loss
@@ -58,13 +50,13 @@ def main():
     evaluators = []
     for k_dim in [16, 32, 64, 128, 256]:
         evaluators.append(
-            SparseEmbeddingSimilarityEvaluator(
+            evaluation.SparseEmbeddingSimilarityEvaluator(
                 sentences1=stsb_eval_dataset["sentence1"],
                 sentences2=stsb_eval_dataset["sentence2"],
                 scores=stsb_eval_dataset["score"],
                 main_similarity=SimilarityFunction.COSINE,
                 name=f"sts-dev-{k_dim}",
-                truncate_dim=k_dim,
+                max_active_dims=k_dim,
             )
         )
     dev_evaluator = SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[-1])
@@ -109,13 +101,13 @@ def main():
     evaluators = []
     for k_dim in [16, 32, 64, 128, 256]:
         evaluators.append(
-            SparseEmbeddingSimilarityEvaluator(
+            evaluation.SparseEmbeddingSimilarityEvaluator(
                 sentences1=test_dataset["sentence1"],
                 sentences2=test_dataset["sentence2"],
                 scores=test_dataset["score"],
                 main_similarity=SimilarityFunction.COSINE,
                 name=f"sts-test-{k_dim}",
-                truncate_dim=k_dim,
+                max_active_dims=k_dim,
             )
         )
     test_evaluator = SequentialEvaluator(evaluators)

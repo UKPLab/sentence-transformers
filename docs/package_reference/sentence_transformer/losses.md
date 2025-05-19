@@ -150,3 +150,8 @@ This allows our network to be fine-tuned to recognize the similarity of sentence
 ```{eval-rst}
 .. autoclass:: sentence_transformers.losses.TripletLoss
 ```
+
+## DistillKLDivLoss
+```{eval-rst}
+.. autoclass:: sentence_transformers.losses.DistillKLDivLoss
+```

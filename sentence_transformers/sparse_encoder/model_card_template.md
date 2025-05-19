@@ -4,14 +4,14 @@
 {{ card_data }}
 ---
 
-# {{ model_name if model_name else "Sparse Encoder model" }}
+# {{ model_name if model_name else ((model_type or "Sparse Encoder") + " model") }}
 
-This is a [Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage.html) model{% if base_model %} finetuned from [{{ base_model }}](https://huggingface.co/{{ base_model }}){% else %} trained{% endif %}{% if train_datasets | selectattr("name") | list %} on {% if train_datasets | selectattr("name") | map(attribute="name") | join(", ") | length > 200 %}{{ train_datasets | length }}{% else %}the {% for dataset in (train_datasets | selectattr("name")) %}{% if dataset.id %}[{{ dataset.name if dataset.name else dataset.id }}](https://huggingface.co/datasets/{{ dataset.id }}){% else %}{{ dataset.name }}{% endif %}{% if not loop.last %}{% if loop.index == (train_datasets | selectattr("name") | list | length - 1) %} and {% else %}, {% endif %}{% endif %}{% endfor %}{% endif %} dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}{% endif %} using the [sentence-transformers](https://www.SBERT.net) library. It maps sentences & paragraphs to a {{ output_dimensionality }}-dimensional sparse vector space and can be used for {{ task_name }}.
+This is a [{{ model_type or "Sparse Encoder" }}](https://www.sbert.net/docs/sparse_encoder/usage/usage.html) model{% if base_model %} finetuned from [{{ base_model }}](https://huggingface.co/{{ base_model }}){% else %} trained{% endif %}{% if train_datasets | selectattr("name") | list %} on {% if train_datasets | selectattr("name") | map(attribute="name") | join(", ") | length > 200 %}{{ train_datasets | length }}{% else %}the {% for dataset in (train_datasets | selectattr("name")) %}{% if dataset.id %}[{{ dataset.name if dataset.name else dataset.id }}](https://huggingface.co/datasets/{{ dataset.id }}){% else %}{{ dataset.name }}{% endif %}{% if not loop.last %}{% if loop.index == (train_datasets | selectattr("name") | list | length - 1) %} and {% else %}, {% endif %}{% endif %}{% endfor %}{% endif %} dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}{% endif %} using the [sentence-transformers](https://www.SBERT.net) library. It maps sentences & paragraphs to a {{ output_dimensionality }}-dimensional sparse vector space and can be used for {{ task_name }}.
 
 ## Model Details
 
 ### Model Description
-- **Model Type:** Sparse Encoder
+- **Model Type:** {{ model_type or "Sparse Encoder" }}
 {% if base_model -%}
     {%- if base_model_revision -%}
     - **Base model:** [{{ base_model }}](https://huggingface.co/{{ base_model }}) <!-- at revision {{ base_model_revision }} -->
@@ -22,6 +22,8 @@ This is a [Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage
     <!-- - **Base model:** [Unknown](https://huggingface.co/unknown) -->
 {%- endif %}
 - **Maximum Sequence Length:** {{ model_max_length }} tokens
+- **Output Dimensionality:** {{ output_dimensionality }} dimensions{% if max_active_dims %} (trained with {{ max_active_dims }} maximum active dimensions){% endif %}
+- **Similarity Function:** {{ similarity_fn_name }}
 {% if train_datasets | selectattr("name") | list -%}
     - **Training Dataset{{"s" if train_datasets | selectattr("name") | list | length > 1 else ""}}:**
     {%- for dataset in (train_datasets | selectattr("name")) %}
@@ -56,6 +58,12 @@ This is a [Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage
 - **Documentation:** [Sparse Encoder Documentation](https://www.sbert.net/docs/sparse_encoder/usage/usage.html)
 - **Repository:** [Sentence Transformers on GitHub](https://github.com/UKPLab/sentence-transformers)
 - **Hugging Face:** [Sparse Encoders on Hugging Face](https://huggingface.co/models?library=sentence-transformers&other=sparse-encoder)
+
+### Full Model Architecture
+
+```
+{{ model_string }}
+```
 
 ## Usage
 

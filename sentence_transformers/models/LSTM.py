@@ -1,16 +1,21 @@
 from __future__ import annotations
 
-import json
-import os
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 import torch
-from safetensors.torch import load_model as load_safetensors_model
-from safetensors.torch import save_model as save_safetensors_model
 from torch import nn
 
+from sentence_transformers.models.Module import Module
 
-class LSTM(nn.Module):
+
+class LSTM(Module):
     """Bidirectional LSTM running over word embeddings."""
+
+    config_keys: list[str] = ["word_embedding_dimension", "hidden_dim", "num_layers", "dropout", "bidirectional"]
+    config_file_name: str = "lstm_config.json"
 
     def __init__(
         self,
@@ -20,8 +25,7 @@ class LSTM(nn.Module):
         dropout: float = 0,
         bidirectional: bool = True,
     ):
-        nn.Module.__init__(self)
-        self.config_keys = ["word_embedding_dimension", "hidden_dim", "num_layers", "dropout", "bidirectional"]
+        super().__init__()
         self.word_embedding_dimension = word_embedding_dimension
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
@@ -56,35 +60,35 @@ class LSTM(nn.Module):
     def get_word_embedding_dimension(self) -> int:
         return self.embeddings_dimension
 
-    def tokenize(self, text: str, **kwargs) -> list[int]:
-        raise NotImplementedError()
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        self.save_config(output_path)
 
-    def save(self, output_path: str, safe_serialization: bool = True):
-        with open(os.path.join(output_path, "lstm_config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut, indent=2)
-
+        # Saving LSTM models with Safetensors does not work unless the weights are on CPU
+        # See https://github.com/UKPLab/sentence-transformers/pull/2722
         device = next(self.parameters()).device
-        if safe_serialization:
-            save_safetensors_model(self.cpu(), os.path.join(output_path, "model.safetensors"))
-            self.to(device)
-        else:
-            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
+        self.cpu()
+        self.save_torch_weights(output_path, safe_serialization=safe_serialization)
+        self.to(device)
 
-    def get_config_dict(self):
-        return {key: self.__dict__[key] for key in self.config_keys}
-
-    @staticmethod
-    def load(input_path: str):
-        with open(os.path.join(input_path, "lstm_config.json")) as fIn:
-            config = json.load(fIn)
-
-        model = LSTM(**config)
-        if os.path.exists(os.path.join(input_path, "model.safetensors")):
-            load_safetensors_model(model, os.path.join(input_path, "model.safetensors"))
-        else:
-            model.load_state_dict(
-                torch.load(
-                    os.path.join(input_path, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
-                )
-            )
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        hub_kwargs = {
+            "subfolder": subfolder,
+            "token": token,
+            "cache_folder": cache_folder,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        config = cls.load_config(model_name_or_path=model_name_or_path, **hub_kwargs)
+        model = cls(**config)
+        model = cls.load_torch_weights(model_name_or_path=model_name_or_path, model=model, **hub_kwargs)
         return model

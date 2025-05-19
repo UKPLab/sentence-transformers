@@ -160,8 +160,8 @@ if __name__ == "__main__":
         for dim in tqdm(DIMENSIONS, desc=f"Evaluating {model_name}"):
             output_path = os.path.join(model_name, f"dim-{dim}")
             os.makedirs(output_path)
-            with model.truncate_sentence_embeddings(dim):
-                score = test_evaluator(model, output_path=output_path)
+            test_evaluator.truncate_dim = dim
+            score = test_evaluator(model, output_path=output_path)
             print(f"Saved results to {output_path}")
             dim_to_score[dim] = score
         model_name_to_dim_to_score[model_name] = dim_to_score

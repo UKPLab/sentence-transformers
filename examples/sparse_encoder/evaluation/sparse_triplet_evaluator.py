@@ -2,24 +2,14 @@ import logging
 
 from datasets import load_dataset
 
-from sentence_transformers.sparse_encoder import (
-    MLMTransformer,
-    SparseEncoder,
-    SparseTripletEvaluator,
-    SpladePooling,
-)
+from sentence_transformers import SparseEncoder
+from sentence_transformers.sparse_encoder.evaluation import SparseTripletEvaluator
 
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
+logging.basicConfig(format="%(message)s", level=logging.INFO)
 
-# Initialize the SPLADE model
-model_name = "naver/splade-cocondenser-ensembledistil"
-model = SparseEncoder(
-    modules=[
-        MLMTransformer(model_name),
-        SpladePooling(pooling_strategy="max"),  # You can also use 'sum'
-    ],
-    device="cuda:0",
-)
+# Load a model
+model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
 # Load triplets from the AllNLI dataset
 # The dataset contains triplets of (anchor, positive, negative) sentences
 dataset = load_dataset("sentence-transformers/all-nli", "triplet", split="dev[:1000]")
@@ -35,8 +25,15 @@ evaluator = SparseTripletEvaluator(
 )
 
 # Run the evaluation
-results = evaluator(model)
-
+results = evaluator(model, ".")
+"""
+TripletEvaluator: Evaluating the model on the all_nli_dev dataset:
+Accuracy Dot Similarity:	85.10%
+Model Sparsity Stats  Query : Row Non-Zero Mean: 105.4530029296875, Row Sparsity Mean: 0.9965449571609497
+Model Sparsity Stats  Corpus : Row Non-Zero Mean: 69.18349838256836, Row Sparsity Mean: 0.9977333247661591
+"""
 # Print the results
 print(f"Primary metric: {evaluator.primary_metric}")
+# => Primary metric: all_nli_dev_dot_accuracy
 print(f"Primary metric value: {results[evaluator.primary_metric]:.4f}")
+# => Primary metric value: 0.8510

@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-import json
 import logging
-import os
 
 import torch
 from torch import Tensor, nn
 
+from sentence_transformers.models.Module import Module
+
 logger = logging.getLogger(__name__)
 
 
-class WordWeights(nn.Module):
+class WordWeights(Module):
     """This model can weight word embeddings, for example, with idf-values."""
+
+    config_keys: list[str] = ["vocab", "word_weights", "unknown_word_weight"]
 
     def __init__(self, vocab: list[str], word_weights: dict[str, float], unknown_word_weight: float = 1):
         """
@@ -25,7 +27,6 @@ class WordWeights(nn.Module):
                 These can be, for example, rare words in the vocab where no weight exists. Defaults to 1.
         """
         super().__init__()
-        self.config_keys = ["vocab", "word_weights", "unknown_word_weight"]
         self.vocab = vocab
         self.word_weights = word_weights
         self.unknown_word_weight = unknown_word_weight
@@ -65,16 +66,5 @@ class WordWeights(nn.Module):
         features.update({"token_embeddings": token_embeddings, "token_weights_sum": token_weights_sum})
         return features
 
-    def get_config_dict(self):
-        return {key: self.__dict__[key] for key in self.config_keys}
-
-    def save(self, output_path):
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut, indent=2)
-
-    @staticmethod
-    def load(input_path):
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-
-        return WordWeights(**config)
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        self.save_config(output_path)

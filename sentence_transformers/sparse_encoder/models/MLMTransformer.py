@@ -1,31 +1,53 @@
 from __future__ import annotations
 
-import json
-import os
+import logging
 from typing import Any
 
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+
 import torch
-from torch import nn
 from transformers import AutoConfig, AutoModelForMaskedLM, AutoTokenizer
 
+from sentence_transformers.models.InputModule import InputModule
 
-class MLMTransformer(nn.Module):
-    """A minimal Transformer model that uses MLM (Masked Language Modeling).
+logger = logging.getLogger(__name__)
 
-    This model implements only the essential functionality needed for MLM,
-    without inheriting from the base Transformer class.
+
+class MLMTransformer(InputModule):
+    """
+    MLMTransformer adapts a Masked Language Model (MLM) for sparse encoding applications.
+
+    This class extends the Transformer class to work specifically with models that have a
+    MLM head (like BERT, RoBERTa, etc.) and is designed to be used with SpladePooling
+    for creating SPLADE sparse representations.
+
+    MLMTransformer accesses the MLM prediction head to get vocabulary logits for each token,
+    which are later used by SpladePooling to create sparse lexical representations.
 
     Args:
         model_name_or_path: Hugging Face models name
+            (https://huggingface.co/models)
         max_seq_length: Truncate any inputs longer than max_seq_length
-        model_args: Keyword arguments passed to the Hugging Face Transformers model
-        tokenizer_args: Keyword arguments passed to the Hugging Face Transformers tokenizer
-        config_args: Keyword arguments passed to the Hugging Face Transformers config
-        cache_dir: Cache dir for Hugging Face Transformers to store/load models
-        do_lower_case: If true, lowercases the input
-        tokenizer_name_or_path: Name or path of the tokenizer
+        model_args: Keyword arguments passed to the Hugging Face
+            MLMTransformers model
+        tokenizer_args: Keyword arguments passed to the Hugging Face
+            MLMTransformers tokenizer
+        config_args: Keyword arguments passed to the Hugging Face
+            MLMTransformers config
+        cache_dir: Cache dir for Hugging Face MLMTransformers to store/load
+            models
+        do_lower_case: If true, lowercases the input (independent if the
+            model is cased or not)
+        tokenizer_name_or_path: Name or path of the tokenizer. When
+            None, then model_name_or_path is used
+        backend: Backend used for model inference. Can be only `torch` for now for this class.
     """
 
+    config_file_name: str = "sentence_bert_config.json"
+    config_keys: list[str] = ["max_seq_length", "do_lower_case"]
     save_in_root: bool = True
 
     def __init__(
@@ -41,9 +63,13 @@ class MLMTransformer(nn.Module):
         backend: str = "torch",
     ) -> None:
         super().__init__()
-        self.config_keys = ["max_seq_length", "do_lower_case"]
         self.do_lower_case = do_lower_case
         self.backend = backend
+        if self.backend != "torch":
+            logger.warning(
+                f"MLMTransformer only supports torch backend. The provided backend '{self.backend}' will be ignored."
+            )
+            self.backend = "torch"
 
         if model_args is None:
             model_args = {}
@@ -73,41 +99,8 @@ class MLMTransformer(nn.Module):
             if hasattr(self.config, "max_position_embeddings") and hasattr(self.tokenizer, "model_max_length"):
                 self.max_seq_length = min(self.config.max_position_embeddings, self.tokenizer.model_max_length)
 
-    def get_config_dict(self) -> dict[str, Any]:
-        return {key: self.__dict__[key] for key in self.config_keys}
-
-    def save(self, output_path: str, safe_serialization: bool = True) -> None:
-        with open(os.path.join(output_path, "sentence_bert_config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut, indent=2)
-
-        self.auto_model.save_pretrained(output_path, safe_serialization=safe_serialization)
-        self.tokenizer.save_pretrained(output_path)
-
-    @classmethod
-    def load(cls, input_path: str) -> MLMTransformer:
-        """
-        Load the model from the specified path.
-
-        Args:
-            input_path: Path to load the model from
-
-        Returns:
-            Loaded MLMTransformer model
-        """
-        with open(os.path.join(input_path, "sentence_bert_config.json")) as fIn:
-            config = json.load(fIn)
-        print(config)
-        return cls(model_name_or_path=input_path, **config)
-
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        """Forward pass of the model.
-
-        Args:
-            features: Dictionary containing input features
-
-        Returns:
-            Dictionary containing token embeddings
-        """
+        """Returns the MLM head logits for the input features as token embeddings."""
         trans_features = {
             key: value
             for key, value in features.items()
@@ -167,3 +160,145 @@ class MLMTransformer(nn.Module):
 
     def __repr__(self) -> str:
         return f"MLMTransformer({self.get_config_dict()}) with MLMTransformer model: {self.auto_model.__class__.__name__} "
+
+    def save(self, output_path: str, safe_serialization: bool = True, **kwargs) -> None:
+        self.auto_model.save_pretrained(output_path, safe_serialization=safe_serialization)
+        self.save_tokenizer(output_path)
+        self.save_config(output_path)
+
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        # Loading arguments
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        # Module-specific arguments
+        trust_remote_code: bool = False,
+        model_kwargs: dict[str, Any] | None = None,
+        tokenizer_kwargs: dict[str, Any] | None = None,
+        config_kwargs: dict[str, Any] | None = None,
+        backend: str = "torch",
+        **kwargs,
+    ) -> Self:
+        init_kwargs = cls._load_init_kwargs(
+            model_name_or_path=model_name_or_path,
+            subfolder=subfolder,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+            trust_remote_code=trust_remote_code,
+            model_kwargs=model_kwargs,
+            tokenizer_kwargs=tokenizer_kwargs,
+            config_kwargs=config_kwargs,
+            backend=backend,
+        )
+        return cls(model_name_or_path=model_name_or_path, **init_kwargs)
+
+    @classmethod
+    def _load_init_kwargs(
+        cls,
+        model_name_or_path: str,
+        # Loading arguments
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        # Module-specific arguments
+        trust_remote_code: bool = False,
+        model_kwargs: dict[str, Any] | None = None,
+        tokenizer_kwargs: dict[str, Any] | None = None,
+        config_kwargs: dict[str, Any] | None = None,
+        backend: str = "torch",
+        **kwargs,
+    ) -> dict[str, Any]:
+        config = cls.load_config(
+            model_name_or_path=model_name_or_path,
+            subfolder=subfolder,
+            token=token,
+            cache_folder=cache_folder,
+            revision=revision,
+            local_files_only=local_files_only,
+        )
+
+        hub_kwargs = {
+            "subfolder": subfolder,
+            "token": token,
+            "revision": revision,
+            "local_files_only": local_files_only,
+            "trust_remote_code": trust_remote_code,
+        }
+
+        # 3rd priority: config file
+        if "model_args" not in config:
+            config["model_args"] = {}
+        if "tokenizer_args" not in config:
+            config["tokenizer_args"] = {}
+        if "config_args" not in config:
+            config["config_args"] = {}
+
+        # 2nd priority: hub_kwargs
+        config["model_args"].update(hub_kwargs)
+        config["tokenizer_args"].update(hub_kwargs)
+        config["config_args"].update(hub_kwargs)
+
+        # 1st priority: kwargs passed to SentenceTransformer
+        if model_kwargs:
+            config["model_args"].update(model_kwargs)
+        if tokenizer_kwargs:
+            config["tokenizer_args"].update(tokenizer_kwargs)
+        if config_kwargs:
+            config["config_args"].update(config_kwargs)
+
+        return {**config, "cache_dir": cache_folder, "backend": backend}
+
+    @classmethod
+    def load_config(
+        cls,
+        model_name_or_path: str,
+        subfolder: str = "",
+        config_filename: str | None = None,
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+    ) -> dict[str, Any]:
+        config_filenames = (
+            [config_filename]
+            if config_filename
+            else [
+                "sentence_bert_config.json",
+                "sentence_roberta_config.json",
+                "sentence_distilbert_config.json",
+                "sentence_camembert_config.json",
+                "sentence_albert_config.json",
+                "sentence_xlm-roberta_config.json",
+                "sentence_xlnet_config.json",
+            ]
+        )
+        for config_filename in config_filenames:
+            config = super().load_config(
+                model_name_or_path=model_name_or_path,
+                subfolder=subfolder,
+                config_filename=config_filename,
+                token=token,
+                cache_folder=cache_folder,
+                revision=revision,
+                local_files_only=local_files_only,
+            )
+            if config:
+                break
+
+        # Don't allow configs to set trust_remote_code
+        if "model_args" in config and "trust_remote_code" in config["model_args"]:
+            config["model_args"].pop("trust_remote_code")
+        if "tokenizer_args" in config and "trust_remote_code" in config["tokenizer_args"]:
+            config["tokenizer_args"].pop("trust_remote_code")
+        if "config_args" in config and "trust_remote_code" in config["config_args"]:
+            config["config_args"].pop("trust_remote_code")
+        return config

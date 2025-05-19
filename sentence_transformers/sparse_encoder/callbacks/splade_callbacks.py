@@ -19,14 +19,6 @@ class SchedulerType(Enum):
 
 
 class SpladeLambdaSchedulerCallback(TrainerCallback):
-    """
-    Callback that updates the lambda_query and lambda_corpus parameters of SpladeLoss
-    based on a schedule.
-
-    The scheduler gradually increases the lambda values from 0 to their max value
-    within the specified warmup ratio of the total training steps.
-    """
-
     def __init__(
         self,
         loss: SpladeLoss,
@@ -34,10 +26,16 @@ class SpladeLambdaSchedulerCallback(TrainerCallback):
         warmup_ratio: float = 1 / 3,
     ):
         """
-        Args:
-            loss: SpladeLoss instance to be updated
-            scheduler_type: Type of scheduler ('linear' or 'quadratic')
-            warmup_ratio: Ratio of total steps to reach max lambda values (default: 1/3)
+        Callback that updates the lambda_query and lambda_corpus parameters of SpladeLoss
+        based on a schedule.
+
+        The scheduler gradually increases the lambda values from 0 to their max value
+        within the specified warmup ratio of the total training steps.
+
+         Args:
+                loss: SpladeLoss instance to be updated
+                scheduler_type: Type of scheduler ('linear' or 'quadratic')
+                warmup_ratio: Ratio of total steps to reach max lambda values (default: 1/3)
         """
         super().__init__()
 
@@ -65,10 +63,10 @@ class SpladeLambdaSchedulerCallback(TrainerCallback):
             )
             raise ValueError("loss must be an instance of SpladeLoss")
         self.loss = loss
-        self.max_lambda_query = self.loss.lambda_query
         self.max_lambda_corpus = self.loss.lambda_corpus
+        self.max_lambda_query = self.loss.lambda_query
         self.warmup_ratio = warmup_ratio
-        self._current_lambda_query = 0.0
+        self._current_lambda_query = 0.0 if self.max_lambda_query is not None else None
         self._current_lambda_corpus = 0.0
         self.total_steps = None
         self.warmup_steps = None
@@ -100,7 +98,7 @@ class SpladeLambdaSchedulerCallback(TrainerCallback):
 
     def _calculate_lambda_value(self, step: int, max_value: float) -> float:
         """Calculate the lambda value based on the current step and scheduler type."""
-        if self.warmup_steps is None or step >= self.warmup_steps:
+        if self.warmup_steps is None or step >= self.warmup_steps or max_value is None:
             return max_value
 
         ratio = step / max(self.warmup_steps, 1)  # Avoid division by zero
@@ -142,6 +140,6 @@ class SpladeLambdaSchedulerCallback(TrainerCallback):
 
     def on_log(self, args, state, control, model=None, logs=None, **kwargs):
         """Log the current lambda values."""
-        # TODO: Fix that in wandb log it but not appear in the dashboard
-        logs["lambda_query"] = self._current_lambda_query
         logs["lambda_corpus"] = self._current_lambda_corpus
+        if self._current_lambda_query is not None:
+            logs["lambda_query"] = self._current_lambda_query

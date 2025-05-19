@@ -1,39 +1,55 @@
 from __future__ import annotations
 
-import json
-import os
-from typing import Any
-
 import torch
-from torch import nn
+
+from sentence_transformers.models.Module import Module
 
 
-class SpladePooling(nn.Module):
-    """SPLADE pooling layer that aggregates MLM logits using max or sum pooling.
+class SpladePooling(Module):
+    """
+    SPLADE Pooling module for creating the sparse embeddings.
 
-    This pooling layer takes MLM logits (shape: batch_size, seq_length, vocab_size)
-    and applies SPLADE transformation (ReLU + log) followed by pooling across the
-    sequence length dimension.
+    This module implements the SPLADE pooling mechanism that:
+
+    1. Takes token logits from a masked language model (MLM).
+    2. Applies a sparse transformation using an activation function followed by log1p (i.e., log(1 + activation(MLM_logits))).
+    3. Applies a pooling strategy `max` or `sum` to produce sparse embeddings.
+
+    The resulting embeddings are highly sparse and capture lexical information,
+    making them suitable for efficient information retrieval.
 
     Args:
-        pooling_strategy: Either 'max' or 'sum' for SPLADE pooling
-
+        pooling_strategy (str): Pooling method across token dimensions.
+            Choices:
+                - `sum`: Sum pooling (used in original SPLADE see https://arxiv.org/pdf/2107.05720).
+                - `max`: Max pooling (used in SPLADEv2 and later models see https://arxiv.org/pdf/2109.10086 or https://arxiv.org/pdf/2205.04733).
+        activation_function (str): Activation function applied before log1p transformation.
+            Choices:
+                - `relu`: ReLU activation (standard in all Splade models).
+                - `log1p_relu`: log(1 + ReLU(x)) variant used in Opensearch Splade models see arxiv.org/pdf/2504.14839.
+        word_embedding_dimension (int, optional): Dimensionality of the output embeddings (if needed).
     """
 
     SPLADE_POOLING_MODES = ("sum", "max")
+    SPLADE_ACTIVATION = ["relu", "log1p_relu"]
+    config_keys: list[str] = ["pooling_strategy", "activation_function", "word_embedding_dimension"]
 
-    def __init__(self, pooling_strategy: str = "max", word_embedding_dimension: int = None) -> None:
+    def __init__(
+        self, pooling_strategy: str = "max", activation_function="relu", word_embedding_dimension: int = None
+    ) -> None:
         super().__init__()
         self.pooling_strategy = pooling_strategy
         if pooling_strategy not in self.SPLADE_POOLING_MODES:
             raise ValueError("pooling_strategy must be either 'max' or 'sum'")
-        self.config_keys = ["pooling_strategy", "word_embedding_dimension"]
+        self.activation_function = activation_function
+        if activation_function not in self.SPLADE_ACTIVATION:
+            raise ValueError("activation_function must be either 'relu' or 'log1p_relu'")
         self.word_embedding_dimension = word_embedding_dimension  # This will be set in the forward method
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         """Forward pass of the model.
         Args:
-            features: Dictionary containing input features with 'mlm_logits' key
+            features: Dictionary containing input features with 'token_embeddings' key as MLM logits.
         Returns:
             Dictionary containing SPLADE pooled embeddings
         """
@@ -41,7 +57,12 @@ class SpladePooling(nn.Module):
         mlm_logits = features["token_embeddings"]
 
         # Apply ReLU and log transformation for SPLADE
-        splade_scores = torch.log1p(torch.relu(mlm_logits))
+        if self.activation_function == "relu":
+            splade_scores = torch.log1p(torch.relu(mlm_logits))
+        elif self.activation_function == "log1p_relu":
+            splade_scores = torch.log1p(torch.log1p(torch.relu(mlm_logits)))
+        else:
+            raise ValueError("activation_function must be either 'relu' or 'log1p_relu'")
 
         # Pool across sequence length dimension
         if self.pooling_strategy == "max":
@@ -55,19 +76,8 @@ class SpladePooling(nn.Module):
         features["sentence_embedding"] = pooled_scores
         return features
 
-    def get_config_dict(self) -> dict[str, Any]:
-        return {key: self.__dict__[key] for key in self.config_keys}
-
-    def save(self, output_path) -> None:
-        with open(os.path.join(output_path, "config.json"), "w") as fOut:
-            json.dump(self.get_config_dict(), fOut, indent=2)
-
-    @staticmethod
-    def load(input_path) -> SpladePooling:
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-
-        return SpladePooling(**config)
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+        self.save_config(output_path)
 
     def __repr__(self) -> str:
         return f"SpladePooling({self.get_config_dict()})"

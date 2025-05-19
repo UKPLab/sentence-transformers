@@ -42,6 +42,9 @@ For example, when finetuning a small model to behave more like a larger & strong
 | `sentence`                                   | `model sentence embeddings`                                   | <a href="../package_reference/sentence_transformer/losses.html#mseloss">`MSELoss`</a>             |
 | `sentence_1, sentence_2, ..., sentence_N`    | `model sentence embeddings`                                   | <a href="../package_reference/sentence_transformer/losses.html#mseloss">`MSELoss`</a>             |
 | `(query, passage_one, passage_two) triplets` | `gold_sim(query, passage_one) - gold_sim(query, passage_two)` | <a href="../package_reference/sentence_transformer/losses.html#marginmseloss">`MarginMSELoss`</a> |
+| `(query, positive, negative_1, ..., negative_n)` | `[gold_sim(query, positive) - gold_sim(query, negative_i) for i in 1..n]` | <a href="../package_reference/sentence_transformer/losses.html#marginmseloss">`MarginMSELoss`</a> |
+| `(query, positive, negative)` | `[gold_sim(query, positive), gold_sim(query, negative)]` | <a href="../package_reference/sentence_transformer/losses.html#distilkldivloss">`DistillKLDivLoss`</a> |
+| `(query, positive, negative_1, ..., negative_n) ` | `[gold_sim(query, positive), gold_sim(query, negative_i)...] ` | <a href="../package_reference/sentence_transformer/losses.html#distilkldivloss">`DistillKLDivLoss`</a> |
 
 ## Commonly used Loss Functions
 In practice, not all loss functions get used equally often. The most common scenarios are:

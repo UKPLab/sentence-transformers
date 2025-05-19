@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import functools
 import heapq
 import importlib
@@ -10,6 +11,7 @@ import random
 import sys
 from contextlib import contextmanager
 from importlib.metadata import PackageNotFoundError, metadata
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, overload
 
 import numpy as np
@@ -288,7 +290,6 @@ def pairwise_angle_sim(x: Tensor, y: Tensor) -> Tensor:
     Returns:
         Tensor: Vector with res[i] = angle_sim(a[i], b[i])
     """
-    # TODO Check  if it's actually possible to handle sparse tensors in an efficient way
     if x.is_sparse:
         logger.warning("Pairwise angle similarity does not support sparse tensors. Converting to dense.")
         x = x.coalesce().to_dense()
@@ -384,18 +385,18 @@ def truncate_embeddings(embeddings: np.ndarray | torch.Tensor, truncate_dim: int
     return embeddings[..., :truncate_dim]
 
 
-def truncate_embeddings_for_sparse(embeddings: np.ndarray | torch.Tensor, truncate_dim: int | None) -> torch.Tensor:
+def select_max_active_dims(embeddings: np.ndarray | torch.Tensor, max_active_dims: int | None) -> torch.Tensor:
     """
     Keeps only the top-k values (in absolute terms) for each embedding and creates a sparse tensor.
 
     Args:
         embeddings (Union[np.ndarray, torch.Tensor]): Embeddings to sparsify by keeping only top_k values.
-        truncate_dim (int): Number of values to keep per embedding.
+        max_active_dims (int): Number of values to keep as non-zeros per embedding.
 
     Returns:
         torch.Tensor: A sparse tensor containing only the top-k values per embedding.
     """
-    if truncate_dim is None:
+    if max_active_dims is None:
         return embeddings
     # Convert to tensor if numpy array
     if isinstance(embeddings, np.ndarray):
@@ -405,11 +406,11 @@ def truncate_embeddings_for_sparse(embeddings: np.ndarray | torch.Tensor, trunca
     device = embeddings.device
 
     # Get the top-k indices for each embedding (by absolute value)
-    _, top_indices = torch.topk(torch.abs(embeddings), k=min(truncate_dim, dim), dim=1)
+    _, top_indices = torch.topk(torch.abs(embeddings), k=min(max_active_dims, dim), dim=1)
 
     # Create a mask of zeros, then set the top-k positions to 1
     mask = torch.zeros_like(embeddings, dtype=torch.bool)
-    batch_indices = torch.arange(batch_size, device=device).unsqueeze(1).expand(-1, min(truncate_dim, dim))
+    batch_indices = torch.arange(batch_size, device=device).unsqueeze(1).expand(-1, min(max_active_dims, dim))
     mask[batch_indices.flatten(), top_indices.flatten()] = True
 
     # Create a sparse tensor with only the top values
@@ -428,6 +429,7 @@ def paraphrase_mining(
     max_pairs: int = 500000,
     top_k: int = 100,
     score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
+    truncate_dim: int | None = None,
 ) -> list[list[float | int]]:
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
@@ -443,6 +445,7 @@ def paraphrase_mining(
         max_pairs (int, optional): Maximal number of text pairs returned. Defaults to 500000.
         top_k (int, optional): For each sentence, we retrieve up to top_k other sentences. Defaults to 100.
         score_function (Callable[[Tensor, Tensor], Tensor], optional): Function for computing scores. By default, cosine similarity. Defaults to cos_sim.
+        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. If None, uses the model's ones. Defaults to None.
 
     Returns:
         List[List[Union[float, int]]]: Returns a list of triplets with the format [score, id1, id2]
@@ -450,7 +453,11 @@ def paraphrase_mining(
 
     # Compute embedding for the sentences
     embeddings = model.encode(
-        sentences, show_progress_bar=show_progress_bar, batch_size=batch_size, convert_to_tensor=True
+        sentences,
+        show_progress_bar=show_progress_bar,
+        batch_size=batch_size,
+        convert_to_tensor=True,
+        truncate_dim=truncate_dim,
     )
 
     return paraphrase_mining_embeddings(
@@ -1555,7 +1562,8 @@ def is_sentence_transformer_model(
 
 def load_file_path(
     model_name_or_path: str,
-    filename: str,
+    filename: str | Path,
+    subfolder: str = "",
     token: bool | str | None = None,
     cache_folder: str | None = None,
     revision: str | None = None,
@@ -1567,6 +1575,7 @@ def load_file_path(
     Args:
         model_name_or_path (str): The model name or path.
         filename (str): The name of the file to load.
+        subfolder (str): The subfolder within the model subfolder (if applicable).
         token (Optional[Union[bool, str]]): The token to access the remote file (if applicable).
         cache_folder (Optional[str]): The folder to cache the downloaded file (if applicable).
         revision (Optional[str], optional): The revision of the file (if applicable). Defaults to None.
@@ -1576,15 +1585,17 @@ def load_file_path(
         Optional[str]: The path to the loaded file, or None if the file could not be found or loaded.
     """
     # If file is local
-    file_path = os.path.join(model_name_or_path, filename)
-    if os.path.exists(file_path):
-        return file_path
+    file_path = Path(model_name_or_path, subfolder, filename)
+    if file_path.exists():
+        return str(file_path)
 
     # If file is remote
+    file_path = Path(subfolder, filename)
     try:
         return hf_hub_download(
             model_name_or_path,
-            filename=filename,
+            filename=file_path.name,
+            subfolder=file_path.parent.as_posix(),
             revision=revision,
             library_name="sentence-transformers",
             token=token,
@@ -1597,35 +1608,38 @@ def load_file_path(
 
 def load_dir_path(
     model_name_or_path: str,
-    directory: str,
+    subfolder: str,
     token: bool | str | None = None,
     cache_folder: str | None = None,
     revision: str | None = None,
     local_files_only: bool = False,
 ) -> str | None:
     """
-    Loads the directory path for a given model name or path.
+    Loads the subfolder path for a given model name or path.
 
     Args:
         model_name_or_path (str): The name or path of the model.
-        directory (str): The directory to load.
+        subfolder (str): The subfolder to load.
         token (Optional[Union[bool, str]]): The token for authentication.
         cache_folder (Optional[str]): The folder to cache the downloaded files.
         revision (Optional[str], optional): The revision of the model. Defaults to None.
         local_files_only (bool, optional): Whether to only use local files. Defaults to False.
 
     Returns:
-        Optional[str]: The directory path if it exists, otherwise None.
+        Optional[str]: The subfolder path if it exists, otherwise None.
     """
+    if isinstance(subfolder, Path):
+        subfolder = subfolder.as_posix()
+
     # If file is local
-    dir_path = os.path.join(model_name_or_path, directory)
-    if os.path.exists(dir_path):
-        return dir_path
+    dir_path = Path(model_name_or_path, subfolder)
+    if dir_path.exists():
+        return str(dir_path)
 
     download_kwargs = {
         "repo_id": model_name_or_path,
         "revision": revision,
-        "allow_patterns": f"{directory}/**" if directory not in ["", "."] else None,
+        "allow_patterns": f"{subfolder}/**" if subfolder not in ["", "."] else None,
         "library_name": "sentence-transformers",
         "token": token,
         "cache_dir": cache_folder,
@@ -1639,7 +1653,7 @@ def load_dir_path(
         # Otherwise, try local (i.e. cache) only
         download_kwargs["local_files_only"] = True
         repo_path = snapshot_download(**download_kwargs)
-    return os.path.join(repo_path, directory)
+    return Path(repo_path, subfolder)
 
 
 def save_to_hub_args_decorator(func):
@@ -1739,3 +1753,21 @@ def disable_datasets_caching():
     finally:
         if is_originally_enabled:
             enable_caching()
+
+
+def append_to_last_row(csv_path, additional_data):
+    # Read the entire CSV file
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    if len(rows) > 1:  # Make sure there's at least one data row (after the header)
+        # Append the additional data to the last row
+        rows[-1].extend(additional_data)
+
+        # Write the entire file back
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
+        return True
+    return False

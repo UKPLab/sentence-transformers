@@ -97,7 +97,8 @@ required-imports = ["from __future__ import annotations"]
 testpaths = [
     "tests"
 ]
-addopts = "--strict-markers -m 'not slow'"
+addopts = "--strict-markers -m 'not slow and not custom'"
 markers = [
-    "slow: marks tests as slow"
+    "slow: marks tests as slow",
+    "custom: tests for third-party models with custom modules"
 ]

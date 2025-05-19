@@ -8,7 +8,6 @@ from torch import Tensor, nn
 from sentence_transformers import SentenceTransformer, util
 
 
-# TODO; Change docstring to handle multiple negatives
 class MarginMSELoss(nn.Module):
     def __init__(self, model: SentenceTransformer, similarity_fct=util.pairwise_dot_score) -> None:
         """
@@ -19,7 +18,8 @@ class MarginMSELoss(nn.Module):
         have to be strictly positive and negative, both can be relevant or not relevant for a given query. This can be
         an advantage of MarginMSELoss over MultipleNegativesRankingLoss, but note that the MarginMSELoss is much slower
         to train. With MultipleNegativesRankingLoss, with a batch size of 64, we compare one query against 128 passages.
-        With MarginMSELoss, we compare a query only against two passages.
+        With MarginMSELoss, we compare a query only against two passages. It's also possible to use multiple negatives
+        with MarginMSELoss, but the training would be even slower to train.
 
         Args:
             model: SentenceTransformerModel
@@ -31,15 +31,17 @@ class MarginMSELoss(nn.Module):
             - `Unsupervised Learning > Domain Adaptation <../../../examples/sentence_transformer/domain_adaptation/README.html>`_
 
         Requirements:
-            1. (query, passage_one, passage_two) triplets
+            1. (query, passage_one, passage_two) triplets or (query, positive, negative_1, ..., negative_n)
             2. Usually used with a finetuned teacher M in a knowledge distillation setup
 
         Inputs:
-            +-----------------------------------------------+-----------------------------------------------+
-            | Texts                                         | Labels                                        |
-            +===============================================+===============================================+
-            | (query, passage_one, passage_two) triplets    | M(query, passage_one) - M(query, passage_two) |
-            +-----------------------------------------------+-----------------------------------------------+
+            +------------------------------------------------+------------------------------------------------------------+
+            | Texts                                          | Labels                                                     |
+            +================================================+============================================================+
+            | (query, passage_one, passage_two) triplets     | M(query, passage_one) - M(query, passage_two)              |
+            +------------------------------------------------+------------------------------------------------------------+
+            | (query, positive, negative_1, ..., negative_n) | [M(query, positive) - M(query, negative_i) for i in 1..n]  |
+            +------------------------------------------------+------------------------------------------------------------+
 
         Relations:
             - :class:`MSELoss` is similar to this loss, but without a margin through the negative pair.
@@ -111,21 +113,26 @@ class MarginMSELoss(nn.Module):
                 )
                 trainer.train()
 
-            For multiple negatives:
+            We can also use multiple negatives during the knowledge distillation.
 
             ::
 
                 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
                 from datasets import Dataset
+                import torch
 
                 student_model = SentenceTransformer("microsoft/mpnet-base")
                 teacher_model = SentenceTransformer("all-mpnet-base-v2")
-                train_dataset = Dataset.from_dict({
-                "query": ["It's nice weather outside today.", "He drove to work."],
-                "passage1": ["It's so sunny.", "He took the car to work."],
-                "passage2": ["It's very cold.", "She walked to the store."],
-                "passage3": ["Its rainy", "She took the bus"],
-                })
+
+                train_dataset = Dataset.from_dict(
+                    {
+                        "query": ["It's nice weather outside today.", "He drove to work."],
+                        "passage1": ["It's so sunny.", "He took the car to work."],
+                        "passage2": ["It's very cold.", "She walked to the store."],
+                        "passage3": ["Its rainy", "She took the bus"],
+                    }
+                )
+
 
                 def compute_labels(batch):
                     emb_queries = teacher_model.encode(batch["query"])
@@ -144,14 +151,11 @@ class MarginMSELoss(nn.Module):
                         )
                     }
 
+
                 train_dataset = train_dataset.map(compute_labels, batched=True)
                 loss = losses.MarginMSELoss(student_model)
 
-                trainer = SentenceTransformerTrainer(
-                    model=student_model,
-                    train_dataset=train_dataset,
-                    loss=loss,
-                )
+                trainer = SentenceTransformerTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
         """
         super().__init__()

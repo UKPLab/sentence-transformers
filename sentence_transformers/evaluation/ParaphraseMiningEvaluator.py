@@ -4,7 +4,6 @@ import csv
 import logging
 import os
 from collections import defaultdict
-from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
@@ -170,17 +169,17 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         logger.info(f"Paraphrase Mining Evaluation of the model on the {self.name} dataset{out_txt}:")
 
         # Compute embedding for the sentences
-        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            pairs_list = paraphrase_mining(
-                model,
-                self.sentences,
-                self.show_progress_bar,
-                self.batch_size,
-                self.query_chunk_size,
-                self.corpus_chunk_size,
-                self.max_pairs,
-                self.top_k,
-            )
+        pairs_list = paraphrase_mining(
+            model,
+            self.sentences,
+            show_progress_bar=self.show_progress_bar,
+            batch_size=self.batch_size,
+            query_chunk_size=self.query_chunk_size,
+            corpus_chunk_size=self.corpus_chunk_size,
+            max_pairs=self.max_pairs,
+            top_k=self.top_k,
+            truncate_dim=self.truncate_dim,
+        )
 
         logger.info("Number of candidate pairs: " + str(len(pairs_list)))
 
