@@ -57,8 +57,6 @@ class SentenceTransformerModelCardCallback(TrainerCallback):
         trainer: SentenceTransformerTrainer,
         **kwargs,
     ) -> None:
-        from sentence_transformers.losses import AdaptiveLayerLoss, Matryoshka2dLoss, MatryoshkaLoss
-
         model.model_card_data.add_tags("generated_from_trainer")
 
         # Try to set the code carbon callback if it exists
@@ -79,22 +77,7 @@ class SentenceTransformerModelCardCallback(TrainerCallback):
                 trainer.eval_dataset, model.model_card_data.eval_datasets, trainer.loss, "eval"
             )
 
-        if isinstance(trainer.loss, dict):
-            losses = list(trainer.loss.values())
-        else:
-            losses = [trainer.loss]
-        # Some losses are known to use other losses internally, e.g. MatryoshkaLoss, AdaptiveLayerLoss and Matryoshka2dLoss
-        # So, verify for `loss` attributes in the losses
-        loss_idx = 0
-        while loss_idx < len(losses):
-            loss = losses[loss_idx]
-            if (
-                isinstance(loss, (MatryoshkaLoss, AdaptiveLayerLoss, Matryoshka2dLoss))
-                and hasattr(loss, "loss")
-                and loss.loss not in losses
-            ):
-                losses.append(loss.loss)
-            loss_idx += 1
+        losses = get_losses(trainer.loss)
 
         model.model_card_data.set_losses(losses)
 
@@ -246,6 +229,24 @@ def format_log(value: float | int | str) -> Any:
     if isinstance(value, float):
         return round(value, 4)
     return value
+
+
+def get_losses(loss: nn.Module | dict[nn.Module]) -> list[nn.Module]:
+    if isinstance(loss, dict):
+        losses = list(loss.values())
+    else:
+        losses = [loss]
+    # Some losses are known to use other losses internally
+    # So, verify for `loss` attributes in the losses
+    loss_idx = 0
+    while loss_idx < len(losses):
+        loss = losses[loss_idx]
+        if hasattr(loss, "loss") and loss.loss not in losses:
+            losses.append(loss.loss)
+        if hasattr(loss, "regularizer") and loss.regularizer not in losses:
+            losses.append(loss.regularizer)
+        loss_idx += 1
+    return losses
 
 
 @dataclass
