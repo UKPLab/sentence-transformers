@@ -71,7 +71,7 @@ def main():
 
     # 5. Define the training arguments
     short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
-    run_name = f"{short_model_name}-msmarco-mrl"
+    run_name = f"splade-{short_model_name}-msmarco-mrl"
     args = SparseEncoderTrainingArguments(
         # Required parameter:
         output_dir=f"models/{run_name}",
