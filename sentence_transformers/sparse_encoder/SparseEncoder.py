@@ -1120,7 +1120,7 @@ class SparseEncoder(SentenceTransformer):
                 start_idx = 0
                 for i, count in enumerate(sample_counts):
                     if count == 0:
-                        results.append({})
+                        results.append([])
                         continue
 
                     sample_values = values[start_idx : start_idx + count]
@@ -1144,7 +1144,7 @@ class SparseEncoder(SentenceTransformer):
                 start_idx = 0
                 for i, count in enumerate(sample_counts):
                     if count == 0:
-                        results.append({})
+                        results.append([])
                         continue
 
                     sample_values = values[start_idx : start_idx + count]
@@ -1156,7 +1156,7 @@ class SparseEncoder(SentenceTransformer):
 
                 # Fill in empty results for samples with no tokens
                 if len(results) < embeddings.size(0):
-                    results.extend([{}] * (embeddings.size(0) - len(results)))
+                    results.extend([[]] * (embeddings.size(0) - len(results)))
 
                 return results
 

@@ -72,8 +72,8 @@ while True:
     # 6. Perform semantic search using OpenSearch
     results, search_time, corpus_index = semantic_search_opensearch(
         query_embeddings_decoded,
-        corpus_index=corpus_index,
         corpus_embeddings_decoded=corpus_embeddings_decoded if corpus_index is None else None,
+        corpus_index=corpus_index,
         top_k=5,
         output_index=True,
     )
