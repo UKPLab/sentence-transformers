@@ -462,7 +462,12 @@ class SentenceTransformerTrainer(Trainer):
                         0.0, dtype=value.dtype, device=value.device
                     )
 
-        return super().log(logs, start_time)
+        # The 'start_time' argument was added in transformers v4.47.0, before which the super().log() method
+        # would not accept it. If None, we just call the super().log() method without it so that it works with all versions.
+        if start_time is not None:
+            return super().log(logs, start_time)
+        else:
+            return super().log(logs)
 
     def collect_features(
         self, inputs: dict[str, torch.Tensor | Any]
