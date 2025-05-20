@@ -1058,39 +1058,107 @@ class SparseEncoder(SentenceTransformer):
 
         return intersection
 
-    def decode(self, embeddings: torch.Tensor, top_k: int = 10) -> dict:
+    def decode(
+        self, embeddings: torch.Tensor, top_k: int = None
+    ) -> list[tuple[str, float]] | list[list[tuple[str, float]]]:
         """
         Decode top K tokens and weights from a sparse embedding.
+        If none will just return the all tokens and weights
 
         Args:
-            embeddings (torch.Tensor): Sparse embedding tensor (batch, vocab).
-            top_k (int): Number of top tokens to return.
+            embeddings (torch.Tensor): Sparse embedding tensor (batch, vocab) or (vocab).
+            top_k (int, optional): Number of top tokens to return per sample. If None, returns all non-zero tokens.
 
         Returns:
-            dict: Dictionary with decoded tokens and weights.
+            list[tuple[str, float]] | list[list[tuple[str, float]]]: List of tuples (token, weight) for each embedding.
+            If batch input, returns a list of lists of tuples.
         """
-        if not embeddings.is_sparse:
+        # Ensure we have a sparse tensor for efficient processing
+        if not embeddings.is_sparse and not getattr(embeddings, "is_sparse_csr", False):
             embeddings = embeddings.to_sparse()
 
-        tokenizer = self.tokenizer
+        # For a single embedding vector
+        if embeddings.dim() == 1:
+            embeddings = embeddings.coalesce() if embeddings.is_sparse else embeddings
+            values = embeddings.values()
+            indices = embeddings.indices().squeeze()
+            if values.numel() == 0:
+                return []
 
-        if embeddings.dim() == 2:
-            return [self.decode(embeddings[i], top_k=top_k) for i in range(embeddings.size(0))]
-        elif embeddings.dim() == 1:
-            if embeddings.is_sparse or getattr(embeddings, "is_sparse_csr", False):
-                embeddings = embeddings.coalesce() if embeddings.is_sparse else embeddings
-                values = embeddings.values()
-                indices = embeddings.indices().squeeze()
-                if values.numel() == 0:
-                    return []
-                topk = min(top_k, indices.numel())
-                top_values, top_idx = torch.topk(values, topk)
-                # Convert indices to tokens
-                top_tokens = tokenizer.convert_ids_to_tokens(indices[top_idx].tolist())
-                return list(zip(top_tokens, top_values.tolist()))
+            # Apply top-k if specified
+            if top_k is not None:
+                top_values, top_idx = torch.topk(values, min(top_k, values.numel()))
+                indices = indices[top_idx]
+                values = top_values
+
+            # Convert token IDs to strings
+            tokens = self.tokenizer.convert_ids_to_tokens(indices.tolist())
+
+            # Return a dictionary mapping tokens to weights
+            return list(zip(tokens, values.tolist()))
+
+        # For a batch of embeddings
+        elif embeddings.dim() == 2:
+            embeddings = embeddings.coalesce() if embeddings.is_sparse else embeddings
+
+            # Extract indices and values
+            indices = embeddings.indices()
+            values = embeddings.values()
+
+            if values.numel() == 0:
+                return [{}] * embeddings.size(0)
+
+            # Sample indices (first dimension) and token indices (second dimension)
+            sample_indices, token_indices = indices[0], indices[1]
+
+            # Count tokens per sample
+            sample_counts = torch.bincount(sample_indices, minlength=embeddings.size(0)).tolist()
+
+            # Apply top-k if specified
+            if top_k is not None:
+                results = []
+                start_idx = 0
+                for i, count in enumerate(sample_counts):
+                    if count == 0:
+                        results.append({})
+                        continue
+
+                    sample_values = values[start_idx : start_idx + count]
+                    sample_tokens = token_indices[start_idx : start_idx + count]
+
+                    if count > top_k:
+                        top_values, top_idx = torch.topk(sample_values, top_k)
+                        top_tokens = sample_tokens[top_idx]
+                        token_strs = self.tokenizer.convert_ids_to_tokens(top_tokens.tolist())
+                        results.append(list(zip(token_strs, top_values.tolist())))
+                    else:
+                        token_strs = self.tokenizer.convert_ids_to_tokens(sample_tokens.tolist())
+                        results.append(list(zip(token_strs, sample_values.tolist())))
+
+                    start_idx += count
+
+                return results
             else:
-                top_values, top_indices = torch.topk(embeddings, top_k)
-                top_tokens = tokenizer.convert_ids_to_tokens(top_indices.tolist())
-                return list(zip(top_tokens, top_values.tolist()))
+                # Process all tokens for each sample
+                results = []
+                start_idx = 0
+                for i, count in enumerate(sample_counts):
+                    if count == 0:
+                        results.append({})
+                        continue
+
+                    sample_values = values[start_idx : start_idx + count]
+                    sample_tokens = token_indices[start_idx : start_idx + count]
+                    token_strs = self.tokenizer.convert_ids_to_tokens(sample_tokens.tolist())
+                    results.append(list(zip(token_strs, sample_values.tolist())))
+
+                    start_idx += count
+
+                # Fill in empty results for samples with no tokens
+                if len(results) < embeddings.size(0):
+                    results.extend([{}] * (embeddings.size(0) - len(results)))
+
+                return results
+
         else:
             raise ValueError("Input tensor must be 1D or 2D.")

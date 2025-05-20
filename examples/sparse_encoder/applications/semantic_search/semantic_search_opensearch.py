@@ -58,6 +58,7 @@ start_time = time.time()
 corpus_embeddings = sparse_model.encode(
     [{"doc": doc} for doc in corpus], convert_to_sparse_tensor=True, batch_size=32, show_progress_bar=True
 )
+corpus_embeddings_decoded = sparse_model.decode(corpus_embeddings)
 print(f"Corpus encoding time: {time.time() - start_time:.6f} seconds")
 
 corpus_index = None
@@ -65,16 +66,16 @@ while True:
     # 5. Encode the queries using inference-free mode
     start_time = time.time()
     query_embeddings = sparse_model.encode([{"query": query} for query in queries], convert_to_sparse_tensor=True)
+    query_embeddings_decoded = sparse_model.decode(query_embeddings)
     print(f"Query encoding time: {time.time() - start_time:.6f} seconds")
 
     # 6. Perform semantic search using OpenSearch
     results, search_time, corpus_index = semantic_search_opensearch(
-        query_embeddings,
+        query_embeddings_decoded,
         corpus_index=corpus_index,
-        corpus_embeddings=corpus_embeddings if corpus_index is None else None,
+        corpus_embeddings_decoded=corpus_embeddings_decoded if corpus_index is None else None,
         top_k=5,
         output_index=True,
-        vocab=sparse_model.tokenizer.vocab,
     )
 
     # 7. Output the results
