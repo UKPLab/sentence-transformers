@@ -243,6 +243,10 @@ class SentenceTransformerTrainer(Trainer):
         if self.eval_dataset == "dummy":
             self.eval_dataset = None
 
+        # If losses return dictionaries, then we want to be able to accumulate the loss components
+        # before merging them into a single loss (required by the base Trainer)
+        self.accum_loss_components = {"train": {}, "eval": {}}
+
         # Every Sentence Transformer model can always return a loss, so we set this to True
         # to avoid having to specify it in the data collator or model's forward
         self.can_return_loss = True
@@ -403,6 +407,9 @@ class SentenceTransformerTrainer(Trainer):
         ):
             loss_fn = self.override_model_in_loss(loss_fn, model)
         loss = loss_fn(features, labels)
+        if isinstance(loss, dict):
+            self.track_loss_components(loss)
+            loss = torch.stack(list(loss.values())).sum()
         if return_outputs:
             # During prediction/evaluation, `compute_loss` will be called with `return_outputs=True`.
             # However, Sentence Transformer losses do not return outputs, so we return an empty dictionary.
@@ -410,6 +417,45 @@ class SentenceTransformerTrainer(Trainer):
             # `prediction_loss_only=True` which means that the output is not used.
             return loss, {}
         return loss
+
+    def track_loss_components(self, loss: dict[str, torch.Tensor]) -> None:
+        training_type = "train" if self.model.training else "eval"
+        for key, value in loss.items():
+            # if loss is nan or inf simply add the average of previous logged losses
+            if self.args.logging_nan_inf_filter and (torch.isnan(value) or torch.isinf(value)):
+                if key not in self.accum_loss_components[training_type]:
+                    value = torch.tensor(0.0, dtype=value.dtype, device=value.device)
+                else:
+                    value = self.accum_loss_components[training_type][key] / (
+                        1 + self.state.global_step - self._globalstep_last_logged
+                    )
+
+            if key not in self.accum_loss_components[training_type]:
+                self.accum_loss_components[training_type][key] = value
+            else:
+                self.accum_loss_components[training_type][key] = self.accum_loss_components[training_type][key] + value
+
+        if "steps" not in self.accum_loss_components[training_type]:
+            self.accum_loss_components[training_type]["steps"] = torch.tensor(0, dtype=int, device=value.device)
+        self.accum_loss_components[training_type]["steps"] += 1
+
+    def log(self, logs: dict[str, float], start_time: float | None = None) -> None:
+        training_type = None
+        if "loss" in logs:
+            training_type = "train"
+        elif "eval_loss" in logs:
+            training_type = "eval"
+
+        if training_type:
+            accum_losses = self._nested_gather(self.accum_loss_components[training_type])
+            if "steps" in accum_losses:
+                steps = accum_losses.pop("steps").sum().item()
+
+                for key, value in accum_losses.items():
+                    logs[key] = round((value.mean() / steps).item(), 4)
+                    self.accum_loss_components[training_type][key] -= value
+
+        return super().log(logs, start_time)
 
     def collect_features(
         self, inputs: dict[str, torch.Tensor | Any]
