@@ -21,8 +21,9 @@ from sentence_transformers.sparse_encoder.search_engines import semantic_search_
 
 # 1. Load the natural-questions dataset with 100K answers
 dataset = load_dataset("sentence-transformers/natural-questions", split="train")
-num_docs = 10
+num_docs = 10_000
 corpus = dataset["answer"][:num_docs]
+print(f"Finish loading data. Corpus size: {len(corpus)}")
 
 # 2. Come up with some queries
 queries = dataset["query"][:2]
@@ -51,17 +52,20 @@ sparse_model = SparseEncoder(
     similarity_fn_name="dot",
 )
 
+print("Start encoding corpus...")
+start_time = time.time()
 # 4. Encode the corpus
 corpus_embeddings = sparse_model.encode(
-    [{"doc": doc for doc in corpus}], convert_to_sparse_tensor=True, batch_size=32, show_progress_bar=True
+    [{"doc": doc} for doc in corpus], convert_to_sparse_tensor=True, batch_size=32, show_progress_bar=True
 )
+print(f"Corpus encoding time: {time.time() - start_time:.6f} seconds")
 
 corpus_index = None
 while True:
     # 5. Encode the queries using inference-free mode
     start_time = time.time()
-    query_embeddings = sparse_model.encode([{"query": query for query in queries}], convert_to_sparse_tensor=True)
-    print(f"Encoding time: {time.time() - start_time:.6f} seconds")
+    query_embeddings = sparse_model.encode([{"query": query} for query in queries], convert_to_sparse_tensor=True)
+    print(f"Query encoding time: {time.time() - start_time:.6f} seconds")
 
     # 6. Perform semantic search using OpenSearch
     results, search_time, corpus_index = semantic_search_opensearch(
@@ -70,6 +74,7 @@ while True:
         corpus_embeddings=corpus_embeddings if corpus_index is None else None,
         top_k=5,
         output_index=True,
+        vocab=sparse_model.tokenizer.vocab,
     )
 
     # 7. Output the results
