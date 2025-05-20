@@ -4,6 +4,7 @@ import pytest
 
 from sentence_transformers import SparseEncoderTrainer
 from sentence_transformers.model_card import generate_model_card
+from sentence_transformers.sparse_encoder import losses
 from sentence_transformers.util import is_datasets_available, is_training_available
 
 if is_datasets_available():
@@ -50,7 +51,8 @@ def dummy_dataset():
                 "#### Unnamed Dataset",
                 "| details | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> |",
                 " | <code>anchor 1</code> | <code>positive 1</code> | <code>negative 1</code> |",
-                "* Loss: [<code>SparseMultipleNegativesRankingLoss</code>](https://sbert.net/docs/package_reference/sparse_encoder/losses.html#sparsemultiplenegativesrankingloss) with these parameters:",
+                "* Loss: [<code>SpladeLoss</code>](https://sbert.net/docs/package_reference/sparse_encoder/losses.html#spladeloss) with these parameters:",
+                '  ```json\n  {\n      "loss": "SparseMultipleNegativesRankingLoss(scale=1.0, similarity_fct=\'dot_score\')",\n      "lambda_corpus": 3e-05,\n      "lambda_query": 5e-05\n  }\n  ```',
             ],
         ),
         (
@@ -59,6 +61,8 @@ def dummy_dataset():
             [
                 "This is a [SPLADE Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage.html) model finetuned from [sparse-encoder-testing/splade-bert-tiny-nq](https://huggingface.co/sparse-encoder-testing/splade-bert-tiny-nq) on the train_0 dataset using the [sentence-transformers](https://www.SBERT.net) library.",
                 "#### train_0",
+                "* Loss: [<code>SpladeLoss</code>](https://sbert.net/docs/package_reference/sparse_encoder/losses.html#spladeloss) with these parameters:",
+                '  ```json\n  {\n      "loss": "SparseMultipleNegativesRankingLoss(scale=1.0, similarity_fct=\'dot_score\')",\n      "lambda_corpus": 3e-05,\n      "lambda_query": 5e-05\n  }\n  ```',
             ],
         ),
         (
@@ -68,6 +72,8 @@ def dummy_dataset():
                 "This is a [SPLADE Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage.html) model finetuned from [sparse-encoder-testing/splade-bert-tiny-nq](https://huggingface.co/sparse-encoder-testing/splade-bert-tiny-nq) on the train_0 and train_1 datasets using the [sentence-transformers](https://www.SBERT.net) library.",
                 "#### train_0",
                 "#### train_1",
+                "* Loss: [<code>SpladeLoss</code>](https://sbert.net/docs/package_reference/sparse_encoder/losses.html#spladeloss) with these parameters:",
+                '  ```json\n  {\n      "loss": "SparseMultipleNegativesRankingLoss(scale=1.0, similarity_fct=\'dot_score\')",\n      "lambda_corpus": 3e-05,\n      "lambda_query": 5e-05\n  }\n  ```',
             ],
         ),
         (
@@ -79,6 +85,8 @@ def dummy_dataset():
                 "#### train_0",
                 "</details>\n<details><summary>train_9</summary>",
                 "#### train_9",
+                "* Loss: [<code>SpladeLoss</code>](https://sbert.net/docs/package_reference/sparse_encoder/losses.html#spladeloss) with these parameters:",
+                '  ```json\n  {\n      "loss": "SparseMultipleNegativesRankingLoss(scale=1.0, similarity_fct=\'dot_score\')",\n      "lambda_corpus": 3e-05,\n      "lambda_query": 5e-05\n  }\n  ```',
             ],
         ),
         # We start using "50 datasets" when the ", "-joined dataset name exceed 200 characters
@@ -91,6 +99,8 @@ def dummy_dataset():
                 "#### train_0",
                 "</details>\n<details><summary>train_49</summary>",
                 "#### train_49",
+                "* Loss: [<code>SpladeLoss</code>](https://sbert.net/docs/package_reference/sparse_encoder/losses.html#spladeloss) with these parameters:",
+                '  ```json\n  {\n      "loss": "SparseMultipleNegativesRankingLoss(scale=1.0, similarity_fct=\'dot_score\')",\n      "lambda_corpus": 3e-05,\n      "lambda_query": 5e-05\n  }\n  ```',
             ],
         ),
         (
@@ -104,7 +114,8 @@ def dummy_dataset():
                 "#### Unnamed Dataset",
                 "| details | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> |",
                 " | <code>anchor 1</code> | <code>positive 1</code> | <code>negative 1</code> |",
-                "* Loss: [<code>SparseMultipleNegativesRankingLoss</code>](https://sbert.net/docs/package_reference/sparse_encoder/losses.html#sparsemultiplenegativesrankingloss) with these parameters:",
+                "* Loss: [<code>SpladeLoss</code>](https://sbert.net/docs/package_reference/sparse_encoder/losses.html#spladeloss) with these parameters:",
+                '  ```json\n  {\n      "loss": "SparseMultipleNegativesRankingLoss(scale=1.0, similarity_fct=\'dot_score\')",\n      "lambda_corpus": 3e-05,\n      "lambda_query": 5e-05\n  }\n  ```',
             ],
         ),
     ],
@@ -122,10 +133,18 @@ def test_model_card_base(
     if num_datasets:
         train_dataset = DatasetDict({f"train_{i}": train_dataset for i in range(num_datasets)})
 
+    loss = losses.SpladeLoss(
+        model=model,
+        loss=losses.SparseMultipleNegativesRankingLoss(model=model),
+        lambda_query=5e-5,  # Weight for query loss
+        lambda_corpus=3e-5,  # Weight for document loss
+    )
+
     # This adds data to model.model_card_data
     SparseEncoderTrainer(
         model,
         train_dataset=train_dataset,
+        loss=loss,
     )
 
     model_card = generate_model_card(model)
