@@ -23,6 +23,10 @@ if TYPE_CHECKING:
         from seismic import SeismicIndex
     except ImportError:
         pass
+    try:
+        from opensearchpy import OpenSearch
+    except ImportError:
+        pass
 
 
 def semantic_search_qdrant(
@@ -424,6 +428,153 @@ def semantic_search_seismic(
         [{"corpus_id": int(corpus_id), "score": score} for query_idx, score, corpus_id in query_result]
         for query_result in results
     ]
+
+    search_time = time.time() - search_start_time
+
+    if output_index:
+        return all_results, search_time, corpus_index
+    else:
+        return all_results, search_time
+
+
+def semantic_search_opensearch(
+    query_embeddings: torch.Tensor,
+    corpus_embeddings: torch.Tensor | None = None,
+    corpus_index: tuple[OpenSearch, str] | None = None,
+    top_k: int = 10,
+    output_index: bool = False,
+    vocab: dict[str, int] = None,
+    **kwargs: Any,
+) -> (
+    tuple[list[list[dict[str, int | float]]], float]
+    | tuple[list[list[dict[str, int | float]]], float, tuple[OpenSearch, str]]
+):
+    """
+    Performs semantic search using sparse embeddings with OpenSearch.
+
+    Args:
+        query_embeddings: PyTorch COO sparse tensor containing query embeddings
+        corpus_embeddings: PyTorch COO sparse tensor containing corpus embeddings
+            Only used if corpus_index is None
+        corpus_index: Tuple of (OpenSearch, collection_name)
+            If provided, uses this existing index for search
+        top_k: Number of top results to retrieve
+        output_index: Whether to return the OpenSearch client and collection name
+        vocab: The dict to transform tokens into token ids
+
+    Returns:
+        A tuple containing:
+        - List of search results in format [[{"corpus_id": int, "score": float}, ...], ...]
+        - Time taken for search
+        - (Optional) Tuple of (OpenSearch, collection_name) if output_index is True
+    """
+    try:
+        from opensearchpy import OpenSearch, helpers
+    except ImportError:
+        raise ImportError(
+            "Please install the OpenSearch client with `pip install opensearch-py` to use this function."
+        )
+
+    if not query_embeddings.is_sparse or query_embeddings.layout != torch.sparse_coo:
+        raise ValueError("Query embeddings must be a sparse COO tensor")
+
+    if vocab is not None:
+        if not isinstance(vocab, dict):
+            raise ValueError("Vocab must be a dict mapping tokens to ids")
+        id_to_token = [""] * len(vocab)
+        for token, idx in vocab.items():
+            id_to_token[idx] = token
+    # helper lambda function to convert indices and values of pytorch COO sparse tensor into the format that OpenSearch can parse.
+    # e.g. {"hello": 1.1, "world": 2.2}
+    convert_indices_values_to_tokens = lambda indices, values: {
+        id_to_token[idx] if vocab is not None else str(idx): float(val) for idx, val in zip(indices, values)
+    }
+
+    if corpus_index is None:
+        if corpus_embeddings is None:
+            raise ValueError("Either corpus_embeddings or corpus_index must be provided")
+
+        if not corpus_embeddings.is_sparse or corpus_embeddings.layout != torch.sparse_coo:
+            raise ValueError("Corpus embeddings must be a sparse COO tensor")
+
+        os_client = OpenSearch("http://localhost:9200", **kwargs)
+        index_name = f"sparse_index_{int(time.time())}"
+
+        if os_client.indices.exists(index=index_name):
+            os_client.indices.delete(index=index_name)
+
+        os_client.indices.create(
+            index=index_name,
+            body={
+                "mappings": {
+                    "properties": {
+                        "tokens": {
+                            "type": "rank_features"  # This is the key - use rank_features for sparse vectors
+                        },
+                        "id": {"type": "keyword"},
+                    }
+                }
+            },
+        )
+
+        corpus = corpus_embeddings.coalesce()
+        indices = corpus.indices().cpu().numpy()
+        values = corpus.values().cpu().numpy()
+        num_docs = corpus.size(0)
+
+        batch_size = 1000
+        for start_idx in tqdm(range(0, num_docs, batch_size), desc="Upserting embeddings"):
+            end_idx = min(start_idx + batch_size, num_docs)
+            actions = []
+
+            for i in range(start_idx, end_idx):
+                mask = indices[0] == i
+                vec_indices = indices[1][mask]
+                vec_values = values[mask]
+
+                # convert the token ids to strings. try use vocab first.
+                tokens = convert_indices_values_to_tokens(vec_indices, vec_values)
+
+                actions.append(
+                    {
+                        "_index": index_name,
+                        "_id": str(i),
+                        "_source": {
+                            "id": str(i),
+                            "tokens": tokens,  # This maps directly to rank_features
+                        },
+                    }
+                )
+
+            # Bulk insert the batch
+            helpers.bulk(os_client, actions)
+
+        os_client.indices.refresh(index=index_name)
+        corpus_index = (os_client, index_name)
+
+    os_client, index_name = corpus_index
+    all_results = []
+    search_start_time = time.time()
+
+    for q_idx in range(query_embeddings.size(0)):
+        # Extract query vector
+        if query_embeddings.sparse_dim() == 1:
+            q_indices = query_embeddings.coalesce().indices()[0].cpu().numpy().tolist()
+            q_values = query_embeddings.coalesce().values().cpu().numpy().tolist()
+        else:
+            mask = query_embeddings.coalesce().indices()[0].cpu().numpy() == q_idx
+            q_indices = query_embeddings.coalesce().indices()[1][mask].cpu().numpy().tolist()
+            q_values = query_embeddings.coalesce().values()[mask].cpu().numpy().tolist()
+
+        # Build the neural_sparse query
+        query_tokens = convert_indices_values_to_tokens(q_indices, q_values)
+        query = {"size": top_k, "query": {"neural_sparse": {"tokens": {"query_tokens": query_tokens}}}}
+
+        result = os_client.search(index=index_name, body=query)
+
+        # Format results
+        formatted = [{"corpus_id": int(hit["_id"]), "score": hit["_score"]} for hit in result["hits"]["hits"]]
+        all_results.append(formatted)
 
     search_time = time.time() - search_start_time
 
