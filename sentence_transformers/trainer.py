@@ -447,12 +447,16 @@ class SentenceTransformerTrainer(Trainer):
             training_type = "eval"
 
         if training_type:
+            # If we don't copy the logs, we'll include the loss components in the on_evaluate as well,
+            # whereas we prefer to have them only in the on_log
+            logs = logs.copy()
             accum_losses = self._nested_gather(self.accum_loss_components[training_type])
             if "steps" in accum_losses:
                 steps = accum_losses.pop("steps").sum().item()
 
                 for key, value in accum_losses.items():
-                    logs[key] = round((value.mean() / steps).item(), 4)
+                    log_key = f"{training_type}_{key}" if training_type == "eval" else key
+                    logs[log_key] = round((value.mean() / steps).item(), 4)
                     self.accum_loss_components[training_type][key] -= value
 
         return super().log(logs, start_time)
