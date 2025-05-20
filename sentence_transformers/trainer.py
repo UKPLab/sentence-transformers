@@ -452,12 +452,15 @@ class SentenceTransformerTrainer(Trainer):
             logs = logs.copy()
             accum_losses = self._nested_gather(self.accum_loss_components[training_type])
             if "steps" in accum_losses:
-                steps = accum_losses.pop("steps").sum().item()
+                steps = accum_losses.get("steps").sum().item()
+                self.accum_loss_components[training_type]["steps"] *= 0
 
                 for key, value in accum_losses.items():
                     log_key = f"{training_type}_{key}" if training_type == "eval" else key
-                    logs[log_key] = round((value.mean() / steps).item(), 4)
-                    self.accum_loss_components[training_type][key] -= value
+                    logs[log_key] = round((value.sum() / steps).item(), 4)
+                    self.accum_loss_components[training_type][key] = torch.tensor(
+                        0.0, dtype=value.dtype, device=value.device
+                    )
 
         return super().log(logs, start_time)
 
