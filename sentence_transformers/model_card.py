@@ -137,7 +137,11 @@ class SentenceTransformerModelCardCallback(TrainerCallback):
         metrics: dict[str, float],
         **kwargs,
     ) -> None:
-        loss_dict = {" ".join(key.split("_")[1:]): metrics[key] for key in metrics if key.endswith("_loss")}
+        loss_dict = {
+            " ".join(key.split("_")[1:]): metrics[key]
+            for key in metrics
+            if key.startswith("eval_") and key.endswith("_loss")
+        }
         if len(loss_dict) == 1 and "loss" in loss_dict:
             loss_dict = {"Validation Loss": loss_dict["loss"]}
         if (
