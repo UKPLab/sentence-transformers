@@ -512,7 +512,7 @@ class SentenceTransformerModelCardData(CardData):
                     )
                 else:
                     # If we have e.g. feature-extraction, we just want individual sentences
-                    self.widget.append(random.choice(sentences))
+                    self.widget.append({"text": random.choice(sentences)})
                 self.predict_example = sentences[:3]
 
     def set_evaluation_metrics(
