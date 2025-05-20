@@ -1090,6 +1090,11 @@ class SparseEncoder(SentenceTransformer):
                 top_values, top_idx = torch.topk(values, min(top_k, values.numel()))
                 indices = indices[top_idx]
                 values = top_values
+            else:
+                # Sort values and indices
+                sorted_indices = torch.argsort(values, descending=True)
+                indices = indices[sorted_indices]
+                values = values[sorted_indices]
 
             # Convert token IDs to strings
             tokens = self.tokenizer.convert_ids_to_tokens(indices.tolist())
@@ -1132,6 +1137,9 @@ class SparseEncoder(SentenceTransformer):
                         token_strs = self.tokenizer.convert_ids_to_tokens(top_tokens.tolist())
                         results.append(list(zip(token_strs, top_values.tolist())))
                     else:
+                        # Sort values and indices
+                        sorted_indices = torch.argsort(sample_values, descending=True)
+                        sample_values, sample_tokens = sample_values[sorted_indices], sample_tokens[sorted_indices]
                         token_strs = self.tokenizer.convert_ids_to_tokens(sample_tokens.tolist())
                         results.append(list(zip(token_strs, sample_values.tolist())))
 
@@ -1149,6 +1157,9 @@ class SparseEncoder(SentenceTransformer):
 
                     sample_values = values[start_idx : start_idx + count]
                     sample_tokens = token_indices[start_idx : start_idx + count]
+                    # Sort values and indices
+                    sorted_indices = torch.argsort(sample_values, descending=True)
+                    sample_values, sample_tokens = sample_values[sorted_indices], sample_tokens[sorted_indices]
                     token_strs = self.tokenizer.convert_ids_to_tokens(sample_tokens.tolist())
                     results.append(list(zip(token_strs, sample_values.tolist())))
 
