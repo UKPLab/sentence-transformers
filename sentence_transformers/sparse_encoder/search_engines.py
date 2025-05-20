@@ -173,7 +173,8 @@ def semantic_search_elasticsearch(
 
     Args:
         query_embeddings_decoded: List of query embeddings in format [[("token": value), ...], ...]
-            Example: To get this format from a SparseEncoder model:
+            Example: To get this format from a SparseEncoder model::
+
                 model = SparseEncoder('my-sparse-model')
                 query_texts = ["your query text"]
                 query_embeddings = model.encode(query_texts)
@@ -455,7 +456,8 @@ def semantic_search_opensearch(
 
     Args:
         query_embeddings_decoded: List of query embeddings in format [[("token": value), ...], ...]
-            Example: To get this format from a SparseEncoder model:
+            Example: To get this format from a SparseEncoder model::
+
                 model = SparseEncoder('my-sparse-model')
                 query_texts = ["your query text"]
                 query_embeddings = model.encode(query_texts)
