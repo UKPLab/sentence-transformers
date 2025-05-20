@@ -173,8 +173,14 @@ def semantic_search_elasticsearch(
 
     Args:
         query_embeddings_decoded: List of query embeddings in format [[("token": value), ...], ...]
+            Example: To get this format from a SparseEncoder model:
+                model = SparseEncoder('my-sparse-model')
+                query_texts = ["your query text"]
+                query_embeddings = model.encode(query_texts)
+                query_embeddings_decoded = model.decode(query_embeddings)
         corpus_embeddings_decoded: List of corpus embeddings in format [[("token": value), ...], ...]
             Only used if corpus_index is None
+            Can be obtained using the same decode method as query embeddings
         corpus_index: Tuple of (Elasticsearch, collection_name)
             If provided, uses this existing index for search
         top_k: Number of top results to retrieve
@@ -449,8 +455,14 @@ def semantic_search_opensearch(
 
     Args:
         query_embeddings_decoded: List of query embeddings in format [[("token": value), ...], ...]
+            Example: To get this format from a SparseEncoder model:
+                model = SparseEncoder('my-sparse-model')
+                query_texts = ["your query text"]
+                query_embeddings = model.encode(query_texts)
+                query_embeddings_decoded = model.decode(query_embeddings)
         corpus_embeddings_decoded: List of corpus embeddings in format [[("token": value), ...], ...]
             Only used if corpus_index is None
+            Can be obtained using the same decode method as query embeddings
         corpus_index: Tuple of (OpenSearch, collection_name)
             If provided, uses this existing index for search
         top_k: Number of top results to retrieve
