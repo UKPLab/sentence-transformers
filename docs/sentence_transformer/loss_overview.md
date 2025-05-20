@@ -59,7 +59,7 @@ Advanced users can create and train with their own loss functions. Custom loss f
 
 - They must be a subclass of :class:`torch.nn.Module`.
 - They must have ``model`` as the first argument in the constructor.
-- They must implement a ``forward`` method that accepts ``sentence_features`` and ``labels``. The former is a list of tokenized batches, one element for each column. These tokenized batches can be fed directly to the ``model`` being trained to produce embeddings. The latter is an optional tensor of labels. The method must return a single loss value.
+- They must implement a ``forward`` method that accepts ``sentence_features`` and ``labels``. The former is a list of tokenized batches, one element for each column. These tokenized batches can be fed directly to the ``model`` being trained to produce embeddings. The latter is an optional tensor of labels. The method must return a single loss value or a dictionary of loss components (component names to loss values) that will be summed to produce the final loss value. When returning a dictionary, the individual components will be logged separately in addition to the summed loss, allowing you to monitor the individual components of the loss.
 
 To get full support with the automatic model card generation, you may also wish to implement:
 
