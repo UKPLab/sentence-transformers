@@ -51,7 +51,7 @@ for query_id, query in enumerate(queries):
     for corpus_id, score in zip(indices[query_id].tolist(), scores[query_id]):
         sentence = corpus[corpus_id]
 
-        pointwise_score = model.decode(pointwise_scores[corpus_id])
+        pointwise_score = model.decode(pointwise_scores[corpus_id], top_k=10)
 
         token_scores = ", ".join([f'("{token.strip()}", {value:.2f})' for token, value in pointwise_score])
 

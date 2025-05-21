@@ -211,6 +211,7 @@ class IDF(InputModule):
                 padding=padding,
                 truncation="longest_first",
                 return_tensors="pt",
+                add_special_tokens=False,
             )
         )
         return output

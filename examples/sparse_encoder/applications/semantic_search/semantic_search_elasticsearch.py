@@ -30,20 +30,25 @@ queries = dataset["query"][:2]
 sparse_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
 
 # 4. Encode the corpus
-corpus_embeddings = sparse_model.encode(corpus, convert_to_sparse_tensor=True, batch_size=32, show_progress_bar=True)
+print("Start encoding corpus...")
+start_time = time.time()
+corpus_embeddings = sparse_model.encode(corpus, convert_to_sparse_tensor=True, batch_size=16, show_progress_bar=True)
+corpus_embeddings_decoded = sparse_model.decode(corpus_embeddings)
+print(f"Corpus encoding time: {time.time() - start_time:.6f} seconds")
 
 corpus_index = None
 while True:
     # 5. Encode the queries using the full precision
     start_time = time.time()
     query_embeddings = sparse_model.encode(queries, convert_to_sparse_tensor=True)
+    query_embeddings_decoded = sparse_model.decode(query_embeddings)
     print(f"Encoding time: {time.time() - start_time:.6f} seconds")
 
     # 6. Perform semantic search using Elasticsearch
     results, search_time, corpus_index = semantic_search_elasticsearch(
-        query_embeddings,
+        query_embeddings_decoded,
+        corpus_embeddings_decoded=corpus_embeddings_decoded if corpus_index is None else None,
         corpus_index=corpus_index,
-        corpus_embeddings=corpus_embeddings if corpus_index is None else None,
         top_k=5,
         output_index=True,
     )
