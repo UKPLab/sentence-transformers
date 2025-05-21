@@ -50,6 +50,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         query_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
         corpus_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
         corpus_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
+        write_predictions (bool): Whether to write the predictions to a JSONL file. Defaults to False.
 
     Example:
         ::
@@ -156,6 +157,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         query_prompt_name: str | None = None,
         corpus_prompt: str | None = None,
         corpus_prompt_name: str | None = None,
+        write_predictions: bool = False,
     ) -> None:
         self.max_active_dims = max_active_dims
         self.sparsity_stats = {
@@ -184,6 +186,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             query_prompt_name=query_prompt_name,
             corpus_prompt=corpus_prompt,
             corpus_prompt_name=corpus_prompt_name,
+            write_predictions=write_predictions,
         )
 
     def _append_csv_headers(self, similarity_fn_names):
@@ -220,9 +223,15 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         return metrics
 
     def compute_metrices(
-        self, model: SparseEncoder, corpus_model=None, corpus_embeddings: torch.Tensor | None = None
+        self,
+        model: SparseEncoder,
+        corpus_model=None,
+        corpus_embeddings: torch.Tensor | None = None,
+        output_path: str | None = None,
     ) -> dict[str, float]:
-        return super().compute_metrices(model=model, corpus_model=corpus_model, corpus_embeddings=corpus_embeddings)
+        return super().compute_metrices(
+            model=model, corpus_model=corpus_model, corpus_embeddings=corpus_embeddings, output_path=output_path
+        )
 
     def embed_inputs(
         self,
