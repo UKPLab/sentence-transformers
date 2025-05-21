@@ -67,8 +67,8 @@ Recall@10: 17.24%
 MRR@10: 0.5801
 NDCG@10: 0.3626
 MAP@100: 0.1832
-Model Sparsity Stats  Query : Row Non-Zero Mean: 43.08049392700195, Row Sparsity Mean: 0.9985886216163635
-Model Sparsity Stats  Corpus : Row Non-Zero Mean: 206.8623504638672, Row Sparsity Mean: 0.9932224750518799
+Model Query Sparsity: Active Dimensions: 43.1, Sparsity Ratio: 0.9986
+Model Corpus Sparsity: Active Dimensions: 207.0, Sparsity Ratio: 0.9932
 """
 # Print the results
 print(f"Primary metric: {ir_evaluator.primary_metric}")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable
 
 import torch
@@ -91,17 +92,17 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             '''
             RerankingEvaluator: Evaluating the model on the ms-marco-dev-small dataset:
             Queries: 967 	 Positives: Min 1.0, Mean 1.1, Max 3.0 	 Negatives: Min 1.0, Mean 7.1, Max 9.0
-            MAP: 53.46
-            MRR@10: 54.18
-            NDCG@10: 65.10
-            Model Sparsity Stats  Query : Row Non-Zero Mean: 43.89658737182617, Row Sparsity Mean: 0.9985617995262146
-            Model Sparsity Stats  Corpus : Row Non-Zero Mean: 128.37216186523438, Row Sparsity Mean: 0.9957940578460693
+            MAP: 53.61
+            MRR@10: 54.30
+            NDCG@10: 65.20
+            Model Query Sparsity: Active Dimensions: 43.9, Sparsity Ratio: 0.9986
+            Model Corpus Sparsity: Active Dimensions: 128.4, Sparsity Ratio: 0.9958
             '''
             # Print the results
             print(f"Primary metric: {reranking_evaluator.primary_metric}")
             # => Primary metric: ms-marco-dev-small_ndcg@10
             print(f"Primary metric value: {results[reranking_evaluator.primary_metric]:.4f}")
-            # => Primary metric value: 0.6510
+            # => Primary metric value: 0.6520
 
     """
 
@@ -119,12 +120,7 @@ class SparseRerankingEvaluator(RerankingEvaluator):
         mrr_at_k: int | None = None,
     ):
         self.max_active_dims = max_active_dims
-        self.sparsity_stats = {
-            "row_non_zero_mean_query": 0,
-            "row_sparsity_mean_query": 0,
-            "row_non_zero_mean_corpus": 0,
-            "row_sparsity_mean_corpus": 0,
-        }
+        self.sparsity_stats = defaultdict(list)
         super().__init__(
             samples=samples,
             at_k=at_k,
@@ -136,27 +132,25 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             use_batched_encoding=use_batched_encoding,
             mrr_at_k=mrr_at_k,
         )
-        for sparsity_stat in self.sparsity_stats.keys():
-            self.csv_headers.append(f"{sparsity_stat}")
+        self.csv_headers.extend(
+            ["query_active_dims", "query_sparsity_ratio", "corpus_active_dims", "corpus_sparsity_ratio"]
+        )
 
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        self.sparsity_stats = {
-            "row_non_zero_mean_query": 0,
-            "row_sparsity_mean_query": 0,
-            "row_non_zero_mean_corpus": 0,
-            "row_sparsity_mean_corpus": 0,
-        }
+        self.sparsity_stats = defaultdict(list)
         metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
+        for key, value in self.sparsity_stats.items():
+            self.sparsity_stats[key] = sum(value) / len(value)
 
         metrics.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         logger.info(
-            f"Model Sparsity Stats Query : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_query']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_query']}"
+            f"Model Query Sparsity: Active Dimensions: {self.sparsity_stats['query_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['query_sparsity_ratio']:.4f}"
         )
         logger.info(
-            f"Model Sparsity Stats Corpus : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_corpus']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_corpus']}"
+            f"Model Corpus Sparsity: Active Dimensions: {self.sparsity_stats['corpus_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['corpus_sparsity_ratio']:.4f}"
         )
         if output_path is not None and self.write_csv:
             append_to_last_row(
@@ -192,13 +186,11 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             max_active_dims=self.max_active_dims,
             **kwargs,
         )
-        stat = model.get_sparsity_stats(torch.stack(embeddings))
-        if len(self.samples) == len(sentences):
-            self.sparsity_stats["row_non_zero_mean_query"] = stat["row_non_zero_mean"]
-            self.sparsity_stats["row_sparsity_mean_query"] = stat["row_sparsity_mean"]
-        else:
-            self.sparsity_stats["row_non_zero_mean_corpus"] = stat["row_non_zero_mean"]
-            self.sparsity_stats["row_sparsity_mean_corpus"] = stat["row_sparsity_mean"]
+        stat = model.sparsity(torch.stack(embeddings))
+        # TODO: This is a bit flimsy
+        prefix = "query" if len(self.samples) == len(sentences) else "corpus"
+        for key, value in stat.items():
+            self.sparsity_stats[f"{prefix}_{key}"].append(value)
         return embeddings
 
     def store_metrics_in_model_card_data(

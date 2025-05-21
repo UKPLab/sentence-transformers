@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable
 
 import torch
@@ -123,8 +124,8 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             MRR@10: 0.5801
             NDCG@10: 0.3626
             MAP@100: 0.1832
-            Model Sparsity Stats  Query : Row Non-Zero Mean: 43.08049392700195, Row Sparsity Mean: 0.9985886216163635
-            Model Sparsity Stats  Corpus : Row Non-Zero Mean: 206.8623504638672, Row Sparsity Mean: 0.9932224750518799
+            Model Query Sparsity: Active Dimensions: 43.1, Sparsity Ratio: 0.9986
+            Model Corpus Sparsity: Active Dimensions: 207.0, Sparsity Ratio: 0.9932
             '''
             # Print the results
             print(f"Primary metric: {ir_evaluator.primary_metric}")
@@ -158,12 +159,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         corpus_prompt_name: str | None = None,
     ) -> None:
         self.max_active_dims = max_active_dims
-        self.sparsity_stats = {
-            "row_non_zero_mean_query": 0,
-            "row_sparsity_mean_query": 0,
-            "row_non_zero_mean_corpus": 0,
-            "row_sparsity_mean_corpus": 0,
-        }
+        self.sparsity_stats = defaultdict(list)
         return super().__init__(
             queries=queries,
             corpus=corpus,
@@ -188,34 +184,28 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
 
     def _append_csv_headers(self, similarity_fn_names):
         super()._append_csv_headers(similarity_fn_names)
-        for sparsity_stat in self.sparsity_stats.keys():
-            self.csv_headers.append(f"{sparsity_stat}")
+        self.csv_headers.extend(
+            ["query_active_dims", "query_sparsity_ratio", "corpus_active_dims", "corpus_sparsity_ratio"]
+        )
 
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
-        self.sparsity_stats = {
-            "row_non_zero_mean_query": 0,
-            "row_sparsity_mean_query": 0,
-            "row_non_zero_mean_corpus": 0,
-            "row_sparsity_mean_corpus": 0,
-        }
-        self.count_corpus_seen = 0
+        self.sparsity_stats = defaultdict(list)
         metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
+        for key, value in self.sparsity_stats.items():
+            self.sparsity_stats[key] = sum(value) / len(value)
 
         metrics.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         logger.info(
-            f"Model Sparsity Stats  Query : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_query']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_query']}"
+            f"Model Query Sparsity: Active Dimensions: {self.sparsity_stats['query_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['query_sparsity_ratio']:.4f}"
         )
         logger.info(
-            f"Model Sparsity Stats  Corpus : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_corpus']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_corpus']}"
+            f"Model Corpus Sparsity: Active Dimensions: {self.sparsity_stats['corpus_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['corpus_sparsity_ratio']:.4f}"
         )
         if output_path is not None and self.write_csv:
-            append_to_last_row(
-                os.path.join(output_path, self.csv_file),
-                self.sparsity_stats.values(),
-            )
+            append_to_last_row(os.path.join(output_path, self.csv_file), self.sparsity_stats.values())
 
         return metrics
 
@@ -243,26 +233,11 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             max_active_dims=self.max_active_dims,
             **kwargs,
         )
-        stat = model.get_sparsity_stats(embeddings)
-        if len(self.queries) == len(sentences) and self.sparsity_stats["row_non_zero_mean_query"] == 0:
-            self.sparsity_stats["row_non_zero_mean_query"] = stat["row_non_zero_mean"]
-            self.sparsity_stats["row_sparsity_mean_query"] = stat["row_sparsity_mean"]
-        else:
-            if self.sparsity_stats["row_non_zero_mean_corpus"] == 0:
-                self.sparsity_stats["row_non_zero_mean_corpus"] = stat["row_non_zero_mean"]
-                self.sparsity_stats["row_sparsity_mean_corpus"] = stat["row_sparsity_mean"]
-                self.count_corpus_seen = len(sentences)
-            else:
-                # do the weighted average
-                self.sparsity_stats["row_non_zero_mean_corpus"] = (
-                    self.sparsity_stats["row_non_zero_mean_corpus"] * self.count_corpus_seen
-                    + stat["row_non_zero_mean"] * len(sentences)
-                ) / (self.count_corpus_seen + len(sentences))
-                self.sparsity_stats["row_sparsity_mean_corpus"] = (
-                    self.sparsity_stats["row_sparsity_mean_corpus"] * self.count_corpus_seen
-                    + stat["row_sparsity_mean"] * len(sentences)
-                ) / (self.count_corpus_seen + len(sentences))
-                self.count_corpus_seen += len(sentences)
+        stat = model.sparsity(embeddings)
+        # TODO: This is a bit flimsy
+        prefix = "query" if len(self.queries) == len(sentences) else "corpus"
+        for key, value in stat.items():
+            self.sparsity_stats[f"{prefix}_{key}"].append(value)
         return embeddings
 
     def store_metrics_in_model_card_data(

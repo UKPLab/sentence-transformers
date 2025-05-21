@@ -52,7 +52,7 @@ Recall with Manhattan-Distance:               99.69
 Average Precision with Manhattan-Distance:    21.05
 Matthews Correlation with Manhattan-Distance: -4.59
 
-Model Sparsity Stats: Row Non-Zero Mean: 63.13884735107422, Row Sparsity Mean: 0.9979313611984253
+Model Sparsity: Active Dimensions: 63.1, Sparsity Ratio: 0.9979
 """
 # Print the results
 print(f"Primary metric: {binary_acc_evaluator.primary_metric}")
