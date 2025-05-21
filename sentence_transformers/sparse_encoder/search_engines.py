@@ -325,8 +325,13 @@ def semantic_search_seismic(
         corpus_index: Tuple of (Elasticsearch, collection_name)
             If provided, uses this existing index for search
         top_k: Number of top results to retrieve
-        output_index: Whether to return the Elasticsearch client and collection name
-
+        output_index: Whether to return the SeismicIndex client and collection name
+        index_kwargs: Additional arguments for SeismicIndex passed to build_from_dataset,
+            such as centroid_fraction, min_cluster_size, summary_energy, nknn, knn_path,
+            batched_indexing, or num_threads.
+        search_kwargs: Additional arguments for SeismicIndex passed to batch_search,
+            such as query_cut, heap_factor, n_knn, sorted, or num_threads.
+            Note: query_cut and heap_factor are set to default values if not provided.
     Returns:
         A tuple containing:
         - List of search results in format [[{"corpus_id": int, "score": float}, ...], ...]

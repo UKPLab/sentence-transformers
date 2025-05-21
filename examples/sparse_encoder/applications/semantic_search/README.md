@@ -363,7 +363,7 @@ This example demonstrates how to use [Seismic](https://github.com/TusKANNy/seism
         query_embeddings_decoded = sparse_model.decode(query_embeddings)
         print(f"Encoding time: {time.time() - start_time:.6f} seconds")
 
-        # 6. Perform semantic search using qdrant
+        # 6. Perform semantic search using Seismic
         results, search_time, corpus_index = semantic_search_seismic(
             query_embeddings_decoded,
             corpus_embeddings_decoded=corpus_embeddings_decoded if corpus_index is None else None,

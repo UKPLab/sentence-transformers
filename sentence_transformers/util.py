@@ -594,15 +594,8 @@ def semantic_search(
     for query_start_idx in range(0, len(query_embeddings), query_chunk_size):
         query_end_idx = min(query_start_idx + query_chunk_size, len(query_embeddings))
         if query_embeddings.is_sparse:
-            # For sparse tensors, use specialized slicing or indexing
-            if hasattr(query_embeddings, "index_select"):
-                # Create indices for the chunk
-                indices = torch.arange(query_start_idx, query_end_idx, device=query_embeddings.device)
-                query_chunk = query_embeddings.index_select(0, indices)
-            else:
-                # Alternative approach using specialized sparse operations
-                # This depends on the specific sparse format you're using
-                query_chunk = corpus_embeddings.narrow(0, query_start_idx, query_chunk_size)
+            indices = torch.arange(query_start_idx, query_end_idx, device=query_embeddings.device)
+            query_chunk = query_embeddings.index_select(0, indices)
         else:
             query_chunk = query_embeddings[query_start_idx:query_end_idx]
 
@@ -610,15 +603,8 @@ def semantic_search(
         for corpus_start_idx in range(0, len(corpus_embeddings), corpus_chunk_size):
             corpus_end_idx = min(corpus_start_idx + corpus_chunk_size, len(corpus_embeddings))
             if corpus_embeddings.is_sparse:
-                # For sparse tensors, use specialized slicing or indexing
-                if hasattr(corpus_embeddings, "index_select"):
-                    # Create indices for the chunk
-                    indices = torch.arange(corpus_start_idx, corpus_end_idx, device=corpus_embeddings.device)
-                    corpus_chunk = corpus_embeddings.index_select(0, indices)
-                else:
-                    # Alternative approach using specialized sparse operations
-                    # This depends on the specific sparse format you're using
-                    corpus_chunk = corpus_embeddings.narrow(0, corpus_start_idx, corpus_chunk_size)
+                indices = torch.arange(corpus_start_idx, corpus_end_idx, device=corpus_embeddings.device)
+                corpus_chunk = corpus_embeddings.index_select(0, indices)
             else:
                 corpus_chunk = corpus_embeddings[corpus_start_idx:corpus_end_idx]
 
