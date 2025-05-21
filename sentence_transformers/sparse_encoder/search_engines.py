@@ -322,7 +322,7 @@ def semantic_search_seismic(
         corpus_embeddings_decoded: List of corpus embeddings in format [[("token": value), ...], ...]
             Only used if corpus_index is None
             Can be obtained using the same decode method as query embeddings
-        corpus_index: Tuple of (Elasticsearch, collection_name)
+        corpus_index: Tuple of (SeismicIndex, collection_name)
             If provided, uses this existing index for search
         top_k: Number of top results to retrieve
         output_index: Whether to return the SeismicIndex client and collection name
