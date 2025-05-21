@@ -557,12 +557,12 @@ def semantic_search(
     score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
 ) -> list[list[dict[str, int | float]]]:
     """
-    This function performs a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
+    This function performs by default a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
     It can be used for Information Retrieval / Semantic Search for corpora up to about 1 Million entries.
 
     Args:
-        query_embeddings (:class:`~torch.Tensor`): A 2 dimensional tensor with the query embeddings.
-        corpus_embeddings (:class:`~torch.Tensor`): A 2 dimensional tensor with the corpus embeddings.
+        query_embeddings (:class:`~torch.Tensor`): A 2 dimensional tensor with the query embeddings. Can be a sparse tensor.
+        corpus_embeddings (:class:`~torch.Tensor`): A 2 dimensional tensor with the corpus embeddings. Can be a sparse tensor.
         query_chunk_size (int, optional): Process 100 queries simultaneously. Increasing that value increases the speed, but requires more memory. Defaults to 100.
         corpus_chunk_size (int, optional): Scans the corpus 100k entries at a time. Increasing that value increases the speed, but requires more memory. Defaults to 500000.
         top_k (int, optional): Retrieve top k matching entries. Defaults to 10.
@@ -592,13 +592,38 @@ def semantic_search(
     queries_result_list = [[] for _ in range(len(query_embeddings))]
 
     for query_start_idx in range(0, len(query_embeddings), query_chunk_size):
+        query_end_idx = min(query_start_idx + query_chunk_size, len(query_embeddings))
+        if query_embeddings.is_sparse:
+            # For sparse tensors, use specialized slicing or indexing
+            if hasattr(query_embeddings, "index_select"):
+                # Create indices for the chunk
+                indices = torch.arange(query_start_idx, query_end_idx, device=query_embeddings.device)
+                query_chunk = query_embeddings.index_select(0, indices)
+            else:
+                # Alternative approach using specialized sparse operations
+                # This depends on the specific sparse format you're using
+                query_chunk = corpus_embeddings.narrow(0, query_start_idx, query_chunk_size)
+        else:
+            query_chunk = query_embeddings[query_start_idx:query_end_idx]
+
         # Iterate over chunks of the corpus
         for corpus_start_idx in range(0, len(corpus_embeddings), corpus_chunk_size):
+            corpus_end_idx = min(corpus_start_idx + corpus_chunk_size, len(corpus_embeddings))
+            if corpus_embeddings.is_sparse:
+                # For sparse tensors, use specialized slicing or indexing
+                if hasattr(corpus_embeddings, "index_select"):
+                    # Create indices for the chunk
+                    indices = torch.arange(corpus_start_idx, corpus_end_idx, device=corpus_embeddings.device)
+                    corpus_chunk = corpus_embeddings.index_select(0, indices)
+                else:
+                    # Alternative approach using specialized sparse operations
+                    # This depends on the specific sparse format you're using
+                    corpus_chunk = corpus_embeddings.narrow(0, corpus_start_idx, corpus_chunk_size)
+            else:
+                corpus_chunk = corpus_embeddings[corpus_start_idx:corpus_end_idx]
+
             # Compute cosine similarities
-            cos_scores = score_function(
-                query_embeddings[query_start_idx : query_start_idx + query_chunk_size],
-                corpus_embeddings[corpus_start_idx : corpus_start_idx + corpus_chunk_size],
-            )
+            cos_scores = score_function(query_chunk, corpus_chunk)
 
             # Get top-k scores
             cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(

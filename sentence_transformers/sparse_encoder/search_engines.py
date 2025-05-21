@@ -297,8 +297,8 @@ def semantic_search_elasticsearch(
 
 
 def semantic_search_seismic(
-    query_embeddings: torch.Tensor,
-    corpus_embeddings: torch.Tensor | None = None,
+    query_embeddings_decoded: list[list[tuple[str, float]]],
+    corpus_embeddings_decoded: list[list[tuple[str, float]]] | None = None,
     corpus_index: tuple[SeismicIndex, str] | None = None,
     top_k: int = 10,
     output_index: bool = False,
@@ -312,19 +312,20 @@ def semantic_search_seismic(
     Performs semantic search using sparse embeddings with Seismic.
 
     Args:
-        query_embeddings: PyTorch COO sparse tensor containing query embeddings
-        corpus_embeddings: PyTorch COO sparse tensor containing corpus embeddings
+        query_embeddings_decoded: List of query embeddings in format [[("token": value), ...], ...]
+            Example: To get this format from a SparseEncoder model::
+
+                model = SparseEncoder('my-sparse-model')
+                query_texts = ["your query text"]
+                query_embeddings = model.encode(query_texts)
+                query_embeddings_decoded = model.decode(query_embeddings)
+        corpus_embeddings_decoded: List of corpus embeddings in format [[("token": value), ...], ...]
             Only used if corpus_index is None
-        corpus_index: Tuple of (SeismicIndex, collection_name)
+            Can be obtained using the same decode method as query embeddings
+        corpus_index: Tuple of (Elasticsearch, collection_name)
             If provided, uses this existing index for search
         top_k: Number of top results to retrieve
-        output_index: Whether to return the SeismicIndex client and collection name
-        index_kwargs: Additional arguments for SeismicIndex passed to build_from_dataset,
-            such as centroid_fraction, min_cluster_size, summary_energy, nknn, knn_path,
-            batched_indexing, or num_threads.
-        search_kwargs: Additional arguments for SeismicIndex passed to batch_search,
-            such as query_cut, heap_factor, n_knn, sorted, or num_threads.
-            Note: query_cut and heap_factor are set to default values if not provided.
+        output_index: Whether to return the Elasticsearch client and collection name
 
     Returns:
         A tuple containing:
@@ -345,78 +346,57 @@ def semantic_search_seismic(
     string_type = get_seismic_string()
 
     # Validate input sparse tensors
-    if not query_embeddings.is_sparse or query_embeddings.layout != torch.sparse_coo:
-        raise ValueError("Query embeddings must be a sparse COO tensor")
+    if not isinstance(query_embeddings_decoded, list) or not all(
+        isinstance(item, list) and all(isinstance(t, tuple) and len(t) == 2 for t in item)
+        for item in query_embeddings_decoded
+    ):
+        raise ValueError("Query embeddings must be a list of lists in the format [[('token', value), ...], ...]")
 
     if corpus_index is None:
-        if corpus_embeddings is None:
-            raise ValueError("Either corpus_embeddings or corpus_index must be provided")
+        if corpus_embeddings_decoded is None:
+            raise ValueError("Either corpus_embeddings_decoded or corpus_index must be provided")
 
-        if not corpus_embeddings.is_sparse or corpus_embeddings.layout != torch.sparse_coo:
-            raise ValueError("Corpus embeddings must be a sparse COO tensor")
+        if not isinstance(corpus_embeddings_decoded, list) or not all(
+            isinstance(item, list) and all(isinstance(t, tuple) and len(t) == 2 for t in item)
+            for item in corpus_embeddings_decoded
+        ):
+            raise ValueError("Corpus embeddings must be a list of lists in the format [[('token', value), ...], ...]")
 
         # Create new Seismic dataset
         dataset = SeismicDataset()
 
-        # Coalesce the sparse tensor to ensure indices are sorted
-        corpus = corpus_embeddings.coalesce()
-        indices_arr = corpus.indices().cpu().numpy()
-        values_arr = corpus.values().cpu().numpy()
-        num_vectors = corpus_embeddings.size(0)
-
-        # Precompute the start and end positions for each row
-        row_ids = indices_arr[0]
-        starts = np.searchsorted(row_ids, np.arange(num_vectors), side="left")
-        ends = np.searchsorted(row_ids, np.arange(num_vectors), side="right")
+        num_vectors = len(corpus_embeddings_decoded)
 
         # Add each document to the Seismic dataset
         for idx in tqdm(range(num_vectors), desc="Adding documents to Seismic"):
-            start = starts[idx]
-            end = ends[idx]
-
-            # Extract indices and values for this document. dataset.add_document expects a list of string tokens,
-            # so we convert the indices to strings.
-            index_row = np.array(indices_arr[1][start:end], dtype=string_type)
-            value_row = values_arr[start:end]
-
-            # Add document to the dataset
-            dataset.add_document(str(idx), index_row, value_row)
+            tokens = dict(corpus_embeddings_decoded[idx])
+            dataset.add_document(
+                str(idx),
+                np.array(list(tokens.keys()), dtype=string_type),
+                np.array(list(tokens.values()), dtype=np.float32),
+            )
 
         corpus_index = SeismicIndex.build_from_dataset(dataset, **index_kwargs)
 
     search_start_time = time.time()
 
-    queries_ids = np.array(range(query_embeddings.size(0)), dtype=string_type)
-    # Coalesce queries to ensure indices are sorted
-    queries = query_embeddings.coalesce()
-    query_indices_arr = queries.indices().cpu().numpy()
-    query_values_arr = queries.values().cpu().numpy()
-    num_queries = query_embeddings.size(0)
-
+    num_queries = len(query_embeddings_decoded)
     # Process indices and values for batch search
     query_components = []
     query_values = []
 
-    # Identify ranges for each query
-    query_row_ids = query_indices_arr[0]
-    query_starts = np.searchsorted(query_row_ids, np.arange(num_queries), side="left")
-    query_ends = np.searchsorted(query_row_ids, np.arange(num_queries), side="right")
-
     # Create query components and values for each query
     for q_idx in range(num_queries):
-        start = query_starts[q_idx]
-        end = query_ends[q_idx]
-
-        # Convert indices to string type as expected by Seismic
-        query_components.append(np.array(query_indices_arr[1][start:end], dtype=string_type))
-        query_values.append(query_values_arr[start:end])
+        query_tokens = dict(query_embeddings_decoded[q_idx])
+        query_components.append(np.array(list(query_tokens.keys()), dtype=string_type))
+        query_values.append(np.array(list(query_tokens.values()), dtype=np.float32))
 
     if "query_cut" not in search_kwargs:
         search_kwargs["query_cut"] = 10
     if "heap_factor" not in search_kwargs:
         search_kwargs["heap_factor"] = 0.7
     results = corpus_index.batch_search(
-        queries_ids=queries_ids,
+        queries_ids=np.array(range(num_queries), dtype=string_type),
         query_components=query_components,
         query_values=query_values,
         k=top_k,
