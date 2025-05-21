@@ -196,6 +196,14 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             query_prompts=query_prompts,
             corpus_prompts=corpus_prompts,
         )
+        if self.max_active_dims:
+            self.name += f"_{self.max_active_dims}"
+
+    def _get_human_readable_name(self, dataset_name: DatasetNameType) -> str:
+        human_readable_name = super()._get_human_readable_name(dataset_name)
+        if self.max_active_dims is not None:
+            human_readable_name += f"_{self.max_active_dims}"
+        return human_readable_name
 
     def _append_csv_headers(self, similarity_fn_names):
         super()._append_csv_headers(similarity_fn_names)

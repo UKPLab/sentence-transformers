@@ -301,10 +301,9 @@ class NanoBEIREvaluator(SentenceEvaluator):
             logger.info(f"Evaluating {evaluator.name}")
             evaluation = evaluator(model, output_path, epoch, steps)
             for k in evaluation:
-                if self.truncate_dim:
-                    dataset, _, metric = k.split("_", maxsplit=2)
-                else:
-                    dataset, metric = k.split("_", maxsplit=1)
+                splits = k.split("_", maxsplit=self.name.count("_"))
+                dataset = splits[0]
+                metric = splits[-1]
                 if metric not in per_metric_results:
                     per_metric_results[metric] = []
                 per_dataset_results[dataset + "_" + metric] = evaluation[k]
