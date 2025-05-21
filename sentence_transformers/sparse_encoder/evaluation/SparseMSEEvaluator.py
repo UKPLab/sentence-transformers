@@ -160,3 +160,9 @@ class SparseMSEEvaluator(MSEEvaluator):
         step: int = 0,
     ) -> None:
         model.model_card_data.set_evaluation_metrics(self, metrics, epoch=epoch, step=step)
+
+    def get_config_dict(self) -> dict[str, Any]:
+        config_dict = super().get_config_dict()
+        if self.max_active_dims is not None:
+            config_dict["max_active_dims"] = self.max_active_dims
+        return config_dict

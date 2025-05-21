@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 
@@ -245,3 +245,9 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         ir_evaluator_kwargs["max_active_dims"] = self.max_active_dims
         ir_evaluator_kwargs.pop("truncate_dim", None)
         return super()._load_dataset(dataset_name, **ir_evaluator_kwargs)
+
+    def get_config_dict(self) -> dict[str, Any]:
+        config_dict = super().get_config_dict()
+        if self.max_active_dims is not None:
+            config_dict["max_active_dims"] = self.max_active_dims
+        return config_dict
