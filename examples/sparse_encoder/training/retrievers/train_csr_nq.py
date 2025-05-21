@@ -40,16 +40,18 @@ def main():
         model_card_data=SparseEncoderModelCardData(
             language="en",
             license="apache-2.0",
-            model_name="csr-mpnet-base trained on Natural Questions",
+            model_name="Sparse CSR model trained on Natural Questions",
         ),
     )
 
-    model._first_module().requires_grad_(False)  # print the proportion of parameters that are trainable
+    # Freeze the first module of the model, i.e. the encoder, & print the number of (trainable) parameters
+    model[0].requires_grad_(False)
     num_params = sum(p.numel() for p in model.parameters())
     num_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(
-        f"Total parameters: {num_params}, Trainable parameters: {num_trainable_params}, Trainable ratio: {num_trainable_params / num_params:.2%}"
+        f"Total parameters: {num_params:,}, Trainable parameters: {num_trainable_params:,}, Trainable ratio: {num_trainable_params / num_params:.2%}"
     )
+
     # 2a. Load the NQ dataset: https://huggingface.co/datasets/sentence-transformers/natural-questions
     logging.info("Read the Natural Questions training dataset")
     full_dataset = load_dataset("sentence-transformers/natural-questions", split="train").select(range(100_000))
@@ -67,6 +69,7 @@ def main():
     for k_dim in [128, 256]:
         evaluators.append(evaluation.SparseNanoBEIREvaluator(["msmarco", "nfcorpus", "nq"], max_active_dims=k_dim))
     dev_evaluator = SequentialEvaluator(evaluators, main_score_function=lambda scores: scores[-1])
+    dev_evaluator(model)
 
     # 5. Define the training arguments
     short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
@@ -86,10 +89,11 @@ def main():
         metric_for_best_model="eval_NanoBEIR_mean_256_dot_ndcg@10",
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
-        eval_steps=309,
+        eval_steps=300,
         save_strategy="steps",
-        save_steps=309,
-        logging_steps=10,
+        save_steps=300,
+        save_total_limit=3,
+        logging_steps=100,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
     )
 
