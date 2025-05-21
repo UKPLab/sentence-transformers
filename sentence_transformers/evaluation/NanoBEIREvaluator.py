@@ -297,17 +297,17 @@ class NanoBEIREvaluator(SentenceEvaluator):
             self.score_function_names = [model.similarity_fn_name]
             self._append_csv_headers(self.score_function_names)
 
+        num_underscores_in_name = self.name.count("_")
         for evaluator in tqdm(self.evaluators, desc="Evaluating datasets", disable=not self.show_progress_bar):
             logger.info(f"Evaluating {evaluator.name}")
             evaluation = evaluator(model, output_path, epoch, steps)
-            for k in evaluation:
-                splits = k.split("_", maxsplit=self.name.count("_"))
-                dataset = splits[0]
+            for full_key, metric_value in evaluation.items():
+                splits = full_key.split("_", maxsplit=num_underscores_in_name)
                 metric = splits[-1]
                 if metric not in per_metric_results:
                     per_metric_results[metric] = []
-                per_dataset_results[dataset + "_" + metric] = evaluation[k]
-                per_metric_results[metric].append(evaluation[k])
+                per_dataset_results[full_key] = metric_value
+                per_metric_results[metric].append(metric_value)
 
         agg_results = {}
         for metric in per_metric_results:
