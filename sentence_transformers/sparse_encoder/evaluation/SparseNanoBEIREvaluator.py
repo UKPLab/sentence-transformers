@@ -196,7 +196,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             query_prompts=query_prompts,
             corpus_prompts=corpus_prompts,
         )
-        if self.max_active_dims:
+        if self.max_active_dims is not None:
             self.name += f"_{self.max_active_dims}"
 
     def _get_human_readable_name(self, dataset_name: DatasetNameType) -> str:
