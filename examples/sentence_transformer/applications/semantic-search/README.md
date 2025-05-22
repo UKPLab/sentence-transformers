@@ -92,6 +92,10 @@ To get the optimal speed for the :func:`util.semantic_search <sentence_transform
 
 For further details, see [semantic_search_quora_elasticsearch.py](semantic_search_quora_elasticsearch.py).
 
+## OpenSearch
+[OpenSearch](https://opensearch.org/) is a community-driven, open-source search engine that supports vector search capabilities. It allows you to index dense vectors and perform efficient similarity search using approximate nearest neighbor algorithms. OpenSearch can be used to implement both traditional keyword-based search (BM25) and semantic search, making it possible to compare and combine both approaches.
+
+For an example implementation, see [semantic_search_nq_opensearch.py](semantic_search_nq_opensearch.py), which shows how to use OpenSearch with the Natural Questions dataset, demonstrating both semantic search and BM25 search capabilities.
 
 ## Approximate Nearest Neighbor
 ```{eval-rst}
