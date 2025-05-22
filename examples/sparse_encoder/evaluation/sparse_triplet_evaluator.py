@@ -25,12 +25,13 @@ evaluator = SparseTripletEvaluator(
 )
 
 # Run the evaluation
-results = evaluator(model, ".")
+results = evaluator(model)
 """
 TripletEvaluator: Evaluating the model on the all_nli_dev dataset:
 Accuracy Dot Similarity:	85.10%
-Model Sparsity Stats  Query : Row Non-Zero Mean: 105.4530029296875, Row Sparsity Mean: 0.9965449571609497
-Model Sparsity Stats  Corpus : Row Non-Zero Mean: 69.18349838256836, Row Sparsity Mean: 0.9977333247661591
+Model Anchor Sparsity: Active Dimensions: 105.5, Sparsity Ratio: 0.9965
+Model Positive Sparsity: Active Dimensions: 69.8, Sparsity Ratio: 0.9977
+Model Negative Sparsity: Active Dimensions: 68.6, Sparsity Ratio: 0.9978
 """
 # Print the results
 print(f"Primary metric: {evaluator.primary_metric}")

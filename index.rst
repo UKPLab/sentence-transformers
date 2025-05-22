@@ -126,8 +126,8 @@ Working with Sentence Transformer models is straightforward:
       #         [1.1269e-01, 1.9061e-02, 2.9612e+01]], device='cuda:0')
 
       # 4. Check sparsity stats
-      stats = SparseEncoder.get_sparsity_stats(embeddings)
-      print(f"Sparsity: {stats['row_sparsity_mean']:.2%}")
+      stats = SparseEncoder.sparsity(embeddings)
+      print(f"Sparsity: {stats['sparsity_ratio']:.2%}")
       # Sparsity: 99.78%
    
 What Next?

@@ -71,7 +71,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             results = dev_evaluator(model)
             '''
             EmbeddingSimilarityEvaluator: Evaluating the model on the sts-dev dataset:
-            Cosine-Similarity :  Pearson: 0.8806 Spearman: 0.8810
+            Cosine-Similarity:  Pearson: 0.8806 Spearman: 0.8810
             '''
             print(dev_evaluator.primary_metric)
             # => "sts_dev_pearson_cosine"
@@ -197,7 +197,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
                 metrics[f"pearson_{fn_name}"] = eval_pearson
                 metrics[f"spearman_{fn_name}"] = eval_spearman
                 logger.info(
-                    f"{fn_name.capitalize()}-Similarity :\tPearson: {eval_pearson:.4f}\tSpearman: {eval_spearman:.4f}"
+                    f"{fn_name.capitalize()}-Similarity:\tPearson: {eval_pearson:.4f}\tSpearman: {eval_spearman:.4f}"
                 )
 
         if output_path is not None and self.write_csv:

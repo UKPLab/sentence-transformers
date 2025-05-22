@@ -187,14 +187,11 @@ class CSRLoss(nn.Module):
         outputs = [self.model(sentence_feature) for sentence_feature in sentence_features]
         sentence_embedding = [output["sentence_embedding"] for output in outputs]
 
-        recon_loss = self.reconstruction_loss.compute_loss_from_embeddings(outputs)
+        losses = {}
+        losses["reconstruction_loss"] = self.reconstruction_loss.compute_loss_from_embeddings(outputs)
+        losses["base_loss"] = self.loss.compute_loss_from_embeddings(sentence_embedding, labels) * self.gamma
 
-        ranking_loss = self.loss.compute_loss_from_embeddings(sentence_embedding, labels)
-
-        # Compute total loss: L_CSR = L_recon + γ * L_MRL
-        total_loss = recon_loss + self.gamma * ranking_loss
-
-        return total_loss
+        return losses
 
     def get_config_dict(self):
         """

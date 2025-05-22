@@ -40,8 +40,8 @@ Recall@10: 98.27%
 MRR@10: 0.9439
 NDCG@10: 0.9339
 MAP@100: 0.9072
-Model Sparsity Stats  Query : Row Non-Zero Mean: 62.97999954223633, Row Sparsity Mean: 0.9979365468025208
-Model Sparsity Stats  Corpus : Row Non-Zero Mean: 63.39932632446289, Row Sparsity Mean: 0.9979228377342224
+Model Query Sparsity: Active Dimensions: 63.0, Sparsity Ratio: 0.9979
+Model Corpus Sparsity: Active Dimensions: 63.4, Sparsity Ratio: 0.9979
 
 Information Retrieval Evaluation of the model on the NanoMSMARCO dataset:
 Queries: 50
@@ -63,8 +63,8 @@ Recall@10: 88.00%
 MRR@10: 0.6211
 NDCG@10: 0.6838
 MAP@100: 0.6277
-Model Sparsity Stats  Query : Row Non-Zero Mean: 48.08000183105469, Row Sparsity Mean: 0.9984247088432312
-Model Sparsity Stats  Corpus : Row Non-Zero Mean: 125.3604965209961, Row Sparsity Mean: 0.9958928227424622
+Model Query Sparsity: Active Dimensions: 48.1, Sparsity Ratio: 0.9984
+Model Corpus Sparsity: Active Dimensions: 125.4, Sparsity Ratio: 0.9959
 
 Average Queries: 50.0
 Average Corpus: 5044.5
@@ -83,8 +83,8 @@ Precision@10: 11.00%
 Recall@10: 93.13%
 MRR@10: 0.7825
 NDCG@10: 0.8089
-Model Sparsity Stats  Query : Row Non-Zero Mean: 55.53000068664551, Row Sparsity Mean: 0.998180627822876
-Model Sparsity Stats  Corpus : Row Non-Zero Mean: 94.37991142272949, Row Sparsity Mean: 0.9969078302383423
+Model Query Sparsity: Active Dimensions: 55.5, Sparsity Ratio: 0.9982
+Model Corpus Sparsity: Active Dimensions: 94.4, Sparsity Ratio: 0.9969
 """
 # Print the results
 print(f"Primary metric: {evaluator.primary_metric}")

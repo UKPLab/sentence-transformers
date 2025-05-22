@@ -168,7 +168,7 @@ The usage for Sparse Encoder models follows a similar pattern to Sentence Transf
    1. :class:`SparseEncoder <sentence_transformers.SparseEncoder>`
    2. :meth:`SparseEncoder.encode <sentence_transformers.SparseEncoder.encode>`
    3. :meth:`SparseEncoder.similarity <sentence_transformers.SparseEncoder.similarity>`
-   4. :meth:`SparseEncoder.get_sparsity_stats <sentence_transformers.SparseEncoder.get_sparsity_stats>`
+   4. :meth:`SparseEncoder.sparsity <sentence_transformers.SparseEncoder.sparsity>`
 
    **Other useful methods and links:**
 
@@ -205,9 +205,9 @@ The usage for Sparse Encoder models follows a similar pattern to Sentence Transf
    #         [    0.1127,     0.0191,    29.6122]], device='cuda:0')
 
    # 4. Check sparsity statistics
-   stats = SparseEncoder.get_sparsity_stats(embeddings)
-   print(f"Sparsity: {stats['row_sparsity_mean']:.2%}")  # Typically >99% zeros
-   print(f"Avg non-zero dimensions per embedding: {stats['row_non_zero_mean']:.2f}")
+   stats = SparseEncoder.sparsity(embeddings)
+   print(f"Sparsity: {stats['sparsity_ratio']:.2%}")  # Typically >99% zeros
+   print(f"Avg non-zero dimensions per embedding: {stats['active_dims']:.2f}")
 
 With ``SparseEncoder("naver/splade-cocondenser-ensembledistil")`` we load a pretrained SPLADE model that generates sparse embeddings. SPLADE (SParse Lexical AnD Expansion) models use MLM prediction mechanisms to create sparse representations that are particularly effective for information retrieval tasks.
 

@@ -2033,6 +2033,9 @@ print(similarities)
             local_files_only=local_files_only,
         )
 
+        if config_sentence_transformers_json_path is None:
+            return "SentenceTransformer"
+
         with open(config_sentence_transformers_json_path) as fIn:
             config = json.load(fIn)
             return config.get("model_type", "SentenceTransformer")  # Default to "SentenceTransformer" if not specified
