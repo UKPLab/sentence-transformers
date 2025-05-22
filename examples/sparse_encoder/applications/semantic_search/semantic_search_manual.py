@@ -7,9 +7,7 @@ we want to find the most similar sentence in this corpus.
 This script outputs for various queries the top 5 most similar sentences in the corpus.
 """
 
-import torch
-
-from sentence_transformers import SparseEncoder
+from sentence_transformers import SparseEncoder, util
 
 # 1. Load a pretrained SparseEncoder model
 model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
@@ -40,18 +38,18 @@ query_embeddings = model.encode(queries, convert_to_tensor=True)
 
 # 4. Use the similarity function to compute the similarity scores between the query and corpus embeddings
 top_k = min(5, len(corpus))  # Find at most 5 sentences of the corpus for each query sentence
-similarity_scores = model.similarity(query_embeddings, corpus_embeddings)
-scores, indices = torch.topk(similarity_scores, k=top_k)
+results = util.semantic_search(query_embeddings, corpus_embeddings, top_k=top_k, score_function=model.similarity)
 
 # 5. Sort the results and print the top 5 most similar sentences for each query
 for query_id, query in enumerate(queries):
     pointwise_scores = model.intersection(query_embeddings[query_id], corpus_embeddings)
 
     print(f"Query: {query}")
-    for corpus_id, score in zip(indices[query_id].tolist(), scores[query_id]):
+    for res in results[query_id]:
+        corpus_id, score = res.values()
         sentence = corpus[corpus_id]
 
-        pointwise_score = model.decode(pointwise_scores[corpus_id])
+        pointwise_score = model.decode(pointwise_scores[corpus_id], top_k=10)
 
         token_scores = ", ".join([f'("{token.strip()}", {value:.2f})' for token, value in pointwise_score])
 

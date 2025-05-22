@@ -38,8 +38,8 @@ print(f"Similarity: {sim}")
 top_k = 3
 print(f"\nTop tokens {top_k} for each text:")
 
-decoded_query = model.decode(query_embed)[0]
-decoded_document = model.decode(document_embed[0], top_k=100)
+decoded_query = model.decode(query_embed[0], top_k=top_k)
+decoded_document = model.decode(document_embed[0])
 
 for i in range(top_k):
     query_token, query_score = decoded_query[i]
@@ -93,10 +93,10 @@ print(f"Similarity: {sim}")
 top_k = 10
 print(f"\nTop tokens {top_k} for each text:")
 
-decoded_query = model.decode(query_embed)[0]
-decoded_document = model.decode(document_embed[0], top_k=100)
+decoded_query = model.decode(query_embed[0], top_k=top_k)
+decoded_document = model.decode(document_embed[0])
 
-for i in range(top_k):
+for i in range(min(top_k, len(decoded_query))):
     query_token, query_score = decoded_query[i]
     doc_score = next((score for token, score in decoded_document if token == query_token), 0)
     if doc_score != 0:

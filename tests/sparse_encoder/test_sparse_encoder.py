@@ -1,0 +1,164 @@
+from __future__ import annotations
+
+import pytest
+import torch
+
+from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
+
+
+@pytest.mark.parametrize(
+    ("texts", "top_k", "expected_shape"),
+    [
+        # Single text, default top_k (None)
+        (["The weather is nice!"], None, 1),
+        # Single text, specific top_k
+        (["The weather is nice!"], 3, 1),
+        # String text, specific top_k, expect a non-nested list
+        ("The weather is nice!", 8, 8),
+        # Multiple texts, default top_k (None)
+        (["The weather is nice!", "It's sunny outside"], None, 2),
+        # Multiple texts, specific top_k
+        (["The weather is nice!", "It's sunny outside"], 3, 2),
+    ],
+)
+def test_decode_shapes(
+    splade_bert_tiny_model_reused: SparseEncoder, texts: list[str] | str, top_k: int, expected_shape: int
+) -> None:
+    model = splade_bert_tiny_model_reused
+    embeddings = model.encode(texts)
+    decoded = model.decode(embeddings, top_k=top_k)
+
+    assert len(decoded) == expected_shape
+
+    if isinstance(texts, list):
+        if len(texts) == 1:
+            assert isinstance(decoded[0], tuple) or isinstance(decoded, list)
+            if top_k is not None:
+                assert len(decoded) <= top_k
+        else:
+            assert isinstance(decoded, list)
+            for item in decoded:
+                assert isinstance(item, list)
+                if top_k is not None:
+                    assert len(item) <= top_k
+
+
+@pytest.mark.parametrize(
+    ("text", "expected_token_types"),
+    [
+        ("The weather is nice!", str),
+        ("It's sunny outside", str),
+    ],
+)
+def test_decode_token_types(
+    splade_bert_tiny_model_reused: SparseEncoder, text: str, expected_token_types: type
+) -> None:
+    model = splade_bert_tiny_model_reused
+    embeddings = model.encode(text)
+    decoded = model.decode(embeddings)
+
+    # Check the first item in the batch
+    for token, weight in decoded:
+        assert isinstance(token, expected_token_types)
+        assert isinstance(weight, float)
+
+
+@pytest.mark.parametrize(
+    ("text", "top_k"),
+    [
+        ("The weather is nice!", 1),
+        ("It's sunny outside", 3),
+        ("Hello world", 5),
+    ],
+)
+def test_decode_top_k_respects_limit(splade_bert_tiny_model_reused: SparseEncoder, text: str, top_k: int) -> None:
+    model = splade_bert_tiny_model_reused
+    embeddings = model.encode([text])
+    decoded = model.decode(embeddings, top_k=top_k)
+
+    assert len(decoded) <= top_k
+
+
+@pytest.mark.parametrize(
+    ("texts", "format_type"),
+    [
+        ("The weather is nice!", "1d"),
+        (["The weather is nice!"], "1d"),
+        (["The weather is nice!", "It's sunny outside"], "2d"),
+    ],
+)
+def test_decode_handles_sparse_dense_inputs(
+    splade_bert_tiny_model_reused: SparseEncoder, texts: list[str] | str, format_type: str
+):
+    model = splade_bert_tiny_model_reused
+    # Get embeddings and test both sparse and dense format handling
+    embeddings = model.encode(texts)
+
+    # Test with sparse tensor
+    if not embeddings.is_sparse:
+        embeddings_sparse = embeddings.to_sparse()
+    else:
+        embeddings_sparse = embeddings
+
+    decoded_sparse = model.decode(embeddings_sparse)
+
+    # Test with dense tensor
+    if embeddings.is_sparse:
+        embeddings_dense = embeddings.to_dense()
+    else:
+        embeddings_dense = embeddings
+
+    decoded_dense = model.decode(embeddings_dense)
+
+    # Verify both produce the same result structure
+    if format_type == "1d":
+        assert len(decoded_sparse) == len(decoded_dense)
+    else:
+        assert len(decoded_sparse) == len(decoded_dense)
+        for i in range(len(decoded_sparse)):
+            # Sort both results to ensure consistent comparison
+            sorted_sparse = sorted(decoded_sparse[i], key=lambda x: (x[1], x[0]), reverse=True)
+            sorted_dense = sorted(decoded_dense[i], key=lambda x: (x[1], x[0]), reverse=True)
+            assert len(sorted_sparse) == len(sorted_dense)
+
+
+def test_decode_empty_tensor(splade_bert_tiny_model_reused: SparseEncoder) -> None:
+    model = splade_bert_tiny_model_reused
+    # Create an empty sparse tensor
+    empty_sparse = torch.sparse_coo_tensor(
+        indices=torch.zeros((2, 0), dtype=torch.long),
+        values=torch.zeros((0,), dtype=torch.float),
+        size=(1, model.get_sentence_embedding_dimension()),
+    )
+
+    decoded = model.decode(empty_sparse)
+    assert len(decoded) == 0 or (isinstance(decoded, list) and all(not item for item in decoded))
+
+
+@pytest.mark.parametrize(
+    "top_k",
+    [None, 5, 1000],
+)
+@pytest.mark.parametrize(
+    "texts",
+    [
+        ("The weather is nice!"),
+        (["The weather is nice!"]),
+        (["The weather is nice!", "It's sunny outside", "Hello world"]),
+        (["Short text", "This is a longer text with more words to encode"]),
+    ],
+)
+def test_decode_returns_sorted_weights(
+    splade_bert_tiny_model_reused: SparseEncoder, texts: list[str] | str, top_k: int | None
+) -> None:
+    model = splade_bert_tiny_model_reused
+    embeddings = model.encode(texts)
+    decoded = model.decode(embeddings, top_k=top_k)
+
+    if isinstance(texts, list):
+        for item in decoded:
+            weights = [weight for _, weight in item]
+            assert all(weights[i] >= weights[i + 1] for i in range(len(weights) - 1))
+    else:
+        weights = [weight for _, weight in decoded]
+        assert all(weights[i] >= weights[i + 1] for i in range(len(weights) - 1))
