@@ -34,23 +34,23 @@ samples = [
 # Now evaluate using only the documents from the 1000 samples
 reranking_evaluator = SparseRerankingEvaluator(
     samples=samples,
-    name="ms-marco-dev-small",
+    name="ms_marco_dev_small",
     show_progress_bar=True,
     batch_size=32,
 )
 
 results = reranking_evaluator(model)
 """
-RerankingEvaluator: Evaluating the model on the ms-marco-dev-small dataset:
-Queries: 967 	 Positives: Min 1.0, Mean 1.1, Max 3.0 	 Negatives: Min 1.0, Mean 7.1, Max 9.0
-MAP: 53.46
-MRR@10: 54.18
-NDCG@10: 65.10
-Model Sparsity Stats  Query : Row Non-Zero Mean: 43.89658737182617, Row Sparsity Mean: 0.9985617995262146
-Model Sparsity Stats  Corpus : Row Non-Zero Mean: 128.37216186523438, Row Sparsity Mean: 0.9957940578460693
+RerankingEvaluator: Evaluating the model on the ms_marco_dev_small dataset:
+Queries: 967     Positives: Min 1.0, Mean 1.1, Max 3.0   Negatives: Min 1.0, Mean 7.1, Max 9.0
+MAP: 53.61
+MRR@10: 54.30
+NDCG@10: 65.20
+Model Query Sparsity: Active Dimensions: 43.9, Sparsity Ratio: 0.9986
+Model Corpus Sparsity: Active Dimensions: 128.4, Sparsity Ratio: 0.9958
 """
 # Print the results
 print(f"Primary metric: {reranking_evaluator.primary_metric}")
-# => Primary metric: ms-marco-dev-small_ndcg@10
+# => Primary metric: ms_marco_dev_small_ndcg@10
 print(f"Primary metric value: {results[reranking_evaluator.primary_metric]:.4f}")
-# => Primary metric value: 0.6510
+# => Primary metric value: 0.6520

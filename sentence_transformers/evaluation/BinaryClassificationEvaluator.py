@@ -185,7 +185,8 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
         for header_name in self.csv_headers:
             if header_name.count("_") == 1:
                 sim_fct, metric = header_name.split("_", maxsplit=1)
-                file_output_data.append(scores[sim_fct][metric])
+                if sim_fct in scores:
+                    file_output_data.append(scores[sim_fct][metric])
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Literal
 
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
@@ -49,7 +50,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
 
             from datasets import load_dataset
 
-            from sentence_transformers import SparseEncoder
+            from sentence_transformers import SparseEncoder, SimilarityFunction
             from sentence_transformers.sparse_encoder.evaluation import SparseEmbeddingSimilarityEvaluator
 
             logging.basicConfig(format="%(message)s", level=logging.INFO)
@@ -71,8 +72,8 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             results = dev_evaluator(model)
             '''
             EmbeddingSimilarityEvaluator: Evaluating the model on the sts_dev dataset:
-            Cosine-Similarity :     Pearson: 0.8430 Spearman: 0.8368
-            Model Sparsity Stats: Row Non-Zero Mean: 81.0629997253418, Row Sparsity Mean: 0.997344046831131
+            Cosine-Similarity:     Pearson: 0.8430 Spearman: 0.8368
+            Model Sparsity: Active Dimensions: 81.1, Sparsity Ratio: 0.9973
             '''
             # Print the results
             print(f"Primary metric: {dev_evaluator.primary_metric}")
@@ -96,7 +97,7 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
         max_active_dims: int | None = None,
     ):
         self.max_active_dims = max_active_dims
-        self.sparsity_stats = {"row_non_zero_mean": 0, "row_sparsity_mean": 0}
+        self.sparsity_stats = defaultdict(list)
         return super().__init__(
             sentences1=sentences1,
             sentences2=sentences2,
@@ -112,24 +113,25 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
 
     def _append_csv_headers(self, similarity_fn_names: list[str]) -> None:
         super()._append_csv_headers(similarity_fn_names)
-        for sparsity_stat in self.sparsity_stats.keys():
-            self.csv_headers.append(f"{sparsity_stat}")
+        self.csv_headers.extend(["active_dims", "sparsity_ratio"])
 
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        self.sparsity_stats = {"row_non_zero_mean": 0, "row_sparsity_mean": 0}
+        self.sparsity_stats = defaultdict(list)
         metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
+        for key, value in self.sparsity_stats.items():
+            self.sparsity_stats[key] = sum(value) / len(value)
 
         metrics.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         logger.info(
-            f"Model Sparsity Stats: Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean']}"
+            f"Model Sparsity: Active Dimensions: {self.sparsity_stats['active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['sparsity_ratio']:.4f}"
         )
         if output_path is not None and self.write_csv:
             append_to_last_row(
                 os.path.join(output_path, self.csv_file),
-                [self.sparsity_stats["row_non_zero_mean"], self.sparsity_stats["row_sparsity_mean"]],
+                [self.sparsity_stats["active_dims"], self.sparsity_stats["sparsity_ratio"]],
             )
 
         return metrics
@@ -149,17 +151,18 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             max_active_dims=self.max_active_dims,
             **kwargs,
         )
-        stat = model.get_sparsity_stats(embeddings)
-        if self.sparsity_stats["row_non_zero_mean"] == 0:
-            for key in self.sparsity_stats.keys():
-                self.sparsity_stats[key] = stat[key]
-        else:
-            for key in self.sparsity_stats.keys():
-                self.sparsity_stats[key] += stat[key]
-                self.sparsity_stats[key] /= 2
+        stat = model.sparsity(embeddings)
+        for key, value in stat.items():
+            self.sparsity_stats[key].append(value)
         return embeddings
 
     def store_metrics_in_model_card_data(
         self, model: SparseEncoder, metrics: dict[str, Any], epoch: int = 0, step: int = 0
     ) -> None:
         model.model_card_data.set_evaluation_metrics(self, metrics, epoch=epoch, step=step)
+
+    def get_config_dict(self) -> dict[str, Any]:
+        config_dict = super().get_config_dict()
+        if self.max_active_dims is not None:
+            config_dict["max_active_dims"] = self.max_active_dims
+        return config_dict

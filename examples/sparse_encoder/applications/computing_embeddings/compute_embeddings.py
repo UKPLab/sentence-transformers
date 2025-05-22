@@ -24,15 +24,15 @@ embeddings = model.encode(sentences)
 # Print embedding sim and sparsity
 print(f"Embedding dim: {model.get_sentence_embedding_dimension()}")
 
-stats = model.get_sparsity_stats(embeddings)
+stats = model.sparsity(embeddings)
 print(f"Embedding sparsity: {stats}")
-print(f"Average non-zero dimensions: {stats['row_non_zero_mean']:.2f}")
-print(f"Sparsity percentage: {stats['row_sparsity_mean']:.2%}")
+print(f"Average non-zero dimensions: {stats['active_dims']:.2f}")
+print(f"Sparsity percentage: {stats['sparsity_ratio']:.2%}")
 
 
 """
 Embedding dim: 30522
-Embedding sparsity: {'num_rows': 3, 'num_cols': 30522, 'row_non_zero_mean': 56.66666793823242, 'row_sparsity_mean': 0.9981433749198914}
+Embedding sparsity: {'active_dims': 56.66666793823242, 'sparsity_ratio': 0.9981433749198914}
 Average non-zero dimensions: 56.67
 Sparsity percentage: 99.81%
 """
@@ -58,14 +58,14 @@ Top tokens 10 for each text:
 print("\n--- Using max_active_dims during encoding ---")
 # Generate embeddings with limited active dimensions
 embeddings_limited = model.encode(sentences, max_active_dims=32)
-stats_limited = model.get_sparsity_stats(embeddings_limited)
+stats_limited = model.sparsity(embeddings_limited)
 print(f"Limited embedding sparsity: {stats_limited}")
-print(f"Average non-zero dimensions: {stats_limited['row_non_zero_mean']:.2f}")
-print(f"Sparsity percentage: {stats_limited['row_sparsity_mean']:.2%}")
+print(f"Average non-zero dimensions: {stats_limited['active_dims']:.2f}")
+print(f"Sparsity percentage: {stats_limited['sparsity_ratio']:.2%}")
 
 """
 --- Using max_active_dims during encoding ---
-Limited embedding sparsity: {'num_rows': 3, 'num_cols': 30522, 'row_non_zero_mean': 32.0, 'row_sparsity_mean': 0.9989516139030457}
+Limited embedding sparsity: {'active_dims': 32.0, 'sparsity_ratio': 0.9989516139030457}
 Average non-zero dimensions: 32.00
 Sparsity percentage: 99.90%
 """

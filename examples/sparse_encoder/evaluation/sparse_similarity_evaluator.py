@@ -24,8 +24,8 @@ dev_evaluator = SparseEmbeddingSimilarityEvaluator(
 results = dev_evaluator(model)
 """
 EmbeddingSimilarityEvaluator: Evaluating the model on the sts_dev dataset:
-Cosine-Similarity :     Pearson: 0.8430 Spearman: 0.8368
-Model Sparsity Stats: Row Non-Zero Mean: 81.0629997253418, Row Sparsity Mean: 0.997344046831131
+Cosine-Similarity:      Pearson: 0.8430 Spearman: 0.8368
+Model Sparsity: Active Dimensions: 81.1, Sparsity Ratio: 0.9973
 """
 # Print the results
 print(f"Primary metric: {dev_evaluator.primary_metric}")

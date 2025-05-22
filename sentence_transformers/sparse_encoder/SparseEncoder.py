@@ -934,61 +934,67 @@ class SparseEncoder(SentenceTransformer):
         return SparseEncoder(input_path)
 
     @staticmethod
-    def get_sparsity_stats(embeddings: torch.Tensor) -> dict[str, float]:
+    def sparsity(embeddings: torch.Tensor) -> dict[str, float]:
         """
-        Calculate row-wise sparsity statistics for the given embeddings.
+        Calculate sparsity statistics for the given embeddings, including the mean number of active dimensions
+        and the mean sparsity ratio.
 
         Args:
-            embeddings (torch.Tensor): The embeddings to analyze (2D tensor expected).
+            embeddings (torch.Tensor): The embeddings to analyze.
 
         Returns:
-            dict[str, float]: Dictionary with row-wise sparsity statistics (mean and std).
-                            Includes 'num_rows', 'num_cols', 'row_non_zero_mean', 'row_sparsity_mean',.
+            dict[str, float]: Dictionary with the mean active dimensions and mean sparsity ratio.
+
+        Example
+            ::
+
+                from sentence_transformers import SparseEncoder
+
+                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+                embeddings = model.encode(["The weather is so nice!", "It's so sunny outside."])
+                stats = model.sparsity(embeddings)
+                print(stats)
+                # => {'active_dims': 44.0, 'sparsity_ratio': 0.9985584020614624}
         """
         if not isinstance(embeddings, torch.Tensor):
             raise TypeError("Embeddings must be a torch.Tensor")
-        if embeddings.ndim != 2:
-            raise ValueError(f"Expected 2D tensor, but got {embeddings.ndim} dimensions")
 
-        num_rows, num_cols = embeddings.shape
-
-        if num_rows == 0:
-            # Handle empty tensor case
+        # Handle 1D tensor case
+        if embeddings.ndim == 1:
+            num_cols = embeddings.shape[0]
+            if not embeddings.is_sparse:
+                embeddings = embeddings.to_sparse()
+            num_active_dims = embeddings.coalesce().indices().shape[1]
+            sparsity_ratio = 1.0 - (num_active_dims / num_cols)
             return {
-                "num_rows": 0,
-                "num_cols": num_cols,
-                "row_non_zero_mean": float("nan"),
-                "row_sparsity_mean": float("nan"),
+                "active_dims": float(num_active_dims),
+                "sparsity_ratio": float(sparsity_ratio),
             }
 
-        if embeddings.is_sparse or embeddings.is_sparse_csr:
-            if embeddings.layout == torch.sparse_coo:
-                embeddings = embeddings.to_sparse_csr()  # Convert to CSR for easier row-wise ops
+        # Handle 2D tensor case
+        num_rows, num_cols = embeddings.shape
 
-            # is_sparse_csr path
-            indptr = embeddings.crow_indices()
-            non_zero_per_row = indptr[1:] - indptr[:-1]
+        if num_rows == 0 or num_cols == 0:
+            return {
+                "active_dims": 0.0,
+                "sparsity_ratio": 1.0,
+            }
 
-        else:  # Dense tensor
-            non_zero_per_row = torch.count_nonzero(embeddings, dim=1)
+        # Convert to the CSR format for convenience
+        embeddings = embeddings.to_sparse_csr()
 
-        if num_cols == 0:
-            # Handle case with zero columns (all rows are empty)
-            density_per_row = torch.zeros(num_rows, device=embeddings.device, dtype=torch.float32)
-        else:
-            density_per_row = non_zero_per_row.float() / num_cols
-        sparsity_per_row = 1.0 - density_per_row
+        # Calculate non-zero elements per row
+        crow_indices = embeddings.crow_indices()
+        non_zero_per_row = crow_indices[1:] - crow_indices[:-1]
 
-        # Use torch.nanmean and torch.nanstd if NaN values are possible and should be ignored,
-        # but standard mean/std should be fine if inputs are handled (e.g. num_cols > 0).
-        # Calculate std only if num_rows > 1 to avoid NaN/errors.
-        results = {
-            "num_rows": num_rows,
-            "num_cols": num_cols,
-            "row_non_zero_mean": torch.mean(non_zero_per_row.float()).item(),
-            "row_sparsity_mean": torch.mean(sparsity_per_row).item(),
+        # Calculate mean values
+        mean_active_dims = torch.mean(non_zero_per_row.float()).item()
+        mean_sparsity_ratio = 1.0 - (mean_active_dims / num_cols)
+
+        return {
+            "active_dims": mean_active_dims,
+            "sparsity_ratio": mean_sparsity_ratio,
         }
-        return results
 
     @property
     def max_seq_length(self) -> int:

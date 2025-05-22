@@ -8,15 +8,11 @@ from typing import TYPE_CHECKING, Any
 from sentence_transformers.model_card import SentenceTransformerModelCardCallback, SentenceTransformerModelCardData
 from sentence_transformers.models import Asym, Module
 from sentence_transformers.sparse_encoder.models import IDF, CSRSparsity, SpladePooling
-from sentence_transformers.util import is_datasets_available
-
-if is_datasets_available():
-    pass
-
-logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
+
+logger = logging.getLogger(__name__)
 
 
 class SparseEncoderModelCardCallback(SentenceTransformerModelCardCallback):

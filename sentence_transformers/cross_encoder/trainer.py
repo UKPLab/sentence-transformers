@@ -224,6 +224,10 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
         if self.eval_dataset == "dummy":
             self.eval_dataset = None
 
+        # If losses return dictionaries, then we want to be able to accumulate the loss components
+        # before merging them into a single loss (required by the base Trainer)
+        self.accum_loss_components = {"train": {}, "eval": {}}
+
         # Every Sentence Transformer model can always return a loss, so we set this to True
         # to avoid having to specify it in the data collator or model's forward
         self.can_return_loss = True
