@@ -106,13 +106,9 @@ class MLMTransformer(InputModule):
             for key, value in features.items()
             if key in ["input_ids", "attention_mask", "token_type_ids", "inputs_embeds"]
         }
-        # Get MLM outputs
-        mlm_outputs = self.auto_model(**trans_features)
-
-        # Get the MLM head logits (shape: batch_size, seq_length, vocab_size)
-        mlm_logits = mlm_outputs.logits
-
-        features["token_embeddings"] = mlm_logits
+        features["token_embeddings"] = self.auto_model(
+            **trans_features, output_hidden_states=False, output_attentions=False
+        ).logits
         return features
 
     def tokenize(

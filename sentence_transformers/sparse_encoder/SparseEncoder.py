@@ -183,7 +183,6 @@ class SparseEncoder(SentenceTransformer):
         prompt: str | None = None,
         batch_size: int = 32,
         show_progress_bar: bool | None = None,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
         convert_to_tensor: bool = True,
         convert_to_sparse_tensor: bool = True,
         save_to_cpu: bool = False,
@@ -206,9 +205,6 @@ class SparseEncoder(SentenceTransformer):
                 because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
             batch_size (int, optional): The batch size used for the computation. Defaults to 32.
             show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
-            output_value (Optional[Literal["sentence_embedding", "token_embeddings"]], optional): The type of embeddings to return:
-                "sentence_embedding" to get sentence embeddings, "token_embeddings" to get wordpiece token embeddings, and `None`,
-                to get all output values. Defaults to "sentence_embedding".
             convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
                 Defaults to False.
             convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse tensor.
@@ -249,9 +245,6 @@ class SparseEncoder(SentenceTransformer):
                 logging.INFO,
                 logging.DEBUG,
             )
-
-        if output_value != "sentence_embedding":
-            convert_to_tensor = False
 
         input_was_string = False
         if isinstance(sentences, str) or not hasattr(
@@ -307,31 +300,15 @@ class SparseEncoder(SentenceTransformer):
             features.update(extra_features)
 
             with torch.no_grad():
-                out_features = self.forward(features, **kwargs)
+                embeddings = self.forward(features, **kwargs)["sentence_embedding"].detach()
 
                 if max_active_dims:
-                    out_features["sentence_embedding"] = select_max_active_dims(
-                        out_features["sentence_embedding"], max_active_dims=max_active_dims
-                    )
+                    embeddings = select_max_active_dims(embeddings, max_active_dims=max_active_dims)
 
-                if output_value == "token_embeddings":
-                    embeddings = []
-                    for token_emb in out_features[output_value]:
-                        if convert_to_sparse_tensor:
-                            token_emb = token_emb.to_sparse()
-                        embeddings.append(token_emb)
-                elif output_value is None:  # Return all outputs
-                    embeddings = []
-                    for sent_idx in range(len(out_features["sentence_embedding"])):
-                        row = {name: out_features[name][sent_idx] for name in out_features}
-                        embeddings.append(row)
-                else:  # Sentence embeddings
-                    embeddings = out_features[output_value]
-                    embeddings = embeddings.detach()
-                    if convert_to_sparse_tensor:
-                        embeddings = embeddings.to_sparse()
-                    if save_to_cpu:
-                        embeddings = embeddings.cpu()
+                if convert_to_sparse_tensor:
+                    embeddings = embeddings.to_sparse()
+                if save_to_cpu:
+                    embeddings = embeddings.cpu()
 
                 all_embeddings.extend(embeddings)
 
