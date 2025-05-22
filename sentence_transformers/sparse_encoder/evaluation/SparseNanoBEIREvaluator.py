@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from collections import defaultdict
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 
@@ -192,6 +192,14 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             query_prompts=query_prompts,
             corpus_prompts=corpus_prompts,
         )
+        if self.max_active_dims is not None:
+            self.name += f"_{self.max_active_dims}"
+
+    def _get_human_readable_name(self, dataset_name: DatasetNameType) -> str:
+        human_readable_name = super()._get_human_readable_name(dataset_name)
+        if self.max_active_dims is not None:
+            human_readable_name += f"_{self.max_active_dims}"
+        return human_readable_name
 
     def _append_csv_headers(self, similarity_fn_names):
         super()._append_csv_headers(similarity_fn_names)
@@ -242,3 +250,9 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         ir_evaluator_kwargs["max_active_dims"] = self.max_active_dims
         ir_evaluator_kwargs.pop("truncate_dim", None)
         return super()._load_dataset(dataset_name, **ir_evaluator_kwargs)
+
+    def get_config_dict(self) -> dict[str, Any]:
+        config_dict = super().get_config_dict()
+        if self.max_active_dims is not None:
+            config_dict["max_active_dims"] = self.max_active_dims
+        return config_dict
