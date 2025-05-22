@@ -28,15 +28,20 @@ class SpladePooling(Module):
                 - `relu`: ReLU activation (standard in all Splade models).
                 - `log1p_relu`: log(1 + ReLU(x)) variant used in Opensearch Splade models see arxiv.org/pdf/2504.14839.
         word_embedding_dimension (int, optional): Dimensionality of the output embeddings (if needed).
+        chunk_size (int, optional): Size of chunks when processing tokens. If None, processes entire sequence at once.
+            Using smaller chunks reduces memory usage but may impact speed performance.
     """
 
     SPLADE_POOLING_MODES = ("sum", "max")
     SPLADE_ACTIVATION = ["relu", "log1p_relu"]
     config_keys: list[str] = ["pooling_strategy", "activation_function", "word_embedding_dimension"]
-    forward_kwargs = {"memory_efficient"}
 
     def __init__(
-        self, pooling_strategy: str = "max", activation_function="relu", word_embedding_dimension: int = None
+        self,
+        pooling_strategy: str = "max",
+        activation_function="relu",
+        word_embedding_dimension: int = None,
+        chunk_size: int = 32,
     ) -> None:
         super().__init__()
         self.pooling_strategy = pooling_strategy
@@ -46,69 +51,66 @@ class SpladePooling(Module):
         if activation_function not in self.SPLADE_ACTIVATION:
             raise ValueError("activation_function must be either 'relu' or 'log1p_relu'")
         self.word_embedding_dimension = word_embedding_dimension  # This will be set in the forward method
+        self.chunk_size = chunk_size
 
-    def forward(self, features: dict[str, torch.Tensor], memory_efficient: bool = False) -> dict[str, torch.Tensor]:
-        """Forward pass of the model.
+    def forward(
+        self,
+        features: dict[str, torch.Tensor],
+    ) -> dict[str, torch.Tensor]:
+        """
+        Forward pass of the model.
         Args:
-            features: Dictionary containing input features with 'token_embeddings' key as MLM logits.
+            features: Dictionary containing input features. Expects:
+                - 'token_embeddings': MLM logits (shape: batch_size, seq_length, vocab_size).
+                - 'attention_mask': Attention mask (shape: batch_size, seq_length).
         Returns:
             Dictionary containing SPLADE pooled embeddings
         """
-        # Get the MLM head logits (shape: batch_size, seq_length, vocab_size)
         mlm_logits = features["token_embeddings"]
-        if memory_efficient:
-            batch_size, seq_len, vocab_s = mlm_logits.shape
+        attention_mask = features["attention_mask"]  # Shape: [batch_size, seq_length]
 
-            effective_computation_dtype = mlm_logits.dtype
+        # Unsqueeze attention_mask to be [batch_size, seq_length, 1] for broadcasting
+        attention_mask_expanded = attention_mask.unsqueeze(-1).to(mlm_logits.dtype)
 
-            if self.pooling_strategy == "max":
-                pooled_scores = torch.full(
-                    (batch_size, vocab_s), float("-inf"), dtype=effective_computation_dtype, device=mlm_logits.device
-                )
-            elif self.pooling_strategy == "sum":
-                pooled_scores = torch.zeros(
-                    (batch_size, vocab_s), dtype=effective_computation_dtype, device=mlm_logits.device
-                )
-            else:
-                raise ValueError(f"Unsupported pooling_strategy: {self.pooling_strategy}")
+        batch_size, seq_len, vocab_s = mlm_logits.shape
+        device = mlm_logits.device
 
-            chunk_size = 32
-
-            for i in range(0, seq_len, chunk_size):
-                current_chunk_logits = mlm_logits[:, i : i + chunk_size, :]
-
-                if self.activation_function == "relu":
-                    current_chunk_transformed = torch.log1p(torch.relu(current_chunk_logits))
-                elif self.activation_function == "log1p_relu":
-                    current_chunk_transformed = torch.log1p(torch.log1p(torch.relu(current_chunk_logits)))
-                # current_chunk_transformed now has the dtype that log1p naturally produced.
-
-                # Ensure it's consistent with our determined effective_computation_dtype for pooling/accumulation.
-                current_chunk_transformed = current_chunk_transformed.to(effective_computation_dtype)
-
-                if self.pooling_strategy == "max":
-                    chunk_pooled = torch.max(current_chunk_transformed, dim=1)[0]
-                    # Avoid in-place update with out= for torch.maximum when grads are required
-                    pooled_scores = torch.maximum(pooled_scores, chunk_pooled)
-                else:  # sum
-                    chunk_pooled = torch.sum(current_chunk_transformed, dim=1)
-                    pooled_scores += chunk_pooled
+        # Initialize pooled scores based on pooling strategy
+        if self.pooling_strategy == "max":
+            pooled_scores = torch.full((batch_size, vocab_s), float("-inf"), dtype=mlm_logits.dtype, device=device)
+        elif self.pooling_strategy == "sum":
+            pooled_scores = torch.zeros((batch_size, vocab_s), dtype=mlm_logits.dtype, device=device)
         else:
-            # Apply ReLU and log transformation for SPLADE
+            raise ValueError(f"Unsupported pooling_strategy: {self.pooling_strategy}")
+
+        # Process in chunks if chunk_size is set, otherwise process the entire sequence at once
+        chunk_size = seq_len if self.chunk_size is None else self.chunk_size
+
+        for i in range(0, seq_len, chunk_size):
+            current_chunk_logits = mlm_logits[:, i : i + chunk_size, :]
+            current_chunk_mask = attention_mask_expanded[:, i : i + chunk_size, :]
+
+            masked_current_chunk_logits = current_chunk_logits * current_chunk_mask
+
             if self.activation_function == "relu":
-                splade_scores = torch.log1p(torch.relu(mlm_logits))
+                if not self.training:
+                    current_chunk_transformed = masked_current_chunk_logits.relu_().log1p_()
+                else:
+                    current_chunk_transformed = torch.log1p(torch.relu(masked_current_chunk_logits))
             elif self.activation_function == "log1p_relu":
-                splade_scores = torch.log1p(torch.log1p(torch.relu(mlm_logits)))
-            else:
-                raise ValueError("activation_function must be either 'relu' or 'log1p_relu'")
+                if not self.training:
+                    current_chunk_transformed = masked_current_chunk_logits.relu_().log1p_().log1p_()
+                else:
+                    current_chunk_transformed = torch.log1p(torch.log1p(torch.relu(masked_current_chunk_logits)))
 
-            # Pool across sequence length dimension
+            current_chunk_transformed = current_chunk_transformed.to(mlm_logits.dtype)
+
             if self.pooling_strategy == "max":
-                pooled_scores = torch.max(splade_scores, dim=1)[0]  # shape: batch_size, vocab_size
+                chunk_pooled = torch.max(current_chunk_transformed, dim=1)[0]
+                pooled_scores = torch.maximum(pooled_scores, chunk_pooled)
             else:  # sum
-                pooled_scores = torch.sum(splade_scores, dim=1)  # shape: batch_size, vocab_size
-
-        del features["token_embeddings"]
+                chunk_pooled = torch.sum(current_chunk_transformed, dim=1)
+                pooled_scores += chunk_pooled
 
         if self.word_embedding_dimension is None:
             self.word_embedding_dimension = pooled_scores.shape[1]
