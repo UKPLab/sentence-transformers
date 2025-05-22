@@ -503,9 +503,16 @@ class SentenceTransformerModelCardData(CardData):
                     list(sentence.values())[0] if isinstance(sentence, dict) else sentence for sentence in sentences
                 ]
 
-                self.widget.append(
-                    {"source_sentence": sentences[0], "sentences": random.sample(sentences[1:], k=len(sentences) - 1)}
-                )
+                if self.pipeline_tag == "sentence-similarity":
+                    self.widget.append(
+                        {
+                            "source_sentence": sentences[0],
+                            "sentences": random.sample(sentences[1:], k=len(sentences) - 1),
+                        }
+                    )
+                else:
+                    # If we have e.g. feature-extraction, we just want individual sentences
+                    self.widget.append({"text": random.choice(sentences)})
                 self.predict_example = sentences[:3]
 
     def set_evaluation_metrics(

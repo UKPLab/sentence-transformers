@@ -15,7 +15,7 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    1. :class:`SparseEncoder <sentence_transformers.sparse_encoder.SparseEncoder>`
    2. :meth:`SparseEncoder.encode <sentence_transformers.sparse_encoder.SparseEncoder.encode>`
    3. :meth:`SparseEncoder.similarity <sentence_transformers.sparse_encoder.SparseEncoder.similarity>`
-   4. :meth:`SparseEncoder.get_sparsity_stats <sentence_transformers.sparse_encoder.SparseEncoder.get_sparsity_stats>`
+   4. :meth:`SparseEncoder.sparsity <sentence_transformers.sparse_encoder.SparseEncoder.sparsity>`
 
 ::
 
@@ -44,9 +44,9 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    #         [    0.1127,     0.0191,    29.6122]], device='cuda:0')
 
    # 4. Check sparsity statistics
-   stats = SparseEncoder.get_sparsity_stats(embeddings)
-   print(f"Sparsity: {stats['row_sparsity_mean']:.2%}")  # Typically >99% zeros
-   print(f"Avg non-zero dimensions per embedding: {stats['row_non_zero_mean']:.2f}")
+   stats = SparseEncoder.sparsity(embeddings)
+   print(f"Sparsity: {stats['sparsity_ratio']:.2%}")  # Typically >99% zeros
+   print(f"Avg non-zero dimensions per embedding: {stats['active_dims']:.2f}")
 
 
 .. toctree::

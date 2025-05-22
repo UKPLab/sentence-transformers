@@ -26,7 +26,7 @@ results = mse_evaluator(student_model)
 """
 MSE evaluation (lower = better) on the stsb-dev dataset:
 MSE (*100):	0.035540
-Model Sparsity Stats: Row Non-Zero Mean: 55.60933303833008, Row Sparsity Mean: 0.9981780648231506
+Model Sparsity: Active Dimensions: 55.6, Sparsity Ratio: 0.9982
 """
 # Print the results
 print(f"Primary metric: {mse_evaluator.primary_metric}")

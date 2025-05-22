@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Callable
+
+from collections import defaultdict
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 
@@ -97,8 +99,8 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             MRR@10: 0.9439
             NDCG@10: 0.9339
             MAP@100: 0.9072
-            Model Sparsity Stats  Query : Row Non-Zero Mean: 62.97999954223633, Row Sparsity Mean: 0.9979365468025208
-            Model Sparsity Stats  Corpus : Row Non-Zero Mean: 63.39932632446289, Row Sparsity Mean: 0.9979228377342224
+            Model Query Sparsity: Active Dimensions: 63.0, Sparsity Ratio: 0.9979
+            Model Corpus Sparsity: Active Dimensions: 63.4, Sparsity Ratio: 0.9979
 
             Information Retrieval Evaluation of the model on the NanoMSMARCO dataset:
             Queries: 50
@@ -120,8 +122,8 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             MRR@10: 0.6211
             NDCG@10: 0.6838
             MAP@100: 0.6277
-            Model Sparsity Stats  Query : Row Non-Zero Mean: 48.08000183105469, Row Sparsity Mean: 0.9984247088432312
-            Model Sparsity Stats  Corpus : Row Non-Zero Mean: 125.3604965209961, Row Sparsity Mean: 0.9958928227424622
+            Model Query Sparsity: Active Dimensions: 48.1, Sparsity Ratio: 0.9984
+            Model Corpus Sparsity: Active Dimensions: 125.4, Sparsity Ratio: 0.9959
 
             Average Queries: 50.0
             Average Corpus: 5044.5
@@ -140,8 +142,8 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             Recall@10: 93.13%
             MRR@10: 0.7825
             NDCG@10: 0.8089
-            Model Sparsity Stats  Query : Row Non-Zero Mean: 55.53000068664551, Row Sparsity Mean: 0.998180627822876
-            Model Sparsity Stats  Corpus : Row Non-Zero Mean: 94.37991142272949, Row Sparsity Mean: 0.9969078302383423
+            Model Query Sparsity: Active Dimensions: 55.5, Sparsity Ratio: 0.9982
+            Model Corpus Sparsity: Active Dimensions: 94.4, Sparsity Ratio: 0.9969
             '''
             # Print the results
             print(f"Primary metric: {evaluator.primary_metric}")
@@ -173,12 +175,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         corpus_prompts: str | dict[str, str] | None = None,
     ):
         self.max_active_dims = max_active_dims
-        self.sparsity_stats = {
-            "row_non_zero_mean_query": 0,
-            "row_sparsity_mean_query": 0,
-            "row_non_zero_mean_corpus": 0,
-            "row_sparsity_mean_corpus": 0,
-        }
+        self.sparsity_stats = defaultdict(list)
         super().__init__(
             dataset_names=dataset_names,
             mrr_at_k=mrr_at_k,
@@ -207,26 +204,27 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
 
     def _append_csv_headers(self, similarity_fn_names):
         super()._append_csv_headers(similarity_fn_names)
-        for sparsity_stat in self.sparsity_stats.keys():
-            self.csv_headers.append(f"{sparsity_stat}")
+        self.csv_headers.extend(
+            ["query_active_dims", "query_sparsity_ratio", "corpus_active_dims", "corpus_sparsity_ratio"]
+        )
 
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
-        self.sparsity_stats = {
-            "row_non_zero_mean_query": 0,
-            "row_sparsity_mean_query": 0,
-            "row_non_zero_mean_corpus": 0,
-            "row_sparsity_mean_corpus": 0,
-        }
+        self.sparsity_stats = defaultdict(list)
+        self.lengths = defaultdict(list)
         per_dataset_results = super().__call__(
             model, output_path=output_path, epoch=epoch, steps=steps, *args, **kwargs
         )
         for evaluator in self.evaluators:
-            for key in self.sparsity_stats.keys():
-                self.sparsity_stats[key] += evaluator.sparsity_stats[key]
-        for key in self.sparsity_stats.keys():
-            self.sparsity_stats[key] /= len(self.evaluators)
+            self.lengths["query"].append(len(evaluator.queries))
+            self.lengths["corpus"].append(len(evaluator.corpus))
+            for key, value in evaluator.sparsity_stats.items():
+                self.sparsity_stats[key].append(value)
+        for key, value in self.sparsity_stats.items():
+            self.sparsity_stats[key] = sum(
+                val * length for val, length in zip(value, self.lengths[key.split("_")[0]])
+            ) / sum(self.lengths[key.split("_")[0]])
 
         per_dataset_results.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
         aggregated_results = {
@@ -234,10 +232,10 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         }
         self.store_metrics_in_model_card_data(model, aggregated_results, epoch, steps)
         logger.info(
-            f"Model Sparsity Stats  Query : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_query']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_query']}"
+            f"Model Query Sparsity: Active Dimensions: {self.sparsity_stats['query_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['query_sparsity_ratio']:.4f}"
         )
         logger.info(
-            f"Model Sparsity Stats  Corpus : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_corpus']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_corpus']}"
+            f"Model Corpus Sparsity: Active Dimensions: {self.sparsity_stats['corpus_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['corpus_sparsity_ratio']:.4f}"
         )
         if output_path is not None and self.write_csv:
             append_to_last_row(
