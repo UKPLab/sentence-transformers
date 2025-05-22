@@ -615,6 +615,9 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             sentences = [sentences]
             input_was_string = True
 
+        if not isinstance(sentences, (list, np.ndarray)):
+            sentences = list(sentences)
+
         if prompt is None:
             if prompt_name is not None:
                 try:
