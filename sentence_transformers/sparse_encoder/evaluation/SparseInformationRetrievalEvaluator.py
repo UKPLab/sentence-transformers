@@ -159,7 +159,8 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         corpus_prompt_name: str | None = None,
     ) -> None:
         self.max_active_dims = max_active_dims
-        self.sparsity_stats = defaultdict(list)
+        self.sparsity_stats = {"query": defaultdict(list), "corpus": defaultdict(list)}
+        self.corppus_lengths = []
         return super().__init__(
             queries=queries,
             corpus=corpus,
@@ -191,11 +192,20 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
-        self.sparsity_stats = defaultdict(list)
+        self.sparsity_stats = {"query": defaultdict(list), "corpus": defaultdict(list)}
+        self.corppus_lengths = []
         metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
-        for key, value in self.sparsity_stats.items():
-            self.sparsity_stats[key] = sum(value) / len(value)
-
+        for prefix in ["query", "corpus"]:
+            for key, value in self.sparsity_stats[prefix].items():
+                if prefix == "query":
+                    self.sparsity_stats[prefix][key] = sum(value) / len(value)
+                else:
+                    self.sparsity_stats[prefix][key] = sum(
+                        val * length for val, length in zip(value, self.corppus_lengths)
+                    ) / sum(self.corppus_lengths)
+        self.sparsity_stats = {
+            f"{prefix}_{key}": value for prefix, values in self.sparsity_stats.items() for key, value in values.items()
+        }
         metrics.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         logger.info(
@@ -234,10 +244,11 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             **kwargs,
         )
         stat = model.sparsity(embeddings)
-        # TODO: This is a bit flimsy
         prefix = "query" if len(self.queries) == len(sentences) else "corpus"
         for key, value in stat.items():
-            self.sparsity_stats[f"{prefix}_{key}"].append(value)
+            self.sparsity_stats[prefix][key].append(value)
+        if prefix == "corpus":
+            self.corppus_lengths.append(len(sentences))
         return embeddings
 
     def store_metrics_in_model_card_data(

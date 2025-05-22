@@ -203,14 +203,19 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
         self.sparsity_stats = defaultdict(list)
+        self.lengths = defaultdict(list)
         per_dataset_results = super().__call__(
             model, output_path=output_path, epoch=epoch, steps=steps, *args, **kwargs
         )
         for evaluator in self.evaluators:
+            self.lengths["query"].append(len(evaluator.queries))
+            self.lengths["corpus"].append(len(evaluator.corpus))
             for key, value in evaluator.sparsity_stats.items():
                 self.sparsity_stats[key].append(value)
         for key, value in self.sparsity_stats.items():
-            self.sparsity_stats[key] = sum(value) / len(value)
+            self.sparsity_stats[key] = sum(
+                val * length for val, length in zip(value, self.lengths[key.split("_")[0]])
+            ) / sum(self.lengths[key.split("_")[0]])
 
         per_dataset_results.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
         aggregated_results = {

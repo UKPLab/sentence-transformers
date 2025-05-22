@@ -187,7 +187,6 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             **kwargs,
         )
         stat = model.sparsity(torch.stack(embeddings))
-        # TODO: This is a bit flimsy
         prefix = "query" if len(self.samples) == len(sentences) else "corpus"
         for key, value in stat.items():
             self.sparsity_stats[f"{prefix}_{key}"].append(value)
