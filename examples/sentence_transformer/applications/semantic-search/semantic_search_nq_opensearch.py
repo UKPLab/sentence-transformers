@@ -61,7 +61,10 @@ def create_and_ingest_index(os_client, index_name, corpus, embeddings):
                     "type": "knn_vector",
                     "dimension": 768,
                     "space_type": "cosinesimil",
-                    "mode": "on_disk",
+                    "method": {
+                        "name": "hnsw",
+                        "engine": "lucene",
+                    },
                 },
             }
         },
@@ -114,25 +117,37 @@ while True:
 
     # Perform search
     start_time = time.time()
-    results = []
+    semantic_results = []
+    bm25_results = []
     os_client, index_name = corpus_index
 
-    for query_embedding in query_embeddings:
-        search_result = os_client.search(
+    for query, query_embedding in zip(queries, query_embeddings):
+        # BM25 search
+        bm25_result = os_client.search(index=index_name, body={"query": {"match": {"answer": query}}, "size": 5})
+        bm25_results.append(bm25_result["hits"]["hits"])
+
+        # Semantic search
+        semantic_result = os_client.search(
             index=index_name,
             body={"size": 5, "query": {"knn": {"answer_vector": {"vector": query_embedding.tolist(), "k": 5}}}},
         )
-        results.append(search_result["hits"]["hits"])
+        semantic_results.append(semantic_result["hits"]["hits"])
 
     search_time = time.time() - start_time
 
     # 7. Output the results
-    print(f"Search time: {search_time:.6f} seconds")
-    for query, hits in zip(queries, results):
+    print(f"Query encoding time: {encode_time:.6f} seconds, search time: {search_time:.6f} seconds")
+    for query, bm25_hits, semantic_hits in zip(queries, bm25_results, semantic_results):
         print(f"Query: {query}")
-        for hit in hits:
+
+        print("\nBM25 results:")
+        for hit in bm25_hits:
             print(f"(Score: {hit['_score']:.4f}) {hit['_source']['answer']}, corpus_id: {hit['_id']}")
-        print("")
+
+        print("\nSemantic Search results:")
+        for hit in semantic_hits:
+            print(f"(Score: {hit['_score']:.4f}) {hit['_source']['answer']}, corpus_id: {hit['_id']}")
+        print("\n========\n")
 
     # 8. Prompt for more queries
     queries = [input("Please enter a question: ")]
