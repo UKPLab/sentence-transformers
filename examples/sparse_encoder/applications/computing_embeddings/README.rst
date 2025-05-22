@@ -36,9 +36,9 @@ Once you have `installed <../../../../docs/installation.html>`_ Sentence Transfo
    #         [    0.1127,     0.0191,    29.6122]], device='cuda:0')
 
    # 4. Check sparsity statistics
-   stats = SparseEncoder.get_sparsity_stats(embeddings)
-   print(f"Sparsity: {stats['row_sparsity_mean']:.2%}")  # Typically >99% zeros
-   print(f"Avg non-zero dimensions per embedding: {stats['row_non_zero_mean']:.2f}")
+   stats = SparseEncoder.sparsity(embeddings)
+   print(f"Sparsity: {stats['sparsity_ratio']:.2%}")  # Typically >99% zeros
+   print(f"Avg non-zero dimensions per embedding: {stats['active_dims']:.2f}")
 
 .. note::
    Even though we talk about sentence embeddings, you can use Sparse Encoder for shorter phrases as well as for longer texts with multiple sentences. See :ref:`input-sequence-length` for notes on embeddings for longer texts.
@@ -119,25 +119,25 @@ You can specify ``max_active_dims`` either when initializing the model or during
    # Print embedding dimensionality and sparsity
    print(f"Embedding dim: {model.get_sentence_embedding_dimension()}")
 
-   stats = model.get_sparsity_stats(embeddings)
+   stats = model.sparsity(embeddings)
    print(f"Embedding sparsity: {stats}")
-   print(f"Average non-zero dimensions: {stats['row_non_zero_mean']:.2f}")
-   print(f"Sparsity percentage: {stats['row_sparsity_mean']:.2%}")
+   print(f"Average non-zero dimensions: {stats['active_dims']:.2f}")
+   print(f"Sparsity percentage: {stats['sparsity_ratio']:.2%}")
    """
    Embedding dim: 30522
-   Embedding sparsity: {'num_rows': 3, 'num_cols': 30522, 'row_non_zero_mean': 56.66666793823242, 'row_sparsity_mean': 0.9981433749198914}
+   Embedding sparsity: {'active_dims': 56.66666793823242, 'sparsity_ratio': 0.9981433749198914}
    Average non-zero dimensions: 56.67
    Sparsity percentage: 99.81%
    """
    
    # Example of using max_active_dims during encoding to limit the active dimensions
    embeddings_limited = model.encode(sentences, max_active_dims=32)
-   stats_limited = model.get_sparsity_stats(embeddings_limited)
+   stats_limited = model.sparsity(embeddings_limited)
    print(f"Limited embedding sparsity: {stats_limited}")
-   print(f"Average non-zero dimensions: {stats_limited['row_non_zero_mean']:.2f}")
-   print(f"Sparsity percentage: {stats_limited['row_sparsity_mean']:.2%}")
+   print(f"Average non-zero dimensions: {stats_limited['active_dims']:.2f}")
+   print(f"Sparsity percentage: {stats_limited['sparsity_ratio']:.2%}")
    """
-   Limited embedding sparsity: {'num_rows': 3, 'num_cols': 30522, 'row_non_zero_mean': 32.0, 'row_sparsity_mean': 0.9989516139030457}
+   Limited embedding sparsity: {'active_dims': 32.0, 'sparsity_ratio': 0.9989516139030457}
    Average non-zero dimensions: 32.00
    Sparsity percentage: 99.90%
    """

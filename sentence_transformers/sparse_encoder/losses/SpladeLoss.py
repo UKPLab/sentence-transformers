@@ -41,8 +41,8 @@ class SpladeLoss(nn.Module):
                 if you are having all_docs=True. Else you should have a lambda_query > 0.
             all_docs: If True, all input embeddings are treated as documents and regularized together with lambda_corpus.
                 Especially useful when training with symmetric texts (e.g. pairs of documents) or more.
-            threshold: Optional threshold for the number of non-zero elements in the embeddings to be considered in the FlopsLoss.
-                If specified, only embeddings with more than this number of non-zero elements will be considered.
+            threshold: Optional threshold for the number of non-zero (active) elements in the embeddings to be considered in the FlopsLoss.
+                If specified, only embeddings with more than this number of non-zero (active) elements will be considered.
                 This can help to ignore embeddings that are too sparse and may not contribute meaningfully to the loss.
             regularizer: Optional regularizer to use instead of the default FlopsLoss. This can be useful for custom regularization strategies.
 

@@ -14,15 +14,15 @@ class FlopsLoss(nn.Module):
         FlopsLoss implements a regularization technique to promote sparsity in sparse encoder models.
         It calculates the squared L2 norm of the mean embedding vector, which helps reduce the number of floating-point
         operations (FLOPs) required during inference by encouraging more zero values in the embeddings.
-        It can use a threshold to ignore embeddings with too few non-zero elements.
+        It can use a threshold to ignore embeddings with too few non-zero (active) elements.
 
         This loss is used as a regularization component within other losses like :class:`SpladeLoss` rather than
         being used as a standalone loss function.
 
         Args:
             model: SparseEncoder model to be regularized
-            threshold: Optional threshold for the number of non-zero elements in the embeddings.
-                If specified, only embeddings with more than this number of non-zero elements will be considered.
+            threshold: Optional threshold for the number of non-zero (active) elements in the embeddings.
+                If specified, only embeddings with more than this number of non-zero (active) elements will be considered.
                 This can help to ignore embeddings that are too sparse and may not contribute meaningfully to the loss.
 
         References:

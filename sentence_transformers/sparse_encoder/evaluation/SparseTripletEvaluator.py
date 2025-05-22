@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Literal
 
 import torch
@@ -82,8 +83,9 @@ class SparseTripletEvaluator(TripletEvaluator):
             '''
             TripletEvaluator: Evaluating the model on the all_nli_dev dataset:
             Accuracy Dot Similarity:	85.10%
-            Model Sparsity Stats  Query : Row Non-Zero Mean: 105.4530029296875, Row Sparsity Mean: 0.9965449571609497
-            Model Sparsity Stats  Corpus : Row Non-Zero Mean: 69.18349838256836, Row Sparsity Mean: 0.9977333247661591
+            Model Anchor Sparsity: Active Dimensions: 105.5, Sparsity Ratio: 0.9965
+            Model Positive Sparsity: Active Dimensions: 69.8, Sparsity Ratio: 0.9977
+            Model Negative Sparsity: Active Dimensions: 68.6, Sparsity Ratio: 0.9978
             '''
             # Print the results
             print(f"Primary metric: {evaluator.primary_metric}")
@@ -109,12 +111,7 @@ class SparseTripletEvaluator(TripletEvaluator):
         main_distance_function: str | SimilarityFunction | None = "deprecated",
     ):
         self.max_active_dims = max_active_dims
-        self.sparsity_stats = {
-            "row_non_zero_mean_query": 0,
-            "row_sparsity_mean_query": 0,
-            "row_non_zero_mean_corpus": 0,
-            "row_sparsity_mean_corpus": 0,
-        }
+        self.sparsity_stats = defaultdict(list)
         return super().__init__(
             anchors=anchors,
             positives=positives,
@@ -131,27 +128,27 @@ class SparseTripletEvaluator(TripletEvaluator):
 
     def _append_csv_headers(self, similarity_fn_names):
         super()._append_csv_headers(similarity_fn_names)
-        for sparsity_stat in self.sparsity_stats.keys():
-            self.csv_headers.append(f"{sparsity_stat}")
+        for prefix in ["anchor", "positive", "negative"]:
+            self.csv_headers.extend([f"{prefix}_active_dims", f"{prefix}_sparsity_ratio"])
 
     def __call__(
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
-        self.sparsity_stats = {
-            "row_non_zero_mean_query": 0,
-            "row_sparsity_mean_query": 0,
-            "row_non_zero_mean_corpus": 0,
-            "row_sparsity_mean_corpus": 0,
-        }
+        self.sparsity_stats = defaultdict(list)
         metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
+        for key, value in self.sparsity_stats.items():
+            self.sparsity_stats[key] = sum(value) / len(value)
 
         metrics.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         logger.info(
-            f"Model Sparsity Stats Query : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_query']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_query']}"
+            f"Model Anchor Sparsity: Active Dimensions: {self.sparsity_stats['anchor_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['anchor_sparsity_ratio']:.4f}"
         )
         logger.info(
-            f"Model Sparsity Stats Corpus : Row Non-Zero Mean: {self.sparsity_stats['row_non_zero_mean_corpus']}, Row Sparsity Mean: {self.sparsity_stats['row_sparsity_mean_corpus']}"
+            f"Model Positive Sparsity: Active Dimensions: {self.sparsity_stats['positive_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['positive_sparsity_ratio']:.4f}"
+        )
+        logger.info(
+            f"Model Negative Sparsity: Active Dimensions: {self.sparsity_stats['negative_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['negative_sparsity_ratio']:.4f}"
         )
         if output_path is not None and self.write_csv:
             append_to_last_row(
@@ -176,22 +173,10 @@ class SparseTripletEvaluator(TripletEvaluator):
             max_active_dims=self.max_active_dims,
             **kwargs,
         )
-        stat = model.get_sparsity_stats(embeddings)
-        if len(self.anchors) == len(sentences) and self.sparsity_stats["row_non_zero_mean_query"] == 0:
-            self.sparsity_stats["row_non_zero_mean_query"] = stat["row_non_zero_mean"]
-            self.sparsity_stats["row_sparsity_mean_query"] = stat["row_sparsity_mean"]
-        else:
-            if self.sparsity_stats["row_non_zero_mean_corpus"] == 0:
-                self.sparsity_stats["row_non_zero_mean_corpus"] = stat["row_non_zero_mean"]
-                self.sparsity_stats["row_sparsity_mean_corpus"] = stat["row_sparsity_mean"]
-            else:
-                self.sparsity_stats["row_non_zero_mean_corpus"] = (
-                    self.sparsity_stats["row_non_zero_mean_corpus"] + stat["row_non_zero_mean"]
-                ) / 2
-                self.sparsity_stats["row_sparsity_mean_corpus"] = (
-                    self.sparsity_stats["row_sparsity_mean_corpus"] + stat["row_sparsity_mean"]
-                ) / 2
-
+        stat = model.sparsity(embeddings)
+        prefix = ["anchor", "positive", "negative"][len(self.sparsity_stats) // 2]
+        for key, value in stat.items():
+            self.sparsity_stats[f"{prefix}_{key}"].append(value)
         return embeddings
 
     def store_metrics_in_model_card_data(
