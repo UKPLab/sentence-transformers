@@ -99,18 +99,17 @@ class SpladePooling(Module):
 
                 masked_current_chunk_logits = current_chunk_logits * current_chunk_mask
 
+                current_chunk_transformed = masked_current_chunk_logits.relu_()
                 if not self.training:
-                    current_chunk_transformed = masked_current_chunk_logits.relu_().log1p_()
+                    current_chunk_transformed = current_chunk_transformed.log1p_()
                 else:
-                    current_chunk_transformed = masked_current_chunk_logits.relu().log1p()
+                    current_chunk_transformed = current_chunk_transformed.log1p()
                 # With "log1p_relu", we apply a second log1p
                 if self.activation_function == "log1p_relu":
                     if not self.training:
                         current_chunk_transformed = current_chunk_transformed.log1p_()
                     else:
                         current_chunk_transformed = current_chunk_transformed.log1p()
-
-                current_chunk_transformed = current_chunk_transformed.to(mlm_logits.dtype)
 
                 if self.pooling_strategy == "max":
                     chunk_pooled = torch.max(current_chunk_transformed, dim=1)[0]
