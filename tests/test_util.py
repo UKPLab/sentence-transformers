@@ -314,7 +314,7 @@ def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model:
     dataset = Dataset.from_dict(data)
     corpus = data["positive"] + data["negative_pool"]  # Corpus includes positives and other docs
 
-    prompt = "query: "
+    query_prompt = "query: "
     num_negatives = 1
 
     # Set up monkeypatching to verify prompt usage
@@ -341,9 +341,10 @@ def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model:
         output_format="triplet",
     )
 
-    # Verify that tokenize was called without prompts
+    # Verify that tokenize was called without prompts for queries and corpus
     assert any(data["anchor"][0] in str(calls) for calls in tokenize_calls)
-    assert not any(prompt + data["anchor"][0] in str(calls) for calls in tokenize_calls)
+    assert not any(query_prompt + data["anchor"][0] in str(calls) for calls in tokenize_calls)
+    assert not any(query_prompt + data["positive"][0] in str(calls) for calls in tokenize_calls)
 
     # Assert basic success criteria
     assert isinstance(result_no_prompt, Dataset)
@@ -362,13 +363,15 @@ def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model:
         num_negatives=num_negatives,
         batch_size=4,
         verbose=False,
-        prompt=prompt,
+        query_prompt=query_prompt,
         output_format="triplet",
     )
 
-    # Verify that tokenize was called with prompts
-    assert any(prompt + data["anchor"][0] in str(calls) for calls in tokenize_calls)
+    # Verify that tokenize was called with prompts, and the corpus without prompts
+    assert any(query_prompt + data["anchor"][0] in str(calls) for calls in tokenize_calls)
+    assert not any(query_prompt + data["positive"][0] in str(calls) for calls in tokenize_calls)
 
+    # Assert basic success criteria
     assert isinstance(result_with_prompt, Dataset)
     assert "negative" in result_with_prompt.column_names
     assert len(result_with_prompt) > 0
