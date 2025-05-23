@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import hashlib
 import heapq
 import importlib
 import logging
@@ -540,6 +541,7 @@ def mine_hard_negatives(
     use_faiss: bool = False,
     use_multi_process: list[str] | bool = False,
     verbose: bool = True,
+    cache_folder: str | None = None,
     as_triplets: bool | None = None,
     margin: float | None = None,
 ) -> Dataset:
@@ -687,6 +689,10 @@ def mine_hard_negatives(
             is available, and 4 CPU processes if it's not available. You can also pass a list of PyTorch devices like
             ["cuda:0", "cuda:1", ...] or ["cpu", "cpu", "cpu", "cpu"].
         verbose (bool): Whether to print statistics and logging. Defaults to True.
+        cache_folder (str, optional): Directory path for caching embeddings. If provided, the function will save
+            ``query_embeddings_{hash}.npy`` and ``corpus_embeddings_{hash}.npy`` under this folder after the first run,
+            and on subsequent calls will load from these files if they exist to avoid recomputation. The hashes are
+            computed based on the model name and the queries/corpus. Defaults to None.
         as_triplets (bool, optional): Deprecated. Use `output_format` instead. Defaults to None.
         margin (float, optional): Deprecated. Use `absolute_margin` or `relative_margin` instead. Defaults to None.
 
@@ -773,7 +779,7 @@ def mine_hard_negatives(
 
     # Deduplicate the corpus
     # make sure all the positives are also in the corpus and de-duplicate it.
-    corpus = list(set(corpus) | set(positives))
+    corpus = list(dict.fromkeys(corpus + positives))
 
     # corpus_idx maps the corpus text into its position in the corpus
     # This position does not necessarily matches the original corpus, as it was de-duplicated.
@@ -781,7 +787,7 @@ def mine_hard_negatives(
 
     # Deduplicate the queries, but keep the original one for later reference.
     all_queries = queries.copy()
-    queries = list(set(queries))
+    queries = list(dict.fromkeys(queries))
     queries_idx = {query: idx for idx, query in enumerate(queries)}
     n_queries = len(queries)
     batch_idx = torch.arange(n_queries).unsqueeze(-1)
@@ -795,29 +801,72 @@ def mine_hard_negatives(
         avg_positives_per_query = np.mean(positives_per_query)
         print(f"Found an average of {avg_positives_per_query:.3f} positives per query.")
 
+    corpus_embeddings = None
+    query_embeddings = None
+
+    if cache_folder:
+        os.makedirs(cache_folder, exist_ok=True)
+
+        model_name = model.model_card_data.base_model or ""
+        query_hash = hashlib.md5((model_name + "".join(queries)).encode()).hexdigest()
+        corpus_hash = hashlib.md5((model_name + "".join(corpus)).encode()).hexdigest()
+
+        query_cache_file = os.path.join(cache_folder, f"query_embeddings_{query_hash}.npy")
+        corpus_cache_file = os.path.join(cache_folder, f"corpus_embeddings_{corpus_hash}.npy")
+
+        if os.path.exists(query_cache_file):
+            query_embeddings = np.load(query_cache_file)
+            if verbose:
+                print(f"[Cache] Loaded query embeddings from {query_cache_file} (shape={query_embeddings.shape})")
+
+        if os.path.exists(corpus_cache_file):
+            corpus_embeddings = np.load(corpus_cache_file)
+            if verbose:
+                print(f"[Cache] Loaded corpus embeddings from {corpus_cache_file} (shape={corpus_embeddings.shape})")
+
     # Embed the corpus and the queries
-    if use_multi_process:
-        pool = model.start_multi_process_pool(
-            target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
-        )
-        corpus_embeddings = model.encode_multi_process(
-            corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
-        )
-        query_embeddings = model.encode_multi_process(
-            queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
-        )
-        model.stop_multi_process_pool(pool)
-    else:
-        corpus_embeddings = model.encode(
-            corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
-        )
-        query_embeddings = model.encode(
-            queries,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-            show_progress_bar=True,
-        )
+    if corpus_embeddings is None or query_embeddings is None:
+        if use_multi_process:
+            pool = model.start_multi_process_pool(
+                target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
+            )
+            if corpus_embeddings is None:
+                corpus_embeddings = model.encode_multi_process(
+                    corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+                )
+            if query_embeddings is None:
+                query_embeddings = model.encode_multi_process(
+                    queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+                )
+            model.stop_multi_process_pool(pool)
+        else:
+            if corpus_embeddings is None:
+                corpus_embeddings = model.encode(
+                    corpus,
+                    batch_size=batch_size,
+                    normalize_embeddings=True,
+                    convert_to_numpy=True,
+                    show_progress_bar=True,
+                )
+            if query_embeddings is None:
+                query_embeddings = model.encode(
+                    queries,
+                    batch_size=batch_size,
+                    normalize_embeddings=True,
+                    convert_to_numpy=True,
+                    show_progress_bar=True,
+                )
+
+    if cache_folder:
+        if not os.path.exists(query_cache_file):
+            np.save(query_cache_file, query_embeddings)
+            if verbose:
+                print(f"[Cache] Saved query embeddings to {query_cache_file}")
+
+        if not os.path.exists(corpus_cache_file):
+            np.save(corpus_cache_file, corpus_embeddings)
+            if verbose:
+                print(f"[Cache] Saved corpus embeddings to {corpus_cache_file}")
 
     if use_faiss:
         import faiss
@@ -993,6 +1042,9 @@ def mine_hard_negatives(
     # repeat indices and negative_scores by the number of positives of each query
     indices = torch.cat([indices[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
     negative_scores = torch.cat([negative_scores[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
+
+    if verbose:
+        print("Negative candidates mined, preparing dataset...")
 
     if output_format == "triplet":
         # If calling as triples and there are multiple positives per query, we will explode the dataset into triplets.
