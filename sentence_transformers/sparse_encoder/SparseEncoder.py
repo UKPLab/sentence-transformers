@@ -174,7 +174,15 @@ class SparseEncoder(SentenceTransformer):
             model_card_data=model_card_data,
             backend=backend,
         )
-        self.max_active_dims = max_active_dims
+        if max_active_dims is not None:
+            self.max_active_dims = max_active_dims
+        else:
+            for module in self._modules.values():
+                if isinstance(module, CSRSparsity):
+                    self.max_active_dims = module.k
+                    break
+            else:
+                self.max_active_dims = max_active_dims
 
     def encode(
         self,
@@ -823,6 +831,7 @@ class SparseEncoder(SentenceTransformer):
                 k_aux=512,  # Number of top values for auxiliary loss
             )
             modules.append(csr_sparsity)
+            self._model_card_text = None  # If we're loading a SentenceTransformer model, but adding a CSRSparsity, then the original README isn't useful anymore as it's a different architecture
 
         elif is_mlm_model:
             # For MLM models like BERT, RoBERTa, etc., use MLMTransformer with SpladePooling
