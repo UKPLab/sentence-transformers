@@ -6,7 +6,10 @@ import sklearn
 import torch
 
 from sentence_transformers import SentenceTransformer, util
-from sentence_transformers.util import community_detection
+from sentence_transformers.util import community_detection, is_datasets_available
+
+if is_datasets_available():
+    from datasets import Dataset
 
 
 def test_normalize_embeddings() -> None:
@@ -275,3 +278,103 @@ def test_community_detection_gpu_support():
     ]
     result = community_detection(embeddings, threshold=0.8, min_community_size=2)
     assert sorted([sorted(community) for community in result]) == sorted([sorted(community) for community in expected])
+
+
+@pytest.mark.skipif(not is_datasets_available(), reason="datasets library is not available")
+def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model: SentenceTransformer) -> None:
+    """
+    Tests that mine_hard_negatives runs with and without a prompt.
+    """
+    model = paraphrase_distilroberta_base_v1_model
+    # 1. Create a test dataset
+    data = {
+        "anchor": [
+            "What is the capital of France?",
+            "How does photosynthesis work?",
+            "Who wrote 'Hamlet'?",
+            "What is the boiling point of water?",
+            "Describe the theory of relativity.",
+        ],
+        "positive": [
+            "Paris is the capital of France.",
+            "Photosynthesis is the process used by plants to convert light energy into chemical energy.",
+            "William Shakespeare wrote 'Hamlet'.",
+            "Water boils at 100 degrees Celsius.",
+            "Relativity theory describes gravity as a property of spacetime.",
+        ],
+        "negative_pool": [
+            "Berlin is the capital of Germany.",
+            "Cellular respiration releases energy.",
+            "Christopher Marlowe wrote 'Doctor Faustus'.",
+            "Ethanol boils at 78 degrees Celsius.",
+            "Quantum mechanics describes the smallest scales of energy.",
+        ],
+    }
+
+    dataset = Dataset.from_dict(data)
+    corpus = data["positive"] + data["negative_pool"]  # Corpus includes positives and other docs
+
+    query_prompt = "query: "
+    num_negatives = 1
+
+    # Set up monkeypatching to verify prompt usage
+    original_tokenize = model.tokenize
+    tokenize_calls = []
+
+    def mock_tokenize(texts):
+        tokenize_calls.append(texts)
+        return original_tokenize(texts)
+
+    # 2. Run without prompt - check that no prompt is added
+    model.tokenize = mock_tokenize
+    tokenize_calls.clear()
+
+    result_no_prompt = util.mine_hard_negatives(
+        dataset=dataset,
+        model=model,
+        anchor_column_name="anchor",
+        positive_column_name="positive",
+        corpus=corpus,
+        num_negatives=num_negatives,
+        batch_size=4,
+        verbose=False,
+        output_format="triplet",
+    )
+
+    # Verify that tokenize was called without prompts for queries and corpus
+    assert any(data["anchor"][0] in str(calls) for calls in tokenize_calls)
+    assert not any(query_prompt + data["anchor"][0] in str(calls) for calls in tokenize_calls)
+    assert not any(query_prompt + data["positive"][0] in str(calls) for calls in tokenize_calls)
+
+    # Assert basic success criteria
+    assert isinstance(result_no_prompt, Dataset)
+    assert "negative" in result_no_prompt.column_names
+    assert len(result_no_prompt) > 0  # Check that some negatives were found
+
+    # 3. Run with prompt - check that prompt is actually added
+    tokenize_calls.clear()
+
+    result_with_prompt = util.mine_hard_negatives(
+        dataset=dataset,
+        model=model,
+        anchor_column_name="anchor",
+        positive_column_name="positive",
+        corpus=corpus,
+        num_negatives=num_negatives,
+        batch_size=4,
+        verbose=False,
+        query_prompt=query_prompt,
+        output_format="triplet",
+    )
+
+    # Verify that tokenize was called with prompts, and the corpus without prompts
+    assert any(query_prompt + data["anchor"][0] in str(calls) for calls in tokenize_calls)
+    assert not any(query_prompt + data["positive"][0] in str(calls) for calls in tokenize_calls)
+
+    # Assert basic success criteria
+    assert isinstance(result_with_prompt, Dataset)
+    assert "negative" in result_with_prompt.column_names
+    assert len(result_with_prompt) > 0
+
+    # Restore original tokenize function
+    model.tokenize = original_tokenize
