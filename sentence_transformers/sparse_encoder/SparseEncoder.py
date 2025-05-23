@@ -174,7 +174,15 @@ class SparseEncoder(SentenceTransformer):
             model_card_data=model_card_data,
             backend=backend,
         )
-        self.max_active_dims = max_active_dims
+        if max_active_dims is not None:
+            self.max_active_dims = max_active_dims
+        else:
+            for module in self._modules.values():
+                if isinstance(module, CSRSparsity):
+                    self.max_active_dims = module.k
+                    break
+            else:
+                self.max_active_dims = max_active_dims
 
     def encode(
         self,
@@ -183,7 +191,6 @@ class SparseEncoder(SentenceTransformer):
         prompt: str | None = None,
         batch_size: int = 32,
         show_progress_bar: bool | None = None,
-        output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
         convert_to_tensor: bool = True,
         convert_to_sparse_tensor: bool = True,
         save_to_cpu: bool = False,
@@ -206,9 +213,6 @@ class SparseEncoder(SentenceTransformer):
                 because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
             batch_size (int, optional): The batch size used for the computation. Defaults to 32.
             show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
-            output_value (Optional[Literal["sentence_embedding", "token_embeddings"]], optional): The type of embeddings to return:
-                "sentence_embedding" to get sentence embeddings, "token_embeddings" to get wordpiece token embeddings, and `None`,
-                to get all output values. Defaults to "sentence_embedding".
             convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
                 Defaults to False.
             convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse tensor.
@@ -249,9 +253,6 @@ class SparseEncoder(SentenceTransformer):
                 logging.INFO,
                 logging.DEBUG,
             )
-
-        if output_value != "sentence_embedding":
-            convert_to_tensor = False
 
         input_was_string = False
         if isinstance(sentences, str) or not hasattr(
@@ -307,31 +308,15 @@ class SparseEncoder(SentenceTransformer):
             features.update(extra_features)
 
             with torch.no_grad():
-                out_features = self.forward(features, **kwargs)
+                embeddings = self.forward(features, **kwargs)["sentence_embedding"].detach()
 
                 if max_active_dims:
-                    out_features["sentence_embedding"] = select_max_active_dims(
-                        out_features["sentence_embedding"], max_active_dims=max_active_dims
-                    )
+                    embeddings = select_max_active_dims(embeddings, max_active_dims=max_active_dims)
 
-                if output_value == "token_embeddings":
-                    embeddings = []
-                    for token_emb in out_features[output_value]:
-                        if convert_to_sparse_tensor:
-                            token_emb = token_emb.to_sparse()
-                        embeddings.append(token_emb)
-                elif output_value is None:  # Return all outputs
-                    embeddings = []
-                    for sent_idx in range(len(out_features["sentence_embedding"])):
-                        row = {name: out_features[name][sent_idx] for name in out_features}
-                        embeddings.append(row)
-                else:  # Sentence embeddings
-                    embeddings = out_features[output_value]
-                    embeddings = embeddings.detach()
-                    if convert_to_sparse_tensor:
-                        embeddings = embeddings.to_sparse()
-                    if save_to_cpu:
-                        embeddings = embeddings.cpu()
+                if convert_to_sparse_tensor:
+                    embeddings = embeddings.to_sparse()
+                if save_to_cpu:
+                    embeddings = embeddings.cpu()
 
                 all_embeddings.extend(embeddings)
 
@@ -846,6 +831,7 @@ class SparseEncoder(SentenceTransformer):
                 k_aux=512,  # Number of top values for auxiliary loss
             )
             modules.append(csr_sparsity)
+            self._model_card_text = None  # If we're loading a SentenceTransformer model, but adding a CSRSparsity, then the original README isn't useful anymore as it's a different architecture
 
         elif is_mlm_model:
             # For MLM models like BERT, RoBERTa, etc., use MLMTransformer with SpladePooling
@@ -1021,6 +1007,35 @@ class SparseEncoder(SentenceTransformer):
         Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
         """
         self._first_module().max_seq_length = value
+
+    @property
+    def splade_pooling_chunk_size(self) -> int | None:
+        """
+        Returns the chunk size of the SpladePooling module, if present.
+        This Chunk size is along the sequence length dimension (i.e., number of tokens per chunk).
+        If None, processes entire sequence at once. Using smaller chunks the reduces memory usage but may
+        lower the training and inference speed. Default is None.
+
+        Returns:
+            Optional[int]: The chunk size, or None if SpladePooling is not found or chunk_size is not set.
+        """
+        for mod in self._modules.values():
+            if isinstance(mod, SpladePooling):
+                return mod.chunk_size
+        logger.warning("SpladePooling module not found. Cannot get chunk_size.")
+        return None
+
+    @splade_pooling_chunk_size.setter
+    def splade_pooling_chunk_size(self, value: int) -> None:
+        """
+        Sets the chunk size of the SpladePooling module, if present.
+        """
+        for mod in self._modules.values():
+            if isinstance(mod, SpladePooling):
+                mod.chunk_size = value
+                break
+        else:
+            logger.warning("SpladePooling module not found. Cannot set chunk_size.")
 
     def intersection(
         self,

@@ -47,9 +47,7 @@ def main():
 
     # 2. Load the MS MARCO dataset: https://huggingface.co/datasets/sentence-transformers/msmarco-bm25
     logging.info("Read the MS MARCO training dataset")
-    full_dataset = load_dataset("sentence-transformers/quora-duplicates", "triplet", split="train").select(
-        range(100000)
-    )
+    full_dataset = load_dataset("sentence-transformers/msmarco-bm25", "triplet", split="train").select(range(100000))
     dataset_dict = full_dataset.train_test_split(test_size=1_000, seed=12)
     train_dataset = dataset_dict["train"]
     eval_dataset = dataset_dict["test"]
