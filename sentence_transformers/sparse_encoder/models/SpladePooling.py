@@ -32,8 +32,9 @@ class SpladePooling(Module):
                 - `relu`: ReLU activation (standard in all Splade models).
                 - `log1p_relu`: log(1 + ReLU(x)) variant used in Opensearch Splade models see arxiv.org/pdf/2504.14839.
         word_embedding_dimension (int, optional): Dimensionality of the output embeddings (if needed).
-        chunk_size (int, optional): Size of chunks when processing tokens. If None, processes entire sequence at once.
-            Using smaller chunks reduces memory usage but may impact speed performance. Default is None.
+        chunk_size (int, optional): Chunk size along the sequence length dimension (i.e., number of tokens per chunk).
+            If None, processes entire sequence at once. Using smaller chunks the reduces memory usage but may 
+            lower the training and inference speed. Default is None.
     """
 
     SPLADE_POOLING_MODES = ("sum", "max")
@@ -42,8 +43,8 @@ class SpladePooling(Module):
 
     def __init__(
         self,
-        pooling_strategy: str = "max",
-        activation_function="relu",
+        pooling_strategy: Literal["max", "sum"] = "max",
+        activation_function: Literal["relu", "log1p_relu"] = "relu",
         word_embedding_dimension: int = None,
         chunk_size: int = None,
     ) -> None:
@@ -88,7 +89,7 @@ class SpladePooling(Module):
             raise ValueError(f"Unsupported pooling_strategy: {self.pooling_strategy}")
 
         # Process in chunks if chunk_size is set, otherwise process the entire sequence at once
-        chunk_size = seq_len if self.chunk_size is None else self.chunk_size
+        chunk_size = seq_len if (self.chunk_size is None or self.chunk_size <= 0) else self.chunk_size
 
         for i in range(0, seq_len, chunk_size):
             try:
@@ -97,16 +98,16 @@ class SpladePooling(Module):
 
                 masked_current_chunk_logits = current_chunk_logits * current_chunk_mask
 
-                if self.activation_function == "relu":
+                if not self.training:
+                    current_chunk_transformed = masked_current_chunk_logits.relu_().log1p_()
+                else:
+                    current_chunk_transformed = masked_current_chunk_logits.relu().log1p()
+                # With "log1p_relu", we apply a second log1p
+                if self.activation_function == "log1p_relu":
                     if not self.training:
-                        current_chunk_transformed = masked_current_chunk_logits.relu_().log1p_()
+                        current_chunk_transformed = current_chunk_transformed.log1p_()
                     else:
-                        current_chunk_transformed = torch.log1p(torch.relu(masked_current_chunk_logits))
-                elif self.activation_function == "log1p_relu":
-                    if not self.training:
-                        current_chunk_transformed = masked_current_chunk_logits.relu_().log1p_().log1p_()
-                    else:
-                        current_chunk_transformed = torch.log1p(torch.log1p(torch.relu(masked_current_chunk_logits)))
+                        current_chunk_transformed = current_chunk_transformed.log1p()
 
                 current_chunk_transformed = current_chunk_transformed.to(mlm_logits.dtype)
 

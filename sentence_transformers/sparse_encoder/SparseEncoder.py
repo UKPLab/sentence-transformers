@@ -1022,9 +1022,8 @@ class SparseEncoder(SentenceTransformer):
         for mod in self._modules.values():
             if isinstance(mod, SpladePooling):
                 mod.chunk_size = value
-                found_splade = True
                 break
-        if not found_splade:
+        else:
             logger.warning("SpladePooling module not found. Cannot set chunk_size.")
 
     def intersection(
