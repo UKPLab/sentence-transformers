@@ -552,8 +552,10 @@ def mine_hard_negatives(
     relative_margin: float | None = None,
     num_negatives: int = 3,
     sampling_strategy: Literal["random", "top"] = "top",
-    prompt_name: str | None = None,
-    prompt: str | None = None,
+    query_prompt_name: str | None = None,
+    query_prompt: str | None = None,
+    corpus_prompt_name: str | None = None,
+    corpus_prompt: str | None = None,
     include_positives: bool = False,
     output_format: Literal["triplet", "n-tuple", "labeled-pair", "labeled-list"] = "triplet",
     batch_size: int = 32,
@@ -692,21 +694,25 @@ def mine_hard_negatives(
             95% as similar to the anchor as the positive. Defaults to None.
         num_negatives (int): Number of negatives to sample. Defaults to 3.
         sampling_strategy (Literal["random", "top"]): Sampling strategy for negatives: "top" or "random". Defaults to "top".
-        prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the sentence.
-            It must match a key in the model `prompts` dictionary, which can be set during model initialization
+        query_prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the first/anchor dataset column.
+            It must match a key in the ``model.prompts`` dictionary, which can be set during model initialization
             or loaded from the model configuration.
 
-            For example, if `prompt_name="query"` and the model prompts dictionary includes {"query": "query: "},
+            For example, if ``query_prompt_name="query"`` and the model prompts dictionary includes {"query": "query: "},
             then the sentence "What is the capital of France?" is transformed into: "query: What is the capital of France?"
             before encoding. This is useful for models that were trained or fine-tuned with specific prompt formats.
 
-            Ignored if `prompt` is provided. Defaults to None.
+            Ignored if ``query_prompt`` is provided. Defaults to None.
 
-        prompt (Optional[str], optional): A raw prompt string to prepend directly to the input sentence during encoding.
+        query_prompt (Optional[str], optional): A raw prompt string to prepend directly to the first/anchor dataset column during encoding.
 
-            For instance, `prompt="query: "` transforms the sentence "What is the capital of France?" into:
+            For instance, `query_prompt="query: "` transforms the sentence "What is the capital of France?" into:
             "query: What is the capital of France?". Use this to override the prompt logic entirely and supply your own prefix.
-            This takes precedence over `prompt_name`. Defaults to None.
+            This takes precedence over ``query_prompt_name``. Defaults to None.
+        corpus_prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the corpus. See
+            ``query_prompt_name`` for more information. Defaults to None.
+        corpus_prompt (Optional[str], optional): A raw prompt string to prepend directly to the corpus during encoding.
+            See ``query_prompt`` for more information. Defaults to None.
         include_positives (bool): Whether to include the positives in the negative candidates.
             Setting this to True is primarily useful for creating Reranking evaluation datasets for CrossEncoder models,
             where it can be useful to get a full ranking (including the positives) from a first-stage retrieval model.
@@ -875,8 +881,8 @@ def mine_hard_negatives(
                     batch_size=batch_size,
                     normalize_embeddings=True,
                     show_progress_bar=True,
-                    prompt_name=prompt_name,
-                    prompt=prompt,
+                    prompt_name=corpus_prompt_name,
+                    prompt=corpus_prompt,
                 )
             if query_embeddings is None:
                 query_embeddings = model.encode_multi_process(
@@ -885,8 +891,8 @@ def mine_hard_negatives(
                     batch_size=batch_size,
                     normalize_embeddings=True,
                     show_progress_bar=True,
-                    prompt_name=prompt_name,
-                    prompt=prompt,
+                    prompt_name=query_prompt_name,
+                    prompt=query_prompt,
                 )
             model.stop_multi_process_pool(pool)
         else:
@@ -897,8 +903,8 @@ def mine_hard_negatives(
                     normalize_embeddings=True,
                     convert_to_numpy=True,
                     show_progress_bar=True,
-                    prompt_name=prompt_name,
-                    prompt=prompt,
+                    prompt_name=corpus_prompt_name,
+                    prompt=corpus_prompt,
                 )
             if query_embeddings is None:
                 query_embeddings = model.encode(
@@ -907,8 +913,8 @@ def mine_hard_negatives(
                     normalize_embeddings=True,
                     convert_to_numpy=True,
                     show_progress_bar=True,
-                    prompt_name=prompt_name,
-                    prompt=prompt,
+                    prompt_name=query_prompt_name,
+                    prompt=query_prompt,
                 )
 
     if cache_folder:
