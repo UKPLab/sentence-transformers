@@ -4,13 +4,20 @@ import json
 import os
 from collections import OrderedDict
 
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+
 from torch import Tensor, nn
 
-from sentence_transformers.util import import_from_string
+from sentence_transformers.models.InputModule import InputModule
+from sentence_transformers.models.Module import Module
+from sentence_transformers.util import import_from_string, load_dir_path
 
 
-class Asym(nn.Sequential):
-    def __init__(self, sub_modules: dict[str, list[nn.Module]], allow_empty_key: bool = True):
+class Asym(InputModule, nn.Sequential):
+    def __init__(self, sub_modules: dict[str, list[Module]], allow_empty_key: bool = True):
         """
         This model allows to create asymmetric SentenceTransformer models, that apply different models depending on the specified input key.
 
@@ -147,15 +154,33 @@ class Asym(nn.Sequential):
             assert text_key == module_key  # Mixed batches are not allowed
         return self.sub_modules[module_key][0].tokenize(texts, **kwargs)
 
-    @staticmethod
-    def load(input_path):
-        with open(os.path.join(input_path, "config.json")) as fIn:
-            config = json.load(fIn)
-
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        hub_kwargs = {
+            "subfolder": subfolder,
+            "token": token,
+            "cache_folder": cache_folder,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        config = cls.load_config(model_name_or_path=model_name_or_path, **hub_kwargs)
         modules = {}
         for model_id, model_type in config["types"].items():
-            module_class = import_from_string(model_type)
-            module = module_class.load(os.path.join(input_path, model_id))
+            module_class: Module = import_from_string(model_type)
+            try:
+                module = module_class.load(model_name_or_path, **hub_kwargs, **kwargs)
+            except TypeError:
+                local_path = load_dir_path(model_name_or_path=model_name_or_path, **hub_kwargs)
+                module = module_class.load(local_path)
             modules[model_id] = module
 
         model_structure = {}

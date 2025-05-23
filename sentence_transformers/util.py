@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import hashlib
 import heapq
 import importlib
 import logging
@@ -10,6 +11,7 @@ import random
 import sys
 from contextlib import contextmanager
 from importlib.metadata import PackageNotFoundError, metadata
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, overload
 
 import numpy as np
@@ -559,6 +561,7 @@ def mine_hard_negatives(
     use_faiss: bool = False,
     use_multi_process: list[str] | bool = False,
     verbose: bool = True,
+    cache_folder: str | None = None,
     as_triplets: bool | None = None,
     margin: float | None = None,
 ) -> Dataset:
@@ -723,6 +726,10 @@ def mine_hard_negatives(
             is available, and 4 CPU processes if it's not available. You can also pass a list of PyTorch devices like
             ["cuda:0", "cuda:1", ...] or ["cpu", "cpu", "cpu", "cpu"].
         verbose (bool): Whether to print statistics and logging. Defaults to True.
+        cache_folder (str, optional): Directory path for caching embeddings. If provided, the function will save
+            ``query_embeddings_{hash}.npy`` and ``corpus_embeddings_{hash}.npy`` under this folder after the first run,
+            and on subsequent calls will load from these files if they exist to avoid recomputation. The hashes are
+            computed based on the model name and the queries/corpus. Defaults to None.
         as_triplets (bool, optional): Deprecated. Use `output_format` instead. Defaults to None.
         margin (float, optional): Deprecated. Use `absolute_margin` or `relative_margin` instead. Defaults to None.
 
@@ -810,7 +817,7 @@ def mine_hard_negatives(
 
     # Deduplicate the corpus
     # make sure all the positives are also in the corpus and de-duplicate it.
-    corpus = list(set(corpus) | set(positives))
+    corpus = list(dict.fromkeys(corpus + positives))
 
     # corpus_idx maps the corpus text into its position in the corpus
     # This position does not necessarily matches the original corpus, as it was de-duplicated.
@@ -818,7 +825,7 @@ def mine_hard_negatives(
 
     # Deduplicate the queries, but keep the original one for later reference.
     all_queries = queries.copy()
-    queries = list(set(queries))
+    queries = list(dict.fromkeys(queries))
     queries_idx = {query: idx for idx, query in enumerate(queries)}
     n_queries = len(queries)
     batch_idx = torch.arange(n_queries).unsqueeze(-1)
@@ -832,49 +839,88 @@ def mine_hard_negatives(
         avg_positives_per_query = np.mean(positives_per_query)
         print(f"Found an average of {avg_positives_per_query:.3f} positives per query.")
 
+    corpus_embeddings = None
+    query_embeddings = None
+
+    if cache_folder:
+        os.makedirs(cache_folder, exist_ok=True)
+
+        model_name = model.model_card_data.base_model or ""
+        query_hash = hashlib.md5((model_name + "".join(queries)).encode()).hexdigest()
+        corpus_hash = hashlib.md5((model_name + "".join(corpus)).encode()).hexdigest()
+
+        query_cache_file = os.path.join(cache_folder, f"query_embeddings_{query_hash}.npy")
+        corpus_cache_file = os.path.join(cache_folder, f"corpus_embeddings_{corpus_hash}.npy")
+
+        if os.path.exists(query_cache_file):
+            query_embeddings = np.load(query_cache_file)
+            if verbose:
+                print(f"[Cache] Loaded query embeddings from {query_cache_file} (shape={query_embeddings.shape})")
+
+        if os.path.exists(corpus_cache_file):
+            corpus_embeddings = np.load(corpus_cache_file)
+            if verbose:
+                print(f"[Cache] Loaded corpus embeddings from {corpus_cache_file} (shape={corpus_embeddings.shape})")
+
     # Embed the corpus and the queries
-    if use_multi_process:
-        pool = model.start_multi_process_pool(
-            target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
-        )
-        corpus_embeddings = model.encode_multi_process(
-            corpus,
-            pool,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            show_progress_bar=True,
-            prompt_name=prompt_name,
-            prompt=prompt,
-        )
-        query_embeddings = model.encode_multi_process(
-            queries,
-            pool,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            show_progress_bar=True,
-            prompt_name=prompt_name,
-            prompt=prompt,
-        )
-        model.stop_multi_process_pool(pool)
-    else:
-        corpus_embeddings = model.encode(
-            corpus,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-            show_progress_bar=True,
-            prompt_name=prompt_name,
-            prompt=prompt,
-        )
-        query_embeddings = model.encode(
-            queries,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-            show_progress_bar=True,
-            prompt_name=prompt_name,
-            prompt=prompt,
-        )
+    if corpus_embeddings is None or query_embeddings is None:
+        if use_multi_process:
+            pool = model.start_multi_process_pool(
+                target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
+            )
+            if corpus_embeddings is None:
+                corpus_embeddings = model.encode_multi_process(
+                    corpus,
+                    pool,
+                    batch_size=batch_size,
+                    normalize_embeddings=True,
+                    show_progress_bar=True,
+                    prompt_name=prompt_name,
+                    prompt=prompt,
+                )
+            if query_embeddings is None:
+                query_embeddings = model.encode_multi_process(
+                    queries,
+                    pool,
+                    batch_size=batch_size,
+                    normalize_embeddings=True,
+                    show_progress_bar=True,
+                    prompt_name=prompt_name,
+                    prompt=prompt,
+                )
+            model.stop_multi_process_pool(pool)
+        else:
+            if corpus_embeddings is None:
+                corpus_embeddings = model.encode(
+                    corpus,
+                    batch_size=batch_size,
+                    normalize_embeddings=True,
+                    convert_to_numpy=True,
+                    show_progress_bar=True,
+                    prompt_name=prompt_name,
+                    prompt=prompt,
+                )
+            if query_embeddings is None:
+                query_embeddings = model.encode(
+                    queries,
+                    batch_size=batch_size,
+                    normalize_embeddings=True,
+                    convert_to_numpy=True,
+                    show_progress_bar=True,
+                    prompt_name=prompt_name,
+                    prompt=prompt,
+                )
+
+    if cache_folder:
+        if not os.path.exists(query_cache_file):
+            np.save(query_cache_file, query_embeddings)
+            if verbose:
+                print(f"[Cache] Saved query embeddings to {query_cache_file}")
+
+        if not os.path.exists(corpus_cache_file):
+            np.save(corpus_cache_file, corpus_embeddings)
+            if verbose:
+                print(f"[Cache] Saved corpus embeddings to {corpus_cache_file}")
 
     if use_faiss:
         import faiss
@@ -1050,6 +1096,9 @@ def mine_hard_negatives(
     # repeat indices and negative_scores by the number of positives of each query
     indices = torch.cat([indices[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
     negative_scores = torch.cat([negative_scores[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
+
+    if verbose:
+        print("Negative candidates mined, preparing dataset...")
 
     if output_format == "triplet":
         # If calling as triples and there are multiple positives per query, we will explode the dataset into triplets.
@@ -1513,7 +1562,8 @@ def is_sentence_transformer_model(
 
 def load_file_path(
     model_name_or_path: str,
-    filename: str,
+    filename: str | Path,
+    subfolder: str = "",
     token: bool | str | None = None,
     cache_folder: str | None = None,
     revision: str | None = None,
@@ -1525,6 +1575,7 @@ def load_file_path(
     Args:
         model_name_or_path (str): The model name or path.
         filename (str): The name of the file to load.
+        subfolder (str): The subfolder within the model subfolder (if applicable).
         token (Optional[Union[bool, str]]): The token to access the remote file (if applicable).
         cache_folder (Optional[str]): The folder to cache the downloaded file (if applicable).
         revision (Optional[str], optional): The revision of the file (if applicable). Defaults to None.
@@ -1534,15 +1585,17 @@ def load_file_path(
         Optional[str]: The path to the loaded file, or None if the file could not be found or loaded.
     """
     # If file is local
-    file_path = os.path.join(model_name_or_path, filename)
-    if os.path.exists(file_path):
-        return file_path
+    file_path = Path(model_name_or_path, subfolder, filename)
+    if file_path.exists():
+        return str(file_path)
 
     # If file is remote
+    file_path = Path(subfolder, filename)
     try:
         return hf_hub_download(
             model_name_or_path,
-            filename=filename,
+            filename=file_path.name,
+            subfolder=file_path.parent.as_posix(),
             revision=revision,
             library_name="sentence-transformers",
             token=token,
@@ -1555,35 +1608,38 @@ def load_file_path(
 
 def load_dir_path(
     model_name_or_path: str,
-    directory: str,
+    subfolder: str,
     token: bool | str | None = None,
     cache_folder: str | None = None,
     revision: str | None = None,
     local_files_only: bool = False,
 ) -> str | None:
     """
-    Loads the directory path for a given model name or path.
+    Loads the subfolder path for a given model name or path.
 
     Args:
         model_name_or_path (str): The name or path of the model.
-        directory (str): The directory to load.
+        subfolder (str): The subfolder to load.
         token (Optional[Union[bool, str]]): The token for authentication.
         cache_folder (Optional[str]): The folder to cache the downloaded files.
         revision (Optional[str], optional): The revision of the model. Defaults to None.
         local_files_only (bool, optional): Whether to only use local files. Defaults to False.
 
     Returns:
-        Optional[str]: The directory path if it exists, otherwise None.
+        Optional[str]: The subfolder path if it exists, otherwise None.
     """
+    if isinstance(subfolder, Path):
+        subfolder = subfolder.as_posix()
+
     # If file is local
-    dir_path = os.path.join(model_name_or_path, directory)
-    if os.path.exists(dir_path):
-        return dir_path
+    dir_path = Path(model_name_or_path, subfolder)
+    if dir_path.exists():
+        return str(dir_path)
 
     download_kwargs = {
         "repo_id": model_name_or_path,
         "revision": revision,
-        "allow_patterns": f"{directory}/**" if directory not in ["", "."] else None,
+        "allow_patterns": f"{subfolder}/**" if subfolder not in ["", "."] else None,
         "library_name": "sentence-transformers",
         "token": token,
         "cache_dir": cache_folder,
@@ -1597,7 +1653,7 @@ def load_dir_path(
         # Otherwise, try local (i.e. cache) only
         download_kwargs["local_files_only"] = True
         repo_path = snapshot_download(**download_kwargs)
-    return os.path.join(repo_path, directory)
+    return Path(repo_path, subfolder)
 
 
 def save_to_hub_args_decorator(func):

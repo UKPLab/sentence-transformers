@@ -6,7 +6,7 @@ It was trained with a triplet-loss: The anchor and the positive example were sen
 # Dataset
 We use dataset from Ein Dor et al., 2018, [Learning Thematic Similarity Metric Using Triplet Networks](https://aclweb.org/anthology/P18-2009).
 
-See [examples/sentence_transformer/training_wikipedia_sections.py](../../examples/sentence_transformer/training/other/training_wikipedia_sections.py) for how to train on this dataset.
+See [examples/sentence_transformer/training/other/training_wikipedia_sections.py](../../examples/sentence_transformer/training/other/training_wikipedia_sections.py) for how to train on this dataset.
 
 
 # Pre-trained models
@@ -17,7 +17,8 @@ We provide the following pre-trained models:
 You can use them in the following way:
 ```
 from sentence_transformers import SentenceTransformer
-embedder = SentenceTransformer('pretrained-model-name')
+
+embedder = SentenceTransformer("bert-base-wikipedia-sections-mean-tokens")
 ```
 
 # Performance Comparison
@@ -34,8 +35,4 @@ The models achieve a rather low performance on the STS benchmark dataset. The re
 However, it does not matter how far the negative example is away, it can be little or really far away. This makes this model rather bad for deciding if a pair is somewhat similar. It learns only to recognize similar pairs (high scores) and dissimilar pairs (low scores).
 
 However, this model works well for **fine-grained clustering**. 
-
-For an example, see:
-[examples/application_clustering_wikipedia_sections.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/applications/clustering_wikipedia_sections.py)
-
 

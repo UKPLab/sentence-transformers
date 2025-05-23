@@ -1,21 +1,31 @@
 from __future__ import annotations
 
+import inspect
+import logging
 import math
 import os
 from pathlib import Path
+from typing import Any
+
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 import numpy as np
 import torch
-from safetensors.torch import load_file as load_safetensors_file
 from safetensors.torch import save_file as save_safetensors_file
 from tokenizers import Tokenizer
 from torch import nn
 from transformers import PreTrainedTokenizerFast
 
+from sentence_transformers.models.InputModule import InputModule
 from sentence_transformers.util import get_device_name
 
+logger = logging.getLogger(__name__)
 
-class StaticEmbedding(nn.Module):
+
+class StaticEmbedding(InputModule):
     def __init__(
         self,
         tokenizer: Tokenizer | PreTrainedTokenizerFast,
@@ -34,6 +44,12 @@ class StaticEmbedding(nn.Module):
                 Defaults to None.
             embedding_dim (int | None, optional): Dimension of the embeddings. Required if embedding_weights
                 is not provided. Defaults to None.
+
+        .. tip::
+
+            Due to the extremely efficient nature of this module architecture, the overhead for moving inputs to the
+            GPU can be larger than the actual computation time. Therefore, consider using a CPU device for inference
+            and training.
 
         Example::
 
@@ -102,9 +118,6 @@ class StaticEmbedding(nn.Module):
         features["sentence_embedding"] = self.embedding(features["input_ids"], features["offsets"])
         return features
 
-    def get_config_dict(self) -> dict[str, float]:
-        return {}
-
     @property
     def max_seq_length(self) -> int:
         return math.inf
@@ -112,21 +125,35 @@ class StaticEmbedding(nn.Module):
     def get_sentence_embedding_dimension(self) -> int:
         return self.embedding_dim
 
-    def save(self, save_dir: str, safe_serialization: bool = True, **kwargs) -> None:
+    def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
         if safe_serialization:
-            save_safetensors_file(self.state_dict(), os.path.join(save_dir, "model.safetensors"))
+            save_safetensors_file(self.state_dict(), os.path.join(output_path, "model.safetensors"))
         else:
-            torch.save(self.state_dict(), os.path.join(save_dir, "pytorch_model.bin"))
-        self.tokenizer.save(str(Path(save_dir) / "tokenizer.json"))
+            torch.save(self.state_dict(), os.path.join(output_path, "pytorch_model.bin"))
+        self.tokenizer.save(str(Path(output_path) / "tokenizer.json"))
 
-    def load(load_dir: str, **kwargs) -> StaticEmbedding:
-        tokenizer = Tokenizer.from_file(str(Path(load_dir) / "tokenizer.json"))
-        if os.path.exists(os.path.join(load_dir, "model.safetensors")):
-            weights = load_safetensors_file(os.path.join(load_dir, "model.safetensors"))
-        else:
-            weights = torch.load(
-                os.path.join(load_dir, "pytorch_model.bin"), map_location=torch.device("cpu"), weights_only=True
-            )
+    @classmethod
+    def load(
+        cls,
+        model_name_or_path: str,
+        subfolder: str = "",
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **kwargs,
+    ) -> Self:
+        hub_kwargs = {
+            "subfolder": subfolder,
+            "token": token,
+            "cache_folder": cache_folder,
+            "revision": revision,
+            "local_files_only": local_files_only,
+        }
+        tokenizer_path = cls.load_file_path(model_name_or_path, filename="tokenizer.json", **hub_kwargs)
+        tokenizer = Tokenizer.from_file(tokenizer_path)
+
+        weights = cls.load_torch_weights(model_name_or_path=model_name_or_path, **hub_kwargs)
         try:
             weights = weights["embedding.weight"]
         except KeyError:
@@ -142,9 +169,13 @@ class StaticEmbedding(nn.Module):
         device: str | None = None,
         pca_dims: int | None = 256,
         apply_zipf: bool = True,
+        sif_coefficient: float | None = 1e-4,
+        token_remove_pattern: str | None = r"\[unused\d+\]",
+        quantize_to: str = "float32",
         use_subword: bool = True,
+        **kwargs: Any,
     ) -> StaticEmbedding:
-        """
+        r"""
         Creates a StaticEmbedding instance from a distillation process using the `model2vec` package.
 
         Args:
@@ -154,6 +185,10 @@ class StaticEmbedding(nn.Module):
                 the strongest device is automatically detected. Defaults to None.
             pca_dims (int | None, optional): The number of dimensions for PCA reduction. Defaults to 256.
             apply_zipf (bool): Whether to apply Zipf's law during distillation. Defaults to True.
+            sif_coefficient (float | None, optional): The coefficient for SIF weighting. Defaults to 1e-4.
+            token_remove_pattern (str | None, optional): A regex pattern to remove tokens from the vocabulary.
+                Defaults to r"\[unused\d+\]".
+            quantize_to (str): The data type to quantize the weights to. Defaults to 'float32'.
             use_subword (bool): Whether to use subword tokenization. Defaults to True.
 
         Returns:
@@ -171,15 +206,28 @@ class StaticEmbedding(nn.Module):
                 "To use this method, please install the `model2vec` package: `pip install model2vec[distill]`"
             )
 
+        distill_signature = inspect.signature(distill)
+        distill_kwargs = set(distill_signature.parameters.keys()) - {"model_name"}
+        kwargs = {
+            "vocabulary": vocabulary,
+            "device": device,
+            "pca_dims": pca_dims,
+            "apply_zipf": apply_zipf,
+            "use_subword": use_subword,
+            "quantize_to": quantize_to,
+            "sif_coefficient": sif_coefficient,
+            "token_remove_pattern": token_remove_pattern,
+            **kwargs,
+        }
+        if leftovers := set(kwargs.keys()) - distill_kwargs:
+            logger.warning(
+                f"Your version of `model2vec` does not support the {', '.join(map(repr, leftovers))} arguments for the `distill` method. "
+                "Consider updating `model2vec` to take advantage of these arguments."
+            )
+            kwargs = {key: value for key, value in kwargs.items() if key in distill_kwargs}
+
         device = get_device_name()
-        static_model = distill(
-            model_name,
-            vocabulary=vocabulary,
-            device=device,
-            pca_dims=pca_dims,
-            apply_zipf=apply_zipf,
-            use_subword=use_subword,
-        )
+        static_model = distill(model_name, **kwargs)
         if isinstance(static_model.embedding, np.ndarray):
             embedding_weights = torch.from_numpy(static_model.embedding)
         else:

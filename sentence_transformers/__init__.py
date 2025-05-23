@@ -22,6 +22,7 @@ from sentence_transformers.LoggingHandler import LoggingHandler
 from sentence_transformers.model_card import SentenceTransformerModelCardData
 from sentence_transformers.quantization import quantize_embeddings
 from sentence_transformers.readers import InputExample
+from sentence_transformers.sampler import DefaultBatchSampler, MultiDatasetDefaultBatchSampler
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.trainer import SentenceTransformerTrainer
@@ -51,5 +52,7 @@ __all__ = [
     "export_optimized_onnx_model",
     "export_dynamic_quantized_onnx_model",
     "export_static_quantized_openvino_model",
+    "DefaultBatchSampler",
+    "MultiDatasetDefaultBatchSampler",
     "mine_hard_negatives",
 ]

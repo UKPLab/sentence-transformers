@@ -6,8 +6,10 @@ from .CLIPModel import CLIPModel
 from .CNN import CNN
 from .Dense import Dense
 from .Dropout import Dropout
+from .InputModule import InputModule
 from .LayerNorm import LayerNorm
 from .LSTM import LSTM
+from .Module import Module
 from .Normalize import Normalize
 from .Pooling import Pooling
 from .StaticEmbedding import StaticEmbedding
@@ -32,4 +34,6 @@ __all__ = [
     "WordEmbeddings",
     "WordWeights",
     "CLIPModel",
+    "Module",
+    "InputModule",
 ]
