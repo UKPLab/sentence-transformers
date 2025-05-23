@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Literal
 
 import torch
 
@@ -33,7 +34,7 @@ class SpladePooling(Module):
                 - `log1p_relu`: log(1 + ReLU(x)) variant used in Opensearch Splade models see arxiv.org/pdf/2504.14839.
         word_embedding_dimension (int, optional): Dimensionality of the output embeddings (if needed).
         chunk_size (int, optional): Chunk size along the sequence length dimension (i.e., number of tokens per chunk).
-            If None, processes entire sequence at once. Using smaller chunks the reduces memory usage but may 
+            If None, processes entire sequence at once. Using smaller chunks the reduces memory usage but may
             lower the training and inference speed. Default is None.
     """
 

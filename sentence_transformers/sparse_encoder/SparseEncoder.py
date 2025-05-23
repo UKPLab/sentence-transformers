@@ -1000,9 +1000,12 @@ class SparseEncoder(SentenceTransformer):
         self._first_module().max_seq_length = value
 
     @property
-    def chunk_size(self) -> int | None:
+    def splade_pooling_chunk_size(self) -> int | None:
         """
         Returns the chunk size of the SpladePooling module, if present.
+        This Chunk size is along the sequence length dimension (i.e., number of tokens per chunk).
+        If None, processes entire sequence at once. Using smaller chunks the reduces memory usage but may
+        lower the training and inference speed. Default is None.
 
         Returns:
             Optional[int]: The chunk size, or None if SpladePooling is not found or chunk_size is not set.
@@ -1013,12 +1016,11 @@ class SparseEncoder(SentenceTransformer):
         logger.warning("SpladePooling module not found. Cannot get chunk_size.")
         return None
 
-    @chunk_size.setter
-    def chunk_size(self, value: int) -> None:
+    @splade_pooling_chunk_size.setter
+    def splade_pooling_chunk_size(self, value: int) -> None:
         """
         Sets the chunk size of the SpladePooling module, if present.
         """
-        found_splade = False
         for mod in self._modules.values():
             if isinstance(mod, SpladePooling):
                 mod.chunk_size = value
