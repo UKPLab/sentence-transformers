@@ -1633,10 +1633,12 @@ def get_device_name() -> str:
         str: Device name, like 'cuda:2', 'mps', 'npu', 'hpu', or 'cpu'
     """
     if torch.cuda.is_available():
-        if torch.distributed.is_initialized():
+        if "LOCAL_RANK" in os.environ:
+            local_rank = int(os.environ["LOCAL_RANK"])
+        elif torch.distributed.is_initialized() and torch.cuda.device_count() > torch.distributed.get_rank():
             local_rank = torch.distributed.get_rank()
         else:
-            local_rank = int(os.environ.get("LOCAL_RANK", 0))
+            local_rank = 0
         return f"cuda:{local_rank}"
     elif torch.backends.mps.is_available():
         return "mps"
