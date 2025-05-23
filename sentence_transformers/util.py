@@ -49,11 +49,13 @@ def _convert_to_tensor(a: list | np.ndarray | Tensor) -> Tensor:
         # Check if list contains sparse tensors
         if all(isinstance(x, Tensor) and x.is_sparse for x in a):
             # Stack sparse tensors while preserving sparsity
-            return torch.stack([x.coalesce() for x in a])
+            return torch.stack([x.coalesce().to(dtype=torch.float32) for x in a])
         else:
             a = torch.tensor(a)
     elif not isinstance(a, Tensor):
         a = torch.tensor(a)
+    if a.is_sparse:
+        return a.to(dtype=torch.float32)
     return a
 
 

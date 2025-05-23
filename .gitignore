@@ -71,3 +71,4 @@ draft.py
 tmp_trainer/
 trainer_output/
 /models
+/tb_logs
