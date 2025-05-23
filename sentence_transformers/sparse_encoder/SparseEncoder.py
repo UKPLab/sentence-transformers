@@ -999,6 +999,34 @@ class SparseEncoder(SentenceTransformer):
         """
         self._first_module().max_seq_length = value
 
+    @property
+    def chunk_size(self) -> int | None:
+        """
+        Returns the chunk size of the SpladePooling module, if present.
+
+        Returns:
+            Optional[int]: The chunk size, or None if SpladePooling is not found or chunk_size is not set.
+        """
+        for mod in self._modules.values():
+            if isinstance(mod, SpladePooling):
+                return mod.chunk_size
+        logger.warning("SpladePooling module not found. Cannot get chunk_size.")
+        return None
+
+    @chunk_size.setter
+    def chunk_size(self, value: int) -> None:
+        """
+        Sets the chunk size of the SpladePooling module, if present.
+        """
+        found_splade = False
+        for mod in self._modules.values():
+            if isinstance(mod, SpladePooling):
+                mod.chunk_size = value
+                found_splade = True
+                break
+        if not found_splade:
+            logger.warning("SpladePooling module not found. Cannot set chunk_size.")
+
     def intersection(
         self,
         embeddings_1: torch.Tensor,

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 import torch
 
 from sentence_transformers.models.Module import Module
+
+logger = logging.getLogger(__name__)
 
 
 class SpladePooling(Module):
@@ -29,7 +33,7 @@ class SpladePooling(Module):
                 - `log1p_relu`: log(1 + ReLU(x)) variant used in Opensearch Splade models see arxiv.org/pdf/2504.14839.
         word_embedding_dimension (int, optional): Dimensionality of the output embeddings (if needed).
         chunk_size (int, optional): Size of chunks when processing tokens. If None, processes entire sequence at once.
-            Using smaller chunks reduces memory usage but may impact speed performance.
+            Using smaller chunks reduces memory usage but may impact speed performance. Default is None.
     """
 
     SPLADE_POOLING_MODES = ("sum", "max")
@@ -41,7 +45,7 @@ class SpladePooling(Module):
         pooling_strategy: str = "max",
         activation_function="relu",
         word_embedding_dimension: int = None,
-        chunk_size: int = 32,
+        chunk_size: int = None,
     ) -> None:
         super().__init__()
         self.pooling_strategy = pooling_strategy
@@ -87,30 +91,40 @@ class SpladePooling(Module):
         chunk_size = seq_len if self.chunk_size is None else self.chunk_size
 
         for i in range(0, seq_len, chunk_size):
-            current_chunk_logits = mlm_logits[:, i : i + chunk_size, :]
-            current_chunk_mask = attention_mask_expanded[:, i : i + chunk_size, :]
+            try:
+                current_chunk_logits = mlm_logits[:, i : i + chunk_size, :]
+                current_chunk_mask = attention_mask_expanded[:, i : i + chunk_size, :]
 
-            masked_current_chunk_logits = current_chunk_logits * current_chunk_mask
+                masked_current_chunk_logits = current_chunk_logits * current_chunk_mask
 
-            if self.activation_function == "relu":
-                if not self.training:
-                    current_chunk_transformed = masked_current_chunk_logits.relu_().log1p_()
+                if self.activation_function == "relu":
+                    if not self.training:
+                        current_chunk_transformed = masked_current_chunk_logits.relu_().log1p_()
+                    else:
+                        current_chunk_transformed = torch.log1p(torch.relu(masked_current_chunk_logits))
+                elif self.activation_function == "log1p_relu":
+                    if not self.training:
+                        current_chunk_transformed = masked_current_chunk_logits.relu_().log1p_().log1p_()
+                    else:
+                        current_chunk_transformed = torch.log1p(torch.log1p(torch.relu(masked_current_chunk_logits)))
+
+                current_chunk_transformed = current_chunk_transformed.to(mlm_logits.dtype)
+
+                if self.pooling_strategy == "max":
+                    chunk_pooled = torch.max(current_chunk_transformed, dim=1)[0]
+                    pooled_scores = torch.maximum(pooled_scores, chunk_pooled)
                 else:
-                    current_chunk_transformed = torch.log1p(torch.relu(masked_current_chunk_logits))
-            elif self.activation_function == "log1p_relu":
-                if not self.training:
-                    current_chunk_transformed = masked_current_chunk_logits.relu_().log1p_().log1p_()
-                else:
-                    current_chunk_transformed = torch.log1p(torch.log1p(torch.relu(masked_current_chunk_logits)))
-
-            current_chunk_transformed = current_chunk_transformed.to(mlm_logits.dtype)
-
-            if self.pooling_strategy == "max":
-                chunk_pooled = torch.max(current_chunk_transformed, dim=1)[0]
-                pooled_scores = torch.maximum(pooled_scores, chunk_pooled)
-            else:  # sum
-                chunk_pooled = torch.sum(current_chunk_transformed, dim=1)
-                pooled_scores += chunk_pooled
+                    chunk_pooled = torch.sum(current_chunk_transformed, dim=1)
+                    pooled_scores += chunk_pooled
+            except RuntimeError as e:
+                if "out of memory" in str(e).lower():
+                    logger.warning(
+                        "Ran out of memory during SpladePooling. "
+                        "Consider setting or decreasing the 'chunk_size' parameter. "
+                        "Smaller chunk_size reduces memory usage at the cost of slower processing, "
+                        "but will allow for larger batch sizes."
+                    )
+                raise e
 
         if self.word_embedding_dimension is None:
             self.word_embedding_dimension = pooled_scores.shape[1]
