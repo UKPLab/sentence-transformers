@@ -44,6 +44,8 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
             e.g. "semantic search and paraphrase mining".
         tags (`Optional[List[str]]`): A list of tags for the model,
             e.g. ["sentence-transformers", "cross-encoder"].
+        local_files_only (`bool`): If True, don't attempt to find dataset or base model information on the Hub.
+            Defaults to False.
 
     .. tip::
 

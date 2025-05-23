@@ -268,6 +268,8 @@ class SentenceTransformerModelCardData(CardData):
             e.g. "semantic textual similarity, semantic search, paraphrase mining, text classification, clustering, and more".
         tags (`Optional[List[str]]`): A list of tags for the model,
             e.g. ["sentence-transformers", "sentence-similarity", "feature-extraction"].
+        local_files_only (`bool`): If True, don't attempt to find dataset or base model information on the Hub.
+            Defaults to False.
 
     .. tip::
 
@@ -305,6 +307,7 @@ class SentenceTransformerModelCardData(CardData):
             "feature-extraction",
         ]
     )
+    local_files_only: bool = False
     generate_widget_examples: Literal["deprecated"] = "deprecated"
 
     # Automatically filled by `SentenceTransformerModelCardCallback` and the Trainer directly
@@ -360,7 +363,7 @@ class SentenceTransformerModelCardData(CardData):
                 if "id" in dataset:
                     dataset["name"] = dataset["id"]
 
-            if "id" in dataset:
+            if "id" in dataset and not self.local_files_only:
                 # Try to determine the language from the dataset on the Hub
                 try:
                     info = get_dataset_info(dataset["id"])
@@ -753,6 +756,10 @@ class SentenceTransformerModelCardData(CardData):
         self.model_id = model_id
 
     def set_base_model(self, model_id: str, revision: str | None = None) -> None:
+        # We only set the base model if we can verify that it exists on the Hub
+        if self.local_files_only:
+            # Don't try to get the model info if we are not allowed to access the Hub
+            return False
         try:
             model_info = get_model_info(model_id)
         except Exception:

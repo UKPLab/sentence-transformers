@@ -143,7 +143,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             model_kwargs = {}
         if config_kwargs is None:
             config_kwargs = {}
-        self.model_card_data = model_card_data or CrossEncoderModelCardData()
+        self.model_card_data = model_card_data or CrossEncoderModelCardData(local_files_only=local_files_only)
         self.trust_remote_code = trust_remote_code
         self._model_card_text = None
         self.backend = backend
