@@ -307,7 +307,7 @@ class SentenceTransformerModelCardData(CardData):
             "feature-extraction",
         ]
     )
-    local_files_only: bool = (False,)
+    local_files_only: bool = False
     generate_widget_examples: Literal["deprecated"] = "deprecated"
 
     # Automatically filled by `SentenceTransformerModelCardCallback` and the Trainer directly
