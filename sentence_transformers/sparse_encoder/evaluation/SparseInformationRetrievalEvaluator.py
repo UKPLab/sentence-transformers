@@ -160,7 +160,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
     ) -> None:
         self.max_active_dims = max_active_dims
         self.sparsity_stats = {"query": defaultdict(list), "corpus": defaultdict(list)}
-        self.corppus_lengths = []
+        self.corpus_lengths = []
         return super().__init__(
             queries=queries,
             corpus=corpus,
@@ -193,7 +193,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
         self.sparsity_stats = {"query": defaultdict(list), "corpus": defaultdict(list)}
-        self.corppus_lengths = []
+        self.corpus_lengths = []
         metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
         for prefix in ["query", "corpus"]:
             for key, value in self.sparsity_stats[prefix].items():
@@ -201,8 +201,8 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
                     self.sparsity_stats[prefix][key] = sum(value) / len(value)
                 else:
                     self.sparsity_stats[prefix][key] = sum(
-                        val * length for val, length in zip(value, self.corppus_lengths)
-                    ) / sum(self.corppus_lengths)
+                        val * length for val, length in zip(value, self.corpus_lengths)
+                    ) / sum(self.corpus_lengths)
         self.sparsity_stats = {
             f"{prefix}_{key}": value for prefix, values in self.sparsity_stats.items() for key, value in values.items()
         }
@@ -248,7 +248,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         for key, value in stat.items():
             self.sparsity_stats[prefix][key].append(value)
         if prefix == "corpus":
-            self.corppus_lengths.append(len(sentences))
+            self.corpus_lengths.append(len(sentences))
         return embeddings
 
     def store_metrics_in_model_card_data(
