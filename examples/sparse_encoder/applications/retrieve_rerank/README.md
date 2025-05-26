@@ -28,7 +28,7 @@ This Jupyter notebook provides an interactive demonstration of retrieve & re-ran
 
 ## Comprehensive Evaluation: Hybrid Search Pipeline
 
-**File**: [hybrid_search.ipypynb](hybrid_search.py)
+**File**: [hybrid_search.py](hybrid_search.py)
 
 This script provides a complete evaluation pipeline comparing different retrieval and re-ranking approaches on a given dataset (here in our example NanoNFCorpus). It includes:
 
