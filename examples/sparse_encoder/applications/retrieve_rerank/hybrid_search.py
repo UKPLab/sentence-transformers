@@ -49,7 +49,7 @@ logger.info(f"Dataset loaded. Corpus size: {len(corpus_dict)}, Queries: {len(que
 # 2. Sparse Retrieval
 #########################
 logger.info("=" * 80)
-logger.info("STEP 1: EVALUATING SPARSE RETRIEVAL")
+logger.info("STEP 2: EVALUATING SPARSE RETRIEVAL")
 logger.info("=" * 80)
 
 sparse_encoder_model_name = "ibm-granite/granite-embedding-30m-sparse"
