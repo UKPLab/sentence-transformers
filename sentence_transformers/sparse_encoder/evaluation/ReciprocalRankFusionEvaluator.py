@@ -37,20 +37,8 @@ class ReciprocalRankFusionEvaluator(SentenceEvaluator):
         write_predictions (bool): Whether to write the fused predictions to a JSONL file. Defaults to False.
 
     Example:
-        ::
+        See an example usage `Applications > Retrieve & Rerank <../../../examples/sparse_encoder/applications/retriev_rerank/hybrid_search.py>`_
 
-            from sentence_transformers.cross_encoder.evaluation import ReciprocalRankFusionEvaluator
-
-            # Initialize the hybrid evaluator with samples from both retrievers
-            rrf_evaluator = ReciprocalRankFusionEvaluator(
-                dense_samples=dense_samples,
-                sparse_samples=sparse_samples,
-                show_progress_bar=True,
-                write_predictions=True
-            )
-
-            # Run evaluation and get results
-            results = rrf_evaluator(output_path="output/rrf_results")
     """
 
     def __init__(
