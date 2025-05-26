@@ -479,9 +479,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                     if hit["corpus_id"] in query_relevant_docs:
                         num_correct += 1
                         sum_precisions += num_correct / (rank + 1)
-                # TODO: determine which one we want to use
                 avg_precision = sum_precisions / min(k_val, len(query_relevant_docs))
-                # avg_precision = sum_precisions / len(query_relevant_docs)
                 AveP_at_k[k_val].append(avg_precision)
 
         # Compute averages
