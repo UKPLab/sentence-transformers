@@ -82,16 +82,16 @@ class SparseTripletEvaluator(TripletEvaluator):
             results = evaluator(model)
             '''
             TripletEvaluator: Evaluating the model on the all_nli_dev dataset:
-            Accuracy Dot Similarity:	85.10%
-            Model Anchor Sparsity: Active Dimensions: 105.5, Sparsity Ratio: 0.9965
-            Model Positive Sparsity: Active Dimensions: 69.8, Sparsity Ratio: 0.9977
-            Model Negative Sparsity: Active Dimensions: 68.6, Sparsity Ratio: 0.9978
+            Accuracy Dot Similarity:        85.40%
+            Model Anchor Sparsity: Active Dimensions: 103.0, Sparsity Ratio: 0.9966
+            Model Positive Sparsity: Active Dimensions: 67.4, Sparsity Ratio: 0.9978
+            Model Negative Sparsity: Active Dimensions: 65.9, Sparsity Ratio: 0.9978
             '''
             # Print the results
             print(f"Primary metric: {evaluator.primary_metric}")
             # => Primary metric: all_nli_dev_dot_accuracy
             print(f"Primary metric value: {results[evaluator.primary_metric]:.4f}")
-            # => Primary metric value: 0.8510
+            # => Primary metric value: 0.8540
 
     """
 

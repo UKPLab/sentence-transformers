@@ -25,11 +25,11 @@ mse_evaluator = SparseMSEEvaluator(
 results = mse_evaluator(student_model)
 """
 MSE evaluation (lower = better) on the stsb-dev dataset:
-MSE (*100):	0.035540
-Model Sparsity: Active Dimensions: 55.6, Sparsity Ratio: 0.9982
+MSE (*100):     0.034905
+Model Sparsity: Active Dimensions: 54.6, Sparsity Ratio: 0.9982
 """
 # Print the results
 print(f"Primary metric: {mse_evaluator.primary_metric}")
 # => Primary metric: stsb-dev_negative_mse
 print(f"Primary metric value: {results[mse_evaluator.primary_metric]:.4f}")
-# => Primary metric value: -0.0355
+# => Primary metric value: -0.0349

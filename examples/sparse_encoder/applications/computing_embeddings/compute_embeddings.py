@@ -32,9 +32,9 @@ print(f"Sparsity percentage: {stats['sparsity_ratio']:.2%}")
 
 """
 Embedding dim: 30522
-Embedding sparsity: {'active_dims': 56.66666793823242, 'sparsity_ratio': 0.9981433749198914}
-Average non-zero dimensions: 56.67
-Sparsity percentage: 99.81%
+Embedding sparsity: {'active_dims': 56.333335876464844, 'sparsity_ratio': 0.9981543366792325}
+Average non-zero dimensions: 56.33
+Sparsity percentage: 99.82%
 """
 # Visualize top tokens for each text
 top_k = 10

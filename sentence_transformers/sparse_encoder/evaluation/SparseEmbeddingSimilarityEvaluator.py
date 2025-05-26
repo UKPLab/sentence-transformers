@@ -72,14 +72,14 @@ class SparseEmbeddingSimilarityEvaluator(EmbeddingSimilarityEvaluator):
             results = dev_evaluator(model)
             '''
             EmbeddingSimilarityEvaluator: Evaluating the model on the sts_dev dataset:
-            Cosine-Similarity:     Pearson: 0.8430 Spearman: 0.8368
-            Model Sparsity: Active Dimensions: 81.1, Sparsity Ratio: 0.9973
+            Cosine-Similarity:      Pearson: 0.8429 Spearman: 0.8366
+            Model Sparsity: Active Dimensions: 78.3, Sparsity Ratio: 0.9974
             '''
             # Print the results
             print(f"Primary metric: {dev_evaluator.primary_metric}")
             # => Primary metric: sts_dev_spearman_cosine
             print(f"Primary metric value: {results[dev_evaluator.primary_metric]:.4f}")
-            # => Primary metric value: 0.8368
+            # => Primary metric value: 0.8366
 
     """
 
