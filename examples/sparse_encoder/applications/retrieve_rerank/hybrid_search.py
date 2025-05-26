@@ -6,8 +6,8 @@ from datasets import load_dataset
 
 from sentence_transformers import CrossEncoder, SentenceTransformer, SparseEncoder
 from sentence_transformers.cross_encoder.evaluation import CrossEncoderRerankingEvaluator
-from sentence_transformers.evaluation import NanoBEIREvaluator
-from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator
+from sentence_transformers.evaluation import InformationRetrievalEvaluator
+from sentence_transformers.sparse_encoder.evaluation import SparseInformationRetrievalEvaluator
 from sentence_transformers.sparse_encoder.evaluation.ReciprocalRankFusionEvaluator import ReciprocalRankFusionEvaluator
 from sentence_transformers.sparse_encoder.models import MLMTransformer, SpladePooling
 
@@ -18,83 +18,13 @@ logger = logging.getLogger(__name__)
 # Create output directories
 os.makedirs("runs", exist_ok=True)
 
-#########################
-# 1. Sparse Retrieval
-#########################
+###########################
+# 1. Load the NanoNFcorpus IR dataset (https://huggingface.co/datasets/zeta-alpha-ai/NanoNFCorpus)
+###########################
 logger.info("=" * 80)
-logger.info("STEP 1: EVALUATING SPARSE RETRIEVAL")
-logger.info("=" * 80)
-
-sparse_encoder_model_name = "ibm-granite/granite-embedding-30m-sparse"
-logger.info(f"Loading sparse encoder model: {sparse_encoder_model_name}")
-sparse_encoder = SparseEncoder(modules=[MLMTransformer(sparse_encoder_model_name), SpladePooling("max")])
-sparse_encoder_similarity_fn_name = sparse_encoder.similarity_fn_name
-
-# Create output directory
-os.makedirs(f"runs/{sparse_encoder_model_name}/result", exist_ok=True)
-
-logger.info("Running sparse retrieval evaluation on NFCorpus dataset")
-evaluator = SparseNanoBEIREvaluator(
-    dataset_names=["nfcorpus"],
-    show_progress_bar=True,
-    batch_size=12,
-    write_predictions=True,
-)
-sparse_results = evaluator(
-    sparse_encoder, output_path=f"runs/{sparse_encoder_model_name}/result", write_predictions=True
-)
-logger.info(
-    f"Sparse retrieval evaluation complete. NDCG@10: {sparse_results.get(f'NanoNFCorpus_{sparse_encoder_similarity_fn_name}_ndcg@10'):.4f}"
-)
-
-del sparse_encoder
-torch.cuda.empty_cache()
-logger.info("Freed sparse encoder resources")
-
-#########################
-# 2. Dense Retrieval
-#########################
-logger.info("=" * 80)
-logger.info("STEP 2: EVALUATING DENSE RETRIEVAL")
+logger.info("STEP 1: LOADING DATASET")
 logger.info("=" * 80)
 
-bi_encoder_model_name = "multi-qa-MiniLM-L6-cos-v1"
-logger.info(f"Loading dense encoder model: {bi_encoder_model_name}")
-bi_encoder = SentenceTransformer(bi_encoder_model_name)
-bi_encoder_similarity_fn_name = bi_encoder.similarity_fn_name
-
-# Create output directory
-os.makedirs(f"runs/{bi_encoder_model_name}/result", exist_ok=True)
-
-logger.info("Running dense retrieval evaluation on NFCorpus dataset")
-evaluator = NanoBEIREvaluator(
-    dataset_names=["nfcorpus"],
-    show_progress_bar=True,
-    batch_size=12,
-    write_predictions=True,
-)
-dense_results = evaluator(bi_encoder, output_path=f"runs/{bi_encoder_model_name}/result")
-logger.info(
-    f"Dense retrieval evaluation complete. NDCG@10: {dense_results.get(f'NanoNFCorpus_{bi_encoder_similarity_fn_name}_ndcg@10'):.4f}"
-)
-
-del bi_encoder
-torch.cuda.empty_cache()
-logger.info("Freed dense encoder resources")
-
-#########################
-# 3. Load Dataset
-#########################
-logger.info("=" * 80)
-logger.info("STEP 3: LOADING DATASET FOR RERANKING")
-logger.info("=" * 80)
-
-# Load cross-encoder for reranking
-cross_encoder_model_name = "cross-encoder/ms-marco-MiniLM-L6-v2"
-logger.info(f"Loading cross-encoder model for reranking: {cross_encoder_model_name}")
-cross_encoder = CrossEncoder(cross_encoder_model_name)
-
-# Load the dataset
 dataset_path = "zeta-alpha-ai/NanoNFCorpus"
 logger.info(f"Loading dataset: {dataset_path}")
 corpus = load_dataset(dataset_path, "corpus", split="train")
@@ -116,17 +46,91 @@ corpus_lookup = {item["_id"]: item for item in corpus}
 logger.info(f"Dataset loaded. Corpus size: {len(corpus_dict)}, Queries: {len(queries_dict)}")
 
 #########################
+# 2. Sparse Retrieval
+#########################
+logger.info("=" * 80)
+logger.info("STEP 1: EVALUATING SPARSE RETRIEVAL")
+logger.info("=" * 80)
+
+sparse_encoder_model_name = "ibm-granite/granite-embedding-30m-sparse"
+logger.info(f"Loading sparse encoder model: {sparse_encoder_model_name}")
+sparse_encoder = SparseEncoder(modules=[MLMTransformer(sparse_encoder_model_name), SpladePooling("max")])
+sparse_encoder_similarity_fn_name = sparse_encoder.similarity_fn_name
+
+# Create output directory
+os.makedirs(f"runs/{sparse_encoder_model_name}/result", exist_ok=True)
+
+logger.info("Running sparse retrieval evaluation on NanoNFCorpus dataset")
+evaluator = SparseInformationRetrievalEvaluator(
+    queries=queries_dict,
+    corpus=corpus_dict,
+    relevant_docs=qrels_dict,
+    show_progress_bar=True,
+    batch_size=12,
+    write_predictions=True,
+)
+sparse_results = evaluator(
+    sparse_encoder, output_path=f"runs/{sparse_encoder_model_name}/result", write_predictions=True
+)
+logger.info(
+    f"Sparse retrieval evaluation complete. NDCG@10: {sparse_results.get(f'{sparse_encoder_similarity_fn_name}_ndcg@10'):.4f}"
+)
+
+del sparse_encoder
+torch.cuda.empty_cache()
+logger.info("Freed sparse encoder resources")
+
+#########################
+# 3. Dense Retrieval
+#########################
+logger.info("=" * 80)
+logger.info("STEP 2: EVALUATING DENSE RETRIEVAL")
+logger.info("=" * 80)
+
+bi_encoder_model_name = "multi-qa-MiniLM-L6-cos-v1"
+logger.info(f"Loading dense encoder model: {bi_encoder_model_name}")
+bi_encoder = SentenceTransformer(bi_encoder_model_name)
+bi_encoder_similarity_fn_name = bi_encoder.similarity_fn_name
+
+# Create output directory
+os.makedirs(f"runs/{bi_encoder_model_name}/result", exist_ok=True)
+
+logger.info("Running dense retrieval evaluation on NanoNFCorpus dataset")
+evaluator = InformationRetrievalEvaluator(
+    queries=queries_dict,
+    corpus=corpus_dict,
+    relevant_docs=qrels_dict,
+    show_progress_bar=True,
+    batch_size=12,
+    write_predictions=True,
+)
+dense_results = evaluator(bi_encoder, output_path=f"runs/{bi_encoder_model_name}/result")
+logger.info(
+    f"Dense retrieval evaluation complete. NDCG@10: {dense_results.get(f'{bi_encoder_similarity_fn_name}_ndcg@10'):.4f}"
+)
+
+del bi_encoder
+torch.cuda.empty_cache()
+logger.info("Freed dense encoder resources")
+
+
+#########################
 # 4. Reranking Sparse Results
 #########################
 logger.info("=" * 80)
 logger.info("STEP 4: RERANKING SPARSE RETRIEVAL RESULTS")
 logger.info("=" * 80)
 
+# Load cross-encoder for reranking
+cross_encoder_model_name = "cross-encoder/ms-marco-MiniLM-L6-v2"
+logger.info(f"Loading cross-encoder model for reranking: {cross_encoder_model_name}")
+cross_encoder = CrossEncoder(cross_encoder_model_name)
+
 # Load sparse prediction results
 logger.info("Loading sparse retrieval results for reranking")
 sparse_pred_data = load_dataset(
     "json",
-    data_files=f"runs/{sparse_encoder_model_name}/result/Information-Retrieval_evaluation_NanoNFCorpus_predictions_{sparse_encoder_similarity_fn_name}.jsonl",
+    data_files=f"runs/{sparse_encoder_model_name}/result/Information-Retrieval_evaluation_predictions_{sparse_encoder_similarity_fn_name}.jsonl",
 )["train"]
 
 # Create samples for sparse reranking
@@ -166,7 +170,7 @@ logger.info("=" * 80)
 logger.info("Loading dense retrieval results for reranking")
 dense_pred_data = load_dataset(
     "json",
-    data_files=f"runs/{bi_encoder_model_name}/result/Information-Retrieval_evaluation_NanoNFCorpus_predictions_{bi_encoder_similarity_fn_name}.jsonl",
+    data_files=f"runs/{bi_encoder_model_name}/result/Information-Retrieval_evaluation_predictions_{bi_encoder_similarity_fn_name}.jsonl",
 )["train"]
 
 # Create samples for dense reranking
@@ -259,13 +263,13 @@ logger.info("FINAL EVALUATION SUMMARY")
 logger.info("=" * 80)
 
 # Get sparse retrieval metrics
-sparse_ndcg = sparse_results.get(f"NanoNFCorpus_{sparse_encoder_similarity_fn_name}_ndcg@10")
-sparse_mrr = sparse_results.get(f"NanoNFCorpus_{sparse_encoder_similarity_fn_name}_mrr@10")
+sparse_ndcg = sparse_results.get(f"{sparse_encoder_similarity_fn_name}_ndcg@10")
+sparse_mrr = sparse_results.get(f"{sparse_encoder_similarity_fn_name}_mrr@10")
 sparse_map = sparse_reranking_results.get("base_map")
 
 # Get dense retrieval metrics
-dense_ndcg = dense_results.get(f"NanoNFCorpus_{bi_encoder_similarity_fn_name}_ndcg@10")
-dense_mrr = dense_results.get(f"NanoNFCorpus_{bi_encoder_similarity_fn_name}_mrr@10")
+dense_ndcg = dense_results.get(f"{bi_encoder_similarity_fn_name}_ndcg@10")
+dense_mrr = dense_results.get(f"{bi_encoder_similarity_fn_name}_mrr@10")
 dense_map = dense_reranking_results.get("base_map")
 
 # Get sparse reranking metrics

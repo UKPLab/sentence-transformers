@@ -32,6 +32,11 @@
 .. autoclass:: sentence_transformers.sparse_encoder.evaluation.SparseRerankingEvaluator
 ```
 
+## ReciprocalRankFusionEvaluator
+```{eval-rst}
+.. autoclass:: sentence_transformers.sparse_encoder.evaluation.ReciprocalRankFusionEvaluator
+```
+
 ## SparseTranslationEvaluator
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.evaluation.SparseTranslationEvaluator
