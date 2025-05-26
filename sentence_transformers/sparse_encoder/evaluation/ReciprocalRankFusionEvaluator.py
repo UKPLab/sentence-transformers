@@ -37,7 +37,7 @@ class ReciprocalRankFusionEvaluator(SentenceEvaluator):
         write_predictions (bool): Whether to write the fused predictions to a JSONL file. Defaults to False.
 
     Example:
-        See an example usage `Applications > Retrieve & Rerank <../../../examples/sparse_encoder/applications/retriev_rerank/hybrid_search.py>`_
+        See an example usage `Applications > Retrieve & Rerank <../../../examples/sparse_encoder/applications/retrieve_rerank/README.html>`_
 
     """
 
