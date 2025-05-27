@@ -3,7 +3,6 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-import numpy as np
 import pytest
 from packaging.version import Version, parse
 from tokenizers import Tokenizer
@@ -20,21 +19,6 @@ except ImportError:
 skip_if_no_model2vec = pytest.mark.skipif(model2vec is None, reason="The model2vec library is not installed.")
 
 
-@pytest.fixture(scope="session")
-def tokenizer() -> Tokenizer:
-    return Tokenizer.from_pretrained("bert-base-uncased")
-
-
-@pytest.fixture
-def embedding_weights():
-    return np.random.rand(30522, 768)
-
-
-@pytest.fixture
-def static_embedding(tokenizer: Tokenizer, embedding_weights) -> StaticEmbedding:
-    return StaticEmbedding(tokenizer, embedding_weights=embedding_weights)
-
-
 def test_initialization_with_embedding_weights(tokenizer: Tokenizer, embedding_weights) -> None:
     model = StaticEmbedding(tokenizer, embedding_weights=embedding_weights)
     assert model.embedding.weight.shape == (30522, 768)
@@ -45,27 +29,27 @@ def test_initialization_with_embedding_dim(tokenizer: Tokenizer) -> None:
     assert model.embedding.weight.shape == (30522, 768)
 
 
-def test_tokenize(static_embedding: StaticEmbedding) -> None:
+def test_tokenize(static_embedding_model: StaticEmbedding) -> None:
     texts = ["Hello world!", "How are you?"]
-    tokens = static_embedding.tokenize(texts)
+    tokens = static_embedding_model.tokenize(texts)
     assert "input_ids" in tokens
     assert "offsets" in tokens
 
 
-def test_forward(static_embedding: StaticEmbedding) -> None:
+def test_forward(static_embedding_model: StaticEmbedding) -> None:
     texts = ["Hello world!", "How are you?"]
-    tokens = static_embedding.tokenize(texts)
-    output = static_embedding(tokens)
+    tokens = static_embedding_model.tokenize(texts)
+    output = static_embedding_model(tokens)
     assert "sentence_embedding" in output
 
 
-def test_save_and_load(tmp_path: Path, static_embedding: StaticEmbedding) -> None:
+def test_save_and_load(tmp_path: Path, static_embedding_model: StaticEmbedding) -> None:
     save_dir = tmp_path / "model"
     save_dir.mkdir()
-    static_embedding.save(str(save_dir))
+    static_embedding_model.save(str(save_dir))
 
     loaded_model = StaticEmbedding.load(str(save_dir))
-    assert loaded_model.embedding.weight.shape == static_embedding.embedding.weight.shape
+    assert loaded_model.embedding.weight.shape == static_embedding_model.embedding.weight.shape
 
 
 @skip_if_no_model2vec()

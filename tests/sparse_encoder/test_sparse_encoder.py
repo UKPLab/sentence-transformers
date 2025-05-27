@@ -162,3 +162,30 @@ def test_decode_returns_sorted_weights(
     else:
         weights = [weight for _, weight in decoded]
         assert all(weights[i] >= weights[i + 1] for i in range(len(weights) - 1))
+
+
+def test_inference_free_splade(inference_free_splade_bert_tiny_model: SparseEncoder):
+    model = inference_free_splade_bert_tiny_model
+    dimensionality = model.get_sentence_embedding_dimension()
+
+    query = "What is the capital of France?"
+    document = "The capital of France is Paris."
+    query_embeddings = model.encode_query(query)
+    document_embeddings = model.encode_document(document)
+
+    assert query_embeddings.shape == (dimensionality,)
+    assert document_embeddings.shape == (dimensionality,)
+
+    decoded_query = model.decode(query_embeddings)
+    decoded_document = model.decode(document_embeddings)
+    assert len(decoded_query) == len(model.tokenize(query, task_type="query")["input_ids"][0])
+    assert len(decoded_document) >= 50
+
+    assert model.max_seq_length == 512
+    assert model[0].sub_modules["query"][0].max_seq_length == 512
+    assert model[0].sub_modules["document"][0].max_seq_length == 512
+
+    model.max_seq_length = 256
+    assert model.max_seq_length == 256
+    assert model[0].sub_modules["query"][0].max_seq_length == 256
+    assert model[0].sub_modules["document"][0].max_seq_length == 256

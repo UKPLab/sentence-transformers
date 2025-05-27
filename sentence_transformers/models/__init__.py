@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .Asym import Asym
+from .Asym import Asym, Router
 from .BoW import BoW
 from .CLIPModel import CLIPModel
 from .CNN import CNN
@@ -36,4 +36,5 @@ __all__ = [
     "CLIPModel",
     "Module",
     "InputModule",
+    "Router",
 ]

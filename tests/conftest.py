@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import os
 
+import numpy as np
 import pytest
+from tokenizers import Tokenizer
 
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.models import Pooling, Transformer
+from sentence_transformers.models import Pooling, StaticEmbedding, Transformer
 from sentence_transformers.util import is_datasets_available
 from tests.utils import SafeTemporaryDirectory
 
@@ -41,6 +43,21 @@ def paraphrase_distilroberta_base_v1_model() -> SentenceTransformer:
 @pytest.fixture()
 def clip_vit_b_32_model() -> SentenceTransformer:
     return SentenceTransformer("clip-ViT-B-32")
+
+
+@pytest.fixture(scope="session")
+def tokenizer() -> Tokenizer:
+    return Tokenizer.from_pretrained("bert-base-uncased")
+
+
+@pytest.fixture
+def embedding_weights():
+    return np.random.rand(30522, 768)
+
+
+@pytest.fixture
+def static_embedding_model(tokenizer: Tokenizer, embedding_weights) -> StaticEmbedding:
+    return StaticEmbedding(tokenizer, embedding_weights=embedding_weights)
 
 
 @pytest.fixture()

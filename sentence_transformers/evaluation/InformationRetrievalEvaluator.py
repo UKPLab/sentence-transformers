@@ -294,6 +294,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         query_embeddings = self.embed_inputs(
             model,
             self.queries,
+            encode_fn=model.encode_query,
             prompt_name=self.query_prompt_name,
             prompt=self.query_prompt,
         )
@@ -313,6 +314,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 sub_corpus_embeddings = self.embed_inputs(
                     corpus_model,
                     self.corpus[corpus_start_idx:corpus_end_idx],
+                    encode_fn=corpus_model.encode_document,
                     prompt_name=self.corpus_prompt_name,
                     prompt=self.corpus_prompt,
                 )
@@ -369,11 +371,12 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self,
         model: SentenceTransformer,
         sentences: str | list[str] | np.ndarray,
+        encode_fn: Callable[..., Tensor] = None,
         prompt_name: str | None = None,
         prompt: str | None = None,
         **kwargs,
     ) -> np.ndarray:
-        return model.encode(
+        return encode_fn(
             sentences,
             prompt_name=prompt_name,
             prompt=prompt,

@@ -185,6 +185,22 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
     multi_dataset_batch_sampler: Union[MultiDatasetBatchSamplers, str] = field(  # noqa: UP007
         default=MultiDatasetBatchSamplers.PROPORTIONAL, metadata={"help": "The multi-dataset batch sampler to use."}
     )
+    router_mapping: Optional[dict[str, str]] = field(  # noqa: UP007
+        default=None,
+        metadata={
+            "help": 'A mapping of dataset names to Router routes, like "query" or "document". '
+            "Either 1) a mapping of dataset names to routes for single-dataset training/evaluation, or 2) a mapping "
+            "of dataset names to a mapping of column names to routes for multi-dataset training/evaluation. "
+        },
+    )
+    learning_rate_mapping: Optional[dict[str, float]] = field(  # noqa: UP007
+        default_factory=dict,
+        metadata={
+            "help": "A mapping of parameter names to learning rates. "
+            "This allows you to set different learning rates for different parts of the model, e.g., "
+            r"{'IDF\.*': 1e-3} for the IDF module."
+        },
+    )
 
     def __post_init__(self):
         super().__post_init__()

@@ -52,6 +52,11 @@ class SentenceTransformerDataCollator:
                 batch[column_name] = torch.tensor([row[column_name] for row in features], dtype=torch.int)
                 continue
 
+            # If the task_type has been set for a column, we should add it to the batch
+            if column_name.endswith("_task_type") and column_name[: -len("_task_type")] in column_names:
+                batch[column_name] = features[0][column_name]
+                continue
+
             tokenized = self.tokenize_fn([row[column_name] for row in features])
             for key, value in tokenized.items():
                 batch[f"{column_name}_{key}"] = value

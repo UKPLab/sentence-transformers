@@ -10,7 +10,6 @@ try:
 except ImportError:
     from typing_extensions import Self
 
-import torch
 from torch import Tensor, nn
 
 from sentence_transformers.models.InputModule import InputModule
@@ -20,80 +19,52 @@ from sentence_transformers.util import import_from_string, load_dir_path
 logger = logging.getLogger(__name__)
 
 
-class Asym(InputModule, nn.Sequential):
-    def __init__(self, sub_modules: dict[str, list[Module]], allow_empty_key: bool = True):
+class Router(InputModule, nn.Sequential):
+    forward_kwargs = {"task_type"}
+
+    def __init__(
+        self, sub_modules: dict[str, list[Module]], default_route: str | None = None, allow_empty_key: bool = True
+    ):
         """
-        This model allows to create asymmetric SentenceTransformer models, that apply different models depending on the specified input key.
+        This model allows to create asymmetric SentenceTransformer models that apply different modules depending on the specified route,
+        such as "query" or "document". Especially useful for models that have different encoders for queries and documents.
 
-        In the below example, we create two different Dense models for 'query' and 'doc'. Text that is passed as {'query': 'My query'} will
-        be passed along along the first Dense model, and text that will be passed as {'doc': 'My document'} will use the other Dense model.
+        In the below example, ...
 
-        Note, that when you call encode(), that only inputs of the same type can be encoded. Mixed-Types cannot be encoded.
+        Notably, the ``task_type`` argument of ``model.encode`` can be used to specify which route to use, and
+        ``model.encode_query`` and ``model.encode_document`` are shorthands for using ``task_type="query"`` and
+        ``task_type="document"``, respectively. These methods also optionally apply ``prompts`` specific to queries
+        or documents.
 
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
-                from datasets import Dataset
-
-                # Load a SentenceTransformer model (pretrained or not), and add an Asym module
-                model = SentenceTransformer("microsoft/mpnet-base")
-                dim = model.get_sentence_embedding_dimension()
-                asym_model = models.Asym({
-                    'query': [models.Dense(dim, dim)],
-                    'doc': [models.Dense(dim, dim)]
-                })
-                model.add_module("asym", asym_model)
-
-                train_dataset = Dataset.from_dict({
-                    "query": ["is toprol xl the same as metoprolol?", "are eyes always the same size?"],
-                    "answer": ["Metoprolol succinate is also known by the brand name Toprol XL.", "The eyes are always the same size from birth to death."],
-                })
-
-                # This mapper turns normal texts into a dictionary mapping Asym keys to the text
-                def mapper(sample):
-                    return {
-                        "question": {"query": sample["question"]},
-                        "answer": {"doc": sample["answer"]},
-                    }
-
-                train_dataset = train_dataset.map(mapper)
-                loss = losses.MultipleNegativesRankingLoss(model)
-
-                trainer = SentenceTransformerTrainer(
-                    model=model,
-                    train_dataset=train_dataset,
-                    loss=loss,
-                )
-                trainer.train()
-
-                # For inference, you can pass dictionaries with the Asym keys:
-                model.encode([
-                    {'query': 'how long do you have to wait to apply for cerb?'},
-                    {'query': '<3 what does this symbol mean?'},
-                    {'doc': 'The definition of <3 is "Love".'}]
-                )
+                TODO
 
         Note:
             These models are not necessarily stronger than non-asymmetric models. Rudimentary experiments indicate
-            that non-Asym models perform better in most cases.
+            that non-Asym models perform better in many cases.
 
         Args:
-            sub_modules: Dict in the format str -> List[models]. The
-                models in the specified list will be applied for input
-                marked with the respective key.
-            allow_empty_key: If true, inputs without a key can be
-                processed. If false, an exception will be thrown if no
-                key is specified.
+            sub_modules: Mapping of route keys to lists of modules. Each key corresponds to a specific task type,
+                often "query" or "document", and the list contains the modules to be applied for that task type.
+            default_route: The default route to use if no task type is specified. If None, an exception will be thrown
+                if no task type is specified. If ``allow_empty_key`` is True, the first key in sub_modules will be used as
+                the default route. Defaults to None.
+            allow_empty_key: If True, allows the default route to be set to the first key in `sub_modules` if
+                ``default_route`` is None. Defaults to True.
         """
         self.sub_modules = sub_modules
-        self.allow_empty_key = allow_empty_key
+        if self.sub_modules is None or len(self.sub_modules) == 0:
+            raise ValueError("The routes dictionary cannot be empty.")
 
-        # Check if modules have tokenizers and validate them
-        self._validate_tokenizers()
+        if default_route is not None and default_route not in sub_modules:
+            raise ValueError(f"Default route '{default_route}' not found in route keys: {list(sub_modules.keys())}")
 
-        # Check for device consistency
-        self._validate_devices()
+        # If allow_empty_key is True, we can set a default route to the first key in sub_modules.
+        if allow_empty_key and default_route is None:
+            default_route = next(iter(sub_modules.keys()))
+        self.default_route = default_route
 
         ordered_dict = OrderedDict()
         for name, models in sub_modules.items():
@@ -101,103 +72,25 @@ class Asym(InputModule, nn.Sequential):
                 models = [models]
 
             for idx, model in enumerate(models):
-                # Use a more descriptive naming convention
                 ordered_dict[f"{name}_{idx}_{type(model).__name__}"] = model
+
         super().__init__(ordered_dict)
 
-    def _validate_tokenizers(self):
-        """Validate that all modules with tokenizers have compatible tokenizers"""
-        self.tokenizers = {}
+    def forward(self, features: dict[str, Tensor], task_type: str | None = None, **kwargs) -> dict[str, Tensor]:
+        if task_type is None:
+            task_type = features.get("task_type", self.default_route)
+        if task_type is None:
+            # TODO: Write a more useful error, e.g. specific to training/inference
+            raise ValueError("``task_type`` must be specified, or the ``Router`` must have a ``default_route`` set.")
 
-        for key, models in self.sub_modules.items():
-            if models and hasattr(models[0], "tokenizer") and models[0].tokenizer is not None:
-                self.tokenizers[key] = models[0].tokenizer
-            else:
-                self.tokenizers[key] = None
+        if task_type not in self.sub_modules:
+            raise ValueError(
+                f"No route found for task type '{task_type}'. Available routes: {list(self.sub_modules.keys())}"
+            )
 
-        # Check if all modules with tokenizers have the same tokenizer
-        if sum(value is not None for value in self.tokenizers.values()) > 1:
-            tokenizer_types = {
-                key: type(tokenizer).__name__ for key, tokenizer in self.tokenizers.items() if tokenizer is not None
-            }
-            tokenizer_vocabularies = {
-                key: len(tokenizer.get_vocab()) for key, tokenizer in self.tokenizers.items() if tokenizer is not None
-            }
-
-            if len(set(tokenizer_types.values())) > 1 or len(set(tokenizer_vocabularies.values())) > 1:
-                logger.warning(
-                    f"Different tokenizer types detected across modules: {tokenizer_types}. "
-                    "This may cause issues when processing mixed batches."
-                )
-                self.have_common_tokenizer = False
-            else:
-                self.have_common_tokenizer = True
-
-    def _validate_devices(self):
-        """Check if all modules are on the same device"""
-        devices = {}
-        for key, models in self.sub_modules.items():
-            if models and hasattr(models[0], "device"):
-                devices[key] = models[0].device
-
-        if len(set(devices.values())) > 1:
-            logger.warning(f"Modules are on different devices: {devices}. This may cause issues during processing.")
-
-    def forward(self, features: dict[str, Tensor]):
-        if "text_keys" in features and len(features["text_keys"]) > 0:
-            # Group indices by text_key
-            key_to_indices = {}
-            for idx, key in enumerate(features["text_keys"]):
-                if key not in key_to_indices:
-                    key_to_indices[key] = []
-                key_to_indices[key].append(idx)
-
-            # Process each key group separately
-            all_outputs = {}
-            for text_key, indices in key_to_indices.items():
-                # Extract batch for this text key
-                batch_features = {}
-                for k, v in features.items():
-                    if isinstance(v, Tensor):
-                        batch_features[k] = v[indices]
-                    elif isinstance(v, list) and len(v) == len(features["text_keys"]):
-                        batch_features[k] = [v[i] for i in indices]
-                    else:
-                        batch_features[k] = v
-
-                batch_features["text_keys"] = [text_key] * len(indices)  # Ensure all items have same key
-
-                # Apply models for this text key
-                for model in self.sub_modules[text_key]:
-                    batch_features = model(batch_features)
-
-                # Store results
-                for k, v in batch_features.items():
-                    if k not in all_outputs:
-                        all_outputs[k] = [None] * len(features["text_keys"])
-                    for i, idx in enumerate(indices):
-                        if isinstance(v, Tensor) and v.dim() > 0:
-                            all_outputs[k][idx] = v[i] if i < v.size(0) else v[0]
-                        elif isinstance(v, list) and len(v) == len(indices):
-                            all_outputs[k][idx] = v[i]
-                        else:
-                            # Handle scalar tensors or other types
-                            all_outputs[k][idx] = v
-            # Reconstruct features with processed outputs
-            for k, v in all_outputs.items():
-                if all(x is not None for x in v):
-                    if all(isinstance(x, Tensor) for x in v):
-                        try:
-                            features[k] = torch.stack(v)
-                        except Exception:
-                            # If tensors can't be stacked (different shapes), keep as list
-                            features[k] = v
-                    else:
-                        features[k] = v
-
-        elif not self.allow_empty_key:
-            raise ValueError("Input did not specify any keys and allow_empty_key is False")
-
+        # TODO: For **kwargs, we need all kwargs passed from the ST, probably
+        for module in self.sub_modules[task_type]:
+            features = module(features, **kwargs)
         return features
 
     def get_sentence_embedding_dimension(self) -> int:
@@ -232,33 +125,33 @@ class Asym(InputModule, nn.Sequential):
                 {
                     "types": model_types,
                     "structure": model_structure,
-                    "parameters": {"allow_empty_key": self.allow_empty_key},
+                    "parameters": {"default_route": self.default_route},
                 },
                 fOut,
                 indent=2,
             )
 
-    def tokenize(self, texts: list[str] | list[tuple[str, str]], **kwargs):
+    def tokenize(self, texts: list[str] | list[tuple[str, str]], task_type: str | None = None, **kwargs):
         """Tokenizes a text and maps tokens to token-ids"""
-        if not isinstance(texts[0], dict):
-            logger.warning(
-                "Texts are not in the expected format. Expected a list of dictionaries with keys. "
-                "Using 'doc' as the default key."
+        if isinstance(texts[0], dict):
+            # Extract the first key from the first dictionary, and remove dictionary structure
+            task_type = next(iter(texts[0].keys())) if task_type is None else task_type
+            texts = [text[task_type] for text in texts]
+
+        if task_type is None:
+            task_type = self.default_route
+        if task_type is None:
+            # TODO: Write a more useful error, e.g. specific to training/inference
+            raise ValueError("``task_type`` must be specified, or the ``Router`` must have a ``default_route`` set.")
+        if task_type not in self.sub_modules:
+            raise ValueError(
+                f"No route found for task type '{task_type}'. Available routes: {list(self.sub_modules.keys())}"
             )
-            texts = [{"doc": text} for text in texts]
 
-        module_key = None
-
-        for lookup in texts:
-            text_key, text = next(iter(lookup.items()))
-            if module_key is None:
-                module_key = text_key
-            if text_key != module_key and not self.have_common_tokenizer:
-                raise AssertionError(
-                    f"Mixed batches are not allowed. Found different keys: {text_key} and {module_key}. "
-                    "Please ensure all inputs have the same key."
-                )
-        return self.sub_modules[module_key][0].tokenize(texts, **kwargs)
+        input_module = self.sub_modules[task_type][0]
+        tokenized = input_module.tokenize(texts, **kwargs)
+        tokenized["task_type"] = task_type
+        return tokenized
 
     @classmethod
     def load(
@@ -294,76 +187,36 @@ class Asym(InputModule, nn.Sequential):
             for model_id in models_list:
                 model_structure[key_name].append(modules[model_id])
 
-        model = Asym(model_structure, **config["parameters"])
+        model = cls(model_structure, **config["parameters"])
         return model
 
     @property
     def tokenizer(self):
-        # Check if both modules have tokenizers
-        has_tokenizer_keys = [key for key, tokenizer in self.tokenizers.items() if tokenizer is not None]
-
-        if len(has_tokenizer_keys) == 0:
-            return None
-        elif len(has_tokenizer_keys) == 1:
-            # Only one module has a tokenizer, return it
-            return self.tokenizers[has_tokenizer_keys[0]]
-        else:
-            # Both modules have tokenizers
-            tokenizer_types = {
-                key: type(tokenizer).__name__ for key, tokenizer in self.tokenizers.items() if tokenizer is not None
-            }
-
-            if len(set(tokenizer_types.values())) > 1:
-                # Different tokenizer types, warn and return the first one
-                logger.warning(
-                    f"Different tokenizer types detected: {tokenizer_types}. Using the one of the first key by default."
-                )
-
-            # Return the first tokenizer
-            return self.tokenizers[has_tokenizer_keys[0]]
-
-    @tokenizer.setter
-    def tokenizer(self, value) -> None:
-        # Set the tokenizer for all modules that have a tokenizer
-        has_tokenizer_keys = [key for key, tokenizer in self.tokenizers.items() if tokenizer is not None]
-
-        if len(has_tokenizer_keys) == 0:
-            logger.warning("No modules have a tokenizer attribute to set.")
-            return
-
-        for key in has_tokenizer_keys:
-            if self.sub_modules[key]:
-                self.sub_modules[key][0].tokenizer = value
-                self.tokenizers[key] = value
-
-    def get_max_seq_length(self) -> int | None:
-        # Check which modules have max_seq_length
-        has_max_seq_length_keys = []
-        for key, models in self.sub_modules.items():
-            if models and hasattr(models[0], "max_seq_length"):
-                has_max_seq_length_keys.append(key)
-
-        if len(has_max_seq_length_keys) == 0:
-            return None
-        elif len(has_max_seq_length_keys) == 1:
-            # Only one module has max_seq_length, return it
-            return self.sub_modules[has_max_seq_length_keys[0]][0].max_seq_length
-        else:
-            # Both modules have max_seq_length
-            max_seq_lengths = {key: self.sub_modules[key][0].max_seq_length for key in has_max_seq_length_keys}
-
-            if len(set(max_seq_lengths.values())) > 1:
-                # Different max_seq_lengths, warn and return the first one
-                logger.warning(
-                    f"Different max_seq_lengths detected: {max_seq_lengths}. Using the one of the first key by default."
-                )
-
-            # Return the first max_seq_length
-            return max_seq_lengths[has_max_seq_length_keys[0]]
+        # We might have multiple tokenizers, one for each route, but we can only return one here.
+        for sub_modules in self.sub_modules.values():
+            input_module: InputModule = sub_modules[0]
+            if hasattr(input_module, "tokenizer") and input_module.tokenizer is not None:
+                return input_module.tokenizer
+        return None
 
     @property
     def max_seq_length(self) -> int:
-        return self.get_max_seq_length()
+        # Collect all unique max_seq_length values
+        max_seq_lengths = set()
+        for modules in self.sub_modules.values():
+            input_module: InputModule = modules[0]
+            if modules and hasattr(input_module, "max_seq_length"):
+                max_seq_lengths.add(input_module.max_seq_length)
+
+        if not max_seq_lengths:
+            return None
+        elif len(max_seq_lengths) == 1:
+            # Only one unique max_seq_length
+            return max_seq_lengths.pop()
+        else:
+            # Multiple different max_seq_lengths, log warning and return max value
+            logger.warning(f"Different max_seq_lengths detected: {max_seq_lengths}. Using the maximum value.")
+            return max(max_seq_lengths)
 
     @max_seq_length.setter
     def max_seq_length(self, value) -> None:
@@ -378,8 +231,11 @@ class Asym(InputModule, nn.Sequential):
             return
 
         for key in has_max_seq_length_keys:
-            self.sub_modules[key][0].max_seq_length = value
+            input_module: InputModule = self.sub_modules[key][0]
+            input_module.max_seq_length = value
 
+
+Asym = Router
 
 # TODO: Remove this before release/merging
 if __name__ == "__main__":

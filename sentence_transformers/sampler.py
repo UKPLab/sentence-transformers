@@ -195,7 +195,7 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
                 sample_values = {
                     str(value)
                     for key, value in self.dataset[index].items()
-                    if not key.endswith("_prompt_length") and key != "dataset_name"
+                    if not key.endswith(("_prompt_length", "_task_type")) and key != "dataset_name"
                 }
                 if sample_values & batch_values:
                     continue

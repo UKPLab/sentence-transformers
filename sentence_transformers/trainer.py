@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from collections import OrderedDict
 from contextlib import nullcontext
 from functools import partial
@@ -22,7 +23,7 @@ from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
 from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
 from sentence_transformers.model_card import SentenceTransformerModelCardCallback
-from sentence_transformers.models import Pooling
+from sentence_transformers.models import Pooling, Router
 from sentence_transformers.sampler import (
     DefaultBatchSampler,
     GroupByLabelBatchSampler,
@@ -182,7 +183,7 @@ class SentenceTransformerTrainer(Trainer):
         if args.hub_model_id and not model.model_card_data.model_id:
             model.model_card_data.set_model_id(args.hub_model_id)
 
-        if tokenizer is None and isinstance(model.tokenizer, PreTrainedTokenizerBase):
+        if tokenizer is None and hasattr(model, "tokenizer") and isinstance(model.tokenizer, PreTrainedTokenizerBase):
             tokenizer = model.tokenizer
 
         if data_collator is None:
@@ -287,12 +288,12 @@ class SentenceTransformerTrainer(Trainer):
         self.evaluator = evaluator
 
         if self.train_dataset is not None:
-            self.train_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                train_dataset, args.prompts, dataset_name="train"
+            self.train_dataset = self.preprocess_dataset(
+                train_dataset, prompts=args.prompts, router_mapping=args.router_mapping, dataset_name="train"
             )
         if self.eval_dataset is not None:
-            self.eval_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                eval_dataset, args.prompts, dataset_name="eval"
+            self.eval_dataset = self.preprocess_dataset(
+                eval_dataset, prompts=args.prompts, router_mapping=args.router_mapping, dataset_name="eval"
             )
         self.add_model_card_callback(default_args_dict)
 
@@ -456,6 +457,8 @@ class SentenceTransformerTrainer(Trainer):
                 self.accum_loss_components[training_type]["steps"] *= 0
 
                 for key, value in accum_losses.items():
+                    if key == "steps":
+                        continue
                     log_key = f"{training_type}_{key}" if training_type == "eval" else key
                     logs[log_key] = round((value.sum() / steps).item(), 4)
                     self.accum_loss_components[training_type][key] = torch.tensor(
@@ -511,8 +514,8 @@ class SentenceTransformerTrainer(Trainer):
         metric_key_prefix: str = "eval",
     ) -> dict[str, float]:
         if eval_dataset:
-            eval_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                eval_dataset, self.args.prompts, dataset_name="eval"
+            eval_dataset = self.preprocess_dataset(
+                eval_dataset, prompts=self.args.prompts, router_mapping=self.args.router_mapping, dataset_name="eval"
             )
         else:
             eval_dataset = self.eval_dataset
@@ -1009,6 +1012,29 @@ class SentenceTransformerTrainer(Trainer):
                 return not module.include_prompt
         return False
 
+    def preprocess_dataset(
+        self,
+        dataset: DatasetDict | Dataset | None = None,
+        prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None,
+        router_mapping: dict[str, dict[str, str]] | dict[str, str] | None = None,
+        dataset_name: str | None = None,
+    ):
+        # If we've already added the transform to this (iterable) dataset, don't add it again
+        if hasattr(dataset, "_sentence_transformers_preprocessed"):
+            return dataset
+
+        # Maybe add prompts or dataset names to the dataset, useful for training with prompts
+        dataset = self.maybe_add_prompts_or_dataset_name_column(dataset, prompts, dataset_name=dataset_name)
+
+        # Maybe add routing information to the dataset, useful if the model is a router model
+        dataset = self.maybe_add_router_column(dataset, router_mapping)
+
+        # Add a tag to the dataset to indicate that it has been preprocessed, to ensure that we don't apply the map or
+        # transform multiple times.
+        dataset._sentence_transformers_preprocessed = True
+
+        return dataset
+
     @staticmethod
     def add_prompts_or_dataset_name_transform(
         batch: dict[str, list[Any]],
@@ -1109,10 +1135,6 @@ class SentenceTransformerTrainer(Trainer):
             return None
 
         include_dataset_name = isinstance(self.loss, dict)
-
-        # If we've already added the transform to this (iterable) dataset, don't add it again
-        if hasattr(dataset_dict, "_sentence_transformers_preprocessed"):
-            return dataset_dict
 
         # Ensure that there's no "dataset_name"/"return_loss" columns in the unprocessed datasets
         self.validate_column_names(dataset_dict, dataset_name=dataset_name)
@@ -1221,9 +1243,103 @@ class SentenceTransformerTrainer(Trainer):
         else:
             raise ValueError("Unsupported dataset type.")
 
-        # Add a tag to the dataset to indicate that it has been preprocessed, to ensure that we don't apply the map or
-        # transform multiple times.
-        dataset_dict._sentence_transformers_preprocessed = True
+        return dataset_dict
+
+    @staticmethod
+    def add_router_column_transform(
+        batch: dict[str, list[Any]],
+        router_mapping: dict[str, str] = None,
+        transform: Callable[[dict[str, list[Any]]], dict[str, list[Any]]] = None,
+        **kwargs,
+    ) -> dict[str, list[Any]]:
+        # If the dataset is a Dataset(Dict), then we use set_transform and we want to also apply any
+        # previous transform if it exists
+        if transform:
+            batch = transform(batch)
+
+        # Return if the batch has no columns...
+        if not batch:
+            return batch
+
+        # ... or if it's empty
+        first_column = list(batch.keys())[0]
+        if not batch[first_column]:
+            return batch
+
+        for column_name in list(batch.keys()):
+            if column_name in router_mapping:
+                task_type = router_mapping[column_name]
+                batch[f"{column_name}_task_type"] = [task_type] * len(batch[first_column])
+
+        return batch
+
+    def maybe_add_router_column(
+        self,
+        dataset_dict: DatasetDict | IterableDatasetDict | Dataset | IterableDataset,
+        router_mapping: dict[str, dict[str, str]] | dict[str, str] | None = None,
+    ):
+        if dataset_dict is None:
+            return None
+
+        # Only add if 1) we have a router mapping and 2) the model is a router model
+        if router_mapping is not None and isinstance(self.model[0], Router):
+            dataset_dict = self.add_router_column(dataset_dict, router_mapping=router_mapping)
+
+        return dataset_dict
+
+    def add_router_column(
+        self,
+        dataset_dict: DatasetDict | IterableDatasetDict | Dataset | IterableDataset,
+        router_mapping: dict[str, dict[str, str]] | dict[str, str],
+    ) -> DatasetDict | Dataset | None:
+        # If we have DatasetDict, recurse
+        if isinstance(dataset_dict, (IterableDatasetDict, DatasetDict)):
+            for dataset_name, dataset in dataset_dict.items():
+                # If router_mapping is a dictionary that matches the dataset names, then take the nested mapping
+                nested_router_mapping = (
+                    router_mapping.get(dataset_name, router_mapping)
+                    if isinstance(router_mapping, dict)
+                    else router_mapping
+                )
+                dataset_dict[dataset_name] = self.add_router_column(
+                    dataset_dict=dataset,
+                    router_mapping=nested_router_mapping,
+                )
+            return dataset_dict
+
+        # If we have a Dataset, we can set the transform directly...
+        if isinstance(dataset_dict, Dataset):
+            dataset_dict.set_transform(
+                partial(
+                    self.add_router_column_transform,
+                    router_mapping=router_mapping,
+                    **dataset_dict._format_kwargs,
+                )
+            )
+
+        # ... otherwise, we have an IterableDataset and we need to map it, which performs the same operation as above
+        elif isinstance(dataset_dict, IterableDataset):
+            # Update the features to include the new columns
+            features = dataset_dict.features
+            for column_name in dataset_dict.column_names:
+                # TODO: Should we check for strings only?
+                # TODO: Should we ignore labels etc.?
+                feature = features[column_name]
+                if isinstance(feature, Value) and feature.dtype in ("string", "large_string"):
+                    features[f"{column_name}_task_type"] = Value("string")
+
+            dataset_dict = dataset_dict.map(
+                partial(
+                    self.add_router_column_transform,
+                    router_mapping=router_mapping,
+                ),
+                batched=True,
+                features=features,
+            )
+
+        else:
+            raise ValueError("Unsupported dataset type.")
+
         return dataset_dict
 
     def create_model_card(
@@ -1270,8 +1386,8 @@ class SentenceTransformerTrainer(Trainer):
 
         # If the kwargs were not overridden by the super() call, then we should override them here so that the potential
         # weights in the loss(es) can also be updated.
+        decay_parameters = self.get_decay_parameter_names(loss_model)
         if not {"params", "model", "optimizer_dict"} & set(optimizer_kwargs.keys()):
-            decay_parameters = self.get_decay_parameter_names(loss_model)
             optimizer_kwargs["optimizer_dict"] = [
                 {
                     "params": [
@@ -1286,5 +1402,45 @@ class SentenceTransformerTrainer(Trainer):
                     "weight_decay": 0.0,
                 },
             ]
+
+        # One of "params", "model", or "optimizer_dict" should be in the optimizer_kwargs
+        for parameter_pattern, learning_rate in args.learning_rate_mapping.items():
+            # Check which optimizer parameter key is present
+            optimizer_param_keys = set(optimizer_kwargs.keys()) & {"params", "model", "optimizer_dict"}
+            optimizer_param_key = optimizer_param_keys.pop() if optimizer_param_keys else "optimizer_dict"
+
+            # Get parameters that match the pattern
+            matching_params = {n: p for n, p in loss_model.named_parameters() if re.search(parameter_pattern, n)}
+
+            if matching_params:
+                # Remove matching parameters from existing optimizer groups
+                for group in optimizer_kwargs[optimizer_param_key]:
+                    if "params" in group:
+                        group["params"] = [
+                            p for p in group["params"] if all(p is not param for param in matching_params.values())
+                        ]
+
+            # Add new optimizer group with matching parameters
+            # decay_parameters = self.get_decay_parameter_names(loss_model)
+            matching_params_with_decay = {n: p for n, p in matching_params.items() if n in decay_parameters}
+            matching_params_without_decay = {n: p for n, p in matching_params.items() if n not in decay_parameters}
+
+            if matching_params_with_decay:
+                optimizer_kwargs[optimizer_param_key].append(
+                    {
+                        "params": list(matching_params_with_decay.values()),
+                        "lr": learning_rate,
+                        "weight_decay": self.args.weight_decay,
+                    }
+                )
+
+            if matching_params_without_decay:
+                optimizer_kwargs[optimizer_param_key].append(
+                    {
+                        "params": list(matching_params_without_decay.values()),
+                        "lr": learning_rate,
+                        "weight_decay": 0.0,
+                    }
+                )
 
         return optimizer_cls, optimizer_kwargs

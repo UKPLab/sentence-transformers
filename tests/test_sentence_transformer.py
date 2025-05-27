@@ -304,7 +304,7 @@ def test_load_local_without_normalize_directory(stsb_bert_tiny_model: SentenceTr
 
 def test_prompts(stsb_bert_tiny_model: SentenceTransformer, caplog: pytest.LogCaptureFixture) -> None:
     model = stsb_bert_tiny_model
-    assert model.prompts == {}
+    assert model.prompts == {"query": "", "document": ""}
     assert model.default_prompt_name is None
     texts = ["How to bake a chocolate cake", "Symptoms of the flu"]
     no_prompt_embedding = model.encode(texts)
@@ -313,11 +313,11 @@ def test_prompts(stsb_bert_tiny_model: SentenceTransformer, caplog: pytest.LogCa
 
     for query in ["query: ", "query:", "query:   "]:
         # Test prompt="... {}"
-        model.prompts = {}
+        model.prompts = {"query": "", "document": ""}
         assert np.array_equal(model.encode(texts, prompt=query), prompt_embedding)
 
         # Test prompt_name="..."
-        model.prompts = {"query": query}
+        model.prompts = {"query": query, "document": ""}
         assert np.array_equal(model.encode(texts, prompt_name="query"), prompt_embedding)
 
         caplog.clear()
@@ -334,7 +334,7 @@ def test_prompts(stsb_bert_tiny_model: SentenceTransformer, caplog: pytest.LogCa
         with pytest.raises(
             ValueError,
             match=re.escape(
-                "Prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query']."
+                "Prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query', 'document']."
             ),
         ):
             model.encode(texts, prompt_name="invalid_prompt_name")
@@ -344,7 +344,7 @@ def test_save_load_prompts() -> None:
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "Default prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query']."
+            "Default prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query', 'document']."
         ),
     ):
         model = SentenceTransformer(
@@ -358,7 +358,7 @@ def test_save_load_prompts() -> None:
         prompts={"query": "query: "},
         default_prompt_name="query",
     )
-    assert model.prompts == {"query": "query: "}
+    assert model.prompts == {"query": "query: ", "document": ""}
     assert model.default_prompt_name == "query"
 
     with SafeTemporaryDirectory() as tmp_folder:
@@ -368,11 +368,11 @@ def test_save_load_prompts() -> None:
         assert config_path.exists()
         with open(config_path, encoding="utf8") as f:
             saved_config = json.load(f)
-        assert saved_config["prompts"] == {"query": "query: "}
+        assert saved_config["prompts"] == {"query": "query: ", "document": ""}
         assert saved_config["default_prompt_name"] == "query"
 
         fresh_model = SentenceTransformer(str(model_path))
-        assert fresh_model.prompts == {"query": "query: "}
+        assert fresh_model.prompts == {"query": "query: ", "document": ""}
         assert fresh_model.default_prompt_name == "query"
 
 

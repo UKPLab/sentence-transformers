@@ -185,7 +185,9 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         backend: Literal["torch", "onnx", "openvino"] = "torch",
     ) -> None:
         # Note: self._load_sbert_model can also update `self.prompts` and `self.default_prompt_name`
-        self.prompts = prompts or {}
+        self.prompts = {"query": "", "document": ""}
+        if prompts:
+            self.prompts.update(prompts)
         self.default_prompt_name = default_prompt_name
         self.similarity_fn_name = similarity_fn_name
         self.trust_remote_code = trust_remote_code
@@ -405,6 +407,81 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             str: The backend used for inference.
         """
         return self.backend
+
+    def encode_query(
+        self,
+        sentences: str | list[str] | np.ndarray,
+        prompt_name: str | None = None,
+        prompt: str | None = None,
+        batch_size: int = 32,
+        show_progress_bar: bool | None = None,
+        output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
+        convert_to_numpy: bool = True,
+        convert_to_tensor: bool = False,
+        device: str | None = None,
+        normalize_embeddings: bool = False,
+        truncate_dim: int | None = None,
+        **kwargs,
+    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
+        if prompt is None and prompt_name is None and "query" in self.prompts:
+            prompt_name = "query"
+
+        return self.encode(
+            sentences=sentences,
+            prompt_name=prompt_name,
+            prompt=prompt,
+            batch_size=batch_size,
+            show_progress_bar=show_progress_bar,
+            output_value=output_value,
+            precision=precision,
+            convert_to_numpy=convert_to_numpy,
+            convert_to_tensor=convert_to_tensor,
+            device=device,
+            normalize_embeddings=normalize_embeddings,
+            truncate_dim=truncate_dim,
+            task_type="query",
+            **kwargs,
+        )
+
+    def encode_document(
+        self,
+        sentences: str | list[str] | np.ndarray,
+        prompt_name: str | None = None,
+        prompt: str | None = None,
+        batch_size: int = 32,
+        show_progress_bar: bool | None = None,
+        output_value: Literal["sentence_embedding", "token_embeddings"] | None = "sentence_embedding",
+        precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
+        convert_to_numpy: bool = True,
+        convert_to_tensor: bool = False,
+        device: str | None = None,
+        normalize_embeddings: bool = False,
+        truncate_dim: int | None = None,
+        **kwargs,
+    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
+        if prompt is None and prompt_name is None:
+            for candidate_prompt_name in ["document", "passage", "corpus"]:
+                if candidate_prompt_name in self.prompts:
+                    prompt_name = candidate_prompt_name
+                    break
+
+        return self.encode(
+            sentences=sentences,
+            prompt_name=prompt_name,
+            prompt=prompt,
+            batch_size=batch_size,
+            show_progress_bar=show_progress_bar,
+            output_value=output_value,
+            precision=precision,
+            convert_to_numpy=convert_to_numpy,
+            convert_to_tensor=convert_to_tensor,
+            device=device,
+            normalize_embeddings=normalize_embeddings,
+            truncate_dim=truncate_dim,
+            task_type="document",
+            **kwargs,
+        )
 
     # Return a single tensor because we're passing a single sentence.
     @overload
@@ -659,12 +736,12 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 )
 
         extra_features = {}
-        if prompt is not None:
+        if prompt is not None and len(prompt) > 0:
             sentences = [prompt + sentence for sentence in sentences]
 
             # Some models (e.g. INSTRUCTOR, GRIT) require removing the prompt before pooling
             # Tracking the prompt length allow us to remove the prompt during pooling
-            tokenized_prompt = self.tokenize([prompt])
+            tokenized_prompt = self.tokenize([prompt], **kwargs)
             if "input_ids" in tokenized_prompt:
                 extra_features["prompt_length"] = tokenized_prompt["input_ids"].shape[-1] - 1
 
@@ -681,7 +758,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
             sentences_batch = sentences_sorted[start_index : start_index + batch_size]
-            features = self.tokenize(sentences_batch)
+            features = self.tokenize(sentences_batch, **kwargs)
             if self.device.type == "hpu":
                 if "input_ids" in features:
                     curr_tokenize_len = features["input_ids"].shape
@@ -781,6 +858,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         return all_embeddings
 
     def forward(self, input: dict[str, Tensor], **kwargs) -> dict[str, Tensor]:
+        # TODO: If we're using Asym/Router, we might want to pass all kwargs to it
         if self.module_kwargs is None and not (hasattr(module, "forward_kwargs") for module in self.modules()):
             return super().forward(input)
 
@@ -1168,7 +1246,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         return None
 
-    def tokenize(self, texts: list[str] | list[dict] | list[tuple[str, str]]) -> dict[str, Tensor]:
+    def tokenize(self, texts: list[str] | list[dict] | list[tuple[str, str]], **kwargs) -> dict[str, Tensor]:
         """
         Tokenizes the texts.
 
@@ -1179,7 +1257,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             Dict[str, Tensor]: A dictionary of tensors with the tokenized texts. Common keys are "input_ids",
                 "attention_mask", and "token_type_ids".
         """
-        return self._first_module().tokenize(texts)
+        try:
+            return self[0].tokenize(texts, **kwargs)
+        except TypeError:
+            return self[0].tokenize(texts)
 
     def get_sentence_features(self, *features) -> dict[Literal["sentence_embedding"], Tensor]:
         return self._first_module().get_sentence_features(*features)
@@ -1766,8 +1847,10 @@ print(similarities)
             # Set score functions & prompts if not already overridden by the __init__ calls
             if self._similarity_fn_name is None:
                 self.similarity_fn_name = self._model_config.get("similarity_fn_name", None)
-            if not self.prompts:
-                self.prompts = self._model_config.get("prompts", {})
+            # Only update prompts that aren't already set by the user or defaults
+            for prompt_name, prompt_text in self._model_config.get("prompts", {}).items():
+                if prompt_name not in self.prompts or not self.prompts[prompt_name]:
+                    self.prompts[prompt_name] = prompt_text
             if not self.default_prompt_name:
                 self.default_prompt_name = self._model_config.get("default_prompt_name", None)
             if "model_type" not in self._model_config.keys():

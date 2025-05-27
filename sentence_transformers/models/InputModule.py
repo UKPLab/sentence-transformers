@@ -64,7 +64,7 @@ class InputModule(Module):
 
         Args:
             texts (list[str]): List of input texts to tokenize.
-            **kwargs: Additional keyword arguments for tokenization.
+            **kwargs: Additional keyword arguments for tokenization, e.g. ``task_type``.
 
         Returns:
             dict[str, torch.Tensor | Any]: Dictionary containing tokenized features, e.g.

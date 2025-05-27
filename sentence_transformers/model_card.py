@@ -466,7 +466,7 @@ class SentenceTransformerModelCardData(CardData):
                 lengths[idx] = sum(
                     len(value)
                     for key, value in sample.items()
-                    if key != "dataset_name" and not key.endswith("_prompt_length")
+                    if key != "dataset_name" and not key.endswith(("_prompt_length", "_task_type"))
                 )
 
             indices, _ = zip(*sorted(lengths.items(), key=lambda x: x[1]))
@@ -478,14 +478,14 @@ class SentenceTransformerModelCardData(CardData):
                 sentences = [
                     sentence
                     for key, sentence in str_dataset[idx].items()
-                    if key != "dataset_name" and not key.endswith("_prompt_length")
+                    if key != "dataset_name" and not key.endswith(("_prompt_length", "_task_type"))
                 ]
                 while len(sentences) < 4 and backup_indices:
                     backup_idx = backup_indices.pop()
                     backup_sample = [
                         sentence
                         for key, sentence in str_dataset[backup_idx].items()
-                        if key != "dataset_name" and not key.endswith("_prompt_length")
+                        if key != "dataset_name" and not key.endswith(("_prompt_length", "_task_type"))
                     ]
                     if len(backup_sample) == 1:
                         # If there is only one text in the backup sample, we take it

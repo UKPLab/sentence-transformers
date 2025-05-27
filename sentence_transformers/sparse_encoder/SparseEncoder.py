@@ -184,6 +184,73 @@ class SparseEncoder(SentenceTransformer):
             else:
                 self.max_active_dims = max_active_dims
 
+    def encode_query(
+        self,
+        sentences: str | list[str] | np.ndarray,
+        prompt_name: str | None = None,
+        prompt: str | None = None,
+        batch_size: int = 32,
+        show_progress_bar: bool | None = None,
+        convert_to_tensor: bool = True,
+        convert_to_sparse_tensor: bool = True,
+        save_to_cpu: bool = False,
+        device: str | None = None,
+        max_active_dims: int | None = None,
+        **kwargs: Any,
+    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
+        if prompt is None and prompt_name is None and "query" in self.prompts:
+            prompt_name = "query"
+
+        return self.encode(
+            sentences=sentences,
+            prompt_name=prompt_name,
+            prompt=prompt,
+            batch_size=batch_size,
+            show_progress_bar=show_progress_bar,
+            convert_to_tensor=convert_to_tensor,
+            convert_to_sparse_tensor=convert_to_sparse_tensor,
+            save_to_cpu=save_to_cpu,
+            device=device,
+            max_active_dims=max_active_dims,
+            task_type="query",
+            **kwargs,
+        )
+
+    def encode_document(
+        self,
+        sentences: str | list[str] | np.ndarray,
+        prompt_name: str | None = None,
+        prompt: str | None = None,
+        batch_size: int = 32,
+        show_progress_bar: bool | None = None,
+        convert_to_tensor: bool = True,
+        convert_to_sparse_tensor: bool = True,
+        save_to_cpu: bool = False,
+        device: str | None = None,
+        max_active_dims: int | None = None,
+        **kwargs: Any,
+    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
+        if prompt is None and prompt_name is None:
+            for candidate_prompt_name in ["document", "passage", "corpus"]:
+                if candidate_prompt_name in self.prompts:
+                    prompt_name = candidate_prompt_name
+                    break
+
+        return self.encode(
+            sentences=sentences,
+            prompt_name=prompt_name,
+            prompt=prompt,
+            batch_size=batch_size,
+            show_progress_bar=show_progress_bar,
+            convert_to_tensor=convert_to_tensor,
+            convert_to_sparse_tensor=convert_to_sparse_tensor,
+            save_to_cpu=save_to_cpu,
+            device=device,
+            max_active_dims=max_active_dims,
+            task_type="document",
+            **kwargs,
+        )
+
     def encode(
         self,
         sentences: str | list[str] | np.ndarray,
@@ -279,12 +346,12 @@ class SparseEncoder(SentenceTransformer):
                 )
 
         extra_features = {}
-        if prompt is not None:
+        if prompt is not None and len(prompt) > 0:
             sentences = [prompt + sentence for sentence in sentences]
 
             # Some models (e.g. INSTRUCTOR, GRIT) require removing the prompt before pooling
             # Tracking the prompt length allow us to remove the prompt during pooling
-            tokenized_prompt = self.tokenize([prompt])
+            tokenized_prompt = self.tokenize([prompt], **kwargs)
             if "input_ids" in tokenized_prompt:
                 extra_features["prompt_length"] = tokenized_prompt["input_ids"].shape[-1] - 1
 
@@ -303,7 +370,7 @@ class SparseEncoder(SentenceTransformer):
 
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
             sentences_batch = sentences_sorted[start_index : start_index + batch_size]
-            features = self.tokenize(sentences_batch)
+            features = self.tokenize(sentences_batch, **kwargs)
             features = batch_to_device(features, self.device)
             features.update(extra_features)
 

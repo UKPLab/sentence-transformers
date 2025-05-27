@@ -228,11 +228,12 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         self,
         model: SparseEncoder,
         sentences: str | list[str] | np.ndarray,
+        encode_fn: Callable[..., torch.Tensor] = None,
         prompt_name: str | None = None,
         prompt: str | None = None,
         **kwargs,
     ) -> torch.Tensor:
-        embeddings = model.encode(
+        embeddings = encode_fn(
             sentences,
             prompt_name=prompt_name,
             prompt=prompt,
