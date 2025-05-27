@@ -1,15 +1,19 @@
 # Natural Language Inference with Sparse Encoders
 
-Given two sentence (premise and hypothesis), Natural Language Inference (NLI) is the task of deciding if the premise entails the hypothesis, if they are contradiction, or if they are neutral. Commonly used NLI dataset are [SNLI](https://huggingface.co/datasets/stanfordnlp/snli) and [MultiNLI](https://huggingface.co/datasets/nyu-mll/multi_nli). 
+Given two sentence (premise and hypothesis), Natural Language Inference (NLI) is the task of deciding if the premise entails the hypothesis, if they are contradiction, or if they are neutral. Commonly used NLI dataset are [SNLI](https://huggingface.co/datasets/stanfordnlp/snli) and [MultiNLI](https://huggingface.co/datasets/nyu-mll/multi_nli).
 
 [Conneau et al.](https://arxiv.org/abs/1705.02364) showed that NLI data can be quite useful when training Sentence Embedding methods. We also found this in our [Sentence-BERT-Paper](https://arxiv.org/abs/1908.10084) and often use NLI as a first fine-tuning step for sparse encoder methods.
 
 To train on NLI, see the following example file:
-**[train_splade_nli.py](train_splade_nli.py)**:
-    ```{eval-rst}
-    This script trains a `SparseEncoder` (specifically a SPLADE-like model, fine-tuning e.g., `naver/splade-cocondenser-ensembledistil`) for NLI. It uses the :class:`~sentence_transformers.sparse_encoder.losses.SpladeLoss`. This loss combines a ranking loss (like :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`) with regularization terms to encourage sparsity in the learned term weights, characteristic of SPLADE models. The script uses the AllNLI dataset with "pair-score" configuration, likely treating entailment pairs as positives for the ranking component. This approach aims to create highly sparse and effective representations for retrieval.
-    ```
 
+- **[train_splade_nli.py](train_splade_nli.py)**:
+    ```{eval-rst}
+    This script trains a `SparseEncoder` (specifically a SPLADE-like model, fine-tuning e.g., `naver/splade-cocondenser-ensembledistil`) for NLI. It uses the :class:`~sentence_transformers.sparse_encoder.losses.SpladeLoss`. This loss is designed for training SPLADE-style models and combines two main components:
+    1. A ranking loss, typically :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`, to ensure that relevant (e.g., entailment) pairs have higher similarity scores than irrelevant ones (in-batch negatives).
+    2. Regularization terms (controlled by `lambda_corpus` and potentially other parameters in the loss) to encourage sparsity in the learned term weightings in the sparse vectors. This is a key characteristic of SPLADE models, leading to highly efficient and effective sparse representations.
+
+    The script uses the AllNLI dataset, likely with the "pair-score" or "pair" configuration to extract (anchor, positive) pairs (e.g., premise and entailment hypothesis) for the ranking component of the loss.
+    ```
 
 ## Data
 We combine [SNLI](https://huggingface.co/datasets/stanfordnlp/snli) and [MultiNLI](https://huggingface.co/datasets/nyu-mll/multi_nli) into a dataset we call [AllNLI](https://huggingface.co/datasets/sentence-transformers/all-nli). These two datasets contain sentence pairs and one of three labels: entailment, neutral, contradiction:
@@ -20,27 +24,23 @@ We combine [SNLI](https://huggingface.co/datasets/stanfordnlp/snli) and [MultiNL
 | An older and younger man smiling. | Two men are smiling and laughing at the cats playing on the floor. | neutral |
 | A man inspects the uniform of a figure in some East Asian country. | The man is sleeping. | contradiction |
 
-We format AllNLI in a few different subsets, compatible with different loss functions. See for example the [triplet subset of AllNLI](https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/triplet).
+We format AllNLI in a few different subsets, compatible with different loss functions. For the `train_splade_nli.py` script, the data is typically processed into (anchor, positive) pairs for the ranking loss component. For example, entailment pairs from NLI can serve as (anchor, positive) pairs.
 
+- The `pair subset of AllNLI <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/pair>`_ provides (anchor, positive) pairs directly.
+- The `triplet subset of AllNLI <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/triplet>`_ provides (anchor, positive, negative) triplets, where the negative is a hard negative (contradiction). While `SpladeLoss` primarily uses positive pairs for its ranking component, hard negatives could potentially be incorporated depending on the exact `SparseMultipleNegativesRankingLoss` configuration.
 
-## SparseMultipleNegativesRankingLoss
+## SpladeLoss
+
 ```{eval-rst}
-The :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss` produces great sparse sentence representations for this type of trainings.
+The :class:`~sentence_transformers.sparse_encoder.losses.SpladeLoss` is used in `train_splade_nli.py`. It's specifically designed for training SPLADE (Sparse Lexical and Expansion) models. It wraps a ranking loss, such as :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`, and adds regularization terms to promote sparsity in the output vectors.
 ```
 
-The training data for SparseMultipleNegativesRankingLoss consists of sentence pairs [(a<sub>1</sub>, b<sub>1</sub>), ..., (a<sub>n</sub>, b<sub>n</sub>)] where we assume that (a<sub>i</sub>, b<sub>i</sub>) are similar sentences and (a<sub>i</sub>, b<sub>j</sub>) are dissimilar sentences for i != j. The minimizes the distance between (a<sub>i</sub>, b<sub>i</sub>) while it simultaneously maximizes the distance (a<sub>i</sub>, b<sub>j</sub>) for all i != j. For example, in the following picture:
+### Ranking Component: SparseMultipleNegativesRankingLoss
+The underlying ranking loss, :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`, operates on sentence pairs [(a<sub>1</sub>, b<sub>1</sub>), ..., (a<sub>n</sub>, b<sub>n</sub>)] where (a<sub>i</sub>, b<sub>i</sub>) are similar sentences (e.g., premise and its entailed hypothesis) and (a<sub>i</sub>, b<sub>j</sub>) for i != j are treated as dissimilar sentences (in-batch negatives). The loss minimizes the distance (or maximizes similarity) between (a<sub>i</sub>, b<sub>i</sub>) while simultaneously maximizing the distance (or minimizing similarity) between (a<sub>i</sub>, b<sub>j</sub>) for all i != j.
 
 <img src="https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/MultipleNegativeRankingLoss.png" alt="SBERT MultipleNegativeRankingLoss" width="350"/>
 
-The distance between (a<sub>1</sub>, b<sub>1</sub>) is reduced, while the distance between (a<sub>1</sub>, b<sub>2...5</sub>) will be increased. The same is done for a<sub>2</sub>, ..., a<sub>5</sub>.
+Using this with NLI data means defining entailment pairs as positive pairs. For example, (*"A soccer game with multiple males playing."*, *"Some men are playing a sport."*) should be close in the sparse vector space.
 
-```{eval-rst}
-Using :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss` with NLI is rather easy: We define sentences that have an *entailment* label as positive pairs. E.g, we have pairs like (*"A soccer game with multiple males playing."*, *"Some men are playing a sport."*) and want that these pairs are close in vector space. The `pair subset of AllNLI <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/pair>`_ has been prepared in this format.
-```
-
-### SparseMultipleNegativesRankingLoss with Hard Negatives
-
-We can further improve SparseMultipleNegativesRankingLoss by providing triplets rather than pairs: [(a<sub>1</sub>, b<sub>1</sub>, c<sub>1</sub>), ..., (a<sub>n</sub>, b<sub>n</sub>, c<sub>n</sub>)]. The samples for c<sub>i</sub> are so-called hard-negatives: On a lexical level, they are similar to a<sub>i</sub> and b<sub>i</sub>, but on a semantic level, they mean different things and should not be close to a<sub>i</sub> in the vector space.
-
-For NLI data, we can use the contradiction-label to create such triplets with a hard negative. So our triplets look like this:
-("*A soccer game with multiple males playing."*, *"Some men are playing a sport."*, *"A group of men playing a baseball game."*). We want the sentences *"A soccer game with multiple males playing."* and *"Some men are playing a sport."* to be close in the vector space, while there should be a larger distance between *"A soccer game with multiple males playing."* and "*A group of men playing a baseball game."*. The [triplet subset of AllNLI](https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/triplet) has been prepared in this format.
+### Sparsity Regularization
+A key part of `SpladeLoss` is the regularization (e.g., FLOPS regularization via `lambda_corpus`) applied to the term weights in the sparse output vectors. This encourages the model to select only the most important terms for representation, leading to very sparse vectors, which is beneficial for efficient retrieval.

@@ -6,6 +6,7 @@ As dataset, we use sentence-transformers/msmarco-bm25, where we have triplets ve
 As loss function, we use MultipleNegativesRankingLoss in the SpladeLoss.
 
 """
+# TODO: Find good hparmonization parameters for this training script.
 
 import logging
 import traceback
@@ -19,6 +20,7 @@ from sentence_transformers import (
     SparseEncoderTrainingArguments,
 )
 from sentence_transformers.sparse_encoder import evaluation, losses
+from sentence_transformers.training_args import BatchSamplers
 
 # Set the log level to INFO to get more information
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
@@ -27,11 +29,11 @@ logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:
 def main():
     model_name = "distilbert/distilbert-base-uncased"
 
-    train_batch_size = 12
+    train_batch_size = 16
     num_epochs = 1
     lambda_query = 5e-5
-    lambda_corpus = 3e-5
-    learning_rate = 2e-5
+    lambda_corpus = 1e-3
+    learning_rate = 4e-5
 
     # 1. Define our SparseEncoder model
     model = SparseEncoder(
@@ -39,15 +41,15 @@ def main():
         model_card_data=SparseEncoderModelCardData(
             language="en",
             license="apache-2.0",
-            model_name="splade-distilbert-base-uncased trained on Quora Duplicates Questions",
+            model_name="splade-distilbert-base-uncased trained on MS MARCO triplets",
         ),
     )
     model.max_seq_length = 256  # Set the max sequence length to 256 for the training
     logging.info("Model max length: %s", model.max_seq_length)
 
     # 2. Load the MS MARCO dataset: https://huggingface.co/datasets/sentence-transformers/msmarco-bm25
-    logging.info("Read the MS MARCO training dataset")
-    full_dataset = load_dataset("sentence-transformers/msmarco-bm25", "triplet", split="train").select(range(100000))
+    logging.info("Read the MS MARCO training dataset")  # select 100000 randome samples
+    full_dataset = load_dataset("sentence-transformers/msmarco-bm25", "triplet", split="train").select(range(100_000))
     dataset_dict = full_dataset.train_test_split(test_size=1_000, seed=12)
     train_dataset = dataset_dict["train"]
     eval_dataset = dataset_dict["test"]
@@ -70,7 +72,7 @@ def main():
     # 5. Define the training arguments
     short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
     run_name = f"splade-{short_model_name}-msmarco-mrl"
-    args = SparseEncoderTrainingArguments(
+    training_args = SparseEncoderTrainingArguments(
         # Required parameter:
         output_dir=f"models/{run_name}",
         # Optional training parameters:
@@ -78,15 +80,16 @@ def main():
         per_device_train_batch_size=train_batch_size,
         per_device_eval_batch_size=train_batch_size,
         learning_rate=learning_rate,
-        load_best_model_at_end=True,
-        metric_for_best_model="eval_NanoBEIR_mean_dot_ndcg@10",
         fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
         bf16=True,  # Set to True if you have a GPU that supports BF16
+        batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_NanoBEIR_mean_dot_ndcg@10",
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
-        eval_steps=1650,
+        eval_steps=1235,
         save_strategy="steps",
-        save_steps=1650,
+        save_steps=1235,
         save_total_limit=2,
         logging_steps=200,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
@@ -96,7 +99,7 @@ def main():
     # 6. Create the trainer & start training
     trainer = SparseEncoderTrainer(
         model=model,
-        args=args,
+        args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         loss=loss,
