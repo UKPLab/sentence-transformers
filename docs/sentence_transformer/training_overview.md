@@ -435,16 +435,16 @@ The :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` is where 
         )
     )
 
-    # 3. Load a dataset to finetune on
+    # 2. Load a dataset to finetune on
     dataset = load_dataset("sentence-transformers/all-nli", "triplet")
     train_dataset = dataset["train"].select(range(100_000))
     eval_dataset = dataset["dev"]
     test_dataset = dataset["test"]
 
-    # 4. Define a loss function
+    # 3. Define a loss function
     loss = MultipleNegativesRankingLoss(model)
 
-    # 5. (Optional) Specify training arguments
+    # 4. (Optional) Specify training arguments
     args = SentenceTransformerTrainingArguments(
         # Required parameter:
         output_dir="models/mpnet-base-all-nli-triplet",
@@ -467,7 +467,7 @@ The :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` is where 
         run_name="mpnet-base-all-nli-triplet",  # Will be used in W&B if `wandb` is installed
     )
 
-    # 6. (Optional) Create an evaluator & evaluate the base model
+    # 5. (Optional) Create an evaluator & evaluate the base model
     dev_evaluator = TripletEvaluator(
         anchors=eval_dataset["anchor"],
         positives=eval_dataset["positive"],
@@ -476,7 +476,7 @@ The :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` is where 
     )
     dev_evaluator(model)
 
-    # 7. Create a trainer & train
+    # 6. Create a trainer & train
     trainer = SentenceTransformerTrainer(
         model=model,
         args=args,
@@ -496,10 +496,10 @@ The :class:`~sentence_transformers.trainer.SentenceTransformerTrainer` is where 
     )
     test_evaluator(model)
 
-    # 8. Save the trained model
+    # 7. Save the trained model
     model.save_pretrained("models/mpnet-base-all-nli-triplet/final")
     
-    # 9. (Optional) Push it to the Hugging Face Hub
+    # 8. (Optional) Push it to the Hugging Face Hub
     model.push_to_hub("mpnet-base-all-nli-triplet")
 
 ```
