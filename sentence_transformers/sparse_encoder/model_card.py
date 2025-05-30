@@ -106,8 +106,8 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
         model_type += ["Sparse Encoder"]
         self.model_type = " ".join(model_type)
 
-    def tokenize(self, text: str | list[str]) -> dict[str, Any]:
-        return dict(self.model.tokenizer(text, padding=True, truncation=True, return_tensors="pt"))
+    def tokenize(self, text: str | list[str], **kwargs) -> dict[str, Any]:
+        return self.model.tokenize(text, **kwargs)
 
     def get_model_specific_metadata(self) -> dict[str, Any]:
         similarity_fn_name = "Dot Product"

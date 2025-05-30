@@ -31,7 +31,7 @@ queries = dataset["query"][:2]
 # 3. Load the model
 model_id = "opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill"
 doc_encoder = MLMTransformer(model_id)
-asym = models.Asym(
+asym = models.Router(
     {
         "query": [
             IDF.from_json(

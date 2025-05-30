@@ -186,7 +186,7 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
         default=MultiDatasetBatchSamplers.PROPORTIONAL, metadata={"help": "The multi-dataset batch sampler to use."}
     )
     router_mapping: Optional[dict[str, str]] = field(  # noqa: UP007
-        default=None,
+        default_factory=dict,
         metadata={
             "help": 'A mapping of dataset names to Router routes, like "query" or "document". '
             "Either 1) a mapping of dataset names to routes for single-dataset training/evaluation, or 2) a mapping "

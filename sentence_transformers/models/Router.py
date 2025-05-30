@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class Router(InputModule, nn.Sequential):
     forward_kwargs = {"task_type"}
+    config_keys: list[str] = ["default_route", "allow_empty_key"]
 
     def __init__(
         self, sub_modules: dict[str, list[Module]], default_route: str | None = None, allow_empty_key: bool = True
@@ -54,6 +55,7 @@ class Router(InputModule, nn.Sequential):
             allow_empty_key: If True, allows the default route to be set to the first key in `sub_modules` if
                 ``default_route`` is None. Defaults to True.
         """
+        # TODO: What's a good default route? How about if we have query-document models?
         self.sub_modules = sub_modules
         if self.sub_modules is None or len(self.sub_modules) == 0:
             raise ValueError("The routes dictionary cannot be empty.")
@@ -65,6 +67,7 @@ class Router(InputModule, nn.Sequential):
         if allow_empty_key and default_route is None:
             default_route = next(iter(sub_modules.keys()))
         self.default_route = default_route
+        self.allow_empty_key = allow_empty_key
 
         ordered_dict = OrderedDict()
         for name, models in sub_modules.items():
@@ -89,14 +92,16 @@ class Router(InputModule, nn.Sequential):
             )
 
         # TODO: For **kwargs, we need all kwargs passed from the ST, probably
+        print("Forward:", task_type)
         for module in self.sub_modules[task_type]:
             features = module(features, **kwargs)
         return features
 
     def get_sentence_embedding_dimension(self) -> int:
-        for name in self.sub_modules:
-            if hasattr(self.sub_modules[name][0], "get_sentence_embedding_dimension"):
-                return self.sub_modules[name][0].get_sentence_embedding_dimension()
+        for sub_modules in self.sub_modules.values():
+            for module in reversed(sub_modules):
+                if hasattr(module, "get_sentence_embedding_dimension"):
+                    return module.get_sentence_embedding_dimension()
         return None
 
     def save(self, output_path):
@@ -104,28 +109,25 @@ class Router(InputModule, nn.Sequential):
         model_types = {}
         model_structure = {}
 
-        block_counts = {key: 0 for key in self.sub_modules.keys()}
         for name, models in self.sub_modules.items():
             model_structure[name] = []
-            for model in models:
-                # Use block count instead of random id
-                model_id = f"{name}_{block_counts[name]}_{type(model).__name__}"
+            for module_idx, model in enumerate(models):
+                model_id = f"{name}_{module_idx}_{type(model).__name__}"
                 model_lookup[model_id] = model
                 model_types[model_id] = type(model).__module__
                 model_structure[name].append(model_id)
-                block_counts[name] += 1
 
         for model_id, model in model_lookup.items():
             model_path = os.path.join(output_path, str(model_id))
             os.makedirs(model_path, exist_ok=True)
             model.save(model_path)
 
-        with open(os.path.join(output_path, "config.json"), "w", encoding="utf8") as fOut:
+        with open(os.path.join(output_path, self.config_file_name), "w", encoding="utf8") as fOut:
             json.dump(
                 {
                     "types": model_types,
                     "structure": model_structure,
-                    "parameters": {"default_route": self.default_route},
+                    "parameters": self.get_config_dict(),
                 },
                 fOut,
                 indent=2,
@@ -148,6 +150,7 @@ class Router(InputModule, nn.Sequential):
                 f"No route found for task type '{task_type}'. Available routes: {list(self.sub_modules.keys())}"
             )
 
+        print("Tokenize:", task_type)
         input_module = self.sub_modules[task_type][0]
         tokenized = input_module.tokenize(texts, **kwargs)
         tokenized["task_type"] = task_type
@@ -244,7 +247,7 @@ if __name__ == "__main__":
     from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
 
     doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill")
-    asym = models.Asym(
+    asym = models.Router(
         {
             "query": [
                 IDF.from_json(
@@ -321,7 +324,7 @@ if __name__ == "__main__":
     doc_encoder = MLMTransformer("naver/efficient-splade-VI-BT-large-doc")
     query_encoder = MLMTransformer("naver/efficient-splade-VI-BT-large-query")
 
-    asym = models.Asym(
+    asym = models.Router(
         {
             "query": [
                 query_encoder,

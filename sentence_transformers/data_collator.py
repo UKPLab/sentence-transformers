@@ -24,6 +24,11 @@ class SentenceTransformerDataCollator:
 
     tokenize_fn: Callable
     valid_label_columns: list[str] = field(default_factory=lambda: ["label", "score"])
+    router_mapping: dict[str, str] | dict[str, dict[str, str]] | None = field(default_factory=dict, repr=False)
+    prompts: dict[str, str] | dict[str, dict[str, str]] | None = field(default_factory=dict, repr=False)
+    include_prompt_lengths: bool = field(default=False, repr=False)  # TODO: Figure out how to properly set this
+
+    _prompt_length_mapping: dict[str, int] = field(default_factory=dict, init=False, repr=False)
     _warned_columns: set[tuple[str]] = field(default_factory=set, init=False, repr=False)
 
     def __call__(self, features: list[dict[str, Any]]) -> dict[str, torch.Tensor]:
@@ -46,22 +51,79 @@ class SentenceTransformerDataCollator:
                 column_names.remove(label_column)
                 break
 
+        router_mapping = self.router_mapping
+        # If the router_mapping is a nested dict, then the outer keys are the column names, and we should
+        # grab the inner mapping for the specific dataset if it exists.
+        if (
+            router_mapping
+            and isinstance(router_mapping, dict)
+            and isinstance(next(iter(router_mapping.values())), dict)
+        ):
+            if "dataset_name" in batch and batch["dataset_name"] in router_mapping:
+                # Use the mapping for the specific dataset
+                router_mapping = router_mapping[batch["dataset_name"]]
+            else:
+                router_mapping = {}
+
+        prompts = self.prompts
+        if prompts and isinstance(prompts, dict):
+            # If the prompts are a mapping, we should check if the outer keys are dataset names.
+            is_multi_dataset = "dataset_name" in batch
+            if is_multi_dataset and batch["dataset_name"] in prompts:
+                # Use the prompts for the specific dataset
+                prompts = prompts[batch["dataset_name"]]
+            elif isinstance(next(iter(prompts.values())), dict):
+                # If the prompts are a nested dictionary, but we are not in a multi-dataset setting,
+                # we should raise an error. If we are in a multi-dataset setting, but this dataset
+                # does not have prompts, we use an empty dictionary to denote no prompt.
+                if not is_multi_dataset:
+                    raise ValueError(
+                        "The prompts provided to the trainer are a nested dictionary. In this setting, the first "
+                        "level of the dictionary should map to dataset names and the second level to column names. "
+                        "However, as the provided dataset is a not a DatasetDict, no dataset names can be inferred. "
+                        f"The keys to the provided prompts dictionary are {list(prompts.keys())!r}"
+                    )
+                else:
+                    prompts = {}
+
         for column_name in column_names:
-            # If the prompt length has been set, we should add it to the batch
-            if column_name.endswith("_prompt_length") and column_name[: -len("_prompt_length")] in column_names:
-                batch[column_name] = torch.tensor([row[column_name] for row in features], dtype=torch.int)
-                continue
+            # Users can specify a router_mapping via the training arguments, which maps column names to "task types",
+            # useful for the Router module (among others). This has to be provided to the tokenization function.
+            task_type = router_mapping.get(column_name, None)
 
-            # If the task_type has been set for a column, we should add it to the batch
-            if column_name.endswith("_task_type") and column_name[: -len("_task_type")] in column_names:
-                batch[column_name] = features[0][column_name]
-                continue
+            # Get the string prompt for the column, if it exists.
+            prompt = None
+            if isinstance(prompts, str):
+                prompt = prompts
+            elif isinstance(prompts, dict) and column_name in prompts:
+                prompt = prompts[column_name]
 
-            tokenized = self.tokenize_fn([row[column_name] for row in features])
+            # If a prompt is provided, we prepend it to the column values. Some Pooling setups require removing the
+            # prompt tokens from the pooled embeddings, so we also store the prompt length which can be used for that.
+            if prompt:
+                if self.include_prompt_lengths:
+                    prompt_length = self._get_prompt_length(prompt, task_type=task_type)
+                    batch[f"{column_name}_prompt_length"] = torch.tensor(
+                        [prompt_length] * len(features), dtype=torch.int
+                    )
+                inputs = [prompt + row[column_name] for row in features]
+            else:
+                inputs = [row[column_name] for row in features]
+
+            tokenized = self.tokenize_fn(inputs, task_type=task_type)
             for key, value in tokenized.items():
                 batch[f"{column_name}_{key}"] = value
 
         return batch
+
+    def _get_prompt_length(self, prompt: str, task_type: str | None = None) -> int:
+        try:
+            return self._prompt_length_mapping[(prompt, task_type)]
+        except KeyError:
+            # TODO: I think the -1 might be too naive, it depends on the tokenizer BOS/EOS
+            prompt_length = self.tokenize_fn([prompt], task_type=task_type)["input_ids"].shape[-1] - 1
+            self._prompt_length_mapping[(prompt, task_type)] = prompt_length
+            return prompt_length
 
     def maybe_warn_about_column_order(self, column_names: list[str]) -> None:
         """Warn the user if the columns are likely not in the expected order."""

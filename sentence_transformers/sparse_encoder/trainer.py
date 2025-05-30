@@ -169,7 +169,9 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
             tokenizer = model.tokenizer
 
         if data_collator is None:
-            data_collator = SparseEncoderDataCollator(tokenize_fn=model.tokenize)
+            data_collator = SparseEncoderDataCollator(
+                tokenize_fn=model.tokenize, router_mapping=args.router_mapping, prompts=args.prompts
+            )
 
         for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
             if isinstance(dataset, IterableDataset) and dataset.column_names is None:
@@ -240,7 +242,8 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         # to avoid having to specify it in the data collator or model's forward
         self.can_return_loss = True
 
-        self._prompt_length_mapping = {}
+        if isinstance(self.data_collator, SparseEncoderDataCollator):
+            self.data_collator.include_prompt_lengths = self._include_prompt_length()
 
         self.model: SparseEncoder
         self.args: SparseEncoderTrainingArguments

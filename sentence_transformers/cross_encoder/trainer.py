@@ -272,12 +272,12 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
         self.evaluator = evaluator
 
         if self.train_dataset is not None:
-            self.train_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                train_dataset, args.prompts, dataset_name="train"
+            self.train_dataset = self.preprocess_dataset(
+                train_dataset, prompts=args.prompts, router_mapping=args.router_mapping, dataset_name="train"
             )
         if self.eval_dataset is not None:
-            self.eval_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                eval_dataset, args.prompts, dataset_name="eval"
+            self.eval_dataset = self.preprocess_dataset(
+                eval_dataset, prompts=args.prompts, router_mapping=args.router_mapping, dataset_name="eval"
             )
         self.add_model_card_callback(default_args_dict)
 

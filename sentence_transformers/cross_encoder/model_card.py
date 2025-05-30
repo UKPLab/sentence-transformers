@@ -141,7 +141,7 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
         if self.pipeline_tag is None:
             self.pipeline_tag = "text-ranking" if model.num_labels == 1 else "text-classification"
 
-    def tokenize(self, text: str | list[str]) -> dict[str, Any]:
+    def tokenize(self, text: str | list[str], **kwargs) -> dict[str, Any]:
         return self.model.tokenizer(text)
 
     def get_model_specific_metadata(self) -> dict[str, Any]:

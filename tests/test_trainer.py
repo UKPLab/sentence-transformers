@@ -455,23 +455,22 @@ def test_trainer_prompts(
         args = SentenceTransformerTrainingArguments(
             output_dir=str(temp_dir),
             prompts=prompts,
-            max_steps=2,
-            eval_steps=2,
+            max_steps=4 if train_dict else 2,
+            eval_steps=4 if train_dict else 2,
             eval_strategy="steps",
             per_device_train_batch_size=1,
             per_device_eval_batch_size=1,
             report_to=["none"],
         )
-        with context:
-            trainer = SentenceTransformerTrainer(
-                model=model,
-                args=args,
-                train_dataset=train_dataset,
-                eval_dataset=eval_dataset,
-                loss=loss,
-            )
-        if not isinstance(context, nullcontext):
-            return
+        trainer = SentenceTransformerTrainer(
+            model=model,
+            args=args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            loss=loss,
+        )
+
+        tracked_texts.clear()
 
         datacollator_keys = set()
         old_compute_loss = trainer.compute_loss
@@ -482,7 +481,11 @@ def test_trainer_prompts(
             return loss
 
         trainer.compute_loss = compute_loss_tracker
-        trainer.train()
+        with context:
+            trainer.train()
+
+        if not isinstance(context, nullcontext):
+            return
 
     # In this one edge case, the prompts won't be used because the datasets aren't dictionaries, so the prompts
     # are seen as column names & ignored as they don't exist.
@@ -497,8 +500,8 @@ def test_trainer_prompts(
     else:
         assert "prompt_length" not in tracked_forward_keys
 
-    # We only need the dataset_name if the loss requires it
-    if loss_dict:
+    # We only need the dataset_name if the loss requires it, or the prompts are a nested dictionary
+    if (train_dict or eval_dict) and (loss_dict or (isinstance(prompts, dict))):
         assert "dataset_name" in datacollator_keys
     else:
         assert "dataset_name" not in datacollator_keys

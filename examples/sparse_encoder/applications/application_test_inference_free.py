@@ -4,7 +4,7 @@ from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, Spl
 
 print("# ------------------------------------------example with v2 distill-----------------------------------------")
 doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill")
-asym = models.Asym(
+asym = models.Router(
     {
         "query": [
             IDF.from_json(
@@ -13,7 +13,7 @@ asym = models.Asym(
                 frozen=True,
             ),
         ],
-        "doc": [
+        "document": [
             doc_encoder,
             SpladePooling("max"),
         ],
@@ -29,7 +29,7 @@ query = "What's the weather in ny now?"
 document = "Currently New York is rainy."
 
 query_embed = model.encode([{"query": query}])
-document_embed = model.encode([{"doc": document}])
+document_embed = model.encode([{"document": document}])
 
 sim = model.similarity(query_embed, document_embed)
 print(f"Similarity: {sim}")
@@ -59,7 +59,7 @@ Token: now, Query score: 3.5895, Document score: 0.7473
 
 print("# -----------------------------------------example with v3 distill-----------------------------------------")
 doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill")
-asym = models.Asym(
+asym = models.Router(
     {
         "query": [
             IDF.from_json(
@@ -68,7 +68,7 @@ asym = models.Asym(
                 frozen=True,
             ),
         ],
-        "doc": [
+        "document": [
             doc_encoder,
             SpladePooling(pooling_strategy="max", activation_function="log1p_relu"),
         ],
@@ -84,7 +84,7 @@ query = "What's the weather in ny now?"
 document = "Currently New York is rainy."
 
 query_embed = model.encode([{"query": query}])
-document_embed = model.encode([{"doc": document}])
+document_embed = model.encode([{"document": document}])
 
 sim = model.similarity(query_embed, document_embed)
 print(f"Similarity: {sim}")
