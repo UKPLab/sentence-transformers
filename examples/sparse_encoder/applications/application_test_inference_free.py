@@ -1,35 +1,33 @@
-from sentence_transformers import models
+from sentence_transformers.models import Router
 from sentence_transformers.sparse_encoder import SparseEncoder
 from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
 
 print("# ------------------------------------------example with v2 distill-----------------------------------------")
 doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill")
-asym = models.Router(
-    {
-        "query": [
-            IDF.from_json(
-                "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill",
-                tokenizer=doc_encoder.tokenizer,
-                frozen=True,
-            ),
-        ],
-        "document": [
-            doc_encoder,
-            SpladePooling("max"),
-        ],
-    }
+router = Router.for_query_document(
+    query_modules=[
+        IDF.from_json(
+            "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill",
+            tokenizer=doc_encoder.tokenizer,
+            frozen=True,
+        ),
+    ],
+    document_modules=[
+        doc_encoder,
+        SpladePooling("max"),
+    ],
 )
 
 model = SparseEncoder(
-    modules=[asym],
+    modules=[router],
     similarity_fn_name="dot",
 )
 
 query = "What's the weather in ny now?"
 document = "Currently New York is rainy."
 
-query_embed = model.encode([{"query": query}])
-document_embed = model.encode([{"document": document}])
+query_embed = model.encode_query(query)
+document_embed = model.encode_document(document)
 
 sim = model.similarity(query_embed, document_embed)
 print(f"Similarity: {sim}")
@@ -38,8 +36,8 @@ print(f"Similarity: {sim}")
 top_k = 3
 print(f"\nTop tokens {top_k} for each text:")
 
-decoded_query = model.decode(query_embed[0], top_k=top_k)
-decoded_document = model.decode(document_embed[0])
+decoded_query = model.decode(query_embed, top_k=top_k)
+decoded_document = model.decode(document_embed)
 
 for i in range(top_k):
     query_token, query_score = decoded_query[i]
@@ -59,32 +57,30 @@ Token: now, Query score: 3.5895, Document score: 0.7473
 
 print("# -----------------------------------------example with v3 distill-----------------------------------------")
 doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill")
-asym = models.Router(
-    {
-        "query": [
-            IDF.from_json(
-                "opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill",
-                tokenizer=doc_encoder.tokenizer,
-                frozen=True,
-            ),
-        ],
-        "document": [
-            doc_encoder,
-            SpladePooling(pooling_strategy="max", activation_function="log1p_relu"),
-        ],
-    }
+router = Router.for_query_document(
+    query_modules=[
+        IDF.from_json(
+            "opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill",
+            tokenizer=doc_encoder.tokenizer,
+            frozen=True,
+        ),
+    ],
+    document_modules=[
+        doc_encoder,
+        SpladePooling(pooling_strategy="max", activation_function="log1p_relu"),
+    ],
 )
 
 model = SparseEncoder(
-    modules=[asym],
+    modules=[router],
     similarity_fn_name="dot",
 )
 
 query = "What's the weather in ny now?"
 document = "Currently New York is rainy."
 
-query_embed = model.encode([{"query": query}])
-document_embed = model.encode([{"document": document}])
+query_embed = model.encode_query(query)
+document_embed = model.encode_document(document)
 
 sim = model.similarity(query_embed, document_embed)
 print(f"Similarity: {sim}")
@@ -93,8 +89,8 @@ print(f"Similarity: {sim}")
 top_k = 10
 print(f"\nTop tokens {top_k} for each text:")
 
-decoded_query = model.decode(query_embed[0], top_k=top_k)
-decoded_document = model.decode(document_embed[0])
+decoded_query = model.decode(query_embed, top_k=top_k)
+decoded_document = model.decode(document_embed)
 
 for i in range(min(top_k, len(decoded_query))):
     query_token, query_score = decoded_query[i]

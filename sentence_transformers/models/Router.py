@@ -11,6 +11,7 @@ except ImportError:
     from typing_extensions import Self
 
 from torch import Tensor, nn
+from transformers.utils.logging import warning_once
 
 from sentence_transformers.models.InputModule import InputModule
 from sentence_transformers.models.Module import Module
@@ -41,11 +42,89 @@ class Router(InputModule, nn.Sequential):
         Example:
             ::
 
-                TODO
+                from sentence_transformers import SentenceTransformer
+                from sentence_transformers.models import Router, Normalize
+
+                # Use a regular SentenceTransformer for the document embeddings, and a static embedding model for the query embeddings
+                document_embedder = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
+                query_embedder = SentenceTransformer("sentence-transformers/static-retrieval-mrl-en-v1")
+                router = Router.for_query_document(
+                    query_modules=list(query_embedder.children()),
+                    document_modules=list(document_embedder.children()),
+                )
+                normalize = Normalize()
+
+                # Create an asymmetric model with different encoders for queries and documents
+                model = SentenceTransformer(
+                    modules=[router, normalize],
+                )
+
+                # ... requires more training to align the vector spaces
+
+                # Use the query & document routes
+                query_embedding = model.encode_query("What is the capital of France?")
+                document_embedding = model.encode_document("Paris is the capital of France.")
+
+            ::
+
+                from sentence_transformers.models import Router
+                from sentence_transformers.sparse_encoder import SparseEncoder
+                from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
+
+                # Load an asymmetric model with different encoders for queries and documents
+                doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill")
+                router = Router.for_query_document(
+                    query_modules=[
+                        IDF.from_json(
+                            "opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill",
+                            tokenizer=doc_encoder.tokenizer,
+                            frozen=True,
+                        ),
+                    ],
+                    document_modules=[
+                        doc_encoder,
+                        SpladePooling(pooling_strategy="max", activation_function="log1p_relu"),
+                    ],
+                )
+
+                model = SparseEncoder(modules=[router], similarity_fn_name="dot")
+
+                query = "What's the weather in ny now?"
+                document = "Currently New York is rainy."
+
+                query_embed = model.encode_query(query)
+                document_embed = model.encode_document(document)
+
+                sim = model.similarity(query_embed, document_embed)
+                print(f"Similarity: {sim}")
+
+                # Visualize top tokens for each text
+                top_k = 10
+                print(f"Top tokens {top_k} for each text:")
+
+                decoded_query = model.decode(query_embed, top_k=top_k)
+                decoded_document = model.decode(document_embed)
+
+                for i in range(min(top_k, len(decoded_query))):
+                    query_token, query_score = decoded_query[i]
+                    doc_score = next((score for token, score in decoded_document if token == query_token), 0)
+                    if doc_score != 0:
+                        print(f"Token: {query_token}, Query score: {query_score:.4f}, Document score: {doc_score:.4f}")
+
+                '''
+                Similarity: tensor([[11.1105]], device='cuda:0')
+                Top tokens 10 for each text:
+                Token: ny, Query score: 5.7729, Document score: 0.8049
+                Token: weather, Query score: 4.5684, Document score: 0.9710
+                Token: now, Query score: 3.5895, Document score: 0.4720
+                Token: ?, Query score: 3.3313, Document score: 0.0286
+                Token: what, Query score: 2.7699, Document score: 0.0787
+                Token: in, Query score: 0.4989, Document score: 0.0417
+                '''
 
         Note:
             These models are not necessarily stronger than non-asymmetric models. Rudimentary experiments indicate
-            that non-Asym models perform better in many cases.
+            that non-Router models perform better in many cases.
 
         Args:
             sub_modules: Mapping of route keys to lists of modules. Each key corresponds to a specific task type,
@@ -56,7 +135,6 @@ class Router(InputModule, nn.Sequential):
             allow_empty_key: If True, allows the default route to be set to the first key in `sub_modules` if
                 ``default_route`` is None. Defaults to True.
         """
-        # TODO: What's a good default route? How about if we have query-document models?
         self.sub_modules = sub_modules
         if self.sub_modules is None or len(self.sub_modules) == 0:
             raise ValueError("The routes dictionary cannot be empty.")
@@ -79,6 +157,36 @@ class Router(InputModule, nn.Sequential):
                 ordered_dict[f"{name}_{idx}_{type(model).__name__}"] = model
 
         super().__init__(ordered_dict)
+
+    @classmethod
+    def for_query_document(
+        cls,
+        query_modules: list[Module],
+        document_modules: list[Module],
+        default_route: str | None = None,
+        allow_empty_key: bool = True,
+    ) -> Self:
+        """
+        Creates a Router model specifically for query and document modules, allowing convenient usage via `model.encode_query`
+        and `model.encode_document`.
+
+        Args:
+            query_modules: List of modules to be applied for the "query" task type.
+            document_modules: List of modules to be applied for the "document" task type.
+            default_route: The default route to use if no task type is specified. If None, an exception will be thrown
+                if no task type is specified. If ``allow_empty_key`` is True, the first key in sub_modules will be used as
+                the default route. Defaults to None.
+            allow_empty_key: If True, allows the default route to be set to the first key in `sub_modules` if
+                ``default_route`` is None. Defaults to True.
+
+        Returns:
+            Router: An instance of the Router model with the specified query and document modules.
+        """
+        return cls(
+            sub_modules={"query": query_modules, "document": document_modules},
+            default_route=default_route or "document",
+            allow_empty_key=allow_empty_key,
+        )
 
     def forward(self, features: dict[str, Tensor], task_type: str | None = None, **kwargs) -> dict[str, Tensor]:
         if task_type is None:
@@ -226,8 +334,7 @@ class Router(InputModule, nn.Sequential):
             # Only one unique max_seq_length
             return max_seq_lengths.pop()
         else:
-            # Multiple different max_seq_lengths, log warning and return max value
-            logger.warning(f"Different max_seq_lengths detected: {max_seq_lengths}. Using the maximum value.")
+            warning_once(f"Different max_seq_lengths detected: {max_seq_lengths}. Using the maximum value.")
             return max(max_seq_lengths)
 
     @max_seq_length.setter

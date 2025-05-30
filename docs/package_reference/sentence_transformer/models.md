@@ -6,20 +6,22 @@
 .. autoclass:: sentence_transformers.models.Transformer
 .. autoclass:: sentence_transformers.models.Pooling
 .. autoclass:: sentence_transformers.models.Dense
+.. autoclass:: sentence_transformers.models.Normalize
+.. autoclass:: sentence_transformers.models.Router
+    :members: for_query_document
+.. autoclass:: sentence_transformers.models.StaticEmbedding
+    :members: from_model2vec, from_distillation
 ```
 
 ## Further Modules
 ```{eval-rst}
-.. autoclass:: sentence_transformers.models.Asym
 .. autoclass:: sentence_transformers.models.BoW
 .. autoclass:: sentence_transformers.models.CNN
 .. autoclass:: sentence_transformers.models.LSTM
-.. autoclass:: sentence_transformers.models.Normalize
-.. autoclass:: sentence_transformers.models.StaticEmbedding
-    :members: from_model2vec, from_distillation
 .. autoclass:: sentence_transformers.models.WeightedLayerPooling
 .. autoclass:: sentence_transformers.models.WordEmbeddings
 .. autoclass:: sentence_transformers.models.WordWeights
+.. autoclass:: sentence_transformers.models.Asym
 ```
 
 ## Base Modules
