@@ -546,3 +546,66 @@ def test_router_load_with_config(legacy_config: bool, module_in_root: bool, stat
         # Check that the loaded router has the same structure
         assert set(loaded_router.sub_modules.keys()) == set(router.sub_modules.keys())
         assert loaded_router.default_route == router.default_route
+
+
+def test_router_as_middle_module(static_embedding_model):
+    """Test SentenceTransformer with multiple modules including a Router."""
+
+    class InvertMockModule(MockModule):
+        def forward(self, features):
+            features["sentence_embedding"] = -features["sentence_embedding"]
+            return features
+
+    # Create a Router with different module configurations for each route
+    router = Router(
+        {
+            "query": [InvertMockModule()],  # Simple route with single module
+            "document": [InvertMockModule(), InvertMockModule()],  # Route with two modules
+        }
+    )
+
+    normalize = Normalize()
+
+    # Create a SentenceTransformer with static_embedding followed by router
+    model = SentenceTransformer(modules=[static_embedding_model, router, normalize])
+
+    # Create tracking dicts to monitor module usage
+    tracking_dict = TaskTypesTrackingDict(router.sub_modules)
+    router.sub_modules = tracking_dict
+
+    # Test texts
+    query_texts = ["What is the meaning of life?"]
+    doc_texts = ["The meaning of life is 42."]
+
+    # Test encode_query
+    model.encode_query(query_texts)
+    assert "query" in tracking_dict.task_types
+    assert tracking_dict.task_types.count("query") == 1
+    assert "document" not in tracking_dict.task_types
+    tracking_dict.task_types.clear()
+
+    # Test encode_document
+    model.encode_document(doc_texts)
+    assert "document" in tracking_dict.task_types
+    assert tracking_dict.task_types.count("document") == 1
+    assert "query" not in tracking_dict.task_types
+    tracking_dict.task_types.clear()
+
+    # Test that the model processes through all modules (static_embedding + router)
+    # by checking the embedding dimensions match what we expect
+    query_embedding = model.encode_query(query_texts)
+    assert query_embedding.shape[1] == static_embedding_model.get_sentence_embedding_dimension()
+
+    doc_embedding = model.encode_document(doc_texts)
+    assert doc_embedding.shape[1] == static_embedding_model.get_sentence_embedding_dimension()
+
+    # Test that default encode uses the default route (query)
+    default_embedding = model.encode(query_texts)
+    query_embedding_direct = model.encode_query(query_texts)
+    assert (default_embedding == query_embedding_direct).all()
+
+    # Test that using the same text for both query and document gives exactly opposite embeddings
+    # because of the InvertMockModule applied once or twice
+    query_embedding = model.encode_query(query_texts, convert_to_tensor=True)
+    doc_embedding = model.encode_document(query_texts, convert_to_tensor=True)
+    assert torch.equal(query_embedding, -doc_embedding)
