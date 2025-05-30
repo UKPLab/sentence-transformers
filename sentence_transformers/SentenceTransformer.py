@@ -34,6 +34,7 @@ from transformers.dynamic_module_utils import get_class_from_dynamic_module, get
 from typing_extensions import deprecated
 
 from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
+from sentence_transformers.models import Router
 from sentence_transformers.models.Module import Module
 from sentence_transformers.similarity_functions import SimilarityFunction
 
@@ -858,20 +859,19 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         return all_embeddings
 
     def forward(self, input: dict[str, Tensor], **kwargs) -> dict[str, Tensor]:
-        # TODO: If we're using Asym/Router, we might want to pass all kwargs to it
-        if self.module_kwargs is None and not (hasattr(module, "forward_kwargs") for module in self.modules()):
-            return super().forward(input)
-
         for module_name, module in self.named_children():
-            if self.module_kwargs is not None:
-                module_kwarg_keys = self.module_kwargs.get(module_name, [])
+            module_kwargs = {}
+            if isinstance(module, Router):
+                module_kwargs = kwargs
             else:
                 module_kwarg_keys = []
-            module_kwargs = {
-                key: value
-                for key, value in kwargs.items()
-                if key in module_kwarg_keys or hasattr(module, "forward_kwargs") and key in module.forward_kwargs
-            }
+                if self.module_kwargs is not None:
+                    module_kwarg_keys = self.module_kwargs.get(module_name, [])
+                module_kwargs = {
+                    key: value
+                    for key, value in kwargs.items()
+                    if key in module_kwarg_keys or (hasattr(module, "forward_kwargs") and key in module.forward_kwargs)
+                }
             input = module(input, **module_kwargs)
         return input
 

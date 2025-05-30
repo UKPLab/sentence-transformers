@@ -7,6 +7,7 @@ import tempfile
 from copy import deepcopy
 
 import pytest
+import torch
 from datasets import Dataset
 
 from sentence_transformers import (
@@ -229,6 +230,27 @@ def test_router_backwards_compatibility(static_embedding_model):
     tracking_dict.task_types = []
 
 
+@pytest.mark.parametrize(
+    ("module_names", "module_attributes"),
+    [
+        (
+            [
+                "sentence_transformers.models.Asym",
+                "sentence_transformers.models.Router",
+                "sentence_transformers.models",
+            ],
+            [Asym, Router],
+        ),
+    ],
+)
+def test_asym_import(module_names: list[str], module_attributes: list[object]) -> None:
+    for module_name in module_names:
+        module = importlib.import_module(module_name)
+        for module_attribute in module_attributes:
+            obj = getattr(module, module_attribute.__name__, None)
+            assert obj is module_attribute
+
+
 def test_router_save_load(static_embedding_model):
     """Test saving and loading a SentenceTransformer model with Router."""
     # Create a Router with StaticEmbedding modules
@@ -393,22 +415,86 @@ def test_router_with_trainer(static_embedding_model):
     assert tracking_dict.task_types == ["query", "document"] * 6
 
 
-@pytest.mark.parametrize(
-    ("module_names", "module_attributes"),
-    [
-        (
-            [
-                "sentence_transformers.models.Asym",
-                "sentence_transformers.models.Router",
-                "sentence_transformers.models",
-            ],
-            [Asym, Router],
-        ),
-    ],
-)
-def test_asym_import(module_names: list[str], module_attributes: list[object]) -> None:
-    for module_name in module_names:
-        module = importlib.import_module(module_name)
-        for module_attribute in module_attributes:
-            obj = getattr(module, module_attribute.__name__, None)
-            assert obj is module_attribute
+def test_router_module_forward_kwargs():
+    """Test that Router's forward method passes kwargs correctly to sub-modules."""
+
+    class ExampleModuleWithForwardKwargsOne(InputModule):
+        forward_kwargs = {"one"}
+
+        def __init__(self):
+            super().__init__()
+            self.kwargs_tracker = set()
+
+        def forward(self, features, **kwargs):
+            # Just return the features for testing
+            for key in kwargs.keys():
+                self.kwargs_tracker.add(key)
+            features["sentence_embedding"] = features.get("sentence_embedding", torch.rand(1, 768))
+            return features
+
+        def tokenize(self, texts, **kwargs):
+            return {}
+
+        def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
+            pass
+
+    class ExampleModuleWithForwardKwargsTwo(ExampleModuleWithForwardKwargsOne):
+        forward_kwargs = {"two", "task_type"}
+
+    class ExampleModuleWithForwardKwargsThree(ExampleModuleWithForwardKwargsOne):
+        forward_kwargs = {"three_a", "three_b"}
+
+    module_one = ExampleModuleWithForwardKwargsOne()
+    module_two = ExampleModuleWithForwardKwargsTwo()
+    module_three = ExampleModuleWithForwardKwargsThree()
+
+    router = Router({"query": [module_one], "document": [module_two, module_three]}, allow_empty_key=False)
+    model = SentenceTransformer(modules=[router])
+
+    model.encode(
+        "Test input",
+        task_type="query",
+        one="value_one",
+        two="value_two",
+        three_a="value_three_a",
+        three_b="value_three_b",
+    )
+
+    assert module_one.kwargs_tracker == {"one"}
+    assert module_two.kwargs_tracker == set()
+    assert module_three.kwargs_tracker == set()
+    module_one.kwargs_tracker.clear()
+    module_two.kwargs_tracker.clear()
+    module_three.kwargs_tracker.clear()
+
+    model.encode(
+        "Test input",
+        task_type="document",
+        one="value_one",
+        two="value_two",
+        three_a="value_three_a",
+        three_b="value_three_b",
+    )
+
+    assert module_one.kwargs_tracker == set()
+    assert module_two.kwargs_tracker == {"two", "task_type"}
+    assert module_three.kwargs_tracker == {"three_a", "three_b"}
+    module_one.kwargs_tracker.clear()
+    module_two.kwargs_tracker.clear()
+    module_three.kwargs_tracker.clear()
+
+    model.encode("Test input", task_type="query", three_a="value_three_a")
+    assert module_one.kwargs_tracker == set()
+    assert module_two.kwargs_tracker == set()
+    assert module_three.kwargs_tracker == set()
+    module_one.kwargs_tracker.clear()
+    module_two.kwargs_tracker.clear()
+    module_three.kwargs_tracker.clear()
+
+    model.encode("Test input", task_type="document")
+    assert module_one.kwargs_tracker == set()
+    assert module_two.kwargs_tracker == {"task_type"}
+    assert module_three.kwargs_tracker == set()
+    module_one.kwargs_tracker.clear()
+    module_two.kwargs_tracker.clear()
+    module_three.kwargs_tracker.clear()

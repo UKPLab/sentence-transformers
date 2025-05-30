@@ -91,10 +91,14 @@ class Router(InputModule, nn.Sequential):
                 f"No route found for task type '{task_type}'. Available routes: {list(self.sub_modules.keys())}"
             )
 
-        # TODO: For **kwargs, we need all kwargs passed from the ST, probably
-        print("Forward:", task_type)
+        kwargs["task_type"] = task_type
         for module in self.sub_modules[task_type]:
-            features = module(features, **kwargs)
+            module_kwargs = {
+                key: value
+                for key, value in kwargs.items()
+                if hasattr(module, "forward_kwargs") and key in module.forward_kwargs
+            }
+            features = module(features, **module_kwargs)
         return features
 
     def get_sentence_embedding_dimension(self) -> int:
@@ -150,7 +154,6 @@ class Router(InputModule, nn.Sequential):
                 f"No route found for task type '{task_type}'. Available routes: {list(self.sub_modules.keys())}"
             )
 
-        print("Tokenize:", task_type)
         input_module = self.sub_modules[task_type][0]
         tokenized = input_module.tokenize(texts, **kwargs)
         tokenized["task_type"] = task_type
