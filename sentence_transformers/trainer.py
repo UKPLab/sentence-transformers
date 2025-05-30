@@ -1224,6 +1224,11 @@ class SentenceTransformerTrainer(Trainer):
                         group["params"] = [
                             p for p in group["params"] if all(p is not param for param in matching_params.values())
                         ]
+            else:
+                raise ValueError(
+                    f"No parameters found matching the pattern '{parameter_pattern}' in the model. "
+                    "Please check the pattern and ensure it matches some of the model's parameters."
+                )
 
             # Add new optimizer group with matching parameters
             # decay_parameters = self.get_decay_parameter_names(loss_model)
