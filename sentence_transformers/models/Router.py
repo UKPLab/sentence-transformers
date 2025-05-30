@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class Router(InputModule, nn.Sequential):
     forward_kwargs = {"task_type"}
     config_keys: list[str] = ["default_route", "allow_empty_key"]
+    config_file_name = "router_config.json"
 
     def __init__(
         self, sub_modules: dict[str, list[Module]], default_route: str | None = None, allow_empty_key: bool = True
@@ -118,7 +119,7 @@ class Router(InputModule, nn.Sequential):
             for module_idx, model in enumerate(models):
                 model_id = f"{name}_{module_idx}_{type(model).__name__}"
                 model_lookup[model_id] = model
-                model_types[model_id] = type(model).__module__
+                model_types[model_id] = f"{type(model).__module__}.{type(model).__name__}"
                 model_structure[name].append(model_id)
 
         for model_id, model in model_lookup.items():
@@ -134,7 +135,7 @@ class Router(InputModule, nn.Sequential):
                     "parameters": self.get_config_dict(),
                 },
                 fOut,
-                indent=2,
+                indent=4,
             )
 
     def tokenize(self, texts: list[str] | list[tuple[str, str]], task_type: str | None = None, **kwargs):
@@ -176,7 +177,12 @@ class Router(InputModule, nn.Sequential):
             "revision": revision,
             "local_files_only": local_files_only,
         }
+        # Try the official config file first, then fall back to the legacy config file
         config = cls.load_config(model_name_or_path=model_name_or_path, subfolder=subfolder, **hub_kwargs)
+        if not config:
+            config = cls.load_config(
+                model_name_or_path=model_name_or_path, config_filename="config.json", subfolder=subfolder, **hub_kwargs
+            )
         modules = {}
         for model_id, model_type in config["types"].items():
             module_class: Module = import_from_string(model_type)

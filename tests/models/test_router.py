@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import os
 import re
 import tempfile
@@ -498,3 +499,50 @@ def test_router_module_forward_kwargs():
     module_one.kwargs_tracker.clear()
     module_two.kwargs_tracker.clear()
     module_three.kwargs_tracker.clear()
+
+
+@pytest.mark.parametrize("legacy_config", [True, False])
+@pytest.mark.parametrize("module_in_root", [True, False])
+def test_router_load_with_config(legacy_config: bool, module_in_root: bool, static_embedding_model):
+    """Test that Router can be loaded from a saved directory with config file."""
+    if module_in_root and legacy_config:
+        pytest.skip("Cannot have both module in root and legacy config at the same time.")
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # Create and save a Router
+        query_module = static_embedding_model
+        doc_module = static_embedding_model
+
+        router = Router({"query": [query_module], "document": [doc_module]}, default_route="query")
+        model = SentenceTransformer(modules=[router])
+
+        model.save_pretrained(tmp_dir)
+        assert router.config_file_name == "router_config.json"
+        assert os.path.exists(os.path.join(tmp_dir, "router_config.json"))
+
+        if legacy_config:
+            # Rename the config file to legacy name
+            os.rename(os.path.join(tmp_dir, "router_config.json"), os.path.join(tmp_dir, "config.json"))
+
+        if module_in_root:
+            # Move the module to the root directory
+            for file in os.listdir(os.path.join(tmp_dir, "document_0_StaticEmbedding")):
+                source_path = os.path.join(tmp_dir, "document_0_StaticEmbedding", file)
+                dest_path = os.path.join(tmp_dir, file)
+                if os.path.isfile(source_path):
+                    os.rename(source_path, dest_path)
+
+            with open(os.path.join(tmp_dir, "router_config.json")) as f:
+                config = json.load(f)
+            config["structure"]["document"] = [""]
+            config["types"][""] = config["types"].pop("document_0_StaticEmbedding", "")
+            with open(os.path.join(tmp_dir, "router_config.json"), "w") as f:
+                json.dump(config, f, indent=4)
+
+        # Load the Router back
+        loaded_model = SentenceTransformer(tmp_dir)
+        loaded_router = loaded_model[0]
+
+        # Check that the loaded router has the same structure
+        assert set(loaded_router.sub_modules.keys()) == set(router.sub_modules.keys())
+        assert loaded_router.default_route == router.default_route
