@@ -295,9 +295,13 @@ class Router(InputModule, nn.Sequential):
         for model_id, model_type in config["types"].items():
             module_class: Module = import_from_string(model_type)
             try:
-                module = module_class.load(model_name_or_path, subfolder=model_id, **hub_kwargs, **kwargs)
+                module = module_class.load(
+                    model_name_or_path, subfolder=os.path.join(subfolder, model_id), **hub_kwargs, **kwargs
+                )
             except TypeError:
-                local_path = load_dir_path(model_name_or_path=model_name_or_path, subfolder=model_id, **hub_kwargs)
+                local_path = load_dir_path(
+                    model_name_or_path=model_name_or_path, subfolder=os.path.join(subfolder, model_id), **hub_kwargs
+                )
                 module = module_class.load(local_path)
             modules[model_id] = module
 
