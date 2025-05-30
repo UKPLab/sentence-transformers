@@ -307,6 +307,8 @@ The :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArgu
         <a href="../package_reference/sentence_transformer/training_args.html#sentence_transformers.training_args.SentenceTransformerTrainingArguments"><code>batch_sampler</code></a>
         <a href="../package_reference/sentence_transformer/training_args.html#sentence_transformers.training_args.SentenceTransformerTrainingArguments"><code>multi_dataset_batch_sampler</code></a>
         <a href="../package_reference/sentence_transformer/training_args.html#sentence_transformers.training_args.SentenceTransformerTrainingArguments"><code>prompts</code></a>
+        <a href="../package_reference/sentence_transformer/training_args.html#sentence_transformers.training_args.SentenceTransformerTrainingArguments"><code>router_mapping</code></a>
+        <a href="../package_reference/sentence_transformer/training_args.html#sentence_transformers.training_args.SentenceTransformerTrainingArguments"><code>learning_rate_mapping</code></a>
     </div>
 </div>
 <br>
