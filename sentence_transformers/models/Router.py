@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import os
 from collections import OrderedDict
 
@@ -11,13 +10,13 @@ except ImportError:
     from typing_extensions import Self
 
 from torch import Tensor, nn
-from transformers.utils.logging import warning_once
+from transformers.utils import logging
 
 from sentence_transformers.models.InputModule import InputModule
 from sentence_transformers.models.Module import Module
 from sentence_transformers.util import import_from_string, load_dir_path
 
-logger = logging.getLogger(__name__)
+logger = logging.get_logger(__name__)
 
 
 class Router(InputModule, nn.Sequential):
@@ -338,7 +337,7 @@ class Router(InputModule, nn.Sequential):
             # Only one unique max_seq_length
             return max_seq_lengths.pop()
         else:
-            warning_once(f"Different max_seq_lengths detected: {max_seq_lengths}. Using the maximum value.")
+            logger.warning_once(f"Different max_seq_lengths detected: {max_seq_lengths}. Using the maximum value.")
             return max(max_seq_lengths)
 
     @max_seq_length.setter
