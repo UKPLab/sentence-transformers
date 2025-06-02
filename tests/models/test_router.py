@@ -41,6 +41,12 @@ class MockModuleWithMaxLength(MockModule):
         self.max_seq_length = max_seq_length
 
 
+class InvertMockModule(MockModule):
+    def forward(self, features):
+        features["sentence_embedding"] = -features["sentence_embedding"]
+        return features
+
+
 # Create a custom dict subclass to track access
 class TaskTypesTrackingDict(dict):
     def __init__(self, *args, **kwargs):
@@ -551,11 +557,6 @@ def test_router_load_with_config(legacy_config: bool, module_in_root: bool, stat
 def test_router_as_middle_module(static_embedding_model):
     """Test SentenceTransformer with multiple modules including a Router."""
 
-    class InvertMockModule(MockModule):
-        def forward(self, features):
-            features["sentence_embedding"] = -features["sentence_embedding"]
-            return features
-
     # Create a Router with different module configurations for each route
     router = Router(
         {
@@ -609,3 +610,37 @@ def test_router_as_middle_module(static_embedding_model):
     query_embedding = model.encode_query(query_texts, convert_to_tensor=True)
     doc_embedding = model.encode_document(query_texts, convert_to_tensor=True)
     assert torch.equal(query_embedding, -doc_embedding)
+
+    # Also test that we can save and load the model with the Router as a middle module
+    test_texts = ["This is a test text for both query and document.", "Another test text for validation."]
+
+    # Get original embeddings
+    original_query_embedding = model.encode_query(test_texts)
+    original_doc_embedding = model.encode_document(test_texts)
+
+    # Save the model to a temporary directory
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        model_path = os.path.join(tmp_dir, "test_model")
+        model.save(model_path)
+
+        # Load the model
+        loaded_model = SentenceTransformer(model_path)
+
+        # Verify loaded model structure
+        assert len(list(loaded_model.children())) == 3
+        assert isinstance(loaded_model[1], Router)
+        loaded_router = loaded_model[1]
+        assert set(loaded_router.sub_modules.keys()) == {"query", "document"}
+
+        # Get embeddings from loaded model
+        loaded_query_embedding = loaded_model.encode_query(test_texts)
+        loaded_doc_embedding = loaded_model.encode_document(test_texts)
+
+        # Verify embeddings are the same
+        assert (original_query_embedding == loaded_query_embedding).all()
+        assert (original_doc_embedding == loaded_doc_embedding).all()
+
+        # Verify that using the same text for both query and document still gives exactly opposite embeddings
+        loaded_query_embedding = loaded_model.encode_query(test_texts, convert_to_tensor=True)
+        loaded_doc_embedding = loaded_model.encode_document(test_texts, convert_to_tensor=True)
+        assert torch.equal(loaded_query_embedding, -loaded_doc_embedding)
