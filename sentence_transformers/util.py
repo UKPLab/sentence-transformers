@@ -923,11 +923,11 @@ def mine_hard_negatives(
         pool = model.start_multi_process_pool(
             target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
         )
-        corpus_embeddings = model.encode_multi_process(
-            corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+        corpus_embeddings = model.encode(
+            corpus, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True, pool=pool
         )
-        query_embeddings = model.encode_multi_process(
-            queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
+        query_embeddings = model.encode(
+            queries, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True, pool=pool
         )
         model.stop_multi_process_pool(pool)
     else:

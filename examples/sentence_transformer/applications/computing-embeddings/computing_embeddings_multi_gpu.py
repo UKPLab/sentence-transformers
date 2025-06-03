@@ -24,7 +24,7 @@ if __name__ == "__main__":
     pool = model.start_multi_process_pool()
 
     # Compute the embeddings using the multi-process pool
-    emb = model.encode_multi_process(sentences, pool)
+    emb = model.encode(sentences, pool=pool)
     print("Embeddings computed. Shape:", emb.shape)
 
     # Optional: Stop the processes in the pool

@@ -24,8 +24,8 @@ def test_encode_multi_process(
 
     # Start the multi-process pool on e.g. two CPU devices & compute the embeddings using the pool
     pool = model.start_multi_process_pool(["cpu", "cpu"])
-    emb = model.encode_multi_process(
-        sentences, pool, chunk_size=10, normalize_embeddings=normalize_embeddings, prompt_name=prompt_name
+    emb = model.encode(
+        sentences, normalize_embeddings=normalize_embeddings, prompt_name=prompt_name, pool=pool, chunk_size=10
     )
     model.stop_multi_process_pool(pool)
     assert emb.shape == (len(sentences), 128)
