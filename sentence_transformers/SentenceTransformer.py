@@ -372,8 +372,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 f"dictionary with keys {list(self.prompts.keys())!r}."
             )
 
-        if self.prompts:
-            logger.info(f"{len(self.prompts)} prompts are loaded, with the keys: {list(self.prompts.keys())}")
+        if self.prompts and (non_empty_keys := [k for k, v in self.prompts.items() if v != ""]):
+            if len(non_empty_keys) == 1:
+                logger.info(f"1 prompt is loaded, with the key: {non_empty_keys[0]}")
+            else:
+                logger.info(f"{len(non_empty_keys)} prompts are loaded, with the keys: {non_empty_keys}")
         if self.default_prompt_name:
             logger.warning(
                 f"Default prompt name is set to '{self.default_prompt_name}'. "
