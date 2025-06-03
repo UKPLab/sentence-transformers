@@ -430,7 +430,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         chunk_size: int | None = None,
         **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
-        if prompt is None and prompt_name is None and "query" in self.prompts:
+        if prompt_name is None and "query" in self.prompts:
             prompt_name = "query"
 
         return self.encode(
@@ -470,7 +470,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         chunk_size: int | None = None,
         **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
-        if prompt is None and prompt_name is None:
+        if prompt_name is None:
             for candidate_prompt_name in ["document", "passage", "corpus"]:
                 if candidate_prompt_name in self.prompts:
                     prompt_name = candidate_prompt_name
