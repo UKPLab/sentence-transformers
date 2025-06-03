@@ -420,9 +420,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-        device: str | None = None,
+        device: str | list[str | torch.device] | None = None,
         normalize_embeddings: bool = False,
         truncate_dim: int | None = None,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = None,
+        chunk_size: int | None = None,
         **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         if prompt is None and prompt_name is None and "query" in self.prompts:
@@ -441,6 +443,8 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             device=device,
             normalize_embeddings=normalize_embeddings,
             truncate_dim=truncate_dim,
+            pool=pool,
+            chunk_size=chunk_size,
             task_type="query",
             **kwargs,
         )
@@ -456,9 +460,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-        device: str | None = None,
+        device: str | list[str | torch.device] | None = None,
         normalize_embeddings: bool = False,
         truncate_dim: int | None = None,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = None,
+        chunk_size: int | None = None,
         **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         if prompt is None and prompt_name is None:
@@ -480,6 +486,8 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             device=device,
             normalize_embeddings=normalize_embeddings,
             truncate_dim=truncate_dim,
+            pool=pool,
+            chunk_size=chunk_size,
             task_type="document",
             **kwargs,
         )
@@ -497,9 +505,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: Literal[False] = ...,
         convert_to_tensor: bool = ...,
-        device: str | None = ...,
+        device: str | list[str | torch.device] | None = ...,
         normalize_embeddings: bool = ...,
         truncate_dim: int | None = ...,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = ...,
+        chunk_size: int | None = ...,
         **kwargs,
     ) -> Tensor: ...
 
@@ -517,9 +527,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: Literal[True] = ...,
         convert_to_tensor: Literal[False] = ...,
-        device: str | None = ...,
+        device: str | list[str | torch.device] | None = ...,
         normalize_embeddings: bool = ...,
         truncate_dim: int | None = ...,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = ...,
+        chunk_size: int | None = ...,
         **kwargs,
     ) -> np.ndarray: ...
 
@@ -537,9 +549,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: bool = ...,
         convert_to_tensor: Literal[True] = ...,
-        device: str | None = ...,
+        device: str | list[str | torch.device] | None = ...,
         normalize_embeddings: bool = ...,
         truncate_dim: int | None = ...,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = ...,
+        chunk_size: int | None = ...,
         **kwargs,
     ) -> Tensor: ...
 
@@ -556,9 +570,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: bool = ...,
         convert_to_tensor: bool = ...,
-        device: str | None = ...,
+        device: str | list[str | torch.device] | None = ...,
         normalize_embeddings: bool = ...,
         truncate_dim: int | None = ...,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = ...,
+        chunk_size: int | None = ...,
         **kwargs,
     ) -> list[Tensor]: ...
 
@@ -575,9 +591,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: bool = ...,
         convert_to_tensor: bool = ...,
-        device: str | None = ...,
+        device: str | list[str | torch.device] | None = ...,
         normalize_embeddings: bool = ...,
         truncate_dim: int | None = ...,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = ...,
+        chunk_size: int | None = ...,
         **kwargs,
     ) -> list[dict[str, Tensor]]: ...
 
@@ -594,9 +612,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: bool = ...,
         convert_to_tensor: bool = ...,
-        device: str | None = ...,
+        device: str | list[str | torch.device] | None = ...,
         normalize_embeddings: bool = ...,
         truncate_dim: int | None = ...,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = ...,
+        chunk_size: int | None = ...,
         **kwargs,
     ) -> dict[str, Tensor]: ...
 
@@ -613,9 +633,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = ...,
         convert_to_numpy: bool = ...,
         convert_to_tensor: bool = ...,
-        device: str | None = ...,
+        device: str | list[str | torch.device] | None = ...,
         normalize_embeddings: bool = ...,
         truncate_dim: int | None = ...,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = ...,
+        chunk_size: int | None = ...,
         **kwargs,
     ) -> Tensor: ...
 
@@ -630,9 +652,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
-        device: str | None = None,
+        device: str | list[str | torch.device] | None = None,
         normalize_embeddings: bool = False,
         truncate_dim: int | None = None,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = None,
+        chunk_size: int | None = None,
         **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
@@ -661,7 +685,13 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 Defaults to True.
             convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
                 Defaults to False.
-            device (str, optional): Which :class:`torch.device` to use for the computation. Defaults to None.
+            device (Union[str, List[str], None], optional): Device(s) to use for computation. Can be:
+
+                - A single device string (e.g., "cuda:0", "cpu") for single-process encoding
+                - A list of device strings (e.g., ["cuda:0", "cuda:1"], ["cpu", "cpu", "cpu", "cpu"]) to distribute
+                  encoding across multiple processes
+                - None to auto-detect available device for single-process encoding
+                If a list is provided, multi-process encoding will be used. Defaults to None.
             normalize_embeddings (bool, optional): Whether to normalize returned vectors to have length 1. In that case,
                 the faster dot-product (util.dot_score) instead of cosine similarity can be used. Defaults to False.
             truncate_dim (int, optional): The dimension to truncate sentence embeddings to.
@@ -670,6 +700,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 Truncated embeddings require less memory and are faster to perform retrieval with, but note that inference
                 is just as fast, and the embedding performance is worse than the full embeddings. If None, the ``truncate_dim``
                 from the model initialization is used. Defaults to None.
+            pool (Dict[Literal["input", "output", "processes"], Any], optional): A pool created by `start_multi_process_pool()`
+                for multi-process encoding. If provided, the encoding will be distributed across multiple processes.
+                This is recommended for large datasets and when multiple GPUs are available. Defaults to None.
+            chunk_size (int, optional): Size of chunks for multi-process encoding. Only used with multiprocessing, i.e. when\
+                ``pool`` is not None or ``device`` is a list. If None, a sensible default is calculated. Defaults to None.
 
         Returns:
             Union[List[Tensor], ndarray, Tensor]: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned.
@@ -719,6 +754,31 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             sentences = [sentences]
             input_was_string = True
 
+        # If pool or a list of devices is provided, use multi-process encoding
+        if pool is not None or (isinstance(device, list) and len(device) > 0):
+            return self._encode_multi_process(
+                sentences,
+                # Utility and post-processing parameters
+                show_progress_bar=show_progress_bar,
+                input_was_string=input_was_string,
+                # Multi-process encoding parameters
+                pool=pool,
+                device=device,
+                chunk_size=chunk_size,
+                # Encoding parameters
+                prompt_name=prompt_name,
+                prompt=prompt,
+                batch_size=batch_size,
+                output_value=output_value,
+                precision=precision,
+                convert_to_numpy=convert_to_numpy,
+                convert_to_tensor=convert_to_tensor,
+                normalize_embeddings=normalize_embeddings,
+                truncate_dim=truncate_dim,
+                **kwargs,
+            )
+
+        # Original encoding logic when not using multi-process
         if prompt is None:
             if prompt_name is not None:
                 try:
@@ -746,6 +806,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             if "input_ids" in tokenized_prompt:
                 extra_features["prompt_length"] = tokenized_prompt["input_ids"].shape[-1] - 1
 
+        # Here, device is either a single device string (e.g., "cuda:0", "cpu") for single-process encoding or None
         if device is None:
             device = self.device
 
@@ -1071,6 +1132,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         pool["input"].close()
         pool["output"].close()
 
+    @deprecated(
+        "The `encode_multi_process` method has been deprecated, and its functionality has been integrated into `encode`. "
+        "You can now call `encode` with the same parameters to achieve multi-process encoding.",
+    )
     def encode_multi_process(
         self,
         sentences: list[str],
@@ -1085,6 +1150,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         truncate_dim: int | None = None,
     ) -> np.ndarray:
         """
+        .. warning::
+            This method is deprecated. You can now call :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>`
+            with the same parameters instead, which will automatically handle multi-process encoding using the provided ``pool``.
+
         Encodes a list of sentences using multiple processes and GPUs via
         :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>`.
         The sentences are chunked into smaller packages and sent to individual processes, which encode them on different
@@ -1142,50 +1211,86 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 if __name__ == "__main__":
                     main()
         """
-
-        if chunk_size is None:
-            chunk_size = min(math.ceil(len(sentences) / len(pool["processes"]) / 10), 5000)
-
-        if show_progress_bar is None:
-            show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
-
-        logger.debug(f"Chunk data into {math.ceil(len(sentences) / chunk_size)} packages of size {chunk_size}")
-
-        input_queue = pool["input"]
-        last_chunk_id = 0
-        chunk = []
-
-        for sentence in sentences:
-            chunk.append(sentence)
-            if len(chunk) >= chunk_size:
-                input_queue.put(
-                    [
-                        last_chunk_id,
-                        batch_size,
-                        chunk,
-                        prompt_name,
-                        prompt,
-                        precision,
-                        normalize_embeddings,
-                        truncate_dim,
-                    ]
-                )
-                last_chunk_id += 1
-                chunk = []
-
-        if len(chunk) > 0:
-            input_queue.put(
-                [last_chunk_id, batch_size, chunk, prompt_name, prompt, precision, normalize_embeddings, truncate_dim]
-            )
-            last_chunk_id += 1
-
-        output_queue = pool["output"]
-        results_list = sorted(
-            [output_queue.get() for _ in trange(last_chunk_id, desc="Chunks", disable=not show_progress_bar)],
-            key=lambda x: x[0],
+        return self.encode(
+            sentences,
+            prompt_name=prompt_name,
+            prompt=prompt,
+            batch_size=batch_size,
+            show_progress_bar=show_progress_bar,
+            output_value="sentence_embedding",
+            precision=precision,
+            convert_to_numpy=True,
+            convert_to_tensor=False,
+            normalize_embeddings=normalize_embeddings,
+            truncate_dim=truncate_dim,
+            pool=pool,
+            chunk_size=chunk_size,
         )
-        embeddings = np.concatenate([result[1] for result in results_list])
-        return embeddings
+
+    def _encode_multi_process(
+        self,
+        inputs: list[str],
+        show_progress_bar: bool | None = True,
+        input_was_string: bool = False,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = None,
+        device: str | list[str | torch.device] | None = None,
+        chunk_size: int | None = None,
+        **encode_kwargs,
+    ):
+        convert_to_tensor = encode_kwargs.get("convert_to_tensor", False)
+        convert_to_numpy = encode_kwargs.get("convert_to_numpy", False)
+        encode_kwargs["show_progress_bar"] = False
+
+        # Create a pool if is not provided, but a list of devices is
+        created_pool = False
+        if pool is None and isinstance(device, list):
+            pool = self.start_multi_process_pool(device)
+            created_pool = True
+
+        try:
+            # Determine chunk size if not provided. As a default, aim for 10 chunks per process, with a maximum of 5000 sentences per chunk.
+            if chunk_size is None:
+                chunk_size = min(math.ceil(len(inputs) / len(pool["processes"]) / 10), 5000)
+                chunk_size = max(chunk_size, 1)  # Ensure chunk_size is at least 1
+
+            input_queue: torch.multiprocessing.Queue = pool["input"]
+            output_queue: torch.multiprocessing.Queue = pool["output"]
+
+            # Send inputs to the input queue in chunks
+            chunk_id = -1  # We default to -1 to handle empty input gracefully
+            for chunk_id, chunk_start in enumerate(range(0, len(inputs), chunk_size)):
+                chunk = inputs[chunk_start : chunk_start + chunk_size]
+                input_queue.put([chunk_id, chunk, encode_kwargs])
+
+            # Collect results from the output queue
+            output_list = sorted(
+                [output_queue.get() for _ in trange(chunk_id + 1, desc="Chunks", disable=not show_progress_bar)],
+                key=lambda x: x[0],
+            )
+            if input_was_string:
+                # If input was a single string, return the first (only) result directly
+                return output_list[0][1][0]
+
+            # Handle the various output formats: torch tensors, numpy arrays, or
+            # list of dictionaries, also when empty.
+            embeddings = [output[1] for output in output_list]
+            if embeddings:
+                if isinstance(embeddings[0], list):
+                    embeddings = sum(embeddings, [])
+                elif isinstance(embeddings[0], torch.Tensor):
+                    embeddings = torch.cat(embeddings)
+                elif isinstance(embeddings[0], np.ndarray):
+                    embeddings = np.concatenate(embeddings, axis=0)
+            elif convert_to_tensor:
+                embeddings = torch.Tensor()
+            elif convert_to_numpy:
+                embeddings = np.array([])
+            return embeddings
+
+        finally:
+            # Clean up the pool if we created it
+            if created_pool:
+                self.stop_multi_process_pool(pool)
 
     @staticmethod
     def _encode_multi_process_worker(
@@ -1196,22 +1301,8 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         """
         while True:
             try:
-                chunk_id, batch_size, sentences, prompt_name, prompt, precision, normalize_embeddings, truncate_dim = (
-                    input_queue.get()
-                )
-                embeddings = model.encode(
-                    sentences,
-                    prompt_name=prompt_name,
-                    prompt=prompt,
-                    device=target_device,
-                    show_progress_bar=False,
-                    precision=precision,
-                    convert_to_numpy=True,
-                    batch_size=batch_size,
-                    normalize_embeddings=normalize_embeddings,
-                    truncate_dim=truncate_dim,
-                )
-
+                chunk_id, inputs, kwargs = input_queue.get()
+                embeddings = model.encode(inputs, device=target_device, **kwargs)
                 results_queue.put([chunk_id, embeddings])
             except queue.Empty:
                 break
