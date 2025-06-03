@@ -368,7 +368,7 @@ class SparseEncoder(SentenceTransformer):
             )
 
         # Original encoding logic when not using multi-process
-        if prompt is None and len(prompt) > 0:
+        if prompt is None:
             if prompt_name is not None:
                 try:
                     prompt = self.prompts[prompt_name]
