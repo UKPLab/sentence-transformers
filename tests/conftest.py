@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from copy import deepcopy
 
 import numpy as np
 import pytest
@@ -15,14 +16,14 @@ if is_datasets_available():
     from datasets import DatasetDict, load_dataset
 
 
-@pytest.fixture()
-def stsb_bert_tiny_model() -> SentenceTransformer:
-    return SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
-
-
 @pytest.fixture(scope="session")
-def stsb_bert_tiny_model_reused() -> SentenceTransformer:
+def _stsb_bert_tiny_model() -> SentenceTransformer:
     return SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+
+
+@pytest.fixture()
+def stsb_bert_tiny_model(_stsb_bert_tiny_model: SentenceTransformer) -> SentenceTransformer:
+    return deepcopy(_stsb_bert_tiny_model)
 
 
 @pytest.fixture()

@@ -8,43 +8,14 @@ from sentence_transformers import SparseEncoder
 
 from .utils import sparse_allclose
 
-
-@pytest.mark.skip(
-    "This test fails if optimum.intel.openvino is imported, because openvinotoolkit/nncf "
-    "patches torch._C._nn.gelu in a way that breaks pickling."
-)
-@pytest.mark.parametrize("normalize_embeddings", (False, True))
-@pytest.mark.parametrize("prompt_name", (None, "retrieval"))
-def test_encode_multi_process(
-    splade_bert_tiny_model: SparseEncoder, normalize_embeddings: bool, prompt_name: str | None
-) -> None:
-    model = splade_bert_tiny_model
-    model.prompts = {"retrieval": "Represent this sentence for searching relevant passages: "}
-    sentences = [f"This is sentence {i}" for i in range(40)]
-
-    # Start the multi-process pool on e.g. two CPU devices & compute the embeddings using the pool
-    pool = model.start_multi_process_pool(["cpu", "cpu"])
-    emb = model.encode(
-        sentences, normalize_embeddings=normalize_embeddings, prompt_name=prompt_name, pool=pool, chunk_size=10
-    )
-    model.stop_multi_process_pool(pool)
-    assert emb.shape == (len(sentences), 128)
-
-    # Make sure the embeddings aren't just all 0
-    assert emb.sum() != 0.0
-
-    # Compare against normal embeddings
-    emb_normal = model.encode(sentences, normalize_embeddings=normalize_embeddings, prompt_name=prompt_name)
-    diff = np.max(np.abs(emb - emb_normal))
-    assert diff < 0.001
-
-    # Ensure that after normalizing, the means are all almost 0, and otherwise not
-    assert np.all(np.abs(emb.mean(1)) < 0.01) == normalize_embeddings
+# These tests fail if optimum.intel.openvino is imported, because openvinotoolkit/nncf
+# patches torch._C._nn.gelu in a way that breaks pickling. As a result, we may have issues
+# when running both backend tests and multi-process tests in the same session.
 
 
 @pytest.mark.slow
-def test_multi_process_encode_same_as_standard_encode(splade_bert_tiny_model_reused: SparseEncoder):
-    model = splade_bert_tiny_model_reused
+def test_multi_process_encode_same_as_standard_encode(splade_bert_tiny_model: SparseEncoder):
+    model = splade_bert_tiny_model
     # Test that multi-process encoding gives the same result as standard encoding
     texts = ["First sentence.", "Second sentence.", "Third sentence."] * 5
 
@@ -59,9 +30,9 @@ def test_multi_process_encode_same_as_standard_encode(splade_bert_tiny_model_reu
 
 
 @pytest.mark.slow
-def test_multi_process_pool(splade_bert_tiny_model_reused: SparseEncoder):
+def test_multi_process_pool(splade_bert_tiny_model: SparseEncoder):
     # Test the start_multi_process_pool and stop_multi_process_pool functions
-    model = splade_bert_tiny_model_reused
+    model = splade_bert_tiny_model
     texts = ["First sentence.", "Second sentence.", "Third sentence."] * 5
 
     # Standard encode
@@ -83,9 +54,9 @@ def test_multi_process_pool(splade_bert_tiny_model_reused: SparseEncoder):
 
 
 @pytest.mark.slow
-def test_multi_process_with_args(splade_bert_tiny_model_reused: SparseEncoder):
+def test_multi_process_with_args(splade_bert_tiny_model: SparseEncoder):
     # Test multi-process encoding with various arguments
-    model = splade_bert_tiny_model_reused
+    model = splade_bert_tiny_model
     texts = ["First sentence.", "Second sentence."]
 
     # Create a pool
@@ -110,9 +81,9 @@ def test_multi_process_with_args(splade_bert_tiny_model_reused: SparseEncoder):
 
 
 @pytest.mark.slow
-def test_multi_process_chunk_size(splade_bert_tiny_model_reused: SparseEncoder):
+def test_multi_process_chunk_size(splade_bert_tiny_model: SparseEncoder):
     # Test explicit chunk_size parameter
-    model = splade_bert_tiny_model_reused
+    model = splade_bert_tiny_model
     texts = ["First sentence.", "Second sentence.", "Third sentence."] * 10
 
     # Test with explicit chunk size
@@ -157,12 +128,12 @@ def test_multi_process_with_prompt(splade_bert_tiny_model: SparseEncoder):
 @pytest.mark.parametrize("convert_to_tensor", [True, False])
 @pytest.mark.parametrize("convert_to_sparse_tensor", [True, False])
 def test_multi_process_with_empty_texts(
-    splade_bert_tiny_model_reused: SparseEncoder,
+    splade_bert_tiny_model: SparseEncoder,
     convert_to_tensor: bool,
     convert_to_sparse_tensor: bool,
 ):
     # Test encoding with empty texts
-    model = splade_bert_tiny_model_reused
+    model = splade_bert_tiny_model
     texts = []
 
     # Encode with empty texts
@@ -186,12 +157,12 @@ def test_multi_process_with_empty_texts(
 @pytest.mark.parametrize("convert_to_tensor", [True, False])
 @pytest.mark.parametrize("convert_to_sparse_tensor", [True, False])
 def test_multi_process_with_single_string(
-    splade_bert_tiny_model_reused: SparseEncoder,
+    splade_bert_tiny_model: SparseEncoder,
     convert_to_tensor: bool,
     convert_to_sparse_tensor: bool,
 ):
     # Test encoding with a single text
-    model = splade_bert_tiny_model_reused
+    model = splade_bert_tiny_model
     texts = "This is a single sentence."
 
     # Encode with single text
@@ -234,9 +205,9 @@ def test_multi_process_with_single_string(
 
 
 @pytest.mark.slow
-def test_multi_process_more_workers_than_texts(splade_bert_tiny_model_reused: SparseEncoder):
+def test_multi_process_more_workers_than_texts(splade_bert_tiny_model: SparseEncoder):
     # Test with more workers than texts
-    model = splade_bert_tiny_model_reused
+    model = splade_bert_tiny_model
     texts = ["First sentence.", "Second sentence."]
 
     embeddings = model.encode(texts, device=["cpu"] * 3)
@@ -247,9 +218,9 @@ def test_multi_process_more_workers_than_texts(splade_bert_tiny_model_reused: Sp
 
 
 @pytest.mark.slow
-def test_multi_process_with_large_chunk_size(splade_bert_tiny_model_reused: SparseEncoder):
+def test_multi_process_with_large_chunk_size(splade_bert_tiny_model: SparseEncoder):
     # Test with a large chunk size
-    model = splade_bert_tiny_model_reused
+    model = splade_bert_tiny_model
     texts = ["First sentence.", "Second sentence."] * 10  # 20 sentences
 
     # Use a large chunk size

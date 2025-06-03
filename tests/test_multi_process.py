@@ -6,11 +6,12 @@ import torch
 
 from sentence_transformers import SentenceTransformer
 
+# These tests fail if optimum.intel.openvino is imported, because openvinotoolkit/nncf
+# patches torch._C._nn.gelu in a way that breaks pickling. As a result, we may have issues
+# when running both backend tests and multi-process tests in the same session.
 
-@pytest.mark.skip(
-    "This test fails if optimum.intel.openvino is imported, because openvinotoolkit/nncf "
-    "patches torch._C._nn.gelu in a way that breaks pickling."
-)
+
+@pytest.mark.slow
 @pytest.mark.parametrize("normalize_embeddings", (False, True))
 @pytest.mark.parametrize("prompt_name", (None, "retrieval"))
 def test_encode_multi_process(
@@ -41,8 +42,8 @@ def test_encode_multi_process(
 
 
 @pytest.mark.slow
-def test_multi_process_encode_same_as_standard_encode(stsb_bert_tiny_model_reused: SentenceTransformer):
-    model = stsb_bert_tiny_model_reused
+def test_multi_process_encode_same_as_standard_encode(stsb_bert_tiny_model: SentenceTransformer):
+    model = stsb_bert_tiny_model
     # Test that multi-process encoding gives the same result as standard encoding
     texts = ["First sentence.", "Second sentence.", "Third sentence."] * 5
 
@@ -57,9 +58,9 @@ def test_multi_process_encode_same_as_standard_encode(stsb_bert_tiny_model_reuse
 
 
 @pytest.mark.slow
-def test_multi_process_pool(stsb_bert_tiny_model_reused: SentenceTransformer):
+def test_multi_process_pool(stsb_bert_tiny_model: SentenceTransformer):
     # Test the start_multi_process_pool and stop_multi_process_pool functions
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     texts = ["First sentence.", "Second sentence.", "Third sentence."] * 5
 
     # Standard encode
@@ -80,9 +81,9 @@ def test_multi_process_pool(stsb_bert_tiny_model_reused: SentenceTransformer):
 
 
 @pytest.mark.slow
-def test_multi_process_with_args(stsb_bert_tiny_model_reused: SentenceTransformer):
+def test_multi_process_with_args(stsb_bert_tiny_model: SentenceTransformer):
     # Test multi-process encoding with various arguments
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     texts = ["First sentence.", "Second sentence."]
 
     # Create a pool
@@ -108,9 +109,9 @@ def test_multi_process_with_args(stsb_bert_tiny_model_reused: SentenceTransforme
 
 
 @pytest.mark.slow
-def test_multi_process_output_values(stsb_bert_tiny_model_reused: SentenceTransformer):
+def test_multi_process_output_values(stsb_bert_tiny_model: SentenceTransformer):
     # Test that different output_value options work with multi-process
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     texts = ["First sentence.", "Second sentence."]
 
     # Regular encoding with output_value=None
@@ -137,9 +138,9 @@ def test_multi_process_output_values(stsb_bert_tiny_model_reused: SentenceTransf
 
 
 @pytest.mark.slow
-def test_multi_process_chunk_size(stsb_bert_tiny_model_reused: SentenceTransformer):
+def test_multi_process_chunk_size(stsb_bert_tiny_model: SentenceTransformer):
     # Test explicit chunk_size parameter
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     texts = ["First sentence.", "Second sentence.", "Third sentence."] * 10
 
     # Test with explicit chunk size
@@ -185,13 +186,13 @@ def test_multi_process_with_prompt(stsb_bert_tiny_model: SentenceTransformer):
 @pytest.mark.parametrize("convert_to_numpy", [True, False])
 @pytest.mark.parametrize("output_value", [None, "sentence_embedding", "token_embeddings"])
 def test_multi_process_with_empty_texts(
-    stsb_bert_tiny_model_reused: SentenceTransformer,
+    stsb_bert_tiny_model: SentenceTransformer,
     convert_to_tensor: bool,
     convert_to_numpy: bool,
     output_value: str | None,
 ):
     # Test encoding with empty texts
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     texts = []
 
     # Encode with empty texts
@@ -207,7 +208,7 @@ def test_multi_process_with_empty_texts(
     )
 
     # Should return empty arrays, identical types as without multi-processing
-    assert type(standard_embeddings) == type(multi_embeddings)
+    assert type(standard_embeddings) is type(multi_embeddings)
     assert len(standard_embeddings) == 0
     assert len(multi_embeddings) == 0
 
@@ -217,13 +218,13 @@ def test_multi_process_with_empty_texts(
 @pytest.mark.parametrize("convert_to_numpy", [True, False])
 @pytest.mark.parametrize("output_value", [None, "sentence_embedding", "token_embeddings"])
 def test_multi_process_with_one_single_string(
-    stsb_bert_tiny_model_reused: SentenceTransformer,
+    stsb_bert_tiny_model: SentenceTransformer,
     convert_to_tensor: bool,
     convert_to_numpy: bool,
     output_value: str | None,
 ):
     # Test encoding with a single text
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     texts = "This is a single sentence."
 
     # Encode with single text
@@ -267,9 +268,9 @@ def test_multi_process_with_one_single_string(
 
 
 @pytest.mark.slow
-def test_multi_process_more_workers_than_texts(stsb_bert_tiny_model_reused: SentenceTransformer):
+def test_multi_process_more_workers_than_texts(stsb_bert_tiny_model: SentenceTransformer):
     # Test with more workers than texts
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     texts = ["First sentence.", "Second sentence."]
 
     embeddings = model.encode(texts, device=["cpu"] * 3)
@@ -280,9 +281,9 @@ def test_multi_process_more_workers_than_texts(stsb_bert_tiny_model_reused: Sent
 
 
 @pytest.mark.slow
-def test_multi_process_with_large_chunk_size(stsb_bert_tiny_model_reused: SentenceTransformer):
+def test_multi_process_with_large_chunk_size(stsb_bert_tiny_model: SentenceTransformer):
     # Test with a large chunk size
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     texts = ["First sentence.", "Second sentence."] * 10  # 20 sentences
 
     # Use a large chunk size

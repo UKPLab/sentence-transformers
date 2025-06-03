@@ -100,5 +100,5 @@ testpaths = [
 addopts = "--strict-markers -m 'not slow and not custom'"
 markers = [
     "slow: marks tests as slow",
-    "custom: tests for third-party models with custom modules"
+    "custom: marks tests for third-party models with custom modules"
 ]

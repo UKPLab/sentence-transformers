@@ -22,9 +22,9 @@ from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
     ],
 )
 def test_decode_shapes(
-    splade_bert_tiny_model_reused: SparseEncoder, texts: list[str] | str, top_k: int, expected_shape: int
+    splade_bert_tiny_model: SparseEncoder, texts: list[str] | str, top_k: int, expected_shape: int
 ) -> None:
-    model = splade_bert_tiny_model_reused
+    model = splade_bert_tiny_model
     embeddings = model.encode(texts)
     decoded = model.decode(embeddings, top_k=top_k)
 
@@ -50,10 +50,8 @@ def test_decode_shapes(
         ("It's sunny outside", str),
     ],
 )
-def test_decode_token_types(
-    splade_bert_tiny_model_reused: SparseEncoder, text: str, expected_token_types: type
-) -> None:
-    model = splade_bert_tiny_model_reused
+def test_decode_token_types(splade_bert_tiny_model: SparseEncoder, text: str, expected_token_types: type) -> None:
+    model = splade_bert_tiny_model
     embeddings = model.encode(text)
     decoded = model.decode(embeddings)
 
@@ -71,8 +69,8 @@ def test_decode_token_types(
         ("Hello world", 5),
     ],
 )
-def test_decode_top_k_respects_limit(splade_bert_tiny_model_reused: SparseEncoder, text: str, top_k: int) -> None:
-    model = splade_bert_tiny_model_reused
+def test_decode_top_k_respects_limit(splade_bert_tiny_model: SparseEncoder, text: str, top_k: int) -> None:
+    model = splade_bert_tiny_model
     embeddings = model.encode([text])
     decoded = model.decode(embeddings, top_k=top_k)
 
@@ -88,9 +86,9 @@ def test_decode_top_k_respects_limit(splade_bert_tiny_model_reused: SparseEncode
     ],
 )
 def test_decode_handles_sparse_dense_inputs(
-    splade_bert_tiny_model_reused: SparseEncoder, texts: list[str] | str, format_type: str
+    splade_bert_tiny_model: SparseEncoder, texts: list[str] | str, format_type: str
 ):
-    model = splade_bert_tiny_model_reused
+    model = splade_bert_tiny_model
     # Get embeddings and test both sparse and dense format handling
     embeddings = model.encode(texts)
 
@@ -122,8 +120,8 @@ def test_decode_handles_sparse_dense_inputs(
             assert len(sorted_sparse) == len(sorted_dense)
 
 
-def test_decode_empty_tensor(splade_bert_tiny_model_reused: SparseEncoder) -> None:
-    model = splade_bert_tiny_model_reused
+def test_decode_empty_tensor(splade_bert_tiny_model: SparseEncoder) -> None:
+    model = splade_bert_tiny_model
     # Create an empty sparse tensor
     empty_sparse = torch.sparse_coo_tensor(
         indices=torch.zeros((2, 0), dtype=torch.long),
@@ -149,9 +147,9 @@ def test_decode_empty_tensor(splade_bert_tiny_model_reused: SparseEncoder) -> No
     ],
 )
 def test_decode_returns_sorted_weights(
-    splade_bert_tiny_model_reused: SparseEncoder, texts: list[str] | str, top_k: int | None
+    splade_bert_tiny_model: SparseEncoder, texts: list[str] | str, top_k: int | None
 ) -> None:
-    model = splade_bert_tiny_model_reused
+    model = splade_bert_tiny_model
     embeddings = model.encode(texts)
     decoded = model.decode(embeddings, top_k=top_k)
 

@@ -300,7 +300,7 @@ def test_trainer(
     ],
 )
 def test_trainer_prompts(
-    stsb_bert_tiny_model_reused: SentenceTransformer,
+    stsb_bert_tiny_model: SentenceTransformer,
     train_dict: bool,
     eval_dict: bool,
     loss_dict: bool,
@@ -314,7 +314,7 @@ def test_trainer_prompts(
             "Skipping test because loss_dict=True requires train_dict=True and eval_dict=True; already tested via test_trainer."
         )
 
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     model[1].include_prompt = pool_include_prompt
 
     train_dataset_1 = Dataset.from_dict(

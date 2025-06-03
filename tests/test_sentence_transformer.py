@@ -376,8 +376,8 @@ def test_save_load_prompts() -> None:
         assert fresh_model.default_prompt_name == "query"
 
 
-def test_prompt_output_value_None(stsb_bert_tiny_model_reused) -> None:
-    model = stsb_bert_tiny_model_reused
+def test_prompt_output_value_None(stsb_bert_tiny_model) -> None:
+    model = stsb_bert_tiny_model
     outputs = model.encode(
         ["Text one", "Text two"],
         prompt="query: ",
@@ -488,14 +488,14 @@ def test_encode_fp16() -> None:
     ],
 )
 def test_encode_quantization(
-    stsb_bert_tiny_model_reused: SentenceTransformer,
+    stsb_bert_tiny_model: SentenceTransformer,
     convert_to_tensor: bool,
     convert_to_numpy: bool,
     precision: str,
     expected_torch_dtype,
     expected_numpy_dtype,
 ) -> None:
-    tiny_model = stsb_bert_tiny_model_reused
+    tiny_model = stsb_bert_tiny_model
     embeddings = tiny_model.encode(
         ["One sentence", "Another sentence"],
         convert_to_tensor=convert_to_tensor,
@@ -519,14 +519,14 @@ def test_encode_quantization(
 @pytest.mark.parametrize("normalize_embeddings", [True, False])
 @pytest.mark.parametrize("output_value", ["sentence_embedding", None])
 def test_encode_truncate(
-    stsb_bert_tiny_model_reused: SentenceTransformer,
+    stsb_bert_tiny_model: SentenceTransformer,
     sentences: str | list[str],
     convert_to_tensor: bool,
     convert_to_numpy: bool,
     normalize_embeddings: bool,
     output_value: Literal["sentence_embedding"] | None,
 ) -> None:
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     embeddings_full_unnormalized: torch.Tensor = model.encode(
         sentences, convert_to_numpy=False, convert_to_tensor=True
     )  # These are raw embeddings which serve as the reference to test against
@@ -607,8 +607,8 @@ def test_encode_truncate(
 
 
 @pytest.mark.parametrize("similarity_fn_name", SimilarityFunction.possible_values())
-def test_similarity_score(stsb_bert_tiny_model_reused: SentenceTransformer, similarity_fn_name: str) -> None:
-    model = stsb_bert_tiny_model_reused
+def test_similarity_score(stsb_bert_tiny_model: SentenceTransformer, similarity_fn_name: str) -> None:
+    model = stsb_bert_tiny_model
     model.similarity_fn_name = similarity_fn_name
     sentences = [
         "The weather is so nice!",
