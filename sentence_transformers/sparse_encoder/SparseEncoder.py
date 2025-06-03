@@ -1,20 +1,16 @@
 from __future__ import annotations
 
 import logging
-import math
-import queue
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
-from multiprocessing import Queue
 from typing import Any, Callable, Literal
 
 import numpy as np
 import numpy.typing as npt
 import torch
-import torch.multiprocessing as mp
 from torch import Tensor, nn
 from tqdm import trange
-from transformers import AutoConfig, is_torch_npu_available
+from transformers import AutoConfig
 from typing_extensions import deprecated
 
 from sentence_transformers.models import Pooling, Transformer
@@ -194,8 +190,10 @@ class SparseEncoder(SentenceTransformer):
         convert_to_tensor: bool = True,
         convert_to_sparse_tensor: bool = True,
         save_to_cpu: bool = False,
-        device: str | None = None,
+        device: str | list[str | torch.device] | None = None,
         max_active_dims: int | None = None,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = None,
+        chunk_size: int | None = None,
         **kwargs: Any,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         if prompt is None and prompt_name is None and "query" in self.prompts:
@@ -212,6 +210,8 @@ class SparseEncoder(SentenceTransformer):
             save_to_cpu=save_to_cpu,
             device=device,
             max_active_dims=max_active_dims,
+            pool=pool,
+            chunk_size=chunk_size,
             task_type="query",
             **kwargs,
         )
@@ -226,8 +226,10 @@ class SparseEncoder(SentenceTransformer):
         convert_to_tensor: bool = True,
         convert_to_sparse_tensor: bool = True,
         save_to_cpu: bool = False,
-        device: str | None = None,
+        device: str | list[str | torch.device] | None = None,
         max_active_dims: int | None = None,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = None,
+        chunk_size: int | None = None,
         **kwargs: Any,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         if prompt is None and prompt_name is None:
@@ -247,6 +249,8 @@ class SparseEncoder(SentenceTransformer):
             save_to_cpu=save_to_cpu,
             device=device,
             max_active_dims=max_active_dims,
+            pool=pool,
+            chunk_size=chunk_size,
             task_type="document",
             **kwargs,
         )
@@ -261,8 +265,10 @@ class SparseEncoder(SentenceTransformer):
         convert_to_tensor: bool = True,
         convert_to_sparse_tensor: bool = True,
         save_to_cpu: bool = False,
-        device: str | None = None,
+        device: str | list[str | torch.device] | None = None,
         max_active_dims: int | None = None,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = None,
+        chunk_size: int | None = None,
         **kwargs: Any,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
@@ -286,10 +292,21 @@ class SparseEncoder(SentenceTransformer):
                 Defaults to True.
             save_to_cpu (bool, optional):  Whether the output should be moved to cpu or stay on the device it has been computed on.
                 Defaults to False
-            device (str, optional): Which :class:`torch.device` to use for the computation, if None current device will be use. Defaults to None.
+            device (Union[str, List[str], None], optional): Device(s) to use for computation. Can be:
+
+                - A single device string (e.g., "cuda:0", "cpu") for single-process encoding
+                - A list of device strings (e.g., ["cuda:0", "cuda:1"], ["cpu", "cpu", "cpu", "cpu"]) to distribute
+                  encoding across multiple processes
+                - None to auto-detect available device for single-process encoding
+                If a list is provided, multi-process encoding will be used. Defaults to None.
             max_active_dims (int, optional): The maximum number of active (non-zero) dimensions in the output of the model. `None` means we will
                 used the value of the model's config. Defaults to None. If None in model's config it means there will be no limit on the number
                 of active dimensions and can be slow or memory-intensive if your model wasn't (yet) finetuned to high sparsity.
+            pool (Dict[Literal["input", "output", "processes"], Any], optional): A pool created by `start_multi_process_pool()`
+                for multi-process encoding. If provided, the encoding will be distributed across multiple processes.
+                This is recommended for large datasets and when multiple GPUs are available. Defaults to None.
+            chunk_size (int, optional): Size of chunks for multi-process encoding. Only used with multiprocessing, i.e. when
+                ``pool`` is not None or ``device`` is a list. If None, a sensible default is calculated. Defaults to None.
 
         Returns:
             Union[List[Tensor], ndarray, Tensor]: By default, a 2d torch sparse tensor with shape [num_inputs, output_dimension] is returned.
@@ -328,6 +345,29 @@ class SparseEncoder(SentenceTransformer):
             sentences = [sentences]
             input_was_string = True
 
+        # If pool or a list of devices is provided, use multi-process encoding
+        if pool is not None or (isinstance(device, list) and len(device) > 0):
+            return self._encode_multi_process(
+                sentences,
+                # Utility and post-processing parameters
+                show_progress_bar=show_progress_bar,
+                input_was_string=input_was_string,
+                # Multi-process encoding parameters
+                pool=pool,
+                device=device,
+                chunk_size=chunk_size,
+                # Encoding parameters
+                prompt_name=prompt_name,
+                prompt=prompt,
+                batch_size=batch_size,
+                convert_to_tensor=convert_to_tensor,
+                convert_to_sparse_tensor=convert_to_sparse_tensor,
+                save_to_cpu=save_to_cpu,
+                max_active_dims=max_active_dims,
+                **kwargs,
+            )
+
+        # Original encoding logic when not using multi-process
         if prompt is None:
             if prompt_name is not None:
                 try:
@@ -355,6 +395,7 @@ class SparseEncoder(SentenceTransformer):
             if "input_ids" in tokenized_prompt:
                 extra_features["prompt_length"] = tokenized_prompt["input_ids"].shape[-1] - 1
 
+        # Here, device is either a single device string (e.g., "cuda:0", "cpu") for single-process encoding or None
         if device is None:
             device = self.device
 
@@ -379,7 +420,6 @@ class SparseEncoder(SentenceTransformer):
 
                 if max_active_dims:
                     embeddings = select_max_active_dims(embeddings, max_active_dims=max_active_dims)
-
                 if convert_to_sparse_tensor:
                     embeddings = embeddings.to_sparse()
                 if save_to_cpu:
@@ -389,10 +429,11 @@ class SparseEncoder(SentenceTransformer):
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
-        if not convert_to_tensor:
-            return all_embeddings
-
-        all_embeddings = torch.stack(all_embeddings)
+        if convert_to_tensor:
+            if len(all_embeddings) == 0:
+                all_embeddings = torch.Tensor()
+            else:
+                all_embeddings = torch.stack(all_embeddings)
 
         if input_was_string:
             all_embeddings = all_embeddings[0]
@@ -512,55 +553,10 @@ class SparseEncoder(SentenceTransformer):
             self.similarity_fn_name = SimilarityFunction.DOT
         return self._similarity_pairwise
 
-    def start_multi_process_pool(
-        self, target_devices: list[str] = None
-    ) -> dict[Literal["input", "output", "processes"], Any]:
-        """
-        Starts a multi-process pool to process the encoding with several independent processes
-        via :meth:`SparseEncoder.encode_multi_process <sentence_transformers.sparse_encoder.SparseEncoder.encode_multi_process>`.
-
-        This method is recommended if you want to encode on multiple GPUs or CPUs. It is advised
-        to start only one process per GPU. This method works together with encode_multi_process
-        and stop_multi_process_pool.
-
-        Args:
-            target_devices (List[str], optional): PyTorch target devices, e.g. ["cuda:0", "cuda:1", ...],
-                ["npu:0", "npu:1", ...], or ["cpu", "cpu", "cpu", "cpu"]. If target_devices is None and CUDA/NPU
-                is available, then all available CUDA/NPU devices will be used. If target_devices is None and
-                CUDA/NPU is not available, then 4 CPU devices will be used.
-
-        Returns:
-            Dict[str, Any]: A dictionary with the target processes, an input queue, and an output queue.
-        """
-        if target_devices is None:
-            if torch.cuda.is_available():
-                target_devices = [f"cuda:{i}" for i in range(torch.cuda.device_count())]
-            elif is_torch_npu_available():
-                target_devices = [f"npu:{i}" for i in range(torch.npu.device_count())]
-            else:
-                logger.info("CUDA/NPU is not available. Starting 4 CPU workers")
-                target_devices = ["cpu"] * 4
-
-        logger.info("Start multi-process pool on devices: {}".format(", ".join(map(str, target_devices))))
-
-        self.to("cpu")
-        self.share_memory()
-        ctx = mp.get_context("spawn")
-        input_queue = ctx.Queue()
-        output_queue = ctx.Queue()
-        processes = []
-
-        for device_id in target_devices:
-            p = ctx.Process(
-                target=SparseEncoder._encode_multi_process_worker,
-                args=(device_id, self, input_queue, output_queue),
-                daemon=True,
-            )
-            p.start()
-            processes.append(p)
-
-        return {"input": input_queue, "output": output_queue, "processes": processes}
-
+    @deprecated(
+        "The `encode_multi_process` method has been deprecated, and its functionality has been integrated into `encode`. "
+        "You can now call `encode` with the same parameters to achieve multi-process encoding.",
+    )
     def encode_multi_process(
         self,
         sentences: list[str],
@@ -573,6 +569,10 @@ class SparseEncoder(SentenceTransformer):
         max_active_dims: int | None = None,
     ) -> Tensor:
         """
+        .. warning::
+            This method is deprecated. You can now call :meth:`SparseEncoder.encode <sentence_transformers.sparse_encoder.SparseEncoder.encode>`
+            with the same parameters instead, which will automatically handle multi-process encoding using the provided ``pool``.
+
         Encodes a list of sentences using multiple processes and GPUs via
         :meth:`SparseEncoder.encode <sentence_transformers.sparse_encoder.SparseEncoder.encode>`.
         The sentences are chunked into smaller packages and sent to individual processes, which encode them on different
@@ -626,63 +626,19 @@ class SparseEncoder(SentenceTransformer):
                 if __name__ == "__main__":
                     main()
         """
-
-        if chunk_size is None:
-            chunk_size = min(math.ceil(len(sentences) / len(pool["processes"]) / 10), 5000)
-
-        if show_progress_bar is None:
-            show_progress_bar = logger.getEffectiveLevel() in (logging.INFO, logging.DEBUG)
-
-        logger.debug(f"Chunk data into {math.ceil(len(sentences) / chunk_size)} packages of size {chunk_size}")
-
-        input_queue = pool["input"]
-        last_chunk_id = 0
-        chunk = []
-
-        for sentence in sentences:
-            chunk.append(sentence)
-            if len(chunk) >= chunk_size:
-                input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, max_active_dims])
-                last_chunk_id += 1
-                chunk = []
-
-        if len(chunk) > 0:
-            input_queue.put([last_chunk_id, batch_size, chunk, prompt_name, prompt, max_active_dims])
-            last_chunk_id += 1
-
-        output_queue = pool["output"]
-        results_list = sorted(
-            [output_queue.get() for _ in trange(last_chunk_id, desc="Chunks", disable=not show_progress_bar)],
-            key=lambda x: x[0],
+        return self.encode(
+            sentences,
+            prompt_name=prompt_name,
+            prompt=prompt,
+            batch_size=batch_size,
+            show_progress_bar=show_progress_bar,
+            convert_to_tensor=True,
+            convert_to_sparse_tensor=True,
+            save_to_cpu=False,
+            max_active_dims=max_active_dims,
+            pool=pool,
+            chunk_size=chunk_size,
         )
-        embeddings = torch.concatenate([result[1] for result in results_list])
-        return embeddings
-
-    @staticmethod
-    def _encode_multi_process_worker(
-        target_device: str, model: SparseEncoder, input_queue: Queue, results_queue: Queue
-    ) -> None:
-        """
-        Internal working process to encode sentences in multi-process setup
-        """
-        while True:
-            try:
-                chunk_id, batch_size, sentences, prompt_name, prompt, max_active_dims = input_queue.get()
-                embeddings = model.encode(
-                    sentences,
-                    prompt_name=prompt_name,
-                    prompt=prompt,
-                    device=target_device,
-                    show_progress_bar=False,
-                    batch_size=batch_size,
-                    convert_to_sparse_tensor=True,
-                    save_to_cpu=True,
-                    max_active_dims=max_active_dims,
-                )
-
-                results_queue.put([chunk_id, embeddings])
-            except queue.Empty:
-                break
 
     def get_sentence_embedding_dimension(self) -> int | None:
         """

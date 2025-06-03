@@ -703,7 +703,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             pool (Dict[Literal["input", "output", "processes"], Any], optional): A pool created by `start_multi_process_pool()`
                 for multi-process encoding. If provided, the encoding will be distributed across multiple processes.
                 This is recommended for large datasets and when multiple GPUs are available. Defaults to None.
-            chunk_size (int, optional): Size of chunks for multi-process encoding. Only used with multiprocessing, i.e. when\
+            chunk_size (int, optional): Size of chunks for multi-process encoding. Only used with multiprocessing, i.e. when
                 ``pool`` is not None or ``device`` is a list. If None, a sensible default is calculated. Defaults to None.
 
         Returns:
@@ -1102,7 +1102,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         for device_id in target_devices:
             p = ctx.Process(
-                target=SentenceTransformer._encode_multi_process_worker,
+                target=self.__class__._encode_multi_process_worker,
                 args=(device_id, self, input_queue, output_queue),
                 daemon=True,
             )
