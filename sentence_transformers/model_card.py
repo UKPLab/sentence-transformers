@@ -497,8 +497,8 @@ class SentenceTransformerModelCardData(CardData):
                 if len(sentences) < 4:
                     continue
 
-                # When training with an Asym module, you might be using a dictionary with a mapping of Asym keys to texts,
-                # So let's grab the texts
+                # When training with a Router (or Asym) module, you might be using backwards compatible training,
+                # i.e. with a dictionary with a mapping of Router keys to texts, so let's grab the texts
                 sentences = [
                     list(sentence.values())[0] if isinstance(sentence, dict) else sentence for sentence in sentences
                 ]

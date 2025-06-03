@@ -15,7 +15,8 @@ import time
 
 from datasets import load_dataset
 
-from sentence_transformers import SparseEncoder, models
+from sentence_transformers import SparseEncoder
+from sentence_transformers.models import Router
 from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
 from sentence_transformers.sparse_encoder.search_engines import semantic_search_opensearch
 
@@ -31,26 +32,21 @@ queries = dataset["query"][:2]
 # 3. Load the model
 model_id = "opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill"
 doc_encoder = MLMTransformer(model_id)
-asym = models.Router(
-    {
-        "query": [
-            IDF.from_json(
-                model_id,
-                tokenizer=doc_encoder.tokenizer,
-                frozen=True,
-            ),
-        ],
-        "doc": [
-            doc_encoder,
-            SpladePooling("max", activation_function="log1p_relu"),
-        ],
-    }
+router = Router.for_query_document(
+    query_modules=[
+        IDF.from_json(
+            model_id,
+            tokenizer=doc_encoder.tokenizer,
+            frozen=True,
+        ),
+    ],
+    document_modules=[
+        doc_encoder,
+        SpladePooling("max", activation_function="log1p_relu"),
+    ],
 )
 
-sparse_model = SparseEncoder(
-    modules=[asym],
-    similarity_fn_name="dot",
-)
+sparse_model = SparseEncoder(modules=[router], similarity_fn_name="dot")
 
 print("Start encoding corpus...")
 start_time = time.time()

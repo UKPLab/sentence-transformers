@@ -357,6 +357,7 @@ class Router(InputModule, nn.Sequential):
             input_module.max_seq_length = value
 
 
+# For backwards compatibility, we ensure that the legacy `Asym` alias points to the new `Router` class.
 Asym = Router
 
 # TODO: Remove this before release/merging

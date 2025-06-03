@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sentence_transformers.model_card import SentenceTransformerModelCardCallback, SentenceTransformerModelCardData
-from sentence_transformers.models import Asym, Module
+from sentence_transformers.models import Asym, Module, Router
 from sentence_transformers.sparse_encoder.models import IDF, CSRSparsity, SpladePooling
 
 if TYPE_CHECKING:
@@ -90,7 +90,7 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
 
         all_modules = [module.__class__ for module in model.modules() if isinstance(module, Module)]
         model_type = []
-        if Asym in all_modules:
+        if Asym in all_modules or Router in all_modules:
             model_type += ["Asymmetric"]
 
         if IDF in all_modules:
