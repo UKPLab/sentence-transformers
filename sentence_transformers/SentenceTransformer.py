@@ -430,6 +430,95 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         chunk_size: int | None = None,
         **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
+        """
+        Computes sentence embeddings specifically optimized for query representation.
+
+        This method is a specialized version of :meth:`encode` that differs in exactly two ways:
+
+        1. If no ``prompt_name`` or ``prompt`` is provided, it uses a predefined "query" prompt,
+           if available in the model's ``prompts`` dictionary.
+        2. It sets the ``task_type`` to "query". If the model has a :class:`~sentence_transformers.models.Router`
+           module, it will use the "query" task type to route the input through the appropriate submodules.
+
+        .. tip::
+
+            If you are unsure whether you should use :meth:`encode`, :meth:`encode_query`, or :meth:`encode_document`,
+            your best bet is to use :meth:`encode_query` and :meth:`encode_document` for Information Retrieval tasks
+            with clear query and document/passage distinction, and use :meth:`encode` for all other tasks.
+
+            Note that :meth:`encode` is the most general method and can be used for any task, including Information
+            Retrieval, and that if the model was not trained with predefined prompts and/or task types, then all three
+            methods will return identical embeddings.
+
+        Args:
+            sentences (Union[str, List[str]]): The sentences to embed.
+            prompt_name (Optional[str], optional): The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
+                which is either set in the constructor or loaded from the model configuration. For example if
+                ``prompt_name`` is "query" and the ``prompts`` is {"query": "query: ", ...}, then the sentence "What
+                is the capital of France?" will be encoded as "query: What is the capital of France?" because the sentence
+                is appended to the prompt. If ``prompt`` is also set, this argument is ignored. Defaults to None.
+            prompt (Optional[str], optional): The prompt to use for encoding. For example, if the prompt is "query: ", then the
+                sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?"
+                because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
+            batch_size (int, optional): The batch size used for the computation. Defaults to 32.
+            show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
+            output_value (Optional[Literal["sentence_embedding", "token_embeddings"]], optional): The type of embeddings to return:
+                "sentence_embedding" to get sentence embeddings, "token_embeddings" to get wordpiece token embeddings, and `None`,
+                to get all output values. Defaults to "sentence_embedding".
+            precision (Literal["float32", "int8", "uint8", "binary", "ubinary"], optional): The precision to use for the embeddings.
+                Can be "float32", "int8", "uint8", "binary", or "ubinary". All non-float32 precisions are quantized embeddings.
+                Quantized embeddings are smaller in size and faster to compute, but may have a lower accuracy. They are useful for
+                reducing the size of the embeddings of a corpus for semantic search, among other tasks. Defaults to "float32".
+            convert_to_numpy (bool, optional): Whether the output should be a list of numpy vectors. If False, it is a list of PyTorch tensors.
+                Defaults to True.
+            convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
+                Defaults to False.
+            device (Union[str, List[str], None], optional): Device(s) to use for computation. Can be:
+
+                - A single device string (e.g., "cuda:0", "cpu") for single-process encoding
+                - A list of device strings (e.g., ["cuda:0", "cuda:1"], ["cpu", "cpu", "cpu", "cpu"]) to distribute
+                  encoding across multiple processes
+                - None to auto-detect available device for single-process encoding
+                If a list is provided, multi-process encoding will be used. Defaults to None.
+            normalize_embeddings (bool, optional): Whether to normalize returned vectors to have length 1. In that case,
+                the faster dot-product (util.dot_score) instead of cosine similarity can be used. Defaults to False.
+            truncate_dim (int, optional): The dimension to truncate sentence embeddings to.
+                Truncation is especially interesting for `Matryoshka models <https://sbert.net/examples/sentence_transformer/training/matryoshka/README.html>`_,
+                i.e. models that are trained to still produce useful embeddings even if the embedding dimension is reduced.
+                Truncated embeddings require less memory and are faster to perform retrieval with, but note that inference
+                is just as fast, and the embedding performance is worse than the full embeddings. If None, the ``truncate_dim``
+                from the model initialization is used. Defaults to None.
+            pool (Dict[Literal["input", "output", "processes"], Any], optional): A pool created by `start_multi_process_pool()`
+                for multi-process encoding. If provided, the encoding will be distributed across multiple processes.
+                This is recommended for large datasets and when multiple GPUs are available. Defaults to None.
+            chunk_size (int, optional): Size of chunks for multi-process encoding. Only used with multiprocessing, i.e. when
+                ``pool`` is not None or ``device`` is a list. If None, a sensible default is calculated. Defaults to None.
+
+        Returns:
+            Union[List[Tensor], ndarray, Tensor]: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned.
+            If only one string input is provided, then the output is a 1d array with shape [output_dimension]. If ``convert_to_tensor``,
+            a torch Tensor is returned instead. If ``self.truncate_dim <= output_dimension`` then output_dimension is ``self.truncate_dim``.
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer
+
+                # Load a pre-trained SentenceTransformer model
+                model = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
+
+                # Encode some queries
+                queries = [
+                    "What are the effects of climate change?",
+                    "History of artificial intelligence",
+                    "Technical specifications product XYZ",
+                ]
+
+                # Using query-specific encoding
+                embeddings = model.encode_query(queries)
+                print(embeddings.shape)
+                # (3, 768)
+        """
         if prompt_name is None and "query" in self.prompts:
             prompt_name = "query"
 
@@ -470,6 +559,95 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         chunk_size: int | None = None,
         **kwargs,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
+        """
+        Computes sentence embeddings specifically optimized for document/passage representation.
+
+        This method is a specialized version of :meth:`encode` that differs in exactly two ways:
+
+        1. If no ``prompt_name`` or ``prompt`` is provided, it uses a predefined "document" prompt,
+           if available in the model's ``prompts`` dictionary.
+        2. It sets the ``task_type`` to "document". If the model has a :class:`~sentence_transformers.models.Router`
+           module, it will use the "document" task type to route the input through the appropriate submodules.
+
+        .. tip::
+
+            If you are unsure whether you should use :meth:`encode`, :meth:`encode_query`, or :meth:`encode_document`,
+            your best bet is to use :meth:`encode_query` and :meth:`encode_document` for Information Retrieval tasks
+            with clear query and document/passage distinction, and use :meth:`encode` for all other tasks.
+
+            Note that :meth:`encode` is the most general method and can be used for any task, including Information
+            Retrieval, and that if the model was not trained with predefined prompts and/or task types, then all three
+            methods will return identical embeddings.
+
+        Args:
+            sentences (Union[str, List[str]]): The sentences to embed.
+            prompt_name (Optional[str], optional): The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
+                which is either set in the constructor or loaded from the model configuration. For example if
+                ``prompt_name`` is "query" and the ``prompts`` is {"query": "query: ", ...}, then the sentence "What
+                is the capital of France?" will be encoded as "query: What is the capital of France?" because the sentence
+                is appended to the prompt. If ``prompt`` is also set, this argument is ignored. Defaults to None.
+            prompt (Optional[str], optional): The prompt to use for encoding. For example, if the prompt is "query: ", then the
+                sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?"
+                because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
+            batch_size (int, optional): The batch size used for the computation. Defaults to 32.
+            show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
+            output_value (Optional[Literal["sentence_embedding", "token_embeddings"]], optional): The type of embeddings to return:
+                "sentence_embedding" to get sentence embeddings, "token_embeddings" to get wordpiece token embeddings, and `None`,
+                to get all output values. Defaults to "sentence_embedding".
+            precision (Literal["float32", "int8", "uint8", "binary", "ubinary"], optional): The precision to use for the embeddings.
+                Can be "float32", "int8", "uint8", "binary", or "ubinary". All non-float32 precisions are quantized embeddings.
+                Quantized embeddings are smaller in size and faster to compute, but may have a lower accuracy. They are useful for
+                reducing the size of the embeddings of a corpus for semantic search, among other tasks. Defaults to "float32".
+            convert_to_numpy (bool, optional): Whether the output should be a list of numpy vectors. If False, it is a list of PyTorch tensors.
+                Defaults to True.
+            convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
+                Defaults to False.
+            device (Union[str, List[str], None], optional): Device(s) to use for computation. Can be:
+
+                - A single device string (e.g., "cuda:0", "cpu") for single-process encoding
+                - A list of device strings (e.g., ["cuda:0", "cuda:1"], ["cpu", "cpu", "cpu", "cpu"]) to distribute
+                  encoding across multiple processes
+                - None to auto-detect available device for single-process encoding
+                If a list is provided, multi-process encoding will be used. Defaults to None.
+            normalize_embeddings (bool, optional): Whether to normalize returned vectors to have length 1. In that case,
+                the faster dot-product (util.dot_score) instead of cosine similarity can be used. Defaults to False.
+            truncate_dim (int, optional): The dimension to truncate sentence embeddings to.
+                Truncation is especially interesting for `Matryoshka models <https://sbert.net/examples/sentence_transformer/training/matryoshka/README.html>`_,
+                i.e. models that are trained to still produce useful embeddings even if the embedding dimension is reduced.
+                Truncated embeddings require less memory and are faster to perform retrieval with, but note that inference
+                is just as fast, and the embedding performance is worse than the full embeddings. If None, the ``truncate_dim``
+                from the model initialization is used. Defaults to None.
+            pool (Dict[Literal["input", "output", "processes"], Any], optional): A pool created by `start_multi_process_pool()`
+                for multi-process encoding. If provided, the encoding will be distributed across multiple processes.
+                This is recommended for large datasets and when multiple GPUs are available. Defaults to None.
+            chunk_size (int, optional): Size of chunks for multi-process encoding. Only used with multiprocessing, i.e. when
+                ``pool`` is not None or ``device`` is a list. If None, a sensible default is calculated. Defaults to None.
+
+        Returns:
+            Union[List[Tensor], ndarray, Tensor]: By default, a 2d numpy array with shape [num_inputs, output_dimension] is returned.
+            If only one string input is provided, then the output is a 1d array with shape [output_dimension]. If ``convert_to_tensor``,
+            a torch Tensor is returned instead. If ``self.truncate_dim <= output_dimension`` then output_dimension is ``self.truncate_dim``.
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer
+
+                # Load a pre-trained SentenceTransformer model
+                model = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
+
+                # Encode some documents
+                documents = [
+                    "This research paper discusses the effects of climate change on marine life.",
+                    "The article explores the history of artificial intelligence development.",
+                    "This document contains technical specifications for the new product line.",
+                ]
+
+                # Using document-specific encoding
+                embeddings = model.encode_document(documents)
+                print(embeddings.shape)
+                # (3, 768)
+        """
         if prompt_name is None:
             for candidate_prompt_name in ["document", "passage", "corpus"]:
                 if candidate_prompt_name in self.prompts:
@@ -665,6 +843,16 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         """
         Computes sentence embeddings.
 
+        .. tip::
+
+            If you are unsure whether you should use :meth:`encode`, :meth:`encode_query`, or :meth:`encode_document`,
+            your best bet is to use :meth:`encode_query` and :meth:`encode_document` for Information Retrieval tasks
+            with clear query and document/passage distinction, and use :meth:`encode` for all other tasks.
+
+            Note that :meth:`encode` is the most general method and can be used for any task, including Information
+            Retrieval, and that if the model was not trained with predefined prompts and/or task types, then all three
+            methods will return identical embeddings.
+
         Args:
             sentences (Union[str, List[str]]): The sentences to embed.
             prompt_name (Optional[str], optional): The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
@@ -720,7 +908,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 from sentence_transformers import SentenceTransformer
 
                 # Load a pre-trained SentenceTransformer model
-                model = SentenceTransformer('all-mpnet-base-v2')
+                model = SentenceTransformer("all-mpnet-base-v2")
 
                 # Encode some texts
                 sentences = [

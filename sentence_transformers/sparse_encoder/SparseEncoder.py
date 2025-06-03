@@ -196,83 +196,25 @@ class SparseEncoder(SentenceTransformer):
         chunk_size: int | None = None,
         **kwargs: Any,
     ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
-        if prompt_name is None and "query" in self.prompts:
-            prompt_name = "query"
-
-        return self.encode(
-            sentences=sentences,
-            prompt_name=prompt_name,
-            prompt=prompt,
-            batch_size=batch_size,
-            show_progress_bar=show_progress_bar,
-            convert_to_tensor=convert_to_tensor,
-            convert_to_sparse_tensor=convert_to_sparse_tensor,
-            save_to_cpu=save_to_cpu,
-            device=device,
-            max_active_dims=max_active_dims,
-            pool=pool,
-            chunk_size=chunk_size,
-            task_type="query",
-            **kwargs,
-        )
-
-    def encode_document(
-        self,
-        sentences: str | list[str] | np.ndarray,
-        prompt_name: str | None = None,
-        prompt: str | None = None,
-        batch_size: int = 32,
-        show_progress_bar: bool | None = None,
-        convert_to_tensor: bool = True,
-        convert_to_sparse_tensor: bool = True,
-        save_to_cpu: bool = False,
-        device: str | list[str | torch.device] | None = None,
-        max_active_dims: int | None = None,
-        pool: dict[Literal["input", "output", "processes"], Any] | None = None,
-        chunk_size: int | None = None,
-        **kwargs: Any,
-    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
-        if prompt_name is None:
-            for candidate_prompt_name in ["document", "passage", "corpus"]:
-                if candidate_prompt_name in self.prompts:
-                    prompt_name = candidate_prompt_name
-                    break
-
-        return self.encode(
-            sentences=sentences,
-            prompt_name=prompt_name,
-            prompt=prompt,
-            batch_size=batch_size,
-            show_progress_bar=show_progress_bar,
-            convert_to_tensor=convert_to_tensor,
-            convert_to_sparse_tensor=convert_to_sparse_tensor,
-            save_to_cpu=save_to_cpu,
-            device=device,
-            max_active_dims=max_active_dims,
-            pool=pool,
-            chunk_size=chunk_size,
-            task_type="document",
-            **kwargs,
-        )
-
-    def encode(
-        self,
-        sentences: str | list[str] | np.ndarray,
-        prompt_name: str | None = None,
-        prompt: str | None = None,
-        batch_size: int = 32,
-        show_progress_bar: bool | None = None,
-        convert_to_tensor: bool = True,
-        convert_to_sparse_tensor: bool = True,
-        save_to_cpu: bool = False,
-        device: str | list[str | torch.device] | None = None,
-        max_active_dims: int | None = None,
-        pool: dict[Literal["input", "output", "processes"], Any] | None = None,
-        chunk_size: int | None = None,
-        **kwargs: Any,
-    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
         """
-        Computes sparse sentence embeddings.
+        Computes sentence embeddings specifically optimized for query representation.
+
+        This method is a specialized version of :meth:`encode` that differs in exactly two ways:
+
+        1. If no ``prompt_name`` or ``prompt`` is provided, it uses a predefined "query" prompt,
+           if available in the model's ``prompts`` dictionary.
+        2. It sets the ``task_type`` to "query". If the model has a :class:`~sentence_transformers.models.Router`
+           module, it will use the "query" task type to route the input through the appropriate submodules.
+
+        .. tip::
+
+            If you are unsure whether you should use :meth:`encode`, :meth:`encode_query`, or :meth:`encode_document`,
+            your best bet is to use :meth:`encode_query` and :meth:`encode_document` for Information Retrieval tasks
+            with clear query and document/passage distinction, and use :meth:`encode` for all other tasks.
+
+            Note that :meth:`encode` is the most general method and can be used for any task, including Information
+            Retrieval, and that if the model was not trained with predefined prompts and/or task types, then all three
+            methods will return identical embeddings.
 
         Args:
             sentences (Union[str, List[str]]): The sentences to embed.
@@ -319,7 +261,229 @@ class SparseEncoder(SentenceTransformer):
                 from sentence_transformers import SparseEncoder
 
                 # Load a pre-trained SparseEncoder model
-                model = SparseEncoder('naver/splade-cocondenser-ensembledistil')
+                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+                # Encode some texts
+                queries = [
+                    "What are the effects of climate change?",
+                    "History of artificial intelligence",
+                    "Technical specifications product XYZ",
+                ]
+                embeddings = model.encode_query(queries)
+                print(embeddings.shape)
+                # (3, 30522)
+        """
+        if prompt_name is None and "query" in self.prompts:
+            prompt_name = "query"
+
+        return self.encode(
+            sentences=sentences,
+            prompt_name=prompt_name,
+            prompt=prompt,
+            batch_size=batch_size,
+            show_progress_bar=show_progress_bar,
+            convert_to_tensor=convert_to_tensor,
+            convert_to_sparse_tensor=convert_to_sparse_tensor,
+            save_to_cpu=save_to_cpu,
+            device=device,
+            max_active_dims=max_active_dims,
+            pool=pool,
+            chunk_size=chunk_size,
+            task_type="query",
+            **kwargs,
+        )
+
+    def encode_document(
+        self,
+        sentences: str | list[str] | np.ndarray,
+        prompt_name: str | None = None,
+        prompt: str | None = None,
+        batch_size: int = 32,
+        show_progress_bar: bool | None = None,
+        convert_to_tensor: bool = True,
+        convert_to_sparse_tensor: bool = True,
+        save_to_cpu: bool = False,
+        device: str | list[str | torch.device] | None = None,
+        max_active_dims: int | None = None,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = None,
+        chunk_size: int | None = None,
+        **kwargs: Any,
+    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
+        """
+        Computes sentence embeddings specifically optimized for document/passage representation.
+
+        This method is a specialized version of :meth:`encode` that differs in exactly two ways:
+
+        1. If no ``prompt_name`` or ``prompt`` is provided, it uses a predefined "document" prompt,
+           if available in the model's ``prompts`` dictionary.
+        2. It sets the ``task_type`` to "document". If the model has a :class:`~sentence_transformers.models.Router`
+           module, it will use the "document" task type to route the input through the appropriate submodules.
+
+        .. tip::
+
+            If you are unsure whether you should use :meth:`encode`, :meth:`encode_query`, or :meth:`encode_document`,
+            your best bet is to use :meth:`encode_query` and :meth:`encode_document` for Information Retrieval tasks
+            with clear query and document/passage distinction, and use :meth:`encode` for all other tasks.
+
+            Note that :meth:`encode` is the most general method and can be used for any task, including Information
+            Retrieval, and that if the model was not trained with predefined prompts and/or task types, then all three
+            methods will return identical embeddings.
+
+        Args:
+            sentences (Union[str, List[str]]): The sentences to embed.
+            prompt_name (Optional[str], optional): The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
+                which is either set in the constructor or loaded from the model configuration. For example if
+                ``prompt_name`` is "query" and the ``prompts`` is {"query": "query: ", ...}, then the sentence "What
+                is the capital of France?" will be encoded as "query: What is the capital of France?" because the sentence
+                is appended to the prompt. If ``prompt`` is also set, this argument is ignored. Defaults to None.
+            prompt (Optional[str], optional): The prompt to use for encoding. For example, if the prompt is "query: ", then the
+                sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?"
+                because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
+            batch_size (int, optional): The batch size used for the computation. Defaults to 32.
+            show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
+            convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
+                Defaults to False.
+            convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse tensor.
+                Defaults to True.
+            save_to_cpu (bool, optional):  Whether the output should be moved to cpu or stay on the device it has been computed on.
+                Defaults to False
+            device (Union[str, List[str], None], optional): Device(s) to use for computation. Can be:
+
+                - A single device string (e.g., "cuda:0", "cpu") for single-process encoding
+                - A list of device strings (e.g., ["cuda:0", "cuda:1"], ["cpu", "cpu", "cpu", "cpu"]) to distribute
+                  encoding across multiple processes
+                - None to auto-detect available device for single-process encoding
+                If a list is provided, multi-process encoding will be used. Defaults to None.
+            max_active_dims (int, optional): The maximum number of active (non-zero) dimensions in the output of the model. `None` means we will
+                used the value of the model's config. Defaults to None. If None in model's config it means there will be no limit on the number
+                of active dimensions and can be slow or memory-intensive if your model wasn't (yet) finetuned to high sparsity.
+            pool (Dict[Literal["input", "output", "processes"], Any], optional): A pool created by `start_multi_process_pool()`
+                for multi-process encoding. If provided, the encoding will be distributed across multiple processes.
+                This is recommended for large datasets and when multiple GPUs are available. Defaults to None.
+            chunk_size (int, optional): Size of chunks for multi-process encoding. Only used with multiprocessing, i.e. when
+                ``pool`` is not None or ``device`` is a list. If None, a sensible default is calculated. Defaults to None.
+
+        Returns:
+            Union[List[Tensor], ndarray, Tensor]: By default, a 2d torch sparse tensor with shape [num_inputs, output_dimension] is returned.
+            If only one string input is provided, then the output is a 1d array with shape [output_dimension]. If save_to_cpu is True,
+            the embeddings are moved to the CPU.
+
+        Example:
+            ::
+
+                from sentence_transformers import SparseEncoder
+
+                # Load a pre-trained SparseEncoder model
+                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+                # Encode some texts
+                sentences = [
+                    "This research paper discusses the effects of climate change on marine life.",
+                    "The article explores the history of artificial intelligence development.",
+                    "This document contains technical specifications for the new product line.",
+                ]
+                embeddings = model.encode(sentences)
+                print(embeddings.shape)
+                # (3, 30522)
+        """
+        if prompt_name is None:
+            for candidate_prompt_name in ["document", "passage", "corpus"]:
+                if candidate_prompt_name in self.prompts:
+                    prompt_name = candidate_prompt_name
+                    break
+
+        return self.encode(
+            sentences=sentences,
+            prompt_name=prompt_name,
+            prompt=prompt,
+            batch_size=batch_size,
+            show_progress_bar=show_progress_bar,
+            convert_to_tensor=convert_to_tensor,
+            convert_to_sparse_tensor=convert_to_sparse_tensor,
+            save_to_cpu=save_to_cpu,
+            device=device,
+            max_active_dims=max_active_dims,
+            pool=pool,
+            chunk_size=chunk_size,
+            task_type="document",
+            **kwargs,
+        )
+
+    def encode(
+        self,
+        sentences: str | list[str] | np.ndarray,
+        prompt_name: str | None = None,
+        prompt: str | None = None,
+        batch_size: int = 32,
+        show_progress_bar: bool | None = None,
+        convert_to_tensor: bool = True,
+        convert_to_sparse_tensor: bool = True,
+        save_to_cpu: bool = False,
+        device: str | list[str | torch.device] | None = None,
+        max_active_dims: int | None = None,
+        pool: dict[Literal["input", "output", "processes"], Any] | None = None,
+        chunk_size: int | None = None,
+        **kwargs: Any,
+    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
+        """
+        Computes sparse sentence embeddings.
+
+        .. tip::
+
+            If you are unsure whether you should use :meth:`encode`, :meth:`encode_query`, or :meth:`encode_document`,
+            your best bet is to use :meth:`encode_query` and :meth:`encode_document` for Information Retrieval tasks
+            with clear query and document/passage distinction, and use :meth:`encode` for all other tasks.
+
+            Note that :meth:`encode` is the most general method and can be used for any task, including Information
+            Retrieval, and that if the model was not trained with predefined prompts and/or task types, then all three
+            methods will return identical embeddings.
+
+        Args:
+            sentences (Union[str, List[str]]): The sentences to embed.
+            prompt_name (Optional[str], optional): The name of the prompt to use for encoding. Must be a key in the `prompts` dictionary,
+                which is either set in the constructor or loaded from the model configuration. For example if
+                ``prompt_name`` is "query" and the ``prompts`` is {"query": "query: ", ...}, then the sentence "What
+                is the capital of France?" will be encoded as "query: What is the capital of France?" because the sentence
+                is appended to the prompt. If ``prompt`` is also set, this argument is ignored. Defaults to None.
+            prompt (Optional[str], optional): The prompt to use for encoding. For example, if the prompt is "query: ", then the
+                sentence "What is the capital of France?" will be encoded as "query: What is the capital of France?"
+                because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
+            batch_size (int, optional): The batch size used for the computation. Defaults to 32.
+            show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
+            convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
+                Defaults to False.
+            convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse tensor.
+                Defaults to True.
+            save_to_cpu (bool, optional):  Whether the output should be moved to cpu or stay on the device it has been computed on.
+                Defaults to False
+            device (Union[str, List[str], None], optional): Device(s) to use for computation. Can be:
+
+                - A single device string (e.g., "cuda:0", "cpu") for single-process encoding
+                - A list of device strings (e.g., ["cuda:0", "cuda:1"], ["cpu", "cpu", "cpu", "cpu"]) to distribute
+                  encoding across multiple processes
+                - None to auto-detect available device for single-process encoding
+                If a list is provided, multi-process encoding will be used. Defaults to None.
+            max_active_dims (int, optional): The maximum number of active (non-zero) dimensions in the output of the model. `None` means we will
+                used the value of the model's config. Defaults to None. If None in model's config it means there will be no limit on the number
+                of active dimensions and can be slow or memory-intensive if your model wasn't (yet) finetuned to high sparsity.
+            pool (Dict[Literal["input", "output", "processes"], Any], optional): A pool created by `start_multi_process_pool()`
+                for multi-process encoding. If provided, the encoding will be distributed across multiple processes.
+                This is recommended for large datasets and when multiple GPUs are available. Defaults to None.
+            chunk_size (int, optional): Size of chunks for multi-process encoding. Only used with multiprocessing, i.e. when
+                ``pool`` is not None or ``device`` is a list. If None, a sensible default is calculated. Defaults to None.
+
+        Returns:
+            Union[List[Tensor], ndarray, Tensor]: By default, a 2d torch sparse tensor with shape [num_inputs, output_dimension] is returned.
+            If only one string input is provided, then the output is a 1d array with shape [output_dimension]. If save_to_cpu is True,
+            the embeddings are moved to the CPU.
+
+        Example:
+            ::
+
+                from sentence_transformers import SparseEncoder
+
+                # Load a pre-trained SparseEncoder model
+                model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
 
                 # Encode some texts
                 sentences = [
