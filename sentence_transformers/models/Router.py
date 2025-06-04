@@ -27,16 +27,50 @@ class Router(InputModule, nn.Sequential):
     def __init__(
         self, sub_modules: dict[str, list[Module]], default_route: str | None = None, allow_empty_key: bool = True
     ):
-        """
+        r"""
         This model allows to create asymmetric SentenceTransformer models that apply different modules depending on the specified route,
         such as "query" or "document". Especially useful for models that have different encoders for queries and documents.
-
-        In the below example, ...
 
         Notably, the ``task_type`` argument of ``model.encode`` can be used to specify which route to use, and
         ``model.encode_query`` and ``model.encode_document`` are shorthands for using ``task_type="query"`` and
         ``task_type="document"``, respectively. These methods also optionally apply ``prompts`` specific to queries
         or documents.
+
+        .. note::
+
+            When training models with the :class:`~sentence_transformers.models.Router` module, you must use the
+            ``router_mapping`` argument in the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`
+            or :class:`~sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments` to map the
+            training dataset columns to the correct route ("query" or "document"). For example, if your training dataset(s)
+            have ``["question", "positive", "negative"]`` columns, then you can use the following mapping::
+
+                args = SparseEncoderTrainingArguments(
+                    ...,
+                    router_mapping={
+                        "question": "query",
+                        "positive": "document",
+                        "negative": "document",
+                    }
+                )
+
+            Additionally, it is common to use a different learning rate for the different routes. For this, you should
+            use the ``learning_rate_mapping`` argument in the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`
+            or :class:`~sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments` to map parameter patterns
+            to their learning rates. For example, if you want to use a learning rate of ``1e-3`` for an IDF module and
+            ``2e-5`` for the rest of the model, you can do this::
+
+                args = SparseEncoderTrainingArguments(
+                    ...,
+                    learning_rate=2e-5,
+                    learning_rate_mapping={
+                        r"IDF\.*": 1e-3,
+                    }
+                )
+
+        In the below examples, the ``Router`` model is used to create asymmetric models with different encoders for
+        queries and documents. In these examples, the "query" route is efficient (e.g., using IDF or static embeddings),
+        while the "document" route uses a more complex model (e.g. a Transformers module). This allows for efficient
+        query encoding while still using a powerful document encoder, but the combinations are not limited to this.
 
         Example:
             ::

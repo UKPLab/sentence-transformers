@@ -206,7 +206,25 @@ But if instead you want to train from another checkpoint, or from scratch, then 
     
     .. note::
 
-        When training models with the :class:`~sentence_transformers.models.Asym` module, each non-label column in your training and evaluation datasets must not be regular strings, but instead a dictionary of :class:`~sentence_transformers.models.Asym` path keys to regular strings. So, assume that ``"What is the capital of France?"`` is an element in the `"questions"` training column, then that should be transformed into ``{"query": "What is the capital of France?"}`` before being passed to the model. The same applies to an e.g. `"documents"` column, which should be transformed into ``{"doc": "Paris is the capital of France."}`` for the document ``"Paris is the capital of France."``.
+        When training models with the :class:`~sentence_transformers.models.Router` module, you must use the ``router_mapping`` argument in the :class:`~sentence_transformers.sparse_encoder.SparseEncoderTrainingArguments` to map the training dataset columns to the correct route ("query" or "document"). For example, if your dataset(s) have ``["question", "answer"]`` columns, then you can use the following mapping::
+
+            args = SparseEncoderTrainingArguments(
+                ...,
+                router_mapping={
+                    "question": "query",
+                    "answer": "document",
+                }
+            )
+        
+        Additionally, it is recommended to use a much higher learning rate for the IDF module than for the rest of the model. For this, you should use the ``learning_rate_mapping`` argument in the :class:`~sentence_transformers.sparse_encoder.SparseEncoderTrainingArguments` to map parameter patterns to their learning rates. For example, if you want to use a learning rate of ``1e-3`` for the IDF module and ``2e-5`` for the rest of the model, you can do this::
+
+            args = SparseEncoderTrainingArguments(
+                ...,
+                learning_rate=2e-5,
+                learning_rate_mapping={
+                    r"IDF\.*": 1e-3,
+                }
+            )
 ```
 
 ## Dataset
