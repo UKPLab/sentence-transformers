@@ -18,7 +18,9 @@ if is_datasets_available():
 
 @pytest.fixture(scope="session")
 def _stsb_bert_tiny_model() -> SentenceTransformer:
-    return SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    model = SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    model.model_card_data.generate_widget_examples = False  # Disable widget examples generation for testing
+    return model
 
 
 @pytest.fixture()

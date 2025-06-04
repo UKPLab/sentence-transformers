@@ -795,8 +795,15 @@ class SentenceTransformerModelCardData(CardData):
             if num_training_samples:
                 self.add_tags(f"dataset_size:{num_training_samples}")
 
-            if self.ir_model is None and "query" in dataset.column_names or "question" in dataset.column_names:
-                self.ir_model = True
+            if self.ir_model is None:
+                if isinstance(dataset, dict):
+                    column_names = set(
+                        column for sub_dataset in dataset.values() for column in sub_dataset.column_names
+                    )
+                else:
+                    column_names = set(dataset.column_names)
+                if {"query", "question"} & column_names:
+                    self.ir_model = True
 
         return self.validate_datasets(dataset_metadata)
 

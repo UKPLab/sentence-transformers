@@ -9,7 +9,9 @@ from sentence_transformers import SparseEncoder
 
 @pytest.fixture(scope="session")
 def _splade_bert_tiny_model() -> SparseEncoder:
-    return SparseEncoder("sparse-encoder-testing/splade-bert-tiny-nq")
+    model = SparseEncoder("sparse-encoder-testing/splade-bert-tiny-nq")
+    model.model_card_data.generate_widget_examples = False  # Disable widget examples generation for testing
+    return model
 
 
 @pytest.fixture()
@@ -17,21 +19,25 @@ def splade_bert_tiny_model(_splade_bert_tiny_model: SparseEncoder) -> SparseEnco
     return deepcopy(_splade_bert_tiny_model)
 
 
-@pytest.fixture()
-def inference_free_splade_bert_tiny_model() -> SparseEncoder:
-    return SparseEncoder("sparse-encoder-testing/inference-free-splade-bert-tiny-nq")
-
-
 @pytest.fixture(scope="session")
-def inference_free_splade_bert_tiny_model_reused() -> SparseEncoder:
-    return SparseEncoder("sparse-encoder-testing/inference-free-splade-bert-tiny-nq")
+def _inference_free_splade_bert_tiny_model() -> SparseEncoder:
+    model = SparseEncoder("sparse-encoder-testing/inference-free-splade-bert-tiny-nq")
+    model.model_card_data.generate_widget_examples = False  # Disable widget examples generation for testing
+    return model
 
 
 @pytest.fixture()
-def csr_bert_tiny_model() -> SparseEncoder:
-    return SparseEncoder("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+def inference_free_splade_bert_tiny_model(_inference_free_splade_bert_tiny_model: SparseEncoder) -> SparseEncoder:
+    return deepcopy(_inference_free_splade_bert_tiny_model)
 
 
 @pytest.fixture(scope="session")
-def csr_bert_tiny_model_reused() -> SparseEncoder:
-    return SparseEncoder("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+def _csr_bert_tiny_model() -> SparseEncoder:
+    model = SparseEncoder("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    model.model_card_data.generate_widget_examples = False  # Disable widget examples generation for testing
+    return model
+
+
+@pytest.fixture()
+def csr_bert_tiny_model(_csr_bert_tiny_model: SparseEncoder) -> SparseEncoder:
+    return deepcopy(_csr_bert_tiny_model)
