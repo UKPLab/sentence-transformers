@@ -1061,7 +1061,6 @@ class SentenceTransformerTrainer(Trainer):
         )
 
         if include_dataset_name:
-            # include_prompt_lengths = self._include_prompt_length()
             dataset = self.add_dataset_name_column(dataset)
         return dataset
 

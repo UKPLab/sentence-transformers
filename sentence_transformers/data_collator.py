@@ -26,7 +26,7 @@ class SentenceTransformerDataCollator:
     valid_label_columns: list[str] = field(default_factory=lambda: ["label", "score"])
     router_mapping: dict[str, str] | dict[str, dict[str, str]] | None = field(default_factory=dict, repr=False)
     prompts: dict[str, str] | dict[str, dict[str, str]] | None = field(default_factory=dict, repr=False)
-    include_prompt_lengths: bool = field(default=False, repr=False)  # TODO: Figure out how to properly set this
+    include_prompt_lengths: bool = field(default=False, repr=False)
 
     _prompt_length_mapping: dict[str, int] = field(default_factory=dict, init=False, repr=False)
     _warned_columns: set[tuple[str]] = field(default_factory=set, init=False, repr=False)
