@@ -123,9 +123,9 @@ class SparseEncoder(SentenceTransformer):
             # Get the similarity scores between all sentences
             similarities = model.similarity(embeddings, embeddings)
             print(similarities)
-            # tensor([[35.629, 9.1541, 0.11269],
-            #         [9.1541, 27.478, 0.019061],
-            #         [0.11269, 0.019061, 29.612]])
+            # tensor([[   35.629,     9.154,     0.098],
+            #         [    9.154,    27.478,     0.019],
+            #         [    0.098,     0.019,    29.553]])
     """
 
     model_card_data_class = SparseEncoderModelCardData
@@ -661,18 +661,18 @@ class SparseEncoder(SentenceTransformer):
                 ... ]
                 >>> embeddings = model.encode(sentences, normalize_embeddings=True)
                 >>> model.similarity(embeddings, embeddings)
-                tensor([[   30.9529,    12.9143,     0.0000,     0.0106],
-                        [   12.9143,    27.5256,     0.5829,     0.5958],
-                        [    0.0000,     0.5829,    36.0683,    15.3007],
-                        [    0.0106,     0.5958,    15.3007,    39.4664]], device='cuda:0')
+                tensor([[   30.953,    12.871,     0.000,     0.011],
+                        [   12.871,    27.505,     0.580,     0.578],
+                        [    0.000,     0.580,    36.068,    15.301],
+                        [    0.011,     0.578,    15.301,    39.466]])
                 >>> model.similarity_fn_name
                 "dot"
                 >>> model.similarity_fn_name = "cosine"
                 >>> model.similarity(embeddings, embeddings)
-                tensor([[    1.0000,     0.4424,     0.0000,     0.0003],
-                        [    0.4424,     1.0000,     0.0185,     0.0181],
-                        [    0.0000,     0.0185,     1.0000,     0.4055],
-                        [    0.0003,     0.0181,     0.4055,     1.0000]], device='cuda:0')
+                tensor([[    1.000,     0.441,     0.000,     0.000],
+                        [    0.441,     1.000,     0.018,     0.018],
+                        [    0.000,     0.018,     1.000,     0.406],
+                        [    0.000,     0.018,     0.406,     1.000]])
         """
         if self.similarity_fn_name is None:
             self.similarity_fn_name = SimilarityFunction.DOT
@@ -706,12 +706,12 @@ class SparseEncoder(SentenceTransformer):
                 ... ]
                 >>> embeddings = model.encode(sentences, convert_to_sparse_tensor=False)
                 >>> model.similarity_pairwise(embeddings[::2], embeddings[1::2])
-                tensor([12.9143, 15.3007], device='cuda:0')
+                tensor([12.871, 15.301])
                 >>> model.similarity_fn_name
                 "dot"
                 >>> model.similarity_fn_name = "cosine"
                 >>> model.similarity_pairwise(embeddings[::2], embeddings[1::2])
-                tensor([0.4424, 0.4055], device='cuda:0')
+                tensor([0.441, 0.406])
         """
         if self.similarity_fn_name is None:
             self.similarity_fn_name = SimilarityFunction.DOT

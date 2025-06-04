@@ -39,9 +39,9 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    # 3. Calculate the embedding similarities (using dot product by default)
    similarities = model.similarity(embeddings, embeddings)
    print(similarities)
-   # tensor([[   35.6293,     9.1541,     0.1127],
-   #         [    9.1541,    27.4778,     0.0191],
-   #         [    0.1127,     0.0191,    29.6122]], device='cuda:0')
+   # tensor([[   35.629,     9.154,     0.098],
+   #         [    9.154,    27.478,     0.019],
+   #         [    0.098,     0.019,    29.553]])
 
    # 4. Check sparsity statistics
    stats = SparseEncoder.sparsity(embeddings)

@@ -116,9 +116,9 @@ The :class:`~sentence_transformers.sparse_encoder.SparseEncoder` class implement
     print(model.similarity_fn_name)
     # => "dot"
     print(similarities)
-    # tensor([[   35.6293,     9.1541,     0.1127],
-    #         [    9.1541,    27.4778,     0.0191],
-    #         [    0.1127,     0.0191,    29.6122]], device='cuda:0')
+    # tensor([[   35.629,     9.154,     0.098],
+    #         [    9.154,    27.478,     0.019],
+    #         [    0.098,     0.019,    29.553]])
 
     # Change the similarity function to Manhattan distance
     model.similarity_fn_name = SimilarityFunction.COSINE
@@ -127,8 +127,8 @@ The :class:`~sentence_transformers.sparse_encoder.SparseEncoder` class implement
 
     similarities = model.similarity(embeddings, embeddings)
     print(similarities)
-    # tensor([[    1.0000,     0.2926,     0.0035],
-    #         [    0.2926,     1.0000,     0.0007],
-    #         [    0.0035,     0.0007,     1.0000]], device='cuda:0')
+    # tensor([[    1.000,     0.293,     0.003],
+    #         [    0.293,     1.000,     0.001],
+    #         [    0.003,     0.001,     1.000]])
 
 ```

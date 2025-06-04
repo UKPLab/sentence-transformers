@@ -69,14 +69,14 @@ class SparseTranslationEvaluator(TranslationEvaluator):
             '''
             Evaluating translation matching Accuracy of the model on the news-commentary-en-nl dataset:
             Accuracy src2trg: 41.40
-            Accuracy trg2src: 47.70
-            Model Sparsity: Active Dimensions: 113.6, Sparsity Ratio: 0.9963
+            Accuracy trg2src: 47.60
+            Model Sparsity: Active Dimensions: 112.3, Sparsity Ratio: 0.9963
             '''
             # Print the results
             print(f"Primary metric: {translation_evaluator.primary_metric}")
             # => Primary metric: news-commentary-en-nl_mean_accuracy
             print(f"Primary metric value: {results[translation_evaluator.primary_metric]:.4f}")
-            # => Primary metric value: 0.4455
+            # => Primary metric value: 0.4450
 
     """
 
