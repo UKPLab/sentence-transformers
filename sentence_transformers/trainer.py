@@ -390,7 +390,8 @@ class SentenceTransformerTrainer(Trainer):
             Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, Any]]]: The computed loss. If `return_outputs` is True, returns a tuple of loss and outputs. Otherwise, returns only the loss.
         """
         dataset_name = inputs.pop("dataset_name", None)
-        features, labels = self.collect_features(inputs)
+        feature_columns = inputs.pop("feature_columns", None)
+        features, labels = self.collect_features(inputs, feature_columns=feature_columns)
         loss_fn = self.loss
 
         if isinstance(loss_fn, dict) and dataset_name:
@@ -414,9 +415,15 @@ class SentenceTransformerTrainer(Trainer):
         return loss
 
     def collect_features(
-        self, inputs: dict[str, torch.Tensor | Any]
+        self, inputs: dict[str, torch.Tensor | Any], feature_columns: list[str] | None = None
     ) -> tuple[list[dict[str, torch.Tensor]], torch.Tensor | None]:
         """Turn the inputs from the dataloader into the separate model inputs & the labels.
+
+        Args:
+            inputs (Dict[str, Union[torch.Tensor, Any]]): The inputs from the dataloader, i.e.
+                after data collation.
+            feature_columns (List[str], optional): List of feature column names, e.g. ["anchor", "positive"].
+                Defaults to None.
 
         Example::
 
@@ -432,20 +439,37 @@ class SentenceTransformerTrainer(Trainer):
             >>> torch.equal(labels, inputs["label"])
             True
         """
-        # All inputs ending with `_input_ids` (Transformers), `_sentence_embedding` (BoW), `_pixel_values` (CLIPModel)
-        # are considered to correspond to a feature
-        features = []
-        for column in inputs:
-            if column.endswith("_input_ids"):
-                prefix = column[: -len("input_ids")]
-            elif column.endswith("_sentence_embedding"):
-                prefix = column[: -len("sentence_embedding")]
-            elif column.endswith("_pixel_values"):
-                prefix = column[: -len("pixel_values")]
-            else:
-                continue
-            features.append({key[len(prefix) :]: value for key, value in inputs.items() if key.startswith(prefix)})
         labels = inputs.get("label", None)
+        features = []
+        if feature_columns is not None:
+            for column in feature_columns:
+                feature_dict = {
+                    key[len(column) + 1 :]: value for key, value in inputs.items() if key.startswith(column)
+                }
+                features.append(feature_dict)
+
+            return features, labels
+
+        # Backwards compatibility with custom data collators that don't use feature_columns:
+        # If we don't already know the feature columns, then all inputs ending with `_input_ids` (Transformers),
+        # `_sentence_embedding` (BoW), `_pixel_values` (CLIPModel) are considered to correspond to a feature.
+        feature_keys = ["input_ids", "sentence_embedding", "pixel_values"]
+        for column in inputs:
+            prefix = None
+            for key in feature_keys:
+                suffix = f"_{key}"
+                if column.endswith(suffix):
+                    prefix = column[: -len(key)]
+                    break
+
+            # Skip columns with no matching suffix
+            if prefix is None:
+                continue
+
+            # Collect all features that start with the detected prefix
+            feature_dict = {key[len(prefix) :]: value for key, value in inputs.items() if key.startswith(prefix)}
+            features.append(feature_dict)
+
         return features, labels
 
     def evaluate(

@@ -46,6 +46,7 @@ class SentenceTransformerDataCollator:
                 column_names.remove(label_column)
                 break
 
+        feature_columns = []
         for column_name in column_names:
             # If the prompt length has been set, we should add it to the batch
             if column_name.endswith("_prompt_length") and column_name[: -len("_prompt_length")] in column_names:
@@ -55,6 +56,9 @@ class SentenceTransformerDataCollator:
             tokenized = self.tokenize_fn([row[column_name] for row in features])
             for key, value in tokenized.items():
                 batch[f"{column_name}_{key}"] = value
+            feature_columns.append(column_name)
+
+        batch["feature_columns"] = feature_columns
 
         return batch
 
