@@ -29,7 +29,7 @@ from transformers.trainer_callback import TrainerControl, TrainerState
 from typing_extensions import deprecated
 
 from sentence_transformers import __version__ as sentence_transformers_version
-from sentence_transformers.models import StaticEmbedding, Transformer
+from sentence_transformers.models import Router, StaticEmbedding, Transformer
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sentence_transformers.util import fullname, is_accelerate_available, is_datasets_available
 
@@ -183,6 +183,12 @@ class SentenceTransformerModelCardCallback(TrainerCallback):
                     }
                 )
 
+        # Set the ir_model flag so we can generate the model card with the encode_query/encode_document methods
+        if model.model_card_data.ir_model is None:
+            for key in keys:
+                if "ndcg" in key:
+                    model.model_card_data.ir_model = True
+
 
 @deprecated(
     "The `ModelCardCallback` has been renamed to `SentenceTransformerModelCardCallback` and the former is now deprecated. Please use `SentenceTransformerModelCardCallback` instead."
@@ -312,7 +318,7 @@ class SentenceTransformerModelCardData(CardData):
             "dense",
         ]
     )
-    generate_widget_examples: Literal["deprecated"] = "deprecated"
+    generate_widget_examples: bool = field(default=True)
 
     # Automatically filled by `SentenceTransformerModelCardCallback` and the Trainer directly
     base_model: str | None = field(default=None, init=False)
@@ -328,6 +334,8 @@ class SentenceTransformerModelCardData(CardData):
     citations: dict[str, str] = field(default_factory=dict, init=False)
     best_model_step: int | None = field(default=None, init=False)
     datasets: list[str] = field(default_factory=list, init=False, repr=False)
+    ir_model: bool | None = field(default=None, init=False, repr=False)
+    similarities: str | None = field(default=None, init=False, repr=False)
 
     # Utility fields
     first_save: bool = field(default=True, init=False)
@@ -513,7 +521,7 @@ class SentenceTransformerModelCardData(CardData):
                 else:
                     # If we have e.g. feature-extraction, we just want individual sentences
                     self.widget.append({"text": random.choice(sentences)})
-                self.predict_example = sentences[:3]
+                self.predict_example = sentences[:4]
 
     def set_evaluation_metrics(
         self, evaluator: SentenceEvaluator, metrics: dict[str, Any], epoch: int = 0, step: int = 0
@@ -787,10 +795,25 @@ class SentenceTransformerModelCardData(CardData):
             if num_training_samples:
                 self.add_tags(f"dataset_size:{num_training_samples}")
 
+            if self.ir_model is None and "query" in dataset.column_names or "question" in dataset.column_names:
+                self.ir_model = True
+
         return self.validate_datasets(dataset_metadata)
 
     def register_model(self, model: SentenceTransformer) -> None:
         self.model = model
+
+        if self.ir_model is not None:
+            return
+
+        if Router in [module.__class__ for module in model.children()]:
+            self.ir_model = True
+            return
+
+        for ir_prompt_name in ["query", "document", "passage", "corpus"]:
+            if ir_prompt_name in model.prompts and len(model.prompts[ir_prompt_name]) > 0:
+                self.ir_model = True
+                return
 
     def set_model_id(self, model_id: str) -> None:
         self.model_id = model_id
@@ -1011,6 +1034,40 @@ class SentenceTransformerModelCardData(CardData):
             "explain_bold_in_eval": "**" in eval_lines,
         }
 
+    def run_usage_snippet(self) -> dict[str, Any]:
+        if self.predict_example is None:
+            if self.ir_model:
+                self.predict_example = [
+                    "Which planet is known as the Red Planet?",
+                    "Venus is often called Earth's twin because of its similar size and proximity.",
+                    "Mars, known for its reddish appearance, is often referred to as the Red Planet.",
+                    "Saturn, famous for its rings, is sometimes mistaken for the Red Planet.",
+                ]
+            else:
+                self.predict_example = [
+                    "The weather is lovely today.",
+                    "It's so sunny outside!",
+                    "He drove to the stadium.",
+                ]
+
+        if not self.generate_widget_examples:
+            return
+
+        if self.ir_model:
+            query_embeddings = self.model.encode_query(
+                self.predict_example[0], convert_to_tensor=True, show_progress_bar=False
+            )
+            document_embeddings = self.model.encode_document(
+                self.predict_example[1:], convert_to_tensor=True, show_progress_bar=False
+            )
+            similarity = self.model.similarity(query_embeddings, document_embeddings)
+        else:
+            embeddings = self.model.encode(self.predict_example, convert_to_tensor=True, show_progress_bar=False)
+            similarity = self.model.similarity(embeddings, embeddings)
+
+        with torch._tensor_str.printoptions(precision=4, sci_mode=False):
+            self.similarities = "\n".join(f"# {line}" for line in str(similarity.cpu()).splitlines())
+
     def get_codecarbon_data(self) -> dict[Literal["co2_eq_emissions"], dict[str, Any]]:
         emissions_data = self.code_carbon_callback.tracker._prepare_emissions_data()
         results = {
@@ -1063,6 +1120,12 @@ class SentenceTransformerModelCardData(CardData):
         # Set the model name
         if not self.model_name:
             self.model_name = self.get_default_model_name()
+
+        # Compute the similarity scores for the usage snippet
+        try:
+            self.run_usage_snippet()
+        except Exception as exc:
+            logger.warning(f"Error while computing usage snippet output: {exc}")
 
         super_dict = {field.name: getattr(self, field.name) for field in fields(self)}
 

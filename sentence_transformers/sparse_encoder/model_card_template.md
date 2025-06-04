@@ -73,7 +73,7 @@ First install the Sentence Transformers library:
 ```bash
 pip install -U sentence-transformers
 ```
-
+{% if not ir_model %}
 Then you can load this model and run inference.
 ```python
 from sentence_transformers import SparseEncoder
@@ -88,14 +88,42 @@ sentences = [
 ]
 embeddings = model.encode(sentences)
 print(embeddings.shape)
-# ({{ (predict_example or  ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{output_dimensionality }})
+# [{{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{ output_dimensionality }}]
 
 # Get the similarity scores for the embeddings
 similarities = model.similarity(embeddings, embeddings)
-print(similarities.shape)
-# [{{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}]
+{% if similarities %}print(similarities)
+{{ similarities }}{% else %}print(similarities.shape)
+# [{{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}]{% endif %}
 ```
+{% else %}
+Then you can load this model and run inference.
+```python
+from sentence_transformers import SparseEncoder
 
+# Download from the {{ hf_emoji }} Hub
+model = SparseEncoder("{{ model_id | default('sparse_encoder_model_id', true) }}")
+# Run inference
+queries = [
+    {{ predict_example | first | tojson }},
+]
+documents = [
+{%- for text in predict_example[1:] %}
+    {{ "%r" | format(text) }},
+{%- endfor %}
+]
+query_embeddings = model.encode_query(queries)
+document_embeddings = model.encode_documents(documents)
+print(query_embeddings.shape, document_embeddings.shape)
+# [1, {{ output_dimensionality }}] [{{ (predict_example | length) - 1 }}, {{ output_dimensionality }}]
+
+# Get the similarity scores for the embeddings
+similarities = model.similarity(query_embeddings, document_embeddings)
+{% if similarities %}print(similarities)
+{{ similarities }}{% else %}print(similarities.shape)
+# [1, {{ (predict_example | length) - 1 }}]{% endif %}
+```
+{% endif %}
 <!--
 ### Direct Usage (Transformers)
 

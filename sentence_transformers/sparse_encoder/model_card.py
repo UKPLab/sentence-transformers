@@ -81,7 +81,7 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
     model: SparseEncoder | None = field(default=None, init=False, repr=False)
 
     def register_model(self, model: SparseEncoder) -> None:
-        self.model = model
+        super().register_model(model)
 
         if self.task_name is None:
             self.task_name = "semantic search and sparse retrieval"
