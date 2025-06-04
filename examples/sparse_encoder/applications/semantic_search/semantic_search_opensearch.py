@@ -51,8 +51,8 @@ sparse_model = SparseEncoder(modules=[router], similarity_fn_name="dot")
 print("Start encoding corpus...")
 start_time = time.time()
 # 4. Encode the corpus
-corpus_embeddings = sparse_model.encode(
-    [{"doc": doc} for doc in corpus], convert_to_sparse_tensor=True, batch_size=32, show_progress_bar=True
+corpus_embeddings = sparse_model.encode_document(
+    corpus, convert_to_sparse_tensor=True, batch_size=32, show_progress_bar=True
 )
 corpus_embeddings_decoded = sparse_model.decode(corpus_embeddings)
 print(f"Corpus encoding time: {time.time() - start_time:.6f} seconds")
@@ -61,7 +61,7 @@ corpus_index = None
 while True:
     # 5. Encode the queries using inference-free mode
     start_time = time.time()
-    query_embeddings = sparse_model.encode([{"query": query} for query in queries], convert_to_sparse_tensor=True)
+    query_embeddings = sparse_model.encode_query(queries, convert_to_sparse_tensor=True)
     query_embeddings_decoded = sparse_model.decode(query_embeddings)
     print(f"Query encoding time: {time.time() - start_time:.6f} seconds")
 

@@ -14,27 +14,27 @@ model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
 
 # 2. Encode a corpus of texts using the SparseEncoder model
 corpus = [
-    "A man is eating food.",
-    "A man is eating a piece of bread.",
-    "The girl is carrying a baby.",
-    "A man is riding a horse.",
-    "A woman is playing violin.",
-    "Two men pushed carts through the woods.",
-    "A man is riding a white horse on an enclosed ground.",
-    "A monkey is playing drums.",
-    "A cheetah is running behind its prey.",
+    "Machine learning is a field of study that gives computers the ability to learn without being explicitly programmed.",
+    "Deep learning is part of a broader family of machine learning methods based on artificial neural networks with representation learning.",
+    "Neural networks are computing systems vaguely inspired by the biological neural networks that constitute animal brains.",
+    "Mars rovers are robotic vehicles designed to travel on the surface of Mars to collect data and perform experiments.",
+    "The James Webb Space Telescope is the largest optical telescope in space, designed to conduct infrared astronomy.",
+    "SpaceX's Starship is designed to be a fully reusable transportation system capable of carrying humans to Mars and beyond.",
+    "Global warming is the long-term heating of Earth's climate system observed since the pre-industrial period due to human activities.",
+    "Renewable energy sources include solar, wind, hydro, and geothermal power that naturally replenish over time.",
+    "Carbon capture technologies aim to collect CO2 emissions before they enter the atmosphere and store them underground.",
 ]
 
 # Use "convert_to_tensor=True" to keep the tensors on GPU (if available)
-corpus_embeddings = model.encode(corpus, convert_to_tensor=True)
+corpus_embeddings = model.encode_document(corpus, convert_to_tensor=True)
 
 # 3. Encode the user queries using the same SparseEncoder model
 queries = [
-    "A man is eating pasta.",
-    "Someone in a gorilla costume is playing a set of drums.",
-    "A cheetah chases prey on across a field.",
+    "How do artificial neural networks work?",
+    "What technology is used for modern space exploration?",
+    "How can we address climate change challenges?",
 ]
-query_embeddings = model.encode(queries, convert_to_tensor=True)
+query_embeddings = model.encode_query(queries, convert_to_tensor=True)
 
 # 4. Use the similarity function to compute the similarity scores between the query and corpus embeddings
 top_k = min(5, len(corpus))  # Find at most 5 sentences of the corpus for each query sentence
@@ -57,24 +57,24 @@ for query_id, query in enumerate(queries):
     print("")
 
 """
-Query: A man is eating pasta.
-Score: 21.3464 - Sentence: A man is eating food. - Top influential tokens: ("man", 5.48), ("eating", 3.83), ("eat", 3.15), ("men", 3.12), ("food", 1.78), ("male", 0.87), ("person", 0.62), ("a", 0.39), ("hunger", 0.28), ("meat", 0.27)
-Score: 18.4783 - Sentence: A man is eating a piece of bread. - Top influential tokens: ("man", 4.85), ("eating", 3.49), ("eat", 3.02), ("men", 2.74), ("male", 0.68), ("food", 0.66), ("person", 0.58), ("a", 0.51), ("meat", 0.36), ("culture", 0.27)
-Score: 10.2556 - Sentence: A man is riding a horse. - Top influential tokens: ("man", 4.85), ("men", 3.11), ("male", 0.68), ("a", 0.60), ("person", 0.59), ("animal", 0.21), ("god", 0.08), ("adam", 0.08), ("sex", 0.03), ("who", 0.01)
-Score: 6.6108 - Sentence: A man is riding a white horse on an enclosed ground. - Top influential tokens: ("man", 3.31), ("men", 1.58), ("a", 0.51), ("male", 0.41), ("person", 0.34), ("on", 0.17), ("animal", 0.16), ("god", 0.05), ("wearing", 0.04), ("culture", 0.02)
-Score: 5.2575 - Sentence: Two men pushed carts through the woods. - Top influential tokens: ("men", 2.60), ("man", 2.51), ("a", 0.12), ("murder", 0.01), (".", 0.01), ("said", 0.00)
+Query: How do artificial neural networks work?
+Score: 16.9053 - Sentence: Neural networks are computing systems vaguely inspired by the biological neural networks that constitute animal brains. - Top influential tokens: ("neural", 5.71), ("networks", 3.24), ("network", 2.93), ("brain", 2.10), ("computer", 0.50), ("##uron", 0.32), ("artificial", 0.27), ("technology", 0.27), ("communication", 0.27), ("connection", 0.21)
+Score: 13.6119 - Sentence: Deep learning is part of a broader family of machine learning methods based on artificial neural networks with representation learning. - Top influential tokens: ("artificial", 3.71), ("neural", 3.15), ("networks", 1.78), ("brain", 1.22), ("network", 1.12), ("ai", 1.07), ("machine", 0.39), ("robot", 0.20), ("technology", 0.20), ("algorithm", 0.18)
+Score: 2.7373 - Sentence: Machine learning is a field of study that gives computers the ability to learn without being explicitly programmed. - Top influential tokens: ("machine", 0.78), ("computer", 0.50), ("technology", 0.32), ("artificial", 0.22), ("robot", 0.21), ("ai", 0.20), ("process", 0.16), ("theory", 0.11), ("technique", 0.11), ("fuzzy", 0.06)
+Score: 2.1430 - Sentence: Carbon capture technologies aim to collect CO2 emissions before they enter the atmosphere and store them underground. - Top influential tokens: ("technology", 0.42), ("function", 0.41), ("mechanism", 0.21), ("sensor", 0.21), ("device", 0.18), ("process", 0.18), ("generator", 0.13), ("detection", 0.10), ("technique", 0.10), ("tracking", 0.05)
+Score: 2.0195 - Sentence: Mars rovers are robotic vehicles designed to travel on the surface of Mars to collect data and perform experiments. - Top influential tokens: ("robot", 0.67), ("function", 0.34), ("technology", 0.29), ("device", 0.23), ("experiment", 0.20), ("machine", 0.10), ("artificial", 0.08), ("design", 0.04), ("useful", 0.03), ("they", 0.02)
 
-Query: Someone in a gorilla costume is playing a set of drums.
-Score: 16.7709 - Sentence: A monkey is playing drums. - Top influential tokens: ("drums", 4.38), ("drum", 2.27), ("play", 2.16), ("playing", 1.77), ("drummer", 0.80), ("dance", 0.67), ("monkey", 0.55), ("music", 0.50), ("a", 0.40), ("sound", 0.39)
-Score: 8.7609 - Sentence: A woman is playing violin. - Top influential tokens: ("play", 2.12), ("playing", 1.79), ("dance", 0.68), ("person", 0.67), ("music", 0.55), ("instrument", 0.52), ("guitar", 0.39), ("a", 0.35), ("wearing", 0.32), ("player", 0.21)
-Score: 2.8393 - Sentence: A man is riding a horse. - Top influential tokens: ("person", 0.91), ("a", 0.49), ("man", 0.45), ("animal", 0.37), ("sport", 0.32), ("savage", 0.10), ("dance", 0.08), ("billy", 0.06), ("god", 0.04), ("hunting", 0.01)
-Score: 2.4528 - Sentence: A man is eating a piece of bread. - Top influential tokens: ("person", 0.90), ("man", 0.45), ("a", 0.42), ("someone", 0.29), ("animal", 0.08), ("god", 0.07), ("ritual", 0.07), ("culture", 0.07), ("something", 0.05), ("who", 0.03)
-Score: 2.3295 - Sentence: A man is riding a white horse on an enclosed ground. - Top influential tokens: ("person", 0.53), ("a", 0.42), ("man", 0.31), ("sport", 0.27), ("animal", 0.27), ("savage", 0.09), ("character", 0.09), ("wearing", 0.07), ("symbol", 0.07), ("hunting", 0.05)
+Query: What technology is used for modern space exploration?
+Score: 10.4748 - Sentence: SpaceX's Starship is designed to be a fully reusable transportation system capable of carrying humans to Mars and beyond. - Top influential tokens: ("space", 4.40), ("technology", 1.15), ("nasa", 1.06), ("mars", 0.63), ("exploration", 0.52), ("spacecraft", 0.44), ("robot", 0.32), ("rocket", 0.28), ("astronomy", 0.27), ("travel", 0.26)
+Score: 9.3818 - Sentence: The James Webb Space Telescope is the largest optical telescope in space, designed to conduct infrared astronomy. - Top influential tokens: ("space", 3.89), ("nasa", 1.09), ("astronomy", 0.93), ("discovery", 0.48), ("instrument", 0.47), ("technology", 0.35), ("device", 0.26), ("spacecraft", 0.25), ("invented", 0.22), ("equipment", 0.22)
+Score: 8.5147 - Sentence: Mars rovers are robotic vehicles designed to travel on the surface of Mars to collect data and perform experiments. - Top influential tokens: ("technology", 1.39), ("mars", 0.79), ("exploration", 0.78), ("robot", 0.67), ("used", 0.66), ("nasa", 0.52), ("spacecraft", 0.44), ("device", 0.39), ("explore", 0.38), ("travel", 0.25)
+Score: 7.6993 - Sentence: Carbon capture technologies aim to collect CO2 emissions before they enter the atmosphere and store them underground. - Top influential tokens: ("technology", 1.99), ("tech", 1.76), ("technologies", 1.74), ("equipment", 0.32), ("device", 0.31), ("technological", 0.28), ("mining", 0.22), ("sensor", 0.19), ("tool", 0.18), ("software", 0.11)
+Score: 2.5526 - Sentence: Machine learning is a field of study that gives computers the ability to learn without being explicitly programmed. - Top influential tokens: ("technology", 1.52), ("machine", 0.27), ("robot", 0.21), ("computer", 0.18), ("engineering", 0.12), ("technique", 0.11), ("science", 0.05), ("technological", 0.05), ("techniques", 0.02), ("innovation", 0.01)
 
-Query: A cheetah chases prey on across a field.
-Score: 16.4271 - Sentence: A cheetah is running behind its prey. - Top influential tokens: ("che", 3.80), ("##eta", 3.72), ("prey", 2.77), ("hunting", 0.75), ("behavior", 0.70), ("##h", 0.62), ("movement", 0.45), ("animal", 0.33), ("predator", 0.30), ("chasing", 0.29)
-Score: 2.2981 - Sentence: A monkey is playing drums. - Top influential tokens: ("animal", 0.43), ("a", 0.41), ("behavior", 0.28), ("hunting", 0.22), ("movement", 0.19), ("bird", 0.17), ("dance", 0.17), ("species", 0.07), ("dog", 0.07), ("bug", 0.07)
-Score: 1.5377 - Sentence: A man is riding a horse. - Top influential tokens: ("a", 0.51), ("animal", 0.48), ("movement", 0.33), ("sport", 0.16), ("hunting", 0.04), ("dance", 0.02)
-Score: 1.4831 - Sentence: A man is riding a white horse on an enclosed ground. - Top influential tokens: ("a", 0.43), ("animal", 0.35), ("hunting", 0.21), ("movement", 0.17), ("sport", 0.13), ("breed", 0.12), ("bird", 0.04), ("dog", 0.02)
-Score: 1.4279 - Sentence: Two men pushed carts through the woods. - Top influential tokens: ("hunting", 0.49), ("cross", 0.41), ("move", 0.22), ("a", 0.10), ("escape", 0.08), ("they", 0.06), ("across", 0.05), ("obstacle", 0.01), ("deer", 0.01)
+Query: How can we address climate change challenges?
+Score: 9.5587 - Sentence: Global warming is the long-term heating of Earth's climate system observed since the pre-industrial period due to human activities. - Top influential tokens: ("climate", 3.21), ("warming", 2.87), ("weather", 1.58), ("change", 0.46), ("global", 0.41), ("environmental", 0.39), ("storm", 0.19), ("pollution", 0.15), ("environment", 0.11), ("adaptation", 0.08)
+Score: 1.3191 - Sentence: Carbon capture technologies aim to collect CO2 emissions before they enter the atmosphere and store them underground. - Top influential tokens: ("warming", 0.39), ("pollution", 0.34), ("environmental", 0.15), ("goal", 0.12), ("strategy", 0.07), ("monitoring", 0.07), ("protection", 0.06), ("greenhouse", 0.05), ("safety", 0.02), ("escape", 0.01)
+Score: 1.0774 - Sentence: Renewable energy sources include solar, wind, hydro, and geothermal power that naturally replenish over time. - Top influential tokens: ("conservation", 0.39), ("sustainability", 0.18), ("environmental", 0.18), ("sustainable", 0.13), ("agriculture", 0.13), ("alternative", 0.07), ("recycling", 0.00)
+Score: 0.2401 - Sentence: Machine learning is a field of study that gives computers the ability to learn without being explicitly programmed. - Top influential tokens: ("strategy", 0.10), ("success", 0.06), ("foster", 0.04), ("engineering", 0.03), ("innovation", 0.00), ("research", 0.00)
+Score: 0.1516 - Sentence: Deep learning is part of a broader family of machine learning methods based on artificial neural networks with representation learning. - Top influential tokens: ("strategy", 0.09), ("foster", 0.04), ("research", 0.01), ("approach", 0.01), ("engineering", 0.01)
 """
