@@ -1018,9 +1018,27 @@ class SentenceTransformerTrainer(Trainer):
         prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None,
         router_mapping: dict[str, dict[str, str]] | dict[str, str] | None = None,
         dataset_name: str | None = None,
-    ):
+    ) -> DatasetDict | Dataset | None:
+        """
+        Preprocess the dataset by optionally lazily adding a dataset name column, required for multi-dataset training
+        with multiple losses, for dataset-specific prompts, or for dataset-specific router mappings.
+
+        Args:
+            dataset (DatasetDict | Dataset | None): The dataset to preprocess. If None, no preprocessing is done.
+            prompts (dict[str, dict[str, str]] | dict[str, str] | str | None): Optional prompts to add to the dataset.
+                If a string, it is used as a single prompt for all datasets, but it can also be a dictionary
+                mapping dataset names to prompts, a dictionary mapping column names to prompts, or a nested dictionary
+                mapping dataset names to column names to prompts.
+            router_mapping (dict[str, dict[str, str]] | dict[str, str] | None): Optional router mapping to add to the
+                dataset. Either a dictionary mapping of column names to :class:`~sentence_transformers.models.Router`
+                routes or a nested dictionary mapping dataset names to column names to routes.
+            dataset_name (str | None): The name of the dataset, used for multi-dataset training with multiple losses.
+
+        Returns:
+            DatasetDict | Dataset | None: The preprocessed dataset, perhaps with dataset names added as a lazy column.
+        """
         # If we've already added the transform to this (iterable) dataset, don't add it again
-        if hasattr(dataset, "_sentence_transformers_preprocessed"):
+        if hasattr(dataset, "_sentence_transformers_preprocessed") or dataset is None:
             return dataset
 
         # Maybe add dataset names to the dataset, useful for 1) training with prompts, 2) training with multiple losses,
