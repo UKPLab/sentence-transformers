@@ -52,7 +52,6 @@ class SparseEncoder(SentenceTransformer):
             for a stored model on Hugging Face.
         local_files_only (bool, optional): Whether or not to only look at local files (i.e., do not try to download the model).
         token (bool or str, optional): Hugging Face authentication token to download private models.
-        use_auth_token (bool or str, optional): Deprecated argument. Please use `token` instead.
         max_active_dims (int, optional): The maximum number of active (non-zero) dimensions in the output of the model. Defaults to None. This means there will be no
             limit on the number of active dimensions and can be slow or memory-intensive if your model wasn't (yet) finetuned to high sparsity.
         model_kwargs (Dict[str, Any], optional): Additional model configuration parameters to be passed to the Hugging Face Transformers model.
@@ -143,7 +142,6 @@ class SparseEncoder(SentenceTransformer):
         revision: str | None = None,
         local_files_only: bool = False,
         token: bool | str | None = None,
-        use_auth_token: bool | str | None = None,
         max_active_dims: int | None = None,
         model_kwargs: dict[str, Any] | None = None,
         tokenizer_kwargs: dict[str, Any] | None = None,
@@ -163,7 +161,6 @@ class SparseEncoder(SentenceTransformer):
             revision=revision,
             local_files_only=local_files_only,
             token=token,
-            use_auth_token=use_auth_token,
             model_kwargs=model_kwargs,
             tokenizer_kwargs=tokenizer_kwargs,
             config_kwargs=config_kwargs,
