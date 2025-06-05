@@ -1059,6 +1059,7 @@ class SentenceTransformerModelCardData(CardData):
             )
             similarity = self.model.similarity(query_embeddings, document_embeddings)
         else:
+            self.predict_example = self.predict_example[:3]  # Limit to 3 examples for standard similarity
             embeddings = self.model.encode(self.predict_example, convert_to_tensor=True, show_progress_bar=False)
             similarity = self.model.similarity(embeddings, embeddings)
 
