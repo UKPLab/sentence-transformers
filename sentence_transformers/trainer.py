@@ -265,7 +265,7 @@ class SentenceTransformerTrainer(Trainer):
         # to avoid having to specify it in the data collator or model's forward
         self.can_return_loss = True
 
-        if isinstance(self.data_collator, SentenceTransformerDataCollator):
+        if hasattr(self.data_collator, "include_prompt_lengths"):
             self.data_collator.include_prompt_lengths = self._include_prompt_length()
 
         self.model: SentenceTransformer
