@@ -198,6 +198,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {"model_type": self.__class__.__name__}
+        self._prompt_length_mapping = {}
         self.backend = backend
         if use_auth_token is not None:
             warnings.warn(
@@ -993,9 +994,9 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
             # Some models (e.g. INSTRUCTOR, GRIT) require removing the prompt before pooling
             # Tracking the prompt length allow us to remove the prompt during pooling
-            tokenized_prompt = self.tokenize([prompt], **kwargs)
-            if "input_ids" in tokenized_prompt:
-                extra_features["prompt_length"] = tokenized_prompt["input_ids"].shape[-1] - 1
+            length = self._get_prompt_length(prompt, **kwargs)
+            if length is not None:
+                extra_features["prompt_length"] = length
 
         # Here, device is either a single device string (e.g., "cuda:0", "cpu") for single-process encoding or None
         if device is None:
@@ -1515,6 +1516,27 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             if isinstance(module, Pooling):
                 module.include_prompt = include_prompt
                 break
+
+    def _get_prompt_length(self, prompt: str, **kwargs) -> int:
+        """
+        Return the length of the prompt in tokens, including the BOS token
+        """
+        if (prompt, *kwargs.values()) in self._prompt_length_mapping:
+            return self._prompt_length_mapping[(prompt, *kwargs.values())]
+
+        tokenized_prompt = self.tokenize([prompt], **kwargs)
+        if "input_ids" not in tokenized_prompt:
+            # If the tokenizer does not return input_ids, we cannot determine the prompt length.
+            # This can happen with some tokenizers that do not use input_ids.
+            return None
+        prompt_length = tokenized_prompt["input_ids"].shape[-1]
+        # If the tokenizer adds a special EOS token, we do not count it as part of the prompt length.
+        # This is to ensure that the prompt length does not include the EOS token.
+        last_token = tokenized_prompt["input_ids"][..., -1].item()
+        if hasattr(self.tokenizer, "all_special_ids") and last_token in self.tokenizer.all_special_ids:
+            prompt_length -= 1
+        self._prompt_length_mapping[(prompt, *kwargs.values())] = prompt_length
+        return prompt_length
 
     def get_max_seq_length(self) -> int | None:
         """

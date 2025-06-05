@@ -17,6 +17,7 @@ import numpy as np
 import pytest
 import torch
 from huggingface_hub import CommitInfo, HfApi, RepoUrl
+from tokenizers.processors import TemplateProcessing
 from torch import nn
 from transformers.utils import is_peft_available
 
@@ -396,6 +397,70 @@ def test_prompt_output_value_None(stsb_bert_tiny_model) -> None:
     }
     assert set(outputs[0].keys()) == expected_keys
     assert set(outputs[1].keys()) == expected_keys
+
+
+@pytest.mark.parametrize("has_bos_token", [True, False])
+@pytest.mark.parametrize("has_eos_token", [True, False])
+def test_prompt_length_calculation(
+    stsb_bert_tiny_model: SentenceTransformer,
+    has_bos_token: bool,
+    has_eos_token: bool,
+) -> None:
+    # This test checks that the prompt length is calculated correctly, regardless of whether the tokenizer has a
+    # beginning-of-sequence or end-of-sequence token.
+    model = stsb_bert_tiny_model
+    model.prompts = {"query": "Prompt: ", "document": ""}
+    # We need to set this to False, otherwise the prompt length wont be needed:
+    model.set_pooling_include_prompt(False)
+    dummy_bos_token_id = 400
+    dummy_eos_token_id = 500
+    model.tokenizer.cls_token_id = dummy_bos_token_id if has_bos_token else None
+    model.tokenizer.sep_token_id = dummy_eos_token_id if has_eos_token else None
+    if has_bos_token:
+        if has_eos_token:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="[CLS] $0 [SEP]",
+                special_tokens=[
+                    ("[CLS]", dummy_bos_token_id),
+                    ("[SEP]", dummy_eos_token_id),
+                ],
+            )
+        else:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="[CLS] $0",
+                special_tokens=[("[CLS]", dummy_bos_token_id)],
+            )
+    else:
+        if has_eos_token:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="$0 [SEP]",
+                special_tokens=[("[SEP]", dummy_eos_token_id)],
+            )
+        else:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="$0",
+                special_tokens=[],
+            )
+
+    # Check that we can update the tokenizer in this way
+    if has_eos_token:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[-1] == dummy_eos_token_id
+    else:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[-1] != dummy_eos_token_id
+
+    if has_bos_token:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[0] == dummy_bos_token_id
+    else:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[0] != dummy_bos_token_id
+
+    # This should populate _prompt_length_mapping
+    model.encode_query("This is a test sentence")
+
+    only_prompt_length = len(model.tokenizer(["Prompt: "], add_special_tokens=False)["input_ids"][0])
+    if has_bos_token:
+        only_prompt_length += 1
+
+    assert model._prompt_length_mapping == {("Prompt: ", "query"): only_prompt_length}
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")

@@ -387,6 +387,7 @@ def test_router_with_trainer(static_embedding_model):
     # Create a Router with StaticEmbedding modules
     router = Router({"query": [static_embedding_model], "document": [static_embedding_model]}, allow_empty_key=False)
     model = SentenceTransformer(modules=[router])
+    model.model_card_data.generate_widget_examples = False  # Disable widget examples generation for testing
 
     tracking_dict = TaskTypesTrackingDict(router.sub_modules)
     router.sub_modules = tracking_dict

@@ -27,6 +27,7 @@ class SentenceTransformerDataCollator:
     router_mapping: dict[str, str] | dict[str, dict[str, str]] | None = field(default_factory=dict, repr=False)
     prompts: dict[str, str] | dict[str, dict[str, str]] | None = field(default_factory=dict, repr=False)
     include_prompt_lengths: bool = field(default=False, repr=False)
+    all_special_ids: set[int] = field(default_factory=set, repr=False)
 
     _prompt_length_mapping: dict[str, int] = field(default_factory=dict, init=False, repr=False)
     _warned_columns: set[tuple[str]] = field(default_factory=set, init=False, repr=False)
@@ -103,9 +104,10 @@ class SentenceTransformerDataCollator:
             if prompt:
                 if self.include_prompt_lengths:
                     prompt_length = self._get_prompt_length(prompt, task_type=task_type)
-                    batch[f"{column_name}_prompt_length"] = torch.tensor(
-                        [prompt_length] * len(features), dtype=torch.int
-                    )
+                    if prompt_length is not None:
+                        batch[f"{column_name}_prompt_length"] = torch.tensor(
+                            [prompt_length] * len(features), dtype=torch.int
+                        )
                 inputs = [prompt + row[column_name] for row in features]
             else:
                 inputs = [row[column_name] for row in features]
@@ -117,13 +119,23 @@ class SentenceTransformerDataCollator:
         return batch
 
     def _get_prompt_length(self, prompt: str, task_type: str | None = None) -> int:
-        try:
+        if (prompt, task_type) in self._prompt_length_mapping:
             return self._prompt_length_mapping[(prompt, task_type)]
-        except KeyError:
-            # TODO: I think the -1 might be too naive, it depends on the tokenizer BOS/EOS
-            prompt_length = self.tokenize_fn([prompt], task_type=task_type)["input_ids"].shape[-1] - 1
-            self._prompt_length_mapping[(prompt, task_type)] = prompt_length
-            return prompt_length
+
+        tokenized_prompt = self.tokenize_fn([prompt], task_type=task_type)
+        if "input_ids" not in tokenized_prompt:
+            # If the tokenizer does not return input_ids, we cannot determine the prompt length.
+            # This can happen with some tokenizers that do not use input_ids.
+            return None
+        prompt_length = tokenized_prompt["input_ids"].shape[-1]
+        # If the tokenizer adds a special EOS token, we do not count it as part of the prompt length.
+        # This is to ensure that the prompt length does not include the EOS token.
+        last_token = tokenized_prompt["input_ids"][..., -1].item()
+        if last_token in self.all_special_ids:
+            prompt_length -= 1
+
+        self._prompt_length_mapping[(prompt, task_type)] = prompt_length
+        return prompt_length
 
     def maybe_warn_about_column_order(self, column_names: list[str]) -> None:
         """Warn the user if the columns are likely not in the expected order."""

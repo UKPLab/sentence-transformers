@@ -1011,6 +1011,7 @@ class SparseEncoder(SentenceTransformer):
                 config_kwargs=config_kwargs,
             )
             modules = [modules[str(i)] for i in range(len(modules.keys()))]
+            # TODO: These defaults don't always work, e.g. 256 might be too large already
             csr_sparsity = CSRSparsity(
                 input_dim=modules[0].get_word_embedding_dimension(),
                 hidden_dim=4 * modules[0].get_word_embedding_dimension(),

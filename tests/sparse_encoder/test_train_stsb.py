@@ -74,7 +74,7 @@ def evaluate_stsb_test(
 
 @pytest.mark.slow
 def test_train_stsb_slow(
-    dummy_sparse_encoder_model: SparseEncoder, sts_resource: tuple[list[InputExample], list[InputExample]]
+    dummy_sparse_encoder_model: SparseEncoder, sts_resource: tuple[list[InputExample], list[InputExample]], tmp_path
 ) -> None:
     model = dummy_sparse_encoder_model
     sts_train_samples, sts_test_samples = sts_resource
@@ -86,7 +86,8 @@ def test_train_stsb_slow(
                 "sentence1": batch["sentence1"],
                 "sentence2": batch["sentence2"],
                 "score": [s / 5.0 for s in batch["score"]],
-            }
+            },
+            batched=True,
         )
         .select(range(len(sts_train_samples)))
     )
@@ -96,15 +97,13 @@ def test_train_stsb_slow(
     )
 
     training_args = SparseEncoderTrainingArguments(
-        output_dir="./sparse_stsb_test_output_slow",
+        output_dir=tmp_path,
         num_train_epochs=1,
         per_device_train_batch_size=16,  # Smaller batch for faster test
         warmup_ratio=0.1,
         logging_steps=10,
-        eval_strategy="steps",  # No separate eval dataset for this simplified test
-        eval_steps=50,
-        save_strategy="steps",
-        save_steps=50,
+        eval_strategy="no",
+        save_strategy="no",
         learning_rate=2e-5,
         remove_unused_columns=False,  # Important when using custom datasets
     )

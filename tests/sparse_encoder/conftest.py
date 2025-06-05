@@ -34,6 +34,8 @@ def inference_free_splade_bert_tiny_model(_inference_free_splade_bert_tiny_model
 @pytest.fixture(scope="session")
 def _csr_bert_tiny_model() -> SparseEncoder:
     model = SparseEncoder("sentence-transformers-testing/stsb-bert-tiny-safetensors")
+    model[-1].k = 16
+    model[-1].k_aux = 32
     model.model_card_data.generate_widget_examples = False  # Disable widget examples generation for testing
     return model
 

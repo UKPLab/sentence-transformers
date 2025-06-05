@@ -188,7 +188,10 @@ class SentenceTransformerTrainer(Trainer):
 
         if data_collator is None:
             data_collator = SentenceTransformerDataCollator(
-                tokenize_fn=model.tokenize, router_mapping=args.router_mapping, prompts=args.prompts
+                tokenize_fn=model.tokenize,
+                router_mapping=args.router_mapping,
+                prompts=args.prompts,
+                all_special_ids=set(tokenizer.all_special_ids) if hasattr(tokenizer, "all_special_ids") else set(),
             )
 
         for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
