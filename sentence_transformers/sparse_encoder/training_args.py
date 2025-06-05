@@ -35,14 +35,14 @@ class SparseEncoderTrainingArguments(SentenceTransformerTrainingArguments):
             The multi-dataset batch sampler to use. See :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers`
             for valid options. Defaults to ``MultiDatasetBatchSamplers.PROPORTIONAL``.
         router_mapping (`Optional[Dict[str, str]]`, *optional*):
-            A mapping of dataset names to Router routes, like "query" or "document". This is used to specify which
-            Router module to use for each dataset. Two formats are accepted:
+            A mapping of dataset column names to Router routes, like "query" or "document". This is used to specify
+            which Router submodule to use for each dataset. Two formats are accepted:
 
-            1. `Dict[str, str]`: A mapping of dataset names to routes for single-dataset training/evaluation.
+            1. `Dict[str, str]`: A mapping of column names to routes.
             2. `Dict[str, Dict[str, str]]`: A mapping of dataset names to a mapping of column names to routes for
                multi-dataset training/evaluation.
         learning_rate_mapping (`Optional[Dict[str, float]]`, *optional*):
-            A mapping of parameter names to learning rates. This allows you to set different learning rates for
-            different parts of the model, e.g., `{'IDF\.*': 1e-3}` for the IDF module. This is useful when you want to
-            fine-tune specific parts of the model with different learning rates.
+            A mapping of parameter name regular expressions to learning rates. This allows you to set different
+            learning rates for different parts of the model, e.g., `{'IDF\.*': 1e-3}` for the IDF module. This is
+            useful when you want to fine-tune specific parts of the model with different learning rates.
     """
