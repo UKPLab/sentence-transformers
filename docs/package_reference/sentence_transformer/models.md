@@ -21,7 +21,6 @@
 .. autoclass:: sentence_transformers.models.WeightedLayerPooling
 .. autoclass:: sentence_transformers.models.WordEmbeddings
 .. autoclass:: sentence_transformers.models.WordWeights
-.. autoclass:: sentence_transformers.models.Asym
 ```
 
 ## Base Modules
