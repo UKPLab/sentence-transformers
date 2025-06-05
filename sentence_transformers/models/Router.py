@@ -282,8 +282,17 @@ class Router(InputModule, nn.Sequential):
     def tokenize(self, texts: list[str] | list[tuple[str, str]], task_type: str | None = None, **kwargs):
         """Tokenizes a text and maps tokens to token-ids"""
         if isinstance(texts[0], dict):
-            # Extract the first key from the first dictionary, and remove dictionary structure
-            task_type = next(iter(texts[0].keys())) if task_type is None else task_type
+            # Extract the task type key from the dictionaries
+            if task_type is None:
+                task_types = set(key for text in texts for key in text.keys())
+                if len(task_types) > 1:
+                    raise ValueError(
+                        "You cannot pass a list of dictionaries with different task types. "
+                        "Please ensure all dictionaries have the same task type key, or pass a single `task_type` argument."
+                    )
+                task_type = task_types.pop()
+
+            # Remove dictionary structure
             texts = [text[task_type] for text in texts]
 
         if task_type is None:

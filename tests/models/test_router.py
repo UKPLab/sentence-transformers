@@ -236,6 +236,15 @@ def test_router_backwards_compatibility(static_embedding_model):
     assert tracking_dict.task_types == ["document", "document"]
     tracking_dict.task_types = []
 
+    with pytest.raises(ValueError, match=r"You cannot pass a list of dictionaries with different task types\. .*"):
+        model.encode(
+            [
+                {"document": "What is the capital of France?"},
+                {"document": "The capital of France is Paris."},
+                {"query": "This is a question?"},
+            ]
+        )
+
 
 @pytest.mark.parametrize(
     ("module_names", "module_attributes"),
