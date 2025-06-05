@@ -471,11 +471,7 @@ class SentenceTransformerModelCardData(CardData):
             for idx, sample in enumerate(
                 str_dataset.select(random.sample(range(dataset_size), k=min(num_samples_to_check, dataset_size)))
             ):
-                lengths[idx] = sum(
-                    len(value)
-                    for key, value in sample.items()
-                    if key != "dataset_name" and not key.endswith(("_prompt_length", "_task_type"))
-                )
+                lengths[idx] = sum(len(value) for key, value in sample.items() if key != "dataset_name")
 
             indices, _ = zip(*sorted(lengths.items(), key=lambda x: x[1]))
             target_indices, backup_indices = indices[:num_samples], list(indices[num_samples:][::-1])
@@ -483,17 +479,11 @@ class SentenceTransformerModelCardData(CardData):
             # We want 4 texts, so we take texts from the backup indices, short texts first
             for idx in target_indices:
                 # This is anywhere between 1 and n texts
-                sentences = [
-                    sentence
-                    for key, sentence in str_dataset[idx].items()
-                    if key != "dataset_name" and not key.endswith(("_prompt_length", "_task_type"))
-                ]
+                sentences = [sentence for key, sentence in str_dataset[idx].items() if key != "dataset_name"]
                 while len(sentences) < 4 and backup_indices:
                     backup_idx = backup_indices.pop()
                     backup_sample = [
-                        sentence
-                        for key, sentence in str_dataset[backup_idx].items()
-                        if key != "dataset_name" and not key.endswith(("_prompt_length", "_task_type"))
+                        sentence for key, sentence in str_dataset[backup_idx].items() if key != "dataset_name"
                     ]
                     if len(backup_sample) == 1:
                         # If there is only one text in the backup sample, we take it
