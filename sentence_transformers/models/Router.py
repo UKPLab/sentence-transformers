@@ -225,8 +225,16 @@ class Router(InputModule, nn.Sequential):
         if task_type is None:
             task_type = features.get("task_type", self.default_route)
         if task_type is None:
-            # TODO: Write a more useful error, e.g. specific to training/inference
-            raise ValueError("``task_type`` must be specified, or the ``Router`` must have a ``default_route`` set.")
+            if self.training:
+                raise ValueError(
+                    "You must provide a `router_mapping` argument on the training arguments, "
+                    "or set a default route in the `Router` module."
+                )
+            else:
+                raise ValueError(
+                    "You must provide a `task_type` argument when calling this method, "
+                    "or set a default route in the `Router` module."
+                )
 
         if task_type not in self.sub_modules:
             raise ValueError(
@@ -298,8 +306,16 @@ class Router(InputModule, nn.Sequential):
         if task_type is None:
             task_type = self.default_route
         if task_type is None:
-            # TODO: Write a more useful error, e.g. specific to training/inference
-            raise ValueError("``task_type`` must be specified, or the ``Router`` must have a ``default_route`` set.")
+            if self.training:
+                raise ValueError(
+                    "You must provide a `router_mapping` argument on the training arguments, "
+                    "or set a default route in the `Router` module."
+                )
+            else:
+                raise ValueError(
+                    "You must provide a `task_type` argument when calling this method, "
+                    "or set a default route in the `Router` module."
+                )
         if task_type not in self.sub_modules:
             raise ValueError(
                 f"No route found for task type '{task_type}'. Available routes: {list(self.sub_modules.keys())}"

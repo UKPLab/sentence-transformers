@@ -23,7 +23,7 @@ from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
 from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
 from sentence_transformers.model_card import SentenceTransformerModelCardCallback
-from sentence_transformers.models import Pooling
+from sentence_transformers.models import Pooling, Router
 from sentence_transformers.sampler import (
     DefaultBatchSampler,
     GroupByLabelBatchSampler,
@@ -193,6 +193,14 @@ class SentenceTransformerTrainer(Trainer):
                 prompts=args.prompts,
                 all_special_ids=set(tokenizer.all_special_ids) if hasattr(tokenizer, "all_special_ids") else set(),
             )
+
+            if Router in [module.__class__ for module in model.children()] and not args.router_mapping:
+                raise ValueError(
+                    "You are using a Router module in your model, but you did not provide a `router_mapping` in the "
+                    "training arguments. This means that the Router module will not be able to route the inputs to "
+                    "the correct submodules. Please provide a `router_mapping` that maps column names to routes, "
+                    "e.g. {'column_one': 'query', 'column_two': 'document', 'column_three': 'document'}."
+                )
 
         for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
             if isinstance(dataset, IterableDataset) and dataset.column_names is None:

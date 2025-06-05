@@ -206,7 +206,10 @@ def test_router_encode(static_embedding_model):
     router.default_route = None  # Reset default route to None
     with pytest.raises(
         ValueError,
-        match=re.escape("``task_type`` must be specified, or the ``Router`` must have a ``default_route`` set."),
+        match=re.escape(
+            "You must provide a `task_type` argument when calling this method, "
+            "or set a default route in the `Router` module."
+        ),
     ):
         model.encode(doc_texts)
 
@@ -346,7 +349,10 @@ def test_router_save_load_without_default_route(static_embedding_model):
         # Test that encoding without task_type raises error
         with pytest.raises(
             ValueError,
-            match=re.escape("``task_type`` must be specified, or the ``Router`` must have a ``default_route`` set."),
+            match=re.escape(
+                "You must provide a `task_type` argument when calling this method, "
+                "or set a default route in the `Router` module."
+            ),
         ):
             loaded_model.encode(["Test text"])
 
@@ -430,6 +436,38 @@ def test_router_with_trainer(static_embedding_model):
 
     # Once for tokenizing, once for forward
     assert tracking_dict.task_types == ["query", "document"] * 6
+
+
+def test_router_with_trainer_without_router_mapping(static_embedding_model, tmp_path):
+    """Test Router crashes with a useful ValueError when training without router_mapping."""
+
+    # Create a Router with StaticEmbedding modules
+    router = Router.for_query_document([static_embedding_model], [static_embedding_model], allow_empty_key=False)
+    router.default_route = None  # Ensure no default route is set
+    model = SentenceTransformer(modules=[router])
+
+    train_dataset = Dataset.from_dict(
+        {
+            "question": ["What is the capital of France?", "What is the largest ocean?"],
+            "answer": ["The capital of France is Paris.", "The largest ocean is the Pacific Ocean."],
+        }
+    )
+
+    # Create a loss function that works with router
+    loss = losses.MultipleNegativesRankingLoss(model=model)
+
+    args = SentenceTransformerTrainingArguments(output_dir=tmp_path)
+
+    with pytest.raises(
+        ValueError,
+        match="You are using a Router module in your model, but you did not provide a `router_mapping` in the training arguments. .*",
+    ):
+        SentenceTransformerTrainer(
+            model=model,
+            train_dataset=train_dataset,
+            loss=loss,
+            args=args,
+        )
 
 
 def test_router_module_forward_kwargs():
