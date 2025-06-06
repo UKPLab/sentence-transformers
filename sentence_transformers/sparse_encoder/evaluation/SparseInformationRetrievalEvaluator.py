@@ -52,6 +52,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         corpus_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
         corpus_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
         write_predictions (bool): Whether to write the predictions to a JSONL file. Defaults to False.
+            This can be useful for downstream evaluation as it can be used as input to the :class:`~sentence_transformers.sparse_encoder.evaluation.ReciprocalRankFusionEvaluator` that accept precomputed predictions.
 
     Example:
         ::
