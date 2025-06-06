@@ -261,21 +261,21 @@ class ReciprocalRankFusionEvaluator(SentenceEvaluator):
         )
 
         # Display metrics with comparison
-        logger.info("=" * 80)
+        logger.info("=" * 75)
         logger.info(
-            f"{'Metric':<8} | {'Dense':^8} | {'Sparse':^8} | {'Fusion':^8} | {'Gain vs Dense':^14} | {'Gain vs Sparse':^14}"
+            f"{'Metric':<7} | {'Dense':^8} | {'Sparse':^8} | {'Fusion':^8} | {'Gain vs Dense':^13} | {'Gain vs Sparse':^14} |"
         )
-        logger.info("-" * 80)
+        logger.info("-" * 75)
         logger.info(
-            f"MAP      | {mean_dense_ap * 100:>6.2f}% | {mean_sparse_ap * 100:>6.2f}% | {mean_fusion_ap * 100:>6.2f}% | {(mean_fusion_ap - mean_dense_ap) * 100:+9.2f}% | {(mean_fusion_ap - mean_sparse_ap) * 100:+9.2f}%"
-        )
-        logger.info(
-            f"MRR@{self.at_k:<3} | {mean_dense_mrr * 100:>6.2f}% | {mean_sparse_mrr * 100:>6.2f}% | {mean_fusion_mrr * 100:>6.2f}% | {(mean_fusion_mrr - mean_dense_mrr) * 100:+9.2f}% | {(mean_fusion_mrr - mean_sparse_mrr) * 100:+9.2f}%"
+            f"MAP     | {mean_dense_ap:>8.2%} | {mean_sparse_ap:>8.2%} | {mean_fusion_ap:>8.2%} | {mean_fusion_ap - mean_dense_ap:>+13.2%} | {mean_fusion_ap - mean_sparse_ap:>+14.2%} |"
         )
         logger.info(
-            f"NDCG@{self.at_k:<2} | {mean_dense_ndcg * 100:>6.2f}% | {mean_sparse_ndcg * 100:>6.2f}% | {mean_fusion_ndcg * 100:>6.2f}% | {(mean_fusion_ndcg - mean_dense_ndcg) * 100:+9.2f}% | {(mean_fusion_ndcg - mean_sparse_ndcg) * 100:+9.2f}%"
+            f"MRR@{self.at_k:<3} | {mean_dense_mrr:>8.2%} | {mean_sparse_mrr:>8.2%} | {mean_fusion_mrr:>8.2%} | {mean_fusion_mrr - mean_dense_mrr:>+13.2%} | {mean_fusion_mrr - mean_sparse_mrr:>+14.2%} |"
         )
-        logger.info("=" * 80)
+        logger.info(
+            f"NDCG@{self.at_k:<2} | {mean_dense_ndcg:>8.2%} | {mean_sparse_ndcg:>8.2%} | {mean_fusion_ndcg:>8.2%} | {mean_fusion_ndcg - mean_dense_ndcg:>+13.2%} | {mean_fusion_ndcg - mean_sparse_ndcg:>+14.2%} |"
+        )
+        logger.info("=" * 75)
 
         # Write results to CSV if requested
         if output_path is not None:

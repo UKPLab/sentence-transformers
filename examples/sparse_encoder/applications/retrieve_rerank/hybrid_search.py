@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 os.makedirs("runs", exist_ok=True)
 
 ###########################
-# 1. Load the NanoNFcorpus IR dataset (https://huggingface.co/datasets/zeta-alpha-ai/NanoNFCorpus)
+# 1. Load the NanoNFCorpus IR dataset (https://huggingface.co/datasets/zeta-alpha-ai/NanoNFCorpus)
 ###########################
 logger.info("=" * 80)
 logger.info("STEP 1: LOADING DATASET")

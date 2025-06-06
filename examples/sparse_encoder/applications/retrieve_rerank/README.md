@@ -1,6 +1,6 @@
 # Retrieve & Re-Rank
 
-In [Semantic Search](../semantic-search/README.md) we have shown how to use SparseEncoder to compute embeddings for queries, sentences, and paragraphs and how to use this for semantic search. For complex search tasks, for example question answering retrieval, the search can significantly be improved by using **Retrieve & Re-Rank**. Note that a detailed explanation with dense embeddings produced by Bi-Encoder is accessible [here](../../../sentence_transformer/applications/retrieve_rerank/README.md).
+In [Semantic Search](../semantic_search/README.md) we have shown how to use SparseEncoder to compute embeddings for queries, sentences, and paragraphs and how to use this for semantic search. For complex search tasks, for example question answering retrieval, the search can significantly be improved by using **Retrieve & Re-Rank**. Note that a detailed explanation with dense embeddings produced by Bi-Encoder is accessible [here](../../../sentence_transformer/applications/retrieve_rerank/README.md).
 
 ## Overview
 
@@ -22,22 +22,19 @@ This Jupyter notebook provides an interactive demonstration of retrieve & re-ran
   - **BM25** (lexical/keyword search)
   - **Sparse Encoder** [ibm-granite/granite-embedding-30m-sparse](https://huggingface.co/ibm-granite/granite-embedding-30m-sparse)
   - **Dense Encoder** [multi-qa-MiniLM-L6-cos-v1](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-cos-v1)
-- And re-ranking results using CrossEncoder [cross-encoder/ms-marco-MiniLM-L6-v2]
-(https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2)
+- And re-ranking results using a CrossEncoder [cross-encoder/ms-marco-MiniLM-L6-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2)
 
 
 ## Comprehensive Evaluation: Hybrid Search Pipeline
 
 **File**: [hybrid_search.py](hybrid_search.py)
 
-This script provides a complete evaluation pipeline comparing different retrieval and re-ranking approaches on a given dataset (here in our example NanoNFCorpus). It includes:
+This script provides a complete evaluation pipeline comparing different retrieval and re-ranking approaches on a given dataset (here in our example [NanoNFCorpus](https://huggingface.co/datasets/zeta-alpha-ai/NanoNFCorpus)). It includes:
 
 1. **Sparse Retrieval** using [ibm-granite/granite-embedding-30m-sparse](https://huggingface.co/ibm-granite/granite-embedding-30m-sparse)
 2. **Dense Retrieval** using  [multi-qa-MiniLM-L6-cos-v1](https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-cos-v1)
-3. **Re-ranking** both sparse and dense results with [cross-encoder/ms-marco-MiniLM-L6-v2]
-(https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2)
-
-4. **Hybrid Search** using Reciprocal Rank Fusion [ReciprocalRankFusionEvaluator](../../../../sentence_transformers/sparse_encoder/evaluation/ReciprocalRankFusionEvaluator.py)
+3. **Re-ranking** both sparse and dense results with [cross-encoder/ms-marco-MiniLM-L6-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2)
+4. **Hybrid Search** using Reciprocal Rank Fusion [ReciprocalRankFusionEvaluator](../../../../docs/package_reference/sparse_encoder/evaluation.md#reciprocalrankfusionevaluator)
 5. **Hybrid Re-ranking** applying cross-encoder to fused results
 
 
@@ -45,7 +42,7 @@ This script provides a complete evaluation pipeline comparing different retrieva
 
 ### Evaluation Results
 
-Example results from running the hybrid search evaluation on NanoNFCorpus:
+Example results from running the hybrid search evaluation on [NanoNFCorpus](https://huggingface.co/datasets/zeta-alpha-ai/NanoNFCorpus):
 
 ```
 ================================================================================
