@@ -615,6 +615,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             sentences = [sentences]
             input_was_string = True
 
+        allowed_precisions = {"float32", "int8", "uint8", "binary", "ubinary"}
+        if precision is None or not isinstance(precision, str) or precision not in allowed_precisions:
+            raise ValueError(f"Precision {precision} is not supported")
+
         if prompt is None:
             if prompt_name is not None:
                 try:
