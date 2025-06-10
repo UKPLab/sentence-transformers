@@ -593,7 +593,11 @@ class SentenceTransformerModelCardData(CardData):
         return [dataset_output]
 
     def tokenize(self, text: str | list[str], **kwargs) -> dict[str, Any]:
-        return self.model.tokenize(text, **kwargs)
+        try:
+            return self.model.tokenize(text, **kwargs)
+        except Exception:
+            # Fallback for backwards compatibility with modules that don't yet support kwargs
+            return self.model.tokenize(text)
 
     def compute_dataset_metrics(
         self,
