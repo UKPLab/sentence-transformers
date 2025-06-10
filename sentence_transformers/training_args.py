@@ -142,7 +142,7 @@ class MultiDatasetBatchSamplers(ExplicitEnum):
 
 @dataclass
 class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
-    """
+    r"""
     SentenceTransformerTrainingArguments extends :class:`~transformers.TrainingArguments` with additional arguments
     specific to Sentence Transformers. See :class:`~transformers.TrainingArguments` for the complete list of
     available arguments.
@@ -169,6 +169,17 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
         multi_dataset_batch_sampler (Union[:class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers`, `str`], *optional*):
             The multi-dataset batch sampler to use. See :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers`
             for valid options. Defaults to ``MultiDatasetBatchSamplers.PROPORTIONAL``.
+        router_mapping (`Optional[Dict[str, str]]`, *optional*):
+            A mapping of dataset column names to Router routes, like "query" or "document". This is used to specify
+            which Router submodule to use for each dataset. Two formats are accepted:
+
+            1. `Dict[str, str]`: A mapping of column names to routes.
+            2. `Dict[str, Dict[str, str]]`: A mapping of dataset names to a mapping of column names to routes for
+               multi-dataset training/evaluation.
+        learning_rate_mapping (`Optional[Dict[str, float]]`, *optional*):
+            A mapping of parameter name regular expressions to learning rates. This allows you to set different
+            learning rates for different parts of the model, e.g., `{'IDF\.*': 1e-3}` for the IDF module. This is
+            useful when you want to fine-tune specific parts of the model with different learning rates.
     """
 
     prompts: Optional[str] = field(  # noqa: UP007
@@ -184,6 +195,22 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
     )
     multi_dataset_batch_sampler: Union[MultiDatasetBatchSamplers, str] = field(  # noqa: UP007
         default=MultiDatasetBatchSamplers.PROPORTIONAL, metadata={"help": "The multi-dataset batch sampler to use."}
+    )
+    router_mapping: Optional[dict[str, str]] = field(  # noqa: UP007
+        default_factory=dict,
+        metadata={
+            "help": 'A mapping of dataset column names to Router routes, like "query" or "document". '
+            "Either 1) a mapping of column names to routes or 2) a mapping of dataset names to a mapping "
+            "of column names to routes for multi-dataset training/evaluation. "
+        },
+    )
+    learning_rate_mapping: Optional[dict[str, float]] = field(  # noqa: UP007
+        default_factory=dict,
+        metadata={
+            "help": "A mapping of parameter name regular expressions to learning rates. "
+            "This allows you to set different learning rates for different parts of the model, e.g., "
+            r"{'IDF\.*': 1e-3} for the IDF module."
+        },
     )
 
     def __post_init__(self):

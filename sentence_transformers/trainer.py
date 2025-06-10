@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from collections import OrderedDict
 from contextlib import nullcontext
 from functools import partial
@@ -22,7 +23,7 @@ from sentence_transformers.data_collator import SentenceTransformerDataCollator
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
 from sentence_transformers.losses.CoSENTLoss import CoSENTLoss
 from sentence_transformers.model_card import SentenceTransformerModelCardCallback
-from sentence_transformers.models import Pooling
+from sentence_transformers.models import Pooling, Router
 from sentence_transformers.sampler import (
     DefaultBatchSampler,
     GroupByLabelBatchSampler,
@@ -182,11 +183,24 @@ class SentenceTransformerTrainer(Trainer):
         if args.hub_model_id and not model.model_card_data.model_id:
             model.model_card_data.set_model_id(args.hub_model_id)
 
-        if tokenizer is None and isinstance(model.tokenizer, PreTrainedTokenizerBase):
+        if tokenizer is None and hasattr(model, "tokenizer") and isinstance(model.tokenizer, PreTrainedTokenizerBase):
             tokenizer = model.tokenizer
 
         if data_collator is None:
-            data_collator = SentenceTransformerDataCollator(tokenize_fn=model.tokenize)
+            data_collator = SentenceTransformerDataCollator(
+                tokenize_fn=model.tokenize,
+                router_mapping=args.router_mapping,
+                prompts=args.prompts,
+                all_special_ids=set(tokenizer.all_special_ids) if hasattr(tokenizer, "all_special_ids") else set(),
+            )
+
+            if Router in [module.__class__ for module in model.children()] and not args.router_mapping:
+                raise ValueError(
+                    "You are using a Router module in your model, but you did not provide a `router_mapping` in the "
+                    "training arguments. This means that the Router module will not be able to route the inputs to "
+                    "the correct submodules. Please provide a `router_mapping` that maps column names to routes, "
+                    "e.g. {'column_one': 'query', 'column_two': 'document', 'column_three': 'document'}."
+                )
 
         for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
             if isinstance(dataset, IterableDataset) and dataset.column_names is None:
@@ -251,7 +265,8 @@ class SentenceTransformerTrainer(Trainer):
         # to avoid having to specify it in the data collator or model's forward
         self.can_return_loss = True
 
-        self._prompt_length_mapping = {}
+        if hasattr(self.data_collator, "include_prompt_lengths"):
+            self.data_collator.include_prompt_lengths = self._include_prompt_length()
 
         self.model: SentenceTransformer
         self.args: SentenceTransformerTrainingArguments
@@ -287,12 +302,12 @@ class SentenceTransformerTrainer(Trainer):
         self.evaluator = evaluator
 
         if self.train_dataset is not None:
-            self.train_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                train_dataset, args.prompts, dataset_name="train"
+            self.train_dataset = self.preprocess_dataset(
+                train_dataset, prompts=args.prompts, router_mapping=args.router_mapping, dataset_name="train"
             )
         if self.eval_dataset is not None:
-            self.eval_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                eval_dataset, args.prompts, dataset_name="eval"
+            self.eval_dataset = self.preprocess_dataset(
+                eval_dataset, prompts=args.prompts, router_mapping=args.router_mapping, dataset_name="eval"
             )
         self.add_model_card_callback(default_args_dict)
 
@@ -359,12 +374,6 @@ class SentenceTransformerTrainer(Trainer):
         if isinstance(loss, torch.nn.Module):
             return loss.to(model.device)
         return loss(model).to(model.device)
-
-    def add_dataset_name_column(self, dataset_dict: DatasetDict) -> DatasetDict:
-        for key, dataset in dataset_dict.items():
-            if "dataset_name" not in dataset.column_names:
-                dataset_dict[key] = dataset.add_column("dataset_name", [key] * len(dataset))
-        return dataset_dict
 
     def compute_loss(
         self,
@@ -456,6 +465,8 @@ class SentenceTransformerTrainer(Trainer):
                 self.accum_loss_components[training_type]["steps"] *= 0
 
                 for key, value in accum_losses.items():
+                    if key == "steps":
+                        continue
                     log_key = f"{training_type}_{key}" if training_type == "eval" else key
                     logs[log_key] = round((value.sum() / steps).item(), 4)
                     self.accum_loss_components[training_type][key] = torch.tensor(
@@ -511,8 +522,8 @@ class SentenceTransformerTrainer(Trainer):
         metric_key_prefix: str = "eval",
     ) -> dict[str, float]:
         if eval_dataset:
-            eval_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                eval_dataset, self.args.prompts, dataset_name="eval"
+            eval_dataset = self.preprocess_dataset(
+                eval_dataset, prompts=self.args.prompts, router_mapping=self.args.router_mapping, dataset_name="eval"
             )
         else:
             eval_dataset = self.eval_dataset
@@ -989,14 +1000,6 @@ class SentenceTransformerTrainer(Trainer):
         loaded_model = SentenceTransformer(checkpoint_path, trust_remote_code=self.model.trust_remote_code)
         self.model.load_state_dict(loaded_model.state_dict())
 
-    def _get_prompt_length(self, prompt: str) -> int:
-        try:
-            return self._prompt_length_mapping[prompt]
-        except KeyError:
-            prompt_length = self.model.tokenize([prompt])["input_ids"].shape[-1] - 1
-            self._prompt_length_mapping[prompt] = prompt_length
-            return prompt_length
-
     def _include_prompt_length(self) -> bool:
         """
         Return whether the prompt length should be passed to the model's forward method.
@@ -1009,11 +1012,138 @@ class SentenceTransformerTrainer(Trainer):
                 return not module.include_prompt
         return False
 
+    def preprocess_dataset(
+        self,
+        dataset: DatasetDict | Dataset | None = None,
+        prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None,
+        router_mapping: dict[str, dict[str, str]] | dict[str, str] | None = None,
+        dataset_name: str | None = None,
+    ) -> DatasetDict | Dataset | None:
+        """
+        Preprocess the dataset by optionally lazily adding a dataset name column, required for multi-dataset training
+        with multiple losses, for dataset-specific prompts, or for dataset-specific router mappings.
+
+        Args:
+            dataset (DatasetDict | Dataset | None): The dataset to preprocess. If None, no preprocessing is done.
+            prompts (dict[str, dict[str, str]] | dict[str, str] | str | None): Optional prompts to add to the dataset.
+                If a string, it is used as a single prompt for all datasets, but it can also be a dictionary
+                mapping dataset names to prompts, a dictionary mapping column names to prompts, or a nested dictionary
+                mapping dataset names to column names to prompts.
+            router_mapping (dict[str, dict[str, str]] | dict[str, str] | None): Optional router mapping to add to the
+                dataset. Either a dictionary mapping of column names to :class:`~sentence_transformers.models.Router`
+                routes or a nested dictionary mapping dataset names to column names to routes.
+            dataset_name (str | None): The name of the dataset, used for multi-dataset training with multiple losses.
+
+        Returns:
+            DatasetDict | Dataset | None: The preprocessed dataset, perhaps with dataset names added as a lazy column.
+        """
+        # If we've already added the transform to this (iterable) dataset, don't add it again
+        if hasattr(dataset, "_sentence_transformers_preprocessed") or dataset is None:
+            return dataset
+
+        # Maybe add dataset names to the dataset, useful for 1) training with prompts, 2) training with multiple losses,
+        # and 3) training with a router mapping.
+        dataset = self.maybe_add_dataset_name_column(dataset, prompts, router_mapping, dataset_name=dataset_name)
+
+        # Add a tag to the dataset to indicate that it has been preprocessed, to ensure that we don't apply the map or
+        # transform multiple times.
+        dataset._sentence_transformers_preprocessed = True
+
+        return dataset
+
+    def maybe_add_dataset_name_column(
+        self,
+        dataset: DatasetDict | Dataset | None,
+        prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None,
+        router_mapping: dict[str, dict[str, str]] | dict[str, str] | None = None,
+        dataset_name: str | None = None,
+    ) -> DatasetDict | Dataset | None:
+        """
+        Maybe add a dataset name column to the dataset, if
+
+        1. the dataset is a DatasetDict, and one of:
+
+            a. The loss is a dictionary, or
+            b. The prompts contain a mapping of dataset names, or
+            c. The router_mapping contains a mapping of dataset names.
+
+        Args:
+            dataset (DatasetDict | Dataset | None): The dataset to add prompts or dataset names to.
+
+        Returns:
+            DatasetDict | Dataset | None: The dataset with prompts or dataset names added.
+        """
+        # Ensure that there's no "dataset_name"/"return_loss" columns in the unprocessed datasets
+        self.validate_column_names(dataset, dataset_name=dataset_name)
+
+        if dataset is None or isinstance(dataset, (Dataset, IterableDataset)):
+            return dataset
+
+        include_dataset_name = (
+            isinstance(self.loss, dict)
+            or (prompts and isinstance(prompts, dict))
+            or (
+                router_mapping
+                and isinstance(router_mapping, dict)
+                and isinstance(next(iter(router_mapping.values())), dict)
+            )
+        )
+
+        if include_dataset_name:
+            dataset = self.add_dataset_name_column(dataset)
+        return dataset
+
+    def add_dataset_name_column(
+        self,
+        dataset: DatasetDict | IterableDatasetDict | Dataset | IterableDataset,
+        dataset_name: str | None = None,
+    ) -> DatasetDict | Dataset | None:
+        if isinstance(dataset, (IterableDatasetDict, DatasetDict)):
+            for dataset_name, inner_dataset in dataset.items():
+                dataset[dataset_name] = self.add_dataset_name_column(
+                    dataset=inner_dataset,
+                    dataset_name=dataset_name,
+                )
+            return dataset
+
+        # If the dataset name is None, we don't need to do anything
+        if dataset_name is None:
+            return dataset
+
+        # If we have a Dataset, we can set the transform directly...
+        if isinstance(dataset, Dataset):
+            dataset.set_transform(
+                partial(
+                    self.add_dataset_name_transform,
+                    dataset_name=dataset_name,
+                    **dataset._format_kwargs,
+                )
+            )
+
+        # ... otherwise, we have an IterableDataset and we need to map it, which performs the same operation as above
+        elif isinstance(dataset, IterableDataset):
+            # Update the features to include the new columns
+            features = dataset.features
+            if dataset_name:
+                features["dataset_name"] = Value("string")
+
+            dataset = dataset.map(
+                partial(
+                    self.add_dataset_name_transform,
+                    dataset_name=dataset_name,
+                ),
+                batched=True,
+                features=features,
+            )
+        else:
+            raise ValueError(
+                "Unsupported `dataset` type. Use a Dataset, DatasetDict, IterableDataset, or IterableDatasetDict."
+            )
+        return dataset
+
     @staticmethod
-    def add_prompts_or_dataset_name_transform(
+    def add_dataset_name_transform(
         batch: dict[str, list[Any]],
-        prompts: dict[str, str] | str | None = None,
-        prompt_lengths: dict[str, int] | int | None = None,
         dataset_name: str | None = None,
         transform: Callable[[dict[str, list[Any]]], dict[str, list[Any]]] = None,
         **kwargs,
@@ -1023,10 +1153,6 @@ class SentenceTransformerTrainer(Trainer):
         Args:
             batch (dict[str, list[Any]]): The batch of data, where each key is a column name and each value
                 is a list of values.
-            prompts (dict[str, str] | str | None, optional): An optional mapping of column names to string
-                prompts, or a string prompt for all columns. Defaults to None.
-            prompt_lengths (dict[str, int] | int | None, optional): An optional mapping of prompts names to
-                prompt token length, or a prompt token length if the prompt is a string. Defaults to None.
             dataset_name (str | None, optional): The name of this dataset, only if there are multiple datasets
                 that use a different loss. Defaults to None.
             transform (Callable[[dict[str, list[Any]]], dict[str, list[Any]]], optional): An optional transform
@@ -1040,191 +1166,14 @@ class SentenceTransformerTrainer(Trainer):
         if transform:
             batch = transform(batch)
 
-        # Return if the batch has no columns...
-        if not batch:
+        # Return if 1) the batch has no columns, 2) if it's empty, or 3) if there is no dataset name
+        if not batch or not list(batch.values())[0] or dataset_name is None:
             return batch
 
-        # ... or if it's empty
-        first_column = list(batch.keys())[0]
-        if not batch[first_column]:
-            return batch
-
-        # Apply one prompt to all columns...
-        if isinstance(prompts, str):
-            for column_name, column in list(batch.items()):
-                if isinstance(column[0], str):
-                    batch[column_name] = [prompts + value for value in column]
-
-                    if prompt_lengths is not None:
-                        batch[f"{column_name}_prompt_length"] = [prompt_lengths] * len(column)
-
-        # ... or a column-specific prompt
-        if isinstance(prompts, dict):
-            for column_name, prompt in prompts.items():
-                if column_name in batch:
-                    batch[column_name] = [prompt + value for value in batch[column_name]]
-
-                    if prompt_lengths:
-                        batch[f"{column_name}_prompt_length"] = [prompt_lengths[prompt]] * len(batch[column_name])
-
-        # If we have multiple losses, then we need to add the dataset name to the batch
-        if dataset_name:
-            batch["dataset_name"] = [dataset_name] * len(batch[first_column])
-
+        # Add the dataset name to the batch
+        batch_size = len(list(batch.values())[0])
+        batch["dataset_name"] = [dataset_name] * batch_size
         return batch
-
-    def maybe_add_prompts_or_dataset_name_column(
-        self,
-        dataset_dict: DatasetDict | Dataset | None,
-        prompts: dict[str, dict[str, str]] | dict[str, str] | str | None = None,
-        dataset_name: str | None = None,
-    ) -> DatasetDict | Dataset | None:
-        """
-        Maybe add prompts or dataset names to the dataset. We add the dataset_name column to the dataset if:
-
-        1. The loss is a dictionary and the dataset is a DatasetDict, or
-        2. The prompts contain a mapping to dataset names.
-
-        There are 4 cases for the prompts:
-
-        1. `str`: One prompt for all datasets and columns.
-        2. `dict[str, str]`: A column to prompt mapping.
-        3. `dict[str, str]`: A dataset to prompt mapping.
-        4. `dict[str, dict[str, str]]`: A dataset to column to prompt mapping.
-
-        And 2 cases for the dataset:
-
-        A. `Dataset`: A single dataset.
-        B. `DatasetDict`: A dictionary of datasets.
-
-        3A is not allowed, and 2A doesn't make sense.
-
-        Args:
-            dataset_dict (DatasetDict | Dataset | None): The dataset to add prompts or dataset names to.
-
-        Returns:
-            DatasetDict | Dataset | None: The dataset with prompts or dataset names added.
-        """
-        if dataset_dict is None:
-            return None
-
-        include_dataset_name = isinstance(self.loss, dict)
-
-        # If we've already added the transform to this (iterable) dataset, don't add it again
-        if hasattr(dataset_dict, "_sentence_transformers_preprocessed"):
-            return dataset_dict
-
-        # Ensure that there's no "dataset_name"/"return_loss" columns in the unprocessed datasets
-        self.validate_column_names(dataset_dict, dataset_name=dataset_name)
-
-        # Only add if 1) we have prompts or 2) we need the dataset name for the loss dictionary
-        if prompts or include_dataset_name:
-            include_prompt_lengths = self._include_prompt_length()
-            dataset_dict = self.add_prompts_or_dataset_name_column(
-                dataset_dict,
-                prompts=prompts,
-                include_prompt_lengths=include_prompt_lengths,
-                include_dataset_name=include_dataset_name,
-            )
-        return dataset_dict
-
-    def add_prompts_or_dataset_name_column(
-        self,
-        dataset_dict: DatasetDict | IterableDatasetDict | Dataset | IterableDataset,
-        prompts: dict[str, str] | str | None = None,
-        dataset_name: str | None = None,
-        include_prompt_lengths: bool = False,
-        include_dataset_name: bool = False,
-    ) -> DatasetDict | Dataset | None:
-        # If we have DatasetDict, recurse
-        if isinstance(dataset_dict, (IterableDatasetDict, DatasetDict)):
-            for dataset_name, dataset in dataset_dict.items():
-                # If prompts is a dictionary that matches the dataset names, then take the nested prompts
-                nested_prompts = prompts.get(dataset_name, prompts) if isinstance(prompts, dict) else prompts
-                dataset_dict[dataset_name] = self.add_prompts_or_dataset_name_column(
-                    dataset_dict=dataset,
-                    prompts=nested_prompts,
-                    dataset_name=dataset_name if include_dataset_name else None,
-                    include_prompt_lengths=include_prompt_lengths,
-                    include_dataset_name=include_dataset_name,
-                )
-            return dataset_dict
-
-        # Get the prompt lengths if needed for the pooling layer
-        prompt_lengths = None
-        if prompts:
-            if isinstance(prompts, str):
-                if include_prompt_lengths:
-                    prompt_lengths = self._get_prompt_length(prompts)
-            elif isinstance(prompts, dict):
-                first_key = list(prompts.keys())[0]
-                if isinstance(prompts[first_key], dict):
-                    raise ValueError(
-                        "The prompts provided to the trainer are a nested dictionary. In this setting, the first "
-                        "level of the dictionary should map to dataset names and the second level to column names. "
-                        "However, as the provided dataset is a not a DatasetDict, no dataset names can be inferred. "
-                        f"The keys to the provided prompts dictionary are {list(prompts.keys())!r}"
-                    )
-                if include_prompt_lengths:
-                    # If prompt columns exist, add the prompt length column
-                    prompt_lengths = {
-                        prompt: self._get_prompt_length(prompt)
-                        for column_name, prompt in prompts.items()
-                        if column_name in dataset_dict.column_names
-                    }
-
-        # If we have a Dataset, we can set the transform directly...
-        if isinstance(dataset_dict, Dataset):
-            dataset_dict.set_transform(
-                partial(
-                    self.add_prompts_or_dataset_name_transform,
-                    prompts=prompts,
-                    prompt_lengths=prompt_lengths,
-                    dataset_name=dataset_name,
-                    **dataset_dict._format_kwargs,
-                )
-            )
-
-        # ... otherwise, we have an IterableDataset and we need to map it, which performs the same operation as above
-        elif isinstance(dataset_dict, IterableDataset):
-            # Update the features to include the new columns
-            features = dataset_dict.features
-            if dataset_name:
-                features["dataset_name"] = Value("string")
-            if prompt_lengths:
-                if isinstance(prompts, str):
-                    for column_name in dataset_dict.column_names:
-                        feature = features[column_name]
-                        if isinstance(feature, Value) and feature.dtype in ("string", "large_string"):
-                            features[f"{column_name}_prompt_length"] = Value("int16")
-                elif isinstance(prompts, dict):
-                    for column_name, prompt in prompts.items():
-                        feature = features[column_name]
-                        if (
-                            prompt in prompt_lengths
-                            and isinstance(feature, Value)
-                            and feature.dtype in ("string", "large_string")
-                        ):
-                            features[f"{column_name}_prompt_length"] = Value("int16")
-
-            dataset_dict = dataset_dict.map(
-                partial(
-                    self.add_prompts_or_dataset_name_transform,
-                    prompts=prompts,
-                    prompt_lengths=prompt_lengths,
-                    dataset_name=dataset_name,
-                ),
-                batched=True,
-                features=features,
-            )
-
-        else:
-            raise ValueError("Unsupported dataset type.")
-
-        # Add a tag to the dataset to indicate that it has been preprocessed, to ensure that we don't apply the map or
-        # transform multiple times.
-        dataset_dict._sentence_transformers_preprocessed = True
-        return dataset_dict
 
     def create_model_card(
         self,
@@ -1270,8 +1219,8 @@ class SentenceTransformerTrainer(Trainer):
 
         # If the kwargs were not overridden by the super() call, then we should override them here so that the potential
         # weights in the loss(es) can also be updated.
+        decay_parameters = self.get_decay_parameter_names(loss_model)
         if not {"params", "model", "optimizer_dict"} & set(optimizer_kwargs.keys()):
-            decay_parameters = self.get_decay_parameter_names(loss_model)
             optimizer_kwargs["optimizer_dict"] = [
                 {
                     "params": [
@@ -1286,5 +1235,50 @@ class SentenceTransformerTrainer(Trainer):
                     "weight_decay": 0.0,
                 },
             ]
+
+        # One of "params", "model", or "optimizer_dict" should be in the optimizer_kwargs
+        for parameter_pattern, learning_rate in args.learning_rate_mapping.items():
+            # Check which optimizer parameter key is present
+            optimizer_param_keys = set(optimizer_kwargs.keys()) & {"params", "model", "optimizer_dict"}
+            optimizer_param_key = optimizer_param_keys.pop() if optimizer_param_keys else "optimizer_dict"
+
+            # Get parameters that match the pattern
+            matching_params = {n: p for n, p in loss_model.named_parameters() if re.search(parameter_pattern, n)}
+
+            if matching_params:
+                # Remove matching parameters from existing optimizer groups
+                for group in optimizer_kwargs[optimizer_param_key]:
+                    if "params" in group:
+                        group["params"] = [
+                            p for p in group["params"] if all(p is not param for param in matching_params.values())
+                        ]
+            else:
+                raise ValueError(
+                    f"No parameters found matching the pattern '{parameter_pattern}' in the model. "
+                    "Please check the pattern and ensure it matches some of the model's parameters."
+                )
+
+            # Add new optimizer group with matching parameters
+            # decay_parameters = self.get_decay_parameter_names(loss_model)
+            matching_params_with_decay = {n: p for n, p in matching_params.items() if n in decay_parameters}
+            matching_params_without_decay = {n: p for n, p in matching_params.items() if n not in decay_parameters}
+
+            if matching_params_with_decay:
+                optimizer_kwargs[optimizer_param_key].append(
+                    {
+                        "params": list(matching_params_with_decay.values()),
+                        "lr": learning_rate,
+                        "weight_decay": self.args.weight_decay,
+                    }
+                )
+
+            if matching_params_without_decay:
+                optimizer_kwargs[optimizer_param_key].append(
+                    {
+                        "params": list(matching_params_without_decay.values()),
+                        "lr": learning_rate,
+                        "weight_decay": 0.0,
+                    }
+                )
 
         return optimizer_cls, optimizer_kwargs

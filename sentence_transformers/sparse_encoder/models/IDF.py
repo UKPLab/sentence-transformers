@@ -67,7 +67,13 @@ class IDF(InputModule):
             batch_size, self.word_embedding_dimension, dtype=torch.float32, device=input_ids.device
         )
         batch_indices = torch.arange(batch_size, device=input_ids.device).unsqueeze(-1)
-        multi_hot[batch_indices, input_ids] = 1
+        # If this module is used after a module has already computed a sentence embedding,
+        # then we simply use the existing sentence embedding value instead of setting it to 1 before
+        # multiplying with the IDF weight.
+        if "sentence_embedding" in features:
+            multi_hot[batch_indices, input_ids] = features["sentence_embedding"][batch_indices, input_ids]
+        else:
+            multi_hot[batch_indices, input_ids] = 1
 
         sentence_embedding = multi_hot * self.weight
 

@@ -13,32 +13,32 @@ from sentence_transformers import SentenceTransformer
 
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Corpus with example sentences
+# Corpus with example documents
 corpus = [
-    "A man is eating food.",
-    "A man is eating a piece of bread.",
-    "The girl is carrying a baby.",
-    "A man is riding a horse.",
-    "A woman is playing violin.",
-    "Two men pushed carts through the woods.",
-    "A man is riding a white horse on an enclosed ground.",
-    "A monkey is playing drums.",
-    "A cheetah is running behind its prey.",
+    "Machine learning is a field of study that gives computers the ability to learn without being explicitly programmed.",
+    "Deep learning is part of a broader family of machine learning methods based on artificial neural networks with representation learning.",
+    "Neural networks are computing systems vaguely inspired by the biological neural networks that constitute animal brains.",
+    "Mars rovers are robotic vehicles designed to travel on the surface of Mars to collect data and perform experiments.",
+    "The James Webb Space Telescope is the largest optical telescope in space, designed to conduct infrared astronomy.",
+    "SpaceX's Starship is designed to be a fully reusable transportation system capable of carrying humans to Mars and beyond.",
+    "Global warming is the long-term heating of Earth's climate system observed since the pre-industrial period due to human activities.",
+    "Renewable energy sources include solar, wind, hydro, and geothermal power that naturally replenish over time.",
+    "Carbon capture technologies aim to collect CO2 emissions before they enter the atmosphere and store them underground.",
 ]
 # Use "convert_to_tensor=True" to keep the tensors on GPU (if available)
-corpus_embeddings = embedder.encode(corpus, convert_to_tensor=True)
+corpus_embeddings = embedder.encode_document(corpus, convert_to_tensor=True)
 
 # Query sentences:
 queries = [
-    "A man is eating pasta.",
-    "Someone in a gorilla costume is playing a set of drums.",
-    "A cheetah chases prey on across a field.",
+    "How do artificial neural networks work?",
+    "What technology is used for modern space exploration?",
+    "How can we address climate change challenges?",
 ]
 
 # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
 top_k = min(5, len(corpus))
 for query in queries:
-    query_embedding = embedder.encode(query, convert_to_tensor=True)
+    query_embedding = embedder.encode_query(query, convert_to_tensor=True)
 
     # We use cosine-similarity and torch.topk to find the highest 5 scores
     similarity_scores = embedder.similarity(query_embedding, corpus_embeddings)[0]
@@ -48,7 +48,7 @@ for query in queries:
     print("Top 5 most similar sentences in corpus:")
 
     for score, idx in zip(scores, indices):
-        print(corpus[idx], f"(Score: {score:.4f})")
+        print(f"(Score: {score:.4f})", corpus[idx])
 
     """
     # Alternatively, we can also use util.semantic_search to perform cosine similarty + topk

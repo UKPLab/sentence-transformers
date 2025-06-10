@@ -2,7 +2,7 @@
 
 ## SparseEncoderTrainingArguments
 ```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.SparseEncoderTrainingArguments
+.. autoclass:: sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments
    :members:
    :inherited-members:
 ``` 

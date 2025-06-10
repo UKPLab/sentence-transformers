@@ -158,14 +158,14 @@ But if instead you want to train from another checkpoint, or from scratch, then 
 
 .. tab:: Inference-free Splade
 
-    Inference-free Splade uses an :class:`~sentence_transformers.models.Asym` module with different modules for queries and documents. Usually for this type of architecture, the documents part is a traditional Splade architecture (a :class:`~sentence_transformers.sparse_encoder.models.MLMTransformer` followed by a :class:`~sentence_transformers.sparse_encoder.models.SpladePooling` module) and the query part is an :class:`~sentence_transformers.sparse_encoder.models.IDF` module, which just returns a pre-computed score for every token in the query.
+    Inference-free Splade uses a :class:`~sentence_transformers.models.Router` module with different modules for queries and documents. Usually for this type of architecture, the documents part is a traditional Splade architecture (a :class:`~sentence_transformers.sparse_encoder.models.MLMTransformer` followed by a :class:`~sentence_transformers.sparse_encoder.models.SpladePooling` module) and the query part is an :class:`~sentence_transformers.sparse_encoder.models.IDF` module, which just returns a pre-computed score for every token in the query.
 
     .. raw:: html
 
         <div class="sidebar">
             <p class="sidebar-title">Documentation</p>
             <ul class="simple">
-                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Asym"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Asym</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Router"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Router</span></code></a></li>
                 <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.IDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.IDF</span></code></a></li>
                 <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.MLMTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.MLMTransformer</span></code></a></li>
                 <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.SpladePooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.SpladePooling</span></code></a></li>
@@ -174,31 +174,27 @@ But if instead you want to train from another checkpoint, or from scratch, then 
 
     ::
 
-        from sentence_transformers import models, SparseEncoder
+        from sentence_transformers import SparseEncoder
+        from sentence_transformers.models import Router
         from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
 
         # Initialize MLM Transformer for document encoding
         doc_encoder = MLMTransformer("google-bert/bert-base-uncased")
 
-        # Create an asymmetric model with different paths for queries and documents
-        asym = models.Asym(
-            {
-                "query": [IDF(tokenizer=doc_encoder.tokenizer, frozen=False)],
-                "doc": [
-                    # Document path: full MLM transformer + pooling
-                    doc_encoder,
-                    SpladePooling("max"),
-                ],
-            }
+        # Create a router model with different paths for queries and documents
+        router = Router.for_query_document(
+            query_modules=[IDF(tokenizer=doc_encoder.tokenizer, frozen=False)],
+            # Document path: full MLM transformer + pooling
+            document_modules=[doc_encoder, SpladePooling("max")],
         )
 
         # Create the inference-free model
-        model = SparseEncoder(modules=[asym], similarity_fn_name="dot")
+        model = SparseEncoder(modules=[router], similarity_fn_name="dot")
         # SparseEncoder(
-        #   (0): Asym(
+        #   (0): Router(
         #     (query_0_IDF): IDF ({'frozen': False}, dim:30522, tokenizer: BertTokenizerFast)
-        #     (doc_0_MLMTransformer): MLMTransformer({'max_seq_length': 512, 'do_lower_case': False}) with MLMTransformer model: BertForMaskedLM
-        #     (doc_1_SpladePooling): SpladePooling({'pooling_strategy': 'max', 'activation_function': 'relu', 'word_embedding_dimension': None})
+        #     (document_0_MLMTransformer): MLMTransformer({'max_seq_length': 512, 'do_lower_case': False}) with MLMTransformer model: BertForMaskedLM
+        #     (document_1_SpladePooling): SpladePooling({'pooling_strategy': 'max', 'activation_function': 'relu', 'word_embedding_dimension': None})
         #   )
         # )
     
@@ -210,7 +206,25 @@ But if instead you want to train from another checkpoint, or from scratch, then 
     
     .. note::
 
-        When training models with the :class:`~sentence_transformers.models.Asym` module, each non-label column in your training and evaluation datasets must not be regular strings, but instead a dictionary of :class:`~sentence_transformers.models.Asym` path keys to regular strings. So, assume that ``"What is the capital of France?"`` is an element in the `"questions"` training column, then that should be transformed into ``{"query": "What is the capital of France?"}`` before being passed to the model. The same applies to an e.g. `"documents"` column, which should be transformed into ``{"doc": "Paris is the capital of France."}`` for the document ``"Paris is the capital of France."``.
+        When training models with the :class:`~sentence_transformers.models.Router` module, you must use the ``router_mapping`` argument in the :class:`~sentence_transformers.sparse_encoder.SparseEncoderTrainingArguments` to map the training dataset columns to the correct route ("query" or "document"). For example, if your dataset(s) have ``["question", "answer"]`` columns, then you can use the following mapping::
+
+            args = SparseEncoderTrainingArguments(
+                ...,
+                router_mapping={
+                    "question": "query",
+                    "answer": "document",
+                }
+            )
+        
+        Additionally, it is recommended to use a much higher learning rate for the IDF module than for the rest of the model. For this, you should use the ``learning_rate_mapping`` argument in the :class:`~sentence_transformers.sparse_encoder.SparseEncoderTrainingArguments` to map parameter patterns to their learning rates. For example, if you want to use a learning rate of ``1e-3`` for the IDF module and ``2e-5`` for the rest of the model, you can do this::
+
+            args = SparseEncoderTrainingArguments(
+                ...,
+                learning_rate=2e-5,
+                learning_rate_mapping={
+                    r"IDF\.*": 1e-3,
+                }
+            )
 ```
 
 ## Dataset
@@ -401,9 +415,11 @@ The :class:`~sentence_transformers.sparse_encoder.training_args.SparseEncoderTra
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.gradient_checkpointing"><code>gradient_checkpointing</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.eval_accumulation_steps"><code>eval_accumulation_steps</code></a>
         <a href="https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments.optim"><code>optim</code></a>
-        <a href="../package_reference/sentence_transformer/training_args.html#sentence_transformers.training_args.SentenceTransformerTrainingArguments"><code>batch_sampler</code></a>
-        <a href="../package_reference/sentence_transformer/training_args.html#sentence_transformers.training_args.SentenceTransformerTrainingArguments"><code>multi_dataset_batch_sampler</code></a>
-        <a href="../package_reference/sentence_transformer/training_args.html#sentence_transformers.training_args.SentenceTransformerTrainingArguments"><code>prompts</code></a>
+        <a href="../package_reference/sparse_encoder/training_args.html#sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments"><code>batch_sampler</code></a>
+        <a href="../package_reference/sparse_encoder/training_args.html#sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments"><code>multi_dataset_batch_sampler</code></a>
+        <a href="../package_reference/sparse_encoder/training_args.html#sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments"><code>prompts</code></a>
+        <a href="../package_reference/sparse_encoder/training_args.html#sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments"><code>router_mapping</code></a>
+        <a href="../package_reference/sparse_encoder/training_args.html#sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments"><code>learning_rate_mapping</code></a>
     </div>
 </div>
 <br>
