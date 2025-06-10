@@ -111,29 +111,29 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             Corpus: 3269
 
             Score-Function: dot
-            Accuracy@1: 50.46%
+            Accuracy@1: 50.77%
             Accuracy@3: 64.40%
-            Accuracy@5: 67.49%
-            Accuracy@10: 72.14%
-            Precision@1: 50.46%
-            Precision@3: 40.87%
-            Precision@5: 34.12%
-            Precision@10: 26.10%
-            Recall@1: 6.11%
-            Recall@3: 11.73%
-            Recall@5: 13.64%
-            Recall@10: 17.24%
-            MRR@10: 0.5801
-            NDCG@10: 0.3626
-            MAP@100: 0.1832
-            Model Query Sparsity: Active Dimensions: 43.1, Sparsity Ratio: 0.9986
-            Model Corpus Sparsity: Active Dimensions: 207.0, Sparsity Ratio: 0.9932
+            Accuracy@5: 66.87%
+            Accuracy@10: 71.83%
+            Precision@1: 50.77%
+            Precision@3: 40.45%
+            Precision@5: 34.06%
+            Precision@10: 25.98%
+            Recall@1: 6.27%
+            Recall@3: 11.69%
+            Recall@5: 13.74%
+            Recall@10: 17.23%
+            MRR@10: 0.5814
+            NDCG@10: 0.3621
+            MAP@100: 0.1838
+            Model Query Sparsity: Active Dimensions: 40.0, Sparsity Ratio: 0.9987
+            Model Corpus Sparsity: Active Dimensions: 206.2, Sparsity Ratio: 0.9932
             '''
             # Print the results
             print(f"Primary metric: {ir_evaluator.primary_metric}")
             # => Primary metric: BeIR-nfcorpus-subset-test_dot_ndcg@10
             print(f"Primary metric value: {results[ir_evaluator.primary_metric]:.4f}")
-            # => Primary metric value: 0.3626
+            # => Primary metric value: 0.3621
 
     """
 

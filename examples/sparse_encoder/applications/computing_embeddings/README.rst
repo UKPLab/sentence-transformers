@@ -31,9 +31,9 @@ Once you have `installed <../../../../docs/installation.html>`_ Sentence Transfo
    # 3. Calculate the embedding similarities (using dot product by default)
    similarities = model.similarity(embeddings, embeddings)
    print(similarities)
-   # tensor([[   35.6293,     9.1541,     0.1127],
-   #         [    9.1541,    27.4778,     0.0191],
-   #         [    0.1127,     0.0191,    29.6122]], device='cuda:0')
+   # tensor([[   35.629,     9.154,     0.098],
+   #         [    9.154,    27.478,     0.019],
+   #         [    0.098,     0.019,    29.553]])
 
    # 4. Check sparsity statistics
    stats = SparseEncoder.sparsity(embeddings)
@@ -125,9 +125,9 @@ You can specify ``max_active_dims`` either when initializing the model or during
    print(f"Sparsity percentage: {stats['sparsity_ratio']:.2%}")
    """
    Embedding dim: 30522
-   Embedding sparsity: {'active_dims': 56.66666793823242, 'sparsity_ratio': 0.9981433749198914}
-   Average non-zero dimensions: 56.67
-   Sparsity percentage: 99.81%
+   Embedding sparsity: {'active_dims': 56.333335876464844, 'sparsity_ratio': 0.9981543366792325}
+   Average non-zero dimensions: 56.33
+   Sparsity percentage: 99.82%
    """
    
    # Example of using max_active_dims during encoding to limit the active dimensions
@@ -137,7 +137,7 @@ You can specify ``max_active_dims`` either when initializing the model or during
    print(f"Average non-zero dimensions: {stats_limited['active_dims']:.2f}")
    print(f"Sparsity percentage: {stats_limited['sparsity_ratio']:.2%}")
    """
-   Limited embedding sparsity: {'active_dims': 32.0, 'sparsity_ratio': 0.9989516139030457}
+   Limited embedding sparsity: {'active_dims': 32.0, 'sparsity_ratio': 0.9989515759124565}
    Average non-zero dimensions: 32.00
    Sparsity percentage: 99.90%
    """

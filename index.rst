@@ -121,14 +121,14 @@ Working with Sentence Transformer models is straightforward:
       # 3. Calculate the embedding similarities
       similarities = model.similarity(embeddings, embeddings)
       print(similarities)
-      # tensor([[3.5629e+01, 9.1541e+00, 1.1269e-01],
-      #         [9.1541e+00, 2.7478e+01, 1.9061e-02],
-      #         [1.1269e-01, 1.9061e-02, 2.9612e+01]], device='cuda:0')
+      # tensor([[   35.629,     9.154,     0.098],
+      #         [    9.154,    27.478,     0.019],
+      #         [    0.098,     0.019,    29.553]])
 
       # 4. Check sparsity stats
       stats = SparseEncoder.sparsity(embeddings)
       print(f"Sparsity: {stats['sparsity_ratio']:.2%}")
-      # Sparsity: 99.78%
+      # Sparsity: 99.84%
    
 What Next?
 ==========
