@@ -1008,12 +1008,15 @@ class SparseEncoder(SentenceTransformer):
                 config_kwargs=config_kwargs,
             )
             modules = [modules[str(i)] for i in range(len(modules.keys()))]
-            # TODO: These defaults don't always work, e.g. 256 might be too large already
+            input_dim = modules[0].get_word_embedding_dimension()
+            hidden_dim = 4 * input_dim
+            k = input_dim // 4  # Number of top values to keep
+            k_aux = input_dim // 2  # Number of top values for auxiliary loss
             csr_sparsity = CSRSparsity(
-                input_dim=modules[0].get_word_embedding_dimension(),
-                hidden_dim=4 * modules[0].get_word_embedding_dimension(),
-                k=256,  # Number of top values to keep
-                k_aux=512,  # Number of top values for auxiliary loss
+                input_dim=input_dim,
+                hidden_dim=hidden_dim,
+                k=k,
+                k_aux=k_aux,
             )
             modules.append(csr_sparsity)
             self._model_card_text = None  # If we're loading a SentenceTransformer model, but adding a CSRSparsity, then the original README isn't useful anymore as it's a different architecture
