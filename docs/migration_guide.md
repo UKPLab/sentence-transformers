@@ -90,15 +90,15 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 5-17, 20, 23
-   
+
            from sentence_transformers import SentenceTransformer, InputExample, losses
            from torch.utils.data import DataLoader
-   
+
            # Define a training dataloader
            train_examples = [
                InputExample(texts=[
@@ -113,7 +113,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
                ]),
            ]
            train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
-   
+
            # Define a loss function
            train_loss = losses.MultipleNegativesRankingLoss(model)
 
@@ -140,10 +140,10 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
                },
            ]
            train_dataset = Dataset.from_list(train_examples)
-   
+
            # Define a loss function
            loss = MultipleNegativesRankingLoss(model)
-   
+
            # Finetune the model
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -157,17 +157,17 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 9
-   
+
            ...
-   
+
            # Load an evaluator
            evaluator = NanoBEIREvaluator()
-   
+
            # Finetune with an evaluator
            model.fit(
                train_objectives=[(train_dataloader, train_loss)],
@@ -175,10 +175,10 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 10
-   
+
            # Load an evaluator
            evaluator = NanoBEIREvaluator()
-   
+
            # Finetune with an evaluator
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -194,12 +194,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -209,14 +209,14 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5
-   
+
            ...
 
            # Prepare the Training Arguments
            args = SentenceTransformerTrainingArguments(
                num_train_epochs=1,
            )
-   
+
            # Finetune the model
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -231,12 +231,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -246,14 +246,14 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5
-   
+
            ...
 
            # Prepare the Training Arguments
            args = SentenceTransformerTrainingArguments(
                max_steps=1000, # Note: max_steps is across all epochs, not per epoch
            )
-   
+
            # Finetune the model
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -268,12 +268,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -283,7 +283,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Prepare the Training Arguments
@@ -291,7 +291,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
                # See https://huggingface.co/docs/transformers/main_classes/optimizer_schedules#transformers.SchedulerType
                lr_scheduler_type="linear"
            )
-   
+
            # Finetune the model
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -306,12 +306,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -321,14 +321,14 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5
-   
+
            ...
 
            # Prepare the Training Arguments
            args = SentenceTransformerTrainingArguments(
                warmup_steps=1000,
            )
-   
+
            # Finetune the model
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -343,12 +343,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -359,7 +359,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 6-7
-   
+
            ...
 
            # Prepare the Training Arguments
@@ -368,7 +368,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
                optim="adamw_torch",
                optim_args={"eps": 1e-7},
            )
-   
+
            # Finetune the model
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -383,12 +383,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -398,14 +398,14 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5
-   
+
            ...
 
            # Prepare the Training Arguments
            args = SentenceTransformerTrainingArguments(
                weight_decay=0.02,
            )
-   
+
            # Finetune the model
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -420,12 +420,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6, 7
-   
+
            ...
 
            # Finetune the model
@@ -436,7 +436,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5, 6, 10, 15, 17
-   
+
            ...
 
            # Prepare the Training Arguments
@@ -444,7 +444,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
                eval_strategy="steps",
                eval_steps=1000,
            )
-   
+
            # Finetune the model
            # Note: You need an eval_dataset and/or evaluator to evaluate
            trainer = SentenceTransformerTrainer(
@@ -462,12 +462,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 7, 8
-   
+
            ...
 
            # Finetune the model
@@ -479,7 +479,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5, 6, 19
-   
+
            ...
 
            # Prepare the Training Arguments
@@ -487,7 +487,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
                load_best_model_at_end=True,
                metric_for_best_model="all_nli_cosine_accuracy", # E.g. `evaluator.primary_metric`
            )
-   
+
            # Finetune the model
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -505,12 +505,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -520,14 +520,14 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5
-   
+
            ...
 
            # Prepare the Training Arguments
            args = SentenceTransformerTrainingArguments(
                max_grad_norm=1,
            )
-   
+
            # Finetune the model
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -542,12 +542,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -557,7 +557,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5, 6
-   
+
            ...
 
            # Prepare the Training Arguments
@@ -565,7 +565,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
                fp16=True,
                bf16=False, # If your GPU supports it, you can also use bf16 instead
            )
-   
+
            # Finetune the model
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -580,12 +580,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 3, 4, 9
-   
+
            ...
 
            def printer_callback(score, epoch, steps):
@@ -598,7 +598,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 1, 5-10, 17
-   
+
            from transformers import TrainerCallback
 
            ...
@@ -624,12 +624,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -639,14 +639,14 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5
-   
+
            ...
 
            # Prepare the Training Arguments
            args = SentenceTransformerTrainingArguments(
                disable_tqdm=False,
            )
-   
+
            # Finetune the model
            trainer = SentenceTransformerTrainer(
                model=model,
@@ -661,12 +661,12 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v2.x
         - v3.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6-8
-   
+
            ...
 
            # Finetune the model
@@ -678,7 +678,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 7-9, 13, 18
-   
+
            ...
 
            # Prepare the Training Arguments
@@ -689,7 +689,7 @@ The v3 Sentence Transformers release refactored the training of :class:`~sentenc
                save_steps=5000,
                save_total_limit=2,
            )
-   
+
            # Finetune the model
            # Note: You need an eval_dataset and/or evaluator to checkpoint
            trainer = SentenceTransformerTrainer(
@@ -743,17 +743,17 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
 
         from sentence_transformers import CrossEncoder, InputExample
         from torch.utils.data import DataLoader
-        
+
         # 1. Define the model. Either from scratch of by loading a pre-trained model
         model = CrossEncoder("microsoft/mpnet-base")
-        
+
         # 2. Define your train examples. You need more than just two examples...
         train_examples = [
             InputExample(texts=["What are pandas?", "The giant panda ..."], label=1),
             InputExample(texts=["What's a panda?", "Mount Vesuvius is a ..."], label=0),
         ]
         train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
-        
+
         # 3. Finetune the model
         model.fit(train_dataloader=train_dataloader, epochs=1, warmup_steps=100)
      - ::
@@ -761,13 +761,13 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
         from datasets import load_dataset
         from sentence_transformers import CrossEncoder, CrossEncoderTrainer
         from sentence_transformers.cross_encoder.losses import BinaryCrossEntropyLoss
-        
+
         # 1. Define the model. Either from scratch of by loading a pre-trained model
         model = CrossEncoder("microsoft/mpnet-base")
-        
+
         # 2. Load a dataset to finetune on, convert to required format
         dataset = load_dataset("sentence-transformers/hotpotqa", "triplet", split="train")
-        
+
         def triplet_to_labeled_pair(batch):
             anchors = batch["anchor"]
             positives = batch["positive"]
@@ -777,14 +777,14 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
                 "sentence_B": positives + negatives,
                 "labels": [1] * len(positives) + [0] * len(negatives),
             }
-        
+
         dataset = dataset.map(triplet_to_labeled_pair, batched=True, remove_columns=dataset.column_names)
         train_dataset = dataset.select(range(10_000))
         eval_dataset = dataset.select(range(10_000, 11_000))
-        
+
         # 3. Define a loss function
         loss = BinaryCrossEntropyLoss(model)
-        
+
         # 4. Create a trainer & train
         trainer = CrossEncoderTrainer(
             model=model,
@@ -793,7 +793,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
             loss=loss,
         )
         trainer.train()
-        
+
         # 5. Save the trained model
         model.save_pretrained("models/mpnet-base-hotpotqa")
         # model.push_to_hub("mpnet-base-hotpotqa")
@@ -844,25 +844,25 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 8-12, 15
-   
+
            from sentence_transformers import CrossEncoder, InputExample
            from torch.utils.data import DataLoader
-           
+
            # 1. Define the model. Either from scratch of by loading a pre-trained model
            model = CrossEncoder("microsoft/mpnet-base")
-           
+
            # 2. Define your train examples. You need more than just two examples...
            train_examples = [
                InputExample(texts=["What are pandas?", "The giant panda ..."], label=1),
                InputExample(texts=["What's a panda?", "Mount Vesuvius is a ..."], label=0),
            ]
            train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
-           
+
            # 3. Finetune the model
            model.fit(train_dataloader=train_dataloader)
         - .. code-block:: python
@@ -886,10 +886,10 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
                },
            ]
            train_dataset = Dataset.from_list(train_examples)
-   
+
            # Define a loss function
            loss = BinaryCrossEntropyLoss(model)
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -903,12 +903,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -918,7 +918,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 1, 6, 7, 14
-   
+
            from sentence_transformers.cross_encoder.losses import MSELoss
 
            ...
@@ -926,7 +926,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            # Prepare the loss function
            # See all valid losses in https://sbert.net/docs/cross_encoder/loss_overview.html
            loss = MSELoss(model)
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -941,17 +941,17 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 9
-   
+
            ...
-   
+
            # Load an evaluator
            evaluator = CrossEncoderNanoBEIREvaluator()
-   
+
            # Finetune with an evaluator
            model.fit(
                train_dataloader=train_dataloader,
@@ -959,10 +959,10 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 10
-   
+
            # Load an evaluator
            evaluator = CrossEncoderNanoBEIREvaluator()
-   
+
            # Finetune with an evaluator
            trainer = CrossEncoderTrainer(
                model=model,
@@ -978,12 +978,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -993,14 +993,14 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5
-   
+
            ...
 
            # Prepare the Training Arguments
            args = CrossEncoderTrainingArguments(
                num_train_epochs=1,
            )
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -1015,12 +1015,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -1030,12 +1030,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 4
-   
+
            ...
 
            # Prepare the loss function
            loss = MSELoss(model, activation_fn=torch.nn.Sigmoid())
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -1050,12 +1050,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -1065,7 +1065,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Prepare the Training Arguments
@@ -1073,7 +1073,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
                # See https://huggingface.co/docs/transformers/main_classes/optimizer_schedules#transformers.SchedulerType
                lr_scheduler_type="linear"
            )
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -1088,12 +1088,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -1103,14 +1103,14 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5
-   
+
            ...
 
            # Prepare the Training Arguments
            args = CrossEncoderTrainingArguments(
                warmup_steps=1000,
            )
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -1125,12 +1125,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -1141,7 +1141,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 6-7
-   
+
            ...
 
            # Prepare the Training Arguments
@@ -1150,7 +1150,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
                optim="adamw_torch",
                optim_args={"eps": 1e-7},
            )
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -1165,12 +1165,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -1180,14 +1180,14 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5
-   
+
            ...
 
            # Prepare the Training Arguments
            args = CrossEncoderTrainingArguments(
                weight_decay=0.02,
            )
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -1202,12 +1202,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6, 7
-   
+
            ...
 
            # Finetune the model
@@ -1218,7 +1218,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5, 6, 10, 15, 17
-   
+
            ...
 
            # Prepare the Training Arguments
@@ -1226,7 +1226,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
                eval_strategy="steps",
                eval_steps=1000,
            )
-   
+
            # Finetune the model
            # Note: You need an eval_dataset and/or evaluator to evaluate
            trainer = CrossEncoderTrainer(
@@ -1244,12 +1244,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 7, 8
-   
+
            ...
 
            # Finetune the model
@@ -1261,7 +1261,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5, 6, 19
-   
+
            ...
 
            # Prepare the Training Arguments
@@ -1269,7 +1269,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
                load_best_model_at_end=True,
                metric_for_best_model="hotpotqa_ndcg@10", # E.g. `evaluator.primary_metric`
            )
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -1287,12 +1287,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -1302,14 +1302,14 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5
-   
+
            ...
 
            # Prepare the Training Arguments
            args = CrossEncoderTrainingArguments(
                max_grad_norm=1,
            )
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -1324,12 +1324,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -1339,7 +1339,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5, 6
-   
+
            ...
 
            # Prepare the Training Arguments
@@ -1347,7 +1347,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
                fp16=True,
                bf16=False, # If your GPU supports it, you can also use bf16 instead
            )
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -1362,12 +1362,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 3, 4, 9
-   
+
            ...
 
            def printer_callback(score, epoch, steps):
@@ -1380,7 +1380,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 1, 5-10, 17
-   
+
            from transformers import TrainerCallback
 
            ...
@@ -1406,12 +1406,12 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v3.x
         - v4.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 6
-   
+
            ...
 
            # Finetune the model
@@ -1421,14 +1421,14 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            )
         - .. code-block:: python
            :emphasize-lines: 5
-   
+
            ...
 
            # Prepare the Training Arguments
            args = CrossEncoderTrainingArguments(
                disable_tqdm=False,
            )
-   
+
            # Finetune the model
            trainer = CrossEncoderTrainer(
                model=model,
@@ -1439,7 +1439,7 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
            trainer.train()
 
 .. raw:: html
-    
+
    <br>
 
 .. note::
@@ -1504,34 +1504,34 @@ The same methods apply to the :class:`~sentence_transformers.sparse_encoder.Spar
          :emphasize-lines: 7-9
 
          from sentence_transformers import SentenceTransformer
-         
+
          model = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
          query = "What is the capital of France?"
          document = "Paris is the capital of France."
-      
+
          # Use the prompt with the name "query" for the query
          query_embedding = model.encode(query, prompt_name="query")
          document_embedding = model.encode(document)
-      
+
          print(query_embedding.shape, document_embedding.shape)
          # => (1, 768) (1, 768)
-         
+
      - .. code-block:: python
          :emphasize-lines: 7-12
 
          from sentence_transformers import SentenceTransformer
-         
+
          model = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
          query = "What is the capital of France?"
          document = "Paris is the capital of France."
-      
+
          # The new encode_query and encode_document methods call encode,
          # but with the prompt name set to "query" or "document" if the
          # model has prompts saved, and the task set to "query" or "document",
          # if the model has a Router module.
          query_embedding = model.encode_query(query)
          document_embedding = model.encode_document(document)
-      
+
          print(query_embedding.shape, document_embedding.shape)
          # => (1, 768) (1, 768)
 
@@ -1547,18 +1547,18 @@ We also deprecated the :meth:`~sentence_transformers.SentenceTransformer.encode_
          :emphasize-lines: 7-9
 
          from sentence_transformers import SentenceTransformer
-         
+
          def main():
              model = SentenceTransformer("all-mpnet-base-v2")
              texts = ["The weather is so nice!", "It's so sunny outside.", ...]
-          
+
              pool = model.start_multi_process_pool(["cpu", "cpu", "cpu", "cpu"])
              embeddings = model.encode_multi_process(texts, pool, chunk_size=512)
              model.stop_multi_process_pool(pool)
-          
+
              print(embeddings.shape)
              # => (4000, 768)
-          
+
          if __name__ == "__main__":
              main()
 
@@ -1566,16 +1566,16 @@ We also deprecated the :meth:`~sentence_transformers.SentenceTransformer.encode_
          :emphasize-lines: 7
 
          from sentence_transformers import SentenceTransformer
-         
+
          def main():
              model = SentenceTransformer("all-mpnet-base-v2")
              texts = ["The weather is so nice!", "It's so sunny outside.", ...]
-          
+
              embeddings = model.encode(texts, device=["cpu", "cpu", "cpu", "cpu"], chunk_size=512)
-          
+
              print(embeddings.shape)
              # => (4000, 768)
-         
+
          if __name__ == "__main__":
              main()
 
@@ -1600,7 +1600,7 @@ The ``truncate_dim`` parameter allows you to reduce the dimensionality of embedd
             truncate_dim=384,
          )
          sentences = ["This is an example sentence", "Each sentence is converted"]
-            
+
          embeddings = model.encode(sentences)
          print(embeddings.shape)
          # => (2, 384)
@@ -1615,7 +1615,7 @@ The ``truncate_dim`` parameter allows you to reduce the dimensionality of embedd
             truncate_dim=384,
          )
          sentences = ["This is an example sentence", "Each sentence is converted"]
-            
+
          # ... or you can specify it when encoding
          embeddings = model.encode(sentences, truncate_dim=256)
          print(embeddings.shape)
@@ -1641,14 +1641,14 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v4.x
         - v5.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 7-10
 
            from sentence_transformers import SentenceTransformer, models
-  
+
            # Load a Sentence Transformer model and add an asymmetric router
            # for different query and document post-processing
            model = SentenceTransformer("microsoft/mpnet-base")
@@ -1663,7 +1663,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
            :emphasize-lines: 7-10
 
            from sentence_transformers import SentenceTransformer, models
-  
+
            # Load a Sentence Transformer model and add a router
            # for different query and document post-processing
            model = SentenceTransformer("microsoft/mpnet-base")
@@ -1679,7 +1679,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v4.x
         - v5.x (recommended)
       * - .. code-block:: python
@@ -1687,7 +1687,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
 
            from sentence_transformers import SentenceTransformer
            from sentence_transformers.models import Router, Normalize
-           
+
            # Use a regular SentenceTransformer for the document embeddings,
            # and a static embedding model for the query embeddings
            document_embedder = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
@@ -1697,14 +1697,14 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
                "document": list(document_embedder.children()),
            })
            normalize = Normalize()
-           
+
            # Create an asymmetric model with different encoders for queries and documents
            model = SentenceTransformer(
                modules=[asym, normalize],
            )
-           
+
            # ... requires more training to align the vector spaces
-           
+
            # Use the query & document routes
            query_embedding = model.encode({"query": "What is the capital of France?"})
            document_embedding = model.encode({"document": "Paris is the capital of France."})
@@ -1714,7 +1714,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
 
            from sentence_transformers import SentenceTransformer
            from sentence_transformers.models import Router, Normalize
-           
+
            # Use a regular SentenceTransformer for the document embeddings,
            # and a static embedding model for the query embeddings
            document_embedder = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
@@ -1724,14 +1724,14 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
                document_modules=list(document_embedder.children()),
            )
            normalize = Normalize()
-           
+
            # Create an asymmetric model with different encoders for queries and documents
            model = SentenceTransformer(
                modules=[router, normalize],
            )
-           
+
            # ... requires more training to align the vector spaces
-           
+
            # Use the query & document routes
            query_embedding = model.encode_query("What is the capital of France?")
            document_embedding = model.encode_document("Paris is the capital of France.")
@@ -1741,13 +1741,13 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v4.x
         - v5.x (recommended)
       * - .. code-block:: python
 
            ...
-  
+
            # Use the query & document routes as keys in dictionaries
            query_embedding = model.encode([{"query": "What is the capital of France?"}])
            document_embedding = model.encode([
@@ -1761,14 +1761,14 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
         - .. code-block:: python
 
            ...
-  
+
            # Use the query & document routes with encode_query/encode_document
            query_embedding = model.encode_query(["What is the capital of France?"])
            document_embedding = model.encode_document([
                "Paris is the capital of France.",
                "Berlin is the capital of Germany.",
            ])
-  
+
            # When using routes other than "query" and "document", you can use the `task` parameter
            # on model.encode
            class_embedding = model.encode(
@@ -1781,14 +1781,14 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
    .. list-table::
       :widths: 50 50
       :header-rows: 1
-   
+
       * - v4.x
         - v5.x (recommended)
       * - .. code-block:: python
            :emphasize-lines: 16-22
 
            ...
-  
+
            # Prepare a training dataset for an Asym model with "query" and "document" keys
            train_dataset = Dataset.from_dict({
                "query": [
@@ -1800,14 +1800,14 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
                    "The eyes are always the same size from birth to death.",
                ],
            })
-           
+
            # This mapper turns normal texts into a dictionary mapping Asym keys to the text
            def mapper(sample):
                return {
                    "question": {"query": sample["question"]},
                    "answer": {"document": sample["answer"]},
                }
-           
+
            train_dataset = train_dataset.map(mapper)
            print(train_dataset[0])
            """
@@ -1816,7 +1816,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
                "answer": {"document": "Metoprolol succinate is also known by the ..."}
            }
            """
-  
+
            trainer = SentenceTransformerTrainer(  # Or SparseEncoderTrainer
                model=model,
                args=training_args,
@@ -1828,7 +1828,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
            :emphasize-lines: 25-28
 
            ...
-  
+
            # Prepare a training dataset for a Router model with "query" and "document" keys
            train_dataset = Dataset.from_dict({
                "query": [
@@ -1848,7 +1848,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
                "answer": "Metoprolol succinate is also known by the brand name Toprol XL."
            }
            """
-  
+
            args = SentenceTransformerTrainingArguments(  # Or SparseEncoderTrainingArguments
                # Map dataset columns to the Router keys
                router_mapping={
@@ -1856,7 +1856,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
                    "answer": "document",
                }
            )
-  
+
            trainer = SentenceTransformerTrainer(  # Or SparseEncoderTrainer
                model=model,
                args=training_args,
@@ -1890,7 +1890,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
                def __init__(self):
                    super().__init__()
                    # Custom code here
-           
+
            model = SentenceTransformer(modules=[MyModule()])
         - .. code-block:: python
            :emphasize-lines: 4-9
@@ -1907,7 +1907,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
                def __init__(self):
                    super().__init__()
                    # Custom initialization code here
-           
+
            model = SentenceTransformer(modules=[MyModule()])
 
 .. collapse:: Custom batch samplers via class or function
@@ -1946,11 +1946,11 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
            )
            trainer.train()
         - .. code-block:: python
-   
+
              from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
              from sentence_transformers.sampler import DefaultBatchSampler
              import torch
-   
+
              class CustomBatchSampler(DefaultBatchSampler):
                  def __init__(
                      self,
@@ -1987,7 +1987,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
              ):
                  # Custom batch sampler logic here
                  return ...
-             
+
              args = SentenceTransformerTrainingArguments(
                  # Other training arguments
                  batch_sampler=custom_batch_sampler,  # Use the custom batch sampler function
@@ -2033,11 +2033,11 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
            )
            trainer.train()
         - .. code-block:: python
-   
+
              from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
              from sentence_transformers.sampler import MultiDatasetDefaultBatchSampler
              import torch
-   
+
              class CustomMultiDatasetBatchSampler(MultiDatasetDefaultBatchSampler):
                  def __init__(
                      self,
@@ -2070,7 +2070,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
              ):
                  # Custom multi-dataset batch sampler logic here
                  return ...
-             
+
              args = SentenceTransformerTrainingArguments(
                  # Other training arguments
                  multi_dataset_batch_sampler=custom_batch_sampler,  # Use the custom batch sampler function
@@ -2108,13 +2108,13 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
                "IDF": 1e-4,
                "linear_.*": 1e-5,
            }
-           
+
            args = SentenceTransformerTrainingArguments(
                ...,
                learning_rate=1e-5,  # Default learning rate
                learning_rate_mapping=learning_rate_mapping,
            )
-           
+
            trainer = SentenceTransformerTrainer(
                model=model,
                args=args,
@@ -2124,7 +2124,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
            trainer.train()
 
 .. collapse:: Training with composite losses
- 
+
    .. list-table::
       :widths: 50 50
       :header-rows: 1
@@ -2138,28 +2138,28 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
                def __init__(self, model, ...):
                    super().__init__()
                    # Custom loss initialization code here
-           
+
                def forward(self, features, labels):
                    loss_component_one = self.compute_loss_one(features, labels)
                    loss_component_two = self.compute_loss_two(features, labels)
- 
+
                    loss = loss_component_one * alpha + loss_component_two * beta
                    return loss
- 
+
             loss = CustomLoss(model, ...)
-            
+
         - .. code-block:: python
             :emphasize-lines: 10-16
- 
+
             class CustomLoss(torch.nn.Module):
                 def __init__(self, model, ...):
                     super().__init__()
                     # Custom loss initialization code here
-            
+
                 def forward(self, features, labels):
                     loss_component_one = self.compute_loss_one(features, labels)
                     loss_component_two = self.compute_loss_two(features, labels)
- 
+
                     # You can now return a dictionary of loss components.
                     # The trainer considers the full loss as the sum of all
                     # components, but each component will also be logged separately.
@@ -2167,7 +2167,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
                         "loss_one": loss_component_one,
                         "loss_two": loss_component_two,
                     }
- 
+
             loss = CustomLoss(model, ...)
 
 ```
