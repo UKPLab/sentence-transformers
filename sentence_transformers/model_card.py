@@ -595,7 +595,7 @@ class SentenceTransformerModelCardData(CardData):
     def tokenize(self, text: str | list[str], **kwargs) -> dict[str, Any]:
         try:
             return self.model.tokenize(text, **kwargs)
-        except Exception:
+        except TypeError:
             # Fallback for backwards compatibility with modules that don't yet support kwargs
             return self.model.tokenize(text)
 
