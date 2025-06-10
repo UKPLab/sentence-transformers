@@ -1474,3 +1474,702 @@ The v4 Sentence Transformers release refactored the training of :class:`~sentenc
 
    The old evaluators still work, they will simply warn you to update to the new evaluators.
 ```
+
+## Migrating from v4.x to v5.x
+
+```{eval-rst}
+The v5 Sentence Transformers release introduced :class:`~sentence_transformers.sparse_encoder.SparseEncoder` embedding models alongside an extensive training suite for them, including :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` and :class:`~sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments`. Unlike with v3 (updated :class:`~sentence_transformers.SentenceTransformer`) and v4 (updated :class:`~sentence_transformers.cross_encoder.CrossEncoder`), this update does not deprecate any training methods.
+```
+
+### Migration for model.encode
+
+```{eval-rst}
+
+We introduce two new methods, :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~sentence_transformers.SentenceTransformer.encode_document`, which are recommended to use instead of the :meth:`~sentence_transformers.SentenceTransformer.encode` method when working with information retrieval tasks. These methods are specialized version of :meth:`~sentence_transformers.SentenceTransformer.encode` that differs in exactly two ways:
+
+1. If no ``prompt_name`` or ``prompt`` is provided, it uses a predefined "query" prompt,
+   if available in the model's ``prompts`` dictionary.
+2. It sets the ``task`` to "query". If the model has a :class:`~sentence_transformers.models.Router`
+   module, it will use the "query" task type to route the input through the appropriate submodules.
+
+The same methods apply to the :class:`~sentence_transformers.sparse_encoder.SparseEncoder` models.
+
+.. list-table:: encode_query and encode_document
+   :widths: 50 50
+   :header-rows: 1
+
+   * - v4.x
+     - v5.x (recommended)
+   * - .. code-block:: python
+         :emphasize-lines: 7-9
+
+         from sentence_transformers import SentenceTransformer
+         
+         model = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
+         query = "What is the capital of France?"
+         document = "Paris is the capital of France."
+      
+         # Use the prompt with the name "query" for the query
+         query_embedding = model.encode(query, prompt_name="query")
+         document_embedding = model.encode(document)
+      
+         print(query_embedding.shape, document_embedding.shape)
+         # => (1, 768) (1, 768)
+         
+     - .. code-block:: python
+         :emphasize-lines: 7-12
+
+         from sentence_transformers import SentenceTransformer
+         
+         model = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
+         query = "What is the capital of France?"
+         document = "Paris is the capital of France."
+      
+         # The new encode_query and encode_document methods call encode,
+         # but with the prompt name set to "query" or "document" if the
+         # model has prompts saved, and the task set to "query" or "document",
+         # if the model has a Router module.
+         query_embedding = model.encode_query(query)
+         document_embedding = model.encode_document(document)
+      
+         print(query_embedding.shape, document_embedding.shape)
+         # => (1, 768) (1, 768)
+
+We also deprecated the :meth:`~sentence_transformers.SentenceTransformer.encode_multi_process` method, which was used to encode large datasets in parallel using multiple processes. This method has now been subsumed by the :meth:`~sentence_transformers.SentenceTransformer.encode` method with the ``device``, ``pool``, and ``chunk_size`` arguments. Provide a list of devices to the ``device`` argument to use multiple processes, or a single device to use a single process. The ``pool`` argument can be used to pass a multiprocessing pool that gets reused across calls, and the ``chunk_size`` argument can be used to control the size of the chunks that are sent to each process in parallel.
+
+.. list-table:: encode_multi_process deprecation -> encode
+   :widths: 50 50
+   :header-rows: 1
+
+   * - v4.x
+     - v5.x (recommended)
+   * - .. code-block:: python
+         :emphasize-lines: 7-9
+
+         from sentence_transformers import SentenceTransformer
+         
+         def main():
+             model = SentenceTransformer("all-mpnet-base-v2")
+             texts = ["The weather is so nice!", "It's so sunny outside.", ...]
+          
+             pool = model.start_multi_process_pool(["cpu", "cpu", "cpu", "cpu"])
+             embeddings = model.encode_multi_process(texts, pool, chunk_size=512)
+             model.stop_multi_process_pool(pool)
+          
+             print(embeddings.shape)
+             # => (4000, 768)
+          
+         if __name__ == "__main__":
+             main()
+
+     - .. code-block:: python
+         :emphasize-lines: 7
+
+         from sentence_transformers import SentenceTransformer
+         
+         def main():
+             model = SentenceTransformer("all-mpnet-base-v2")
+             texts = ["The weather is so nice!", "It's so sunny outside.", ...]
+          
+             embeddings = model.encode(texts, device=["cpu", "cpu", "cpu", "cpu"], chunk_size=512)
+          
+             print(embeddings.shape)
+             # => (4000, 768)
+         
+         if __name__ == "__main__":
+             main()
+
+
+The ``truncate_dim`` parameter allows you to reduce the dimensionality of embeddings by truncating them. This is useful for optimizing storage and retrieval while maintaining most of the semantic information. Research has shown that the first dimensions often contain most of the important information in transformer embeddings.
+
+.. list-table:: Add truncate_dim to encode
+   :widths: 50 50
+   :header-rows: 1
+
+   * - v4.x
+     - v5.x (recommended)
+   * - .. code-block:: python
+         :emphasize-lines: 3-8
+
+         from sentence_transformers import SentenceTransformer
+
+         # To truncate embeddings to a specific dimension,
+         # you had to specify the dimension when loading
+         model = SentenceTransformer(
+            "mixedbread-ai/mxbai-embed-large-v1",
+            truncate_dim=384,
+         )
+         sentences = ["This is an example sentence", "Each sentence is converted"]
+            
+         embeddings = model.encode(sentences)
+         print(embeddings.shape)
+         # => (2, 384)
+     - .. code-block:: python
+         :emphasize-lines: 3-7, 10-18
+
+         from sentence_transformers import SentenceTransformer
+
+         # Now you can either specify the dimension when loading the model...
+         model = SentenceTransformer(
+            "mixedbread-ai/mxbai-embed-large-v1",
+            truncate_dim=384,
+         )
+         sentences = ["This is an example sentence", "Each sentence is converted"]
+            
+         # ... or you can specify it when encoding
+         embeddings = model.encode(sentences, truncate_dim=256)
+         print(embeddings.shape)
+         # => (2, 256)
+
+         # The encode parameter has priority, but otherwise the model truncate_dim is used
+         embeddings = model.encode(sentences)
+         print(embeddings.shape)
+         # => (2, 384)
+
+```
+
+### Migration for Asym to Router
+
+```{eval-rst}
+
+The ``Asym`` module has been renamed and updated to the new :class:`~sentence_transformers.models.Router` module, which provides the same functionality but with a more consistent API and additional features. The new :class:`~sentence_transformers.models.Router` module allows for more flexible routing of different tasks, such as query and document embeddings, and is recommended when working with asymmetric models that require different processing for different tasks, notably queries and documents.
+
+The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~sentence_transformers.SentenceTransformer.encode_document` methods automatically set the ``task`` parameter that is used by the :class:`~sentence_transformers.models.Router` module to route the input to the query or document submodules, respectively.
+
+.. collapse:: Asym -> Router
+
+   .. list-table::
+      :widths: 50 50
+      :header-rows: 1
+   
+      * - v4.x
+        - v5.x (recommended)
+      * - .. code-block:: python
+           :emphasize-lines: 7-10
+
+           from sentence_transformers import SentenceTransformer, models
+  
+           # Load a Sentence Transformer model and add an asymmetric router
+           # for different query and document post-processing
+           model = SentenceTransformer("microsoft/mpnet-base")
+           dim = model.get_sentence_embedding_dimension()
+           asym_model = models.Asym({
+               'sts': [models.Dense(dim, dim)],
+               'classification': [models.Dense(dim, dim)]
+           })
+           model.add_module("asym", asym_model)
+
+        - .. code-block:: python
+           :emphasize-lines: 7-10
+
+           from sentence_transformers import SentenceTransformer, models
+  
+           # Load a Sentence Transformer model and add a router
+           # for different query and document post-processing
+           model = SentenceTransformer("microsoft/mpnet-base")
+           dim = model.get_sentence_embedding_dimension()
+           router_model = models.Router({
+               'sts': [models.Dense(dim, dim)],
+               'classification': [models.Dense(dim, dim)]
+           })
+           model.add_module("router", router_model)
+
+.. collapse:: Asym -> Router for queries and documents
+
+   .. list-table::
+      :widths: 50 50
+      :header-rows: 1
+   
+      * - v4.x
+        - v5.x (recommended)
+      * - .. code-block:: python
+           :emphasize-lines: 8-11, 22-23
+
+           from sentence_transformers import SentenceTransformer
+           from sentence_transformers.models import Router, Normalize
+           
+           # Use a regular SentenceTransformer for the document embeddings,
+           # and a static embedding model for the query embeddings
+           document_embedder = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
+           query_embedder = SentenceTransformer("static-retrieval-mrl-en-v1")
+           asym = Asym({
+               "query": list(query_embedder.children()),
+               "document": list(document_embedder.children()),
+           })
+           normalize = Normalize()
+           
+           # Create an asymmetric model with different encoders for queries and documents
+           model = SentenceTransformer(
+               modules=[asym, normalize],
+           )
+           
+           # ... requires more training to align the vector spaces
+           
+           # Use the query & document routes
+           query_embedding = model.encode({"query": "What is the capital of France?"})
+           document_embedding = model.encode({"document": "Paris is the capital of France."})
+
+        - .. code-block:: python
+           :emphasize-lines: 8-11, 22-23
+
+           from sentence_transformers import SentenceTransformer
+           from sentence_transformers.models import Router, Normalize
+           
+           # Use a regular SentenceTransformer for the document embeddings,
+           # and a static embedding model for the query embeddings
+           document_embedder = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
+           query_embedder = SentenceTransformer("static-retrieval-mrl-en-v1")
+           router = Router.for_query_document(
+               query_modules=list(query_embedder.children()),
+               document_modules=list(document_embedder.children()),
+           )
+           normalize = Normalize()
+           
+           # Create an asymmetric model with different encoders for queries and documents
+           model = SentenceTransformer(
+               modules=[router, normalize],
+           )
+           
+           # ... requires more training to align the vector spaces
+           
+           # Use the query & document routes
+           query_embedding = model.encode_query("What is the capital of France?")
+           document_embedding = model.encode_document("Paris is the capital of France.")
+
+.. collapse:: Asym inference -> Router inference
+
+   .. list-table::
+      :widths: 50 50
+      :header-rows: 1
+   
+      * - v4.x
+        - v5.x (recommended)
+      * - .. code-block:: python
+
+           ...
+  
+           # Use the query & document routes as keys in dictionaries
+           query_embedding = model.encode([{"query": "What is the capital of France?"}])
+           document_embedding = model.encode([
+               {"document": "Paris is the capital of France."},
+               {"document": "Berlin is the capital of Germany."},
+           ])
+           class_embedding = model.encode(
+               [{"classification": "S&P500 is down 2.1% today."}],
+           )
+
+        - .. code-block:: python
+
+           ...
+  
+           # Use the query & document routes with encode_query/encode_document
+           query_embedding = model.encode_query(["What is the capital of France?"])
+           document_embedding = model.encode_document([
+               "Paris is the capital of France.",
+               "Berlin is the capital of Germany.",
+           ])
+  
+           # When using routes other than "query" and "document", you can use the `task` parameter
+           # on model.encode
+           class_embedding = model.encode(
+               ["S&P500 is down 2.1% today."],
+               task="classification"  # or any other task defined in the model Router
+           )
+
+.. collapse:: Asym training -> Router training
+
+   .. list-table::
+      :widths: 50 50
+      :header-rows: 1
+   
+      * - v4.x
+        - v5.x (recommended)
+      * - .. code-block:: python
+           :emphasize-lines: 16-22
+
+           ...
+  
+           # Prepare a training dataset for an Asym model with "query" and "document" keys
+           train_dataset = Dataset.from_dict({
+               "query": [
+                   "is toprol xl the same as metoprolol?",
+                   "are eyes always the same size?",
+               ],
+               "answer": [
+                   "Metoprolol succinate is also known by the brand name Toprol XL.",
+                   "The eyes are always the same size from birth to death.",
+               ],
+           })
+           
+           # This mapper turns normal texts into a dictionary mapping Asym keys to the text
+           def mapper(sample):
+               return {
+                   "question": {"query": sample["question"]},
+                   "answer": {"document": sample["answer"]},
+               }
+           
+           train_dataset = train_dataset.map(mapper)
+           print(train_dataset[0])
+           """
+           {
+               "question": {"query": "is toprol xl the same as metoprolol?"},
+               "answer": {"document": "Metoprolol succinate is also known by the ..."}
+           }
+           """
+  
+           trainer = SentenceTransformerTrainer(  # Or SparseEncoderTrainer
+               model=model,
+               args=training_args,
+               train_dataset=train_dataset,
+               ...
+           )
+
+        - .. code-block:: python
+           :emphasize-lines: 25-28
+
+           ...
+  
+           # Prepare a training dataset for a Router model with "query" and "document" keys
+           train_dataset = Dataset.from_dict({
+               "query": [
+                   "is toprol xl the same as metoprolol?",
+                   "are eyes always the same size?",
+               ],
+               "answer": [
+                   "Metoprolol succinate is also known by the brand name Toprol XL.",
+                   "The eyes are always the same size from birth to death.",
+               ],
+           })
+           train_dataset = train_dataset.map(mapper)
+           print(train_dataset[0])
+           """
+           {
+               "question": "is toprol xl the same as metoprolol?",
+               "answer": "Metoprolol succinate is also known by the brand name Toprol XL."
+           }
+           """
+  
+           args = SentenceTransformerTrainingArguments(  # Or SparseEncoderTrainingArguments
+               # Map dataset columns to the Router keys
+               router_mapping={
+                   "question": "query",
+                   "answer": "document",
+               }
+           )
+  
+           trainer = SentenceTransformerTrainer(  # Or SparseEncoderTrainer
+               model=model,
+               args=training_args,
+               train_dataset=train_dataset,
+               ...
+           )
+
+```
+
+<br>
+
+### Migration of advanced usage
+
+```{eval-rst}
+
+.. collapse:: Module and InputModule convenience superclasses
+
+   .. list-table::
+      :widths: 50 50
+      :header-rows: 1
+
+      * - v4.x
+        - v5.x (recommended)
+      * - .. code-block:: python
+           :emphasize-lines: 4
+
+           from sentence_transformers import SentenceTransformer
+           import torch
+
+           class MyModule(torch.nn.Module):
+               def __init__(self):
+                   super().__init__()
+                   # Custom code here
+           
+           model = SentenceTransformer(modules=[MyModule()])
+        - .. code-block:: python
+           :emphasize-lines: 4-9
+
+           from sentence_transformers import SentenceTransformer
+           from sentence_transformers.models import Module, InputModule
+
+           # The new Module and InputModule superclasses provide convenience methods
+           # like 'load', 'load_file_path', 'load_dir_path', 'load_torch_weights',
+           # 'save_config', 'save_torch_weights', 'get_config_dict'
+           # InputModule is meant to be used as the first module, is requires the
+           # 'tokenize' method to be implemented
+           class MyModule(Module):
+               def __init__(self):
+                   super().__init__()
+                   # Custom initialization code here
+           
+           model = SentenceTransformer(modules=[MyModule()])
+
+.. collapse:: Custom batch samplers via class or function
+
+   .. list-table::
+      :widths: 50 50
+      :header-rows: 1
+
+      * - v4.x
+        - v5.x (recommended)
+      * - .. code-block:: python
+
+           from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
+
+           class CustomSentenceTransformerTrainer(SentenceTransformerTrainer):
+               # Custom batch samplers require subclassing the Trainer
+               def get_batch_sampler(
+                   self,
+                   dataset,
+                   batch_size,
+                   drop_last,
+                   valid_label_columns=None,
+                   generator=None,
+                   seed=0,
+               ):
+                   # Custom batch sampler logic here
+                   return ...
+
+           ...
+
+           trainer = CustomSentenceTransformerTrainer(
+               model=model,
+               args=args,
+               train_dataset=train_dataset,
+               ...
+           )
+           trainer.train()
+        - .. code-block:: python
+   
+             from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
+             from sentence_transformers.sampler import DefaultBatchSampler
+             import torch
+   
+             class CustomBatchSampler(DefaultBatchSampler):
+                 def __init__(
+                     self,
+                     dataset: Dataset,
+                     batch_size: int,
+                     drop_last: bool,
+                     valid_label_columns: list[str] | None = None,
+                     generator: torch.Generator | None = None,
+                     seed: int = 0,
+                 ):
+                     super().__init__(dataset, batch_size, drop_last, valid_label_columns, generator, seed)
+                     # Custom batch sampler logic here
+
+             args = SentenceTransformerTrainingArguments(
+                 # Other training arguments
+                 batch_sampler=CustomBatchSampler,  # Use the custom batch sampler class
+             )
+             trainer = SentenceTransformerTrainer(
+                 model=model,
+                 args=args,
+                 train_dataset=train_dataset,
+                 ...
+             )
+             trainer.train()
+
+             # Or, use a function to initialize the batch sampler
+             def custom_batch_sampler(
+                 dataset: Dataset,
+                 batch_size: int,
+                 drop_last: bool,
+                 valid_label_columns: list[str] | None = None,
+                 generator: torch.Generator | None = None,
+                 seed: int = 0,
+             ):
+                 # Custom batch sampler logic here
+                 return ...
+             
+             args = SentenceTransformerTrainingArguments(
+                 # Other training arguments
+                 batch_sampler=custom_batch_sampler,  # Use the custom batch sampler function
+             )
+             trainer = SentenceTransformerTrainer(
+                 model=model,
+                 args=args,
+                 train_dataset=train_dataset,
+                 ...
+             )
+             trainer.train()
+
+.. collapse:: Custom multi-dataset batch samplers via class or function
+
+   .. list-table::
+      :widths: 50 50
+      :header-rows: 1
+
+      * - v4.x
+        - v5.x (recommended)
+      * - .. code-block:: python
+
+           from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
+
+           class CustomSentenceTransformerTrainer(SentenceTransformerTrainer):
+               def get_multi_dataset_batch_sampler(
+                   self,
+                   dataset: ConcatDataset,
+                   batch_samplers: list[BatchSampler],
+                   generator: torch.Generator | None = None,
+                   seed: int | None = 0,
+               ):
+                   # Custom multi-dataset batch sampler logic here
+                   return ...
+
+           ...
+
+           trainer = CustomSentenceTransformerTrainer(
+               model=model,
+               args=args,
+               train_dataset=train_dataset,
+               ...
+           )
+           trainer.train()
+        - .. code-block:: python
+   
+             from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
+             from sentence_transformers.sampler import MultiDatasetDefaultBatchSampler
+             import torch
+   
+             class CustomMultiDatasetBatchSampler(MultiDatasetDefaultBatchSampler):
+                 def __init__(
+                     self,
+                     dataset: ConcatDataset,
+                     batch_samplers: list[BatchSampler],
+                     generator: torch.Generator | None = None,
+                     seed: int = 0,
+                 ):
+                     super().__init__(dataset, batch_samplers=batch_samplers, generator=generator, seed=seed)
+                     # Custom multi-dataset batch sampler logic here
+
+             args = SentenceTransformerTrainingArguments(
+                 # Other training arguments
+                 multi_dataset_batch_sampler=CustomMultiDatasetBatchSampler,
+             )
+             trainer = SentenceTransformerTrainer(
+                 model=model,
+                 args=args,
+                 train_dataset=train_dataset,
+                 ...
+             )
+             trainer.train()
+
+             # Or, use a function to initialize the batch sampler
+             def custom_batch_sampler(
+                 dataset: ConcatDataset,
+                 batch_samplers: list[BatchSampler],
+                 generator: torch.Generator | None = None,
+                 seed: int = 0,
+             ):
+                 # Custom multi-dataset batch sampler logic here
+                 return ...
+             
+             args = SentenceTransformerTrainingArguments(
+                 # Other training arguments
+                 multi_dataset_batch_sampler=custom_batch_sampler,  # Use the custom batch sampler function
+             )
+             trainer = SentenceTransformerTrainer(
+                 model=model,
+                 args=args,
+                 train_dataset=train_dataset,
+                 ...
+             )
+             trainer.train()
+
+.. collapse:: Custom learning rate for sections
+
+   .. list-table::
+      :widths: 50 50
+      :header-rows: 1
+
+      * - v4.x
+        - v5.x (recommended)
+      * - .. code-block:: python
+
+           # A bunch of hacky code to set different learning rates
+           # for different sections of the model
+
+        - .. code-block:: python
+           :emphasize-lines: 3-9, 14
+
+           from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
+
+           # Custom learning rate for each section of the model,
+           # mapping regular expressions of parameter names to learning rates
+           # Matching is done with 'search', not just 'match' or 'fullmatch'
+           learning_rate_mapping = {
+               "IDF": 1e-4,
+               "linear_.*": 1e-5,
+           }
+           
+           args = SentenceTransformerTrainingArguments(
+               ...,
+               learning_rate=1e-5,  # Default learning rate
+               learning_rate_mapping=learning_rate_mapping,
+           )
+           
+           trainer = SentenceTransformerTrainer(
+               model=model,
+               args=args,
+               train_dataset=train_dataset,
+               ...
+           )
+           trainer.train()
+
+.. collapse:: Training with composite losses
+ 
+   .. list-table::
+      :widths: 50 50
+      :header-rows: 1
+
+      * - v4.x
+        - v5.x (recommended)
+      * - .. code-block:: python
+           :emphasize-lines: 10-11
+
+           class CustomLoss(torch.nn.Module):
+               def __init__(self, model, ...):
+                   super().__init__()
+                   # Custom loss initialization code here
+           
+               def forward(self, features, labels):
+                   loss_component_one = self.compute_loss_one(features, labels)
+                   loss_component_two = self.compute_loss_two(features, labels)
+ 
+                   loss = loss_component_one * alpha + loss_component_two * beta
+                   return loss
+ 
+            loss = CustomLoss(model, ...)
+            
+        - .. code-block:: python
+            :emphasize-lines: 10-16
+ 
+            class CustomLoss(torch.nn.Module):
+                def __init__(self, model, ...):
+                    super().__init__()
+                    # Custom loss initialization code here
+            
+                def forward(self, features, labels):
+                    loss_component_one = self.compute_loss_one(features, labels)
+                    loss_component_two = self.compute_loss_two(features, labels)
+ 
+                    # You can now return a dictionary of loss components.
+                    # The trainer considers the full loss as the sum of all
+                    # components, but each component will also be logged separately.
+                    return {
+                        "loss_one": loss_component_one,
+                        "loss_two": loss_component_two,
+                    }
+ 
+            loss = CustomLoss(model, ...)
+
+```
+
+<br>
