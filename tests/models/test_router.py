@@ -51,14 +51,14 @@ class InvertMockModule(MockModule):
 class TaskTypesTrackingDict(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.task_types = []
+        self.tasks = []
 
     def get(self, key, default=None):
-        self.task_types.append(key)
+        self.tasks.append(key)
         return super().get(key, default)
 
     def __getitem__(self, key):
-        self.task_types.append(key)
+        self.tasks.append(key)
         return super().__getitem__(key)
 
 
@@ -179,35 +179,35 @@ def test_router_encode(static_embedding_model):
     doc_texts = ["The capital of France is Paris."]
 
     model.encode_query(query_texts)
-    assert "query" in tracking_dict.task_types
-    tracking_dict.task_types = []
+    assert "query" in tracking_dict.tasks
+    tracking_dict.tasks = []
 
     model.encode_document(doc_texts)
-    assert "document" in tracking_dict.task_types
-    tracking_dict.task_types = []
+    assert "document" in tracking_dict.tasks
+    tracking_dict.tasks = []
 
     # The default route should be used if no task type is specified
     model.encode(query_texts)
     assert router.default_route == "query"
-    assert "query" in tracking_dict.task_types
-    tracking_dict.task_types = []
+    assert "query" in tracking_dict.tasks
+    tracking_dict.tasks = []
 
     # Test with a different default route
     router.default_route = "document"
     model.encode(doc_texts)
-    assert "document" in tracking_dict.task_types
+    assert "document" in tracking_dict.tasks
 
     # Test with an incorrect route
     with pytest.raises(
         ValueError, match=re.escape("No route found for task type 'invalid'. Available routes: ['query', 'document']")
     ):
-        model.encode("This should fail", task_type="invalid")
+        model.encode("This should fail", task="invalid")
 
     router.default_route = None  # Reset default route to None
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "You must provide a `task_type` argument when calling this method, "
+            "You must provide a `task` argument when calling this method, "
             "or set a default route in the `Router` module."
         ),
     ):
@@ -232,12 +232,12 @@ def test_router_backwards_compatibility(static_embedding_model):
 
     model = SentenceTransformer(modules=[asym_model])
     model.encode([{"query": "What is the capital of France?"}, {"query": "The capital of France is Paris."}])
-    assert tracking_dict.task_types == ["query", "query"]
-    tracking_dict.task_types = []
+    assert tracking_dict.tasks == ["query", "query"]
+    tracking_dict.tasks = []
 
     model.encode([{"document": "What is the capital of France?"}, {"document": "The capital of France is Paris."}])
-    assert tracking_dict.task_types == ["document", "document"]
-    tracking_dict.task_types = []
+    assert tracking_dict.tasks == ["document", "document"]
+    tracking_dict.tasks = []
 
     with pytest.raises(ValueError, match=r"You cannot pass a list of dictionaries with different task types\. .*"):
         model.encode(
@@ -346,11 +346,11 @@ def test_router_save_load_without_default_route(static_embedding_model):
         # Verify default route is None
         assert loaded_router.default_route is None
 
-        # Test that encoding without task_type raises error
+        # Test that encoding without task raises error
         with pytest.raises(
             ValueError,
             match=re.escape(
-                "You must provide a `task_type` argument when calling this method, "
+                "You must provide a `task` argument when calling this method, "
                 "or set a default route in the `Router` module."
             ),
         ):
@@ -431,11 +431,11 @@ def test_router_with_trainer(static_embedding_model):
         loss=loss,
         args=args,
     )
-    tracking_dict.task_types.clear()  # Clear tracking before training
+    tracking_dict.tasks.clear()  # Clear tracking before training
     trainer.train()
 
     # Once for tokenizing, once for forward
-    assert tracking_dict.task_types == ["query", "document"] * 6
+    assert tracking_dict.tasks == ["query", "document"] * 6
 
 
 def test_router_with_trainer_without_router_mapping(static_embedding_model, tmp_path):
@@ -494,7 +494,7 @@ def test_router_module_forward_kwargs():
             pass
 
     class ExampleModuleWithForwardKwargsTwo(ExampleModuleWithForwardKwargsOne):
-        forward_kwargs = {"two", "task_type"}
+        forward_kwargs = {"two", "task"}
 
     class ExampleModuleWithForwardKwargsThree(ExampleModuleWithForwardKwargsOne):
         forward_kwargs = {"three_a", "three_b"}
@@ -508,7 +508,7 @@ def test_router_module_forward_kwargs():
 
     model.encode(
         "Test input",
-        task_type="query",
+        task="query",
         one="value_one",
         two="value_two",
         three_a="value_three_a",
@@ -524,7 +524,7 @@ def test_router_module_forward_kwargs():
 
     model.encode(
         "Test input",
-        task_type="document",
+        task="document",
         one="value_one",
         two="value_two",
         three_a="value_three_a",
@@ -532,13 +532,13 @@ def test_router_module_forward_kwargs():
     )
 
     assert module_one.kwargs_tracker == set()
-    assert module_two.kwargs_tracker == {"two", "task_type"}
+    assert module_two.kwargs_tracker == {"two", "task"}
     assert module_three.kwargs_tracker == {"three_a", "three_b"}
     module_one.kwargs_tracker.clear()
     module_two.kwargs_tracker.clear()
     module_three.kwargs_tracker.clear()
 
-    model.encode("Test input", task_type="query", three_a="value_three_a")
+    model.encode("Test input", task="query", three_a="value_three_a")
     assert module_one.kwargs_tracker == set()
     assert module_two.kwargs_tracker == set()
     assert module_three.kwargs_tracker == set()
@@ -546,9 +546,9 @@ def test_router_module_forward_kwargs():
     module_two.kwargs_tracker.clear()
     module_three.kwargs_tracker.clear()
 
-    model.encode("Test input", task_type="document")
+    model.encode("Test input", task="document")
     assert module_one.kwargs_tracker == set()
-    assert module_two.kwargs_tracker == {"task_type"}
+    assert module_two.kwargs_tracker == {"task"}
     assert module_three.kwargs_tracker == set()
     module_one.kwargs_tracker.clear()
     module_two.kwargs_tracker.clear()
@@ -628,17 +628,17 @@ def test_router_as_middle_module(static_embedding_model):
 
     # Test encode_query
     model.encode_query(query_texts)
-    assert "query" in tracking_dict.task_types
-    assert tracking_dict.task_types.count("query") == 1
-    assert "document" not in tracking_dict.task_types
-    tracking_dict.task_types.clear()
+    assert "query" in tracking_dict.tasks
+    assert tracking_dict.tasks.count("query") == 1
+    assert "document" not in tracking_dict.tasks
+    tracking_dict.tasks.clear()
 
     # Test encode_document
     model.encode_document(doc_texts)
-    assert "document" in tracking_dict.task_types
-    assert tracking_dict.task_types.count("document") == 1
-    assert "query" not in tracking_dict.task_types
-    tracking_dict.task_types.clear()
+    assert "document" in tracking_dict.tasks
+    assert tracking_dict.tasks.count("document") == 1
+    assert "query" not in tracking_dict.tasks
+    tracking_dict.tasks.clear()
 
     # Test that the model processes through all modules (static_embedding + router)
     # by checking the embedding dimensions match what we expect

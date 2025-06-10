@@ -947,7 +947,7 @@ def test_encode_query(
         # Check other parameters
         assert kwargs["convert_to_numpy"] == convert_to_numpy
         assert kwargs["convert_to_tensor"] == convert_to_tensor
-        assert kwargs["task_type"] == "query"
+        assert kwargs["task"] == "query"
 
 
 @pytest.mark.parametrize("sentences", ["Hello world", ["Hello world", "This is a test"], [], [""]])
@@ -995,7 +995,7 @@ def test_encode_document(
         # Check other parameters
         assert kwargs["convert_to_numpy"] == convert_to_numpy
         assert kwargs["convert_to_tensor"] == convert_to_tensor
-        assert kwargs["task_type"] == "document"
+        assert kwargs["task"] == "document"
 
 
 def test_encode_document_prompt_priority(stsb_bert_tiny_model: SentenceTransformer):
@@ -1087,7 +1087,7 @@ def test_encode_query_document_vs_encode(stsb_bert_tiny_model: SentenceTransform
     query_embeddings = model.encode_query(inputs)
     document_embeddings = model.encode_document(inputs)
 
-    # And the same but with encode via prompts (task_type doesn't help here)
+    # And the same but with encode via prompts (task doesn't help here)
     encode_query_embeddings = model.encode(inputs, prompt_name="query")
     encode_document_embeddings = model.encode(inputs, prompt_name="document")
 

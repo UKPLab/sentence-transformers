@@ -627,7 +627,7 @@ class SentenceTransformerModelCardData(CardData):
                 subsection = dataset[:1000][column]
                 first = subsection[0]
                 if isinstance(first, str):
-                    tokenized = self.tokenize(subsection, task_type="document")
+                    tokenized = self.tokenize(subsection, task="document")
                     if isinstance(tokenized, dict) and "attention_mask" in tokenized:
                         lengths = tokenized["attention_mask"].sum(dim=1).tolist()
                         suffix = "tokens"

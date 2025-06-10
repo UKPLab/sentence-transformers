@@ -90,7 +90,7 @@ class SentenceTransformerDataCollator:
         for column_name in column_names:
             # Users can specify a router_mapping via the training arguments, which maps column names to "task types",
             # useful for the Router module (among others). This has to be provided to the tokenization function.
-            task_type = router_mapping.get(column_name, None)
+            task = router_mapping.get(column_name, None)
 
             # Get the string prompt for the column, if it exists.
             prompt = None
@@ -103,7 +103,7 @@ class SentenceTransformerDataCollator:
             # prompt tokens from the pooled embeddings, so we also store the prompt length which can be used for that.
             if prompt:
                 if self.include_prompt_lengths:
-                    prompt_length = self._get_prompt_length(prompt, task_type=task_type)
+                    prompt_length = self._get_prompt_length(prompt, task=task)
                     if prompt_length is not None:
                         batch[f"{column_name}_prompt_length"] = torch.tensor(
                             [prompt_length] * len(features), dtype=torch.int
@@ -112,17 +112,17 @@ class SentenceTransformerDataCollator:
             else:
                 inputs = [row[column_name] for row in features]
 
-            tokenized = self.tokenize_fn(inputs, task_type=task_type)
+            tokenized = self.tokenize_fn(inputs, task=task)
             for key, value in tokenized.items():
                 batch[f"{column_name}_{key}"] = value
 
         return batch
 
-    def _get_prompt_length(self, prompt: str, task_type: str | None = None) -> int:
-        if (prompt, task_type) in self._prompt_length_mapping:
-            return self._prompt_length_mapping[(prompt, task_type)]
+    def _get_prompt_length(self, prompt: str, task: str | None = None) -> int:
+        if (prompt, task) in self._prompt_length_mapping:
+            return self._prompt_length_mapping[(prompt, task)]
 
-        tokenized_prompt = self.tokenize_fn([prompt], task_type=task_type)
+        tokenized_prompt = self.tokenize_fn([prompt], task=task)
         if "input_ids" not in tokenized_prompt:
             # If the tokenizer does not return input_ids, we cannot determine the prompt length.
             # This can happen with some tokenizers that do not use input_ids.
@@ -134,7 +134,7 @@ class SentenceTransformerDataCollator:
         if last_token in self.all_special_ids:
             prompt_length -= 1
 
-        self._prompt_length_mapping[(prompt, task_type)] = prompt_length
+        self._prompt_length_mapping[(prompt, task)] = prompt_length
         return prompt_length
 
     def maybe_warn_about_column_order(self, column_names: list[str]) -> None:

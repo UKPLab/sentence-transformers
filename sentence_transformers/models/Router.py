@@ -20,7 +20,7 @@ logger = logging.get_logger(__name__)
 
 
 class Router(InputModule, nn.Sequential):
-    forward_kwargs = {"task_type"}
+    forward_kwargs = {"task"}
     config_keys: list[str] = ["default_route", "allow_empty_key"]
     config_file_name = "router_config.json"
 
@@ -31,9 +31,9 @@ class Router(InputModule, nn.Sequential):
         This model allows to create asymmetric SentenceTransformer models that apply different modules depending on the specified route,
         such as "query" or "document". Especially useful for models that have different encoders for queries and documents.
 
-        Notably, the ``task_type`` argument of ``model.encode`` can be used to specify which route to use, and
-        ``model.encode_query`` and ``model.encode_document`` are shorthands for using ``task_type="query"`` and
-        ``task_type="document"``, respectively. These methods also optionally apply ``prompts`` specific to queries
+        Notably, the ``task`` argument of ``model.encode`` can be used to specify which route to use, and
+        ``model.encode_query`` and ``model.encode_document`` are shorthands for using ``task="query"`` and
+        ``task="document"``, respectively. These methods also optionally apply ``prompts`` specific to queries
         or documents.
 
         .. note::
@@ -221,10 +221,10 @@ class Router(InputModule, nn.Sequential):
             allow_empty_key=allow_empty_key,
         )
 
-    def forward(self, features: dict[str, Tensor], task_type: str | None = None, **kwargs) -> dict[str, Tensor]:
-        if task_type is None:
-            task_type = features.get("task_type", self.default_route)
-        if task_type is None:
+    def forward(self, features: dict[str, Tensor], task: str | None = None, **kwargs) -> dict[str, Tensor]:
+        if task is None:
+            task = features.get("task", self.default_route)
+        if task is None:
             if self.training:
                 raise ValueError(
                     "You must provide a `router_mapping` argument on the training arguments, "
@@ -232,17 +232,17 @@ class Router(InputModule, nn.Sequential):
                 )
             else:
                 raise ValueError(
-                    "You must provide a `task_type` argument when calling this method, "
+                    "You must provide a `task` argument when calling this method, "
                     "or set a default route in the `Router` module."
                 )
 
-        if task_type not in self.sub_modules:
+        if task not in self.sub_modules:
             raise ValueError(
-                f"No route found for task type '{task_type}'. Available routes: {list(self.sub_modules.keys())}"
+                f"No route found for task type '{task}'. Available routes: {list(self.sub_modules.keys())}"
             )
 
-        kwargs["task_type"] = task_type
-        for module in self.sub_modules[task_type]:
+        kwargs["task"] = task
+        for module in self.sub_modules[task]:
             module_kwargs = {
                 key: value
                 for key, value in kwargs.items()
@@ -287,25 +287,25 @@ class Router(InputModule, nn.Sequential):
                 indent=4,
             )
 
-    def tokenize(self, texts: list[str] | list[tuple[str, str]], task_type: str | None = None, **kwargs):
+    def tokenize(self, texts: list[str] | list[tuple[str, str]], task: str | None = None, **kwargs):
         """Tokenizes a text and maps tokens to token-ids"""
         if isinstance(texts[0], dict):
             # Extract the task type key from the dictionaries
-            if task_type is None:
-                task_types = set(key for text in texts for key in text.keys())
-                if len(task_types) > 1:
+            if task is None:
+                tasks = set(key for text in texts for key in text.keys())
+                if len(tasks) > 1:
                     raise ValueError(
                         "You cannot pass a list of dictionaries with different task types. "
-                        "Please ensure all dictionaries have the same task type key, or pass a single `task_type` argument."
+                        "Please ensure all dictionaries have the same task type key, or pass a single `task` argument."
                     )
-                task_type = task_types.pop()
+                task = tasks.pop()
 
             # Remove dictionary structure
-            texts = [text[task_type] for text in texts]
+            texts = [text[task] for text in texts]
 
-        if task_type is None:
-            task_type = self.default_route
-        if task_type is None:
+        if task is None:
+            task = self.default_route
+        if task is None:
             if self.training:
                 raise ValueError(
                     "You must provide a `router_mapping` argument on the training arguments, "
@@ -313,17 +313,17 @@ class Router(InputModule, nn.Sequential):
                 )
             else:
                 raise ValueError(
-                    "You must provide a `task_type` argument when calling this method, "
+                    "You must provide a `task` argument when calling this method, "
                     "or set a default route in the `Router` module."
                 )
-        if task_type not in self.sub_modules:
+        if task not in self.sub_modules:
             raise ValueError(
-                f"No route found for task type '{task_type}'. Available routes: {list(self.sub_modules.keys())}"
+                f"No route found for task type '{task}'. Available routes: {list(self.sub_modules.keys())}"
             )
 
-        input_module = self.sub_modules[task_type][0]
+        input_module = self.sub_modules[task][0]
         tokenized = input_module.tokenize(texts, **kwargs)
-        tokenized["task_type"] = task_type
+        tokenized["task"] = task
         return tokenized
 
     @classmethod

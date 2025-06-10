@@ -179,7 +179,7 @@ def test_inference_free_splade(inference_free_splade_bert_tiny_model: SparseEnco
 
     decoded_query = model.decode(query_embeddings)
     decoded_document = model.decode(document_embeddings)
-    assert len(decoded_query) == len(model.tokenize(query, task_type="query")["input_ids"][0])
+    assert len(decoded_query) == len(model.tokenize(query, task="query")["input_ids"][0])
     assert len(decoded_document) >= 50
 
     assert model.max_seq_length == 512
@@ -237,7 +237,7 @@ def test_encode_query(
         # Check other parameters
         assert kwargs["convert_to_tensor"] == convert_to_tensor
         assert kwargs["convert_to_sparse_tensor"] == convert_to_sparse_tensor
-        assert kwargs["task_type"] == "query"
+        assert kwargs["task"] == "query"
 
 
 @pytest.mark.parametrize("sentences", ["Hello world", ["Hello world", "This is a test"], [], [""]])
@@ -285,7 +285,7 @@ def test_encode_document(
         # Check other parameters
         assert kwargs["convert_to_tensor"] == convert_to_tensor
         assert kwargs["convert_to_sparse_tensor"] == convert_to_sparse_tensor
-        assert kwargs["task_type"] == "document"
+        assert kwargs["task"] == "document"
 
 
 def test_encode_document_prompt_priority(splade_bert_tiny_model: SparseEncoder):
@@ -373,7 +373,7 @@ def test_encode_query_document_vs_encode(splade_bert_tiny_model: SparseEncoder, 
     query_embeddings = model.encode_query(inputs)
     document_embeddings = model.encode_document(inputs)
 
-    # And the same but with encode via prompts (task_type doesn't help here)
+    # And the same but with encode via prompts (task doesn't help here)
     encode_query_embeddings = model.encode(inputs, prompt_name="query")
     encode_document_embeddings = model.encode(inputs, prompt_name="document")
 

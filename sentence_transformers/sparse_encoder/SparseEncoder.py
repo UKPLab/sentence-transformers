@@ -200,7 +200,7 @@ class SparseEncoder(SentenceTransformer):
 
         1. If no ``prompt_name`` or ``prompt`` is provided, it uses a predefined "query" prompt,
            if available in the model's ``prompts`` dictionary.
-        2. It sets the ``task_type`` to "query". If the model has a :class:`~sentence_transformers.models.Router`
+        2. It sets the ``task`` to "query". If the model has a :class:`~sentence_transformers.models.Router`
            module, it will use the "query" task type to route the input through the appropriate submodules.
 
         .. tip::
@@ -286,7 +286,7 @@ class SparseEncoder(SentenceTransformer):
             max_active_dims=max_active_dims,
             pool=pool,
             chunk_size=chunk_size,
-            task_type="query",
+            task="query",
             **kwargs,
         )
 
@@ -313,7 +313,7 @@ class SparseEncoder(SentenceTransformer):
 
         1. If no ``prompt_name`` or ``prompt`` is provided, it uses a predefined "document" prompt,
            if available in the model's ``prompts`` dictionary.
-        2. It sets the ``task_type`` to "document". If the model has a :class:`~sentence_transformers.models.Router`
+        2. It sets the ``task`` to "document". If the model has a :class:`~sentence_transformers.models.Router`
            module, it will use the "document" task type to route the input through the appropriate submodules.
 
         .. tip::
@@ -402,7 +402,7 @@ class SparseEncoder(SentenceTransformer):
             max_active_dims=max_active_dims,
             pool=pool,
             chunk_size=chunk_size,
-            task_type="document",
+            task="document",
             **kwargs,
         )
 

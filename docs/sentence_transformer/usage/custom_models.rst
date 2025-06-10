@@ -297,7 +297,7 @@ If you have your models and custom modelling code on the Hugging Face Hub, then 
 Advanced: Keyword argument passthrough in Custom Modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you want your users to be able to specify custom keyword arguments via the :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>` method, then you can add their names to the ``modules.json`` file. For example, if my module should behave differently if your users specify a ``task_type`` keyword argument, then your ``modules.json`` might look like::
+If you want your users to be able to specify custom keyword arguments via the :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>` method, then you can add their names to the ``modules.json`` file. For example, if my module should behave differently if your users specify a ``task`` keyword argument, then your ``modules.json`` might look like::
 
    [
      {
@@ -305,7 +305,7 @@ If you want your users to be able to specify custom keyword arguments via the :m
        "name": "0",
        "path": "",
        "type": "custom_transformer.CustomTransformer",
-       "kwargs": ["task_type"]
+       "kwargs": ["task"]
      },
      {
        "idx": 1,
@@ -321,22 +321,22 @@ If you want your users to be able to specify custom keyword arguments via the :m
      }
    ]
 
-Then, you can access the ``task_type`` keyword argument in the ``forward`` method of your custom module::
+Then, you can access the ``task`` keyword argument in the ``forward`` method of your custom module::
 
    from sentence_transformers.models import Transformer
 
    class CustomTransformer(Transformer):
-       def forward(self, features: dict[str, torch.Tensor], task_type: Optional[str] = None, **kwargs) -> dict[str, torch.Tensor]:
-           if task_type == "default":
+       def forward(self, features: dict[str, torch.Tensor], task: Optional[str] = None, **kwargs) -> dict[str, torch.Tensor]:
+           if task == "default":
                # Do something
            else:
                # Do something else
            return features
 
-This way, users can specify the ``task_type`` keyword argument when calling :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>`::
+This way, users can specify the ``task`` keyword argument when calling :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>`::
 
    from sentence_transformers import SentenceTransformer
 
    model = SentenceTransformer("your-username/your-model-id", trust_remote_code=True)
    texts = [...]
-   model.encode(texts, task_type="default")
+   model.encode(texts, task="default")
