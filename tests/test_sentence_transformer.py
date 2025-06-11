@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import re
+from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 from typing import Literal, cast
@@ -477,14 +478,15 @@ def test_encode_fp16() -> None:
 @pytest.mark.parametrize("convert_to_tensor", [True, False])
 @pytest.mark.parametrize("convert_to_numpy", [True, False])
 @pytest.mark.parametrize(
-    ("precision", "expected_torch_dtype", "expected_numpy_dtype"),
+    ("precision", "expected_torch_dtype", "expected_numpy_dtype", "raises"),
     [
-        (None, torch.float32, np.float32),
-        ("float32", torch.float32, np.float32),
-        ("int8", torch.int8, np.int8),
-        ("uint8", torch.uint8, np.uint8),
-        ("binary", torch.int8, np.int8),
-        ("ubinary", torch.uint8, np.uint8),
+        (None, torch.float32, np.float32, False),
+        ("float32", torch.float32, np.float32, False),
+        ("int8", torch.int8, np.int8, False),
+        ("uint8", torch.uint8, np.uint8, False),
+        ("binary", torch.int8, np.int8, False),
+        ("ubinary", torch.uint8, np.uint8, False),
+        ("error", None, None, True),
     ],
 )
 def test_encode_quantization(
@@ -494,23 +496,27 @@ def test_encode_quantization(
     precision: str,
     expected_torch_dtype,
     expected_numpy_dtype,
+    raises: bool,
 ) -> None:
     tiny_model = stsb_bert_tiny_model_reused
-    embeddings = tiny_model.encode(
-        ["One sentence", "Another sentence"],
-        convert_to_tensor=convert_to_tensor,
-        convert_to_numpy=convert_to_numpy,
-        precision=precision,
-    )
-    if convert_to_tensor:
-        assert embeddings[0].dtype == expected_torch_dtype
-        assert isinstance(embeddings, torch.Tensor)
-    elif convert_to_numpy:
-        assert embeddings[0].dtype == expected_numpy_dtype
-        assert isinstance(embeddings, np.ndarray)
-    else:
-        assert embeddings[0].dtype == expected_torch_dtype
-        assert isinstance(embeddings, list)
+    with pytest.raises(ValueError, match=f"Precision '{precision}' is not supported") if raises else nullcontext():
+        embeddings = tiny_model.encode(
+            ["One sentence", "Another sentence"],
+            convert_to_tensor=convert_to_tensor,
+            convert_to_numpy=convert_to_numpy,
+            precision=precision,
+        )
+
+    if not raises:
+        if convert_to_tensor:
+            assert embeddings[0].dtype == expected_torch_dtype
+            assert isinstance(embeddings, torch.Tensor)
+        elif convert_to_numpy:
+            assert embeddings[0].dtype == expected_numpy_dtype
+            assert isinstance(embeddings, np.ndarray)
+        else:
+            assert embeddings[0].dtype == expected_torch_dtype
+            assert isinstance(embeddings, list)
 
 
 @pytest.mark.parametrize("sentences", ("Single sentence", ["One sentence", "Another sentence"]))

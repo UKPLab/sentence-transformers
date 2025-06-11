@@ -439,4 +439,4 @@ def quantize_embeddings(
     if precision == "ubinary":
         return np.packbits(embeddings > 0).reshape(embeddings.shape[0], -1)
 
-    raise ValueError(f"Precision {precision} is not supported")
+    raise ValueError(f"Precision {precision!r} is not supported")
