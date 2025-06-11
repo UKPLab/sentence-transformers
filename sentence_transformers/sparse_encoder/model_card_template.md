@@ -113,7 +113,7 @@ documents = [
 {%- endfor %}
 ]
 query_embeddings = model.encode_query(queries)
-document_embeddings = model.encode_documents(documents)
+document_embeddings = model.encode_document(documents)
 print(query_embeddings.shape, document_embeddings.shape)
 # [1, {{ output_dimensionality }}] [{{ (predict_example | length) - 1 }}, {{ output_dimensionality }}]
 
