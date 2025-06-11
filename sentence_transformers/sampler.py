@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterator
 from itertools import accumulate, cycle
@@ -25,7 +26,6 @@ class SetEpochMixin:
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-
         self.epoch = 0
 
     def set_epoch(self, epoch: int) -> None:
@@ -43,10 +43,30 @@ class DefaultBatchSampler(SetEpochMixin, BatchSampler):
         batch_size (int): Number of samples per batch.
         drop_last (bool): If True, drop the last incomplete batch if the dataset size
             is not divisible by the batch size.
+        valid_label_columns (List[str], optional): List of column names to check for labels.
+            The first column name from ``valid_label_columns`` found in the dataset will
+            be used as the label column.
+        generator (torch.Generator, optional): Optional random number generator for shuffling
+            the indices.
+        seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
     """
 
+    def __init__(
+        self,
+        dataset: Dataset,
+        batch_size: int,
+        drop_last: bool,
+        valid_label_columns: list[str] | None = None,
+        generator: torch.Generator | None = None,
+        seed: int = 0,
+    ) -> None:
+        super().__init__(dataset, batch_size=batch_size, drop_last=drop_last)
+        self.valid_label_columns = valid_label_columns
+        self.generator = generator
+        self.seed = seed
 
-class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
+
+class GroupByLabelBatchSampler(DefaultBatchSampler):
     """
     This sampler groups samples by their labels and aims to create batches such that
     each batch contains samples where the labels are as homogeneous as possible.
@@ -64,12 +84,12 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         batch_size (int): Number of samples per batch. Must be divisible by 2.
         drop_last (bool): If True, drop the last incomplete batch if the dataset size
             is not divisible by the batch size.
-        valid_label_columns (List[str]): List of column names to check for labels.
+        valid_label_columns (List[str], optional): List of column names to check for labels.
             The first column name from ``valid_label_columns`` found in the dataset will
             be used as the label column.
         generator (torch.Generator, optional): Optional random number generator for shuffling
             the indices.
-        seed (int, optional): Seed for the random number generator to ensure reproducibility.
+        seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
     """
 
     def __init__(
@@ -77,21 +97,24 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         dataset: Dataset,
         batch_size: int,
         drop_last: bool,
-        valid_label_columns: list[str] = None,
-        generator: torch.Generator = None,
+        valid_label_columns: list[str] | None = None,
+        generator: torch.Generator | None = None,
         seed: int = 0,
     ) -> None:
-        super().__init__(dataset, batch_size, drop_last)
+        super().__init__(
+            dataset,
+            batch_size=batch_size,
+            drop_last=drop_last,
+            valid_label_columns=valid_label_columns,
+            generator=generator,
+            seed=seed,
+        )
         self.dataset = dataset
-        self.batch_size = batch_size
-        self.drop_last = drop_last
-        self.generator = generator
-        self.seed = seed
 
         if self.batch_size % 2 == 1:
             raise ValueError("The batch size for `GroupByLabelBatchSampler` must be divisible by 2.")
 
-        labels = self._determine_labels_to_use(dataset, valid_label_columns)
+        labels = self._determine_labels_to_use(dataset, self.valid_label_columns)
         groups = defaultdict(list)
         for sample_idx, label in enumerate(labels):
             groups[label].append(sample_idx)
@@ -103,7 +126,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         }
 
     @staticmethod
-    def _determine_labels_to_use(dataset: Dataset, valid_label_columns: list[str]) -> list[Any]:
+    def _determine_labels_to_use(dataset: Dataset, valid_label_columns: list[str] | None) -> list[Any]:
         for column_name in valid_label_columns or []:
             if column_name in dataset.column_names:
                 return dataset[column_name]
@@ -113,7 +136,7 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
         )
 
     def __iter__(self) -> Iterator[list[int]]:
-        if self.generator and self.seed:
+        if self.generator and self.seed is not None:
             self.generator.manual_seed(self.seed + self.epoch)
 
         partial_batch = []
@@ -130,14 +153,14 @@ class GroupByLabelBatchSampler(SetEpochMixin, BatchSampler):
             yield partial_batch
 
 
-class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
+class NoDuplicatesBatchSampler(DefaultBatchSampler):
     def __init__(
         self,
         dataset: Dataset,
         batch_size: int,
         drop_last: bool,
-        valid_label_columns: list[str] = [],
-        generator: torch.Generator = None,
+        valid_label_columns: list[str] | None = None,
+        generator: torch.Generator | None = None,
         seed: int = 0,
     ) -> None:
         """
@@ -159,21 +182,24 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
             batch_size (int): Number of samples per batch.
             drop_last (bool): If True, drop the last incomplete batch if the dataset size
                 is not divisible by the batch size.
-            valid_label_columns (List[str]): List of column names to check for labels.
+            valid_label_columns (List[str], optional): List of column names to check for labels.
                 The first column name from ``valid_label_columns`` found in the dataset will
                 be used as the label column.
             generator (torch.Generator, optional): Optional random number generator for shuffling
                 the indices.
-            seed (int, optional): Seed for the random number generator to ensure reproducibility.
+            seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
         """
-        super().__init__(dataset, batch_size, drop_last)
-        if label_columns := set(dataset.column_names) & set(valid_label_columns):
-            dataset = dataset.remove_columns(label_columns)
+        super().__init__(
+            dataset,
+            batch_size=batch_size,
+            drop_last=drop_last,
+            valid_label_columns=valid_label_columns,
+            generator=generator,
+            seed=seed,
+        )
+        if label_columns := set(dataset.column_names) & set(self.valid_label_columns or []):
+            dataset = dataset.remove_columns(list(label_columns))
         self.dataset = dataset
-        self.batch_size = batch_size
-        self.drop_last = drop_last
-        self.generator = generator
-        self.seed = seed
 
     def __iter__(self) -> Iterator[list[int]]:
         """
@@ -181,7 +207,7 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
         batch. If not, add the sample values to the batch keep going until the batch is full. If the batch is full, yield
         the batch indices and continue with the next batch.
         """
-        if self.generator and self.seed:
+        if self.generator and self.seed is not None:
             self.generator.manual_seed(self.seed + self.epoch)
 
         # We create a dictionary to None because we need a data structure that:
@@ -218,7 +244,46 @@ class NoDuplicatesBatchSampler(SetEpochMixin, BatchSampler):
             return (len(self.dataset) + self.batch_size - 1) // self.batch_size
 
 
-class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
+class MultiDatasetDefaultBatchSampler(SetEpochMixin, BatchSampler, ABC):
+    """
+    Abstract base batch sampler that yields batches from multiple batch samplers.
+    This class must be subclassed to implement specific sampling strategies, and
+    cannot be used directly.
+
+    Args:
+        dataset (ConcatDataset): A concatenation of multiple datasets.
+        batch_samplers (List[BatchSampler]): A list of batch samplers, one for each dataset in the ConcatDataset.
+        generator (torch.Generator, optional): A generator for reproducible sampling. Defaults to None.
+        seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
+    """
+
+    def __init__(
+        self,
+        dataset: ConcatDataset,
+        batch_samplers: list[BatchSampler],
+        generator: torch.Generator | None = None,
+        seed: int = 0,
+    ) -> None:
+        if len(dataset.datasets) != len(batch_samplers):
+            raise ValueError("The number of batch samplers must match the number of datasets in the ConcatDataset.")
+        super().__init__(dataset, batch_size=batch_samplers[0].batch_size, drop_last=batch_samplers[0].drop_last)
+        self.dataset = dataset
+        self.batch_samplers = batch_samplers
+        self.generator = generator
+        self.seed = seed
+
+    @abstractmethod
+    def __iter__(self) -> Iterator[list[int]]:
+        """Yield batches from the underlying datasets in a specific order."""
+        pass
+
+    @abstractmethod
+    def __len__(self) -> int:
+        """Return the number of batches in the sampler."""
+        pass
+
+
+class RoundRobinBatchSampler(MultiDatasetDefaultBatchSampler):
     """
     Batch sampler that yields batches in a round-robin fashion from multiple batch samplers, until one is exhausted.
     With this sampler, it's unlikely that all samples from each dataset are used, but we do ensure that each dataset
@@ -228,26 +293,11 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
         dataset (ConcatDataset): A concatenation of multiple datasets.
         batch_samplers (List[BatchSampler]): A list of batch samplers, one for each dataset in the ConcatDataset.
         generator (torch.Generator, optional): A generator for reproducible sampling. Defaults to None.
-        seed (int, optional): A seed for the generator. Defaults to None.
+        seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
     """
 
-    def __init__(
-        self,
-        dataset: ConcatDataset,
-        batch_samplers: list[BatchSampler],
-        generator: torch.Generator = None,
-        seed: int = None,
-    ) -> None:
-        if len(dataset.datasets) != len(batch_samplers):
-            raise ValueError("The number of batch samplers must match the number of datasets in the ConcatDataset.")
-        super().__init__(dataset, batch_samplers[0].batch_size, batch_samplers[0].drop_last)
-        self.dataset = dataset
-        self.batch_samplers = batch_samplers
-        self.generator = generator
-        self.seed = seed
-
     def __iter__(self) -> Iterator[list[int]]:
-        if self.generator and self.seed:
+        if self.generator and self.seed is not None:
             self.generator.manual_seed(self.seed + self.epoch)
 
         num_samples = [len(dataset) for dataset in self.dataset.datasets]
@@ -266,29 +316,17 @@ class RoundRobinBatchSampler(SetEpochMixin, BatchSampler):
         return min(len(sampler) for sampler in self.batch_samplers) * len(self.batch_samplers)
 
 
-class ProportionalBatchSampler(SetEpochMixin, BatchSampler):
-    def __init__(
-        self,
-        dataset: ConcatDataset,
-        batch_samplers: list[BatchSampler],
-        generator: torch.Generator,
-        seed: int,
-    ) -> None:
-        """
-        Batch sampler that samples from each dataset in proportion to its size, until all are exhausted simultaneously.
-        With this sampler, all samples from each dataset are used and larger datasets are sampled from more frequently.
+class ProportionalBatchSampler(MultiDatasetDefaultBatchSampler):
+    """
+    Batch sampler that samples from each dataset in proportion to its size, until all are exhausted simultaneously.
+    With this sampler, all samples from each dataset are used and larger datasets are sampled from more frequently.
 
-        Args:
-            dataset (ConcatDataset): A concatenation of multiple datasets.
-            batch_samplers (List[BatchSampler]): A list of batch samplers, one for each dataset in the ConcatDataset.
-            generator (torch.Generator, optional): A generator for reproducible sampling. Defaults to None.
-            seed (int, optional): A seed for the generator. Defaults to None.
-        """
-        super().__init__(dataset, batch_samplers[0].batch_size, batch_samplers[0].drop_last)
-        self.dataset = dataset
-        self.batch_samplers = batch_samplers
-        self.generator = generator
-        self.seed = seed
+    Args:
+        dataset (ConcatDataset): A concatenation of multiple datasets.
+        batch_samplers (List[BatchSampler]): A list of batch samplers, one for each dataset in the ConcatDataset.
+        generator (torch.Generator, optional): A generator for reproducible sampling. Defaults to None.
+        seed (int): Seed for the random number generator to ensure reproducibility. Defaults to 0.
+    """
 
     def __iter__(self) -> Iterator[list[int]]:
         self.generator.manual_seed(self.seed + self.epoch)

@@ -39,6 +39,10 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
             e.g. "semantic search and sparse retrieval".
         tags (`Optional[List[str]]`): A list of tags for the model,
             e.g. ["sentence-transformers", "sparse-encoder"].
+        local_files_only (`bool`): If True, don't attempt to find dataset or base model information on the Hub.Add commentMore actions
+            Defaults to False.
+        generate_widget_examples (`bool`): If True, generate widget examples from the evaluation or training dataset,
+            and compute their similarities. Defaults to True.
 
     .. tip::
 
