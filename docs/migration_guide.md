@@ -4,7 +4,7 @@
 ## Migrating from v4.x to v5.x
 
 ```{eval-rst}
-The v5 Sentence Transformers release introduced :class:`~sentence_transformers.sparse_encoder.SparseEncoder` embedding models (see the `Sparse Encoder Usage <sparse_encoder/usage/usage.html>`_ for more details on them ) alongside an extensive training suite for them, including :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` and :class:`~sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments`. Unlike with v3 (updated :class:`~sentence_transformers.SentenceTransformer`) and v4 (updated :class:`~sentence_transformers.cross_encoder.CrossEncoder`), this update does not deprecate any training methods.
+The v5 Sentence Transformers release introduced :class:`~sentence_transformers.sparse_encoder.SparseEncoder` embedding models (see the `Sparse Encoder Usage <sparse_encoder/usage/usage.html>`_ for more details on them) alongside an extensive training suite for them, including :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` and :class:`~sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments`. Unlike with v3 (updated :class:`~sentence_transformers.SentenceTransformer`) and v4 (updated :class:`~sentence_transformers.cross_encoder.CrossEncoder`), this update does not deprecate any training methods.
 ```
 
 ### Migration for model.encode
