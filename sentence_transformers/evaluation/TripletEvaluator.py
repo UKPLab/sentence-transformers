@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class TripletEvaluator(SentenceEvaluator):
     """
     Evaluate a model based on a triplet: (sentence, positive_example, negative_example).
-    Checks if ``similarity(sentence, positive_example) < similarity(sentence, negative_example) + margin``.
+    Checks if ``similarity(sentence, positive_example) > similarity(sentence, negative_example) + margin``.
 
     Args:
         anchors (List[str]): Sentences to check similarity to. (e.g. a query)
