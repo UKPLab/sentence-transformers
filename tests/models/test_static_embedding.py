@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from packaging.version import Version, parse
 from tokenizers import Tokenizer
 
 from sentence_transformers import SentenceTransformer
@@ -13,7 +12,6 @@ from sentence_transformers.models.StaticEmbedding import StaticEmbedding
 
 try:
     import model2vec
-    from model2vec import __version__ as M2V_VERSION
 except ImportError:
     model2vec = None
 
@@ -71,8 +69,10 @@ def test_save_and_load(tmp_path: Path, static_embedding: StaticEmbedding) -> Non
 @skip_if_no_model2vec()
 def test_from_distillation() -> None:
     model = StaticEmbedding.from_distillation("sentence-transformers-testing/stsb-bert-tiny-safetensors", pca_dims=32)
-    expected_shape = (29525 if parse(M2V_VERSION) >= Version("0.5.0") else 29528, 32)
-    assert model.embedding.weight.shape == expected_shape
+    # The shape has been 29528 for <0.5.0, 29525 for 0.5.0, and 29524 for >=0.6.0, so let's make a safer test
+    # that checks the first dimension is close to 29525 and the second dimension is 32.
+    assert abs(model.embedding.weight.shape[0] - 29525) < 5
+    assert model.embedding.weight.shape[1] == 32
 
 
 @skip_if_no_model2vec()
