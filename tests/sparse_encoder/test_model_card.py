@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
-from sentence_transformers import SparseEncoderTrainer
+from sentence_transformers import SparseEncoderTrainer, SparseEncoderTrainingArguments
 from sentence_transformers.model_card import generate_model_card
 from sentence_transformers.sparse_encoder import losses
 from sentence_transformers.util import is_datasets_available, is_training_available
@@ -155,6 +157,7 @@ def test_model_card_base(
     num_datasets: int,
     expected_substrings: list[str],
     request: pytest.FixtureRequest,
+    tmp_path: Path,
 ) -> None:
     model = request.getfixturevalue(model_fixture_name)
 
@@ -169,9 +172,15 @@ def test_model_card_base(
         lambda_corpus=3e-5,  # Weight for document loss
     )
 
+    args = SparseEncoderTrainingArguments(
+        output_dir=tmp_path,
+        router_mapping={"test": "query"} if "inference_free" in model_fixture_name else None,
+    )
+
     # This adds data to model.model_card_data
     SparseEncoderTrainer(
         model,
+        args=args,
         train_dataset=train_dataset,
         loss=loss,
     )
