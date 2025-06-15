@@ -590,6 +590,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 print(embeddings.shape)
                 # (3, 768)
         """
+        kwargs["normalize_embeddings"] = normalize_embeddings
         if self.device.type == "hpu" and not self.is_hpu_graph_enabled:
             import habana_frameworks.torch as ht
 
@@ -756,6 +757,8 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             return super().forward(input)
 
         for module_name, module in self.named_children():
+            if not kwargs.get("normalize_embeddings", False) and isinstance(module, Normalize):
+                return input
             module_kwarg_keys = self.module_kwargs.get(module_name, [])
             module_kwargs = {key: value for key, value in kwargs.items() if key in module_kwarg_keys}
             input = module(input, **module_kwargs)
