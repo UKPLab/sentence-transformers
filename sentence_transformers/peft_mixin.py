@@ -141,3 +141,24 @@ class PeftAdapterMixin:
                 https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.get_adapter_state_dict
         """
         ...  # Implementation handled by the wrapper
+
+    def merge_adapter(self, *args, **kwargs):
+        """
+        Merges the adapter into the base model and unloads it by calling the underlying auto_model's
+        `merge_and_unload` method. It also sets the `_hf_peft_config_loaded` flag to False after merging.
+
+        Returns:
+            The merged auto_model.
+
+        Raises:
+            ValueError: If the current model does not support merging using the `merge_and_unload` method.
+        """
+        self.check_peft_compatible_model()
+        if not (hasattr(self[0].auto_model, "merge_and_unload") and callable(self[0].auto_model.merge_and_unload)):
+            raise ValueError(
+                "The current model does not support merging using merge_and_unload. "
+                "Please ensure that you have added a PEFT adapter using model.add_adapter(...) before merging."
+            )
+        merged_model = self[0].auto_model.merge_and_unload(*args, **kwargs)
+        merged_model._hf_peft_config_loaded = False
+        return merged_model
