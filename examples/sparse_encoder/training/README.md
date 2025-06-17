@@ -12,5 +12,4 @@ For the documentation how to train your own models, see [Training Overview](http
 - [nli](nli/) - Natural Language Inference (NLI) data can be quite helpful to pre-train and fine-tune models to create meaningful sparse embeddings.
 - [quora_duplicate_questions](quora_duplicate_questions/) - Quora Duplicate Questions is large set corpus with duplicate questions from the Quora community. The folder contains examples how to train models for duplicate questions mining and for semantic search.
 - [retrievers](retrievers/) - Example training scripts for training on generic information retrieval datasets.
-- [hpo](hpo/) - Examples with hyperparameter search to find the best hyperparameters for your task.
 - [sts](sts/) - The most basic method to train models is using Semantic Textual Similarity (STS) data. Here, we have a sentence pair and a score indicating the semantic similarity.
