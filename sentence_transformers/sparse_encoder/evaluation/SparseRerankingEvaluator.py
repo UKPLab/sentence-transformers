@@ -173,10 +173,17 @@ class SparseRerankingEvaluator(RerankingEvaluator):
         self,
         model: SparseEncoder,
         sentences: str | list[str] | np.ndarray,
+        encode_fn_name: str | None = None,
         show_progress_bar: bool | None = None,
         **kwargs,
     ) -> torch.Tensor:
-        embeddings = model.encode(
+        if encode_fn_name is None:
+            encode_fn = model.encode
+        elif encode_fn_name == "query":
+            encode_fn = model.encode_query
+        elif encode_fn_name == "document":
+            encode_fn = model.encode_document
+        embeddings = encode_fn(
             sentences,
             batch_size=self.batch_size,
             show_progress_bar=show_progress_bar,
@@ -187,7 +194,7 @@ class SparseRerankingEvaluator(RerankingEvaluator):
             **kwargs,
         )
         stat = model.sparsity(torch.stack(embeddings))
-        prefix = "query" if len(self.samples) == len(sentences) else "corpus"
+        prefix = "query" if encode_fn_name in ["query", None] else "corpus"
         for key, value in stat.items():
             self.sparsity_stats[f"{prefix}_{key}"].append(value)
         return embeddings

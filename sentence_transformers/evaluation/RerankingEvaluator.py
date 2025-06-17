@@ -228,7 +228,10 @@ class RerankingEvaluator(SentenceEvaluator):
         all_ap_scores = []
 
         all_query_embs = self.embed_inputs(
-            model, [sample["query"] for sample in self.samples], show_progress_bar=self.show_progress_bar
+            model,
+            [sample["query"] for sample in self.samples],
+            encode_fn_name="query",
+            show_progress_bar=self.show_progress_bar,
         )
 
         all_docs = []
@@ -237,7 +240,9 @@ class RerankingEvaluator(SentenceEvaluator):
             all_docs.extend(sample["positive"])
             all_docs.extend(sample["negative"])
 
-        all_docs_embs = self.embed_inputs(model, all_docs, show_progress_bar=self.show_progress_bar)
+        all_docs_embs = self.embed_inputs(
+            model, all_docs, encode_fn_name="document", show_progress_bar=self.show_progress_bar
+        )
 
         # Compute scores
         query_idx, docs_idx = 0, 0
@@ -306,8 +311,8 @@ class RerankingEvaluator(SentenceEvaluator):
             docs = positive + negative
             is_relevant = [1] * len(positive) + [0] * len(negative)
 
-            query_emb = self.embed_inputs(model, [query], show_progress_bar=False)
-            docs_emb = self.embed_inputs(model, docs, show_progress_bar=False)
+            query_emb = self.embed_inputs(model, [query], encode_fn_name="query", show_progress_bar=False)
+            docs_emb = self.embed_inputs(model, docs, encode_fn_name="document", show_progress_bar=False)
 
             pred_scores = self.similarity_fct(query_emb, docs_emb)
             if len(pred_scores.shape) > 1:
@@ -340,10 +345,17 @@ class RerankingEvaluator(SentenceEvaluator):
         self,
         model: SentenceTransformer,
         sentences: str | list[str] | np.ndarray,
+        encode_fn_name: str | None = None,
         show_progress_bar: bool | None = None,
         **kwargs,
     ) -> Tensor:
-        return model.encode(
+        if encode_fn_name is None:
+            encode_fn = model.encode
+        elif encode_fn_name == "query":
+            encode_fn = model.encode_query
+        elif encode_fn_name == "document":
+            encode_fn = model.encode_document
+        return encode_fn(
             sentences,
             batch_size=self.batch_size,
             show_progress_bar=show_progress_bar,

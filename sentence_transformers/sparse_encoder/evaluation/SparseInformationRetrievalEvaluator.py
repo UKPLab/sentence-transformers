@@ -238,11 +238,17 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         self,
         model: SparseEncoder,
         sentences: str | list[str] | np.ndarray,
-        encode_fn: Callable[..., torch.Tensor] = None,
+        encode_fn_name: str | None = None,
         prompt_name: str | None = None,
         prompt: str | None = None,
         **kwargs,
     ) -> torch.Tensor:
+        if encode_fn_name is None:
+            encode_fn = model.encode
+        elif encode_fn_name == "query":
+            encode_fn = model.encode_query
+        elif encode_fn_name == "document":
+            encode_fn = model.encode_document
         embeddings = encode_fn(
             sentences,
             prompt_name=prompt_name,
@@ -255,7 +261,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             **kwargs,
         )
         stat = model.sparsity(embeddings)
-        prefix = "query" if len(self.queries) == len(sentences) else "corpus"
+        prefix = "query" if encode_fn_name in ["query", None] else "corpus"
         for key, value in stat.items():
             self.sparsity_stats[prefix][key].append(value)
         if prefix == "corpus":
