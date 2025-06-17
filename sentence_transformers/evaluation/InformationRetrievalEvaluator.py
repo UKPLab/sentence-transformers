@@ -305,7 +305,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         query_embeddings = self.embed_inputs(
             model,
             self.queries,
-            encode_fn=model.encode_query,
+            encode_fn_name="query",
             prompt_name=self.query_prompt_name,
             prompt=self.query_prompt,
         )
@@ -325,7 +325,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 sub_corpus_embeddings = self.embed_inputs(
                     corpus_model,
                     self.corpus[corpus_start_idx:corpus_end_idx],
-                    encode_fn=corpus_model.encode_document,
+                    encode_fn_name="document",
                     prompt_name=self.corpus_prompt_name,
                     prompt=self.corpus_prompt,
                 )
@@ -405,11 +405,17 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self,
         model: SentenceTransformer,
         sentences: str | list[str] | np.ndarray,
-        encode_fn: Callable[..., Tensor] = None,
+        encode_fn_name: str | None = None,
         prompt_name: str | None = None,
         prompt: str | None = None,
         **kwargs,
     ) -> np.ndarray:
+        if encode_fn_name is None:
+            encode_fn = model.encode
+        elif encode_fn_name == "query":
+            encode_fn = model.encode_query
+        elif encode_fn_name == "document":
+            encode_fn = model.encode_document
         return encode_fn(
             sentences,
             prompt_name=prompt_name,
