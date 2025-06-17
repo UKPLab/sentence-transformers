@@ -121,4 +121,6 @@ Score: 1.3531 - Sentence: Two men pushed carts through the woods. - Top influent
 """
 ```
 
+```{eval-rst}
 Evaluation is typically done using standard information retrieval metrics like nDCG@k, MRR@k, Recall@k, and Precision@k on benchmark datasets. The :class:`~sentence_transformers.sparse_encoder.evaluation.SparseInformationRetrievalEvaluator` can be used for this purpose.
+```

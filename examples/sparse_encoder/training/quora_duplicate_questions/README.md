@@ -41,7 +41,6 @@ loss = losses.SpladeLoss(
 )
 ```
 
-```
 ```{eval-rst}
 .. note::
     Increasing the batch sizes usually yields better results, as the  task gets harder. It is more difficult to identify the correct duplicate question out of a set of 100 questions than out of a set of only 10 questions. So it is advisable to set the training batch size as large as possible. For sparse models, batch size might also be constrained by the memory required for gradient accumulation as the sparse representations are dense during backpropagation.

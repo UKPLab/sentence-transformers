@@ -25,9 +25,11 @@ We combine [SNLI](https://huggingface.co/datasets/stanfordnlp/snli) and [MultiNL
 | A man inspects the uniform of a figure in some East Asian country. | The man is sleeping. | contradiction |
 
 We format AllNLI in a few different subsets, compatible with different loss functions. For the `train_splade_nli.py` script, the data is typically processed into (anchor, positive) pairs for the ranking loss component. For example, entailment pairs from NLI can serve as (anchor, positive) pairs.
+```{eval-rst}
 
 - The `pair subset of AllNLI <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/pair>`_ provides (anchor, positive) pairs directly.
 - The `triplet subset of AllNLI <https://huggingface.co/datasets/sentence-transformers/all-nli/viewer/triplet>`_ provides (anchor, positive, negative) triplets, where the negative is a hard negative (contradiction). While `SpladeLoss` primarily uses positive pairs for its ranking component, hard negatives could potentially be incorporated depending on the exact `SparseMultipleNegativesRankingLoss` configuration.
+```
 
 ## SpladeLoss
 
@@ -36,7 +38,7 @@ The :class:`~sentence_transformers.sparse_encoder.losses.SpladeLoss` is used in 
 ```
 
 ### Ranking Component: SparseMultipleNegativesRankingLoss
-The underlying ranking loss, :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`, operates on sentence pairs [(a<sub>1</sub>, b<sub>1</sub>), ..., (a<sub>n</sub>, b<sub>n</sub>)] where (a<sub>i</sub>, b<sub>i</sub>) are similar sentences (e.g., premise and its entailed hypothesis) and (a<sub>i</sub>, b<sub>j</sub>) for i != j are treated as dissimilar sentences (in-batch negatives). The loss minimizes the distance (or maximizes similarity) between (a<sub>i</sub>, b<sub>i</sub>) while simultaneously maximizing the distance (or minimizing similarity) between (a<sub>i</sub>, b<sub>j</sub>) for all i != j.
+The underlying ranking loss operates on sentence pairs [(a<sub>1</sub>, b<sub>1</sub>), ..., (a<sub>n</sub>, b<sub>n</sub>)] where (a<sub>i</sub>, b<sub>i</sub>) are similar sentences (e.g., premise and its entailed hypothesis) and (a<sub>i</sub>, b<sub>j</sub>) for i != j are treated as dissimilar sentences (in-batch negatives). The loss minimizes the distance (or maximizes similarity) between (a<sub>i</sub>, b<sub>i</sub>) while simultaneously maximizing the distance (or minimizing similarity) between (a<sub>i</sub>, b<sub>j</sub>) for all i != j.
 
 <img src="https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/MultipleNegativeRankingLoss.png" alt="SBERT MultipleNegativeRankingLoss" width="350"/>
 
