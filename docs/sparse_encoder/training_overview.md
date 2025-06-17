@@ -96,66 +96,6 @@ But if instead you want to train from another checkpoint, or from scratch, then 
         #   (1): SpladePooling({'pooling_strategy': 'max', 'activation_function': 'relu', 'word_embedding_dimension': None})
         # )
 
-.. tab:: Contrastive Sparse Representation (CSR) 
-
-    .. 
-        Contrastive Sparse Representation (CSR) models usually use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` modules to create sparse representations on top of an already trained dense Sentence Transformer model.
-    Contrastive Sparse Representation (CSR) models apply a :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` module on top of a dense Sentence Transformer model, which usually consist of a :class:`~sentence_transformers.models.Transformer` followed by a :class:`~sentence_transformers.models.Pooling` module. You can initialize one from scratch like so:
-    
-    .. 
-        usually use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` modules to create sparse representations on top of an already trained dense Sentence Transformer model.
-
-    .. raw:: html
-
-        <div class="sidebar">
-            <p class="sidebar-title">Documentation</p>
-            <ul class="simple">
-                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Transformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Transformer</span></code></a></li>
-                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Pooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Pooling</span></code></a></li>
-                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.CSRSparsity"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.CSRSparsity</span></code></a></li>
-            </ul>
-        </div>
-
-    ::
-
-        from sentence_transformers import models, SparseEncoder
-        from sentence_transformers.sparse_encoder.models import CSRSparsity
-
-        # Initialize transformer (can be any dense encoder model)
-        transformer = models.Transformer("google-bert/bert-base-uncased")
-        
-        # Initialize pooling
-        pooling = models.Pooling(transformer.get_word_embedding_dimension(), pooling_mode="mean")
-        
-        # Initialize CSRSparsity module
-        csr_sparsity = CSRSparsity(
-            input_dim=transformer.get_word_embedding_dimension(),
-            hidden_dim=4 * transformer.get_word_embedding_dimension(),
-            k=256,  # Number of top values to keep
-            k_aux=512,  # Number of top values for auxiliary loss
-        )
-        # Create the CSR model
-        model = SparseEncoder(modules=[transformer, pooling, csr_sparsity])
-    
-    Or if your base model is 1) a dense Sentence Transformer model or 2) a non-MLM Transformer model (those are loaded as Splade models by default), then this shortcut will automatically initialize the CSR model for you:
-
-    ::
-
-        from sentence_transformers import SparseEncoder
-
-        model = SparseEncoder("mixedbread-ai/mxbai-embed-large-v1")
-        # SparseEncoder(
-        #   (0): Transformer({'max_seq_length': 512, 'do_lower_case': False}) with Transformer model: BertModel
-        #   (1): Pooling({'word_embedding_dimension': 1024, 'pooling_mode_cls_token': True, 'pooling_mode_mean_tokens': False, 'pooling_mode_max_tokens': False, 'pooling_mode_mean_sqrt_len_tokens': False, 'pooling_mode_weightedmean_tokens': False, 'pooling_mode_lasttoken': False, 'include_prompt': True})
-        #   (2): CSRSparsity({'input_dim': 1024, 'hidden_dim': 4096, 'k': 256, 'k_aux': 512, 'normalize': False, 'dead_threshold': 30})
-        # )
-
-    .. warning::
-
-        Unlike (Inference-free) Splade models, sparse embeddings by CSR models don't have the same size as the vocabulary of the base model. This means you can't directly interpret which words are activated in your embedding like you can with Splade models, where each dimension corresponds to a specific token in the vocabulary.
-
-        Beyond that, CSR models are most effective on dense encoder models that use high-dimensional representations (e.g. 1024-4096 dimensions).
-
 .. tab:: Inference-free Splade
 
     Inference-free Splade uses a :class:`~sentence_transformers.models.Router` module with different modules for queries and documents. Usually for this type of architecture, the documents part is a traditional Splade architecture (a :class:`~sentence_transformers.sparse_encoder.models.MLMTransformer` followed by a :class:`~sentence_transformers.sparse_encoder.models.SpladePooling` module) and the query part is an :class:`~sentence_transformers.sparse_encoder.models.IDF` module, which just returns a pre-computed score for every token in the query.
@@ -225,6 +165,67 @@ But if instead you want to train from another checkpoint, or from scratch, then 
                     r"IDF\.*": 1e-3,
                 }
             )
+            
+.. tab:: Contrastive Sparse Representation (CSR) 
+
+    .. 
+        Contrastive Sparse Representation (CSR) models usually use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` modules to create sparse representations on top of an already trained dense Sentence Transformer model.
+    Contrastive Sparse Representation (CSR) models apply a :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` module on top of a dense Sentence Transformer model, which usually consist of a :class:`~sentence_transformers.models.Transformer` followed by a :class:`~sentence_transformers.models.Pooling` module. You can initialize one from scratch like so:
+    
+    .. 
+        usually use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` modules to create sparse representations on top of an already trained dense Sentence Transformer model.
+
+    .. raw:: html
+
+        <div class="sidebar">
+            <p class="sidebar-title">Documentation</p>
+            <ul class="simple">
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Transformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Transformer</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Pooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Pooling</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.CSRSparsity"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.CSRSparsity</span></code></a></li>
+            </ul>
+        </div>
+
+    ::
+
+        from sentence_transformers import models, SparseEncoder
+        from sentence_transformers.sparse_encoder.models import CSRSparsity
+
+        # Initialize transformer (can be any dense encoder model)
+        transformer = models.Transformer("google-bert/bert-base-uncased")
+        
+        # Initialize pooling
+        pooling = models.Pooling(transformer.get_word_embedding_dimension(), pooling_mode="mean")
+        
+        # Initialize CSRSparsity module
+        csr_sparsity = CSRSparsity(
+            input_dim=transformer.get_word_embedding_dimension(),
+            hidden_dim=4 * transformer.get_word_embedding_dimension(),
+            k=256,  # Number of top values to keep
+            k_aux=512,  # Number of top values for auxiliary loss
+        )
+        # Create the CSR model
+        model = SparseEncoder(modules=[transformer, pooling, csr_sparsity])
+    
+    Or if your base model is 1) a dense Sentence Transformer model or 2) a non-MLM Transformer model (those are loaded as Splade models by default), then this shortcut will automatically initialize the CSR model for you:
+
+    ::
+
+        from sentence_transformers import SparseEncoder
+
+        model = SparseEncoder("mixedbread-ai/mxbai-embed-large-v1")
+        # SparseEncoder(
+        #   (0): Transformer({'max_seq_length': 512, 'do_lower_case': False}) with Transformer model: BertModel
+        #   (1): Pooling({'word_embedding_dimension': 1024, 'pooling_mode_cls_token': True, 'pooling_mode_mean_tokens': False, 'pooling_mode_max_tokens': False, 'pooling_mode_mean_sqrt_len_tokens': False, 'pooling_mode_weightedmean_tokens': False, 'pooling_mode_lasttoken': False, 'include_prompt': True})
+        #   (2): CSRSparsity({'input_dim': 1024, 'hidden_dim': 4096, 'k': 256, 'k_aux': 512, 'normalize': False, 'dead_threshold': 30})
+        # )
+
+    .. warning::
+
+        Unlike (Inference-free) Splade models, sparse embeddings by CSR models don't have the same size as the vocabulary of the base model. This means you can't directly interpret which words are activated in your embedding like you can with Splade models, where each dimension corresponds to a specific token in the vocabulary.
+
+        Beyond that, CSR models are most effective on dense encoder models that use high-dimensional representations (e.g. 1024-4096 dimensions).
+
 ```
 
 ## Dataset
