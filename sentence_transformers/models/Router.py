@@ -258,7 +258,7 @@ class Router(InputModule, nn.Sequential):
                     return module.get_sentence_embedding_dimension()
         return None
 
-    def save(self, output_path):
+    def save(self, output_path: str, safe_serialization: bool = True, **kwargs):
         model_lookup = {}
         model_types = {}
         model_structure = {}
@@ -274,7 +274,11 @@ class Router(InputModule, nn.Sequential):
         for model_id, model in model_lookup.items():
             model_path = os.path.join(output_path, str(model_id))
             os.makedirs(model_path, exist_ok=True)
-            model.save(model_path)
+            try:
+                model.save(model_path, safe_serialization=safe_serialization, **kwargs)
+            except TypeError:
+                # Fallback for legacy models that do not support kwargs
+                model.save(model_path)
 
         with open(os.path.join(output_path, self.config_file_name), "w", encoding="utf8") as fOut:
             json.dump(
