@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import logging
 import os
+import warnings
 from collections import OrderedDict
 from contextlib import nullcontext
 from functools import partial
@@ -522,6 +523,19 @@ class SentenceTransformerTrainer(Trainer):
         except Exception as exc:
             logger.error(f"Could not load the best model from {self.state.best_model_checkpoint}. Error: {str(exc)}")
             return
+        
+        try:
+            if len(self.model[0].auto_model.active_adapters()):
+                warn_msg = "Could not load best model, as the model has at least one adapter set. Please wait for an update of the transformers library to enable this feature."
+                warnings.warn(
+                    warn_msg,
+                    UserWarning,  # No need to import UserWarning; it's already available
+                    stacklevel=2
+                )
+                logger.info(warn_msg)
+                return
+        except ValueError:
+            pass
 
         # Store the best model checkpoint in the model card
         try:
