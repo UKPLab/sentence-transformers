@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import heapq
+import json
 import logging
 import os
 from typing import TYPE_CHECKING, Callable
@@ -47,6 +48,8 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         query_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
         corpus_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
         corpus_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
+        write_predictions (bool): Whether to write the predictions to a JSONL file. Defaults to False.
+            This can be useful for downstream evaluation as it can be used as input to the :class:`~sentence_transformers.sparse_encoder.evaluation.ReciprocalRankFusionEvaluator` that accept precomputed predictions.
 
     Example:
         ::
@@ -141,6 +144,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         query_prompt_name: str | None = None,
         corpus_prompt: str | None = None,
         corpus_prompt_name: str | None = None,
+        write_predictions: bool = False,
     ) -> None:
         super().__init__()
         self.queries_ids = []
@@ -182,6 +186,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self.csv_headers = ["epoch", "steps"]
 
         self._append_csv_headers(self.score_function_names)
+        self.write_predictions = write_predictions
+        if self.write_predictions:
+            self.predictions_file = "Information-Retrieval_evaluation" + name + "_predictions.jsonl"
 
     def _append_csv_headers(self, score_function_names):
         for score_name in score_function_names:
@@ -221,7 +228,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
             self.score_function_names = [model.similarity_fn_name]
             self._append_csv_headers(self.score_function_names)
 
-        scores = self.compute_metrices(model, *args, **kwargs)
+        scores = self.compute_metrices(model, output_path=output_path, *args, **kwargs)
 
         # Write results to disc
         if output_path is not None and self.write_csv:
@@ -277,7 +284,11 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         return metrics
 
     def compute_metrices(
-        self, model: SentenceTransformer, corpus_model=None, corpus_embeddings: Tensor | None = None
+        self,
+        model: SentenceTransformer,
+        corpus_model=None,
+        corpus_embeddings: Tensor | None = None,
+        output_path: str | None = None,
     ) -> dict[str, float]:
         if corpus_model is None:
             corpus_model = model
@@ -294,6 +305,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         query_embeddings = self.embed_inputs(
             model,
             self.queries,
+            encode_fn_name="query",
             prompt_name=self.query_prompt_name,
             prompt=self.query_prompt,
         )
@@ -313,6 +325,7 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 sub_corpus_embeddings = self.embed_inputs(
                     corpus_model,
                     self.corpus[corpus_start_idx:corpus_end_idx],
+                    encode_fn_name="document",
                     prompt_name=self.corpus_prompt_name,
                     prompt=self.corpus_prompt,
                 )
@@ -352,6 +365,29 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                     score, corpus_id = queries_result_list[name][query_itr][doc_itr]
                     queries_result_list[name][query_itr][doc_itr] = {"corpus_id": corpus_id, "score": score}
 
+        if self.write_predictions and output_path is not None:
+            for name in queries_result_list:
+                base_filename = self.predictions_file.replace(".jsonl", f"_{name}.jsonl")
+                json_path = os.path.join(output_path, base_filename)
+                mode = "w"  # Always create a new file for each score function
+
+                with open(json_path, mode=mode, encoding="utf-8") as fOut:
+                    for query_itr in range(len(queries_result_list[name])):
+                        query_id = self.queries_ids[query_itr]
+                        query_text = self.queries[query_itr]
+                        results = queries_result_list[name][query_itr]
+
+                        # Sort results by score in descending order
+                        results = sorted(results, key=lambda x: x["score"], reverse=True)
+
+                        prediction = {
+                            "query_id": query_id,
+                            "query": query_text,
+                            "results": results,
+                        }
+
+                        fOut.write(json.dumps(prediction) + "\n")
+
         logger.info(f"Queries: {len(self.queries)}")
         logger.info(f"Corpus: {len(self.corpus)}\n")
 
@@ -369,11 +405,18 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
         self,
         model: SentenceTransformer,
         sentences: str | list[str] | np.ndarray,
+        encode_fn_name: str | None = None,
         prompt_name: str | None = None,
         prompt: str | None = None,
         **kwargs,
     ) -> np.ndarray:
-        return model.encode(
+        if encode_fn_name is None:
+            encode_fn = model.encode
+        elif encode_fn_name == "query":
+            encode_fn = model.encode_query
+        elif encode_fn_name == "document":
+            encode_fn = model.encode_document
+        return encode_fn(
             sentences,
             prompt_name=prompt_name,
             prompt=prompt,
@@ -446,7 +489,6 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                     if hit["corpus_id"] in query_relevant_docs:
                         num_correct += 1
                         sum_precisions += num_correct / (rank + 1)
-
                 avg_precision = sum_precisions / min(k_val, len(query_relevant_docs))
                 AveP_at_k[k_val].append(avg_precision)
 

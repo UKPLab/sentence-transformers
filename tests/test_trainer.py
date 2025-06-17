@@ -8,10 +8,21 @@ from pathlib import Path
 
 import pytest
 import torch
+from datasets.dataset_dict import DatasetDict
+from tokenizers.processors import TemplateProcessing
+from torch.utils.data import ConcatDataset
 
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.losses import MultipleNegativesRankingLoss
+from sentence_transformers.sampler import (
+    DefaultBatchSampler,
+    GroupByLabelBatchSampler,
+    NoDuplicatesBatchSampler,
+    ProportionalBatchSampler,
+    RoundRobinBatchSampler,
+    SubsetRandomSampler,
+)
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sentence_transformers.util import is_datasets_available, is_training_available
 from tests.utils import SafeTemporaryDirectory
@@ -300,7 +311,7 @@ def test_trainer(
     ],
 )
 def test_trainer_prompts(
-    stsb_bert_tiny_model_reused: SentenceTransformer,
+    stsb_bert_tiny_model: SentenceTransformer,
     train_dict: bool,
     eval_dict: bool,
     loss_dict: bool,
@@ -314,7 +325,7 @@ def test_trainer_prompts(
             "Skipping test because loss_dict=True requires train_dict=True and eval_dict=True; already tested via test_trainer."
         )
 
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     model[1].include_prompt = pool_include_prompt
 
     train_dataset_1 = Dataset.from_dict(
@@ -455,23 +466,22 @@ def test_trainer_prompts(
         args = SentenceTransformerTrainingArguments(
             output_dir=str(temp_dir),
             prompts=prompts,
-            max_steps=2,
-            eval_steps=2,
+            max_steps=4 if train_dict else 2,
+            eval_steps=4 if train_dict else 2,
             eval_strategy="steps",
             per_device_train_batch_size=1,
             per_device_eval_batch_size=1,
             report_to=["none"],
         )
-        with context:
-            trainer = SentenceTransformerTrainer(
-                model=model,
-                args=args,
-                train_dataset=train_dataset,
-                eval_dataset=eval_dataset,
-                loss=loss,
-            )
-        if not isinstance(context, nullcontext):
-            return
+        trainer = SentenceTransformerTrainer(
+            model=model,
+            args=args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            loss=loss,
+        )
+
+        tracked_texts.clear()
 
         datacollator_keys = set()
         old_compute_loss = trainer.compute_loss
@@ -482,7 +492,11 @@ def test_trainer_prompts(
             return loss
 
         trainer.compute_loss = compute_loss_tracker
-        trainer.train()
+        with context:
+            trainer.train()
+
+        if not isinstance(context, nullcontext):
+            return
 
     # In this one edge case, the prompts won't be used because the datasets aren't dictionaries, so the prompts
     # are seen as column names & ignored as they don't exist.
@@ -497,8 +511,8 @@ def test_trainer_prompts(
     else:
         assert "prompt_length" not in tracked_forward_keys
 
-    # We only need the dataset_name if the loss requires it
-    if loss_dict:
+    # We only need the dataset_name if the loss requires it, or the prompts are a nested dictionary
+    if (train_dict or eval_dict) and (loss_dict or (isinstance(prompts, dict))):
         assert "dataset_name" in datacollator_keys
     else:
         assert "dataset_name" not in datacollator_keys
@@ -668,3 +682,310 @@ def test_trainer_no_eval_dataset_with_eval_strategy(
             loss=loss,
             **kwargs,
         )
+
+
+@pytest.mark.parametrize("has_bos_token", [True, False])
+@pytest.mark.parametrize("has_eos_token", [True, False])
+def test_data_collator(
+    stsb_bert_tiny_model: SentenceTransformer,
+    stsb_dataset_dict: DatasetDict,
+    has_bos_token: bool,
+    has_eos_token: bool,
+    tmp_path: Path,
+) -> None:
+    # Test that the data collator correctly recognizes whether the tokenizer has an SEP/EOS token
+    model = stsb_bert_tiny_model
+    # We need to set this to False, otherwise the prompt length wont be needed:
+    model.set_pooling_include_prompt(False)
+    dummy_bos_token_id = 400
+    dummy_eos_token_id = 500
+    model.tokenizer.cls_token_id = dummy_bos_token_id if has_bos_token else None
+    model.tokenizer.sep_token_id = dummy_eos_token_id if has_eos_token else None
+    if has_bos_token:
+        if has_eos_token:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="[CLS] $0 [SEP]",
+                special_tokens=[
+                    ("[CLS]", dummy_bos_token_id),
+                    ("[SEP]", dummy_eos_token_id),
+                ],
+            )
+        else:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="[CLS] $0",
+                special_tokens=[("[CLS]", dummy_bos_token_id)],
+            )
+    else:
+        if has_eos_token:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="$0 [SEP]",
+                special_tokens=[("[SEP]", dummy_eos_token_id)],
+            )
+        else:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="$0",
+                special_tokens=[],
+            )
+
+    # Check that we can update the tokenizer in this way
+    if has_eos_token:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[-1] == dummy_eos_token_id
+    else:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[-1] != dummy_eos_token_id
+
+    if has_bos_token:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[0] == dummy_bos_token_id
+    else:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[0] != dummy_bos_token_id
+
+    train_dataset = stsb_dataset_dict["train"].select(range(10))
+    eval_dataset = stsb_dataset_dict["validation"].select(range(10))
+    loss = losses.CosineSimilarityLoss(model=model)
+
+    args = SentenceTransformerTrainingArguments(
+        output_dir=tmp_path,
+        max_steps=2,
+        eval_steps=2,
+        eval_strategy="steps",
+        per_device_train_batch_size=1,
+        per_device_eval_batch_size=1,
+        prompts="Prompt: ",  # Single prompt to all columns and all datasets
+    )
+
+    trainer = SentenceTransformerTrainer(
+        model=model,
+        args=args,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+        loss=loss,
+    )
+    trainer.train()
+
+    # Check that the data collator correctly recognizes the prompt length
+    only_prompt_length = len(model.tokenizer(["Prompt: "], add_special_tokens=False)["input_ids"][0])
+    if has_bos_token:
+        only_prompt_length += 1
+    assert trainer.data_collator._prompt_length_mapping == {("Prompt: ", None): only_prompt_length}
+
+
+def test_trainer_get_batch_sampler_class(
+    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: DatasetDict
+) -> None:
+    """Test that you can specify a batch_sampler class in args."""
+
+    train_dataset = stsb_dataset_dict["train"]
+
+    # Test with a class
+    args = SentenceTransformerTrainingArguments(
+        output_dir="dummy",
+        batch_sampler=GroupByLabelBatchSampler,
+    )
+    trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, args=args, train_dataset=train_dataset)
+    batch_sampler = trainer.get_batch_sampler(
+        train_dataset,
+        batch_size=8,
+        drop_last=False,
+        valid_label_columns=trainer.data_collator.valid_label_columns,
+        generator=torch.Generator(),
+        seed=42,
+    )
+    assert isinstance(batch_sampler, GroupByLabelBatchSampler)
+
+    # Test with another class
+    args = SentenceTransformerTrainingArguments(
+        output_dir="dummy",
+        batch_sampler=NoDuplicatesBatchSampler,
+    )
+    trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, args=args, train_dataset=train_dataset)
+    batch_sampler = trainer.get_batch_sampler(
+        train_dataset,
+        batch_size=8,
+        drop_last=False,
+        valid_label_columns=["label"],
+        generator=torch.Generator(),
+        seed=42,
+    )
+    assert isinstance(batch_sampler, NoDuplicatesBatchSampler)
+
+
+def test_trainer_get_batch_sampler_function(
+    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: DatasetDict
+) -> None:
+    """Test that you can specify a batch_sampler function in args."""
+
+    train_dataset = stsb_dataset_dict["train"]
+
+    # Define a custom batch sampler function
+    def custom_batch_sampler(dataset, batch_size, drop_last, valid_label_columns, generator, seed):
+        # This function returns a GroupByLabelBatchSampler regardless of input
+        return GroupByLabelBatchSampler(
+            dataset=dataset,
+            batch_size=batch_size,
+            drop_last=drop_last,
+            valid_label_columns=valid_label_columns,
+            generator=generator,
+            seed=seed,
+        )
+
+    args = SentenceTransformerTrainingArguments(
+        output_dir="dummy",
+        batch_sampler=custom_batch_sampler,
+    )
+    trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, args=args, train_dataset=train_dataset)
+
+    batch_sampler = trainer.get_batch_sampler(
+        train_dataset,
+        batch_size=8,
+        drop_last=False,
+        valid_label_columns=trainer.data_collator.valid_label_columns,
+        generator=torch.Generator(),
+        seed=42,
+    )
+
+    # Verify that our custom function was used
+    assert isinstance(batch_sampler, GroupByLabelBatchSampler)
+
+    # Test with a different function that returns None
+    def null_batch_sampler(*args, **kwargs):
+        return None
+
+    args = SentenceTransformerTrainingArguments(
+        output_dir="dummy",
+        batch_sampler=null_batch_sampler,
+    )
+    trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, args=args, train_dataset=train_dataset)
+
+    batch_sampler = trainer.get_batch_sampler(
+        train_dataset,
+        batch_size=8,
+        drop_last=False,
+        valid_label_columns=["label"],
+        generator=torch.Generator(),
+        seed=42,
+    )
+
+    assert batch_sampler is None
+
+
+def test_trainer_get_multi_dataset_batch_sampler_class(
+    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: DatasetDict
+) -> None:
+    """Test that you can specify a multi_dataset_batch_sampler class in args."""
+    train_dataset = stsb_dataset_dict["train"]
+    concat_dataset = ConcatDataset([train_dataset, train_dataset])
+    batch_samplers = [
+        DefaultBatchSampler(
+            SubsetRandomSampler(range(len(train_dataset))),
+            batch_size=8,
+            drop_last=False,
+            valid_label_columns=["label", "score"],
+        ),
+        DefaultBatchSampler(
+            SubsetRandomSampler(range(len(train_dataset))),
+            batch_size=8,
+            drop_last=False,
+            valid_label_columns=["label", "score"],
+        ),
+    ]
+
+    # Test with a class
+    args = SentenceTransformerTrainingArguments(
+        output_dir="dummy",
+        multi_dataset_batch_sampler=RoundRobinBatchSampler,
+    )
+    trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, args=args, train_dataset=train_dataset)
+
+    batch_sampler = trainer.get_multi_dataset_batch_sampler(
+        concat_dataset,
+        batch_samplers=batch_samplers,
+        generator=torch.Generator(),
+        seed=42,
+    )
+
+    assert isinstance(batch_sampler, RoundRobinBatchSampler)
+
+    class CopiedProportionalBatchSampler(ProportionalBatchSampler):
+        pass
+
+    # Test with another class
+    args = SentenceTransformerTrainingArguments(
+        output_dir="dummy",
+        multi_dataset_batch_sampler=CopiedProportionalBatchSampler,
+    )
+    trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, args=args, train_dataset=train_dataset)
+
+    batch_sampler = trainer.get_multi_dataset_batch_sampler(
+        concat_dataset,
+        batch_samplers=batch_samplers,
+        generator=torch.Generator(),
+        seed=42,
+    )
+
+    assert isinstance(batch_sampler, CopiedProportionalBatchSampler)
+
+
+def test_trainer_get_multi_dataset_batch_sampler_function(
+    stsb_bert_tiny_model: SentenceTransformer, stsb_dataset_dict: DatasetDict
+) -> None:
+    """Test that you can specify a multi_dataset_batch_sampler function in args."""
+    train_dataset = stsb_dataset_dict["train"]
+    concat_dataset = ConcatDataset([train_dataset, train_dataset])
+    batch_samplers = [
+        DefaultBatchSampler(
+            SubsetRandomSampler(range(len(train_dataset))),
+            batch_size=8,
+            drop_last=False,
+            valid_label_columns=["label", "score"],
+        ),
+        DefaultBatchSampler(
+            SubsetRandomSampler(range(len(train_dataset))),
+            batch_size=8,
+            drop_last=False,
+            valid_label_columns=["label", "score"],
+        ),
+    ]
+
+    # Define a custom multi-dataset batch sampler function
+    def custom_multi_dataset_batch_sampler(dataset, batch_samplers, generator, seed):
+        # This function returns a RoundRobinBatchSampler regardless of input
+        return RoundRobinBatchSampler(
+            dataset=dataset,
+            batch_samplers=batch_samplers,
+            generator=generator,
+            seed=seed,
+        )
+
+    args = SentenceTransformerTrainingArguments(
+        output_dir="dummy",
+        multi_dataset_batch_sampler=custom_multi_dataset_batch_sampler,
+    )
+    trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, args=args, train_dataset=train_dataset)
+
+    batch_sampler = trainer.get_multi_dataset_batch_sampler(
+        concat_dataset,
+        batch_samplers=batch_samplers,
+        generator=torch.Generator(),
+        seed=42,
+    )
+
+    # Verify that our custom function was used
+    assert isinstance(batch_sampler, RoundRobinBatchSampler)
+
+    # Test with a different function that returns None
+    def null_multi_dataset_batch_sampler(*args, **kwargs):
+        return None
+
+    args = SentenceTransformerTrainingArguments(
+        output_dir="dummy",
+        multi_dataset_batch_sampler=null_multi_dataset_batch_sampler,
+    )
+    trainer = SentenceTransformerTrainer(model=stsb_bert_tiny_model, args=args, train_dataset=train_dataset)
+
+    batch_sampler = trainer.get_multi_dataset_batch_sampler(
+        concat_dataset,
+        batch_samplers=batch_samplers,
+        generator=torch.Generator(),
+        seed=42,
+    )
+
+    assert batch_sampler is None

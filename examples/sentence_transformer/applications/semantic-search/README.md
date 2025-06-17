@@ -18,10 +18,24 @@ A **critical distinction** for your setup is *symmetric* vs. *asymmetric semanti
 
 It is critical **that you choose the right model** for your type of task.
 
+```{eval-rst}
+.. tip::
+
+    For asymmetric semantic search, you are recommended to use :meth:`SentenceTransformer.encode_query <sentence_transformers.SentenceTransformer.encode_query>` to encode your queries and :meth:`SentenceTransformer.encode_document <sentence_transformers.SentenceTransformer.encode_document>` to encode your corpus. 
+    
+    The more general :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>` method differs in two ways from :meth:`SentenceTransformer.encode_query <sentence_transformers.SentenceTransformer.encode_query>` and :meth:`SentenceTransformer.encode_document <sentence_transformers.SentenceTransformer.encode_document>`:
+
+    1. If no ``prompt_name`` or ``prompt`` is provided, it uses a predefined "query" or "document" prompt, if specified in the model's ``prompts`` dictionary.
+    2. It sets the ``task`` to "document". If the model has a :class:`~sentence_transformers.models.Router` module, it will use the "query" or "document" task type to route the input through the appropriate submodules.
+
+    Note that :meth:`SentenceTransformer.encode <sentence_transformers.SentenceTransformer.encode>` is the most general method and can be used for any task, including Information Retrieval, and that if the model was not trained with predefined prompts and/or task types, then all three methods will return identical embeddings.
+
+```
+
 ## Manual Implementation
 
 ```{eval-rst}
-For small corpora (up to about 1 million entries), we can perform semantic search with a manual implementation by computing the embeddings for the corpus as well as for our query, and then calculating the `semantic textual similarity <../../../../docs/sentence_transformer/usage/semantic_textual_similarity.html>`_ using :func:`SentenceTransformer.similarity <sentence_transformers.SentenceTransformer.similarity>`.
+For small corpora (up to about 1 million entries), we can perform semantic search with a manual implementation by computing the embeddings for the corpus with :meth:`SentenceTransformer.encode_document <sentence_transformers.SentenceTransformer.encode_document>` as well as for our query with :meth:`SentenceTransformer.encode_query <sentence_transformers.SentenceTransformer.encode_query>`, and then calculating the `semantic textual similarity <../../../../docs/sentence_transformer/usage/semantic_textual_similarity.html>`_ using :func:`SentenceTransformer.similarity <sentence_transformers.SentenceTransformer.similarity>`.
 ```
 For a simple example, see [semantic_search.py](semantic_search.py):
 
@@ -31,29 +45,29 @@ For a simple example, see [semantic_search.py](semantic_search.py):
 
    .. code-block:: text
 
-        Query: A man is eating pasta.
+        Query: How do artificial neural networks work?
         Top 5 most similar sentences in corpus:
-        A man is eating food. (Score: 0.7035)
-        A man is eating a piece of bread. (Score: 0.5272)
-        A man is riding a horse. (Score: 0.1889)
-        A man is riding a white horse on an enclosed ground. (Score: 0.1047)
-        A cheetah is running behind its prey. (Score: 0.0980)
+        (Score: 0.5926) Neural networks are computing systems vaguely inspired by the biological neural networks that constitute animal brains.
+        (Score: 0.5288) Deep learning is part of a broader family of machine learning methods based on artificial neural networks with representation learning.
+        (Score: 0.4647) Machine learning is a field of study that gives computers the ability to learn without being explicitly programmed.
+        (Score: 0.1381) Mars rovers are robotic vehicles designed to travel on the surface of Mars to collect data and perform experiments.
+        (Score: 0.0912) Carbon capture technologies aim to collect CO2 emissions before they enter the atmosphere and store them underground.
 
-        Query: Someone in a gorilla costume is playing a set of drums.
+        Query: What technology is used for modern space exploration?
         Top 5 most similar sentences in corpus:
-        A monkey is playing drums. (Score: 0.6433)
-        A woman is playing violin. (Score: 0.2564)
-        A man is riding a horse. (Score: 0.1389)
-        A man is riding a white horse on an enclosed ground. (Score: 0.1191)
-        A cheetah is running behind its prey. (Score: 0.1080)
+        (Score: 0.3754) Mars rovers are robotic vehicles designed to travel on the surface of Mars to collect data and perform experiments.
+        (Score: 0.3669) SpaceX's Starship is designed to be a fully reusable transportation system capable of carrying humans to Mars and beyond.
+        (Score: 0.3452) The James Webb Space Telescope is the largest optical telescope in space, designed to conduct infrared astronomy.
+        (Score: 0.2625) Renewable energy sources include solar, wind, hydro, and geothermal power that naturally replenish over time.
+        (Score: 0.2275) Carbon capture technologies aim to collect CO2 emissions before they enter the atmosphere and store them underground.
 
-        Query: A cheetah chases prey on across a field.
+        Query: How can we address climate change challenges?
         Top 5 most similar sentences in corpus:
-        A cheetah is running behind its prey. (Score: 0.8253)
-        A man is eating food. (Score: 0.1399)
-        A monkey is playing drums. (Score: 0.1292)
-        A man is riding a white horse on an enclosed ground. (Score: 0.1097)
-        A man is riding a horse. (Score: 0.0650)
+        (Score: 0.3760) Global warming is the long-term heating of Earth's climate system observed since the pre-industrial period due to human activities.
+        (Score: 0.3144) Carbon capture technologies aim to collect CO2 emissions before they enter the atmosphere and store them underground.
+        (Score: 0.2948) Renewable energy sources include solar, wind, hydro, and geothermal power that naturally replenish over time.
+        (Score: 0.0420) Machine learning is a field of study that gives computers the ability to learn without being explicitly programmed.
+        (Score: 0.0411) Deep learning is part of a broader family of machine learning methods based on artificial neural networks with representation learning.
 
 .. literalinclude:: semantic_search.py
 ```
@@ -92,6 +106,10 @@ To get the optimal speed for the :func:`util.semantic_search <sentence_transform
 
 For further details, see [semantic_search_quora_elasticsearch.py](semantic_search_quora_elasticsearch.py).
 
+## OpenSearch
+[OpenSearch](https://opensearch.org/) is a community-driven, open-source search engine that supports vector search capabilities. It allows you to index dense vectors and perform efficient similarity search using approximate nearest neighbor algorithms. OpenSearch can be used to implement both traditional keyword-based search (BM25) and semantic search, making it possible to compare and combine both approaches.
+
+For an example implementation, see [semantic_search_nq_opensearch.py](semantic_search_nq_opensearch.py), which shows how to use OpenSearch with the Natural Questions dataset, demonstrating both semantic search and BM25 search capabilities.
 
 ## Approximate Nearest Neighbor
 ```{eval-rst}

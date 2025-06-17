@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
-from sentence_transformers import SparseEncoderTrainer
+from sentence_transformers import SparseEncoderTrainer, SparseEncoderTrainingArguments
 from sentence_transformers.model_card import generate_model_card
 from sentence_transformers.sparse_encoder import losses
 from sentence_transformers.util import is_datasets_available, is_training_available
@@ -44,6 +46,10 @@ def dummy_dataset():
             "splade_bert_tiny_model",
             0,
             [
+                "- sentence-transformers",
+                "- sparse-encoder",
+                "- sparse",
+                "- splade",
                 "This is a [SPLADE Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage.html) model finetuned from [sparse-encoder-testing/splade-bert-tiny-nq](https://huggingface.co/sparse-encoder-testing/splade-bert-tiny-nq)",
                 "**Maximum Sequence Length:** 512 tokens",
                 "**Output Dimensionality:** 30522 dimensions",
@@ -107,9 +113,34 @@ def dummy_dataset():
             "csr_bert_tiny_model",
             0,
             [
+                "- sentence-transformers",
+                "- sparse-encoder",
+                "- sparse",
+                "- csr",
                 "This is a [CSR Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage.html) model finetuned from [sentence-transformers-testing/stsb-bert-tiny-safetensors](https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors) using the [sentence-transformers](https://www.SBERT.net) library.",
                 "**Maximum Sequence Length:** 512 tokens",
                 "**Output Dimensionality:** 512 dimensions",
+                "**Similarity Function:** Dot Product",
+                "#### Unnamed Dataset",
+                "| details | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> |",
+                " | <code>anchor 1</code> | <code>positive 1</code> | <code>negative 1</code> |",
+                "* Loss: [<code>SpladeLoss</code>](https://sbert.net/docs/package_reference/sparse_encoder/losses.html#spladeloss) with these parameters:",
+                '  ```json\n  {\n      "loss": "SparseMultipleNegativesRankingLoss(scale=1.0, similarity_fct=\'dot_score\')",\n      "lambda_corpus": 3e-05,\n      "lambda_query": 5e-05\n  }\n  ```',
+            ],
+        ),
+        (
+            "inference_free_splade_bert_tiny_model",
+            0,
+            [
+                "- sentence-transformers",
+                "- sparse-encoder",
+                "- sparse",
+                "- asymmetric",
+                "- inference-free",
+                "- splade",
+                "This is a [Asymmetric Inference-free SPLADE Sparse Encoder](https://www.sbert.net/docs/sparse_encoder/usage/usage.html) model finetuned from [sparse-encoder-testing/inference-free-splade-bert-tiny-nq](https://huggingface.co/sparse-encoder-testing/inference-free-splade-bert-tiny-nq) using the [sentence-transformers](https://www.SBERT.net) library.",
+                "**Maximum Sequence Length:** 512 tokens",
+                "**Output Dimensionality:** 30522 dimensions",
                 "**Similarity Function:** Dot Product",
                 "#### Unnamed Dataset",
                 "| details | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> |",
@@ -126,6 +157,7 @@ def test_model_card_base(
     num_datasets: int,
     expected_substrings: list[str],
     request: pytest.FixtureRequest,
+    tmp_path: Path,
 ) -> None:
     model = request.getfixturevalue(model_fixture_name)
 
@@ -140,9 +172,15 @@ def test_model_card_base(
         lambda_corpus=3e-5,  # Weight for document loss
     )
 
+    args = SparseEncoderTrainingArguments(
+        output_dir=tmp_path,
+        router_mapping={"test": "query"} if "inference_free" in model_fixture_name else None,
+    )
+
     # This adds data to model.model_card_data
     SparseEncoderTrainer(
         model,
+        args=args,
         train_dataset=train_dataset,
         loss=loss,
     )

@@ -52,6 +52,8 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         aggregate_key (str): The key to use for the aggregated score. Defaults to "mean".
         query_prompts (str | dict[str, str], optional): The prompts to add to the queries. If a string, will add the same prompt to all queries. If a dict, expects that all datasets in dataset_names are keys.
         corpus_prompts (str | dict[str, str], optional): The prompts to add to the corpus. If a string, will add the same prompt to all corpus. If a dict, expects that all datasets in dataset_names are keys.
+        write_predictions (bool): Whether to write the predictions to a JSONL file. Defaults to False.
+            This can be useful for downstream evaluation as it can be used as input to the :class:`~sentence_transformers.sparse_encoder.evaluation.ReciprocalRankFusionEvaluator` that accept precomputed predictions.
 
     Example:
         ::
@@ -172,6 +174,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         aggregate_key: str = "mean",
         query_prompts: str | dict[str, str] | None = None,
         corpus_prompts: str | dict[str, str] | None = None,
+        write_predictions: bool = False,
     ):
         self.max_active_dims = max_active_dims
         self.sparsity_stats = defaultdict(list)
@@ -191,6 +194,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             aggregate_key=aggregate_key,
             query_prompts=query_prompts,
             corpus_prompts=corpus_prompts,
+            write_predictions=write_predictions,
         )
         if self.max_active_dims is not None:
             self.name += f"_{self.max_active_dims}"

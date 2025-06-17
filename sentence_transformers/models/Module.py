@@ -65,6 +65,11 @@ class Module(ABC, torch.nn.Module):
     """
     Whether to save the module's configuration in the root directory of the model or in a subdirectory named after the module.
     """
+    forward_kwargs: set[str] = set()
+    """
+    A set of keyword arguments that can be passed to the forward method of the module. These arguments are used to
+    pass additional information from the model's encode method to the module's forward method.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

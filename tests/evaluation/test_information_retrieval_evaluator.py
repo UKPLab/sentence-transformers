@@ -40,6 +40,8 @@ def mock_model():
     model.similarity_fn_name = "cosine"
     model.similarity.side_effect = cos_sim
     model.encode.side_effect = mock_encode
+    model.encode_query.side_effect = mock_encode
+    model.encode_document.side_effect = mock_encode
     model.model_card_data = PropertyMock(return_value=Mock())
     return model
 

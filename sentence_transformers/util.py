@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import functools
+import hashlib
 import heapq
 import importlib
 import logging
@@ -432,6 +433,8 @@ def paraphrase_mining(
     top_k: int = 100,
     score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
     truncate_dim: int | None = None,
+    prompt_name: str | None = None,
+    prompt: str | None = None,
 ) -> list[list[float | int]]:
     """
     Given a list of sentences / texts, this function performs paraphrase mining. It compares all sentences against all
@@ -448,6 +451,17 @@ def paraphrase_mining(
         top_k (int, optional): For each sentence, we retrieve up to top_k other sentences. Defaults to 100.
         score_function (Callable[[Tensor, Tensor], Tensor], optional): Function for computing scores. By default, cosine similarity. Defaults to cos_sim.
         truncate_dim (int, optional): The dimension to truncate sentence embeddings to. If None, uses the model's ones. Defaults to None.
+        prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the sentence.
+            It must match a key in the model `prompts` dictionary, which can be set during model initialization
+            or loaded from the model configuration.
+
+            Ignored if `prompt` is provided. Defaults to None.
+
+        prompt (Optional[str], optional): A raw prompt string to prepend directly to the input sentence during encoding.
+
+            For instance, `prompt="query: "` transforms the sentence "What is the capital of France?" into:
+            "query: What is the capital of France?". Use this to override the prompt logic entirely and supply your own prefix.
+            This takes precedence over `prompt_name`. Defaults to None.
 
     Returns:
         List[List[Union[float, int]]]: Returns a list of triplets with the format [score, id1, id2]
@@ -460,6 +474,8 @@ def paraphrase_mining(
         batch_size=batch_size,
         convert_to_tensor=True,
         truncate_dim=truncate_dim,
+        prompt_name=prompt_name,
+        prompt=prompt,
     )
 
     return paraphrase_mining_embeddings(
@@ -656,6 +672,10 @@ def mine_hard_negatives(
     relative_margin: float | None = None,
     num_negatives: int = 3,
     sampling_strategy: Literal["random", "top"] = "top",
+    query_prompt_name: str | None = None,
+    query_prompt: str | None = None,
+    corpus_prompt_name: str | None = None,
+    corpus_prompt: str | None = None,
     include_positives: bool = False,
     output_format: Literal["triplet", "n-tuple", "labeled-pair", "labeled-list"] = "triplet",
     batch_size: int = 32,
@@ -663,6 +683,7 @@ def mine_hard_negatives(
     use_faiss: bool = False,
     use_multi_process: list[str] | bool = False,
     verbose: bool = True,
+    cache_folder: str | None = None,
     as_triplets: bool | None = None,
     margin: float | None = None,
 ) -> Dataset:
@@ -677,6 +698,8 @@ def mine_hard_negatives(
     This function uses a SentenceTransformer model to embed the sentences in the dataset, and then finds the closest
     matches to each anchor sentence in the dataset. It then samples negatives from the closest matches, optionally
     using a CrossEncoder model to rescore the candidates.
+
+    Supports prompt formatting for models that expect specific instruction-style input.
 
     You can influence the candidate negative selection in various ways:
 
@@ -791,6 +814,25 @@ def mine_hard_negatives(
             95% as similar to the anchor as the positive. Defaults to None.
         num_negatives (int): Number of negatives to sample. Defaults to 3.
         sampling_strategy (Literal["random", "top"]): Sampling strategy for negatives: "top" or "random". Defaults to "top".
+        query_prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the first/anchor dataset column.
+            It must match a key in the ``model.prompts`` dictionary, which can be set during model initialization
+            or loaded from the model configuration.
+
+            For example, if ``query_prompt_name="query"`` and the model prompts dictionary includes {"query": "query: "},
+            then the sentence "What is the capital of France?" is transformed into: "query: What is the capital of France?"
+            before encoding. This is useful for models that were trained or fine-tuned with specific prompt formats.
+
+            Ignored if ``query_prompt`` is provided. Defaults to None.
+
+        query_prompt (Optional[str], optional): A raw prompt string to prepend directly to the first/anchor dataset column during encoding.
+
+            For instance, `query_prompt="query: "` transforms the sentence "What is the capital of France?" into:
+            "query: What is the capital of France?". Use this to override the prompt logic entirely and supply your own prefix.
+            This takes precedence over ``query_prompt_name``. Defaults to None.
+        corpus_prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the corpus. See
+            ``query_prompt_name`` for more information. Defaults to None.
+        corpus_prompt (Optional[str], optional): A raw prompt string to prepend directly to the corpus during encoding.
+            See ``query_prompt`` for more information. Defaults to None.
         include_positives (bool): Whether to include the positives in the negative candidates.
             Setting this to True is primarily useful for creating Reranking evaluation datasets for CrossEncoder models,
             where it can be useful to get a full ranking (including the positives) from a first-stage retrieval model.
@@ -810,8 +852,13 @@ def mine_hard_negatives(
             is available, and 4 CPU processes if it's not available. You can also pass a list of PyTorch devices like
             ["cuda:0", "cuda:1", ...] or ["cpu", "cpu", "cpu", "cpu"].
         verbose (bool): Whether to print statistics and logging. Defaults to True.
+        cache_folder (str, optional): Directory path for caching embeddings. If provided, the function will save
+            ``query_embeddings_{hash}.npy`` and ``corpus_embeddings_{hash}.npy`` under this folder after the first run,
+            and on subsequent calls will load from these files if they exist to avoid recomputation. The hashes are
+            computed based on the model name and the queries/corpus. Defaults to None.
         as_triplets (bool, optional): Deprecated. Use `output_format` instead. Defaults to None.
         margin (float, optional): Deprecated. Use `absolute_margin` or `relative_margin` instead. Defaults to None.
+
 
     Returns:
         Dataset: A dataset containing (anchor, positive, negative) triplets, (anchor, passage, label) text tuples with
@@ -896,7 +943,7 @@ def mine_hard_negatives(
 
     # Deduplicate the corpus
     # make sure all the positives are also in the corpus and de-duplicate it.
-    corpus = list(set(corpus) | set(positives))
+    corpus = list(dict.fromkeys(corpus + positives))
 
     # corpus_idx maps the corpus text into its position in the corpus
     # This position does not necessarily matches the original corpus, as it was de-duplicated.
@@ -904,7 +951,7 @@ def mine_hard_negatives(
 
     # Deduplicate the queries, but keep the original one for later reference.
     all_queries = queries.copy()
-    queries = list(set(queries))
+    queries = list(dict.fromkeys(queries))
     queries_idx = {query: idx for idx, query in enumerate(queries)}
     n_queries = len(queries)
     batch_idx = torch.arange(n_queries).unsqueeze(-1)
@@ -918,25 +965,90 @@ def mine_hard_negatives(
         avg_positives_per_query = np.mean(positives_per_query)
         print(f"Found an average of {avg_positives_per_query:.3f} positives per query.")
 
+    corpus_embeddings = None
+    query_embeddings = None
+
+    if cache_folder:
+        os.makedirs(cache_folder, exist_ok=True)
+
+        model_name = model.model_card_data.base_model or ""
+        query_hash = hashlib.md5((model_name + "".join(queries)).encode()).hexdigest()
+        corpus_hash = hashlib.md5((model_name + "".join(corpus)).encode()).hexdigest()
+
+        query_cache_file = os.path.join(cache_folder, f"query_embeddings_{query_hash}.npy")
+        corpus_cache_file = os.path.join(cache_folder, f"corpus_embeddings_{corpus_hash}.npy")
+
+        if os.path.exists(query_cache_file):
+            query_embeddings = np.load(query_cache_file)
+            if verbose:
+                print(f"[Cache] Loaded query embeddings from {query_cache_file} (shape={query_embeddings.shape})")
+
+        if os.path.exists(corpus_cache_file):
+            corpus_embeddings = np.load(corpus_cache_file)
+            if verbose:
+                print(f"[Cache] Loaded corpus embeddings from {corpus_cache_file} (shape={corpus_embeddings.shape})")
+
     # Embed the corpus and the queries
-    if use_multi_process:
-        pool = model.start_multi_process_pool(
-            target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
-        )
-        corpus_embeddings = model.encode_multi_process(
-            corpus, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
-        )
-        query_embeddings = model.encode_multi_process(
-            queries, pool, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=True
-        )
-        model.stop_multi_process_pool(pool)
-    else:
-        corpus_embeddings = model.encode(
-            corpus, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
-        )
-        query_embeddings = model.encode(
-            queries, batch_size=batch_size, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=True
-        )
+    if corpus_embeddings is None or query_embeddings is None:
+        if use_multi_process:
+            pool = model.start_multi_process_pool(
+                target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
+            )
+            if corpus_embeddings is None:
+                corpus_embeddings = model.encode(
+                    corpus,
+                    pool=pool,
+                    batch_size=batch_size,
+                    normalize_embeddings=True,
+                    convert_to_numpy=True,
+                    show_progress_bar=True,
+                    prompt_name=corpus_prompt_name,
+                    prompt=corpus_prompt,
+                )
+            if query_embeddings is None:
+                query_embeddings = model.encode(
+                    queries,
+                    pool=pool,
+                    batch_size=batch_size,
+                    normalize_embeddings=True,
+                    convert_to_numpy=True,
+                    show_progress_bar=True,
+                    prompt_name=query_prompt_name,
+                    prompt=query_prompt,
+                )
+            model.stop_multi_process_pool(pool)
+        else:
+            if corpus_embeddings is None:
+                corpus_embeddings = model.encode(
+                    corpus,
+                    batch_size=batch_size,
+                    normalize_embeddings=True,
+                    convert_to_numpy=True,
+                    show_progress_bar=True,
+                    prompt_name=corpus_prompt_name,
+                    prompt=corpus_prompt,
+                )
+            if query_embeddings is None:
+                query_embeddings = model.encode(
+                    queries,
+                    batch_size=batch_size,
+                    normalize_embeddings=True,
+                    convert_to_numpy=True,
+                    show_progress_bar=True,
+                    prompt_name=query_prompt_name,
+                    prompt=query_prompt,
+                )
+
+    if cache_folder:
+        if not os.path.exists(query_cache_file):
+            np.save(query_cache_file, query_embeddings)
+            if verbose:
+                print(f"[Cache] Saved query embeddings to {query_cache_file}")
+
+        if not os.path.exists(corpus_cache_file):
+            np.save(corpus_cache_file, corpus_embeddings)
+            if verbose:
+                print(f"[Cache] Saved corpus embeddings to {corpus_cache_file}")
 
     if use_faiss:
         import faiss
@@ -1112,6 +1224,9 @@ def mine_hard_negatives(
     # repeat indices and negative_scores by the number of positives of each query
     indices = torch.cat([indices[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
     negative_scores = torch.cat([negative_scores[idx].repeat(n_positives[idx], 1) for idx in range(n_queries)])
+
+    if verbose:
+        print("Negative candidates mined, preparing dataset...")
 
     if output_format == "triplet":
         # If calling as triples and there are multiple positives per query, we will explode the dataset into triplets.
@@ -1700,10 +1815,12 @@ def get_device_name() -> str:
         str: Device name, like 'cuda:2', 'mps', 'npu', 'hpu', or 'cpu'
     """
     if torch.cuda.is_available():
-        if torch.distributed.is_initialized():
+        if "LOCAL_RANK" in os.environ:
+            local_rank = int(os.environ["LOCAL_RANK"])
+        elif torch.distributed.is_initialized() and torch.cuda.device_count() > torch.distributed.get_rank():
             local_rank = torch.distributed.get_rank()
         else:
-            local_rank = int(os.environ.get("LOCAL_RANK", 0))
+            local_rank = 0
         return f"cuda:{local_rank}"
     elif torch.backends.mps.is_available():
         return "mps"

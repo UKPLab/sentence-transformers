@@ -95,6 +95,8 @@ class NanoBEIREvaluator(SentenceEvaluator):
         aggregate_key (str): The key to use for the aggregated score. Defaults to "mean".
         query_prompts (str | dict[str, str], optional): The prompts to add to the queries. If a string, will add the same prompt to all queries. If a dict, expects that all datasets in dataset_names are keys.
         corpus_prompts (str | dict[str, str], optional): The prompts to add to the corpus. If a string, will add the same prompt to all corpus. If a dict, expects that all datasets in dataset_names are keys.
+        write_predictions (bool): Whether to write the predictions to a JSONL file. Defaults to False.
+            This can be useful for downstream evaluation as it can be used as input to the :class:`~sentence_transformers.sparse_encoder.evaluation.ReciprocalRankFusionEvaluator` that accept precomputed predictions.
 
     Example:
         ::
@@ -206,6 +208,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
         aggregate_key: str = "mean",
         query_prompts: str | dict[str, str] | None = None,
         corpus_prompts: str | dict[str, str] | None = None,
+        write_predictions: bool = False,
     ):
         super().__init__()
         if dataset_names is None:
@@ -247,6 +250,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
             "truncate_dim": truncate_dim,
             "score_functions": score_functions,
             "main_score_function": main_score_function,
+            "write_predictions": write_predictions,
         }
         self.evaluators = [
             self._load_dataset(name, **ir_evaluator_kwargs)
@@ -374,6 +378,9 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
             for k in self.ndcg_at_k:
                 logger.info("NDCG@{}: {:.4f}".format(k, agg_results[f"{name}_ndcg@{k}"]))
+
+            for k in self.map_at_k:
+                logger.info("MAP@{}: {:.4f}".format(k, agg_results[f"{name}_map@{k}"]))
 
         agg_results = self.prefix_name_to_metrics(agg_results, self.name)
         self.store_metrics_in_model_card_data(model, agg_results, epoch, steps)

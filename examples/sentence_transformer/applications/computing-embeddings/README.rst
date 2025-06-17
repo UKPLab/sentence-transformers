@@ -145,7 +145,40 @@ Each model has a maximum sequence length under ``model.max_seq_length``, which i
 Multi-Process / Multi-GPU Encoding
 ----------------------------------
 
-You can encode input texts with more than one GPU (or with multiple processes on a CPU machine). For an example, see: `computing_embeddings_multi_gpu.py <https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/applications/computing-embeddings/computing_embeddings_multi_gpu.py>`_.
-
+You can encode input texts with more than one GPU (or with multiple processes on a CPU machine). It tends to help significantly with large datasets, but the overhead of starting multiple processes can be significant for smaller datasets.
+For an example, see: `computing_embeddings_multi_gpu.py <https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/applications/computing-embeddings/computing_embeddings_multi_gpu.py>`_.
  
-The relevant method is :meth:`~sentence_transformers.SentenceTransformer.start_multi_process_pool`, which starts multiple processes that are used for encoding.
+You can use :meth:`SentenceTransformer.encode() <sentence_transformers.SentenceTransformer.encode>` (or :meth:`SentenceTransformer.encode_query() <sentence_transformers.SentenceTransformer.encode_query>` or :meth:`SentenceTransformer.encode_document() <sentence_transformers.SentenceTransformer.encode_document>`) with either:
+
+- The ``device`` parameter, which can be set to e.g. ``"cuda:0"`` or ``"cpu"`` for single-process computations, but also a list of devices for multi-process or multi-gpu computations, e.g. ``["cuda:0", "cuda:1"]`` or ``["cpu", "cpu", "cpu", "cpu"]``::
+
+        from sentence_transformers import SentenceTransformer
+
+        def main():
+            model = SentenceTransformer("all-MiniLM-L6-v2")
+            # Encode with multiple GPUs
+            embeddings = model.encode(
+                inputs,
+                device=["cuda:0", "cuda:1"]  # or ["cpu", "cpu", "cpu", "cpu"]
+            )
+
+        if __name__ == "__main__":
+            main()
+
+- The ``pool`` parameter can be provided, after calling :meth:`SentenceTransformer.start_multi_process_pool() <sentence_transformers.SentenceTransformer.start_multi_process_pool>` with a list of devices, e.g. ``["cuda:0", "cuda:1"]`` or ``["cpu", "cpu", "cpu", "cpu"]``. The benefit of this is that the pool can be reused for multiple calls to :meth:`SentenceTransformer.encode() <sentence_transformers.SentenceTransformer.encode>`, which is considerably more efficient than starting a new pool for each call::
+
+        from sentence_transformers import SentenceTransformer
+
+        def main():
+            model = SentenceTransformer("all-MiniLM-L6-v2")
+            # Start a multi-process pool with multiple GPUs
+            pool = model.start_multi_process_pool(devices=["cuda:0", "cuda:1"])
+            # Encode with multiple GPUs
+            embeddings = model.encode(inputs, pool=pool)
+            # Don't forget to stop the pool after usage
+            model.stop_multi_process_pool(pool)
+        
+        if __name__ == "__main__":
+            main()
+
+Additionally, you can use the ``chunk_size`` parameter to control the size of the chunks sent to each process. This differs from the ``batch_size`` parameter. For example, with a ``chunk_size=1000`` and a ``batch_size=32``, the input texts will be split into chunks of 1000 texts, and each chunk will be sent to a process and embedded in batches of 32 texts at a time. This can help with memory management and performance, especially for large datasets.

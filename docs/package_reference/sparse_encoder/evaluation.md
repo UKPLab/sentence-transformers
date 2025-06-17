@@ -41,3 +41,7 @@
 ```{eval-rst}
 .. autoclass:: sentence_transformers.sparse_encoder.evaluation.SparseMSEEvaluator
 ```
+
+## ReciprocalRankFusionEvaluator
+```{eval-rst}
+.. autoclass:: sentence_transformers.sparse_encoder.evaluation.ReciprocalRankFusionEvaluator

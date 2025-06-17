@@ -12,6 +12,7 @@ from transformers import __version__ as transformers_version
 from transformers.integrations import WandbCallback
 
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
+from sentence_transformers.models import Router
 from sentence_transformers.sparse_encoder.callbacks.splade_callbacks import SpladeLambdaSchedulerCallback
 from sentence_transformers.sparse_encoder.data_collator import SparseEncoderDataCollator
 from sentence_transformers.sparse_encoder.losses import SparseMultipleNegativesRankingLoss, SpladeLoss
@@ -165,11 +166,24 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         if args.hub_model_id and not model.model_card_data.model_id:
             model.model_card_data.set_model_id(args.hub_model_id)
 
-        if tokenizer is None and isinstance(model.tokenizer, PreTrainedTokenizerBase):
+        if tokenizer is None and hasattr(model, "tokenizer") and isinstance(model.tokenizer, PreTrainedTokenizerBase):
             tokenizer = model.tokenizer
 
         if data_collator is None:
-            data_collator = SparseEncoderDataCollator(tokenize_fn=model.tokenize)
+            data_collator = SparseEncoderDataCollator(
+                tokenize_fn=model.tokenize,
+                router_mapping=args.router_mapping,
+                prompts=args.prompts,
+                all_special_ids=set(tokenizer.all_special_ids) if hasattr(tokenizer, "all_special_ids") else set(),
+            )
+
+            if Router in [module.__class__ for module in model.children()] and not args.router_mapping:
+                raise ValueError(
+                    "You are using a Router module in your model, but you did not provide a `router_mapping` in the "
+                    "training arguments. This means that the Router module will not be able to route the inputs to "
+                    "the correct submodules. Please provide a `router_mapping` that maps column names to routes, "
+                    "e.g. {'column_one': 'query', 'column_two': 'document', 'column_three': 'document'}."
+                )
 
         for dataset_name, dataset in zip(["train", "eval"], [train_dataset, eval_dataset]):
             if isinstance(dataset, IterableDataset) and dataset.column_names is None:
@@ -240,7 +254,8 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         # to avoid having to specify it in the data collator or model's forward
         self.can_return_loss = True
 
-        self._prompt_length_mapping = {}
+        if hasattr(self.data_collator, "include_prompt_lengths"):
+            self.data_collator.include_prompt_lengths = self._include_prompt_length()
 
         self.model: SparseEncoder
         self.args: SparseEncoderTrainingArguments
@@ -285,12 +300,12 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         self.evaluator = evaluator
 
         if self.train_dataset is not None:
-            self.train_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                train_dataset, args.prompts, dataset_name="train"
+            self.train_dataset = self.preprocess_dataset(
+                train_dataset, prompts=args.prompts, router_mapping=args.router_mapping, dataset_name="train"
             )
         if self.eval_dataset is not None:
-            self.eval_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                eval_dataset, args.prompts, dataset_name="eval"
+            self.eval_dataset = self.preprocess_dataset(
+                eval_dataset, prompts=args.prompts, router_mapping=args.router_mapping, dataset_name="eval"
             )
         self.add_model_card_callback(default_args_dict)
 

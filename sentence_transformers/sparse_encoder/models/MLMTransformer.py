@@ -106,7 +106,11 @@ class MLMTransformer(InputModule):
             for key, value in features.items()
             if key in ["input_ids", "attention_mask", "token_type_ids", "inputs_embeds"]
         }
-        features["token_embeddings"] = self.auto_model(**trans_features).logits
+        try:
+            features["token_embeddings"] = self.auto_model(**trans_features).logits
+        except AttributeError:
+            features["token_embeddings"] = self.auto_model(**trans_features)[0]
+
         return features
 
     def tokenize(

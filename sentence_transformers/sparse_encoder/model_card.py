@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sentence_transformers.model_card import SentenceTransformerModelCardCallback, SentenceTransformerModelCardData
-from sentence_transformers.models import Asym, Module
+from sentence_transformers.models import Asym, Module, Router
 from sentence_transformers.sparse_encoder.models import IDF, CSRSparsity, SpladePooling
 
 if TYPE_CHECKING:
@@ -39,6 +39,10 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
             e.g. "semantic search and sparse retrieval".
         tags (`Optional[List[str]]`): A list of tags for the model,
             e.g. ["sentence-transformers", "sparse-encoder"].
+        local_files_only (`bool`): If True, don't attempt to find dataset or base model information on the Hub.Add commentMore actions
+            Defaults to False.
+        generate_widget_examples (`bool`): If True, generate widget examples from the evaluation or training dataset,
+            and compute their similarities. Defaults to True.
 
     .. tip::
 
@@ -81,7 +85,7 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
     model: SparseEncoder | None = field(default=None, init=False, repr=False)
 
     def register_model(self, model: SparseEncoder) -> None:
-        self.model = model
+        super().register_model(model)
 
         if self.task_name is None:
             self.task_name = "semantic search and sparse retrieval"
@@ -90,7 +94,7 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
 
         all_modules = [module.__class__ for module in model.modules() if isinstance(module, Module)]
         model_type = []
-        if Asym in all_modules:
+        if Asym in all_modules or Router in all_modules:
             model_type += ["Asymmetric"]
 
         if IDF in all_modules:
@@ -105,9 +109,6 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
         self.add_tags(map(str.lower, model_type))
         model_type += ["Sparse Encoder"]
         self.model_type = " ".join(model_type)
-
-    def tokenize(self, text: str | list[str]) -> dict[str, Any]:
-        return dict(self.model.tokenizer(text, padding=True, truncation=True, return_tensors="pt"))
 
     def get_model_specific_metadata(self) -> dict[str, Any]:
         similarity_fn_name = "Dot Product"

@@ -51,6 +51,8 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         query_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
         corpus_prompt (str, optional): The prompt to be used when encoding the corpus. Defaults to None.
         corpus_prompt_name (str, optional): The name of the prompt to be used when encoding the corpus. Defaults to None.
+        write_predictions (bool): Whether to write the predictions to a JSONL file. Defaults to False.
+            This can be useful for downstream evaluation as it can be used as input to the :class:`~sentence_transformers.sparse_encoder.evaluation.ReciprocalRankFusionEvaluator` that accept precomputed predictions.
 
     Example:
         ::
@@ -157,6 +159,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         query_prompt_name: str | None = None,
         corpus_prompt: str | None = None,
         corpus_prompt_name: str | None = None,
+        write_predictions: bool = False,
     ) -> None:
         self.max_active_dims = max_active_dims
         self.sparsity_stats = {"query": defaultdict(list), "corpus": defaultdict(list)}
@@ -181,6 +184,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             query_prompt_name=query_prompt_name,
             corpus_prompt=corpus_prompt,
             corpus_prompt_name=corpus_prompt_name,
+            write_predictions=write_predictions,
         )
 
     def _append_csv_headers(self, similarity_fn_names):
@@ -220,19 +224,32 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         return metrics
 
     def compute_metrices(
-        self, model: SparseEncoder, corpus_model=None, corpus_embeddings: torch.Tensor | None = None
+        self,
+        model: SparseEncoder,
+        corpus_model=None,
+        corpus_embeddings: torch.Tensor | None = None,
+        output_path: str | None = None,
     ) -> dict[str, float]:
-        return super().compute_metrices(model=model, corpus_model=corpus_model, corpus_embeddings=corpus_embeddings)
+        return super().compute_metrices(
+            model=model, corpus_model=corpus_model, corpus_embeddings=corpus_embeddings, output_path=output_path
+        )
 
     def embed_inputs(
         self,
         model: SparseEncoder,
         sentences: str | list[str] | np.ndarray,
+        encode_fn_name: str | None = None,
         prompt_name: str | None = None,
         prompt: str | None = None,
         **kwargs,
     ) -> torch.Tensor:
-        embeddings = model.encode(
+        if encode_fn_name is None:
+            encode_fn = model.encode
+        elif encode_fn_name == "query":
+            encode_fn = model.encode_query
+        elif encode_fn_name == "document":
+            encode_fn = model.encode_document
+        embeddings = encode_fn(
             sentences,
             prompt_name=prompt_name,
             prompt=prompt,
@@ -244,7 +261,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             **kwargs,
         )
         stat = model.sparsity(embeddings)
-        prefix = "query" if len(self.queries) == len(sentences) else "corpus"
+        prefix = "query" if encode_fn_name in ["query", None] else "corpus"
         for key, value in stat.items():
             self.sparsity_stats[prefix][key].append(value)
         if prefix == "corpus":

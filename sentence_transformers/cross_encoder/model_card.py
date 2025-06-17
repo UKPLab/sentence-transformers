@@ -44,6 +44,8 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
             e.g. "semantic search and paraphrase mining".
         tags (`Optional[List[str]]`): A list of tags for the model,
             e.g. ["sentence-transformers", "cross-encoder"].
+        local_files_only (`bool`): If True, don't attempt to find dataset or base model information on the Hub.
+            Defaults to False.
 
     .. tip::
 
@@ -76,6 +78,7 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
 
     # Automatically filled by `CrossEncoderModelCardCallback` and the Trainer directly
     predict_example: list[list[str]] | None = field(default=None, init=False)
+    ir_model: bool | None = field(default=True, init=False, repr=False)
 
     # Computed once, always unchanged
     pipeline_tag: str = field(default=None, init=False)
@@ -141,8 +144,13 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
         if self.pipeline_tag is None:
             self.pipeline_tag = "text-ranking" if model.num_labels == 1 else "text-classification"
 
-    def tokenize(self, text: str | list[str]) -> dict[str, Any]:
+    def tokenize(self, text: str | list[str], **kwargs) -> dict[str, Any]:
         return self.model.tokenizer(text)
+
+    def run_usage_snippet(self) -> dict[str, Any]:
+        # At the moment, we don't run the usage snippet for CrossEncoder models,
+        # although we could.
+        return
 
     def get_model_specific_metadata(self) -> dict[str, Any]:
         return {
