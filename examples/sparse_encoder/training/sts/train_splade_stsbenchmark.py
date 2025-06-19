@@ -22,7 +22,6 @@ from sentence_transformers import (
 )
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.sparse_encoder import evaluation, losses
-from sentence_transformers.training_args import BatchSamplers
 
 # Set the log level to INFO to get more information
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
@@ -41,7 +40,7 @@ def main():
         model_card_data=SparseEncoderModelCardData(
             language="en",
             license="apache-2.0",
-            model_name=f"{short_model_name} trained on ",
+            model_name=f"{short_model_name} trained on STS",
         ),
         similarity_fn_name="dot",  # or cosine but anyway in the evaluator cosine is used
     )
@@ -56,11 +55,10 @@ def main():
 
     # 3. Define our training loss.
     lambda_corpus = 3e-3
-
     loss = losses.SpladeLoss(
         model=model,
         loss=losses.SparseCosineSimilarityLoss(model=model),
-        lambda_corpus=lambda_corpus,  # Weight for document loss
+        lambda_corpus=lambda_corpus,  # Weight for FLOPS (sparsity) loss, higher is sparser
         all_docs=True,
     )
 
@@ -83,10 +81,9 @@ def main():
         num_train_epochs=num_epochs,
         per_device_train_batch_size=train_batch_size,
         per_device_eval_batch_size=train_batch_size,
-        learning_rate=4e-6,
+        learning_rate=5e-5,
         fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
         bf16=True,  # Set to True if you have a GPU that supports BF16
-        batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
         eval_steps=100,

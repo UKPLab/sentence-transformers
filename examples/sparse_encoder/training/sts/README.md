@@ -2,11 +2,11 @@
 
 Semantic Textual Similarity (STS) assigns a score on the similarity of two texts. In this example, we use the [stsb](https://huggingface.co/datasets/sentence-transformers/stsb) dataset as training data to fine-tune our sparse encoder model. See the following example scripts how to tune a SparseEncoder, and espacially fine-tune a splade model on STS data:
 
-- **[train_splade_stsbenchmark_sparse.py](train_splade_stsbenchmark_sparse.py)** - This example shows how to fien-tune a splade model already pre-trained by using a pre-trained splade model (e.g. [`splade-cocondenser-ensembledistil`](https://huggingface.co/naver/splade-cocondenser-ensembledistil)) and fine tuning it to get better result on this specific task.
+- **[train_splade_stsbenchmark_sparse.py](train_splade_stsbenchmark_sparse.py)** - This example shows how to fine-tune a splade model already pre-trained by using a pre-trained splade model (e.g. [`splade-cocondenser-ensembledistil`](https://huggingface.co/naver/splade-cocondenser-ensembledistil)) and fine tuning it to get better result on this specific task.
 
 ## Training data
 ```{eval-rst}
-In STS, we have sentence pairs annotated together with a score indicating the similarity. In the original STSbenchmark dataset, the scores range from 0 to 5. They have been normalized to range between 0 and 1 in `stsb <https://huggingface.co/datasets/sentence-transformers/stsb>`_, as that is required for :class:`~sentence_transformers.sparse_encoderlosses.SparseCosineSimilarityLoss` as you can see in the `Loss Overiew <../../../../docs/sparse_encoder/loss_overview.html>`_.
+In STS, we have sentence pairs annotated together with a score indicating the similarity. In the original STSbenchmark dataset, the scores range from 0 to 5. They have been normalized to range between 0 and 1 in `stsb <https://huggingface.co/datasets/sentence-transformers/stsb>`_, as that is required for :class:`~sentence_transformers.sparse_encoder.losses.SparseCosineSimilarityLoss` as you can see in the `Loss Overiew <../../../../docs/sparse_encoder/loss_overview.html>`_.
 ```
 
 Here is a simplified version of our training data:
@@ -32,7 +32,7 @@ print(train_dataset[1])
 # => {'sentence1': 'Another pair', 'sentence2': 'Unrelated sentence', 'label': 0.3}
 ```
 
-In the aforementioned scripts, we directly load the [stsb](https://huggingface.co/datasets/sentence-transformers/stsb) dataset:
+In the aforementioned script, we directly load the [stsb](https://huggingface.co/datasets/sentence-transformers/stsb) dataset:
 
 ```python
 from datasets import load_dataset
