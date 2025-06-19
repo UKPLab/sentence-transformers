@@ -1,17 +1,15 @@
 """
 This scripts demonstrates how to train a Sparse Encoder model for Information Retrieval.
 
-As dataset, we use MSMARCO version with hard negatives mined from BM25 and scored from MiniLM-L-6-v2,
+As dataset, we use MSMARCO version with hard negatives from the bert-ensemble-margin-mse dataset.
 
 As loss function, we use MarginMSELoss in the SpladeLoss.
 """
-# TODO: Find good hparmonization parameters for this training script.
 
 import logging
 import traceback
 
-import torch
-from datasets import load_dataset, load_from_disk
+from datasets import load_dataset
 
 from sentence_transformers import (
     SparseEncoder,
@@ -26,15 +24,14 @@ logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:
 
 
 def main():
-    model_name = "distilbert/distilbert-base-uncased"
+    model_name = "Luyu/co-condenser-marco"
     short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
 
-    train_batch_size = 12
+    train_batch_size = 16
     num_epochs = 1
-    num_hard_negatives = 2
-    lambda_query = 5e-5
-    lambda_corpus = 1e-4
-    learning_rate = 4e-5
+    lambda_query = 0.1
+    lambda_corpus = 0.08
+    learning_rate = 2e-5
 
     # 1. Define our SparseEncoder model
     model = SparseEncoder(
@@ -49,62 +46,27 @@ def main():
     logging.info("Model max length: %s", model.max_seq_length)
 
     # 2. Load the MS MARCO dataset: https://huggingface.co/datasets/sentence-transformers/msmarco
-    logging.info("Read train dataset")
-    try:
-        train_dataset = load_from_disk(f"datasets/ms-marco-train-hard-negatives-{num_hard_negatives}_100_000")
-        eval_dataset = load_from_disk(f"datasets/ms-marco-eval-hard-negatives-{num_hard_negatives}_100_000")
-    except FileNotFoundError:
-        logging.info("The dataset has not been fully stored as texts on disk yet. We will do this now.")
-        passage_dataset = load_dataset("sentence-transformers/msmarco-corpus", "passage", split="train")
-        pid_to_passage = dict(zip(passage_dataset["pid"], passage_dataset["text"]))
-        query_dataset = load_dataset("sentence-transformers/msmarco-corpus", "query", split="train")
-        qid_to_query = dict(zip(query_dataset["qid"], query_dataset["text"]))
-        dataset = load_dataset(
-            "sparse-embedding/msmarco-hard-negatives-cross-encoder-ms-marco-MiniLM-L-6-v2-scores",
-            split="train",
-        ).select(range(100_000))
+    dataset_size = 100_000  # We only use the first 100k samples for training
+    logging.info("The dataset has not been fully stored as texts on disk yet. We will do this now.")
+    corpus = load_dataset("sentence-transformers/msmarco", "corpus", split="train")
+    corpus = dict(zip(corpus["passage_id"], corpus["passage"]))
+    queries = load_dataset("sentence-transformers/msmarco", "queries", split="train")
+    queries = dict(zip(queries["query_id"], queries["query"]))
+    dataset = load_dataset("sentence-transformers/msmarco", "bert-ensemble-margin-mse", split="train")
+    dataset = dataset.select(range(dataset_size))
 
-        def id_to_text_map(batch):
-            negative_ids = batch["negative_ids"]  # (batch_size, list of negative ids)
-            negative_scores = batch["negative_scores"]  # (batch_size, list of negative scores)
+    def id_to_text_map(batch):
+        return {
+            "query": [queries[qid] for qid in batch["query_id"]],
+            "positive": [corpus[pid] for pid in batch["positive_id"]],
+            "negative": [corpus[pid] for pid in batch["negative_id"]],
+            "score": batch["score"],
+        }
 
-            mapped_negatives = []
-            mapped_negatives_scores = torch.empty((len(negative_ids), num_hard_negatives))
-
-            for neg_ids, neg_scores in zip(negative_ids, negative_scores):
-                neg_scores = torch.tensor(neg_scores)
-                # Get indices of sorted negatives (highest score first)
-                sorted_indices = torch.argsort(neg_scores, descending=True)[:num_hard_negatives]
-
-                mapped_neg_texts = [pid_to_passage.get(pid, "") for pid in [neg_ids[i] for i in sorted_indices]]
-
-                mapped_negatives.append(mapped_neg_texts)
-                mapped_negatives_scores[len(mapped_negatives) - 1] = neg_scores[sorted_indices]
-
-            return {
-                "query": [qid_to_query.get(qid, "") for qid in batch["query_id"]],
-                "positive": [pid_to_passage.get(pid, "") for pid in batch["positive_id"]],
-                **{
-                    f"negative_{i + 1}": [neg_list[i] for neg_list in mapped_negatives]
-                    for i in range(num_hard_negatives)
-                },
-                "label": torch.tensor(batch["positive_score"]).unsqueeze(1) - mapped_negatives_scores,
-            }
-
-        dataset = dataset.map(id_to_text_map, batched=True, remove_columns=dataset.column_names)
-        dataset = dataset.train_test_split(test_size=1_000, seed=12)
-        train_dataset = dataset["train"]
-        eval_dataset = dataset["test"]
-
-        train_dataset.save_to_disk(f"datasets/ms-marco-train-hard-negatives-{num_hard_negatives}_100_000")
-        eval_dataset.save_to_disk(f"datasets/ms-marco-eval-hard-negatives-{num_hard_negatives}_100_000")
-
-        logging.info(
-            "The dataset has now been stored as texts on disk. The script will now stop to ensure that memory is freed. "
-            "Please restart the script to start training."
-        )
-        quit()
-
+    dataset = dataset.map(id_to_text_map, batched=True, remove_columns=["query_id", "positive_id", "negative_id"])
+    dataset = dataset.train_test_split(test_size=10_000)
+    train_dataset = dataset["train"]
+    eval_dataset = dataset["test"]
     logging.info(train_dataset)
 
     # 3. Define our training loss
@@ -118,7 +80,7 @@ def main():
     )
 
     # 5. Define the training arguments
-    run_name = f"{short_model_name}-msmarco-hard-negatives"
+    run_name = f"splade-{short_model_name}-msmarco-hard-negatives"
     args = SparseEncoderTrainingArguments(
         # Required parameter:
         output_dir=f"models/{run_name}",
@@ -127,17 +89,18 @@ def main():
         per_device_train_batch_size=train_batch_size,
         per_device_eval_batch_size=train_batch_size,
         learning_rate=learning_rate,
+        warmup_ratio=0.1,
         load_best_model_at_end=True,
         metric_for_best_model="eval_NanoBEIR_mean_dot_ndcg@10",
         fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
         bf16=True,  # Set to True if you have a GPU that supports BF16
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
-        eval_steps=1650,
+        eval_steps=500,
         save_strategy="steps",
-        save_steps=1650,
+        save_steps=500,
         save_total_limit=2,
-        logging_steps=200,
+        logging_steps=100,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
         seed=42,
     )
