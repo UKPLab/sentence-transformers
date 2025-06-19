@@ -1,4 +1,4 @@
-# Sparse Retrievers for Information Retrieval
+# Information Retrieval
 
 ```{eval-rst}
 Sparse retriever models are often SPLADE models that map queries and documents to high-dimensional sparse vectors. Given a query, relevant documents are retrieved by computing the dot-product (or cosine similarity) between the query's sparse vector and the sparse vectors of all documents in a collection. This process is often made highly efficient using inverted indexes and algorithms to speed up the inference.

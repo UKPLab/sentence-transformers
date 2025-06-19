@@ -1,4 +1,4 @@
-# Semantic Textual Similarity with Sparse Encoders
+# Semantic Textual Similarity
 
 Semantic Textual Similarity (STS) assigns a score on the similarity of two texts. In this example, we use the [stsb](https://huggingface.co/datasets/sentence-transformers/stsb) dataset as training data to fine-tune our sparse encoder model. See the following example scripts how to tune a SparseEncoder, and espacially fine-tune a splade model on STS data:
 

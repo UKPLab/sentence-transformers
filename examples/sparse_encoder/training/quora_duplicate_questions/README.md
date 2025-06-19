@@ -1,4 +1,4 @@
-# Quora Duplicate Questions with Sparse Encoders
+# Quora Duplicate Questions
 
 This folder contains a script that demonstrate how to train Sparse Encoders for **Information Retrieval**. As a simple example, we will use the [Quora Duplicate Questions dataset](https://huggingface.co/datasets/sentence-transformers/quora-duplicates). It contains over 500,000 sentences with over 400,000 pairwise annotations whether two questions are a duplicate or not.
 
