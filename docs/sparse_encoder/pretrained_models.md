@@ -57,13 +57,14 @@ These models represent the backbone of sparse neural retrieval:
 Inference-free Splade uses for the documents part a traditional Splade architecture and for the query part is an :class:`~sentence_transformers.sparse_encoder.models.IDF` module, which just returns a pre-computed score for every token in the query. So for this models we loose the query-expension but we have now no models inference at the query time which is very valuable for speed optimization.
 ```
 
-| Model Name | MRR@10 | avg nDCG@10 (BEIR-13) |
-|------------|:------:|:---------------------:|
-| [opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill](https://huggingface.co/opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill) | NA | **51.7** |
-| [opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill](https://huggingface.co/opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill) | NA | 50.4 |
-| [opensearch-project/opensearch-neural-sparse-encoding-doc-v2-mini](https://huggingface.co/opensearch-project/opensearch-neural-sparse-encoding-doc-v2-mini) | NA | 49.7 |
-| [opensearch-project/opensearch-neural-sparse-encoding-doc-v1](https://huggingface.co/opensearch-project/opensearch-neural-sparse-encoding-doc-v1) | NA | 49.0 |
-| [naver/splade-v3-doc](https://huggingface.co/naver/splade-v3-doc) | 37.8 | 47.0 |
+| Model Name | avg nDCG@10 (BEIR-13) |
+|------------|:---------------------:|
+| [opensearch-project/opensearch-neural-sparse-encoding-doc-v3-gte](https://huggingface.co/opensearch-project/opensearch-neural-sparse-encoding-doc-v3-gte) | **54.6** |
+| [opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill](https://huggingface.co/opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill) | 51.7 |
+| [opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill](https://huggingface.co/opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill) | 50.4 |
+| [opensearch-project/opensearch-neural-sparse-encoding-doc-v2-mini](https://huggingface.co/opensearch-project/opensearch-neural-sparse-encoding-doc-v2-mini) | 49.7 |
+| [opensearch-project/opensearch-neural-sparse-encoding-doc-v1](https://huggingface.co/opensearch-project/opensearch-neural-sparse-encoding-doc-v1) | 49.0 |
+| [naver/splade-v3-doc](https://huggingface.co/naver/splade-v3-doc) | 47.0 |
 
 ## Essential Resources
 
