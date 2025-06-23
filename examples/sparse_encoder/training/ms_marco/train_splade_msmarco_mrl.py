@@ -67,7 +67,6 @@ def main():
     dataset = dataset.train_test_split(test_size=10_000)
     train_dataset = dataset["train"]
     eval_dataset = dataset["test"]
-    print(train_dataset[:5])
     logging.info(train_dataset)
 
     # 3. Define our training loss
