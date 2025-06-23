@@ -459,6 +459,13 @@ class NanoBEIREvaluator(SentenceEvaluator):
         if error_msg:
             raise ValueError(error_msg.strip())
 
+    def store_metrics_in_model_card_data(self, *args, **kwargs):
+        # Only store metrics in the model card data if there is more than one dataset.
+        # Otherwise the e.g. mean scores for NanoBEIR are the same as the scores for
+        # the single dataset, and we'd end up with duplicate entries.
+        if len(self.dataset_names) > 1:
+            super().store_metrics_in_model_card_data(*args, **kwargs)
+
     def get_config_dict(self) -> dict[str, Any]:
         config_dict = {"dataset_names": self.dataset_names}
         config_dict_candidate_keys = ["truncate_dim", "query_prompts", "corpus_prompts"]
