@@ -109,7 +109,7 @@ class CSRSparsity(Module):
         x, mu, std = self.LN(x)
         return x, dict(mu=mu, std=std)
 
-    def top_k(self, x: torch.Tensor, k=None) -> torch.Tensor:
+    def top_k(self, x: torch.Tensor, k: int = None, compute_aux: bool = True) -> torch.Tensor:
         """
         :param x: input data (shape: [batch, input_dim])
         :return: autoencoder latents (shape: [batch, hidden_dim])
@@ -131,7 +131,8 @@ class CSRSparsity(Module):
         self.stats_last_nonzero += 1
         ## end stats ##
 
-        if self.k_aux:
+        latents_auxk = None
+        if self.k_aux and compute_aux:
             aux_topk = torch.topk(
                 input=self.auxk_mask_fn(x),
                 k=self.k_aux,
@@ -154,9 +155,19 @@ class CSRSparsity(Module):
             ret = ret * info["std"] + info["mu"]
         return ret
 
-    def forward(self, features: torch.Tensor, max_active_dims: int | None = None) -> torch.Tensor:
+    def forward(
+        self, features: dict[str, torch.Tensor], max_active_dims: int | None = None
+    ) -> dict[str, torch.Tensor]:
         k = max_active_dims if max_active_dims is not None else self.k
         x = features["sentence_embedding"]
+
+        # If the model is in inference mode, we don't need to e.g. compute the 4k, auxk, or apply the decoder
+        if torch.is_inference_mode_enabled():
+            x, info = self.preprocess(x)
+            latents_pre_act = self.encode_pre_act(x)
+            latents_k, _ = self.top_k(latents_pre_act, k, compute_aux=False)
+            features["sentence_embedding"] = latents_k
+            return features
 
         x, info = self.preprocess(x)
         latents_pre_act = self.encode_pre_act(x)
@@ -179,7 +190,7 @@ class CSRSparsity(Module):
                 "decoded_embedding_k": recons_k,
                 "decoded_embedding_4k": recons_4k,
                 "decoded_embedding_aux": recons_aux,
-                "decoded_embedding_k_pre_bias": recons_k + self.pre_bias,
+                "decoded_embedding_k_pre_bias": recons_k - self.pre_bias,
             }
         )
         features["sentence_embedding"] = latents_k

@@ -823,6 +823,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         **kwargs,
     ) -> Tensor: ...
 
+    @torch.inference_mode()
     def encode(
         self,
         sentences: str | list[str] | np.ndarray,
