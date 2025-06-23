@@ -18,7 +18,11 @@ def normalized_mean_squared_error(reconstruction: torch.Tensor, original_input: 
     :param original_input: input of Autoencoder.encode (shape: [batch, n_inputs])
     :return: normalized mean squared error (shape: [1])
     """
-    return (((reconstruction - original_input) ** 2).mean(dim=1) / (original_input**2).mean(dim=1)).mean()
+    original_input_mean = original_input.mean(dim=0)
+    loss = F.mse_loss(reconstruction, original_input) / F.mse_loss(
+        original_input_mean[None, :].broadcast_to(original_input.shape), original_input
+    )
+    return loss
 
 
 class CSRReconstructionLoss(nn.Module):
@@ -91,7 +95,7 @@ class CSRReconstructionLoss(nn.Module):
             L_4k = F.mse_loss(x, recons_4k)
 
             # L_aux = ||e - ê||₂²
-            L_aux = normalized_mean_squared_error(recons_aux, x - reconsk_pre_bias)
+            L_aux = normalized_mean_squared_error(recons_aux, x - reconsk_pre_bias.detach())
 
             # Accumulate losses
             total_L_k += L_k
@@ -99,16 +103,18 @@ class CSRReconstructionLoss(nn.Module):
             total_L_aux += L_aux
 
         # Average losses over batch
-        batch_size = len(outputs)
-        if batch_size > 0:
-            total_L_k /= batch_size
-            total_L_4k /= batch_size
-            total_L_aux /= batch_size
+        num_columns = len(outputs)
+        if num_columns > 0:
+            total_L_k /= num_columns
+            total_L_4k /= num_columns
+            total_L_aux /= num_columns
 
-        # Total loss: L_recon = L(k) + L(4k)/8 + β*L_aux
-        total_loss = total_L_k + total_L_4k / 8 + self.beta * total_L_aux
-
-        return total_loss
+        # return the total losses as a dictionary, they'll be summed for a final reconstruction loss
+        return {
+            "reconstruction_loss_k": total_L_k,
+            "reconstruction_loss_4k": total_L_4k / 8.0,
+            "reconstruction_loss_aux": self.beta * total_L_aux,
+        }
 
     def get_config_dict(self):
         """
@@ -139,7 +145,7 @@ class CSRLoss(nn.Module):
             loss: The principal loss function to use can be any of the SparseEncoder losses except flops loss and CSRReconstruction loss.
                 If None, the default loss is used, which is the SparseMultipleNegativesRankingLoss.
             beta: Weight for the L_aux component in the reconstruction loss. Default is 0.1.
-            gamma: Weight for the main loss component (MRL by default). Default is 1.0.
+            gamma: Weight for the main loss component (MNRL a.k.a. InfoNCE by default). Default is 1.0.
 
         References:
             - For more details, see the paper "Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation"
@@ -187,9 +193,14 @@ class CSRLoss(nn.Module):
         outputs = [self.model(sentence_feature) for sentence_feature in sentence_features]
         sentence_embedding = [output["sentence_embedding"] for output in outputs]
 
-        losses = {}
-        losses["reconstruction_loss"] = self.reconstruction_loss.compute_loss_from_embeddings(outputs)
-        losses["base_loss"] = self.loss.compute_loss_from_embeddings(sentence_embedding, labels) * self.gamma
+        losses = self.reconstruction_loss.compute_loss_from_embeddings(outputs)
+        base_loss = self.loss.compute_loss_from_embeddings(sentence_embedding, labels)
+        # Handle the two cases: dictionary of losses or a single loss value
+        if isinstance(base_loss, dict):
+            for key, value in base_loss.items():
+                losses[key] = value * self.gamma
+        else:
+            losses["base_loss"] = base_loss * self.gamma
 
         return losses
 

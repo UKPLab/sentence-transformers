@@ -576,17 +576,18 @@ class SparseEncoder(SentenceTransformer):
             features = batch_to_device(features, self.device)
             features.update(extra_features)
 
-            with torch.no_grad():
+            with torch.inference_mode():
                 embeddings = self.forward(features, **kwargs)["sentence_embedding"].detach()
 
                 if max_active_dims:
                     embeddings = select_max_active_dims(embeddings, max_active_dims=max_active_dims)
-                if convert_to_sparse_tensor:
-                    embeddings = embeddings.to_sparse()
-                if save_to_cpu:
-                    embeddings = embeddings.cpu()
 
-                all_embeddings.extend(embeddings)
+            if convert_to_sparse_tensor:
+                embeddings = embeddings.to_sparse()
+            if save_to_cpu:
+                embeddings = embeddings.cpu()
+
+            all_embeddings.extend(embeddings)
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
@@ -994,7 +995,7 @@ class SparseEncoder(SentenceTransformer):
                     break
         if has_modules:
             logger.info(
-                "A SentenceTransformer model found, using Sentence Transformer modules with CSR sparsity modules on Top"
+                "A SentenceTransformer model found, using Sentence Transformer modules with CSR sparsity modules on top"
             )
             modules, self.module_kwargs = self._load_sbert_model(
                 model_name_or_path,
