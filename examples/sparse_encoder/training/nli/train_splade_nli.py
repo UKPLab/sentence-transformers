@@ -43,7 +43,7 @@ def main():
             license="apache-2.0",
             model_name=f"{short_model_name} trained on Natural Language Inference (NLI)",
         ),
-        similarity_fn_name="dot",  # or cosine but anyway in the evaluator cosine is used
+        similarity_fn_name="dot",  # or cosine but dot tends to be stronger
     )
     model.max_seq_length = 256  # Set the max sequence length to 256 for the training
     logging.info("Model max length: %s", model.max_seq_length)
