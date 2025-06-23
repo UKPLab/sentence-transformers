@@ -60,20 +60,26 @@ class IDF(InputModule):
         self.max_seq_length = self.tokenizer.model_max_length
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        input_ids = features["input_ids"]
+        input_ids, attention_mask = features["input_ids"], features["attention_mask"]
         batch_size = input_ids.shape[0]
 
         multi_hot = torch.zeros(
             batch_size, self.word_embedding_dimension, dtype=torch.float32, device=input_ids.device
         )
         batch_indices = torch.arange(batch_size, device=input_ids.device).unsqueeze(-1)
+
+        valid_tokens = attention_mask == 1
+        valid_batch_indices = batch_indices.expand_as(input_ids)[valid_tokens]
+        valid_input_ids = input_ids[valid_tokens]
+
         # If this module is used after a module has already computed a sentence embedding,
         # then we simply use the existing sentence embedding value instead of setting it to 1 before
         # multiplying with the IDF weight.
         if "sentence_embedding" in features:
-            multi_hot[batch_indices, input_ids] = features["sentence_embedding"][batch_indices, input_ids]
+            values = features["sentence_embedding"][valid_batch_indices, valid_input_ids]
+            multi_hot[valid_batch_indices, valid_input_ids] = values
         else:
-            multi_hot[batch_indices, input_ids] = 1
+            multi_hot[valid_batch_indices, valid_input_ids] = 1
 
         sentence_embedding = multi_hot * self.weight
 
