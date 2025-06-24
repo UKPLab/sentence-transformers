@@ -184,8 +184,8 @@ class IDF(InputModule):
         return model
 
     def __repr__(self) -> str:
-        tokenizer_info = f", tokenizer: {self.tokenizer.__class__.__name__}"
-        return f"IDF ({self.get_config_dict()}, dim:{self.word_embedding_dimension}{tokenizer_info})"
+        tokenizer_info = f", tokenizer={self.tokenizer.__class__.__name__}"
+        return f"IDF({self.get_config_dict()}, dim={self.word_embedding_dimension}{tokenizer_info})"
 
     def get_sentence_embedding_dimension(self) -> int:
         return self.word_embedding_dimension
