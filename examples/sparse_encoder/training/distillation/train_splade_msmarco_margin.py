@@ -1,12 +1,9 @@
 """
-This example trains a SparseEncoder for the GooAQ dataset.
-The training script fine-tunes a SparseEncoder using the Splade loss function for retrieval.
-It loads a subset of the GooAQ dataset, splits it into training and evaluation subsets,
-and trains the model as a retriever. After training, the model is evaluated and saved locally,
-with an optional step to push the trained model to the Hugging Face Hub.
+This scripts demonstrates how to train a Sparse Encoder model for Information Retrieval.
 
-Usage:
-python train_splade_gooaq.py
+As dataset, we use MSMARCO version with hard negatives from the bert-ensemble-margin-mse dataset.
+
+As loss function, we use MarginMSELoss in the SpladeLoss.
 """
 
 import logging
@@ -21,76 +18,87 @@ from sentence_transformers import (
     SparseEncoderTrainingArguments,
 )
 from sentence_transformers.sparse_encoder import evaluation, losses
-from sentence_transformers.training_args import BatchSamplers
 
 # Set the log level to INFO to get more information
 logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
 
 def main():
-    model_name = "distilbert/distilbert-base-uncased"
+    model_name = "Luyu/co-condenser-marco"
+    short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
 
-    train_batch_size = 32
+    train_batch_size = 16
     num_epochs = 1
+    lambda_query = 0.1
+    lambda_corpus = 0.08
+    learning_rate = 2e-5
 
-    # 1a. Load a model to finetune with 1b. (Optional) model card data
+    # 1. Define our SparseEncoder model
     model = SparseEncoder(
         model_name,
         model_card_data=SparseEncoderModelCardData(
             language="en",
             license="apache-2.0",
-            model_name="splade-distilbert-base-uncased trained on GooAQ",
+            model_name=f"splade-{short_model_name} trained on MS MARCO hard negatives with distillation",
         ),
     )
     model.max_seq_length = 256  # Set the max sequence length to 256 for the training
     logging.info("Model max length: %s", model.max_seq_length)
 
-    # 2a. Load the GooAQ dataset: https://huggingface.co/datasets/sentence-transformers/gooaq
-    logging.info("Read the gooaq training dataset")
-    full_dataset = load_dataset("sentence-transformers/gooaq", split="train").select(range(100_000))
-    dataset_dict = full_dataset.train_test_split(test_size=1_000, seed=12)
-    train_dataset = dataset_dict["train"]
-    eval_dataset = dataset_dict["test"]
+    # 2. Load the MS MARCO dataset: https://huggingface.co/datasets/sentence-transformers/msmarco
+    dataset_size = 100_000  # We only use the first 100k samples for training
+    logging.info("The dataset has not been fully stored as texts on disk yet. We will do this now.")
+    corpus = load_dataset("sentence-transformers/msmarco", "corpus", split="train")
+    corpus = dict(zip(corpus["passage_id"], corpus["passage"]))
+    queries = load_dataset("sentence-transformers/msmarco", "queries", split="train")
+    queries = dict(zip(queries["query_id"], queries["query"]))
+    dataset = load_dataset("sentence-transformers/msmarco", "bert-ensemble-margin-mse", split="train")
+    dataset = dataset.select(range(dataset_size))
+
+    def id_to_text_map(batch):
+        return {
+            "query": [queries[qid] for qid in batch["query_id"]],
+            "positive": [corpus[pid] for pid in batch["positive_id"]],
+            "negative": [corpus[pid] for pid in batch["negative_id"]],
+            "score": batch["score"],
+        }
+
+    dataset = dataset.map(id_to_text_map, batched=True, remove_columns=["query_id", "positive_id", "negative_id"])
+    dataset = dataset.train_test_split(test_size=10_000)
+    train_dataset = dataset["train"]
+    eval_dataset = dataset["test"]
     logging.info(train_dataset)
-    logging.info(eval_dataset)
 
-    # 3. Define our training loss.
-    lambda_query = 5e-5
-    lambda_corpus = 3e-5
-
+    # 3. Define our training loss
     loss = losses.SpladeLoss(
-        model=model,
-        loss=losses.SparseMultipleNegativesRankingLoss(model=model),
-        lambda_query=lambda_query,  # Weight for query loss
-        lambda_corpus=lambda_corpus,  # Weight for document loss
+        model, losses.SparseMarginMSELoss(model), lambda_query=lambda_query, lambda_corpus=lambda_corpus
     )
 
-    # 4. Define evaluator. We use the SparseNanoBEIREvaluator, which is a light-weight evaluator
+    # 4. Define the evaluator. We use the SparseNanoBEIREvaluator, which is a light-weight evaluator for English
     evaluator = evaluation.SparseNanoBEIREvaluator(
-        dataset_names=["msmarco", "nfcorpus", "nq"], show_progress_bar=True, batch_size=train_batch_size
+        dataset_names=["msmarco", "nfcorpus", "nq"], batch_size=train_batch_size
     )
 
     # 5. Define the training arguments
-    short_model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
-    run_name = f"splade-{short_model_name}-gooaq"
-    training_args = SparseEncoderTrainingArguments(
+    run_name = f"splade-{short_model_name}-msmarco-hard-negatives"
+    args = SparseEncoderTrainingArguments(
         # Required parameter:
         output_dir=f"models/{run_name}",
         # Optional training parameters:
         num_train_epochs=num_epochs,
         per_device_train_batch_size=train_batch_size,
         per_device_eval_batch_size=train_batch_size,
-        learning_rate=2e-5,
-        fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
-        bf16=True,  # Set to True if you have a GPU that supports BF16
-        batch_sampler=BatchSamplers.NO_DUPLICATES,  # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
+        learning_rate=learning_rate,
+        warmup_ratio=0.1,
         load_best_model_at_end=True,
         metric_for_best_model="eval_NanoBEIR_mean_dot_ndcg@10",
+        fp16=False,  # Set to False if you get an error that your GPU can't run on FP16
+        bf16=True,  # Set to True if you have a GPU that supports BF16
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
-        eval_steps=610,
+        eval_steps=500,
         save_strategy="steps",
-        save_steps=610,
+        save_steps=500,
         save_total_limit=2,
         logging_steps=100,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
@@ -100,7 +108,7 @@ def main():
     # 6. Create the trainer & start training
     trainer = SparseEncoderTrainer(
         model=model,
-        args=training_args,
+        args=args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         loss=loss,
